@@ -1,0 +1,13 @@
+[package]
+name = "atlas-hcm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+atlas-shared = { path = "../atlas-shared" }
+atlas-core = { path = "../atlas-core" }
+serde_json = { workspace = true }
+
+# Add domain-specific dependencies here

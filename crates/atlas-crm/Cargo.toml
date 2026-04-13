@@ -1,0 +1,10 @@
+[package]
+name = "atlas-crm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+atlas-shared = { path = "../atlas-shared" }
+atlas-core = { path = "../atlas-core" }

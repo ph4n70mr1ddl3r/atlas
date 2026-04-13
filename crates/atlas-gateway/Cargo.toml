@@ -1,0 +1,51 @@
+[package]
+name = "atlas-gateway"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "atlas-gateway"
+path = "src/main.rs"
+
+[dependencies]
+atlas-shared = { path = "../atlas-shared" }
+atlas-core = { path = "../atlas-core" }
+
+# Web
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true, features = ["timeout"] }
+hyper = { workspace = true }
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Database
+sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
+
+# Auth
+jsonwebtoken = { workspace = true }
+argon2 = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+once_cell = { workspace = true }
+rand = { workspace = true }
+parking_lot = "0.12"
+
+# Validation
+validator = { workspace = true }
+regex = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+reqwest = "0.12"

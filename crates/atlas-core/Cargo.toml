@@ -1,0 +1,59 @@
+[package]
+name = "atlas-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+atlas-shared = { path = "../atlas-shared" }
+
+# Web
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+hyper = { workspace = true }
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+
+# Auth
+jsonwebtoken = { workspace = true }
+argon2 = { workspace = true }
+rand = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+once_cell = { workspace = true }
+dashmap = { workspace = true }
+parking_lot = "0.12"
+tracing = { workspace = true }
+
+# Validation
+validator = { workspace = true }
+regex = { workspace = true }
+
+# Event bus
+nats = { workspace = true }
+
+# Template
+minijinja = { workspace = true }
+
+# Expression parsing
+pest = { workspace = true }
+pest_derive = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.12"

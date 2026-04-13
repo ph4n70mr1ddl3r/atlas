@@ -1,0 +1,30 @@
+# Rust
+/target/
+**/target/
+
+# SQLx offline cache
+sqlx-data.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Node / Frontend
+frontend/node_modules/
+frontend/**/dist/
+frontend/**/.turbo/
+
+# Logs
+*.log

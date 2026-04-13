@@ -18,6 +18,9 @@ echo "  ✓ Seed configuration (002_seed_config.sql)"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/003_entity_tables.sql
 echo "  ✓ Entity tables (003_entity_tables.sql)"
 
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/004_fix_version_type.sql
+echo "  ✓ Fix version type (004_fix_version_type.sql)"
+
 # Verify entities loaded
 echo ""
 echo "📊 Verifying entities..."

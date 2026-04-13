@@ -94,7 +94,7 @@ CREATE TABLE _atlas.config_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entity_name VARCHAR(100),
     config_name VARCHAR(100),
-    version INT NOT NULL,
+    version BIGINT NOT NULL,
     config JSONB NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
     created_by UUID REFERENCES _atlas.users(id)

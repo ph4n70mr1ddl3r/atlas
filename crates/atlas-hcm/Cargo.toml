@@ -9,5 +9,8 @@ license.workspace = true
 atlas-shared = { path = "../atlas-shared" }
 atlas-core = { path = "../atlas-core" }
 serde_json = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
 
 # Add domain-specific dependencies here

@@ -1,9 +1,9 @@
-//! Atlas Projects
+//! Atlas Projects - Project Management
 //! 
-//! Project management, tasks, resources, timesheets.
+//! Provides project planning, task tracking, timesheet management,
+//! milestone tracking, and resource allocation.
 
 pub mod entities;
 pub mod services;
 
-pub use entities::*;
-pub use services::*;
+pub use services::{ProjectService, TaskService};

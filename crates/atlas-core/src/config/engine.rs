@@ -4,7 +4,6 @@ use super::{ConfigValue, ConfigChange, ConfigWatcher, ConfigWatcherRegistry};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::warn;
 use once_cell::sync::Lazy;
 
 /// Global config registry

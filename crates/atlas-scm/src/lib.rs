@@ -1,9 +1,9 @@
 //! Atlas SCM - Supply Chain Management
 //! 
-//! Inventory, suppliers, purchase orders, warehouse management.
+//! Provides inventory management, supplier management, purchase and sales
+//! order processing, and warehouse operations.
 
 pub mod entities;
 pub mod services;
 
-pub use entities::*;
-pub use services::*;
+pub use services::{InventoryService, SupplierService};

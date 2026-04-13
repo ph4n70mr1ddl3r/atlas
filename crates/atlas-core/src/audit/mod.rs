@@ -6,7 +6,7 @@ mod engine;
 mod repository;
 
 pub use engine::AuditEngine;
-pub use repository::AuditRepository;
+pub use repository::{AuditRepository, PostgresAuditRepository};
 
 use atlas_shared::{AuditEntry, AuditAction, RecordId, UserId};
 use chrono::{DateTime, Utc};

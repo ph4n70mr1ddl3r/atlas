@@ -22,6 +22,46 @@ CREATE TABLE IF NOT EXISTS hcm_departments (
 
 CREATE INDEX IF NOT EXISTS idx_hcm_departments_code ON hcm_departments(code);
 
+CREATE TABLE IF NOT EXISTS hcm_positions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    created_by UUID,
+    updated_by UUID,
+    deleted_at TIMESTAMPTZ,
+    title TEXT NOT NULL,
+    code TEXT NOT NULL,
+    department_id UUID REFERENCES hcm_departments(id),
+    level VARCHAR(50),
+    min_salary NUMERIC(18,2),
+    max_salary NUMERIC(18,2),
+    is_active BOOLEAN DEFAULT true
+);
+
+CREATE INDEX IF NOT EXISTS idx_hcm_positions_code ON hcm_positions(code);
+
+CREATE TABLE IF NOT EXISTS org_entities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    created_by UUID,
+    updated_by UUID,
+    deleted_at TIMESTAMPTZ,
+    name TEXT NOT NULL,
+    code TEXT NOT NULL,
+    type VARCHAR(50),
+    tax_id TEXT,
+    phone VARCHAR(50),
+    email VARCHAR(255),
+    website VARCHAR(2048),
+    address JSONB,
+    is_active BOOLEAN DEFAULT true
+);
+
+CREATE INDEX IF NOT EXISTS idx_org_entities_code ON org_entities(code);
+
 CREATE TABLE IF NOT EXISTS hcm_employees (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID,
@@ -30,7 +70,7 @@ CREATE TABLE IF NOT EXISTS hcm_employees (
     created_by UUID,
     updated_by UUID,
     deleted_at TIMESTAMPTZ,
-    workflow_state VARCHAR(100) DEFAULT 'active',
+    workflow_state VARCHAR(100) DEFAULT 'onboarding',
     employee_number TEXT,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,

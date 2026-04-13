@@ -6,9 +6,8 @@ use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
-use serde::{Deserialize, Serialize};
 
-use super::{WorkflowState, StateHistoryEntry};
+use super::WorkflowState;
 
 /// Repository trait for workflow state persistence
 #[async_trait]

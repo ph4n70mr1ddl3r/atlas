@@ -9,7 +9,7 @@ mod builder;
 mod query;
 
 pub use engine::SchemaEngine;
-pub use repository::SchemaRepository;
+pub use repository::{SchemaRepository, PostgresSchemaRepository};
 pub use builder::{SchemaBuilder, WorkflowBuilder};
 pub use query::DynamicQuery;
 

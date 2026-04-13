@@ -24,7 +24,7 @@ struct JoinDef {
 }
 
 #[derive(Clone)]
-enum JoinType {
+pub enum JoinType {
     Inner,
     Left,
     Right,

@@ -2,8 +2,6 @@
 //!
 //! Built-in validation rules.
 
-use atlas_shared::ValidationRule;
-
 /// Built-in validation rule types
 pub fn builtin_rules() -> Vec<(&'static str, &'static str)> {
     vec![

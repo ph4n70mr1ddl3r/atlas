@@ -59,7 +59,7 @@ regex = "1.0"
 validator = { version = "0.18", features = ["derive"] }
 
 # Event bus
-nats = "0.26"
+async-nats = "0.35"
 
 # Template engine
 minijinja = "1.0"

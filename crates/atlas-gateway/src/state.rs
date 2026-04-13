@@ -5,8 +5,9 @@
 use atlas_core::{
     SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine, 
     SecurityEngine, AuditEngine,
-    MockSchemaRepository, MockAuditRepository,
     eventbus::NatsEventBus,
+    schema::PostgresSchemaRepository,
+    audit::PostgresAuditRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -46,35 +47,26 @@ impl AppState {
             .connect(&database_url)
             .await
             .map_err(|e| {
-                tracing::warn!("Database connection failed: {}. Using mock repositories.", e);
-                // Don't fail - use mocks below
-                e
-            })
-            .unwrap_or_else(|_| {
-                // This creates a pool that will fail on actual queries
-                // but allows the app to start for development
-                tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        sqlx::postgres::PgPoolOptions::new()
-                            .max_connections(1)
-                            .connect(&database_url)
-                            .await
-                            .expect("Failed to create database pool")
-                    })
-                })
-            });
+                anyhow::anyhow!("Failed to connect to database: {}", e)
+            })?;
         
         info!("Connected to database");
         
-        // Create schema engine with mock repository (real Postgres repo requires DB to be migrated)
-        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        // Create schema engine - try PostgresRepository first
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(
+            PostgresSchemaRepository::new(db_pool.clone())
+        )));
+        
+        // Create audit engine with PostgresRepository
+        let audit_engine = Arc::new(AuditEngine::new(Arc::new(
+            PostgresAuditRepository::new(db_pool.clone())
+        )));
         
         // Initialize other engines
         let workflow_engine = Arc::new(WorkflowEngine::new());
         let validation_engine = Arc::new(ValidationEngine::new());
         let formula_engine = Arc::new(FormulaEngine::new());
         let security_engine = Arc::new(SecurityEngine::new());
-        let audit_engine = Arc::new(AuditEngine::new(Arc::new(MockAuditRepository)));
         
         // Initialize event bus (optional - gracefully handles NATS being unavailable)
         let nats_url = std::env::var("NATS_URL")
@@ -103,8 +95,22 @@ impl AppState {
         
         // Load entity definitions from schema engine
         if let Err(e) = schema_engine.load_all().await {
-            tracing::warn!("Failed to load entities from database: {}", e);
+            tracing::warn!("Failed to load entities from database: {} (tables may not be created yet)", e);
         }
+        
+        // Load workflows from entity definitions
+        let entity_names = schema_engine.entity_names();
+        for name in &entity_names {
+            if let Some(entity) = schema_engine.get_entity(name) {
+                if let Some(workflow) = &entity.workflow {
+                    if let Err(e) = workflow_engine.load_workflow(workflow.clone()).await {
+                        tracing::warn!("Failed to load workflow for {}: {}", name, e);
+                    }
+                }
+            }
+        }
+        
+        info!("Initialized {} entities and their workflows", entity_names.len());
         
         let state = Self {
             db_pool,

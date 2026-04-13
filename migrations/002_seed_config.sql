@@ -140,7 +140,7 @@ VALUES (
     'purchase_orders',
     'Purchase Order',
     'Purchase Orders',
-    'fin_purchase_orders',
+    'scm_purchase_orders',
     'Purchase orders for procuring goods and services',
     '[
         {"name": "po_number", "label": "PO Number", "field_type": {"type": "string", "max_length": 50}, "is_required": true, "is_unique": true, "display_order": 1},

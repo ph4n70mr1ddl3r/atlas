@@ -3,11 +3,11 @@
 //! State machine execution for declarative workflows.
 //! Handles transitions, guards, and actions.
 
-mod engine;
-mod state_machine;
-mod guards;
-mod actions;
-mod repository;
+pub mod engine;
+pub mod state_machine;
+pub mod guards;
+pub mod actions;
+pub mod repository;
 
 pub use engine::WorkflowEngine;
 pub use state_machine::StateMachine;

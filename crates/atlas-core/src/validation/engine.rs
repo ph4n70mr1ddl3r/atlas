@@ -279,7 +279,7 @@ impl ValidationEngine {
                 }
             }
             
-            ValidationRule::Custom { expression, message } => {
+            ValidationRule::Custom { expression, message: _ } => {
                 debug!("Custom validation: {} with expression {}", field.name, expression);
                 // Custom validators would be looked up and called here
             }

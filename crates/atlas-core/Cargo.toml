@@ -45,7 +45,7 @@ validator = { workspace = true }
 regex = { workspace = true }
 
 # Event bus
-nats = { workspace = true }
+async-nats = { workspace = true }
 
 # Template
 minijinja = { workspace = true }

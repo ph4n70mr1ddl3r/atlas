@@ -43,7 +43,7 @@ rand = { workspace = true }
 parking_lot = "0.12"
 
 # Event bus
-nats = { workspace = true }
+async-nats = { workspace = true }
 
 # Validation
 validator = { workspace = true }

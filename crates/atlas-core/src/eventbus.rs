@@ -5,8 +5,7 @@
 use atlas_shared::events::{AtlasEvent, EventPayload, subjects};
 use atlas_shared::errors::{AtlasError, AtlasResult};
 use async_trait::async_trait;
-use std::sync::Arc;
-use tracing::{info, warn, error, debug};
+use tracing::{info, warn, debug};
 
 /// Event bus trait for publishing and subscribing to events
 #[async_trait]
@@ -23,14 +22,14 @@ pub trait EventBus: Send + Sync {
 
 /// NATS-based event bus implementation
 pub struct NatsEventBus {
-    client: Option<nats::asynk::Connection>,
+    client: Option<async_nats::Client>,
     service_name: String,
 }
 
 impl NatsEventBus {
     /// Create a new NATS event bus
     pub async fn new(nats_url: &str, service_name: &str) -> AtlasResult<Self> {
-        match nats::asynk::connect(nats_url).await {
+        match async_nats::connect(nats_url).await {
             Ok(client) => {
                 info!("Connected to NATS at {}", nats_url);
                 Ok(Self {
@@ -61,13 +60,13 @@ impl NatsEventBus {
 impl EventBus for NatsEventBus {
     async fn publish(&self, event: AtlasEvent) -> AtlasResult<()> {
         let subject = match &event.payload {
-            EventPayload::ConfigChanged(p) => subjects::CONFIG_CHANGED.to_string(),
+            EventPayload::ConfigChanged(_) => subjects::CONFIG_CHANGED.to_string(),
             EventPayload::RecordCreated(p) => subjects::entity_created(&p.entity_name),
             EventPayload::RecordUpdated(p) => subjects::entity_updated(&p.entity_name),
             EventPayload::RecordDeleted(p) => subjects::entity_deleted(&p.entity_name),
             EventPayload::WorkflowTransition(p) => subjects::workflow_transition(&p.entity_name),
-            EventPayload::ServiceStarted(p) => subjects::SERVICE_HEALTH.to_string(),
-            EventPayload::HealthCheck(p) => subjects::SERVICE_HEALTH.to_string(),
+            EventPayload::ServiceStarted(_) => subjects::SERVICE_HEALTH.to_string(),
+            EventPayload::HealthCheck(_) => subjects::SERVICE_HEALTH.to_string(),
             _ => "atlas.events".to_string(),
         };
         
@@ -76,10 +75,10 @@ impl EventBus for NatsEventBus {
     
     async fn publish_to(&self, subject: &str, event: AtlasEvent) -> AtlasResult<()> {
         if let Some(client) = &self.client {
-            let payload = serde_json::to_string(&event)
+            let payload = serde_json::to_vec(&event)
                 .map_err(|e| AtlasError::EventBusError(e.to_string()))?;
             
-            client.publish(subject, &payload)
+            client.publish(subject.to_string(), payload.into())
                 .await
                 .map_err(|e| AtlasError::EventBusError(e.to_string()))?;
             

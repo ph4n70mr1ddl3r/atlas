@@ -8,10 +8,9 @@ mod repository;
 pub use engine::AuditEngine;
 pub use repository::AuditRepository;
 
-use atlas_shared::{AuditEntry, AuditAction, RecordId, UserId, SessionId};
+use atlas_shared::{AuditEntry, AuditAction, RecordId, UserId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 /// Audit query filters
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

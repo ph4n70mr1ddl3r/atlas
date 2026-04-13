@@ -42,10 +42,13 @@ once_cell = { workspace = true }
 rand = { workspace = true }
 parking_lot = "0.12"
 
+# Event bus
+nats = { workspace = true }
+
 # Validation
 validator = { workspace = true }
 regex = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
-reqwest = "0.12"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }

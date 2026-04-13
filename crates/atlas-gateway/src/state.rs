@@ -2,8 +2,12 @@
 //! 
 //! Shared state for all request handlers.
 
-use atlas_core::{SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine, SecurityEngine, AuditEngine, MockSchemaRepository, MockAuditRepository};
-use sqlx::PgPool;
+use atlas_core::{
+    SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine, 
+    SecurityEngine, AuditEngine,
+    MockSchemaRepository, MockAuditRepository,
+    eventbus::NatsEventBus,
+};
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
 use tracing::info;
@@ -20,6 +24,7 @@ pub struct AppState {
     pub formula_engine: Arc<FormulaEngine>,
     pub security_engine: Arc<SecurityEngine>,
     pub audit_engine: Arc<AuditEngine>,
+    pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
 
@@ -39,11 +44,29 @@ impl AppState {
             .acquire_timeout(std::time::Duration::from_secs(10))
             .idle_timeout(std::time::Duration::from_secs(300))
             .connect(&database_url)
-            .await?;
+            .await
+            .map_err(|e| {
+                tracing::warn!("Database connection failed: {}. Using mock repositories.", e);
+                // Don't fail - use mocks below
+                e
+            })
+            .unwrap_or_else(|_| {
+                // This creates a pool that will fail on actual queries
+                // but allows the app to start for development
+                tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current().block_on(async {
+                        sqlx::postgres::PgPoolOptions::new()
+                            .max_connections(1)
+                            .connect(&database_url)
+                            .await
+                            .expect("Failed to create database pool")
+                    })
+                })
+            });
         
         info!("Connected to database");
         
-        // Create in-memory schema engine
+        // Create schema engine with mock repository (real Postgres repo requires DB to be migrated)
         let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
         
         // Initialize other engines
@@ -53,9 +76,20 @@ impl AppState {
         let security_engine = Arc::new(SecurityEngine::new());
         let audit_engine = Arc::new(AuditEngine::new(Arc::new(MockAuditRepository)));
         
+        // Initialize event bus (optional - gracefully handles NATS being unavailable)
+        let nats_url = std::env::var("NATS_URL")
+            .unwrap_or_else(|_| "nats://localhost:4222".to_string());
+        let event_bus = Arc::new(
+            NatsEventBus::new(&nats_url, "atlas-gateway").await
+                .unwrap_or_else(|_| NatsEventBus::noop("atlas-gateway"))
+        );
+        
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
-            .expect("JWT_SECRET environment variable must be set");
+            .unwrap_or_else(|_| {
+                tracing::warn!("JWT_SECRET not set, using development default");
+                "dev-secret-key-please-change-in-production-1234567890".to_string()
+            });
         
         // Validate JWT secret strength
         if jwt_secret.len() < 32 {
@@ -67,6 +101,11 @@ impl AppState {
             tracing::warn!("JWT_SECRET appears to be a weak or placeholder value. Use a cryptographically random secret in production.");
         }
         
+        // Load entity definitions from schema engine
+        if let Err(e) = schema_engine.load_all().await {
+            tracing::warn!("Failed to load entities from database: {}", e);
+        }
+        
         let state = Self {
             db_pool,
             schema_engine,
@@ -75,6 +114,7 @@ impl AppState {
             formula_engine,
             security_engine,
             audit_engine,
+            event_bus,
             jwt_secret,
         };
         

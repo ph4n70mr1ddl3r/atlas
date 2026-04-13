@@ -7,15 +7,16 @@ mod engine;
 mod state_machine;
 mod guards;
 mod actions;
+mod repository;
 
 pub use engine::WorkflowEngine;
 pub use state_machine::StateMachine;
 pub use guards::{GuardEvaluator, GuardResult};
 pub use actions::{ActionExecutor, ActionResult};
+pub use repository::{WorkflowStateRepository, PostgresWorkflowStateRepository, InMemoryWorkflowStateRepository};
 
-use atlas_shared::{WorkflowDefinition, TransitionDefinition, StateDefinition};
-use atlas_shared::{StateType, GuardDefinition, ActionDefinition};
-use atlas_shared::{RecordId, UserId, AtlasError, AtlasResult};
+use atlas_shared::StateType;
+use atlas_shared::{RecordId, UserId};
 use serde::{Deserialize, Serialize};
 
 /// Represents the current state of a workflow instance
@@ -23,6 +24,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct WorkflowState {
     pub record_id: RecordId,
+    pub entity_type: String,
     pub workflow_name: String,
     pub current_state: String,
     pub state_type: StateType,

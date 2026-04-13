@@ -1,13 +1,12 @@
 //! Workflow Engine Implementation
 
-use atlas_shared::{WorkflowDefinition, TransitionDefinition, StateDefinition};
-use atlas_shared::{StateType, RecordId, UserId, AtlasError, AtlasResult};
-use super::{WorkflowState, TransitionResult, StateHistoryEntry, AvailableTransitions, TransitionInfo};
-use super::{GuardEvaluator, ActionExecutor, GuardResult, ActionResult};
+use atlas_shared::{WorkflowDefinition, RecordId, UserId, AtlasError, AtlasResult, StateType};
+use super::{TransitionResult, AvailableTransitions, TransitionInfo};
+use super::{GuardEvaluator, ActionExecutor};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 /// Workflow engine for managing state machines
 pub struct WorkflowEngine {
@@ -46,7 +45,7 @@ impl WorkflowEngine {
     }
     
     /// Get workflow for an entity
-    pub async fn get_workflow_for_entity(&self, entity: &str) -> Option<WorkflowDefinition> {
+    pub async fn get_workflow_for_entity(&self, _entity: &str) -> Option<WorkflowDefinition> {
         let workflows = self.workflows.read().await;
         workflows.values()
             .find(|w| w.is_active)
@@ -62,7 +61,7 @@ impl WorkflowEngine {
         action: &str,
         user: Option<&User>,
         record_data: &serde_json::Value,
-        comment: Option<String>,
+        _comment: Option<String>,
     ) -> AtlasResult<TransitionResult> {
         let workflows = self.workflows.read().await;
         let workflow = workflows.get(workflow_name)

@@ -104,7 +104,7 @@ pub mod patterns {
     /// Organization-based RLS
     pub fn org_filter(field: &str) -> RlsRule {
         RlsRule {
-            condition: format!("{} = '{{organization_id}}'", field),
+            condition: format!("{} = {{{{organization_id}}}}", field),
             roles: vec![],
             for_insert: true,
             for_update: true,
@@ -115,7 +115,7 @@ pub mod patterns {
     /// Owner-based RLS
     pub fn owner_filter(field: &str) -> RlsRule {
         RlsRule {
-            condition: format!("{} = '{{user_id}}'", field),
+            condition: format!("{} = {{{{user_id}}}}", field),
             roles: vec![],
             for_insert: true,
             for_update: true,

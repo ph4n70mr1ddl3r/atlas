@@ -8,3 +8,4 @@ license.workspace = true
 [dependencies]
 atlas-shared = { path = "../atlas-shared" }
 atlas-core = { path = "../atlas-core" }
+serde_json = { workspace = true }

@@ -7,7 +7,7 @@ use axum::{
 };
 use serde::Deserialize;
 use atlas_shared::{EntityDefinition, WorkflowDefinition};
-use atlas_core::schema::{generate_create_table_sql, SchemaBuilder};
+use atlas_core::schema::generate_create_table_sql;
 use crate::AppState;
 use std::sync::Arc;
 use tracing::{info, debug, warn};

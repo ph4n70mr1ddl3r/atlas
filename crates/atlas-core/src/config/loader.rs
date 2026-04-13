@@ -2,11 +2,10 @@
 //! 
 //! Loads configuration from various sources (files, database, environment).
 
-use super::{ConfigEngine, ConfigValue, ConfigEntry};
+use super::ConfigValue;
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
-use tracing::{info, warn, error};
 
 /// Configuration source
 #[derive(Debug, Clone)]
@@ -201,7 +200,6 @@ fn json_to_config(value: &serde_json::Value) -> ConfigValue {
                     .collect()
             )
         }
-        _ => ConfigValue::Null,
     }
 }
 
@@ -253,7 +251,7 @@ mod tests {
         let config = load_from_env("ATLAS");
         
         assert!(matches!(config.get("db.host"), Some(ConfigValue::String(s)) if s == "localhost"));
-        assert!(matches!(config.get("db.port"), Some(ConfigValue::String(s)) if s == "5432"));
+        assert!(matches!(config.get("db.port"), Some(ConfigValue::Number(n)) if (*n - 5432.0).abs() < f64::EPSILON));
     }
     
     #[test]

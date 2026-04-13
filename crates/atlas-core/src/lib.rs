@@ -8,6 +8,7 @@
 //! - Security engine for access control
 //! - Audit engine for change tracking
 //! - Configuration engine for hot-reload
+//! - Event bus for inter-service communication
 
 pub mod schema;
 pub mod workflow;
@@ -16,6 +17,7 @@ pub mod formula;
 pub mod security;
 pub mod audit;
 pub mod config;
+pub mod eventbus;
 
 pub use schema::*;
 pub use workflow::*;
@@ -24,6 +26,7 @@ pub use formula::*;
 pub use security::*;
 pub use audit::*;
 pub use config::*;
+pub use eventbus::*;
 
 mod mock_repos;
 pub use mock_repos::*;

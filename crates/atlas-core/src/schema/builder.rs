@@ -4,8 +4,9 @@
 
 use atlas_shared::{EntityDefinition, FieldDefinition, FieldType, IndexDefinition};
 use atlas_shared::{WorkflowDefinition, StateDefinition, StateType, TransitionDefinition};
-use atlas_shared::{SecurityPolicy, SecurityRule};
+use atlas_shared::SecurityPolicy;
 use uuid::Uuid;
+
 
 /// Fluent builder for EntityDefinition
 pub struct SchemaBuilder {
@@ -202,6 +203,44 @@ impl SchemaBuilder {
         self
     }
     
+    /// Add a phone field
+    pub fn phone(mut self, name: &str, label: &str) -> Self {
+        self.fields.push(FieldDefinition::new(name, label, FieldType::Phone));
+        self
+    }
+    
+    /// Add a rich text field
+    pub fn rich_text(mut self, name: &str, label: &str) -> Self {
+        self.fields.push(FieldDefinition::new(name, label, FieldType::RichText));
+        self
+    }
+    
+    /// Add an address field
+    pub fn address(mut self, name: &str, label: &str) -> Self {
+        self.fields.push(FieldDefinition::new(name, label, FieldType::Address));
+        self
+    }
+    
+    /// Add a URL field
+    pub fn url(mut self, name: &str, label: &str) -> Self {
+        self.fields.push(FieldDefinition::new(name, label, FieldType::Url));
+        self
+    }
+    
+    /// Add a JSON field
+    pub fn json(mut self, name: &str, label: &str) -> Self {
+        self.fields.push(FieldDefinition::new(name, label, FieldType::Json));
+        self
+    }
+    
+    /// Add a boolean field with a default value
+    pub fn boolean_default(mut self, name: &str, label: &str, default: bool) -> Self {
+        let mut field = FieldDefinition::new(name, label, FieldType::Boolean);
+        field.default_value = Some(serde_json::json!(default));
+        self.fields.push(field);
+        self
+    }
+    
     pub fn build(self) -> EntityDefinition {
         // Auto-generate display_order for fields
         let fields: Vec<_> = self.fields.into_iter()
@@ -337,7 +376,7 @@ mod tests {
             .table_name("hr_employees")
             .description("Employee records")
             .icon("user")
-            .string("employee_number", "Employee Number")
+            .required_string("employee_number", "Employee Number")
             .required_string("first_name", "First Name")
             .required_string("last_name", "Last Name")
             .email("work_email", "Work Email")

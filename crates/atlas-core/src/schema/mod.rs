@@ -10,13 +10,10 @@ mod query;
 
 pub use engine::SchemaEngine;
 pub use repository::SchemaRepository;
-pub use builder::SchemaBuilder;
+pub use builder::{SchemaBuilder, WorkflowBuilder};
 pub use query::DynamicQuery;
 
 use atlas_shared::{EntityDefinition, FieldDefinition, FieldType};
-use atlas_shared::errors::{AtlasError, AtlasResult};
-use uuid::Uuid;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Cached entity definition
@@ -113,6 +110,7 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
 mod tests {
     use super::*;
     use atlas_shared::{EntityDefinition, FieldDefinition, FieldType};
+    use uuid::Uuid;
     
     fn create_test_entity() -> EntityDefinition {
         EntityDefinition {

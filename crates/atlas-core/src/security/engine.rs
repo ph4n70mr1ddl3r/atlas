@@ -1,6 +1,6 @@
 //! Security Engine Implementation
 
-use atlas_shared::{SecurityPolicy, SecurityRule, EntityDefinition, FieldDefinition};
+use atlas_shared::{SecurityPolicy, SecurityRule};
 use super::{SecurityContext, AccessDecision, FieldSecurity, FieldCheck};
 use std::collections::HashMap;
 use tracing::debug;
@@ -192,7 +192,7 @@ impl SecurityEngine {
     }
     
     /// Build SQL filter for row-level security
-    pub fn build_rls_filter(&self, entity: &str, ctx: &SecurityContext) -> Option<String> {
+    pub fn build_rls_filter(&self, _entity: &str, ctx: &SecurityContext) -> Option<String> {
         if ctx.roles.contains(&"admin".to_string()) || ctx.roles.contains(&"system".to_string()) {
             return None; // No filter for admins
         }

@@ -7,7 +7,7 @@ use super::{CachedEntity, SchemaRepository};
 use dashmap::DashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 /// Schema engine for dynamic entity management
 pub struct SchemaEngine {
@@ -184,6 +184,7 @@ mod tests {
     
     struct MockRepository;
     
+    #[async_trait::async_trait]
     impl SchemaRepository for MockRepository {
         async fn get_all_entities(&self) -> AtlasResult<Vec<EntityDefinition>> {
             Ok(vec![])

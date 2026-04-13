@@ -9,10 +9,9 @@ mod state;
 pub use state::AppState;
 
 use axum::Router;
-use tower_http::cors::{CorsLayer, Any, AllowOrigin};
+use tower_http::cors::{CorsLayer, Any};
 use tower_http::trace::TraceLayer;
 use tower_http::timeout::TimeoutLayer;
-use tower::ServiceBuilder;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::info;
@@ -45,18 +44,12 @@ async fn main() -> anyhow::Result<()> {
     let state = Arc::new(state);
     
     // Initialize rate limiter for login
-    let rate_limiter = get_login_rate_limiter();
+    let _rate_limiter = get_login_rate_limiter();
     
     // Build CORS layer with configurable origins
-    let cors_layer = build_cors_layer()?;
+    let cors_layer = build_cors_layer();
     
-    // Build middleware stack
-    let middleware = ServiceBuilder::new()
-        .layer(TraceLayer::new_for_http())
-        .layer(TimeoutLayer::new(REQUEST_TIMEOUT))
-        .layer(cors_layer);
-    
-    // Build router
+    // Build router with middleware applied directly
     let app = Router::new()
         .nest("/api/v1", handlers::api_routes())
         .nest("/api/admin", handlers::admin_routes())
@@ -66,7 +59,9 @@ async fn main() -> anyhow::Result<()> {
             "/api/v1/auth/login",
             axum::routing::post(handlers::login)
         )
-        .layer(middleware)
+        .layer(cors_layer)
+        .layer(TraceLayer::new_for_http())
+        .layer(TimeoutLayer::new(REQUEST_TIMEOUT))
         .with_state(state);
     
     // Start server with graceful shutdown
@@ -99,13 +94,10 @@ fn build_cors_layer() -> CorsLayer {
         .allow_headers(Any);
     
     // Check if specific origins are configured
-    if let Ok(origins) = std::env::var("CORS_ORIGINS") {
-        let origin_list: Vec<&str> = origins.split(',').map(str::trim).collect();
-        if !origin_list.is_empty() {
-            // For now, allow any of the configured origins
-            // In production, validate each origin properly
-            return cors_layer;
-        }
+    if let Ok(_origins) = std::env::var("CORS_ORIGINS") {
+        // For now, allow any of the configured origins
+        // In production, validate each origin properly
+        return cors_layer;
     }
     
     // Development: allow localhost

@@ -12,7 +12,7 @@ use atlas_shared::{
 use crate::AppState;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, debug, warn, error};
+use tracing::{info, debug, error};
 use sqlx::{Row, Column};
 use regex::Regex;
 

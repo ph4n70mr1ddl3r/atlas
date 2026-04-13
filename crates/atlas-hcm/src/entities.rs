@@ -5,7 +5,7 @@
 //! and loaded via the schema engine.
 
 use atlas_core::schema::SchemaBuilder;
-use atlas_shared::{EntityDefinition, FieldType};
+use atlas_shared::EntityDefinition;
 
 /// Generate the Employee entity definition
 pub fn employee_definition() -> EntityDefinition {

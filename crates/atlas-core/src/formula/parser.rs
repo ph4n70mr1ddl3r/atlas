@@ -503,8 +503,8 @@ mod tests {
     
     #[test]
     fn test_parser_field() {
-        let ast = parse_formula("amount").unwrap();
-        assert!(matches!(ast, AstNode::Field(f) if f == "amount"));
+        let ast = parse_formula("order.amount").unwrap();
+        assert!(matches!(ast, AstNode::Field(f) if f == "order.amount"));
     }
     
     #[test]
@@ -523,11 +523,11 @@ mod tests {
     
     #[test]
     fn test_dependencies() {
-        let ast = parse_formula("quantity * price + tax").unwrap();
+        let ast = parse_formula("line.quantity * line.price + line.tax").unwrap();
         let deps = extract_dependencies(&ast);
         
-        assert!(deps.contains(&"quantity".to_string()));
-        assert!(deps.contains(&"price".to_string()));
-        assert!(deps.contains(&"tax".to_string()));
+        assert!(deps.contains(&"line.quantity".to_string()));
+        assert!(deps.contains(&"line.price".to_string()));
+        assert!(deps.contains(&"line.tax".to_string()));
     }
 }

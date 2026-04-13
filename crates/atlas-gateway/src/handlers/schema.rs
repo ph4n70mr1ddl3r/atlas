@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use atlas_shared::EntityDefinition;
 use crate::AppState;
 use std::sync::Arc;
-use tracing::{info, debug};
+use tracing::debug;
 
 /// Get entity schema definition
 pub async fn get_entity_schema(

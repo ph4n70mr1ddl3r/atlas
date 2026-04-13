@@ -2,12 +2,12 @@
 //! 
 //! Actions that execute when transitions occur or states are entered/exited.
 
-use atlas_shared::{ActionDefinition, RecordId, AtlasError, AtlasResult};
+use atlas_shared::{ActionDefinition, RecordId, AtlasResult};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
-use tracing::{info, warn, debug};
+use tracing::{info, debug};
 
 /// Result of action execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -136,7 +136,7 @@ impl ActionExecutor {
         url: &str,
         method: &str,
         record_id: RecordId,
-        data: &serde_json::Value,
+        _data: &serde_json::Value,
     ) -> AtlasResult<ActionResult> {
         debug!("InvokeWebhook: {} {} for record {}", method, url, record_id);
         

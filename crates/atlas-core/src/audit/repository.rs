@@ -1,10 +1,10 @@
 //! Audit Repository
 
-use atlas_shared::{AuditEntry, AuditAction, RecordId, UserId, AtlasResult};
+use atlas_shared::{AuditEntry, AuditAction, AtlasResult};
 use super::AuditQuery;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 /// Repository trait for audit entries

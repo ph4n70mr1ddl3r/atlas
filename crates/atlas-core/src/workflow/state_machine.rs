@@ -3,7 +3,7 @@
 //! Represents the runtime state of a workflow instance.
 
 use atlas_shared::{RecordId, StateType};
-use super::{WorkflowState, StateHistoryEntry, TransitionResult};
+use super::{WorkflowState, StateHistoryEntry};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StateMachine {
     pub record_id: RecordId,
+    pub entity_type: String,
     pub workflow_name: String,
     pub current_state: String,
     pub current_state_type: StateType,
@@ -20,9 +21,10 @@ pub struct StateMachine {
 
 impl StateMachine {
     /// Create a new state machine with the initial state
-    pub fn new(record_id: RecordId, workflow_name: &str, initial_state: &str) -> Self {
+    pub fn new(record_id: RecordId, entity_type: &str, workflow_name: &str, initial_state: &str) -> Self {
         Self {
             record_id,
+            entity_type: entity_type.to_string(),
             workflow_name: workflow_name.to_string(),
             current_state: initial_state.to_string(),
             current_state_type: StateType::Initial,
@@ -35,6 +37,7 @@ impl StateMachine {
     pub fn from_state(state: WorkflowState) -> Self {
         Self {
             record_id: state.record_id,
+            entity_type: state.entity_type,
             workflow_name: state.workflow_name,
             current_state: state.current_state,
             current_state_type: state.state_type,
@@ -47,6 +50,7 @@ impl StateMachine {
     pub fn into_state(self) -> WorkflowState {
         WorkflowState {
             record_id: self.record_id,
+            entity_type: self.entity_type,
             workflow_name: self.workflow_name,
             current_state: self.current_state,
             state_type: self.current_state_type,
@@ -118,7 +122,7 @@ mod tests {
     #[test]
     fn test_state_machine_creation() {
         let record_id = uuid::Uuid::new_v4();
-        let sm = StateMachine::new(record_id, "test_workflow", "draft");
+        let sm = StateMachine::new(record_id, "test_entity", "test_workflow", "draft");
         
         assert_eq!(sm.record_id, record_id);
         assert_eq!(sm.current_state, "draft");
@@ -130,7 +134,7 @@ mod tests {
     #[test]
     fn test_state_machine_transition() {
         let record_id = uuid::Uuid::new_v4();
-        let mut sm = StateMachine::new(record_id, "test_workflow", "draft");
+        let mut sm = StateMachine::new(record_id, "test_entity", "test_workflow", "draft");
         
         sm.transition(
             "review", 
@@ -149,7 +153,7 @@ mod tests {
     #[test]
     fn test_state_machine_terminal() {
         let record_id = uuid::Uuid::new_v4();
-        let mut sm = StateMachine::new(record_id, "test_workflow", "draft");
+        let mut sm = StateMachine::new(record_id, "test_entity", "test_workflow", "draft");
         
         assert!(!sm.is_terminal());
         
@@ -161,7 +165,7 @@ mod tests {
     #[test]
     fn test_history_summary() {
         let record_id = uuid::Uuid::new_v4();
-        let mut sm = StateMachine::new(record_id, "test_workflow", "draft");
+        let mut sm = StateMachine::new(record_id, "test_entity", "test_workflow", "draft");
         
         sm.transition("review", StateType::Working, "submit", None, None);
         sm.transition("approved", StateType::Final, "approve", None, None);
@@ -174,7 +178,7 @@ mod tests {
     #[test]
     fn test_state_conversion() {
         let record_id = uuid::Uuid::new_v4();
-        let sm = StateMachine::new(record_id, "test_workflow", "draft");
+        let sm = StateMachine::new(record_id, "test_entity", "test_workflow", "draft");
         let state: WorkflowState = sm.clone().into_state();
         let sm2 = StateMachine::from_state(state);
         

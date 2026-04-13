@@ -8,7 +8,6 @@ mod rls;
 pub use engine::SecurityEngine;
 pub use rls::*;
 
-use atlas_shared::{SecurityPolicy, SecurityRule};
 use serde::{Deserialize, Serialize};
 
 /// Security context for access control

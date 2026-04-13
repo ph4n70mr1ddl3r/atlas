@@ -2,7 +2,7 @@
 //! 
 //! Guard conditions that control when transitions can execute.
 
-use atlas_shared::{GuardDefinition, AtlasResult};
+use atlas_shared::GuardDefinition;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -41,7 +41,7 @@ impl GuardEvaluator {
             GuardDefinition::Expression { expression } => {
                 self.evaluate_expression(expression, record_data)
             }
-            GuardDefinition::Role { roles } => {
+            GuardDefinition::Role { roles: _ } => {
                 // Role checking is handled at the engine level
                 GuardResult::pass()
             }

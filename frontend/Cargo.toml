@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2"
+members = [
+    "apps/dashboard",
+    "apps/admin",
+    "packages/ui",
+    "packages/schema-client",
+]

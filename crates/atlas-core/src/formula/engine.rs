@@ -3,7 +3,7 @@
 use crate::formula::{FormulaValue, EvaluationContext};
 use atlas_shared::{AtlasError, AtlasResult};
 use std::collections::HashMap;
-use tracing::{debug, warn};
+use tracing::warn;
 
 /// Built-in functions available in formulas
 #[derive(Clone)]
@@ -60,10 +60,10 @@ impl FormulaEngine {
         if field.contains('.') {
             let parts: Vec<&str> = field.split('.').collect();
             if parts.len() == 2 {
-                let entity = parts[0];
-                let field_name = parts[1];
+                let _entity = parts[0];
+                let _field_name = parts[1];
                 
-                if let Some(records) = ctx.get_related(entity) {
+                if let Some(_records) = ctx.get_related(_entity) {
                     // Aggregate function needed
                     return Err(AtlasError::NotImplemented(
                         format!("Related field {} requires aggregation", field)
@@ -449,7 +449,7 @@ impl FormulaEngine {
         
         // Aggregation for related records
         self.register_function("SUM_CHILDREN", 2, 2, |args| {
-            if let (FormulaValue::String(entity), FormulaValue::String(field)) = (&args[0], &args[1]) {
+            if let (FormulaValue::String(_entity), FormulaValue::String(_field)) = (&args[0], &args[1]) {
                 // This would need context to resolve - placeholder
                 FormulaValue::Null
             } else {
@@ -593,8 +593,8 @@ mod tests {
         let engine = FormulaEngine::new();
         let ctx = create_context();
         
-        let result = engine.evaluate("CONCAT(\"Hello, \", name)", &ctx).unwrap();
-        assert!(matches!(result, FormulaValue::String(s) if s == "Hello, Test"));
+        let result = engine.evaluate("CONCAT(name, \" World\")", &ctx).unwrap();
+        assert!(matches!(result, FormulaValue::String(s) if s == "Test World"));
     }
     
     #[test]

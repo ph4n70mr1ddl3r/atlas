@@ -10,7 +10,6 @@ pub use rules::*;
 
 use atlas_shared::{AtlasError, AtlasResult};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Validation context
 #[derive(Debug, Clone)]

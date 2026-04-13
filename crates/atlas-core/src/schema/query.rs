@@ -219,7 +219,7 @@ impl DynamicQuery {
     }
     
     /// Build the SOFT DELETE query
-    pub fn build_soft_delete(&self, id: &uuid::Uuid) -> String {
+    pub fn build_soft_delete(&self, _id: &uuid::Uuid) -> String {
         format!(
             "UPDATE {} SET deleted_at = now() WHERE id = $1",
             self.table_name
@@ -227,7 +227,7 @@ impl DynamicQuery {
     }
     
     /// Build the HARD DELETE query
-    pub fn build_hard_delete(&self, id: &uuid::Uuid) -> String {
+    pub fn build_hard_delete(&self, _id: &uuid::Uuid) -> String {
         format!(
             "DELETE FROM {} WHERE id = $1",
             self.table_name
@@ -247,9 +247,18 @@ impl DynamicQuery {
             FilterOperator::Lte => format!("{} <= {}", field, self.value_to_sql(value)),
             FilterOperator::In => format!("{} = ANY({})", field, self.value_to_sql(value)),
             FilterOperator::NotIn => format!("NOT {} = ANY({})", field, self.value_to_sql(value)),
-            FilterOperator::Contains => format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("%{}%", value)))),
-            FilterOperator::StartsWith => format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("{}%", value)))),
-            FilterOperator::EndsWith => format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("%{}", value)))),
+            FilterOperator::Contains => {
+                let v = value.as_str().unwrap_or("");
+                format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("%{}%", v))))
+            }
+            FilterOperator::StartsWith => {
+                let v = value.as_str().unwrap_or("");
+                format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("{}%", v))))
+            }
+            FilterOperator::EndsWith => {
+                let v = value.as_str().unwrap_or("");
+                format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("%{}", v))))
+            }
             FilterOperator::IsNull => format!("{} IS NULL", field),
             FilterOperator::IsNotNull => format!("{} IS NOT NULL", field),
             FilterOperator::Between => {

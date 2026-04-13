@@ -1,13 +1,12 @@
 //! Validation Engine Implementation
 
 use atlas_shared::{EntityDefinition, FieldDefinition, FieldType, ValidationRule};
-use atlas_shared::errors::AtlasResult;
-use super::{ValidationContext, ValidationResult, ValidationError};
+use super::{ValidationContext, ValidationResult};
 use std::collections::HashMap;
 use std::sync::Arc;
 use parking_lot::RwLock;
-use tracing::debug;
 use regex::Regex;
+use tracing::debug;
 
 /// Validation engine for declarative validation
 pub struct ValidationEngine {
@@ -58,7 +57,7 @@ impl ValidationEngine {
     }
     
     /// Validate data against an entity definition
-    pub fn validate(&self, entity: &EntityDefinition, data: &serde_json::Value, ctx: Option<&ValidationContext>) -> ValidationResult {
+    pub fn validate(&self, entity: &EntityDefinition, data: &serde_json::Value, _ctx: Option<&ValidationContext>) -> ValidationResult {
         let mut result = ValidationResult::new();
         
         // Validate required fields
@@ -152,7 +151,7 @@ impl ValidationEngine {
                 }
             }
             
-            FieldType::Decimal { precision, scale } => {
+            FieldType::Decimal { precision: _precision, scale } => {
                 if let Some(n) = value.as_f64() {
                     // Check scale (decimal places)
                     let scale_val = 10_f64.powi(*scale as i32);

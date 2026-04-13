@@ -3,7 +3,7 @@
 use atlas_shared::{AuditEntry, AuditAction, RecordId, UserId, AtlasError, AtlasResult};
 use super::{AuditQuery, AuditSummary, ChangeSet, FieldChange};
 use super::AuditRepository;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use uuid::Uuid;
 use std::sync::Arc;
 use std::collections::HashMap;

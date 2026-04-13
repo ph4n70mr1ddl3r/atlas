@@ -5,7 +5,7 @@
 Atlas is a fully declarative, microservices-based ERP system built entirely in Rust. Unlike traditional ERP systems where business logic is hardcoded, Atlas treats **everything as data** - data models, business processes, forms, reports, validation rules, and workflows are all defined declaratively and can be modified at runtime without service restarts.
 
 **Inspired by**: Oracle Fusion, SAP S/4HANA, Odoo, and modern low-code platforms
-**Built with**: Rust (Axum for HTTP, Leptos for frontend), PostgreSQL, NATS for event streaming
+**Built with**: Rust (Axum for HTTP), TypeScript + React for frontend, PostgreSQL, NATS for event streaming
 
 ---
 
@@ -293,13 +293,17 @@ atlas/
 │   └── atlas-projects/           # Project Management
 │
 ├── frontend/
-│   ├── Cargo.toml                # Leptos workspace
-│   ├── apps/
-│   │   ├── dashboard/            # Main dashboard app
-│   │   └── admin/                # System administration
-│   └── packages/
-│       ├── ui/                   # Component library
-│       └── schema-client/        # Type-safe schema client
+│   ├── package.json              # Node.js workspace
+│   ├── vite.config.ts            # Vite build configuration
+│   ├── tailwind.config.ts        # Tailwind CSS configuration
+│   ├── src/
+│   │   ├── main.tsx              # App entry point
+│   │   ├── routes/               # File-based routing
+│   │   ├── components/           # Shared UI components (shadcn/ui)
+│   │   ├── lib/                  # API client, hooks, utilities
+│   │   ├── pages/                # Page components
+│   │   └── styles/               # Global styles
+│   └── index.html
 │
 ├── migrations/                   # SQL migrations
 │
@@ -322,12 +326,19 @@ atlas/
 - **Config**: Custom hot-reload system (no env vars needed)
 - **Async Runtime**: Tokio
 
-### Frontend (Rust + Leptos)
-- **Framework**: Leptos 0.6 (WASM)
-- **Routing**: Leptos Router
-- **Styling**: Tailwind CSS via nightly feature
-- **State**: Leptos signals + context
-- **API Client**: Generated from OpenAPI spec
+### Frontend (TypeScript + React)
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite 5
+- **Routing**: TanStack Router
+- **Data Fetching**: TanStack Query (React Query)
+- **Data Tables**: TanStack Table (sorting, filtering, pagination)
+- **Forms**: React Hook Form + Zod (type-safe validation)
+- **Styling**: Tailwind CSS 3
+- **UI Components**: shadcn/ui (Radix UI primitives)
+- **Charts**: Recharts
+- **Workflow Designer**: React Flow
+- **State**: Zustand (lightweight global store)
+- **API Client**: OpenAPI-generated TypeScript client
 
 ### Database
 - **Primary**: PostgreSQL 16
@@ -431,10 +442,14 @@ CREATE TABLE _atlas.audit_log (
 - [x] CRM core entities
 
 ### Phase 5: Frontend
-- [x] Leptos app scaffold
-- [x] Dynamic form generator
-- [x] List view builder
-- [x] Dashboard framework
+- [x] React + TypeScript + Vite project scaffold
+- [x] Tailwind CSS + shadcn/ui component library
+- [ ] Dynamic form generator (schema-driven)
+- [ ] Data table with sorting, filtering, pagination
+- [ ] Dashboard with charts and KPI cards
+- [ ] Workflow state visualization
+- [ ] Admin schema manager UI
+- [ ] Report viewer
 
 ### Phase 6: Integration
 - [x] NATS event bus integration
@@ -482,7 +497,7 @@ psql -h localhost -U atlas -d atlas < migrations/001_init.sql
 ./scripts/seed-config.sh
 
 # Start frontend dev server
-cd frontend && cargo run --app dashboard
+cd frontend && pnpm dev
 ```
 
 ---
@@ -531,7 +546,7 @@ curl http://localhost:8080/api/v1/expense_reports
 2. **Why declarative?**: Business needs change constantly; code changes require releases
 3. **Why microservices?**: Domain isolation, independent scaling, team autonomy
 4. **Why PostgreSQL?**: ACID compliance, JSONB for flexible config, mature ecosystem
-5. **Why Leptos?**: Full Rust stack, fine-grained reactivity, no JavaScript runtime needed
+5. **Why React + TypeScript for frontend?**: Mature ecosystem with production-grade data tables (TanStack Table), form handling (React Hook Form), charting (Recharts), and workflow visualization (React Flow) — essential for ERP UIs that Leptos/WASM cannot yet match
 
 ---
 

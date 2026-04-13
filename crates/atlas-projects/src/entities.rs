@@ -4,6 +4,41 @@ use atlas_core::schema::SchemaBuilder;
 use atlas_core::schema::WorkflowBuilder;
 use atlas_shared::EntityDefinition;
 
+/// Project entity with lifecycle workflow
+pub fn project_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("project_lifecycle", "planning")
+        .initial_state("planning", "Planning")
+        .working_state("active", "Active")
+        .working_state("on_hold", "On Hold")
+        .final_state("completed", "Completed")
+        .final_state("cancelled", "Cancelled")
+        .transition("planning", "active", "activate")
+        .transition("planning", "cancelled", "cancel")
+        .transition("active", "on_hold", "hold")
+        .transition("active", "completed", "complete")
+        .transition("on_hold", "active", "resume")
+        .transition("on_hold", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("projects", "Project")
+        .plural_label("Projects")
+        .table_name("proj_projects")
+        .description("Project management")
+        .icon("folder")
+        .required_string("project_number", "Project Number")
+        .required_string("name", "Project Name")
+        .rich_text("description", "Description")
+        .reference("customer_id", "Customer", "customers")
+        .reference("owner_id", "Project Manager", "employees")
+        .date("start_date", "Start Date")
+        .date("end_date", "End Date")
+        .currency("budget", "Budget", "USD")
+        .currency("spent", "Spent", "USD")
+        .integer("progress", "Progress %")
+        .workflow(workflow)
+        .build()
+}
+
 /// Task entity with workflow
 pub fn task_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("task_workflow", "todo")

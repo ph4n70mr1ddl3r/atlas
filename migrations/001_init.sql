@@ -17,7 +17,7 @@ CREATE TABLE _atlas.users (
     email VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    roles TEXT[] DEFAULT '{}',
+    roles JSONB DEFAULT '[]',
     organization_id UUID NOT NULL,
     is_active BOOLEAN DEFAULT true,
     last_login_at TIMESTAMPTZ,
@@ -178,7 +178,7 @@ INSERT INTO _atlas.organizations (id, name, code) VALUES
 INSERT INTO _atlas.users (id, email, name, password_hash, roles, organization_id) VALUES 
     ('00000000-0000-0000-0000-000000000002', 'admin@atlas.local', 'System Administrator', 
      '$argon2id$v=19$m=19456,t=2,p=1$djJ5c0FhWVZ1Nnl6dThVZQ$Bz7S0bLqN7pK2xV8sT3wZ0mK9hJ4fR6yU2iO8vQ1cA', 
-     ARRAY['admin', 'system'],
+     '["admin", "system"]'::jsonb,
      '00000000-0000-0000-0000-000000000001');
 
 -- ============================================================================

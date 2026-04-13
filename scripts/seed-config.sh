@@ -11,6 +11,7 @@ echo "Seeding Atlas configuration..."
 echo "Running migrations..."
 psql "$DATABASE_URL" -f migrations/001_init.sql
 psql "$DATABASE_URL" -f migrations/002_seed_config.sql
+psql "$DATABASE_URL" -f migrations/003_entity_tables.sql
 
 # Verify entities loaded
 echo "Verifying entities..."

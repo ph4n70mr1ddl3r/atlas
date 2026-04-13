@@ -4,6 +4,76 @@ use atlas_core::schema::SchemaBuilder;
 use atlas_core::schema::WorkflowBuilder;
 use atlas_shared::EntityDefinition;
 
+/// Supplier entity
+pub fn supplier_definition() -> EntityDefinition {
+    SchemaBuilder::new("suppliers", "Supplier")
+        .plural_label("Suppliers")
+        .table_name("scm_suppliers")
+        .description("External suppliers and vendors")
+        .icon("truck")
+        .required_string("supplier_number", "Supplier Number")
+        .required_string("name", "Supplier Name")
+        .string("contact_name", "Contact Person")
+        .email("email", "Email")
+        .phone("phone", "Phone")
+        .enumeration("category", "Category", vec![
+            "raw_materials", "finished_goods", "services", "equipment", "software", "other"
+        ])
+        .string("tax_id", "Tax ID")
+        .enumeration("payment_terms", "Default Payment Terms", vec![
+            "net_15", "net_30", "net_45", "net_60", "due_on_receipt"
+        ])
+        .currency("credit_limit", "Credit Limit", "USD")
+        .enumeration("rating", "Rating", vec!["a", "b", "c", "d", "f"])
+        .address("address", "Address")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Purchase Order entity with approval workflow
+pub fn purchase_order_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("po_approval_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Pending Approval")
+        .working_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .working_state("ordered", "Ordered")
+        .working_state("received", "Received")
+        .final_state("closed", "Closed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "submitted", "submit")
+        .transition("draft", "cancelled", "cancel")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "ordered", "order")
+        .transition("approved", "cancelled", "cancel")
+        .transition("ordered", "received", "receive")
+        .transition("received", "closed", "close")
+        .build();
+
+    SchemaBuilder::new("purchase_orders", "Purchase Order")
+        .plural_label("Purchase Orders")
+        .table_name("scm_purchase_orders")
+        .description("Purchase orders for procuring goods and services")
+        .icon("file-text")
+        .required_string("po_number", "PO Number")
+        .reference("supplier_id", "Supplier", "suppliers")
+        .date("order_date", "Order Date")
+        .date("expected_date", "Expected Delivery")
+        .enumeration("currency_code", "Currency", vec!["USD", "EUR", "GBP", "JPY", "CNY"])
+        .currency("subtotal", "Subtotal", "USD")
+        .currency("tax_amount", "Tax", "USD")
+        .currency("total_amount", "Total", "USD")
+        .enumeration("payment_terms", "Payment Terms", vec![
+            "net_15", "net_30", "net_45", "net_60", "due_on_receipt"
+        ])
+        .address("shipping_address", "Shipping Address")
+        .rich_text("notes", "Notes")
+        .reference("approved_by", "Approved By", "employees")
+        .workflow(workflow)
+        .build()
+}
+
 /// Product entity
 pub fn product_definition() -> EntityDefinition {
     SchemaBuilder::new("products", "Product")

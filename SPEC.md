@@ -406,41 +406,41 @@ CREATE TABLE _atlas.audit_log (
 
 ### Phase 1: Foundation (Core Engine)
 - [x] Project scaffolding & workspace setup
-- [ ] Schema engine (entity CRUD, field types)
-- [ ] Dynamic query builder
-- [ ] Hot-reload configuration system
-- [ ] Basic authentication
-- [ ] Audit logging
+- [x] Schema engine (entity CRUD, field types)
+- [x] Dynamic query builder
+- [x] Hot-reload configuration system
+- [x] Basic authentication
+- [x] Audit logging
 
 ### Phase 2: Workflow Engine
-- [ ] State machine implementation
-- [ ] Transition guards & actions
-- [ ] Event publishing for state changes
-- [ ] Workflow history tracking
+- [x] State machine implementation
+- [x] Transition guards & actions
+- [x] Event publishing for state changes
+- [x] Workflow history tracking
 
 ### Phase 3: Validation & Computed Fields
-- [ ] Rule engine with declarative rules
-- [ ] Formula parser & evaluator
-- [ ] Cross-field validation
-- [ ] Dynamic field dependencies
+- [x] Rule engine with declarative rules
+- [x] Formula parser & evaluator
+- [x] Cross-field validation
+- [x] Dynamic field dependencies
 
 ### Phase 4: Domain Modules
-- [ ] HCM core entities
-- [ ] Financials core entities
-- [ ] SCM core entities
-- [ ] CRM core entities
+- [x] HCM core entities
+- [x] Financials core entities
+- [x] SCM core entities
+- [x] CRM core entities
 
 ### Phase 5: Frontend
-- [ ] Leptos app scaffold
-- [ ] Dynamic form generator
-- [ ] List view builder
-- [ ] Dashboard framework
+- [x] Leptos app scaffold
+- [x] Dynamic form generator
+- [x] List view builder
+- [x] Dashboard framework
 
 ### Phase 6: Integration
-- [ ] NATS event bus integration
-- [ ] Inter-service communication
-- [ ] Report generation
-- [ ] Import/Export
+- [x] NATS event bus integration
+- [x] Inter-service communication
+- [x] Report generation
+- [x] Import/Export
 
 ---
 

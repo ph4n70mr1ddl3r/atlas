@@ -93,7 +93,7 @@ pub async fn login(
     let user_row = sqlx::query_as::<_, UserRow>(
         r#"
         SELECT id, email, name, password_hash, roles, organization_id 
-        FROM users 
+        FROM _atlas.users 
         WHERE email = $1 AND is_active = true
         "#
     )

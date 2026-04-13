@@ -4,6 +4,31 @@ use atlas_core::schema::SchemaBuilder;
 use atlas_core::schema::WorkflowBuilder;
 use atlas_shared::EntityDefinition;
 
+/// Customer entity
+pub fn customer_definition() -> EntityDefinition {
+    SchemaBuilder::new("customers", "Customer")
+        .plural_label("Customers")
+        .table_name("crm_customers")
+        .description("Customer and prospect records")
+        .icon("briefcase")
+        .required_string("customer_number", "Customer Number")
+        .required_string("name", "Customer Name")
+        .enumeration("type", "Type", vec!["individual", "company", "government", "nonprofit"])
+        .enumeration("industry", "Industry", vec![
+            "technology", "manufacturing", "retail", "healthcare",
+            "finance", "education", "other"
+        ])
+        .email("email", "Email")
+        .phone("phone", "Phone")
+        .url("website", "Website")
+        .currency("revenue", "Annual Revenue", "USD")
+        .integer("employee_count", "Employee Count")
+        .enumeration("status", "Status", vec!["lead", "prospect", "customer", "churned"])
+        .reference("owner_id", "Account Owner", "employees")
+        .address("address", "Address")
+        .build()
+}
+
 /// Lead entity with qualification workflow
 pub fn lead_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("lead_workflow", "new")

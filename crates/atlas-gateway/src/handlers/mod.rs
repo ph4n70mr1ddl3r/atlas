@@ -6,11 +6,13 @@ mod schema;
 mod records;
 pub mod auth;
 mod admin;
+mod reports;
 
 pub use schema::*;
 pub use records::*;
 pub use auth::*;
 pub use admin::*;
+pub use reports::*;
 
 use axum::{
     Router,
@@ -58,6 +60,15 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         
         // Audit (requires auth)
         .route("/:entity/:id/history", get(get_record_history))
+        
+        // Reports (requires auth)
+        .route("/reports/dashboard", get(dashboard_report))
+        .route("/reports/:entity", get(generate_entity_report))
+        
+        // Import/Export (requires auth)
+        .route("/import", post(import_data))
+        .route("/export/:entity", get(export_data))
+        
         .layer(middleware::from_fn(auth_middleware))
 }
 

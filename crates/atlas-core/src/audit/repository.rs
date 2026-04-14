@@ -89,11 +89,12 @@ impl AuditRepository for PostgresAuditRepository {
         
         sql.push_str(" ORDER BY changed_at DESC");
         
-        if let Some(limit) = query.limit {
-            sql.push_str(&format!(" LIMIT {}", limit));
+        if query.limit.is_some() {
+            sql.push_str(&format!(" LIMIT ${}", param_idx));
+            param_idx += 1;
         }
-        if let Some(offset) = query.offset {
-            sql.push_str(&format!(" OFFSET {}", offset));
+        if query.offset.is_some() {
+            sql.push_str(&format!(" OFFSET ${}", param_idx));
         }
         
         let mut q = sqlx::query_as::<_, AuditLogRow>(&sql);
@@ -115,6 +116,12 @@ impl AuditRepository for PostgresAuditRepository {
         }
         if let Some(to_date) = query.to_date {
             q = q.bind(to_date);
+        }
+        if let Some(limit) = query.limit {
+            q = q.bind(limit);
+        }
+        if let Some(offset) = query.offset {
+            q = q.bind(offset);
         }
         
         let rows = q.fetch_all(&self.pool).await?;

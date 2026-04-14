@@ -15,15 +15,20 @@ use std::sync::Arc;
 use uuid::Uuid;
 use tracing::{info, debug, error, warn};
 use sqlx::{Row, Column};
-use regex::Regex;
+use std::sync::OnceLock;
 use axum::Extension;
 use crate::handlers::auth::Claims;
+
+static IDENTIFIER_RE: OnceLock<regex::Regex> = OnceLock::new();
+
+fn identifier_regex() -> &'static regex::Regex {
+    IDENTIFIER_RE.get_or_init(|| regex::Regex::new(r"^[a-z_][a-z0-9_]*$").unwrap())
+}
 
 /// Validates that an identifier is safe to use in SQL
 /// Only allows lowercase alphanumeric and underscores
 pub fn is_valid_identifier(identifier: &str) -> bool {
-    let re = Regex::new(r"^[a-z_][a-z0-9_]*$").unwrap();
-    re.is_match(identifier)
+    identifier_regex().is_match(identifier)
 }
 
 /// Validates and sanitizes a table or column name
@@ -37,16 +42,28 @@ pub fn sanitize_identifier(name: &str) -> Result<String, StatusCode> {
     Ok(name.to_lowercase())
 }
 
+/// Convert a database row into a JSON object.
+///
+/// Eliminates the repeated column-iteration boilerplate that was previously
+/// copy-pasted across every handler.
+pub fn row_to_json(row: &sqlx::postgres::PgRow) -> serde_json::Value {
+    let mut obj = serde_json::Map::new();
+    for i in 0..row.columns().len() {
+        let name = row.columns()[i].name();
+        let value = row.try_get::<serde_json::Value, _>(i).unwrap_or(serde_json::Value::Null);
+        obj.insert(name.to_string(), value);
+    }
+    serde_json::Value::Object(obj)
+}
+
 #[derive(Debug, Deserialize)]
 pub struct ListParams {
     pub search: Option<String>,
     pub offset: Option<i64>,
     pub limit: Option<i64>,
-    /// Sort field (reserved for future use)
-    #[allow(dead_code)]
+    /// Sort field
     pub sort: Option<String>,
-    /// Sort direction (reserved for future use)
-    #[allow(dead_code)]
+    /// Sort direction: "asc" or "desc" (defaults to "desc")
     pub order: Option<String>,
 }
 
@@ -92,10 +109,13 @@ pub async fn list_records(
         }
         _ => (String::new(), String::new()),
     };
+
+    // Build ORDER BY from sort/order params (sanitized)
+    let order_clause = build_order_clause(&params.sort, &params.order);
     
     let sql = format!(
-        "SELECT * FROM \"{}\" WHERE deleted_at IS NULL{} ORDER BY created_at DESC LIMIT $1 OFFSET $2",
-        table_name, search_clause
+        "SELECT * FROM \"{}\" WHERE deleted_at IS NULL{} {} LIMIT $1 OFFSET $2",
+        table_name, search_clause, order_clause
     );
     
     let rows = sqlx::query(&sql)
@@ -109,23 +129,52 @@ pub async fn list_records(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
     
-    let records: Vec<serde_json::Value> = rows.iter().map(|row| {
-        let mut obj = serde_json::Map::new();
-        for i in 0..row.columns().len() {
-            let name = row.columns()[i].name();
-            let value = row.try_get::<serde_json::Value, _>(i).unwrap_or(serde_json::Value::Null);
-            obj.insert(name.to_string(), value);
-        }
-        serde_json::Value::Object(obj)
-    }).collect();
+    let records: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
+    
+    // Get total count for pagination
+    let count_sql = format!(
+        "SELECT COUNT(*) FROM \"{}\" WHERE deleted_at IS NULL{}",
+        table_name, search_clause
+    );
+    let total: i64 = sqlx::query_scalar(&count_sql)
+        .bind(&search_pattern)
+        .fetch_one(&state.db_pool)
+        .await
+        .map_err(|e| {
+            error!("Count query error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     
     Ok(Json(serde_json::json!({
         "data": records,
         "meta": {
+            "total": total,
             "offset": offset,
             "limit": limit,
         }
     })))
+}
+
+/// Build a safe ORDER BY clause from user-supplied sort/order params.
+///
+/// Field names are validated against the identifier regex; the order
+/// direction is whitelisted to ASC/DESC.
+fn build_order_clause(sort: &Option<String>, order: &Option<String>) -> String {
+    match sort {
+        Some(field) if !field.is_empty() => {
+            if !is_valid_identifier(field) {
+                // Fall back to default if the field name looks suspicious
+                return "ORDER BY created_at DESC".to_string();
+            }
+            let dir = match order.as_deref() {
+                Some("asc") | Some("ASC") => "ASC",
+                Some("desc") | Some("DESC") => "DESC",
+                _ => "DESC",
+            };
+            format!("ORDER BY \"{}\" {}", field.to_lowercase(), dir)
+        }
+        _ => "ORDER BY created_at DESC".to_string(),
+    }
 }
 
 /// Get a single record
@@ -160,15 +209,7 @@ pub async fn get_record(
     })?;
     
     match row {
-        Some(row) => {
-            let mut obj = serde_json::Map::new();
-            for i in 0..row.columns().len() {
-                let name = row.columns()[i].name();
-                let value = row.try_get::<serde_json::Value, _>(i).unwrap_or(serde_json::Value::Null);
-                obj.insert(name.to_string(), value);
-            }
-            Ok(Json(serde_json::Value::Object(obj)))
-        }
+        Some(row) => Ok(Json(row_to_json(&row))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -226,20 +267,43 @@ pub async fn create_record(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
     
-    let mut obj = serde_json::Map::new();
-    for i in 0..row.columns().len() {
-        let name = row.columns()[i].name();
-        let value = row.try_get::<serde_json::Value, _>(i).unwrap_or(serde_json::Value::Null);
-        obj.insert(name.to_string(), value);
+    let record = row_to_json(&row);
+    let record_id = record.get("id")
+        .and_then(|v| v.as_str())
+        .and_then(|s| Uuid::parse_str(s).ok());
+    
+    // Log audit entry for create
+    if let Some(id) = record_id {
+        if let Err(e) = state.audit_engine.log_create(
+            &entity,
+            id,
+            &record,
+            claims.0.sub.parse().ok(),
+        ).await {
+            warn!("Failed to log audit for create: {}", e);
+        }
     }
     
-    Ok((StatusCode::CREATED, Json(serde_json::Value::Object(obj))))
+    // Publish event
+    if let Some(id) = record_id {
+        let event = atlas_core::eventbus::EventFactory::record_created(
+            "atlas-gateway",
+            &entity,
+            id,
+            record.clone(),
+            claims.0.sub.parse().ok(),
+        );
+        let _ = state.event_bus.publish(event).await;
+    }
+    
+    Ok((StatusCode::CREATED, Json(record)))
 }
 
 /// Update a record
 pub async fn update_record(
     State(state): State<Arc<AppState>>,
     Path((entity, id)): Path<(String, Uuid)>,
+    claims: Extension<Claims>,
     Json(payload): Json<UpdateRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     info!("Updating record {} for entity: {}", id, entity);
@@ -253,6 +317,23 @@ pub async fn update_record(
     
     // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
+    
+    // Fetch the old record for audit
+    let old_row = sqlx::query(
+        format!(
+            "SELECT * FROM \"{}\" WHERE id = $1 AND deleted_at IS NULL",
+            table_name
+        ).as_str()
+    )
+    .bind(id)
+    .fetch_optional(&state.db_pool)
+    .await
+    .map_err(|e| {
+        error!("Query error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    
+    let old_record = old_row.map(|r| row_to_json(&r));
     
     // Validate and sanitize field names
     let set_clauses: Vec<String> = payload.values.as_object().unwrap().keys()
@@ -286,13 +367,32 @@ pub async fn update_record(
     
     match row {
         Some(row) => {
-            let mut obj = serde_json::Map::new();
-            for i in 0..row.columns().len() {
-                let name = row.columns()[i].name();
-                let value = row.try_get::<serde_json::Value, _>(i).unwrap_or(serde_json::Value::Null);
-                obj.insert(name.to_string(), value);
+            let new_record = row_to_json(&row);
+            
+            // Log audit entry
+            if let Some(ref old) = old_record {
+                if let Err(e) = state.audit_engine.log_update(
+                    &entity,
+                    id,
+                    old,
+                    &new_record,
+                    claims.0.sub.parse().ok(),
+                ).await {
+                    warn!("Failed to log audit for update: {}", e);
+                }
             }
-            Ok(Json(serde_json::Value::Object(obj)))
+            
+            // Publish event
+            let event = atlas_core::eventbus::EventFactory::record_updated(
+                "atlas-gateway",
+                &entity,
+                id,
+                new_record.clone(),
+                claims.0.sub.parse().ok(),
+            );
+            let _ = state.event_bus.publish(event).await;
+            
+            Ok(Json(new_record))
         }
         None => Err(StatusCode::NOT_FOUND),
     }
@@ -302,6 +402,7 @@ pub async fn update_record(
 pub async fn delete_record(
     State(state): State<Arc<AppState>>,
     Path((entity, id)): Path<(String, Uuid)>,
+    claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
     info!("Deleting record {} for entity: {}", id, entity);
     
@@ -314,6 +415,26 @@ pub async fn delete_record(
     
     // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
+    
+    // Fetch the old record for audit
+    let old_row = sqlx::query(
+        format!(
+            "SELECT * FROM \"{}\" WHERE id = $1 AND deleted_at IS NULL",
+            table_name
+        ).as_str()
+    )
+    .bind(id)
+    .fetch_optional(&state.db_pool)
+    .await
+    .map_err(|e| {
+        error!("Query error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    
+    let old_record = match old_row {
+        Some(r) => row_to_json(&r),
+        None => return Err(StatusCode::NOT_FOUND),
+    };
     
     let query = if entity_def.is_soft_delete {
         format!("UPDATE \"{}\" SET deleted_at = NOW() WHERE id = $1", table_name)
@@ -333,6 +454,25 @@ pub async fn delete_record(
     if result.rows_affected() == 0 {
         return Err(StatusCode::NOT_FOUND);
     }
+    
+    // Log audit entry
+    if let Err(e) = state.audit_engine.log_delete(
+        &entity,
+        id,
+        &old_record,
+        claims.0.sub.parse().ok(),
+    ).await {
+        warn!("Failed to log audit for delete: {}", e);
+    }
+    
+    // Publish event
+    let event = atlas_core::eventbus::EventFactory::record_deleted(
+        "atlas-gateway",
+        &entity,
+        id,
+        claims.0.sub.parse().ok(),
+    );
+    let _ = state.event_bus.publish(event).await;
     
     Ok(StatusCode::NO_CONTENT)
 }
@@ -417,15 +557,7 @@ pub async fn execute_action(
     })?;
 
     let record = match row {
-        Some(r) => {
-            let mut obj = serde_json::Map::new();
-            for i in 0..r.columns().len() {
-                let name = r.columns()[i].name();
-                let value = r.try_get::<serde_json::Value, _>(i).unwrap_or(serde_json::Value::Null);
-                obj.insert(name.to_string(), value);
-            }
-            serde_json::Value::Object(obj)
-        }
+        Some(r) => row_to_json(&r),
         None => return Err(StatusCode::NOT_FOUND),
     };
 

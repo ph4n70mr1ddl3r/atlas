@@ -6,6 +6,14 @@ use atlas_shared::{QueryFilter, FilterOperator, QueryRequest, SortOrder, SortDir
 use atlas_shared::errors::{AtlasError, AtlasResult};
 use std::collections::HashMap;
 
+/// Sanitize a SQL identifier by rejecting characters that could allow injection.
+/// Only allows alphanumeric, underscores, and dots (for schema.table references).
+fn sanitize_sql_identifier(name: &str) -> String {
+    name.chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '.')
+        .collect()
+}
+
 /// Dynamic SQL query builder for entities
 pub struct DynamicQuery {
     table_name: String,
@@ -172,7 +180,7 @@ impl DynamicQuery {
     /// Build the INSERT query
     pub fn build_insert(&self, data: &serde_json::Value) -> AtlasResult<(String, Vec<String>, Vec<serde_json::Value>)> {
         if let Some(obj) = data.as_object() {
-            let fields: Vec<String> = obj.keys().map(|k| format!("\"{}\"", k)).collect();
+            let fields: Vec<String> = obj.keys().map(|k| format!("\"{}\"", sanitize_sql_identifier(k))).collect();
             let placeholders: Vec<String> = (1..=obj.len()).map(|i| format!("${}", i)).collect();
             let values: Vec<serde_json::Value> = obj.values().cloned().collect();
             
@@ -196,7 +204,8 @@ impl DynamicQuery {
             let mut values = vec![];
             
             for (i, (key, value)) in obj.iter().enumerate() {
-                set_clauses.push(format!("\"{}\" = ${}", key, i + 1));
+                let safe_key = sanitize_sql_identifier(key);
+                set_clauses.push(format!("\"{}\" = ${}", safe_key, i + 1));
                 values.push(value.clone());
             }
             
@@ -235,7 +244,8 @@ impl DynamicQuery {
     }
     
     fn filter_to_sql(&self, filter: &QueryFilter) -> String {
-        let field = format!("\"{}\"", filter.field);
+        // Sanitize field name to prevent injection
+        let field = format!("\"{}\"", sanitize_sql_identifier(&filter.field));
         let value = &filter.value;
         
         match filter.operator {

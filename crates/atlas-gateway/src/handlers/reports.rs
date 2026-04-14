@@ -7,10 +7,9 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use crate::AppState;
-use crate::handlers::records::sanitize_identifier;
+use crate::handlers::records::{sanitize_identifier, row_to_json};
 use std::sync::Arc;
 use tracing::{info, error};
-use sqlx::{Row, Column};
 
 // ============================================================================
 // Report Generation
@@ -50,6 +49,7 @@ pub async fn generate_entity_report(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    use sqlx::Row;
     let total: i64 = count_row.try_get("count").unwrap_or(0);
 
     // Get recent records
@@ -66,15 +66,7 @@ pub async fn generate_entity_report(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let recent_records: Vec<serde_json::Value> = recent.iter().map(|row| {
-        let mut obj = serde_json::Map::new();
-        for i in 0..row.columns().len() {
-            let name = row.columns()[i].name();
-            let value = row.try_get::<serde_json::Value, _>(i).unwrap_or(serde_json::Value::Null);
-            obj.insert(name.to_string(), value);
-        }
-        serde_json::Value::Object(obj)
-    }).collect();
+    let recent_records: Vec<serde_json::Value> = recent.iter().map(row_to_json).collect();
 
     // If there's a workflow_state column, get counts by state
     let by_state = if entity_def.workflow.is_some() {
@@ -133,6 +125,7 @@ pub async fn dashboard_report(
             .fetch_one(&state.db_pool)
             .await;
 
+            use sqlx::Row;
             if let Ok(row) = count {
                 let total: i64 = row.try_get("count").unwrap_or(0);
                 entity_counts.insert(entity_name.clone(), serde_json::json!(total));
@@ -220,33 +213,34 @@ pub async fn import_data(
 
     for record in &records {
         if let Some(obj) = record.as_object() {
-            let fields: Vec<String> = obj.keys()
+            // Sanitize field names while preserving value lookup with original keys
+            let original_keys: Vec<String> = obj.keys().cloned().collect();
+            let sanitized_fields: Vec<String> = original_keys.iter()
                 .map(|k| sanitize_identifier(k))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| StatusCode::BAD_REQUEST)?;
-            let placeholders: Vec<String> = (1..=fields.len())
+            let placeholders: Vec<String> = (1..=sanitized_fields.len())
                 .map(|i| format!("${}", i))
                 .collect();
 
             let query = if payload.upsert {
-                // Simple insert (upsert would need conflict targets)
                 format!(
                     "INSERT INTO \"{}\" ({}) VALUES ({}) ON CONFLICT DO NOTHING",
                     table_name,
-                    fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
+                    sanitized_fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
                     placeholders.join(", ")
                 )
             } else {
                 format!(
                     "INSERT INTO \"{}\" ({}) VALUES ({})",
                     table_name,
-                    fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
+                    sanitized_fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
                     placeholders.join(", ")
                 )
             };
 
             let mut db_query = sqlx::query(&query);
-            for key in &fields {
+            for key in &original_keys {
                 let value = obj.get(key).unwrap_or(&serde_json::Value::Null);
                 db_query = db_query.bind(value);
             }
@@ -292,8 +286,13 @@ pub async fn export_data(
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
     let format = params.format.unwrap_or_else(|| "json".to_string());
 
+    let safe_table = sanitize_identifier(table_name).map_err(|e| {
+        error!("Invalid table name for export: {:?}", e);
+        StatusCode::BAD_REQUEST
+    })?;
+
     let rows = sqlx::query(
-        format!("SELECT * FROM \"{}\" WHERE deleted_at IS NULL ORDER BY created_at DESC", table_name).as_str()
+        format!("SELECT * FROM \"{}\" WHERE deleted_at IS NULL ORDER BY created_at DESC", safe_table).as_str()
     )
     .fetch_all(&state.db_pool)
     .await
@@ -302,15 +301,7 @@ pub async fn export_data(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let records: Vec<serde_json::Value> = rows.iter().map(|row| {
-        let mut obj = serde_json::Map::new();
-        for i in 0..row.columns().len() {
-            let name = row.columns()[i].name();
-            let value = row.try_get::<serde_json::Value, _>(i).unwrap_or(serde_json::Value::Null);
-            obj.insert(name.to_string(), value);
-        }
-        serde_json::Value::Object(obj)
-    }).collect();
+    let records: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
 
     Ok(Json(ExportResponse {
         entity,

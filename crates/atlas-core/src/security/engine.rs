@@ -197,9 +197,9 @@ impl SecurityEngine {
             return None; // No filter for admins
         }
         
-        // Organization filter
-        if let Some(org_id) = ctx.organization_id {
-            return Some(format!("organization_id = '{}'", org_id));
+        // Organization filter (parameterized by caller)
+        if let Some(_org_id) = ctx.organization_id {
+            return Some("organization_id = $1".to_string());
         }
         
         None

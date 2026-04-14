@@ -59,8 +59,8 @@ impl AuditEngine {
     ) -> AtlasResult<Uuid> {
         if !self.is_enabled(entity_type) {
             debug!("Audit skipped for {} (not enabled)", entity_type);
-            // Return a nil UUID to indicate audit was skipped, not a random one
-            // that could be confused with a real entry.
+            // Return a deterministic nil UUID to indicate the audit was
+            // intentionally skipped rather than persisted.
             return Ok(Uuid::nil());
         }
         

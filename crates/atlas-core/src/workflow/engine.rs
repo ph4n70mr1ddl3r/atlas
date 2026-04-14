@@ -47,11 +47,7 @@ impl WorkflowEngine {
     /// Get workflow for an entity by name
     pub async fn get_workflow_for_entity(&self, entity: &str) -> Option<WorkflowDefinition> {
         let workflows = self.workflows.read().await;
-        // First try exact match on entity name, then fall back to first active workflow
-        // that was loaded for this entity (by convention, workflow names often contain entity name)
-        workflows.get(entity).cloned().or_else(|| {
-            workflows.values().find(|w| w.is_active).cloned()
-        })
+        workflows.get(entity).cloned()
     }
     
     /// Execute a workflow transition

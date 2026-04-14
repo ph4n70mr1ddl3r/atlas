@@ -302,17 +302,29 @@ impl DynamicQuery {
         }
     }
     
+    /// **WARNING – for internal / trusted use only.**
+    ///
+    /// Interpolates values directly into the SQL string with basic escaping.
+    /// Callers should prefer parameterized queries for untrusted input.
     fn value_to_sql(&self, value: &serde_json::Value) -> String {
         match value {
             serde_json::Value::Null => "NULL".to_string(),
             serde_json::Value::Bool(b) => b.to_string(),
             serde_json::Value::Number(n) => n.to_string(),
-            serde_json::Value::String(s) => format!("'{}'", s.replace('\'', "''")),
+            serde_json::Value::String(s) => {
+                // Escape backslashes and single quotes
+                let escaped = s.replace('\\', "\\\\").replace('\'', "''");
+                format!("'{}'", escaped)
+            }
             serde_json::Value::Array(arr) => format!("ARRAY[{}]", arr.iter()
                 .map(|v| self.value_to_sql(v))
                 .collect::<Vec<_>>()
                 .join(", ")),
-            serde_json::Value::Object(_) => format!("'{}'", serde_json::to_string(value).unwrap_or_default().replace('\'', "''")),
+            serde_json::Value::Object(_) => {
+                let escaped = serde_json::to_string(value).unwrap_or_default()
+                    .replace('\\', "\\\\").replace('\'', "''");
+                format!("'{}'", escaped)
+            }
         }
     }
 }

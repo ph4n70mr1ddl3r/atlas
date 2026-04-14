@@ -39,9 +39,14 @@ pub async fn generate_entity_report(
         StatusCode::BAD_REQUEST
     })?;
 
-    // Get total count
+    // Get total count (soft-delete-aware)
+    let where_clause = if entity_def.is_soft_delete {
+        " WHERE deleted_at IS NULL"
+    } else {
+        ""
+    };
     let count_row = sqlx::query(
-        format!("SELECT COUNT(*) as count FROM \"{}\" WHERE deleted_at IS NULL", table_name).as_str()
+        format!("SELECT COUNT(*) as count FROM \"{}\"{}", table_name, where_clause).as_str()
     )
     .fetch_one(&state.db_pool)
     .await
@@ -52,11 +57,11 @@ pub async fn generate_entity_report(
 
     let total: i64 = count_row.try_get("count").unwrap_or(0);
 
-    // Get recent records
+    // Get recent records (soft-delete-aware)
     let recent = sqlx::query(
         format!(
-            "SELECT * FROM \"{}\" WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 10",
-            table_name
+            "SELECT * FROM \"{}\"{} ORDER BY created_at DESC LIMIT 10",
+            table_name, where_clause
         ).as_str()
     )
     .fetch_all(&state.db_pool)
@@ -72,8 +77,8 @@ pub async fn generate_entity_report(
     let by_state = if entity_def.workflow.is_some() {
         let state_rows = sqlx::query(
             format!(
-                "SELECT workflow_state, COUNT(*) as count FROM \"{}\" WHERE deleted_at IS NULL GROUP BY workflow_state",
-                table_name
+                "SELECT workflow_state, COUNT(*) as count FROM \"{}\"{} GROUP BY workflow_state",
+                table_name, where_clause
             ).as_str()
         )
         .fetch_all(&state.db_pool)
@@ -119,8 +124,9 @@ pub async fn dashboard_report(
             let Ok(table) = sanitize_identifier(table) else {
                 continue;
             };
+            let where_clause = if def.is_soft_delete { " WHERE deleted_at IS NULL" } else { "" };
             let count = sqlx::query(
-                format!("SELECT COUNT(*) as count FROM \"{}\" WHERE deleted_at IS NULL", table).as_str()
+                format!("SELECT COUNT(*) as count FROM \"{}\"{}", table, where_clause).as_str()
             )
             .fetch_one(&state.db_pool)
             .await;
@@ -290,8 +296,9 @@ pub async fn export_data(
         StatusCode::BAD_REQUEST
     })?;
 
+    let where_clause = if entity_def.is_soft_delete { " WHERE deleted_at IS NULL" } else { "" };
     let rows = sqlx::query(
-        format!("SELECT * FROM \"{}\" WHERE deleted_at IS NULL ORDER BY created_at DESC", safe_table).as_str()
+        format!("SELECT * FROM \"{}\"{} ORDER BY created_at DESC", safe_table, where_clause).as_str()
     )
     .fetch_all(&state.db_pool)
     .await

@@ -71,6 +71,7 @@ pub struct ListParams {
 pub async fn list_records(
     State(state): State<Arc<AppState>>,
     Path(entity): Path<String>,
+    claims: Extension<Claims>,
     Query(params): Query<ListParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Listing records for entity: {}", entity);
@@ -88,8 +89,10 @@ pub async fn list_records(
     let offset = params.offset.unwrap_or(0).max(0);
     let limit = params.limit.unwrap_or(20).clamp(1, 100);
     
-    // Build optional search clause using parameterized pattern ($3)
-    let (search_clause, search_pattern) = match &params.search {
+    // Build optional search clause using parameterized pattern.
+    // In the main query ($1=limit, $2=offset, $3=org_id) the search placeholder is $4.
+    // In the count query ($1=org_id) the search placeholder is $2.
+    let (search_clause, search_clause_count, search_pattern) = match &params.search {
         Some(search) if !search.is_empty() => {
             // Escape ILIKE special characters in user input
             let escaped = search.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
@@ -99,28 +102,51 @@ pub async fn list_records(
                     f.field_type,
                     atlas_shared::FieldType::String { .. } | atlas_shared::FieldType::Email | atlas_shared::FieldType::Phone
                 ))
-                .map(|f| format!("\"{}\"::text ILIKE $3", f.name))
+                .map(|f| format!("\"{}\"::text ILIKE ", f.name))
                 .collect();
             if fields.is_empty() {
-                (String::new(), pattern)
+                (String::new(), String::new(), pattern)
             } else {
-                (format!(" AND ({})", fields.join(" OR ")), pattern)
+                // $4 for the main query, $2 for the count query
+                (
+                    format!(" AND ({})", fields.join(" OR ").replace(" ILIKE ", " ILIKE $4")),
+                    format!(" AND ({})", fields.join(" OR ").replace(" ILIKE ", " ILIKE $2")),
+                    pattern,
+                )
             }
         }
-        _ => (String::new(), String::new()),
+        _ => (String::new(), String::new(), String::new()),
+    };
+
+    // Soft-delete filter + organization_id multi-tenancy filter.
+    // `org_param_idx` is the $N placeholder for the organization_id value.
+    // It's $3 in the main query ($1=limit, $2=offset) and $1 in the count query.
+    let (base_filter_main, base_filter_count, org_id_param) = {
+        let soft_delete = if entity_def.is_soft_delete {
+            "deleted_at IS NULL"
+        } else {
+            "1=1"
+        };
+        let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        (
+            format!(" WHERE {} AND organization_id = $3", soft_delete),
+            format!(" WHERE {} AND organization_id = $1", soft_delete),
+            org_id,
+        )
     };
 
     // Build ORDER BY from sort/order params (sanitized)
     let order_clause = build_order_clause(&params.sort, &params.order);
     
     let sql = format!(
-        "SELECT * FROM \"{}\" WHERE deleted_at IS NULL{} {} LIMIT $1 OFFSET $2",
-        table_name, search_clause, order_clause
+        "SELECT * FROM \"{}\"{}{}{} LIMIT $1 OFFSET $2",
+        table_name, base_filter_main, search_clause, order_clause
     );
     
     let rows = sqlx::query(&sql)
         .bind(limit)
         .bind(offset)
+        .bind(org_id_param)
         .bind(&search_pattern)
         .fetch_all(&state.db_pool)
         .await
@@ -132,11 +158,13 @@ pub async fn list_records(
     let records: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
     
     // Get total count for pagination
+    // Count query: $1=org_id, $2=search_pattern (or just $1=org_id if no search)
     let count_sql = format!(
-        "SELECT COUNT(*) FROM \"{}\" WHERE deleted_at IS NULL{}",
-        table_name, search_clause
+        "SELECT COUNT(*) FROM \"{}\"{}{}",
+        table_name, base_filter_count, search_clause_count
     );
     let total: i64 = sqlx::query_scalar(&count_sql)
+        .bind(org_id_param)
         .bind(&search_pattern)
         .fetch_one(&state.db_pool)
         .await
@@ -196,8 +224,9 @@ pub async fn get_record(
     
     let row = sqlx::query(
         format!(
-            "SELECT * FROM \"{}\" WHERE id = $1 AND deleted_at IS NULL",
-            table_name
+            "SELECT * FROM \"{}\" WHERE id = $1{}",
+            table_name,
+            if entity_def.is_soft_delete { " AND deleted_at IS NULL" } else { "" }
         ).as_str()
     )
     .bind(id)

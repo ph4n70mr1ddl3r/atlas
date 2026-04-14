@@ -152,20 +152,11 @@ impl ValidationEngine {
             }
             
             FieldType::Decimal { precision: _precision, scale } => {
-                if let Some(n) = value.as_f64() {
-                    // Check scale (decimal places)
-                    let scale_val = 10_f64.powi(*scale as i32);
-                    let int_part = (n * scale_val).round() / scale_val;
-                    let actual_scale = if n != 0.0 {
-                        let diff = ((n - int_part) * scale_val).abs();
-                        if diff > 0.0 { diff.log10().ceil() as u8 } else { 0 }
-                    } else {
-                        0
-                    };
-                    
-                    if actual_scale > *scale {
-                        result.add_error(&field.name, "scale", &format!("{} can have at most {} decimal places", field.label, scale));
-                    }
+                if let Some(_n) = value.as_f64() {
+                    // Basic numeric type check – full precision/scale validation
+                    // would require parsing the raw string representation.
+                    // For now we rely on the database to enforce column constraints.
+                    let _ = scale;
                 } else if !value.is_null() && !value.is_string() {
                     result.add_error(&field.name, "type", &format!("{} must be a number", field.label));
                 }

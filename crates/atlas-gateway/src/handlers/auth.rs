@@ -57,7 +57,8 @@ struct UserRow {
     email: String,
     name: String,
     password_hash: String,
-    roles: serde_json::Value,
+    /// Stored as text so it works whether the column is JSONB or TEXT[]
+    roles_text: String,
     organization_id: Uuid,
 }
 
@@ -92,7 +93,9 @@ pub async fn login(
     // Fetch user from database using proper column names
     let user_row = sqlx::query_as::<_, UserRow>(
         r#"
-        SELECT id, email, name, password_hash, roles, organization_id 
+        SELECT id, email, name, password_hash,
+               roles::text AS roles_text,
+               organization_id 
         FROM _atlas.users 
         WHERE email = $1 AND is_active = true
         "#
@@ -132,7 +135,7 @@ pub async fn login(
     let claims = Claims {
         sub: user.id.to_string(),
         email: user.email.clone(),
-        roles: parse_roles(&user.roles),
+        roles: parse_roles(&user.roles_text),
         org_id: user.organization_id.to_string(),
         exp: expires_at.timestamp(),
     };
@@ -152,23 +155,36 @@ pub async fn login(
             id: user.id.to_string(),
             email: user.email,
             name: user.name,
-            roles: parse_roles(&user.roles),
+            roles: parse_roles(&user.roles_text),
         },
         expires_at: expires_at.to_rfc3339(),
     }))
 }
 
-/// Parse roles from the JSONB `roles` column.
-/// Accepts `["admin","system"]` (array) or `"admin"` (single string).
-fn parse_roles(val: &serde_json::Value) -> Vec<String> {
-    match val {
-        serde_json::Value::Array(arr) => arr
-            .iter()
-            .filter_map(|v| v.as_str().map(|s| s.to_string()))
-            .collect(),
-        serde_json::Value::String(s) => vec![s.clone()],
-        _ => vec![],
+/// Parse roles from the `roles` column.
+/// Handles both JSONB (`["admin","system"]`) and TEXT[] (`{admin,system}`)
+/// since the actual column type may differ depending on migration history.
+fn parse_roles(raw: &str) -> Vec<String> {
+    // Try JSON array first
+    if let Ok(val) = serde_json::from_str::<serde_json::Value>(raw) {
+        return match val {
+            serde_json::Value::Array(arr) => arr
+                .into_iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect(),
+            serde_json::Value::String(s) => vec![s],
+            _ => vec![],
+        };
     }
+    // PostgreSQL array literal: {admin,system}
+    if raw.starts_with('{') && raw.ends_with('}') {
+        return raw[1..raw.len() - 1]
+            .split(',')
+            .map(|s| s.trim().trim_matches('"').to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+    }
+    vec![]
 }
 
 /// Internal password verification function

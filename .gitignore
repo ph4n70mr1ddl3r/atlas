@@ -23,8 +23,8 @@ Thumbs.db
 
 # Node / Frontend
 frontend/node_modules/
-frontend/**/dist/
-frontend/**/.turbo/
+frontend/dist/
+frontend/.turbo/
 
 # Logs
 *.log

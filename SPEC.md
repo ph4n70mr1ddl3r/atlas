@@ -293,16 +293,33 @@ atlas/
 │   └── atlas-projects/           # Project Management
 │
 ├── frontend/
-│   ├── package.json              # Node.js workspace
-│   ├── vite.config.ts            # Vite build configuration
+│   ├── package.json              # Node.js dependencies
+│   ├── vite.config.ts            # Vite build + proxy to gateway
 │   ├── tailwind.config.ts        # Tailwind CSS configuration
 │   ├── src/
 │   │   ├── main.tsx              # App entry point
-│   │   ├── routes/               # File-based routing
-│   │   ├── components/           # Shared UI components (shadcn/ui)
-│   │   ├── lib/                  # API client, hooks, utilities
-│   │   ├── pages/                # Page components
-│   │   └── styles/               # Global styles
+│   │   ├── styles/globals.css    # Global styles + CSS variables
+│   │   ├── lib/
+│   │   │   ├── api.ts            # API client (auth, CRUD, workflows, admin)
+│   │   │   └── utils.ts          # Utility functions (cn, formatters)
+│   │   ├── components/
+│   │   │   ├── layout.tsx        # App shell with sidebar navigation
+│   │   │   ├── data-table.tsx    # TanStack Table with sorting + pagination
+│   │   │   └── ui/               # shadcn/ui-style components
+│   │   │       ├── badge.tsx
+│   │   │       ├── button.tsx
+│   │   │       ├── card.tsx
+│   │   │       ├── dialog.tsx
+│   │   │       ├── input.tsx
+│   │   │       ├── label.tsx
+│   │   │       └── textarea.tsx
+│   │   └── pages/
+│   │       ├── dashboard.tsx     # KPI cards + quick actions
+│   │       ├── entity-list.tsx   # Data table + create dialog
+│   │       ├── entity-detail.tsx # Record view/edit + workflow actions + history
+│   │       ├── reports.tsx       # Entity summary reports
+│   │       ├── admin.tsx         # Schema management
+│   │       └── login.tsx         # Authentication
 │   └── index.html
 │
 ├── migrations/                   # SQL migrations

@@ -153,6 +153,7 @@ impl EventFactory {
     }
     
     /// Create a workflow transition event
+    #[allow(clippy::too_many_arguments)]
     pub fn workflow_transition(
         service: &str,
         entity_name: &str,

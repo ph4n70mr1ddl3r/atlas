@@ -42,7 +42,7 @@ pub enum JoinType {
 impl DynamicQuery {
     pub fn new(table_name: &str) -> Self {
         Self {
-            table_name: table_name.to_string(),
+            table_name: sanitize_sql_identifier(table_name),
             select_fields: vec!["*".to_string()],
             filters: vec![],
             sort: vec![],
@@ -53,7 +53,12 @@ impl DynamicQuery {
     }
     
     pub fn select(mut self, fields: Vec<&str>) -> Self {
-        self.select_fields = fields.into_iter().map(|s| s.to_string()).collect();
+        self.select_fields = fields.into_iter()
+            .map(|s| {
+                let safe = sanitize_sql_identifier(s);
+                if s == "*" { "*".to_string() } else { format!("\"{}\"", safe) }
+            })
+            .collect();
         self
     }
     
@@ -103,6 +108,8 @@ impl DynamicQuery {
     /// `value_to_sql`, which performs basic escaping.  For user-facing code
     /// prefer building parameterized queries (as the gateway handlers do)
     /// rather than using this method directly with untrusted input.
+    ///
+    /// Sort fields are sanitized through `sanitize_sql_identifier`.
     pub fn build_select(&self) -> String {
         let mut sql = String::from("SELECT ");
         
@@ -130,7 +137,7 @@ impl DynamicQuery {
             sql.push_str(&conditions.join(" AND "));
         }
         
-        // Order by
+        // Order by (sanitize sort fields)
         if !self.sort.is_empty() {
             sql.push_str(" ORDER BY ");
             let orders: Vec<String> = self.sort.iter()
@@ -139,7 +146,7 @@ impl DynamicQuery {
                         SortDirection::Asc => "ASC",
                         SortDirection::Desc => "DESC",
                     };
-                    format!("{} {}", s.field, dir)
+                    format!("\"{}\" {}", sanitize_sql_identifier(&s.field), dir)
                 })
                 .collect();
             sql.push_str(&orders.join(", "));
@@ -357,10 +364,10 @@ mod tests {
             .limit(10);
         
         let sql = query.build_select();
-        assert!(sql.contains("SELECT id, name, email"));
+        assert!(sql.contains("SELECT \"id\", \"name\", \"email\""));
         assert!(sql.contains("FROM employees"));
         assert!(sql.contains("WHERE \"status\" = 'active'"));
-        assert!(sql.contains("ORDER BY created_at DESC"));
+        assert!(sql.contains("ORDER BY \"created_at\" DESC"));
         assert!(sql.contains("LIMIT 10"));
     }
     

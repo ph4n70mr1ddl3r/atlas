@@ -55,6 +55,7 @@ impl WorkflowEngine {
     }
     
     /// Execute a workflow transition
+    #[allow(clippy::too_many_arguments)]
     pub async fn execute_transition(
         &self,
         workflow_name: &str,

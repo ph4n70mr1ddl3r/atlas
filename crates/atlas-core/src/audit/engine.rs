@@ -44,6 +44,7 @@ impl AuditEngine {
     }
     
     /// Log an audit entry
+    #[allow(clippy::too_many_arguments)]
     pub async fn log(
         &self,
         entity_type: &str,
@@ -58,7 +59,9 @@ impl AuditEngine {
     ) -> AtlasResult<Uuid> {
         if !self.is_enabled(entity_type) {
             debug!("Audit skipped for {} (not enabled)", entity_type);
-            return Ok(Uuid::new_v4()); // Return a fake ID
+            // Return a nil UUID to indicate audit was skipped, not a random one
+            // that could be confused with a real entry.
+            return Ok(Uuid::nil());
         }
         
         let entry = AuditEntry {
@@ -163,7 +166,7 @@ impl AuditEngine {
         let entries = self.repository.get_by_ids(&[entry1_id, entry2_id]).await?;
         
         if entries.len() != 2 {
-            return Err(AtlasError::Internal("Expected 2 entries".to_string()).into());
+            return Err(AtlasError::Internal("Expected 2 entries".to_string()));
         }
         
         let (entry1, entry2) = if entries[0].id == entry1_id {

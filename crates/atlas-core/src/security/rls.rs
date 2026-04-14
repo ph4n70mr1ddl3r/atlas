@@ -34,7 +34,7 @@ impl RlsFilterBuilder {
     pub fn add_rule(&mut self, entity: &str, rule: RlsRule) {
         self.rules
             .entry(entity.to_string())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(rule);
     }
 

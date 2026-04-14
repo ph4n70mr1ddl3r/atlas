@@ -29,7 +29,7 @@ impl SecurityEngine {
     pub fn set_field_security(&mut self, entity: &str, field: &str, security: FieldSecurity) {
         self.field_security
             .entry(entity.to_string())
-            .or_insert_with(HashMap::new)
+            .or_default()
             .insert(field.to_string(), security);
     }
     
@@ -104,9 +104,8 @@ impl SecurityEngine {
             let record_value = record_data.get(field);
             
             // Check for user field reference
-            if value.starts_with("user.") {
-                let user_field = &value[5..];
-                match user_field {
+            if let Some(user_field) = value.strip_prefix("user.") {
+            match user_field {
                     "organization_id" => {
                         if let (Some(rec_org), Some(ctx_org)) = (
                             record_value.and_then(|v| v.as_str()),
@@ -130,7 +129,7 @@ impl SecurityEngine {
             } else {
                 // Direct value comparison
                 if let Some(rec_val) = record_value {
-                    return rec_val.to_string() == value.to_string();
+                    return rec_val == value;
                 }
             }
         }

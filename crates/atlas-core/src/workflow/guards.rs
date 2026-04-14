@@ -58,7 +58,7 @@ impl GuardEvaluator {
         if rule.starts_with("validate.required(") && rule.ends_with(')') {
             let field = extract_field_name(rule, "validate.required(");
             if let Some(value) = data.get(field) {
-                if value.is_null() || value.as_str().map_or(false, |s| s.is_empty()) {
+                if value.is_null() || value.as_str().is_some_and(|s| s.is_empty()) {
                     return GuardResult::fail(&format!("{} is required", field));
                 }
             }
@@ -67,7 +67,7 @@ impl GuardEvaluator {
         if rule.starts_with("validate.not_empty(") && rule.ends_with(')') {
             let field = extract_field_name(rule, "validate.not_empty(");
             if let Some(value) = data.get(field) {
-                if value.is_null() || value.as_str().map_or(false, |s| s.is_empty()) {
+                if value.is_null() || value.as_str().is_some_and(|s| s.is_empty()) {
                     return GuardResult::fail(&format!("{} cannot be empty", field));
                 }
             }
@@ -135,7 +135,7 @@ impl GuardEvaluator {
                 "isEmpty" => {
                     let field = args.trim();
                     if let Some(value) = data.get(field) {
-                        if !value.is_null() && !value.as_str().map_or(true, |s| s.is_empty()) {
+                        if !value.is_null() && !value.as_str().is_none_or(|s| s.is_empty()) {
                             return GuardResult::fail(&format!("{} must be empty", field));
                         }
                     }
@@ -158,7 +158,7 @@ impl GuardEvaluator {
 }
 
 fn extract_field_name<'a>(rule: &'a str, prefix: &str) -> &'a str {
-    &rule[prefix.len()..rule.len()-1].trim()
+    rule[prefix.len()..rule.len()-1].trim()
 }
 
 impl Default for GuardEvaluator {

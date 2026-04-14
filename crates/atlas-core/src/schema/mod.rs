@@ -82,8 +82,11 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
     
     for field in &entity.fields {
         let col_type = field_type_to_sql(&field.field_type);
+        let safe_name = field.name.chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_')
+            .collect::<String>();
         
-        let mut col_def = format!("\"{}\" {}", field.name, col_type);
+        let mut col_def = format!("\"{}\" {}", safe_name, col_type);
         
         if field.is_required {
             col_def.push_str(" NOT NULL");
@@ -115,14 +118,20 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
 pub fn generate_index_sql(entity: &EntityDefinition) -> Vec<String> {
     let table_name = entity.table_name.as_deref().unwrap_or(&entity.name);
     entity.indexes.iter().map(|idx| {
+        let safe_idx_name: String = idx.name.chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
         let fields: Vec<String> = idx.fields.iter()
-            .map(|f| format!("\"{}\"", f))
+            .map(|f| {
+                let safe_f: String = f.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect();
+                format!("\"{}\"", safe_f)
+            })
             .collect();
         let fields_str = fields.join(", ");
         let unique = if idx.is_unique { "UNIQUE " } else { "" };
         format!(
             "CREATE{} INDEX IF NOT EXISTS \"{}\" ON \"{}\" ({})",
-            unique, idx.name, table_name, fields_str
+            unique, safe_idx_name, table_name, fields_str
         )
     }).collect()
 }

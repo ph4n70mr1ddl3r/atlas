@@ -226,22 +226,19 @@ pub async fn set_config_value(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let parts: Vec<&str> = key.split('.').collect();
     
-    match parts.first() {
-        Some(&"entity") => {
-            if parts.len() >= 2 {
-                if let Ok(definition) = serde_json::from_value::<EntityDefinition>(value) {
-                    state.schema_engine.upsert_entity(definition)
-                        .await
-                        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-                    
-                    return Ok(Json(serde_json::json!({
-                        "key": key,
-                        "updated": true
-                    })));
-                }
+    if let Some(&"entity") = parts.first() {
+        if parts.len() >= 2 {
+            if let Ok(definition) = serde_json::from_value::<EntityDefinition>(value) {
+                state.schema_engine.upsert_entity(definition)
+                    .await
+                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                
+                return Ok(Json(serde_json::json!({
+                    "key": key,
+                    "updated": true
+                })));
             }
         }
-        _ => {}
     }
     
     Err(StatusCode::BAD_REQUEST)

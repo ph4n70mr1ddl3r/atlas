@@ -10,6 +10,9 @@ use serde_json::json;
 use tracing::info;
 
 /// Employee service for HCM operations
+/// Type alias for entity definition factory functions
+pub type EntityDefinitionFactory = fn() -> atlas_shared::EntityDefinition;
+
 #[allow(dead_code)]
 pub struct EmployeeService {
     schema_engine: Arc<SchemaEngine>,
@@ -121,8 +124,7 @@ impl EmployeeService {
         Ok(())
     }
     
-    /// Get all entity definitions for HCM domain
-    pub fn get_entity_definitions() -> Vec<(&'static str, fn() -> atlas_shared::EntityDefinition)> {
+    pub fn get_entity_definitions() -> Vec<(&'static str, EntityDefinitionFactory)> {
         vec![
             ("employees", crate::entities::employee_definition),
             ("departments", crate::entities::department_definition),

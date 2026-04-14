@@ -26,7 +26,7 @@ pub enum Token {
     True,
     False,
     Null,
-    EOF,
+    Eof,
 }
 
 /// Lexer for tokenizing formula expressions
@@ -109,7 +109,7 @@ impl Lexer {
             self.advance();
         }
         
-        tokens.push(Token::EOF);
+        tokens.push(Token::Eof);
         Ok(tokens)
     }
     
@@ -376,7 +376,7 @@ impl FormulaParser {
     }
     
     fn current(&self) -> &Token {
-        self.tokens.get(self.pos).unwrap_or(&Token::EOF)
+        self.tokens.get(self.pos).unwrap_or(&Token::Eof)
     }
     
     fn advance(&mut self) {
@@ -465,7 +465,7 @@ mod tests {
         let mut lexer = Lexer::new("123 45.67 0.5");
         let tokens = lexer.tokenize().unwrap();
         
-        assert_eq!(tokens.len(), 4); // Two numbers + EOF
+        assert_eq!(tokens.len(), 4); // Two numbers + Eof
         assert_eq!(tokens[0], Token::Number(123.0));
         assert_eq!(tokens[1], Token::Number(45.67));
         assert_eq!(tokens[2], Token::Number(0.5));

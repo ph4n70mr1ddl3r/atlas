@@ -63,16 +63,16 @@ impl ValidationEngine {
         // Validate required fields
         for field in &entity.fields {
             if field.is_required {
-                self.validate_required(&mut result, &field, data);
+                self.validate_required(&mut result, field, data);
             }
             
             // Validate field-specific rules
             for rule in &field.validations {
-                self.validate_rule(&mut result, &field, &rule, data);
+                self.validate_rule(&mut result, field, rule, data);
             }
             
             // Type-specific validation
-            self.validate_field_type(&mut result, &field, data);
+            self.validate_field_type(&mut result, field, data);
         }
         
         result

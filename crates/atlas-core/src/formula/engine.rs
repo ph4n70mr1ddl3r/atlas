@@ -368,7 +368,7 @@ impl FormulaEngine {
         // String functions
         self.register_function("CONCAT", 1, usize::MAX, |args| {
             let s: String = args.iter()
-                .map(|v| value_to_string(v))
+                .map(value_to_string)
                 .collect();
             FormulaValue::String(s)
         });

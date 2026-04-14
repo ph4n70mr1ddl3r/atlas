@@ -99,8 +99,8 @@ pub fn load_from_env(prefix: &str) -> HashMap<String, ConfigValue> {
     let mut map = HashMap::new();
     
     for (key, value) in std::env::vars() {
-        if key.starts_with(prefix) {
-            let config_key = key[prefix.len()..]
+        if let Some(rest) = key.strip_prefix(prefix) {
+            let config_key = rest
                 .trim_start_matches('_')
                 .to_lowercase()
                 .replace('_', ".");

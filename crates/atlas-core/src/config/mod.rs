@@ -87,8 +87,7 @@ impl ConfigWatcherRegistry {
             return true;
         }
         
-        if pattern.ends_with(".*") {
-            let prefix = &pattern[..pattern.len()-2];
+        if let Some(prefix) = pattern.strip_suffix(".*") {
             return key.starts_with(prefix) || key == prefix;
         }
         

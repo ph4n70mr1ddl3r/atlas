@@ -23,6 +23,7 @@ pub trait EventBus: Send + Sync {
 /// NATS-based event bus implementation
 pub struct NatsEventBus {
     client: Option<async_nats::Client>,
+    #[allow(dead_code)] // Used for logging and debugging
     service_name: String,
 }
 

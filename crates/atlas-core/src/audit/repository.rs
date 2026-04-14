@@ -71,6 +71,10 @@ impl AuditRepository for PostgresAuditRepository {
             sql.push_str(&format!(" AND entity_id = ${}", param_idx));
             param_idx += 1;
         }
+        if query.action.is_some() {
+            sql.push_str(&format!(" AND action = ${}", param_idx));
+            param_idx += 1;
+        }
         if query.user_id.is_some() {
             sql.push_str(&format!(" AND changed_by = ${}", param_idx));
             param_idx += 1;
@@ -81,7 +85,6 @@ impl AuditRepository for PostgresAuditRepository {
         }
         if query.to_date.is_some() {
             sql.push_str(&format!(" AND changed_at <= ${}", param_idx));
-            param_idx += 1;
         }
         
         sql.push_str(" ORDER BY changed_at DESC");
@@ -100,6 +103,9 @@ impl AuditRepository for PostgresAuditRepository {
         }
         if let Some(entity_id) = query.entity_id {
             q = q.bind(entity_id);
+        }
+        if let Some(ref action) = query.action {
+            q = q.bind(format!("{:?}", action));
         }
         if let Some(user_id) = query.user_id {
             q = q.bind(user_id);

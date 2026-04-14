@@ -178,7 +178,7 @@ INSERT INTO _atlas.organizations (id, name, code) VALUES
 INSERT INTO _atlas.users (id, email, name, password_hash, roles, organization_id) VALUES 
     ('00000000-0000-0000-0000-000000000002', 'admin@atlas.local', 'System Administrator', 
      '$argon2id$v=19$m=19456,t=2,p=1$d/ce2R9A0BCBBqiaYeGHUw$iGegymLltUV9IKxr7cixQqWUvamhHdjKhjEcH7qcGmI', 
-     '[["admin", "system"]] '::jsonb,
+     '["admin", "system"]' ::jsonb,
      '00000000-0000-0000-0000-000000000001');
 
 -- ============================================================================

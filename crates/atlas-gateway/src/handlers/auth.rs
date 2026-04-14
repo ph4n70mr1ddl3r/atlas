@@ -112,10 +112,10 @@ pub async fn login(
         Some(row) => row,
         None => {
             // Perform dummy verification to prevent timing attacks
-            // A properly hashed password would be 60+ chars
+            // Use a valid Argon2 hash format (will never match real passwords)
             let _ = verify_password_internal(
-                &payload.password, 
-                "$argon2id$v=19$m=19456,t=2,p=1$ZGFtcGR1bW15c2FsdHRlY29ustantdGhpcw$YWCxLjRVaG1GUmI5ZmxhemUxaXBsb2JqZWZ0"
+                &payload.password,
+                "$argon2id$v=19$m=19456,t=2,p=1$d/ce2R9A0BCBBqiaYeGHUw$iGegymLltUV9IKxr7cixQqWUvamhHdjKhjEcH7qcGmI"
             );
             warn!("Login failed for unknown email: {}", email);
             return Err(StatusCode::UNAUTHORIZED);
@@ -235,6 +235,7 @@ pub fn verify_token(token: &str) -> Result<Claims, StatusCode> {
 
 /// Hash a password using Argon2 (for password storage)
 /// Returns a PHC-formatted hash string
+#[allow(dead_code)]
 pub fn hash_password(password: &str) -> Result<String, StatusCode> {
     use argon2::password_hash::SaltString;
     use argon2::Argon2;

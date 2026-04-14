@@ -17,6 +17,7 @@ pub enum ConfigSource {
 }
 
 /// Load configuration from YAML file
+#[allow(dead_code)]
 pub async fn load_from_yaml(path: &Path) -> Result<HashMap<String, ConfigValue>, String> {
     let content = fs::read_to_string(path)
         .await
@@ -93,6 +94,7 @@ fn yaml_to_config(value: &serde_yaml::Value) -> ConfigValue {
 }
 
 /// Load configuration from environment variables
+#[allow(dead_code)]
 pub fn load_from_env(prefix: &str) -> HashMap<String, ConfigValue> {
     let mut map = HashMap::new();
     
@@ -121,6 +123,7 @@ pub fn load_from_env(prefix: &str) -> HashMap<String, ConfigValue> {
 }
 
 /// Load configuration from JSON file
+#[allow(dead_code)]
 pub async fn load_from_json(path: &Path) -> Result<HashMap<String, ConfigValue>, String> {
     let content = fs::read_to_string(path)
         .await
@@ -203,7 +206,8 @@ fn json_to_config(value: &serde_json::Value) -> ConfigValue {
     }
 }
 
-/// Config loader that can merge multiple sources
+/// Configuration loader that can merge multiple sources
+#[allow(dead_code)]
 pub struct ConfigLoader {
     sources: Vec<(ConfigSource, HashMap<String, ConfigValue>)>,
 }

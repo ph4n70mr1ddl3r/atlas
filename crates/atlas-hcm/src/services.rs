@@ -126,6 +126,7 @@ impl EmployeeService {
         vec![
             ("employees", crate::entities::employee_definition),
             ("departments", crate::entities::department_definition),
+            ("positions", crate::entities::position_definition),
         ]
     }
 }
@@ -137,7 +138,7 @@ mod tests {
     #[test]
     fn test_entity_definitions_available() {
         let defs = EmployeeService::get_entity_definitions();
-        assert_eq!(defs.len(), 2);
+        assert_eq!(defs.len(), 3);
         assert_eq!(defs[0].0, "employees");
         assert_eq!(defs[1].0, "departments");
     }

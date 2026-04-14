@@ -88,20 +88,26 @@ async fn main() -> anyhow::Result<()> {
 
 /// Build CORS layer with configurable allowed origins
 fn build_cors_layer() -> CorsLayer {
-    // Get allowed origins from environment, default to localhost for development
     let cors_layer = CorsLayer::new()
         .allow_methods(Any)
         .allow_headers(Any);
     
-    // Check if specific origins are configured
-    if let Ok(_origins) = std::env::var("CORS_ORIGINS") {
-        // For now, allow any of the configured origins
-        // In production, validate each origin properly
-        return cors_layer;
+    if let Ok(origins) = std::env::var("CORS_ORIGINS") {
+        let origins: Vec<_> = origins
+            .split(',')
+            .filter_map(|o| {
+                let o = o.trim();
+                o.parse::<axum::http::HeaderValue>().ok()
+            })
+            .collect();
+        
+        if !origins.is_empty() {
+            return cors_layer.allow_origin(origins);
+        }
     }
     
     // Development: allow localhost
-    cors_layer
+    cors_layer.allow_origin(Any)
 }
 
 /// Validate required environment variables

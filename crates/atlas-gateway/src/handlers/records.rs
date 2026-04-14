@@ -42,7 +42,11 @@ pub struct ListParams {
     pub search: Option<String>,
     pub offset: Option<i64>,
     pub limit: Option<i64>,
+    /// Sort field (reserved for future use)
+    #[allow(dead_code)]
     pub sort: Option<String>,
+    /// Sort direction (reserved for future use)
+    #[allow(dead_code)]
     pub order: Option<String>,
 }
 
@@ -67,21 +71,43 @@ pub async fn list_records(
     let offset = params.offset.unwrap_or(0).max(0);
     let limit = params.limit.unwrap_or(20).clamp(1, 100);
     
-    // Use parameterized queries for LIMIT and OFFSET (integers only)
-    let rows = sqlx::query(
-        format!(
-            "SELECT * FROM \"{}\" WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT $1 OFFSET $2",
-            table_name
-        ).as_str()
-    )
-    .bind(limit)
-    .bind(offset)
-    .fetch_all(&state.db_pool)
-    .await
-    .map_err(|e| {
-        error!("Query error: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    // Build optional search clause using parameterized pattern ($3)
+    let (search_clause, search_pattern) = match &params.search {
+        Some(search) if !search.is_empty() => {
+            // Escape ILIKE special characters in user input
+            let escaped = search.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+            let pattern = format!("%{}%", escaped);
+            let fields: Vec<String> = entity_def.fields.iter()
+                .filter(|f| f.is_searchable && matches!(
+                    f.field_type,
+                    atlas_shared::FieldType::String { .. } | atlas_shared::FieldType::Email | atlas_shared::FieldType::Phone
+                ))
+                .map(|f| format!("\"{}\"::text ILIKE $3", f.name))
+                .collect();
+            if fields.is_empty() {
+                (String::new(), pattern)
+            } else {
+                (format!(" AND ({})", fields.join(" OR ")), pattern)
+            }
+        }
+        _ => (String::new(), String::new()),
+    };
+    
+    let sql = format!(
+        "SELECT * FROM \"{}\" WHERE deleted_at IS NULL{} ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+        table_name, search_clause
+    );
+    
+    let rows = sqlx::query(&sql)
+        .bind(limit)
+        .bind(offset)
+        .bind(&search_pattern)
+        .fetch_all(&state.db_pool)
+        .await
+        .map_err(|e| {
+            error!("Query error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     
     let records: Vec<serde_json::Value> = rows.iter().map(|row| {
         let mut obj = serde_json::Map::new();

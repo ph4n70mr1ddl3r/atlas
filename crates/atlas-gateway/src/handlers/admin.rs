@@ -54,6 +54,8 @@ pub async fn create_entity(
 #[derive(Debug, Deserialize)]
 pub struct CreateEntityRequest {
     pub definition: EntityDefinition,
+    /// Whether to create the physical database table (reserved for future use)
+    #[allow(dead_code)]
     #[serde(default)]
     pub create_table: bool,
 }

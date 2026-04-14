@@ -8,6 +8,7 @@ use tracing::warn;
 /// Built-in functions available in formulas
 #[derive(Clone)]
 pub struct FormulaFunction {
+    #[allow(dead_code)] // Used for debugging
     pub name: String,
     pub min_args: usize,
     pub max_args: usize,

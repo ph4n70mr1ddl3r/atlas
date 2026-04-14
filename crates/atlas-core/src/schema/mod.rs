@@ -57,9 +57,9 @@ pub fn field_type_to_sql(field_type: &FieldType) -> &'static str {
         FieldType::RichText => "TEXT",
         FieldType::Attachment => "UUID",
         FieldType::Reference { .. } => "UUID",
-        FieldType::OneToMany { .. } => panic!("OneToMany is not a SQL column type"),
+        FieldType::OneToMany { .. } => "TEXT", // Stored as JSON array of IDs; not a direct column
         FieldType::OneToOne { .. } => "UUID",
-        FieldType::Computed { .. } => panic!("Computed fields have no SQL column"),
+        FieldType::Computed { .. } => "TEXT", // Virtual column; may be materialized or omitted
         FieldType::Address => "JSONB",
     }
 }

@@ -385,16 +385,6 @@ impl FormulaParser {
         }
     }
     
-    fn advance_any(&mut self) -> String {
-        let token = self.current().clone();
-        self.advance();
-        match token {
-            Token::Not => "NOT".to_string(),
-            Token::Operator(op) => op,
-            _ => format!("{:?}", token),
-        }
-    }
-    
     fn expect(&mut self, token: &Token) -> Result<(), String> {
         if self.current() == token {
             self.advance();
@@ -421,6 +411,7 @@ pub enum AstNode {
 }
 
 /// Parse a formula string into an AST
+#[allow(dead_code)]
 pub fn parse_formula(input: &str) -> Result<AstNode, String> {
     let mut lexer = Lexer::new(input);
     let tokens = lexer.tokenize()?;
@@ -429,6 +420,7 @@ pub fn parse_formula(input: &str) -> Result<AstNode, String> {
 }
 
 /// Extract field dependencies from a formula
+#[allow(dead_code)]
 pub fn extract_dependencies(node: &AstNode) -> Vec<String> {
     let mut deps = vec![];
     

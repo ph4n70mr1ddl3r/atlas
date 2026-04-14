@@ -194,6 +194,10 @@ pub async fn import_data(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = entity_def.table_name.as_deref().unwrap_or(&payload.entity);
+    let table_name = sanitize_identifier(table_name).map_err(|e| {
+        error!("Invalid table name for import: {:?}", e);
+        StatusCode::BAD_REQUEST
+    })?;
 
     let records = match payload.format.as_str() {
         "json" => {
@@ -216,7 +220,10 @@ pub async fn import_data(
 
     for record in &records {
         if let Some(obj) = record.as_object() {
-            let fields: Vec<String> = obj.keys().cloned().collect();
+            let fields: Vec<String> = obj.keys()
+                .map(|k| sanitize_identifier(k))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|_| StatusCode::BAD_REQUEST)?;
             let placeholders: Vec<String> = (1..=fields.len())
                 .map(|i| format!("${}", i))
                 .collect();

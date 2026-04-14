@@ -57,7 +57,7 @@ struct UserRow {
     email: String,
     name: String,
     password_hash: String,
-    roles: sqlx::types::Json<Vec<String>>,
+    roles: serde_json::Value,
     organization_id: Uuid,
 }
 
@@ -132,7 +132,7 @@ pub async fn login(
     let claims = Claims {
         sub: user.id.to_string(),
         email: user.email.clone(),
-        roles: user.roles.0.clone(),
+        roles: parse_roles(&user.roles),
         org_id: user.organization_id.to_string(),
         exp: expires_at.timestamp(),
     };
@@ -152,10 +152,23 @@ pub async fn login(
             id: user.id.to_string(),
             email: user.email,
             name: user.name,
-            roles: user.roles.0,
+            roles: parse_roles(&user.roles),
         },
         expires_at: expires_at.to_rfc3339(),
     }))
+}
+
+/// Parse roles from the JSONB `roles` column.
+/// Accepts `["admin","system"]` (array) or `"admin"` (single string).
+fn parse_roles(val: &serde_json::Value) -> Vec<String> {
+    match val {
+        serde_json::Value::Array(arr) => arr
+            .iter()
+            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+            .collect(),
+        serde_json::Value::String(s) => vec![s.clone()],
+        _ => vec![],
+    }
 }
 
 /// Internal password verification function

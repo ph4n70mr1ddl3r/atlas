@@ -169,11 +169,19 @@ fn verify_password_internal(password: &str, hash: &str) -> Result<(), &'static s
 }
 
 /// Verify a JWT token and return the claims
+///
+/// Reads the JWT secret from the AppState global singleton so the same
+/// secret used during `login()` is always used, avoiding the previous
+/// inconsistency where the env var could change between calls.
 pub fn verify_token(token: &str) -> Result<Claims, StatusCode> {
-    // Get JWT secret from environment at runtime
-    let jwt_secret = std::env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "dev-secret-key-please-change-in-production-1234567890".to_string());
-    
+    // Use the canonical secret from AppState (set during startup)
+    let jwt_secret = crate::state::APP_STATE.get()
+        .map(|s| s.jwt_secret.clone())
+        .unwrap_or_else(|| {
+            std::env::var("JWT_SECRET")
+                .unwrap_or_else(|_| "dev-secret-key-please-change-in-production-1234567890".to_string())
+        });
+
     let token_data = decode::<Claims>(
         token,
         &DecodingKey::from_secret(jwt_secret.as_bytes()),
@@ -182,17 +190,17 @@ pub fn verify_token(token: &str) -> Result<Claims, StatusCode> {
         debug!("Token verification failed: {}", e);
         StatusCode::UNAUTHORIZED
     })?;
-    
-    // Check expiration
+
+    // Check expiration (belt-and-suspenders; `Validation::default()` already checks exp)
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs() as i64;
-    
+
     if token_data.claims.exp < now {
         return Err(StatusCode::UNAUTHORIZED);
     }
-    
+
     Ok(token_data.claims)
 }
 

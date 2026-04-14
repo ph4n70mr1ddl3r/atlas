@@ -16,16 +16,18 @@ use uuid::Uuid;
 use tracing::{info, debug, error, warn};
 use sqlx::{Row, Column};
 use regex::Regex;
+use axum::Extension;
+use crate::handlers::auth::Claims;
 
 /// Validates that an identifier is safe to use in SQL
 /// Only allows lowercase alphanumeric and underscores
-fn is_valid_identifier(identifier: &str) -> bool {
+pub fn is_valid_identifier(identifier: &str) -> bool {
     let re = Regex::new(r"^[a-z_][a-z0-9_]*$").unwrap();
     re.is_match(identifier)
 }
 
 /// Validates and sanitizes a table or column name
-fn sanitize_identifier(name: &str) -> Result<String, StatusCode> {
+pub fn sanitize_identifier(name: &str) -> Result<String, StatusCode> {
     if name.is_empty() || name.len() > 64 {
         return Err(StatusCode::BAD_REQUEST);
     }
@@ -149,7 +151,8 @@ pub async fn get_record(
 pub async fn create_record(
     State(state): State<Arc<AppState>>,
     Path(entity): Path<String>,
-    Json(payload): Json<CreateRequest>,
+    claims: Extension<Claims>,
+    Json(mut payload): Json<CreateRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     info!("Creating record for entity: {}", entity);
     
@@ -162,6 +165,11 @@ pub async fn create_record(
     
     // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
+    
+    // Inject organization_id from JWT claims for multi-tenancy
+    if let Some(obj) = payload.values.as_object_mut() {
+        obj.insert("organization_id".to_string(), serde_json::json!(claims.org_id));
+    }
     
     // Validate and sanitize field names
     let fields: Vec<String> = payload.values.as_object().unwrap().keys()

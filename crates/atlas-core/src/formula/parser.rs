@@ -71,43 +71,41 @@ impl Lexer {
             
             let ch = self.peek();
             let token = match ch {
-                '(' => Token::LParen,
-                ')' => Token::RParen,
-                '[' => Token::LBracket,
-                ']' => Token::RBracket,
-                ',' => Token::Comma,
-                '.' => Token::Dot,
-                '+' => Token::Operator("+".to_string()),
-                '-' => Token::Operator("-".to_string()),
-                '*' => Token::Operator("*".to_string()),
-                '/' => Token::Operator("/".to_string()),
-                '%' => Token::Operator("%".to_string()),
+                '(' => Some(Token::LParen),
+                ')' => Some(Token::RParen),
+                '[' => Some(Token::LBracket),
+                ']' => Some(Token::RBracket),
+                ',' => Some(Token::Comma),
+                '.' => Some(Token::Dot),
+                '+' => Some(Token::Operator("+".to_string())),
+                '-' => Some(Token::Operator("-".to_string())),
+                '*' => Some(Token::Operator("*".to_string())),
+                '/' => Some(Token::Operator("/".to_string())),
+                '%' => Some(Token::Operator("%".to_string())),
                 '=' if self.peek_next() == '=' => {
                     self.advance();
-                    self.advance();
-                    Token::Operator("==".to_string())
+                    Some(Token::Operator("==".to_string()))
                 },
                 '!' if self.peek_next() == '=' => {
                     self.advance();
-                    self.advance();
-                    Token::Operator("!=".to_string())
+                    Some(Token::Operator("!=".to_string()))
                 },
                 '>' if self.peek_next() == '=' => {
                     self.advance();
-                    self.advance();
-                    Token::Operator(">=".to_string())
+                    Some(Token::Operator(">=".to_string()))
                 },
                 '<' if self.peek_next() == '=' => {
                     self.advance();
-                    self.advance();
-                    Token::Operator("<=".to_string())
+                    Some(Token::Operator("<=".to_string()))
                 },
-                '>' => Token::Operator(">".to_string()),
-                '<' => Token::Operator("<".to_string()),
+                '>' => Some(Token::Operator(">".to_string())),
+                '<' => Some(Token::Operator("<".to_string())),
                 _ => return Err(format!("Unexpected character: {}", ch)),
             };
             
-            tokens.push(token);
+            if let Some(tok) = token {
+                tokens.push(tok);
+            }
             self.advance();
         }
         

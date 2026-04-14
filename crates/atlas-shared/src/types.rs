@@ -260,7 +260,7 @@ pub struct StateDefinition {
     pub metadata: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum StateType {
     Initial,
@@ -526,9 +526,9 @@ pub enum AuditAction {
 
 /// Standard API response wrapper
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(rename_all = "camelCase")]
 pub enum ApiResponse<T> {
-    Success(T),
+    Success { data: T },
     Error(ApiError),
 }
 

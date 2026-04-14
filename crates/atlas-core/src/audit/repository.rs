@@ -61,8 +61,27 @@ impl AuditRepository for PostgresAuditRepository {
             "SELECT * FROM _atlas.audit_log WHERE 1=1"
         );
         
+        let mut param_idx = 1u32;
+        
         if query.entity_type.is_some() {
-            sql.push_str(" AND entity_type = $1");
+            sql.push_str(&format!(" AND entity_type = ${}", param_idx));
+            param_idx += 1;
+        }
+        if query.entity_id.is_some() {
+            sql.push_str(&format!(" AND entity_id = ${}", param_idx));
+            param_idx += 1;
+        }
+        if query.user_id.is_some() {
+            sql.push_str(&format!(" AND changed_by = ${}", param_idx));
+            param_idx += 1;
+        }
+        if query.from_date.is_some() {
+            sql.push_str(&format!(" AND changed_at >= ${}", param_idx));
+            param_idx += 1;
+        }
+        if query.to_date.is_some() {
+            sql.push_str(&format!(" AND changed_at <= ${}", param_idx));
+            param_idx += 1;
         }
         
         sql.push_str(" ORDER BY changed_at DESC");
@@ -70,11 +89,26 @@ impl AuditRepository for PostgresAuditRepository {
         if let Some(limit) = query.limit {
             sql.push_str(&format!(" LIMIT {}", limit));
         }
+        if let Some(offset) = query.offset {
+            sql.push_str(&format!(" OFFSET {}", offset));
+        }
         
         let mut q = sqlx::query_as::<_, AuditLogRow>(&sql);
         
         if let Some(ref entity_type) = query.entity_type {
             q = q.bind(entity_type);
+        }
+        if let Some(entity_id) = query.entity_id {
+            q = q.bind(entity_id);
+        }
+        if let Some(user_id) = query.user_id {
+            q = q.bind(user_id);
+        }
+        if let Some(from_date) = query.from_date {
+            q = q.bind(from_date);
+        }
+        if let Some(to_date) = query.to_date {
+            q = q.bind(to_date);
         }
         
         let rows = q.fetch_all(&self.pool).await?;

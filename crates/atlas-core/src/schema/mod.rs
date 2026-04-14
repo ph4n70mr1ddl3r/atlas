@@ -106,6 +106,22 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
     )
 }
 
+/// Generate CREATE INDEX SQL statements for an entity
+pub fn generate_index_sql(entity: &EntityDefinition) -> Vec<String> {
+    let table_name = entity.table_name.as_deref().unwrap_or(&entity.name);
+    entity.indexes.iter().map(|idx| {
+        let fields: Vec<String> = idx.fields.iter()
+            .map(|f| format!("\"{}\"", f))
+            .collect();
+        let fields_str = fields.join(", ");
+        let unique = if idx.is_unique { "UNIQUE " } else { "" };
+        format!(
+            "CREATE{} INDEX IF NOT EXISTS \"{}\" ON \"{}\" ({})",
+            unique, idx.name, table_name, fields_str
+        )
+    }).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

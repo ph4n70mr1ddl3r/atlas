@@ -7,6 +7,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use crate::AppState;
+use crate::handlers::records::sanitize_identifier;
 use std::sync::Arc;
 use tracing::{info, error};
 use sqlx::{Row, Column};
@@ -33,6 +34,10 @@ pub async fn generate_entity_report(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
+    let table_name = sanitize_identifier(table_name).map_err(|e| {
+        error!("Invalid table name for reports: {:?}", e);
+        StatusCode::BAD_REQUEST
+    })?;
 
     // Get total count
     let count_row = sqlx::query(
@@ -119,6 +124,9 @@ pub async fn dashboard_report(
     for entity_name in &entities {
         if let Some(def) = state.schema_engine.get_entity(entity_name) {
             let table = def.table_name.as_deref().unwrap_or(entity_name);
+            let Ok(table) = sanitize_identifier(table) else {
+                continue;
+            };
             let count = sqlx::query(
                 format!("SELECT COUNT(*) as count FROM \"{}\" WHERE deleted_at IS NULL", table).as_str()
             )

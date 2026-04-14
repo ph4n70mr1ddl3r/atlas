@@ -9,6 +9,7 @@ use serde::Deserialize;
 use atlas_shared::{EntityDefinition, WorkflowDefinition};
 use atlas_core::schema::generate_create_table_sql;
 use crate::AppState;
+use crate::handlers::records::sanitize_identifier;
 use std::sync::Arc;
 use tracing::{info, debug, warn};
 
@@ -110,8 +111,9 @@ pub async fn delete_entity(
         })));
     }
     
-    // Drop table
-    if let Err(e) = sqlx::query(&format!("DROP TABLE IF EXISTS \"{}\"", entity))
+    // Drop table (sanitize to prevent SQL injection)
+    let safe_entity = sanitize_identifier(&entity).map_err(|_| StatusCode::BAD_REQUEST)?;
+    if let Err(e) = sqlx::query(&format!("DROP TABLE IF EXISTS \"{}\"", safe_entity))
         .execute(&state.db_pool)
         .await
     {

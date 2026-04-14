@@ -1,6 +1,6 @@
 //! Atlas ERP Dashboard
 //!
-//! Main dashboard application built with Leptos.
+//! Main dashboard application built with Leptos (CSR/WASM).
 
 use leptos::*;
 use leptos_router::*;
@@ -11,44 +11,34 @@ mod components;
 mod api;
 
 use pages::*;
+use components::AppLayout;
 
 /// Main application component
 #[component]
 fn App() -> impl IntoView {
     provide_meta_context();
-    
+
     view! {
-        <Stylesheet id="atlas" href="/static/atlas.css"/>
         <Title text="Atlas ERP"/>
-        <Router>
-            <nav class="sidebar">
-                <div class="sidebar-header">
-                    <h1>"Atlas ERP"</h1>
-                </div>
-                <ul class="sidebar-nav">
-                    <li><A href="/" exact=true>"📊 Dashboard"</A></li>
-                    <li><A href="/employees">"👥 Employees"</A></li>
-                    <li><A href="/customers">"🤝 Customers"</A></li>
-                    <li><A href="/orders">"📦 Orders"</A></li>
-                    <li><A href="/projects">"📋 Projects"</A></li>
-                    <li><A href="/reports">"📈 Reports"</A></li>
-                    <li><A href="/admin">"⚙️ Admin"</A></li>
-                </ul>
-            </nav>
-            <main class="main-content">
-                <Routes>
-                    <Route path="/" view=DashboardPage/>
-                    <Route path="/employees" view=EntityListPage/>
-                    <Route path="/employees/:id" view=EntityDetailPage/>
-                    <Route path="/customers" view=EntityListPage/>
-                    <Route path="/customers/:id" view=EntityDetailPage/>
-                    <Route path="/orders" view=EntityListPage/>
-                    <Route path="/projects" view=EntityListPage/>
-                    <Route path="/reports" view=ReportsPage/>
-                    <Route path="/admin" view=AdminPage/>
-                </Routes>
-            </main>
-        </Router>
+        <AppLayout>
+            <Routes>
+                <Route path="/" view=DashboardPage/>
+                <Route path="/employees" view=EntityListPage/>
+                <Route path="/employees/:id" view=EntityDetailPage/>
+                <Route path="/customers" view=EntityListPage/>
+                <Route path="/customers/:id" view=EntityDetailPage/>
+                <Route path="/orders" view=EntityListPage/>
+                <Route path="/orders/:id" view=EntityDetailPage/>
+                <Route path="/products" view=EntityListPage/>
+                <Route path="/products/:id" view=EntityDetailPage/>
+                <Route path="/projects" view=EntityListPage/>
+                <Route path="/projects/:id" view=EntityDetailPage/>
+                <Route path="/invoices" view=EntityListPage/>
+                <Route path="/invoices/:id" view=EntityDetailPage/>
+                <Route path="/reports" view=ReportsPage/>
+                <Route path="/admin" view=AdminPage/>
+            </Routes>
+        </AppLayout>
     }
 }
 

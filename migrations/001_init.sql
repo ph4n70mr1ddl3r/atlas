@@ -174,11 +174,11 @@ INSERT INTO _atlas.organizations (id, name, code) VALUES
     ('00000000-0000-0000-0000-000000000001', 'Default Organization', 'DEFAULT');
 
 -- Insert admin user (password: admin123)
--- Password hash generated with Argon2
+-- Password hash generated with Argon2id
 INSERT INTO _atlas.users (id, email, name, password_hash, roles, organization_id) VALUES 
     ('00000000-0000-0000-0000-000000000002', 'admin@atlas.local', 'System Administrator', 
-     '$argon2id$v=19$m=19456,t=2,p=1$djJ5c0FhWVZ1Nnl6dThVZQ$Bz7S0bLqN7pK2xV8sT3wZ0mK9hJ4fR6yU2iO8vQ1cA', 
-     '["admin", "system"]'::jsonb,
+     '$argon2id$v=19$m=19456,t=2,p=1$d/ce2R9A0BCBBqiaYeGHUw$iGegymLltUV9IKxr7cixQqWUvamhHdjKhjEcH7qcGmI', 
+     '[["admin", "system"]] '::jsonb,
      '00000000-0000-0000-0000-000000000001');
 
 -- ============================================================================

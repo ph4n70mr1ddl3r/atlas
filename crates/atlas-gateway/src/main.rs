@@ -39,6 +39,9 @@ async fn main() -> anyhow::Result<()> {
         .context("Failed to initialize application state")?;
     let state = Arc::new(state);
     
+    // Register global state (used by verify_token to look up JWT secret)
+    atlas_gateway::state::APP_STATE.set(state.clone()).unwrap_or_else(|_| panic!("APP_STATE already set"));
+    
     // Initialize rate limiter for login
     let _rate_limiter = get_login_rate_limiter();
     

@@ -15,7 +15,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ArrowLeft, Edit, Trash2, Play } from 'lucide-react'
+import { DynamicForm } from '@/components/dynamic-form'
+import { WorkflowDiagram } from '@/components/workflow-diagram'
+import { ArrowLeft, Edit, Trash2, GitBranch, History } from 'lucide-react'
 import { formatDateTime, formatDate } from '@/lib/utils'
 
 export function EntityDetailPage() {
@@ -23,9 +25,8 @@ export function EntityDetailPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [editing, setEditing] = useState(false)
-  const [editValues, setEditValues] = useState<Record<string, unknown>>({})
-  const [saving, setSaving] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [showWorkflow, setShowWorkflow] = useState(false)
 
   const { data: schema } = useQuery({
     queryKey: ['schema', entity],
@@ -50,22 +51,14 @@ export function EntityDetailPage() {
     enabled: !!entity && !!id,
   })
 
-  const startEdit = () => {
-    if (record) setEditValues(record)
-    setEditing(true)
-  }
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
+  const handleAction = async (action: string) => {
     try {
-      await updateRecord(entity, id, editValues)
-      setEditing(false)
+      await executeAction(entity, id, action)
       qc.invalidateQueries({ queryKey: ['record', entity, id] })
+      qc.invalidateQueries({ queryKey: ['transitions', entity, id] })
+      qc.invalidateQueries({ queryKey: ['history', entity, id] })
     } catch (err) {
-      alert(`Update failed: ${err}`)
-    } finally {
-      setSaving(false)
+      alert(`Action failed: ${err}`)
     }
   }
 
@@ -78,15 +71,10 @@ export function EntityDetailPage() {
     }
   }
 
-  const handleAction = async (action: string, toState: string) => {
-    try {
-      await executeAction(entity, id, action)
-      qc.invalidateQueries({ queryKey: ['record', entity, id] })
-      qc.invalidateQueries({ queryKey: ['transitions', entity, id] })
-      qc.invalidateQueries({ queryKey: ['history', entity, id] })
-    } catch (err) {
-      alert(`Action failed: ${err}`)
-    }
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ['record', entity, id] })
+    qc.invalidateQueries({ queryKey: ['transitions', entity, id] })
+    qc.invalidateQueries({ queryKey: ['history', entity, id] })
   }
 
   if (isLoading) {
@@ -98,6 +86,11 @@ export function EntityDetailPage() {
     )
   }
 
+  const availableActions = transitions?.transitions.map((t) => t.action) ?? []
+  const recordTitle = record
+    ? (record[schema?.fields?.find((f) => f.isSearchable)?.name ?? 'name'] as string) ?? `Record ${id.slice(0, 8)}…`
+    : 'Loading…'
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -108,13 +101,28 @@ export function EntityDetailPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight capitalize">
-              {(record?.[schema?.fields?.[0]?.name ?? 'name'] as string) ?? `Record ${id.slice(0, 8)}…`}
+              {String(recordTitle)}
             </h1>
             <p className="text-sm text-muted-foreground">{schema?.label ?? entity}</p>
           </div>
+          {transitions?.current_state && (
+            <Badge variant="info" className="ml-2 text-sm">
+              {transitions.current_state.replace(/_/g, ' ')}
+            </Badge>
+          )}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={startEdit}>
+          {schema?.workflow && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowWorkflow(!showWorkflow)}
+            >
+              <GitBranch className="mr-2 h-4 w-4" />
+              {showWorkflow ? 'Hide Workflow' : 'Show Workflow'}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
             <Edit className="mr-2 h-4 w-4" /> Edit
           </Button>
           <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
@@ -123,9 +131,29 @@ export function EntityDetailPage() {
         </div>
       </div>
 
+      {/* Workflow visualization */}
+      {showWorkflow && schema?.workflow && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GitBranch className="h-5 w-5" />
+              Workflow: {schema.workflow.name.replace(/_/g, ' ')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WorkflowDiagram
+              workflow={schema.workflow}
+              currentState={transitions?.current_state}
+              availableActions={availableActions}
+              onTransitionClick={(t) => handleAction(t.action)}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Record details */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Details</CardTitle>
@@ -137,23 +165,31 @@ export function EntityDetailPage() {
                   .map((field) => {
                     const val = record?.[field.name]
                     return (
-                      <div key={field.name}>
-                        <dt className="text-sm font-medium text-muted-foreground">{field.label}</dt>
-                        <dd className="mt-1 text-sm">
+                      <div key={field.name} className="space-y-1">
+                        <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          {field.label}
+                        </dt>
+                        <dd className="text-sm">
                           {val === null || val === undefined ? (
                             <span className="text-muted-foreground">—</span>
                           ) : field.fieldType.type === 'date' ? (
                             formatDate(val as string)
+                          ) : field.fieldType.type === 'date_time' ? (
+                            formatDateTime(val as string)
                           ) : field.fieldType.type === 'enum' ? (
-                            <Badge variant="secondary">{String(val)}</Badge>
+                            <Badge variant="secondary">{String(val).replace(/_/g, ' ')}</Badge>
                           ) : field.fieldType.type === 'boolean' ? (
                             val ? (
-                              'Yes'
+                              <Badge variant="success">Yes</Badge>
                             ) : (
-                              'No'
+                              <Badge variant="secondary">No</Badge>
                             )
+                          ) : field.fieldType.type === 'currency' || field.fieldType.type === 'decimal' ? (
+                            <span className="font-mono">{Number(val).toLocaleString()}</span>
+                          ) : field.fieldType.type === 'rich_text' ? (
+                            <div className="whitespace-pre-wrap text-sm max-h-[200px] overflow-y-auto">{String(val)}</div>
                           ) : (
-                            String(val)
+                            <span>{String(val)}</span>
                           )}
                         </dd>
                       </div>
@@ -162,44 +198,38 @@ export function EntityDetailPage() {
               </dl>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Sidebar: workflow + metadata */}
-        <div className="space-y-4">
-          {/* Workflow status */}
-          {schema?.workflow && transitions && (
+          {/* Inline workflow actions */}
+          {schema?.workflow && transitions && transitions.transitions.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Workflow Status</CardTitle>
+                <CardTitle className="text-base">Available Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <span className="text-sm text-muted-foreground">Current state</span>
-                  <Badge variant="info" className="ml-2">
-                    {(transitions.current_state ?? 'unknown').replace(/_/g, ' ')}
-                  </Badge>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {transitions.transitions.map((t) => (
+                    <Button
+                      key={t.action}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAction(t.action)}
+                      className="gap-1.5"
+                    >
+                      <span className="text-xs">→</span>
+                      <span className="capitalize">{t.action_label ?? t.action.replace(/_/g, ' ')}</span>
+                      <Badge variant="secondary" className="text-[9px] ml-1">
+                        {t.to_state.replace(/_/g, ' ')}
+                      </Badge>
+                    </Button>
+                  ))}
                 </div>
-                {transitions.transitions.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Available Actions</p>
-                    {transitions.transitions.map((t) => (
-                      <Button
-                        key={t.action}
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start gap-2"
-                        onClick={() => handleAction(t.action, t.to_state)}
-                      >
-                        <Play className="h-3 w-3" />
-                        {t.action_label ?? t.action}
-                      </Button>
-                    ))}
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
+        </div>
 
+        {/* Sidebar: metadata + history */}
+        <div className="space-y-4">
           {/* Metadata */}
           <Card>
             <CardHeader>
@@ -211,6 +241,10 @@ export function EntityDetailPage() {
                 <span className="font-mono text-xs">{id.slice(0, 8)}…</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-muted-foreground">Entity</span>
+                <span className="capitalize">{entity.replace(/_/g, ' ')}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-muted-foreground">Created</span>
                 <span>{formatDateTime(record?.created_at as string)}</span>
               </div>
@@ -218,76 +252,75 @@ export function EntityDetailPage() {
                 <span className="text-muted-foreground">Updated</span>
                 <span>{formatDateTime(record?.updated_at as string)}</span>
               </div>
+              {record?.workflow_state != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge variant="info">{String(record.workflow_state).replace(/_/g, ' ')}</Badge>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* History */}
-          {history?.history?.length ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">History</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {history.history.slice(0, 10).map((entry, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm">
-                    <div className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
-                    <div>
-                      <p className="font-medium">{entry.action}</p>
-                      <p className="text-xs text-muted-foreground">{formatDateTime(entry.changedAt)}</p>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <History className="h-4 w-4" /> History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {history?.history?.length ? (
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {history.history.map((entry, i) => (
+                    <div key={i} className="flex items-start gap-3 text-sm">
+                      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                      <div className="min-w-0">
+                        <p className="font-medium capitalize">{entry.action.replace(/_/g, ' ')}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDateTime(entry.changedAt)}
+                          {entry.changedBy ? ` · by ${entry.changedBy}` : ''}
+                        </p>
+                        {entry.action === 'update' && entry.newData != null && (
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {Object.keys(entry.newData as Record<string, unknown>).slice(0, 3).map((k) => (
+                              <span key={k} className="mr-2">
+                                <span className="font-medium">{k}:</span>{' '}
+                                {String((entry.newData as Record<string, unknown>)[k]).slice(0, 20)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ) : null}
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-4 text-center">No history available</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Edit dialog */}
+      {/* Edit dialog with dynamic form */}
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit {schema?.label ?? 'Record'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSave} className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-            {schema?.fields
-              .filter((f) => !f.isReadOnly && !['id', 'created_at', 'updated_at', 'deleted_at', 'organization_id'].includes(f.name))
-              .map((field) => (
-                <div key={field.name} className="space-y-1">
-                  <label className="text-sm font-medium">
-                    {field.label}
-                    {field.isRequired && <span className="text-destructive ml-1">*</span>}
-                  </label>
-                  {field.fieldType.type === 'enum' ? (
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={String(editValues[field.name] ?? '')}
-                      onChange={(e) => setEditValues({ ...editValues, [field.name]: e.target.value })}
-                    >
-                      {field.fieldType.values.map((v) => (
-                        <option key={v} value={v}>{v}</option>
-                      ))}
-                    </select>
-                  ) : field.fieldType.type === 'rich_text' ? (
-                    <textarea
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={String(editValues[field.name] ?? '')}
-                      onChange={(e) => setEditValues({ ...editValues, [field.name]: e.target.value })}
-                    />
-                  ) : (
-                    <Input
-                      type={field.fieldType.type === 'date' ? 'date' : field.fieldType.type === 'integer' || field.fieldType.type === 'decimal' ? 'number' : 'text'}
-                      value={String(editValues[field.name] ?? '')}
-                      onChange={(e) => setEditValues({ ...editValues, [field.name]: e.target.value })}
-                    />
-                  )}
-                </div>
-              ))}
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
-            </div>
-          </form>
+          {schema && record && (
+            <DynamicForm
+              schema={schema}
+              initialData={record}
+              onSubmit={async (values) => {
+                await updateRecord(entity, id, values)
+                setEditing(false)
+                invalidateAll()
+              }}
+              onCancel={() => setEditing(false)}
+              submitLabel="Save Changes"
+            />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -300,7 +333,7 @@ export function EntityDetailPage() {
           <p className="text-sm text-muted-foreground">
             This action cannot be undone. The record will be soft-deleted.
           </p>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Delete</Button>
           </div>

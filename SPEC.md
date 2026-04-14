@@ -461,12 +461,12 @@ CREATE TABLE _atlas.audit_log (
 ### Phase 5: Frontend
 - [x] React + TypeScript + Vite project scaffold
 - [x] Tailwind CSS + shadcn/ui component library
-- [ ] Dynamic form generator (schema-driven)
-- [ ] Data table with sorting, filtering, pagination
-- [ ] Dashboard with charts and KPI cards
-- [ ] Workflow state visualization
-- [ ] Admin schema manager UI
-- [ ] Report viewer
+- [x] Dynamic form generator (schema-driven)
+- [x] Data table with sorting, filtering, pagination
+- [x] Dashboard with charts and KPI cards
+- [x] Workflow state visualization
+- [x] Admin schema manager UI
+- [x] Report viewer
 
 ### Phase 6: Integration
 - [x] NATS event bus integration

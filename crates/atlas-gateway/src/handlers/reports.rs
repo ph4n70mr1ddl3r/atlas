@@ -8,6 +8,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use crate::AppState;
 use crate::handlers::records::{sanitize_identifier, row_to_json};
+use sqlx::Row;
 use std::sync::Arc;
 use tracing::{info, error};
 
@@ -49,7 +50,6 @@ pub async fn generate_entity_report(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    use sqlx::Row;
     let total: i64 = count_row.try_get("count").unwrap_or(0);
 
     // Get recent records
@@ -125,7 +125,6 @@ pub async fn dashboard_report(
             .fetch_one(&state.db_pool)
             .await;
 
-            use sqlx::Row;
             if let Ok(row) = count {
                 let total: i64 = row.try_get("count").unwrap_or(0);
                 entity_counts.insert(entity_name.clone(), serde_json::json!(total));

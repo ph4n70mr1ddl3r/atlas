@@ -131,40 +131,13 @@ impl FormulaEngine {
             }
         }
         
-        // Handle comparison operators
-        if expr.contains("==") {
-            if let Some(result) = self.evaluate_compare(expr, "==", ctx)? {
-                return Ok(result);
-            }
-        }
-        
-        if expr.contains("!=") {
-            if let Some(result) = self.evaluate_compare(expr, "!=", ctx)? {
-                return Ok(result);
-            }
-        }
-        
-        if expr.contains(">=") {
-            if let Some(result) = self.evaluate_compare(expr, ">=", ctx)? {
-                return Ok(result);
-            }
-        }
-        
-        if expr.contains("<=") {
-            if let Some(result) = self.evaluate_compare(expr, "<=", ctx)? {
-                return Ok(result);
-            }
-        }
-        
-        if expr.contains('>') {
-            if let Some(result) = self.evaluate_compare(expr, ">", ctx)? {
-                return Ok(result);
-            }
-        }
-        
-        if expr.contains('<') {
-            if let Some(result) = self.evaluate_compare(expr, "<", ctx)? {
-                return Ok(result);
+        // Handle comparison operators — check longer operators first to avoid
+        // partial matches (e.g. ">=" must be tried before ">" ).
+        for op in [">=", "<=", "==", "!=", ">", "<"].iter() {
+            if expr.contains(op) {
+                if let Some(result) = self.evaluate_compare(expr, op, ctx)? {
+                    return Ok(result);
+                }
             }
         }
         

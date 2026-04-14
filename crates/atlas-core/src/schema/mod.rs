@@ -39,28 +39,28 @@ impl CachedEntity {
 }
 
 /// SQL type mapping for field types
-pub fn field_type_to_sql(field_type: &FieldType) -> &'static str {
+pub fn field_type_to_sql(field_type: &FieldType) -> String {
     match field_type {
-        FieldType::String { .. } => "TEXT",
-        FieldType::FixedString { .. } => "VARCHAR",
-        FieldType::Integer { .. } => "BIGINT",
-        FieldType::Decimal { .. } => "NUMERIC",
-        FieldType::Boolean => "BOOLEAN",
-        FieldType::Date => "DATE",
-        FieldType::DateTime => "TIMESTAMPTZ",
-        FieldType::Enum { .. } => "VARCHAR(100)",
-        FieldType::Currency { .. } => "NUMERIC(18,2)",
-        FieldType::Json => "JSONB",
-        FieldType::Email => "VARCHAR(255)",
-        FieldType::Url => "VARCHAR(2048)",
-        FieldType::Phone => "VARCHAR(50)",
-        FieldType::RichText => "TEXT",
-        FieldType::Attachment => "UUID",
-        FieldType::Reference { .. } => "UUID",
-        FieldType::OneToMany { .. } => "TEXT", // Stored as JSON array of IDs; not a direct column
-        FieldType::OneToOne { .. } => "UUID",
-        FieldType::Computed { .. } => "TEXT", // Virtual column; may be materialized or omitted
-        FieldType::Address => "JSONB",
+        FieldType::String { .. } => "TEXT".to_string(),
+        FieldType::FixedString { length } => format!("VARCHAR({})", length),
+        FieldType::Integer { .. } => "BIGINT".to_string(),
+        FieldType::Decimal { precision, scale } => format!("NUMERIC({}, {})", precision, scale),
+        FieldType::Boolean => "BOOLEAN".to_string(),
+        FieldType::Date => "DATE".to_string(),
+        FieldType::DateTime => "TIMESTAMPTZ".to_string(),
+        FieldType::Enum { .. } => "VARCHAR(100)".to_string(),
+        FieldType::Currency { .. } => "NUMERIC(18,2)".to_string(),
+        FieldType::Json => "JSONB".to_string(),
+        FieldType::Email => "VARCHAR(255)".to_string(),
+        FieldType::Url => "VARCHAR(2048)".to_string(),
+        FieldType::Phone => "VARCHAR(50)".to_string(),
+        FieldType::RichText => "TEXT".to_string(),
+        FieldType::Attachment => "UUID".to_string(),
+        FieldType::Reference { .. } => "UUID".to_string(),
+        FieldType::OneToMany { .. } => "TEXT".to_string(), // Stored as JSON array of IDs; not a direct column
+        FieldType::OneToOne { .. } => "UUID".to_string(),
+        FieldType::Computed { .. } => "TEXT".to_string(), // Virtual column; may be materialized or omitted
+        FieldType::Address => "JSONB".to_string(),
     }
 }
 
@@ -98,6 +98,11 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
     
     // Add standard indexes
     columns.push("UNIQUE(organization_id, id)".to_string());
+    
+    // Sanitize table name: reject embedded quotes to prevent injection
+    if table_name.contains('"') {
+        return "-- ERROR: invalid table name".to_string();
+    }
     
     format!(
         "CREATE TABLE IF NOT EXISTS \"{}\" (\n  {}\n);",

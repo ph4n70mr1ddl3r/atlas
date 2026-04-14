@@ -7,10 +7,11 @@ use atlas_shared::errors::{AtlasError, AtlasResult};
 use std::collections::HashMap;
 
 /// Sanitize a SQL identifier by rejecting characters that could allow injection.
-/// Only allows alphanumeric, underscores, and dots (for schema.table references).
+/// Only allows alphanumeric and underscores. Dots are rejected to prevent
+/// cross-schema references in dynamic queries.
 fn sanitize_sql_identifier(name: &str) -> String {
     name.chars()
-        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '.')
+        .filter(|c| c.is_alphanumeric() || *c == '_')
         .collect()
 }
 
@@ -96,7 +97,12 @@ impl DynamicQuery {
         self
     }
     
-    /// Build the SELECT query
+    /// Build the SELECT query.
+    ///
+    /// **WARNING**: Filter values are interpolated into the SQL string via
+    /// `value_to_sql`, which performs basic escaping.  For user-facing code
+    /// prefer building parameterized queries (as the gateway handlers do)
+    /// rather than using this method directly with untrusted input.
     pub fn build_select(&self) -> String {
         let mut sql = String::from("SELECT ");
         
@@ -150,7 +156,10 @@ impl DynamicQuery {
         sql
     }
     
-    /// Build the COUNT query
+    /// Build the COUNT query.
+    ///
+    /// **WARNING**: Same caveat as `build_select` – filter values are
+    /// string-interpolated.  Use parameterized queries for untrusted input.
     pub fn build_count(&self) -> String {
         let mut sql = String::from("SELECT COUNT(*) FROM ");
         sql.push_str(&self.table_name);
@@ -177,8 +186,10 @@ impl DynamicQuery {
         sql
     }
     
-    /// Build the INSERT query
-    pub fn build_insert(&self, data: &serde_json::Value) -> AtlasResult<(String, Vec<String>, Vec<serde_json::Value>)> {
+    /// Build the INSERT query (parameterized).
+    ///
+    /// Returns `(sql, values)` where `values` should be bound positionally.
+    pub fn build_insert(&self, data: &serde_json::Value) -> AtlasResult<(String, Vec<serde_json::Value>)> {
         if let Some(obj) = data.as_object() {
             let fields: Vec<String> = obj.keys().map(|k| format!("\"{}\"", sanitize_sql_identifier(k))).collect();
             let placeholders: Vec<String> = (1..=obj.len()).map(|i| format!("${}", i)).collect();
@@ -191,7 +202,7 @@ impl DynamicQuery {
                 placeholders.join(", ")
             );
             
-            Ok((sql, fields, values))
+            Ok((sql, values))
         } else {
             Err(AtlasError::ValidationFailed("Expected object for insert".to_string()))
         }
@@ -280,6 +291,7 @@ impl DynamicQuery {
                 }
                 format!("{} BETWEEN {} AND {}", field, value, value)
             }
+            _ => format!("-- unsupported operator: {:?}", filter.operator),
         }
     }
     
@@ -421,13 +433,12 @@ mod tests {
             "age": 30
         });
         
-        let (sql, fields, values) = query.build_insert(&data).unwrap();
+        let (sql, values) = query.build_insert(&data).unwrap();
         
         assert!(sql.contains("INSERT INTO users"));
         assert!(sql.contains("\"name\""));
         assert!(sql.contains("\"email\""));
         assert!(sql.contains("\"age\""));
-        assert_eq!(fields.len(), 3);
         assert_eq!(values.len(), 3);
     }
 }

@@ -124,9 +124,6 @@ impl AppState {
             jwt_secret,
         };
         
-        // Register global state
-        APP_STATE.set(Arc::new(state.clone())).ok();
-        
         Ok(state)
     }
 }

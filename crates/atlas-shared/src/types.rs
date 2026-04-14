@@ -262,6 +262,7 @@ pub struct StateDefinition {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum StateType {
     Initial,
     Working,
@@ -360,6 +361,7 @@ pub struct QueryFilter {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum FilterOperator {
     #[default]
     Eq,
@@ -510,6 +512,7 @@ pub struct AuditEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum AuditAction {
     Create,
     Read,

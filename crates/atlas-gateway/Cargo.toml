@@ -9,6 +9,10 @@ license.workspace = true
 name = "atlas-gateway"
 path = "src/main.rs"
 
+[lib]
+name = "atlas_gateway"
+path = "src/lib.rs"
+
 [dependencies]
 atlas-shared = { path = "../atlas-shared" }
 atlas-core = { path = "../atlas-core" }
@@ -52,3 +56,10 @@ regex = { workspace = true }
 [dev-dependencies]
 tokio-test = "0.4"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+tower = { workspace = true, features = ["util"] }
+tower-http = { workspace = true, features = ["timeout"] }
+http = "1"
+http-body = "1"
+serde_json = { workspace = true }
+atlas-shared = { path = "../atlas-shared" }
+atlas-core = { path = "../atlas-core" }

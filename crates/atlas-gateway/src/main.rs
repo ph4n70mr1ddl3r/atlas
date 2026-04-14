@@ -2,11 +2,7 @@
 //! 
 //! Main API entry point handling authentication, routing, and request processing.
 
-mod handlers;
-mod middleware;
-mod state;
-
-pub use state::AppState;
+use atlas_gateway::{handlers, AppState};
 
 use axum::Router;
 use tower_http::cors::{CorsLayer, Any};
@@ -18,7 +14,7 @@ use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use anyhow::Context;
 
-use crate::middleware::get_login_rate_limiter;
+use atlas_gateway::middleware::get_login_rate_limiter;
 
 /// Request timeout duration
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);

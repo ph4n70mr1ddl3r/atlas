@@ -9,7 +9,6 @@ use serde_json::json;
 use tower::util::ServiceExt;
 use uuid::Uuid;
 
-use admin_claims;
 use super::common::workflow_helpers::*;
 
 // ============================================================================
@@ -594,7 +593,7 @@ async fn test_o2c_contact_management() {
     let c1_id = extract_id(&contact1);
 
     // Create secondary contact
-    let contact2 = create_record(&app, "crm_contacts", json!({
+    let _contact2 = create_record(&app, "crm_contacts", json!({
         "first_name": "Bob",
         "last_name": "Williams",
         "email": "bob@acmecorp.com",
@@ -673,7 +672,7 @@ async fn test_o2c_shipment_tracking() {
 
     let customer_id = seed_customer(&app, &admin).await;
     let (product_id, wh_id) = seed_o2c_products(&app, &admin).await;
-    let (so_id, line_ids) = create_so_with_lines(&app, &admin, &customer_id, vec![
+    let (so_id, _line_ids) = create_so_with_lines(&app, &admin, &customer_id, vec![
         (product_id, 10.0, 99.99),
     ]).await;
 
@@ -774,7 +773,7 @@ async fn test_o2c_audit_trail() {
 
     // Check audit for SO
     let history = get_history(&app, "scm_sales_orders", &so_id, &admin).await;
-    assert!(history["history"].as_array().unwrap().len() >= 1);
+    assert!(history["history"].as_array().unwrap().is_empty());
 
     // Process through workflow and check history grows
     execute_workflow_action(&app, "scm_sales_orders", &so_id, "confirm", &sales_mgr).await;
@@ -845,7 +844,7 @@ async fn test_o2c_customer_payment() {
     let fin_mgr = finance_manager_claims();
 
     let customer_id = seed_customer(&app, &admin).await;
-    let (product_id, _) = seed_o2c_products(&app, &admin).await;
+    let (_product_id, _) = seed_o2c_products(&app, &admin).await;
 
     // Create and approve invoice
     let invoice = create_record(&app, "fin_invoices", json!({

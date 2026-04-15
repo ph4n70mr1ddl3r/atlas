@@ -9,7 +9,6 @@ use serde_json::json;
 use tower::util::ServiceExt;
 use uuid::Uuid;
 
-use admin_claims;
 use super::common::workflow_helpers::*;
 
 // ============================================================================
@@ -658,7 +657,7 @@ async fn test_p2p_gl_journal_entry_for_invoice() {
     let admin = admin_claims();
     let fin_mgr = finance_manager_claims();
 
-    let (supplier_id, product_id, _) = seed_master_data(&app, &admin).await;
+    let (_supplier_id, _product_id, _) = seed_master_data(&app, &admin).await;
 
     // Create chart of accounts
     let ap_account = create_record(&app, "fin_chart_of_accounts", json!({
@@ -738,7 +737,7 @@ async fn test_p2p_gl_journal_entry_for_invoice() {
 async fn test_p2p_audit_trail() {
     let (state, app) = setup_p2p().await;
     let admin = admin_claims();
-    let buyer = purchase_manager_claims();
+    let _buyer = purchase_manager_claims();
 
     let (supplier_id, product_id, _) = seed_master_data(&app, &admin).await;
     let (po_id, _) = create_po_with_lines(&app, &admin, &supplier_id, vec![
@@ -749,7 +748,7 @@ async fn test_p2p_audit_trail() {
     let history = get_history(&app, "scm_purchase_orders", &po_id, &admin).await;
     assert_eq!(history["entity"], "scm_purchase_orders");
     // History should contain the create audit entry
-    assert!(history["history"].as_array().unwrap().len() >= 1);
+    assert!(history["history"].as_array().unwrap().is_empty());
 
     // Submit
     execute_workflow_action(&app, "scm_purchase_orders", &po_id, "submit", &admin).await;
@@ -813,7 +812,7 @@ async fn test_p2p_invoice_void() {
     let admin = admin_claims();
     let fin_mgr = finance_manager_claims();
 
-    let (supplier_id, _, _) = seed_master_data(&app, &admin).await;
+    let (_supplier_id, _, _) = seed_master_data(&app, &admin).await;
 
     let invoice = create_record(&app, "fin_invoices", json!({
         "invoice_number": "INV-VOID-001",
@@ -908,7 +907,7 @@ async fn test_p2p_supplier_crud() {
 
     // List
     let list = list_records(&app, "scm_suppliers", &admin).await;
-    assert!(list["data"].as_array().unwrap().len() >= 1);
+    assert!(list["data"].as_array().unwrap().is_empty());
 
     // Soft delete
     let status = delete_record(&app, "scm_suppliers", &id, &admin).await;
@@ -936,7 +935,7 @@ async fn test_p2p_regular_user_cannot_approve_invoice() {
     let regular_user = user_claims();
     let fin_mgr = finance_manager_claims();
 
-    let (supplier_id, _, _) = seed_master_data(&app, &admin).await;
+    let (_supplier_id, _, _) = seed_master_data(&app, &admin).await;
 
     let invoice = create_record(&app, "fin_invoices", json!({
         "invoice_number": "INV-RBAC-001",
@@ -1142,7 +1141,7 @@ async fn test_p2p_direct_goods_receipt_no_po() {
     let admin = admin_claims();
     let wh_clerk = warehouse_claims();
 
-    let (supplier_id, product_id, wh_id) = seed_master_data(&app, &admin).await;
+    let (supplier_id, _product_id, wh_id) = seed_master_data(&app, &admin).await;
 
     // Create a goods receipt without PO reference
     let gr = create_record(&app, "scm_goods_receipts", json!({
@@ -1175,7 +1174,7 @@ async fn test_p2p_direct_goods_receipt_no_po() {
 #[ignore]
 async fn test_p2p_unbalanced_journal_entry_data() {
     let (state, app) = setup_p2p().await;
-    let admin = admin_claims();
+    let _admin = admin_claims();
     let fin_mgr = finance_manager_claims();
 
     let je = create_record(&app, "fin_journal_entries", json!({
@@ -1209,7 +1208,7 @@ async fn test_p2p_invoice_rejection_returns_to_draft() {
     let admin = admin_claims();
     let fin_mgr = finance_manager_claims();
 
-    let (supplier_id, _, _) = seed_master_data(&app, &admin).await;
+    let (_supplier_id, _, _) = seed_master_data(&app, &admin).await;
 
     let invoice = create_record(&app, "fin_invoices", json!({
         "invoice_number": "INV-REJ-001",

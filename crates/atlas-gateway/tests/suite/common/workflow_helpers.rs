@@ -17,14 +17,13 @@ use atlas_core::{
     audit::PostgresAuditRepository,
 };
 use atlas_shared::{
-    EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
+    EntityDefinition, WorkflowDefinition,
     StateDefinition, StateType, TransitionDefinition,
-    GuardDefinition, ActionDefinition,
 };
 use atlas_gateway::AppState;
 
 pub use super::super::common::helpers::{
-    TEST_JWT_SECRET, Claims, admin_claims, user_claims, make_test_token, auth_header,
+    TEST_JWT_SECRET, Claims, admin_claims, user_claims, auth_header,
 };
 
 // ============================================================================

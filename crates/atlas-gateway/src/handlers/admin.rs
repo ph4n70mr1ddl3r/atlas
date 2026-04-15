@@ -1,7 +1,7 @@
 //! Admin handlers
 
 use axum::{
-    extract::{State, Path},
+    extract::{State, Path, Query},
     Json,
     http::StatusCode,
 };
@@ -97,22 +97,22 @@ pub struct UpdateEntityRequest {
 pub async fn delete_entity(
     State(state): State<Arc<AppState>>,
     Path(entity): Path<String>,
-    Json(payload): Json<DeleteEntityRequest>,
+    Query(params): Query<DeleteEntityParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     info!("Deleting entity: {}", entity);
-    
-    if !payload.drop_table {
+
+    if !params.drop_table {
         state.schema_engine.delete_entity(&entity)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-        
+
         return Ok(Json(serde_json::json!({
-            "entity": entity,
-            "definition_removed": true,
-            "table_preserved": true
-        })));
+                "entity": entity,
+                "definition_removed": true,
+                "table_preserved": true
+            })));
     }
-    
+
     // Drop table (sanitize to prevent SQL injection)
     let safe_entity = sanitize_identifier(&entity).map_err(|_| StatusCode::BAD_REQUEST)?;
     if let Err(e) = sqlx::query(&format!("DROP TABLE IF EXISTS \"{}\"", safe_entity))
@@ -121,11 +121,11 @@ pub async fn delete_entity(
     {
         warn!("Failed to drop table: {}", e);
     }
-    
+
     state.schema_engine.delete_entity(&entity)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
+
     Ok(Json(serde_json::json!({
         "entity": entity,
         "table_dropped": true,
@@ -134,7 +134,7 @@ pub async fn delete_entity(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct DeleteEntityRequest {
+pub struct DeleteEntityParams {
     #[serde(default)]
     pub drop_table: bool,
 }

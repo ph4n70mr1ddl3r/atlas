@@ -69,7 +69,7 @@ pub fn row_to_json(row: &sqlx::postgres::PgRow) -> serde_json::Value {
 
 /// Convert a JSON value into an `Option<String>` suitable for binding as
 /// `::text` in a parameterised PostgreSQL query.
-fn json_to_text(value: &serde_json::Value) -> Option<String> {
+pub fn json_to_text(value: &serde_json::Value) -> Option<String> {
     match value {
         serde_json::Value::Null => None,
         serde_json::Value::Bool(b) => Some(if *b { "true".into() } else { "false".into() }),
@@ -339,10 +339,7 @@ pub async fn create_record(
         })?;
     
     let record = row_to_json(&row);
-    let record_id = record.get("id")
-        .and_then(|v| v.as_str())
-        .and_then(|s| Uuid::parse_str(s).ok())
-        .or_else(|| row.try_get::<Uuid, _>("id").ok());
+    let record_id = row.try_get::<Uuid, _>("id").ok();
     
     // Log audit entry for create
     if let Some(id) = record_id {
@@ -714,12 +711,15 @@ pub async fn execute_action(
     // Merge any values from the payload
     if let Some(values) = payload.values {
         if let Some(obj) = values.as_object() {
-            let set_clauses: Vec<String> = obj.keys()
+            // Sanitize field names while preserving value lookup with original keys
+            let original_keys: Vec<String> = obj.keys().cloned().collect();
+            let sanitized_fields: Vec<String> = original_keys.iter()
                 .map(|k| sanitize_identifier(k))
-                .collect::<Result<Vec<_>, _>>()?
-                .iter()
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let set_clauses: Vec<String> = sanitized_fields.iter()
                 .enumerate()
-                .map(|(i, k)| format!("\"{}\" = ${}", k, i + 1))
+                .map(|(i, k)| format!("\"{}\" = ${}::text", k, i + 1))
                 .collect();
 
             if !set_clauses.is_empty() {
@@ -730,8 +730,9 @@ pub async fn execute_action(
                     set_clauses.len() + 1
                 );
                 let mut q = sqlx::query(&update_query);
-                for (_, value) in obj {
-                    q = q.bind(value);
+                for key in &original_keys {
+                    let value = obj.get(key).unwrap_or(&serde_json::Value::Null);
+                    q = q.bind(json_to_text(value));
                 }
                 q = q.bind(id);
                 q.execute(&state.db_pool).await.map_err(|e| {

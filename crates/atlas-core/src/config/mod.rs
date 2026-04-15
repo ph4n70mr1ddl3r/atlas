@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use tokio::sync::RwLock;
 
 /// Configuration value
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(untagged)]
 pub enum ConfigValue {
     String(String),
@@ -21,6 +21,7 @@ pub enum ConfigValue {
     Boolean(bool),
     Array(Vec<ConfigValue>),
     Object(HashMap<String, ConfigValue>),
+    #[default]
     Null,
 }
 

@@ -7,7 +7,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use crate::AppState;
-use crate::handlers::records::{sanitize_identifier, row_to_json};
+use crate::handlers::records::{sanitize_identifier, row_to_json, json_to_text};
 use crate::handlers::auth::Claims;
 use axum::Extension;
 use sqlx::Row;
@@ -251,32 +251,33 @@ pub async fn import_data(
                 .map(|k| sanitize_identifier(k))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| StatusCode::BAD_REQUEST)?;
-            let placeholders: Vec<String> = (1..=sanitized_fields.len() + 1)
-                .map(|i| format!("${}", i))
+            let placeholders: Vec<String> = (1..=sanitized_fields.len())
+                .map(|i| format!("${}::text", i))
                 .collect();
+            let org_placeholder = format!("${}::uuid", sanitized_fields.len() + 1);
 
             let query = if payload.upsert {
                 format!(
-                    "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, ${}::uuid) ON CONFLICT DO NOTHING",
+                    "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, {}) ON CONFLICT DO NOTHING",
                     table_name,
                     sanitized_fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
-                    placeholders[..sanitized_fields.len()].join(", "),
-                    sanitized_fields.len() + 1
+                    placeholders.join(", "),
+                    org_placeholder
                 )
             } else {
                 format!(
-                    "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, ${}::uuid)",
+                    "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, {})",
                     table_name,
                     sanitized_fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
-                    placeholders[..sanitized_fields.len()].join(", "),
-                    sanitized_fields.len() + 1
+                    placeholders.join(", "),
+                    org_placeholder
                 )
             };
 
             let mut db_query = sqlx::query(&query);
             for key in &original_keys {
                 let value = obj.get(key).unwrap_or(&serde_json::Value::Null);
-                db_query = db_query.bind(value);
+                db_query = db_query.bind(json_to_text(value));
             }
             db_query = db_query.bind(org_id);
 

@@ -62,6 +62,7 @@ impl GuardEvaluator {
                     return GuardResult::fail(&format!("{} is required", field));
                 }
             }
+            return GuardResult::pass();
         }
         
         if rule.starts_with("validate.not_empty(") && rule.ends_with(')') {
@@ -71,6 +72,7 @@ impl GuardEvaluator {
                     return GuardResult::fail(&format!("{} cannot be empty", field));
                 }
             }
+            return GuardResult::pass();
         }
         
         if rule.starts_with("validate.greater_than(") && rule.ends_with(')') {
@@ -89,6 +91,7 @@ impl GuardEvaluator {
                     }
                 }
             }
+            return GuardResult::pass();
         }
         
         if rule.starts_with("validate.equals(") && rule.ends_with(')') {
@@ -107,8 +110,11 @@ impl GuardEvaluator {
                     }
                 }
             }
+            return GuardResult::pass();
         }
         
+        // Unrecognized rule — log a warning instead of silently passing
+        tracing::warn!("Unrecognized guard rule: '{}'", rule);
         GuardResult::pass()
     }
     

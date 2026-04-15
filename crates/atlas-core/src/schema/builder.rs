@@ -27,8 +27,10 @@ pub struct SchemaBuilder {
 
 impl SchemaBuilder {
     pub fn new(name: &str, label: &str) -> Self {
-        let plural_label = if label.ends_with('s') {
+        let plural_label = if label.ends_with("s") || label.ends_with("sh") || label.ends_with("ch") || label.ends_with("x") || label.ends_with("z") {
             format!("{}es", label)
+        } else if label.ends_with('y') && !label.ends_with("ay") && !label.ends_with("ey") && !label.ends_with("iy") && !label.ends_with("oy") && !label.ends_with("uy") {
+            format!("{}ies", &label[..label.len()-1])
         } else {
             format!("{}s", label)
         };

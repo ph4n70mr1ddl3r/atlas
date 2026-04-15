@@ -14,6 +14,7 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
     let name = &input.ident;
     
     let expanded = quote! {
+        #[deprecated(note = "Use declarative approach via JSON schema or SchemaBuilder")]
         impl #name {
             /// Generate entity definition from struct
             pub fn entity_definition() -> atlas_shared::EntityDefinition {

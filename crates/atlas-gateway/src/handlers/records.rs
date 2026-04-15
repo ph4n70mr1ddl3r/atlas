@@ -390,10 +390,15 @@ pub async fn update_record(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Fetch the old record for audit (scoped to organization)
+    let soft_delete_filter = if entity_def.is_soft_delete {
+        " AND deleted_at IS NULL"
+    } else {
+        ""
+    };
     let old_row = sqlx::query(
         format!(
-            "SELECT * FROM \"{}\" WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL",
-            table_name
+            "SELECT * FROM \"{}\" WHERE id = $1 AND organization_id = $2{}",
+            table_name, soft_delete_filter
         ).as_str()
     )
     .bind(id)
@@ -419,12 +424,18 @@ pub async fn update_record(
         .map(|(i, (k, _))| format!("\"{}\" = ${}::text", k, i + 1))
         .collect();
     
+    let soft_delete_update = if entity_def.is_soft_delete {
+        " AND deleted_at IS NULL"
+    } else {
+        ""
+    };
     let query = format!(
-        "UPDATE \"{}\" SET {}, updated_at = now() WHERE id = ${} AND organization_id = ${} AND deleted_at IS NULL RETURNING *",
+        "UPDATE \"{}\" SET {}, updated_at = now() WHERE id = ${} AND organization_id = ${}{} RETURNING *",
         table_name,
         set_clauses.join(", "),
         non_null.len() + 1,
-        non_null.len() + 2
+        non_null.len() + 2,
+        soft_delete_update
     );
     
     let mut db_query = sqlx::query(&query);
@@ -518,7 +529,7 @@ pub async fn delete_record(
     };
     
     let query = if entity_def.is_soft_delete {
-        format!("UPDATE \"{}\" SET deleted_at = NOW() WHERE id = $1 AND organization_id = $2", table_name)
+        format!("UPDATE \"{}\" SET deleted_at = NOW() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL", table_name)
     } else {
         format!("DELETE FROM \"{}\" WHERE id = $1 AND organization_id = $2", table_name)
     };

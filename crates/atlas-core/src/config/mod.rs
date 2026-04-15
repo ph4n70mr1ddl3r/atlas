@@ -15,6 +15,7 @@ use tokio::sync::RwLock;
 /// Configuration value
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum ConfigValue {
     String(String),
     Number(f64),

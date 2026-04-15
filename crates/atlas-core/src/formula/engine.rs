@@ -208,27 +208,53 @@ impl FormulaEngine {
     }
     
     fn evaluate_binary_op(&self, expr: &str, op: char, ctx: &EvaluationContext) -> Result<Option<FormulaValue>, String> {
-        // Find the operator (not inside quotes or parens)
+        // Find the operator (not inside quotes, parens, or identifiers)
+        // For '-', skip matches that are preceded by an alphanumeric or '_' (e.g. field names like 'start_date' vs 'a - b')
         let mut depth = 0;
         let mut in_string = false;
         let mut op_idx = None;
+        let chars: Vec<char> = expr.chars().collect();
         
-        for (i, ch) in expr.char_indices() {
+        for i in 0..chars.len() {
+            let ch = chars[i];
             match ch {
                 '"' => in_string = !in_string,
                 '(' | '[' | '{' if !in_string => depth += 1,
                 ')' | ']' | '}' if !in_string => depth -= 1,
                 c if c == op && depth == 0 && !in_string => {
-                    op_idx = Some(i);
-                    break;
+                    // For '-', reject if preceded by alphanumeric or underscore
+                    // (part of an identifier like 'start_date'), or if at start
+                    if op == '-' {
+                        if i == 0 {
+                            continue; // unary minus at start, not binary
+                        }
+                        let prev = chars[i - 1];
+                        if prev.is_alphanumeric() || prev == '_' {
+                            continue; // part of identifier
+                        }
+                    }
+                    // Must have whitespace or non-identifier chars around the operator
+                    // to distinguish from field names
+                    if op == '+' || op == '-' || op == '*' || op == '/' {
+                        // Check that there's at least something on both sides
+                        if i > 0 && i < chars.len() - 1 {
+                            op_idx = Some(i);
+                            break;
+                        }
+                    } else {
+                        op_idx = Some(i);
+                        break;
+                    }
                 }
                 _ => {}
             }
         }
         
         if let Some(idx) = op_idx {
-            let left = expr[..idx].trim();
-            let right = expr[idx+1..].trim();
+            // Convert char index back to byte index
+            let byte_idx = chars[..idx].iter().collect::<String>().len();
+            let left = expr[..byte_idx].trim();
+            let right = expr[byte_idx + 1..].trim(); // operators are 1-byte ASCII
             
             let left_val = self.parse_and_evaluate(left, ctx)?;
             let right_val = self.parse_and_evaluate(right, ctx)?;
@@ -252,24 +278,33 @@ impl FormulaEngine {
         let mut depth = 0;
         let mut in_string = false;
         let mut op_idx = None;
-        
-        for i in 0..expr.len().saturating_sub(op.len()) {
-            let ch = expr.chars().nth(i).unwrap();
+        let chars: Vec<char> = expr.chars().collect();
+        let op_len = op.len();
+
+        for i in 0..chars.len().saturating_sub(op_len) {
+            let ch = chars[i];
             match ch {
                 '"' => in_string = !in_string,
                 '(' | '[' | '{' if !in_string => depth += 1,
                 ')' | ']' | '}' if !in_string => depth -= 1,
-                _ if !in_string && depth == 0 && &expr[i..i + op.len()] == op => {
-                    op_idx = Some(i);
-                    break;
+                _ if !in_string && depth == 0 => {
+                    // Check if the slice starting at char index i matches op
+                    let slice: String = chars[i..i + op_len].iter().collect();
+                    if slice == op {
+                        op_idx = Some(i);
+                        break;
+                    }
                 }
                 _ => {}
             }
         }
         
         if let Some(idx) = op_idx {
-            let left = expr[..idx].trim();
-            let right = expr[idx + op.len()..].trim();
+            // Convert char index to byte index for string slicing
+            let byte_idx = chars[..idx].iter().collect::<String>().len();
+            let byte_end = chars[..idx + op_len].iter().collect::<String>().len();
+            let left = expr[..byte_idx].trim();
+            let right = expr[byte_end..].trim();
             
             let left_val = self.parse_and_evaluate(left, ctx)?;
             let right_val = self.parse_and_evaluate(right, ctx)?;

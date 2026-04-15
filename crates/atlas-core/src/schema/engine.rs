@@ -40,7 +40,11 @@ impl SchemaEngine {
         }
         
         let count = self.cache.len();
-        *self.version.write().await = count as i64;
+        let max_version = self.cache.iter()
+            .map(|e| e.value().version)
+            .max()
+            .unwrap_or(0);
+        *self.version.write().await = max_version;
         
         info!("Loaded {} entities into schema cache", count);
         Ok(())

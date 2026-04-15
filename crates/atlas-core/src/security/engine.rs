@@ -214,7 +214,6 @@ impl Default for SecurityEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use atlas_shared::SecurityRule;
     
     fn create_context() -> SecurityContext {
         SecurityContext {

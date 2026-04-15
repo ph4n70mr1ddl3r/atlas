@@ -93,7 +93,21 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
         }
         
         if let Some(default) = &field.default_value {
-            col_def.push_str(&format!(" DEFAULT {}", default));
+            // Safely serialize the default value for SQL
+            let default_str = match default {
+                serde_json::Value::Bool(b) => b.to_string(),
+                serde_json::Value::Number(n) => n.to_string(),
+                serde_json::Value::String(s) => {
+                    let escaped = s.replace('\'', "''");
+                    format!("'{}'", escaped)
+                }
+                _ => {
+                    // For complex types, use quoted JSON
+                    let escaped = default.to_string().replace('\'', "''");
+                    format!("'{}'", escaped)
+                }
+            };
+            col_def.push_str(&format!(" DEFAULT {}", default_str));
         }
         
         columns.push(col_def);

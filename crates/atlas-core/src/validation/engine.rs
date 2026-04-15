@@ -369,7 +369,7 @@ mod tests {
         let mut name_field = entity.fields[0].clone();
         name_field.is_required = true;
         
-        let data = serde_json::json!({});
+        let _data = serde_json::json!({});
         let result = engine.validate_field(&name_field, &serde_json::Value::Null);
         
         assert!(!result.valid);

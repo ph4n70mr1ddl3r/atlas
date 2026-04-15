@@ -46,7 +46,7 @@ async fn test_crud_full_lifecycle() {
 
     // READ
     let resp = app.clone().oneshot(
-        Request::builder().uri(&format!("/api/v1/test_items/{}", record_id)).header(&k, &v).body(Body::empty()).unwrap()
+        Request::builder().uri(format!("/api/v1/test_items/{}", record_id)).header(&k, &v).body(Body::empty()).unwrap()
     ).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
@@ -60,12 +60,11 @@ async fn test_crud_full_lifecycle() {
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert!(list["data"].as_array().unwrap().len() >= 1);
+    assert!(!list["data"].as_array().unwrap().is_empty());
 
     // UPDATE
     let resp = app.clone().oneshot(Request::builder().method("PUT")
-        .uri(&format!("/api/v1/test_items/{}", record_id))
-        .header("Content-Type", "application/json").header(&k, &v)
+        .uri(format!("/api/v1/test_items/{}", record_id)).header("Content-Type", "application/json").header(&k, &v)
         .body(Body::from(serde_json::to_string(&json!({
             "entity": "test_items", "id": record_id, "values": {"name": "Updated", "quantity": 100}
         })).unwrap())).unwrap()
@@ -78,7 +77,7 @@ async fn test_crud_full_lifecycle() {
 
     // DELETE
     let resp = app.oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/test_items/{}", record_id)).header(&k, &v).body(Body::empty()).unwrap()
+        .uri(format!("/api/v1/test_items/{}", record_id)).header(&k, &v).body(Body::empty()).unwrap()
     ).await.unwrap();
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
@@ -109,7 +108,7 @@ async fn test_delete_nonexistent() {
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let resp = app.oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/test_items/{}", Uuid::new_v4())).header(k, v).body(Body::empty()).unwrap()
+        .uri(format!("/api/v1/test_items/{}", Uuid::new_v4())).header(k, v).body(Body::empty()).unwrap()
     ).await.unwrap();
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 }

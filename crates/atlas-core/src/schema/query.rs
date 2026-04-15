@@ -94,10 +94,16 @@ impl DynamicQuery {
     }
     
     pub fn join(mut self, alias: &str, join_type: JoinType, table: &str, on: &str) -> Self {
-        self.joins.insert(alias.to_string(), JoinDef {
+        let safe_alias = sanitize_sql_identifier(alias);
+        let safe_table = sanitize_sql_identifier(table);
+        // Sanitize ON clause field references (allow only identifier.identifier patterns)
+        let safe_on: String = on.chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '.' || *c == '=')
+            .collect();
+        self.joins.insert(safe_alias, JoinDef {
             join_type,
-            table: table.to_string(),
-            on: on.to_string(),
+            table: safe_table,
+            on: safe_on,
         });
         self
     }

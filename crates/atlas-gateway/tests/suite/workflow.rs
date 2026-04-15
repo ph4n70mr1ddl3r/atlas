@@ -33,7 +33,7 @@ async fn create_item(app: &axum::Router, k: &str, v: &str) -> String {
 
 async fn do_action(app: &axum::Router, k: &str, v: &str, id: &str, action: &str) -> serde_json::Value {
     let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/test_items/{}/{}", id, action))
+        .uri(format!("/api/v1/test_items/{}/{}", id, action))
         .header("Content-Type", "application/json").header(k, v)
         .body(Body::from(serde_json::to_string(&json!({"action": action, "comment": "test"})).unwrap())).unwrap()
     ).await.unwrap();
@@ -43,7 +43,7 @@ async fn do_action(app: &axum::Router, k: &str, v: &str, id: &str, action: &str)
 
 async fn get_transitions(app: &axum::Router, k: &str, v: &str, id: &str) -> serde_json::Value {
     let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/test_items/{}/transitions", id)).header(k, v).body(Body::empty()).unwrap()
+        .uri(format!("/api/v1/test_items/{}/transitions", id)).header(k, v).body(Body::empty()).unwrap()
     ).await.unwrap();
     let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
     serde_json::from_slice(&b).unwrap()
@@ -95,7 +95,7 @@ async fn test_invalid_transition() {
     let (k, v) = auth_header(&admin_claims());
     let id = create_item(&app, &k, &v).await;
     let r = app.oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/test_items/{}/approve", id))
+        .uri(format!("/api/v1/test_items/{}/approve", id))
         .header("Content-Type", "application/json").header(&k, &v)
         .body(Body::from(serde_json::to_string(&json!({"action": "approve", "comment": "skip"})).unwrap())).unwrap()
     ).await.unwrap();
@@ -141,7 +141,7 @@ async fn test_record_history() {
     let id = create_item(&app, &k, &v).await;
     do_action(&app, &k, &v, &id, "submit").await;
     let r = app.oneshot(Request::builder()
-        .uri(&format!("/api/v1/test_items/{}/history", id)).header(&k, &v).body(Body::empty()).unwrap()
+        .uri(format!("/api/v1/test_items/{}/history", id)).header(&k, &v).body(Body::empty()).unwrap()
     ).await.unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
@@ -164,7 +164,7 @@ async fn test_transitions_no_workflow() {
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let r = app.oneshot(Request::builder()
-        .uri(&format!("/api/v1/simple/{}/transitions", Uuid::new_v4())).header(k, v).body(Body::empty()).unwrap()
+        .uri(format!("/api/v1/simple/{}/transitions", Uuid::new_v4())).header(k, v).body(Body::empty()).unwrap()
     ).await.unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();

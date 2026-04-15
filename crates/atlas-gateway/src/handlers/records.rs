@@ -50,10 +50,33 @@ pub fn row_to_json(row: &sqlx::postgres::PgRow) -> serde_json::Value {
     let mut obj = serde_json::Map::new();
     for i in 0..row.columns().len() {
         let name = row.columns()[i].name();
-        let value = row.try_get::<serde_json::Value, _>(i).unwrap_or(serde_json::Value::Null);
+        // Try JSONB first (works for JSONB columns), then concrete PG types
+        let value = row.try_get::<serde_json::Value, _>(i)
+            .or_else(|_| row.try_get::<String, _>(i).map(serde_json::Value::String))
+            .or_else(|_| row.try_get::<bool, _>(i).map(|b| serde_json::json!(b)))
+            .or_else(|_| row.try_get::<i64, _>(i).map(|n| serde_json::json!(n)))
+            .or_else(|_| row.try_get::<i32, _>(i).map(|n| serde_json::json!(n)))
+            .or_else(|_| row.try_get::<f64, _>(i).map(|n| serde_json::json!(n)))
+            .or_else(|_| row.try_get::<chrono::DateTime<chrono::Utc>, _>(i).map(|d| serde_json::json!(d.to_rfc3339())))
+            .or_else(|_| row.try_get::<chrono::NaiveDate, _>(i).map(|d| serde_json::json!(d.to_string())))
+            .or_else(|_| row.try_get::<uuid::Uuid, _>(i).map(|u| serde_json::json!(u.to_string())))
+            .unwrap_or(serde_json::Value::Null);
         obj.insert(name.to_string(), value);
     }
     serde_json::Value::Object(obj)
+}
+
+
+/// Convert a JSON value into an `Option<String>` suitable for binding as
+/// `::text` in a parameterised PostgreSQL query.
+fn json_to_text(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::Null => None,
+        serde_json::Value::Bool(b) => Some(if *b { "true".into() } else { "false".into() }),
+        serde_json::Value::Number(n) => Some(n.to_string()),
+        serde_json::Value::String(s) => Some(s.clone()),
+        other => Some(other.to_string()),
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -248,7 +271,7 @@ pub async fn create_record(
     State(state): State<Arc<AppState>>,
     Path(entity): Path<String>,
     claims: Extension<Claims>,
-    Json(mut payload): Json<CreateRequest>,
+    Json(payload): Json<CreateRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     info!("Creating record for entity: {}", entity);
     
@@ -263,30 +286,41 @@ pub async fn create_record(
     let table_name = sanitize_identifier(table_name)?;
     
     // Inject organization_id from JWT claims for multi-tenancy
-    if let Some(obj) = payload.values.as_object_mut() {
-        obj.insert("organization_id".to_string(), serde_json::json!(claims.org_id));
-    }
+    let org_id = Uuid::parse_str(&claims.org_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
-    // Validate and sanitize field names
-    let fields: Vec<String> = payload.values.as_object().unwrap().keys()
-        .map(|k| sanitize_identifier(k))
+    // Validate and sanitize field names, filtering out null values
+    let non_null_fields: Vec<(String, &serde_json::Value)> = payload.values.as_object().unwrap()
+        .iter()
+        .filter(|(_, v)| !v.is_null())
+        .map(|(k, v)| sanitize_identifier(k).map(|safe_k| (safe_k, v)))
         .collect::<Result<Vec<_>, _>>()?;
     
-    let placeholders: Vec<String> = (1..=fields.len())
-        .map(|i| format!("${}", i))
+    let fields: Vec<&str> = non_null_fields.iter().map(|(k, _)| k.as_str()).collect();
+    let values: Vec<&serde_json::Value> = non_null_fields.iter().map(|(_, v)| *v).collect();
+    
+    // Placeholders: ($1::text, $2::text, ..., $N::text, $(N+1)::uuid)
+    // We bind all user values as text (sqlx sends Option<String>),
+    // then PostgreSQL auto-casts text to most column types.
+    // organization_id is bound separately as UUID.
+    let field_count = fields.len();
+    let placeholders: Vec<String> = (1..=field_count)
+        .map(|i| format!("${}::text", i))
         .collect();
+    let org_placeholder = format!("${}::uuid", field_count + 1);
     
     let query = format!(
-        "INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *",
+        "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, {}) RETURNING *",
         table_name,
         fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
-        placeholders.join(", ")
+        placeholders.join(", "),
+        org_placeholder
     );
-    
     let mut db_query = sqlx::query(&query);
-    for (_, value) in payload.values.as_object().unwrap() {
-        db_query = db_query.bind(value);
+    for value in &values {
+        db_query = db_query.bind(json_to_text(value));
     }
+    db_query = db_query.bind(org_id);
     
     let row = db_query
         .fetch_one(&state.db_pool)
@@ -299,7 +333,8 @@ pub async fn create_record(
     let record = row_to_json(&row);
     let record_id = record.get("id")
         .and_then(|v| v.as_str())
-        .and_then(|s| Uuid::parse_str(s).ok());
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .or_else(|| row.try_get::<Uuid, _>("id").ok());
     
     // Log audit entry for create
     if let Some(id) = record_id {
@@ -346,15 +381,18 @@ pub async fn update_record(
     
     // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
-    
-    // Fetch the old record for audit
+    let org_id = Uuid::parse_str(&claims.org_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Fetch the old record for audit (scoped to organization)
     let old_row = sqlx::query(
         format!(
-            "SELECT * FROM \"{}\" WHERE id = $1 AND deleted_at IS NULL",
+            "SELECT * FROM \"{}\" WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL",
             table_name
         ).as_str()
     )
     .bind(id)
+    .bind(org_id)
     .fetch_optional(&state.db_pool)
     .await
     .map_err(|e| {
@@ -364,27 +402,32 @@ pub async fn update_record(
     
     let old_record = old_row.map(|r| row_to_json(&r));
     
-    // Validate and sanitize field names
-    let set_clauses: Vec<String> = payload.values.as_object().unwrap().keys()
-        .map(|k| sanitize_identifier(k))
-        .collect::<Result<Vec<_>, _>>()?
+    // Validate and sanitize field names, filter null values
+    let non_null: Vec<(String, &serde_json::Value)> = payload.values.as_object().unwrap()
         .iter()
+        .filter(|(_, v)| !v.is_null())
+        .map(|(k, v)| sanitize_identifier(k).map(|safe_k| (safe_k, v)))
+        .collect::<Result<Vec<_>, _>>()?;
+    
+    let set_clauses: Vec<String> = non_null.iter()
         .enumerate()
-        .map(|(i, k)| format!("\"{}\" = ${}", k, i + 1))
+        .map(|(i, (k, _))| format!("\"{}\" = ${}::text", k, i + 1))
         .collect();
     
     let query = format!(
-        "UPDATE \"{}\" SET {} WHERE id = ${} RETURNING *",
+        "UPDATE \"{}\" SET {}, updated_at = now() WHERE id = ${} AND organization_id = ${} AND deleted_at IS NULL RETURNING *",
         table_name,
         set_clauses.join(", "),
-        set_clauses.len() + 1
+        non_null.len() + 1,
+        non_null.len() + 2
     );
     
     let mut db_query = sqlx::query(&query);
-    for (_, value) in payload.values.as_object().unwrap() {
-        db_query = db_query.bind(value);
+    for (_, value) in &non_null {
+        db_query = db_query.bind(json_to_text(value));
     }
     db_query = db_query.bind(id);
+    db_query = db_query.bind(org_id);
     
     let row = db_query
         .fetch_optional(&state.db_pool)
@@ -445,14 +488,18 @@ pub async fn delete_record(
     // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
     
-    // Fetch the old record for audit
+    let org_id = Uuid::parse_str(&claims.org_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Fetch the old record for audit (scoped to organization)
     let old_row = sqlx::query(
         format!(
-            "SELECT * FROM \"{}\" WHERE id = $1 AND deleted_at IS NULL",
+            "SELECT * FROM \"{}\" WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL",
             table_name
         ).as_str()
     )
     .bind(id)
+    .bind(org_id)
     .fetch_optional(&state.db_pool)
     .await
     .map_err(|e| {
@@ -466,13 +513,14 @@ pub async fn delete_record(
     };
     
     let query = if entity_def.is_soft_delete {
-        format!("UPDATE \"{}\" SET deleted_at = NOW() WHERE id = $1", table_name)
+        format!("UPDATE \"{}\" SET deleted_at = NOW() WHERE id = $1 AND organization_id = $2", table_name)
     } else {
-        format!("DELETE FROM \"{}\" WHERE id = $1", table_name)
+        format!("DELETE FROM \"{}\" WHERE id = $1 AND organization_id = $2", table_name)
     };
     
     let result = sqlx::query(&query)
         .bind(id)
+        .bind(org_id)
         .execute(&state.db_pool)
         .await
         .map_err(|e| {

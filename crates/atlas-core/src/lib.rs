@@ -20,7 +20,19 @@ pub mod config;
 pub mod eventbus;
 
 pub use schema::*;
-pub use workflow::*;
+pub use workflow::{
+    WorkflowEngine, StateMachine, GuardEvaluator, GuardResult,
+    ActionExecutor, ActionResult,
+    WorkflowState, StateHistoryEntry, TransitionResult,
+    AvailableTransitions, TransitionInfo,
+    repository::{WorkflowStateRepository, PostgresWorkflowStateRepository, InMemoryWorkflowStateRepository},
+};
+
+// Re-export the workflow engine's User type under a distinct path
+// so downstream crates can import it without colliding with
+// atlas_shared::User.
+pub use workflow::engine::User as WorkflowUser;
+
 pub use validation::*;
 pub use formula::*;
 pub use security::*;

@@ -118,7 +118,10 @@ impl From<WorkflowStateRow> for WorkflowState {
             "Initial" => StateType::Initial,
             "Working" => StateType::Working,
             "Final" => StateType::Final,
-            _ => StateType::Working,
+            other => {
+                tracing::warn!("Unknown workflow state type '{}', defaulting to Working", other);
+                StateType::Working
+            }
         };
         
         WorkflowState {

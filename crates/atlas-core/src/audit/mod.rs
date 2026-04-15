@@ -45,7 +45,7 @@ pub struct ChangeSet {
 }
 
 /// A single field change
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct FieldChange {
     pub field: String,

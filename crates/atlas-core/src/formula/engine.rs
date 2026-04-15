@@ -251,10 +251,13 @@ impl FormulaEngine {
         }
         
         if let Some(idx) = op_idx {
-            // Convert char index back to byte index
-            let byte_idx = chars[..idx].iter().collect::<String>().len();
+            // Convert char index to byte index using char_indices
+            let byte_idx = expr.char_indices()
+                .nth(idx)
+                .map(|(bi, _)| bi)
+                .unwrap_or(expr.len());
             let left = expr[..byte_idx].trim();
-            let right = expr[byte_idx + 1..].trim(); // operators are 1-byte ASCII
+            let right = expr[byte_idx + op.len_utf8()..].trim(); // operators are ASCII
             
             let left_val = self.parse_and_evaluate(left, ctx)?;
             let right_val = self.parse_and_evaluate(right, ctx)?;
@@ -300,9 +303,10 @@ impl FormulaEngine {
         }
         
         if let Some(idx) = op_idx {
-            // Convert char index to byte index for string slicing
-            let byte_idx = chars[..idx].iter().collect::<String>().len();
-            let byte_end = chars[..idx + op_len].iter().collect::<String>().len();
+            // Convert char indices to byte indices using char_indices
+            let mut ci = expr.char_indices();
+            let byte_idx = ci.nth(idx).map(|(bi, _)| bi).unwrap_or(expr.len());
+            let byte_end = ci.nth(op_len - 1).map(|(bi, c)| bi + c.len_utf8()).unwrap_or(expr.len());
             let left = expr[..byte_idx].trim();
             let right = expr[byte_end..].trim();
             

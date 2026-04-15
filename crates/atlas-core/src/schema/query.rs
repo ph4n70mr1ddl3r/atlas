@@ -15,6 +15,21 @@ fn sanitize_sql_identifier(name: &str) -> String {
         .collect()
 }
 
+/// Escape SQL LIKE wildcard characters (`%`, `_`, `\`) so that a user-provided
+/// string is matched literally inside a `LIKE` pattern.
+fn escape_like_wildcards(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '%' => out.push_str("\\%"),
+            '_' => out.push_str("\\_"),
+            '\\' => out.push_str("\\\\"),
+            other => out.push(other),
+        }
+    }
+    out
+}
+
 /// Dynamic SQL query builder for entities
 pub struct DynamicQuery {
     table_name: String,
@@ -283,15 +298,18 @@ impl DynamicQuery {
             FilterOperator::NotIn => format!("NOT {} = ANY({})", field, self.value_to_sql(value)),
             FilterOperator::Contains => {
                 let v = value.as_str().unwrap_or("");
-                format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("%{}%", v))))
+                let escaped = escape_like_wildcards(v);
+                format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("%{}%", escaped))))
             }
             FilterOperator::StartsWith => {
                 let v = value.as_str().unwrap_or("");
-                format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("{}%", v))))
+                let escaped = escape_like_wildcards(v);
+                format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("{}%", escaped))))
             }
             FilterOperator::EndsWith => {
                 let v = value.as_str().unwrap_or("");
-                format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("%{}", v))))
+                let escaped = escape_like_wildcards(v);
+                format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("%{}", escaped))))
             }
             FilterOperator::IsNull => format!("{} IS NULL", field),
             FilterOperator::IsNotNull => format!("{} IS NOT NULL", field),
@@ -465,5 +483,30 @@ mod tests {
         assert!(sql.contains("\"email\""));
         assert!(sql.contains("\"age\""));
         assert_eq!(values.len(), 3);
+    }
+    
+    #[test]
+    fn test_like_wildcard_escaping() {
+        // Ensure user-provided LIKE wildcards are escaped
+        let query = DynamicQuery::new("products")
+            .filter(QueryFilter {
+                field: "name".to_string(),
+                operator: FilterOperator::Contains,
+                value: serde_json::json!("100%_real"),
+            });
+        
+        let sql = query.build_select();
+        // The % and _ inside the user value should be escaped
+        assert!(sql.contains("\\%"));
+        assert!(sql.contains("\\_"));
+    }
+    
+    #[test]
+    fn test_escape_like_wildcards_function() {
+        assert_eq!(escape_like_wildcards("normal"), "normal");
+        assert_eq!(escape_like_wildcards("100%"), "100\\%");
+        assert_eq!(escape_like_wildcards("a_b"), "a\\_b");
+        assert_eq!(escape_like_wildcards("a\\b"), "a\\\\b");
+        assert_eq!(escape_like_wildcards("%_\\"), "\\%\\_\\\\");
     }
 }

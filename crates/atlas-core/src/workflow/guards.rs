@@ -68,7 +68,7 @@ impl GuardEvaluator {
         if rule.starts_with("validate.not_empty(") && rule.ends_with(')') {
             let field = extract_field_name(rule, "validate.not_empty(");
             if let Some(value) = data.get(field) {
-                if value.is_null() || value.as_str().is_some_and(|s| s.is_empty()) {
+                if value.is_null() || value.as_str().is_some_and(|s| s.trim().is_empty()) {
                     return GuardResult::fail(&format!("{} cannot be empty", field));
                 }
             }
@@ -230,9 +230,8 @@ mod tests {
         let guard = GuardDefinition::Validate { 
             rule: "validate.not_empty(notes)".to_string() 
         };
-        // Note: This treats "   " as non-empty. A real implementation might trim.
-        // For now, we just check is_empty on the string
-        assert!(evaluator.evaluate(&guard, &data).passed);
+        // After fix: whitespace-only strings are treated as empty
+        assert!(!evaluator.evaluate(&guard, &data).passed);
         
         let guard2 = GuardDefinition::Validate { 
             rule: "validate.not_empty(comment)".to_string() 

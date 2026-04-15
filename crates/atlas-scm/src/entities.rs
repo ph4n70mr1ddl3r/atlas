@@ -26,7 +26,7 @@ pub fn supplier_definition() -> EntityDefinition {
         .currency("credit_limit", "Credit Limit", "USD")
         .enumeration("rating", "Rating", vec!["a", "b", "c", "d", "f"])
         .address("address", "Address")
-        .boolean("is_active", "Active")
+        .boolean_default("is_active", "Active", true)
         .build()
 }
 
@@ -97,7 +97,7 @@ pub fn product_definition() -> EntityDefinition {
         .integer("reorder_quantity", "Reorder Quantity")
         .string("unit_of_measure", "Unit of Measure")
         .decimal("weight", "Weight (kg)", 10, 3)
-        .boolean("is_active", "Active")
+        .boolean_default("is_active", "Active", true)
         .build()
 }
 
@@ -130,7 +130,7 @@ pub fn warehouse_definition() -> EntityDefinition {
         .required_string("code", "Code")
         .address("address", "Address")
         .reference("manager_id", "Manager", "employees")
-        .boolean("is_active", "Active")
+        .boolean_default("is_active", "Active", true)
         .build()
 }
 

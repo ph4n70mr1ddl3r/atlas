@@ -12,34 +12,34 @@ use tracing::{info, debug};
 /// Audit engine for change tracking
 pub struct AuditEngine {
     repository: Arc<dyn AuditRepository>,
-    enabled_entities: std::sync::RwLock<std::collections::HashSet<String>>,
+    enabled_entities: parking_lot::RwLock<std::collections::HashSet<String>>,
 }
 
 impl AuditEngine {
     pub fn new(repository: Arc<dyn AuditRepository>) -> Self {
         Self {
             repository,
-            enabled_entities: std::sync::RwLock::new(std::collections::HashSet::new()),
+            enabled_entities: parking_lot::RwLock::new(std::collections::HashSet::new()),
         }
     }
     
     /// Enable auditing for an entity
     pub fn enable_audit(&self, entity: &str) {
-        let mut entities = self.enabled_entities.write().unwrap();
+        let mut entities = self.enabled_entities.write();
         entities.insert(entity.to_string());
         info!("Audit enabled for entity: {}", entity);
     }
     
     /// Disable auditing for an entity
     pub fn disable_audit(&self, entity: &str) {
-        let mut entities = self.enabled_entities.write().unwrap();
+        let mut entities = self.enabled_entities.write();
         entities.remove(entity);
         info!("Audit disabled for entity: {}", entity);
     }
     
     /// Check if auditing is enabled for an entity
     pub fn is_enabled(&self, entity: &str) -> bool {
-        let entities = self.enabled_entities.read().unwrap();
+        let entities = self.enabled_entities.read();
         entities.contains(entity) || entities.is_empty() // Empty means all enabled
     }
     

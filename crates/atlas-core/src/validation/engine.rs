@@ -7,7 +7,6 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use regex::Regex;
 use tracing::debug;
-
 /// Validation engine for declarative validation
 pub struct ValidationEngine {
     custom_validators: HashMap<String, CustomValidator>,
@@ -27,21 +26,20 @@ impl ValidationEngine {
     
     /// Get a compiled regex from cache, compiling if needed
     fn get_cached_regex(&self, pattern: &str) -> Option<Regex> {
-        // Try to get from cache first (sync lock)
         {
             let cache = self.regex_cache.read();
             if let Some(regex) = cache.get(pattern) {
                 return Some(regex.clone());
             }
         }
-        
+
         // Compile and cache
         if let Ok(regex) = Regex::new(pattern) {
             let mut cache = self.regex_cache.write();
             cache.insert(pattern.to_string(), regex.clone());
             return Some(regex);
         }
-        
+
         None
     }
     
@@ -288,26 +286,10 @@ impl ValidationEngine {
             let valid = match operator.as_str() {
                 "=" | "==" | "equals" => value1 == value2,
                 "!=" | "not_equals" => value1 != value2,
-                ">" => {
-                    if let (Some(v1), Some(v2)) = (value1.and_then(|v| v.as_f64()), value2.and_then(|v| v.as_f64())) {
-                        v1 > v2
-                    } else { true }
-                }
-                "<" => {
-                    if let (Some(v1), Some(v2)) = (value1.and_then(|v| v.as_f64()), value2.and_then(|v| v.as_f64())) {
-                        v1 < v2
-                    } else { true }
-                }
-                ">=" => {
-                    if let (Some(v1), Some(v2)) = (value1.and_then(|v| v.as_f64()), value2.and_then(|v| v.as_f64())) {
-                        v1 >= v2
-                    } else { true }
-                }
-                "<=" => {
-                    if let (Some(v1), Some(v2)) = (value1.and_then(|v| v.as_f64()), value2.and_then(|v| v.as_f64())) {
-                        v1 <= v2
-                    } else { true }
-                }
+                ">" => compare_values_safe(value1, value2) > 0,
+                "<" => compare_values_safe(value1, value2) < 0,
+                ">=" => compare_values_safe(value1, value2) >= 0,
+                "<=" => compare_values_safe(value1, value2) <= 0,
                 _ => true,
             };
             
@@ -322,6 +304,30 @@ impl ValidationEngine {
         
         result
     }
+}
+
+/// Compare two optional JSON values, returning an Ordering.
+/// Supports numeric, string, and boolean comparisons.
+/// Returns 0 (equal) if either value is missing or types are incomparable.
+fn compare_values_safe(v1: Option<&serde_json::Value>, v2: Option<&serde_json::Value>) -> i32 {
+    let (Some(a), Some(b)) = (v1, v2) else { return 0 };
+    
+    // Try numeric comparison first
+    if let (Some(n1), Some(n2)) = (a.as_f64(), b.as_f64()) {
+        return if n1 < n2 { -1 } else if n1 > n2 { 1 } else { 0 };
+    }
+    
+    // Try string comparison (handles date strings like "2024-01-01")
+    if let (Some(s1), Some(s2)) = (a.as_str(), b.as_str()) {
+        return s1.cmp(s2) as i32;
+    }
+    
+    // Try boolean comparison
+    if let (Some(b1), Some(b2)) = (a.as_bool(), b.as_bool()) {
+        return if b1 == b2 { 0 } else if b1 { 1 } else { -1 };
+    }
+    
+    0
 }
 
 impl Default for ValidationEngine {

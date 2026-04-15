@@ -248,18 +248,39 @@ impl FormulaEngine {
     }
     
     fn evaluate_compare(&self, expr: &str, op: &str, ctx: &EvaluationContext) -> Result<Option<FormulaValue>, String> {
-        let parts: Vec<&str> = expr.split(op).collect();
-        if parts.len() == 2 {
-            let left = self.parse_and_evaluate(parts[0].trim(), ctx)?;
-            let right = self.parse_and_evaluate(parts[1].trim(), ctx)?;
+        // Find the FIRST occurrence of the operator (not inside quotes or parens)
+        let mut depth = 0;
+        let mut in_string = false;
+        let mut op_idx = None;
+        
+        for i in 0..expr.len().saturating_sub(op.len()) {
+            let ch = expr.chars().nth(i).unwrap();
+            match ch {
+                '"' => in_string = !in_string,
+                '(' | '[' | '{' if !in_string => depth += 1,
+                ')' | ']' | '}' if !in_string => depth -= 1,
+                _ if !in_string && depth == 0 && &expr[i..i + op.len()] == op => {
+                    op_idx = Some(i);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        
+        if let Some(idx) = op_idx {
+            let left = expr[..idx].trim();
+            let right = expr[idx + op.len()..].trim();
+            
+            let left_val = self.parse_and_evaluate(left, ctx)?;
+            let right_val = self.parse_and_evaluate(right, ctx)?;
             
             let result = match op {
-                "==" => compare_values(&left, &right) == 0,
-                "!=" => compare_values(&left, &right) != 0,
-                ">" => compare_values(&left, &right) > 0,
-                ">=" => compare_values(&left, &right) >= 0,
-                "<" => compare_values(&left, &right) < 0,
-                "<=" => compare_values(&left, &right) <= 0,
+                "==" => compare_values(&left_val, &right_val) == 0,
+                "!=" => compare_values(&left_val, &right_val) != 0,
+                ">" => compare_values(&left_val, &right_val) > 0,
+                ">=" => compare_values(&left_val, &right_val) >= 0,
+                "<" => compare_values(&left_val, &right_val) < 0,
+                "<=" => compare_values(&left_val, &right_val) <= 0,
                 _ => false,
             };
             

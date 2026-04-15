@@ -60,7 +60,7 @@ pub fn department_definition() -> EntityDefinition {
         .reference("parent_id", "Parent Department", "departments")
         .reference("manager_id", "Manager", "employees")
         .string("cost_center", "Cost Center")
-        .boolean("is_active", "Active")
+        .boolean_default("is_active", "Active", true)
         .build()
 }
 
@@ -79,6 +79,6 @@ pub fn position_definition() -> EntityDefinition {
         ])
         .currency("min_salary", "Minimum Salary", "USD")
         .currency("max_salary", "Maximum Salary", "USD")
-        .boolean("is_active", "Active")
+        .boolean_default("is_active", "Active", true)
         .build()
 }

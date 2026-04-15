@@ -80,7 +80,7 @@ impl EmployeeService {
             .ok_or_else(|| AtlasError::EntityNotFound("employees".to_string()))?;
         
         // Verify the department field exists
-        if entity.fields.iter().find(|f| f.name == "department_id").is_none() {
+        if !entity.fields.iter().any(|f| f.name == "department_id") {
             return Err(AtlasError::FieldNotFound("employees".to_string(), "department_id".to_string()));
         }
         

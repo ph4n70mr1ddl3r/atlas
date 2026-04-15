@@ -130,7 +130,7 @@ pub fn contact_definition() -> EntityDefinition {
             "email", "phone", "sms", "in_person"
         ])
         .boolean("is_primary", "Primary Contact")
-        .boolean("is_active", "Active")
+        .boolean_default("is_active", "Active", true)
         .build()
 }
 

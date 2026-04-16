@@ -17,8 +17,9 @@ use super::common::workflow_helpers::*;
 
 async fn setup_o2c() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_workflow_test_state().await;
-    setup_o2c_entities(&state).await;
+    // Clean residual data from prior failed runs BEFORE setting up
     cleanup_o2c(&state.db_pool).await;
+    setup_o2c_entities(&state).await;
     let app = build_app(state.clone());
     (state, app)
 }

@@ -17,8 +17,9 @@ use super::common::workflow_helpers::*;
 
 async fn setup_p2p() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_workflow_test_state().await;
-    setup_p2p_entities(&state).await;
+    // Clean residual data from prior failed runs BEFORE setting up
     cleanup_p2p(&state.db_pool).await;
+    setup_p2p_entities(&state).await;
     let app = build_app(state.clone());
     (state, app)
 }
@@ -905,9 +906,9 @@ async fn test_p2p_supplier_crud() {
     assert_eq!(updated["name"], "Updated Supplier Name");
     assert_eq!(updated["phone"], "555-9999");
 
-    // List
+    // List - should contain the supplier we just created
     let list = list_records(&app, "scm_suppliers", &admin).await;
-    assert!(list["data"].as_array().unwrap().is_empty());
+    assert!(!list["data"].as_array().unwrap().is_empty());
 
     // Soft delete
     let status = delete_record(&app, "scm_suppliers", &id, &admin).await;

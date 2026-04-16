@@ -198,6 +198,7 @@ pub async fn setup_test_db(pool: &sqlx::PgPool) {
 
 pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM test_items").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.workflow_states WHERE entity_type = 'test_items'").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.audit_log WHERE entity_type = 'test_items'").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.entities WHERE name = 'test_items'").execute(pool).await.ok();
 }

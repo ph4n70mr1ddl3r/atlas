@@ -877,6 +877,7 @@ pub fn extract_id(record: &serde_json::Value) -> String {
 // ============================================================================
 
 pub async fn cleanup_p2p(pool: &sqlx::PgPool) {
+    // Delete data in dependency order (child tables first) to respect FK constraints
     let tables = [
         "fin_journal_entry_lines", "fin_journal_entries",
         "fin_invoice_lines", "fin_invoices",
@@ -889,6 +890,8 @@ pub async fn cleanup_p2p(pool: &sqlx::PgPool) {
     for t in &tables {
         sqlx::query(&format!("DELETE FROM {}", t)).execute(pool).await.ok();
     }
+    // Clean workflow states and audit log for test entities
+    sqlx::query("DELETE FROM _atlas.workflow_states").execute(pool).await.ok();
     // Clean entity defs from schema
     let entities = [
         "scm_suppliers", "scm_products", "scm_warehouses", "scm_inventory",
@@ -907,6 +910,7 @@ pub async fn cleanup_p2p(pool: &sqlx::PgPool) {
 }
 
 pub async fn cleanup_o2c(pool: &sqlx::PgPool) {
+    // Delete data in dependency order (child tables first) to respect FK constraints
     let tables = [
         "fin_journal_entry_lines", "fin_journal_entries",
         "fin_invoice_lines", "fin_invoices",
@@ -920,6 +924,8 @@ pub async fn cleanup_o2c(pool: &sqlx::PgPool) {
     for t in &tables {
         sqlx::query(&format!("DELETE FROM {}", t)).execute(pool).await.ok();
     }
+    // Clean workflow states for test entities
+    sqlx::query("DELETE FROM _atlas.workflow_states").execute(pool).await.ok();
     let entities = [
         "crm_customers", "crm_leads", "crm_contacts",
         "scm_sales_orders", "scm_sales_order_lines",

@@ -214,12 +214,15 @@ run_e2e_tests() {
     fi
 
     # Build the cargo test invocation
+    # NOTE: E2E integration tests are marked #[ignore] because they require a
+    # live database.  The --ignored flag is required so they actually run.
     local cmd=(
         cargo test
         -p atlas-gateway
         --test e2e
         --quiet
         --test-threads "$TEST_THREADS"
+        --ignored
     )
 
     if [ -n "$filter" ]; then
@@ -231,7 +234,7 @@ run_e2e_tests() {
         cmd+=( "--" "${EXTRA_CARGO_ARGS[@]}" )
     fi
 
-    info "Running e2e tests …"
+    info "Running e2e tests (--ignored) …"
     info "  Command: ${cmd[*]}"
 
     export TEST_DATABASE_URL="$DATABASE_URL"

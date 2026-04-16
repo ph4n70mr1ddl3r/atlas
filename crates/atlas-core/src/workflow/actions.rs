@@ -71,6 +71,19 @@ impl ActionExecutor {
         record_id: RecordId,
         record_data: &serde_json::Value,
     ) -> AtlasResult<ActionResult> {
+        // Check for a registered custom handler first
+        let custom_handler_name = action_def.handler_name().map(|s| s.to_string());
+        if let Some(ref name) = custom_handler_name {
+            let handler = {
+                let handlers = self.handlers.read().await;
+                handlers.get(name).cloned()
+            };
+            if let Some(handler) = handler {
+                let fut = (handler)(record_id, record_data);
+                return fut.await;
+            }
+        }
+
         match action_def {
             ActionDefinition::SetField { field, value } => {
                 Ok(self.execute_set_field(field, value))
@@ -260,7 +273,7 @@ impl Default for ActionExecutor {
 }
 
 /// Custom action handler function type
-pub type ActionHandler = Arc<dyn Fn(RecordId, &serde_json::Value) -> Box<dyn std::future::Future<Output = AtlasResult<ActionResult>> + Send> + Send + Sync>;
+pub type ActionHandler = Arc<dyn Fn(RecordId, &serde_json::Value) -> std::pin::Pin<Box<dyn std::future::Future<Output = AtlasResult<ActionResult>> + Send>> + Send + Sync>;
 
 /// Event publisher trait
 #[async_trait::async_trait]

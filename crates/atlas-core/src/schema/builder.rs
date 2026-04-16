@@ -31,6 +31,10 @@ impl SchemaBuilder {
             format!("{}es", label)
         } else if label.ends_with('y') && !label.ends_with("ay") && !label.ends_with("ey") && !label.ends_with("iy") && !label.ends_with("oy") && !label.ends_with("uy") {
             format!("{}ies", &label[..label.len()-1])
+        } else if let Some(stripped) = label.strip_suffix("fe") {
+            format!("{}ves", stripped)
+        } else if let Some(stripped) = label.strip_suffix('f') {
+            format!("{}ves", stripped)
         } else {
             format!("{}s", label)
         };

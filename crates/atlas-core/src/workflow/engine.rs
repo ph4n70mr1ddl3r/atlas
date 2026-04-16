@@ -174,10 +174,13 @@ impl WorkflowEngine {
             }
             
             // Check role requirements
-            let mut has_access = t.required_roles.is_empty();
-            if let Some(u) = user {
-                has_access = u.roles.iter().any(|r| t.required_roles.contains(r));
-            }
+            let has_access = if t.required_roles.is_empty() {
+                true
+            } else if let Some(u) = user {
+                u.roles.iter().any(|r| t.required_roles.contains(r))
+            } else {
+                false
+            };
             
             if has_access {
                 transitions.push(TransitionInfo {

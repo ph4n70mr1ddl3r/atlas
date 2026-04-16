@@ -137,7 +137,7 @@ impl DynamicQuery {
         // Select clause
         sql.push_str(&self.select_fields.join(", "));
         sql.push_str(" FROM ");
-        sql.push_str(&self.table_name);
+        sql.push_str(&format!("\"{}\"", self.table_name));
         
         // Joins
         for (alias, join) in &self.joins {
@@ -146,7 +146,7 @@ impl DynamicQuery {
                 JoinType::Left => "LEFT JOIN",
                 JoinType::Right => "RIGHT JOIN",
             };
-            sql.push_str(&format!(" {} {} AS {} ON {}", join_keyword, join.table, alias, join.on));
+            sql.push_str(&format!(" {} \"{}\" AS \"{}\" ON {}", join_keyword, join.table, alias, join.on));
         }
         
         // Where clause
@@ -190,7 +190,7 @@ impl DynamicQuery {
     /// string-interpolated.  Use parameterized queries for untrusted input.
     pub fn build_count(&self) -> String {
         let mut sql = String::from("SELECT COUNT(*) FROM ");
-        sql.push_str(&self.table_name);
+        sql.push_str(&format!("\"{}\"", self.table_name));
         
         // Joins for count
         for (alias, join) in &self.joins {
@@ -199,7 +199,7 @@ impl DynamicQuery {
                 JoinType::Left => "LEFT JOIN",
                 JoinType::Right => "RIGHT JOIN",
             };
-            sql.push_str(&format!(" {} {} AS {} ON {}", join_keyword, join.table, alias, join.on));
+            sql.push_str(&format!(" {} \"{}\" AS \"{}\" ON {}", join_keyword, join.table, alias, join.on));
         }
         
         // Where clause
@@ -224,7 +224,7 @@ impl DynamicQuery {
             let values: Vec<serde_json::Value> = obj.values().cloned().collect();
             
             let sql = format!(
-                "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
+                "INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *",
                 self.table_name,
                 fields.join(", "),
                 placeholders.join(", ")
@@ -252,7 +252,7 @@ impl DynamicQuery {
             set_clauses.push("updated_at = now()".to_string());
             
             let sql = format!(
-                "UPDATE {} SET {} WHERE id = ${} RETURNING *",
+                "UPDATE \"{}\" SET {} WHERE id = ${} RETURNING *",
                 self.table_name,
                 set_clauses.join(", "),
                 values.len() + 1
@@ -269,7 +269,7 @@ impl DynamicQuery {
     /// Build the SOFT DELETE query
     pub fn build_soft_delete(&self, _id: &uuid::Uuid) -> String {
         format!(
-            "UPDATE {} SET deleted_at = now() WHERE id = $1",
+            "UPDATE \"{}\" SET deleted_at = now() WHERE id = $1",
             self.table_name
         )
     }
@@ -277,7 +277,7 @@ impl DynamicQuery {
     /// Build the HARD DELETE query
     pub fn build_hard_delete(&self, _id: &uuid::Uuid) -> String {
         format!(
-            "DELETE FROM {} WHERE id = $1",
+            "DELETE FROM \"{}\" WHERE id = $1",
             self.table_name
         )
     }
@@ -401,7 +401,7 @@ mod tests {
         
         let sql = query.build_select();
         assert!(sql.contains("SELECT \"id\", \"name\", \"email\""));
-        assert!(sql.contains("FROM employees"));
+        assert!(sql.contains("FROM \"employees\""));
         assert!(sql.contains("WHERE \"status\" = 'active'"));
         assert!(sql.contains("ORDER BY \"created_at\" DESC"));
         assert!(sql.contains("LIMIT 10"));
@@ -417,7 +417,7 @@ mod tests {
             });
         
         let count_sql = query.build_count();
-        assert!(count_sql.contains("SELECT COUNT(*) FROM orders"));
+        assert!(count_sql.contains("SELECT COUNT(*) FROM \"orders\""));
         assert!(count_sql.contains("WHERE \"customer_id\" = '123'"));
     }
     
@@ -478,7 +478,7 @@ mod tests {
         
         let (sql, values) = query.build_insert(&data).unwrap();
         
-        assert!(sql.contains("INSERT INTO users"));
+        assert!(sql.contains("INSERT INTO \"users\""));
         assert!(sql.contains("\"name\""));
         assert!(sql.contains("\"email\""));
         assert!(sql.contains("\"age\""));

@@ -315,6 +315,22 @@ pub enum ActionDefinition {
     CreateRecord { entity: String, values: serde_json::Value },
 }
 
+impl ActionDefinition {
+    /// Returns a handler lookup key if this action maps to a registered handler.
+    /// `InvokeAction` uses "service.action" as the key; other variants return None.
+    pub fn handler_name(&self) -> Option<&str> {
+        match self {
+            ActionDefinition::InvokeAction { service: _, action } => {
+                // Return a combined key; the caller can split on '.' if needed.
+                // For now we just return the action name which is what handlers
+                // are registered under.
+                Some(action.as_str())
+            }
+            _ => None,
+        }
+    }
+}
+
 /// Security policy for an entity
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

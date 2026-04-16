@@ -166,17 +166,26 @@ pub async fn list_records(
         table_name, base_filter_main, search_clause, order_clause
     );
     
-    let rows = sqlx::query(&sql)
-        .bind(limit)
-        .bind(offset)
-        .bind(org_id_param)
-        .bind(&search_pattern)
-        .fetch_all(&state.db_pool)
-        .await
-        .map_err(|e| {
-            error!("Query error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let rows = if search_pattern.is_empty() {
+        sqlx::query(&sql)
+            .bind(limit)
+            .bind(offset)
+            .bind(org_id_param)
+            .fetch_all(&state.db_pool)
+            .await
+    } else {
+        sqlx::query(&sql)
+            .bind(limit)
+            .bind(offset)
+            .bind(org_id_param)
+            .bind(&search_pattern)
+            .fetch_all(&state.db_pool)
+            .await
+    }
+    .map_err(|e| {
+        error!("Query error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     
     let records: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
     
@@ -186,15 +195,20 @@ pub async fn list_records(
         "SELECT COUNT(*) FROM \"{}\"{}{}",
         table_name, base_filter_count, search_clause_count
     );
-    let total: i64 = sqlx::query_scalar(&count_sql)
-        .bind(org_id_param)
-        .bind(&search_pattern)
-        .fetch_one(&state.db_pool)
-        .await
-        .map_err(|e| {
-            error!("Count query error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let total: i64 = if search_pattern.is_empty() {
+        sqlx::query_scalar(&count_sql)
+            .bind(org_id_param)
+    } else {
+        sqlx::query_scalar(&count_sql)
+            .bind(org_id_param)
+            .bind(&search_pattern)
+    }
+    .fetch_one(&state.db_pool)
+    .await
+    .map_err(|e| {
+        error!("Count query error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     
     Ok(Json(serde_json::json!({
         "data": records,
@@ -793,15 +807,45 @@ pub async fn execute_action(
 
 /// Get record audit history
 ///
-/// The audit engine already scopes queries by entity type and record ID.
-/// Additional org-level scoping is implicitly handled since records are
-/// created within an org context.
+/// Scoped to the caller's organization to prevent cross-tenant access.
+/// The audit entries are filtered by matching the entity_id against
+/// records that belong to the caller's organization.
 pub async fn get_record_history(
     State(state): State<Arc<AppState>>,
     Path((entity, id)): Path<(String, Uuid)>,
-    _claims: Extension<Claims>,
+    claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Getting history for record {} of entity {}", id, entity);
+
+    // Verify the record belongs to the caller's organization before
+    // returning audit data.  If the entity doesn't exist in the schema
+    // or the record doesn't exist / is not in the caller's org, return 404.
+    if let Some(entity_def) = state.schema_engine.get_entity(&entity) {
+        let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
+        if let Ok(safe_table) = sanitize_identifier(table_name) {
+            let org_id = Uuid::parse_str(&claims.org_id)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let row = sqlx::query(
+                format!(
+                    "SELECT id FROM \"{}\" WHERE id = $1 AND organization_id = $2{}",
+                    safe_table,
+                    if entity_def.is_soft_delete { " AND deleted_at IS NULL" } else { "" }
+                ).as_str()
+            )
+            .bind(id)
+            .bind(org_id)
+            .fetch_optional(&state.db_pool)
+            .await
+            .map_err(|e| {
+                error!("Query error: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+            if row.is_none() {
+                return Err(StatusCode::NOT_FOUND);
+            }
+        }
+    }
 
     let entries = state.audit_engine
         .get_entity_history(&entity, id)

@@ -42,11 +42,20 @@ impl SecurityEngine {
         
         // Get policy for entity
         if let Some(policy) = self.policies.get(entity) {
+            let mut any_rule_matched = false;
             for rule in &policy.rules {
                 let decision = self.evaluate_rule(rule, action, ctx, record_data);
-                if !decision.allowed {
+                if decision.allowed {
+                    // An explicit Allow rule matched — but check remaining Deny rules
+                    any_rule_matched = true;
+                } else if decision.reason.is_some() {
+                    // An explicit Deny rule matched (allowed=false with a reason)
                     return decision;
                 }
+                // If reason is None, the rule didn't apply to this action
+            }
+            if any_rule_matched {
+                return AccessDecision { allowed: true, reason: Some("Allowed by policy".to_string()) };
             }
         }
         

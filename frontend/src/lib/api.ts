@@ -330,9 +330,9 @@ export function updateEntity(entity: string, definition: EntityDefinition): Prom
 }
 
 export function deleteEntity(entity: string, dropTable = false): Promise<{ entity: string; table_dropped: boolean; definition_removed: boolean }> {
-  return request(`${ADMIN_BASE}/schema/${entity}`, {
+  const qs = dropTable ? '?drop_table=true' : ''
+  return request(`${ADMIN_BASE}/schema/${entity}${qs}`, {
     method: 'DELETE',
-    body: JSON.stringify({ drop_table: dropTable }),
   })
 }
 

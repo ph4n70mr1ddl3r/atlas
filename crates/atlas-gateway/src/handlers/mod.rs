@@ -19,6 +19,7 @@ pub mod budget;
 pub mod fixed_assets;
 pub mod subledger_accounting;
 mod encumbrance;
+pub mod cash_management;
 
 pub use schema::*;
 pub use records::*;
@@ -37,6 +38,7 @@ pub use budget::*;
 pub use fixed_assets::*;
 pub use subledger_accounting::*;
 pub use encumbrance::*;
+pub use cash_management::*;
 
 use axum::{
     Router,
@@ -503,6 +505,37 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Encumbrance Summary Dashboard
         .route("/encumbrance/summary", get(get_encumbrance_summary))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Cash Position & Cash Forecasting (Oracle Fusion Treasury Management)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Cash Positions
+        .route("/cash-management/positions", post(upsert_cash_position))
+        .route("/cash-management/positions", get(list_cash_positions))
+        .route("/cash-management/positions/:bank_account_id", get(get_cash_position))
+        .route("/cash-management/positions/summary", get(get_cash_position_summary))
+
+        // Forecast Templates
+        .route("/cash-management/templates", post(create_forecast_template))
+        .route("/cash-management/templates", get(list_forecast_templates))
+        .route("/cash-management/templates/:code", get(get_forecast_template))
+        .route("/cash-management/templates/:code", delete(delete_forecast_template))
+
+        // Forecast Sources
+        .route("/cash-management/sources", post(create_forecast_source))
+        .route("/cash-management/sources/:template_code", get(list_forecast_sources))
+        .route("/cash-management/sources/:template_code/:code", delete(delete_forecast_source))
+
+        // Cash Forecasts
+        .route("/cash-management/forecasts", post(generate_forecast))
+        .route("/cash-management/forecasts", get(list_cash_forecasts))
+        .route("/cash-management/forecasts/:id", get(get_cash_forecast))
+        .route("/cash-management/forecasts/:id/approve", post(approve_cash_forecast))
+        .route("/cash-management/forecasts/:forecast_id/lines", get(list_forecast_lines))
+
+        // Forecast Summary (Dashboard)
+        .route("/cash-management/forecast-summary", get(get_forecast_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

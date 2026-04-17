@@ -693,6 +693,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::encumbrance::PostgresEncumbranceRepository::new(db_pool.clone()),
     )));
 
+    let cash_management_engine = Arc::new(atlas_core::CashManagementEngine::new(Arc::new(
+        atlas_core::cash_management::PostgresCashManagementRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -707,12 +711,13 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         currency_engine,
         tax_engine,
         intercompany_engine,
-        reconciliation_engine,
+    reconciliation_engine,
         expense_engine,
         budget_engine,
         fixed_asset_engine,
         sla_engine,
         encumbrance_engine,
+        cash_management_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -1841,3 +1841,134 @@ impl crate::encumbrance::EncumbranceRepository for MockEncumbranceRepository {
         Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
     }
 }
+
+// ============================================================================
+// Mock Cash Management Repository
+// ============================================================================
+
+pub struct MockCashManagementRepository;
+
+#[async_trait]
+impl crate::cash_management::CashManagementRepository for MockCashManagementRepository {
+    // Cash Positions
+    async fn upsert_cash_position(
+        &self, org_id: Uuid, bank_account_id: Uuid, account_number: &str, account_name: &str,
+        currency_code: &str, book_balance: &str, available_balance: &str,
+        float_amount: &str, one_day_float: &str, two_day_float: &str,
+        position_date: chrono::NaiveDate, average_balance: Option<&str>, prior_day_balance: Option<&str>,
+        projected_inflows: &str, projected_outflows: &str, projected_net: &str,
+        is_reconciled: bool, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CashPosition> {
+        Ok(atlas_shared::CashPosition {
+            id: Uuid::new_v4(), organization_id: org_id, bank_account_id,
+            account_number: account_number.to_string(), account_name: account_name.to_string(),
+            currency_code: currency_code.to_string(),
+            book_balance: book_balance.to_string(), available_balance: available_balance.to_string(),
+            float_amount: float_amount.to_string(), one_day_float: one_day_float.to_string(),
+            two_day_float: two_day_float.to_string(),
+            position_date, average_balance: average_balance.map(String::from),
+            prior_day_balance: prior_day_balance.map(String::from),
+            projected_inflows: projected_inflows.to_string(), projected_outflows: projected_outflows.to_string(),
+            projected_net: projected_net.to_string(), is_reconciled,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_cash_position(&self, _org_id: Uuid, _bank_account_id: Uuid, _position_date: chrono::NaiveDate) -> AtlasResult<Option<atlas_shared::CashPosition>> { Ok(None) }
+    async fn get_cash_position_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CashPosition>> { Ok(None) }
+    async fn list_cash_positions(&self, _org_id: Uuid, _position_date: Option<chrono::NaiveDate>) -> AtlasResult<Vec<atlas_shared::CashPosition>> { Ok(vec![]) }
+
+    // Forecast Templates
+    async fn create_forecast_template(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        bucket_type: &str, number_of_periods: i32, start_offset_days: i32,
+        is_default: bool, columns: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CashForecastTemplate> {
+        Ok(atlas_shared::CashForecastTemplate {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            bucket_type: bucket_type.to_string(), number_of_periods, start_offset_days,
+            is_default, is_active: true, columns, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_forecast_template(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::CashForecastTemplate>> { Ok(None) }
+    async fn get_forecast_template_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CashForecastTemplate>> { Ok(None) }
+    async fn list_forecast_templates(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashForecastTemplate>> { Ok(vec![]) }
+    async fn delete_forecast_template(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Forecast Sources
+    async fn create_forecast_source(
+        &self, org_id: Uuid, template_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        source_type: &str, cash_flow_direction: &str, is_actual: bool, display_order: i32,
+        lead_time_days: i32, payment_terms_reference: Option<&str>, account_code_filter: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CashForecastSource> {
+        Ok(atlas_shared::CashForecastSource {
+            id: Uuid::new_v4(), organization_id: org_id, template_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            source_type: source_type.to_string(), cash_flow_direction: cash_flow_direction.to_string(),
+            is_actual, display_order, is_active: true, lead_time_days,
+            payment_terms_reference: payment_terms_reference.map(String::from),
+            account_code_filter: account_code_filter.map(String::from),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_forecast_source(&self, _org_id: Uuid, _template_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::CashForecastSource>> { Ok(None) }
+    async fn list_forecast_sources(&self, _template_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashForecastSource>> { Ok(vec![]) }
+    async fn delete_forecast_source(&self, _org_id: Uuid, _template_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Cash Forecasts
+    async fn create_forecast(
+        &self, org_id: Uuid, forecast_number: &str, template_id: Uuid, template_name: &str,
+        name: &str, description: Option<&str>, start_date: chrono::NaiveDate, end_date: chrono::NaiveDate,
+        opening_balance: &str, total_inflows: &str, total_outflows: &str, net_cash_flow: &str,
+        closing_balance: &str, minimum_balance: &str, maximum_balance: &str,
+        deficit_count: i32, surplus_count: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CashForecast> {
+        Ok(atlas_shared::CashForecast {
+            id: Uuid::new_v4(), organization_id: org_id,
+            forecast_number: forecast_number.to_string(), template_id, template_name: template_name.to_string(),
+            name: name.to_string(), description: description.map(String::from),
+            start_date, end_date,
+            opening_balance: opening_balance.to_string(), total_inflows: total_inflows.to_string(),
+            total_outflows: total_outflows.to_string(), net_cash_flow: net_cash_flow.to_string(),
+            closing_balance: closing_balance.to_string(),
+            minimum_balance: minimum_balance.to_string(), maximum_balance: maximum_balance.to_string(),
+            deficit_count, surplus_count,
+            status: "generated".to_string(), is_latest: true, metadata: serde_json::json!({}),
+            created_by, approved_by: None, approved_at: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_forecast(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CashForecast>> { Ok(None) }
+    async fn get_forecast_by_number(&self, _org_id: Uuid, _forecast_number: &str) -> AtlasResult<Option<atlas_shared::CashForecast>> { Ok(None) }
+    async fn list_forecasts(&self, _org_id: Uuid, _template_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::CashForecast>> { Ok(vec![]) }
+    async fn update_forecast_status(&self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>) -> AtlasResult<atlas_shared::CashForecast> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn supersede_previous_forecasts(&self, _template_id: Uuid, _new_forecast_id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // Forecast Lines
+    async fn create_forecast_line(
+        &self, org_id: Uuid, forecast_id: Uuid, source_id: Uuid, source_name: &str,
+        source_type: &str, cash_flow_direction: &str, period_start_date: chrono::NaiveDate,
+        period_end_date: chrono::NaiveDate, period_label: &str, period_sequence: i32,
+        amount: &str, cumulative_amount: &str, is_actual: bool, currency_code: &str,
+        transaction_count: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CashForecastLine> {
+        Ok(atlas_shared::CashForecastLine {
+            id: Uuid::new_v4(), organization_id: org_id, forecast_id, source_id,
+            source_name: source_name.to_string(), source_type: source_type.to_string(),
+            cash_flow_direction: cash_flow_direction.to_string(),
+            period_start_date, period_end_date, period_label: period_label.to_string(),
+            period_sequence, amount: amount.to_string(), cumulative_amount: cumulative_amount.to_string(),
+            is_actual, currency_code: currency_code.to_string(), transaction_count,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_forecast_lines(&self, _forecast_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashForecastLine>> { Ok(vec![]) }
+    async fn list_forecast_lines_by_period(&self, _forecast_id: Uuid, _start: chrono::NaiveDate, _end: chrono::NaiveDate) -> AtlasResult<Vec<atlas_shared::CashForecastLine>> { Ok(vec![]) }
+}

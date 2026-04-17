@@ -19,3 +19,4 @@ mod expense;
 mod budget;
 mod fixed_assets;
 mod encumbrance;
+mod cash_management;

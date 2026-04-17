@@ -152,6 +152,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::encumbrance::PostgresEncumbranceRepository::new(db_pool.clone()),
     )));
 
+    let cash_management_engine = Arc::new(atlas_core::CashManagementEngine::new(Arc::new(
+        atlas_core::cash_management::PostgresCashManagementRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -172,6 +176,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         fixed_asset_engine,
         sla_engine,
         encumbrance_engine,
+        cash_management_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -302,4 +307,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.encumbrance_entries").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.encumbrance_carry_forwards").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.encumbrance_types").execute(pool).await.ok();
+    // Clean cash management test data
+    sqlx::query("DELETE FROM _atlas.cash_forecast_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.cash_forecasts").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.cash_forecast_sources").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.cash_forecast_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.cash_positions").execute(pool).await.ok();
 }

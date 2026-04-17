@@ -3964,3 +3964,296 @@ pub struct EncumbranceSummary {
     /// Expiring soon amount
     pub expiring_soon_amount: String,
 }
+
+// Cash Position & Cash Forecasting (Oracle Fusion Treasury Management)
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// Oracle Fusion Cloud ERP Treasury Management provides:
+// - Cash Positions: Real-time view of cash balances across bank accounts
+// - Cash Forecasts: Projected cash inflows and outflows over configurable periods
+// - Forecast Sources: Configurable sources (AP, AR, Payroll, Purchasing, etc.)
+// - Forecast Templates: Define forecast columns, time buckets, and aggregation
+//
+// Oracle Fusion equivalent: Financials > Treasury > Cash Management
+
+/// Cash Position
+/// Represents a snapshot of cash balances for a bank account at a point in time.
+/// Oracle Fusion equivalent: Treasury > Cash Position
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CashPosition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Bank account ID (references reconciliation bank account)
+    pub bank_account_id: Uuid,
+    /// Bank account number (denormalized)
+    pub account_number: String,
+    /// Bank account name (denormalized)
+    pub account_name: String,
+    /// Currency code
+    pub currency_code: String,
+    /// Ledger (book) balance as of position date
+    pub book_balance: String,
+    /// Available balance (book balance minus holds/outstanding)
+    pub available_balance: String,
+    /// Float (deposits in transit not yet cleared)
+    pub float_amount: String,
+    /// One-day float (clearing next business day)
+    pub one_day_float: String,
+    /// Two-or-more day float
+    pub two_day_float: String,
+    /// Position date
+    pub position_date: chrono::NaiveDate,
+    /// Rolling average balance (e.g., 30-day)
+    pub average_balance: Option<String>,
+    /// Prior day closing balance
+    pub prior_day_balance: Option<String>,
+    /// Projected inflows for today
+    pub projected_inflows: String,
+    /// Projected outflows for today
+    pub projected_outflows: String,
+    /// Net projected change
+    pub projected_net: String,
+    /// Whether this position is reconciled
+    pub is_reconciled: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cash Position Summary
+/// Aggregated cash position across all bank accounts.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CashPositionSummary {
+    pub organization_id: Uuid,
+    /// Position date
+    pub position_date: chrono::NaiveDate,
+    /// Total book balance across all accounts
+    pub total_book_balance: String,
+    /// Total available balance
+    pub total_available_balance: String,
+    /// Total float
+    pub total_float: String,
+    /// Total projected inflows
+    pub total_projected_inflows: String,
+    /// Total projected outflows
+    pub total_projected_outflows: String,
+    /// Total net projected change
+    pub total_projected_net: String,
+    /// Number of bank accounts included
+    pub account_count: i32,
+    /// Breakdown by currency
+    pub by_currency: serde_json::Value,
+    /// Breakdown by bank account
+    pub by_account: serde_json::Value,
+}
+
+/// Forecast Template
+/// Defines the structure of a cash forecast (columns, time periods, sources).
+/// Oracle Fusion equivalent: Treasury > Cash Forecast > Templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CashForecastTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique template code
+    pub code: String,
+    /// Template name
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Time bucket type: "daily", "weekly", "monthly"
+    pub bucket_type: String,
+    /// Number of periods to forecast
+    pub number_of_periods: i32,
+    /// From-date offset (e.g., 0 = today, -7 = a week ago)
+    pub start_offset_days: i32,
+    /// Whether this is the default template
+    pub is_default: bool,
+    /// Whether the template is active
+    pub is_active: bool,
+    /// Template columns definition (JSON array of column configs)
+    pub columns: serde_json::Value,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Forecast Source
+/// Defines a data source that feeds into cash forecasts.
+/// Oracle Fusion equivalent: Treasury > Cash Forecast > Sources
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CashForecastSource {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Template ID this source belongs to
+    pub template_id: Uuid,
+    /// Source code (unique within template)
+    pub code: String,
+    /// Source name
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Source type: "accounts_payable", "accounts_receivable", "payroll",
+    ///             "purchasing", "manual", "budget", "intercompany"
+    pub source_type: String,
+    /// Cash flow direction: "inflow", "outflow", "both"
+    pub cash_flow_direction: String,
+    /// Whether this source is for actuals or forecasts
+    pub is_actual: bool,
+    /// Priority for display ordering
+    pub display_order: i32,
+    /// Whether the source is active
+    pub is_active: bool,
+    /// Lead time in days (expected delay between transaction and cash impact)
+    pub lead_time_days: i32,
+    /// Payment terms reference or description
+    pub payment_terms_reference: Option<String>,
+    /// GL account code filter (optional)
+    pub account_code_filter: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cash Forecast
+/// A specific forecast run generated from a template.
+/// Oracle Fusion equivalent: Treasury > Cash Forecast > Forecasts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CashForecast {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Forecast number (auto-generated)
+    pub forecast_number: String,
+    /// Template used to generate this forecast
+    pub template_id: Uuid,
+    /// Template name (denormalized)
+    pub template_name: String,
+    /// Forecast name/description
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Start date of the forecast period
+    pub start_date: chrono::NaiveDate,
+    /// End date of the forecast period
+    pub end_date: chrono::NaiveDate,
+    /// Opening balance (actual balance at start date)
+    pub opening_balance: String,
+    /// Total projected inflows
+    pub total_inflows: String,
+    /// Total projected outflows
+    pub total_outflows: String,
+    /// Net cash flow
+    pub net_cash_flow: String,
+    /// Closing projected balance
+    pub closing_balance: String,
+    /// Minimum balance encountered during the period
+    pub minimum_balance: String,
+    /// Maximum balance encountered during the period
+    pub maximum_balance: String,
+    /// Deficit periods (where balance falls below threshold)
+    pub deficit_count: i32,
+    /// Surplus periods
+    pub surplus_count: i32,
+    /// Status: "draft", "generated", "approved", "superseded"
+    pub status: String,
+    /// Whether this is the latest forecast for this template
+    pub is_latest: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cash Forecast Line
+/// Individual line within a forecast, representing a source for a time period.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CashForecastLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Forecast header ID
+    pub forecast_id: Uuid,
+    /// Forecast source ID
+    pub source_id: Uuid,
+    /// Source name (denormalized)
+    pub source_name: String,
+    /// Source type (denormalized)
+    pub source_type: String,
+    /// Cash flow direction
+    pub cash_flow_direction: String,
+    /// Period start date
+    pub period_start_date: chrono::NaiveDate,
+    /// Period end date
+    pub period_end_date: chrono::NaiveDate,
+    /// Period label (e.g., "Week 3", "Mar 2025")
+    pub period_label: String,
+    /// Period sequence number
+    pub period_sequence: i32,
+    /// Amount for this period
+    pub amount: String,
+    /// Running cumulative amount
+    pub cumulative_amount: String,
+    /// Whether this is actual data (vs projected)
+    pub is_actual: bool,
+    /// Currency code
+    pub currency_code: String,
+    /// Number of underlying transactions
+    pub transaction_count: i32,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cash Forecast Summary
+/// Summary view of a cash forecast for dashboard display.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CashForecastSummary {
+    /// Template ID
+    pub template_id: Uuid,
+    /// Template name
+    pub template_name: String,
+    /// Forecast ID
+    pub forecast_id: Uuid,
+    /// Forecast number
+    pub forecast_number: String,
+    /// Start date
+    pub start_date: chrono::NaiveDate,
+    /// End date
+    pub end_date: chrono::NaiveDate,
+    /// Opening balance
+    pub opening_balance: String,
+    /// Total inflows
+    pub total_inflows: String,
+    /// Total outflows
+    pub total_outflows: String,
+    /// Net cash flow
+    pub net_cash_flow: String,
+    /// Closing balance
+    pub closing_balance: String,
+    /// Minimum balance
+    pub minimum_balance: String,
+    /// Deficit count
+    pub deficit_count: i32,
+    /// Surplus count
+    pub surplus_count: i32,
+    /// Inflows by source (for chart)
+    pub inflows_by_source: serde_json::Value,
+    /// Outflows by source (for chart)
+    pub outflows_by_source: serde_json::Value,
+    /// Balance trend (array of period-end balances)
+    pub balance_trend: serde_json::Value,
+}

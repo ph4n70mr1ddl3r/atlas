@@ -136,6 +136,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::expense::PostgresExpenseRepository::new(db_pool.clone()),
     )));
 
+    let budget_engine = Arc::new(atlas_core::BudgetEngine::new(Arc::new(
+        atlas_core::budget::PostgresBudgetRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -152,6 +156,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         intercompany_engine,
         reconciliation_engine,
         expense_engine,
+        budget_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -264,4 +269,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.expense_reports").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.expense_policies").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.expense_categories").execute(pool).await.ok();
+    // Clean budget test data
+    sqlx::query("DELETE FROM _atlas.budget_transfers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.budget_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.budget_versions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.budget_definitions").execute(pool).await.ok();
 }

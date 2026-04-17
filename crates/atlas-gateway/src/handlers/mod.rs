@@ -15,6 +15,7 @@ pub mod tax;
 pub mod intercompany;
 pub mod reconciliation;
 pub mod expense;
+pub mod budget;
 
 pub use schema::*;
 pub use records::*;
@@ -29,6 +30,7 @@ pub use tax::*;
 pub use intercompany::*;
 pub use reconciliation::*;
 pub use expense::*;
+pub use budget::*;
 
 use axum::{
     Router,
@@ -338,6 +340,45 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/expense/reports/:report_id/lines", get(list_expense_lines))
         .route("/expense/reports/:report_id/lines", post(add_expense_line))
         .route("/expense/reports/:report_id/lines/:line_id", delete(delete_expense_line))
+
+        // ══════════════════════════════════════════════════════════════════
+        // Budget Management (Oracle Fusion General Ledger > Budgets)
+        // ══════════════════════════════════════════════════════════════════
+
+        // Budget Definitions
+        .route("/budget/definitions", get(list_budget_definitions))
+        .route("/budget/definitions", post(create_budget_definition))
+        .route("/budget/definitions/:code", get(get_budget_definition))
+        .route("/budget/definitions/:code", delete(delete_budget_definition))
+
+        // Budget Versions
+        .route("/budget/definitions/:budget_code/versions", post(create_budget_version))
+        .route("/budget/definitions/:budget_code/versions", get(list_budget_versions))
+        .route("/budget/versions/:version_id", get(get_budget_version))
+
+        // Budget Version Workflow
+        .route("/budget/versions/:version_id/submit", post(submit_budget_version))
+        .route("/budget/versions/:version_id/approve", post(approve_budget_version))
+        .route("/budget/versions/:version_id/activate", post(activate_budget_version))
+        .route("/budget/versions/:version_id/reject", post(reject_budget_version))
+        .route("/budget/versions/:version_id/close", post(close_budget_version))
+
+        // Budget Lines
+        .route("/budget/versions/:version_id/lines", get(list_budget_lines))
+        .route("/budget/versions/:version_id/lines", post(add_budget_line))
+        .route("/budget/versions/:version_id/lines/:line_id", delete(delete_budget_line))
+
+        // Budget Transfers
+        .route("/budget/versions/:version_id/transfers", post(create_budget_transfer))
+        .route("/budget/versions/:version_id/transfers", get(list_budget_transfers))
+        .route("/budget/transfers/:transfer_id/approve", post(approve_budget_transfer))
+        .route("/budget/transfers/:transfer_id/reject", post(reject_budget_transfer))
+
+        // Budget Variance Report
+        .route("/budget/versions/:version_id/variance", get(get_budget_variance))
+
+        // Budget Control Check
+        .route("/budget/definitions/:budget_code/check", post(check_budget_control))
         
         .layer(middleware::from_fn(auth_middleware))
 }

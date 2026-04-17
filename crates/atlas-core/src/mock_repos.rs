@@ -10,6 +10,7 @@ use crate::tax::TaxRepository;
 use crate::intercompany::IntercompanyRepository;
 use crate::reconciliation::ReconciliationRepository;
 use crate::expense::ExpenseRepository;
+use crate::budget::BudgetRepository;
 
 /// Mock schema repository
 pub struct MockSchemaRepository;
@@ -550,4 +551,132 @@ impl ExpenseRepository for MockExpenseRepository {
     async fn get_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ExpenseLine>> { Ok(None) }
     async fn list_lines_by_report(&self, _report_id: Uuid) -> AtlasResult<Vec<atlas_shared::ExpenseLine>> { Ok(vec![]) }
     async fn delete_line(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+}
+
+/// Mock budget repository for testing
+pub struct MockBudgetRepository;
+
+#[async_trait]
+impl BudgetRepository for MockBudgetRepository {
+    async fn create_definition(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        calendar_id: Option<Uuid>, fiscal_year: Option<i32>, budget_type: &str,
+        control_level: &str, allow_carry_forward: bool, allow_transfers: bool,
+        currency_code: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::BudgetDefinition> {
+        Ok(atlas_shared::BudgetDefinition {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            calendar_id, fiscal_year, budget_type: budget_type.to_string(),
+            control_level: control_level.to_string(),
+            allow_carry_forward, allow_transfers,
+            currency_code: currency_code.to_string(),
+            is_active: true, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_definition(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::BudgetDefinition>> { Ok(None) }
+    async fn get_definition_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::BudgetDefinition>> { Ok(None) }
+    async fn list_definitions(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::BudgetDefinition>> { Ok(vec![]) }
+    async fn delete_definition(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_version(
+        &self, org_id: Uuid, definition_id: Uuid, version_number: i32, label: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        notes: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::BudgetVersion> {
+        Ok(atlas_shared::BudgetVersion {
+            id: Uuid::new_v4(), organization_id: org_id, definition_id,
+            version_number, label: label.map(String::from), status: "draft".to_string(),
+            total_budget_amount: "0".to_string(), total_committed_amount: "0".to_string(),
+            total_actual_amount: "0".to_string(), total_variance_amount: "0".to_string(),
+            submitted_by: None, submitted_at: None,
+            approved_by: None, approved_at: None, rejected_reason: None,
+            effective_from, effective_to, notes: notes.map(String::from),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_version(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::BudgetVersion>> { Ok(None) }
+    async fn get_active_version(&self, _definition_id: Uuid) -> AtlasResult<Option<atlas_shared::BudgetVersion>> { Ok(None) }
+    async fn list_versions(&self, _definition_id: Uuid) -> AtlasResult<Vec<atlas_shared::BudgetVersion>> { Ok(vec![]) }
+    async fn get_next_version_number(&self, _definition_id: Uuid) -> AtlasResult<i32> { Ok(1) }
+    async fn update_version_status(
+        &self, _id: Uuid, _status: &str, _submitted_by: Option<Uuid>,
+        _approved_by: Option<Uuid>, _rejected_reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::BudgetVersion> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_version_totals(
+        &self, _id: Uuid, _total_budget: &str, _total_committed: &str,
+        _total_actual: &str, _total_variance: &str,
+    ) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_line(
+        &self, org_id: Uuid, version_id: Uuid, line_number: i32,
+        account_code: &str, account_name: Option<&str>,
+        period_name: Option<&str>, period_start_date: Option<chrono::NaiveDate>,
+        period_end_date: Option<chrono::NaiveDate>, fiscal_year: Option<i32>,
+        quarter: Option<i32>, department_id: Option<Uuid>,
+        department_name: Option<&str>, project_id: Option<Uuid>,
+        project_name: Option<&str>, cost_center: Option<&str>,
+        budget_amount: &str, description: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::BudgetLine> {
+        Ok(atlas_shared::BudgetLine {
+            id: Uuid::new_v4(), organization_id: org_id, version_id, line_number,
+            account_code: account_code.to_string(), account_name: account_name.map(String::from),
+            period_name: period_name.map(String::from), period_start_date, period_end_date,
+            fiscal_year, quarter,
+            department_id, department_name: department_name.map(String::from),
+            project_id, project_name: project_name.map(String::from),
+            cost_center: cost_center.map(String::from),
+            budget_amount: budget_amount.to_string(),
+            committed_amount: "0".to_string(), actual_amount: "0".to_string(),
+            variance_amount: budget_amount.to_string(), variance_percent: "100".to_string(),
+            carry_forward_amount: "0".to_string(),
+            transferred_in_amount: "0".to_string(), transferred_out_amount: "0".to_string(),
+            description: description.map(String::from),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::BudgetLine>> { Ok(None) }
+    async fn list_lines_by_version(&self, _version_id: Uuid) -> AtlasResult<Vec<atlas_shared::BudgetLine>> { Ok(vec![]) }
+    async fn find_line(
+        &self, _version_id: Uuid, _account_code: &str, _period_name: Option<&str>,
+        _department_id: Option<&Uuid>, _cost_center: Option<&str>,
+    ) -> AtlasResult<Option<atlas_shared::BudgetLine>> { Ok(None) }
+    async fn update_line_amount(&self, _id: Uuid, _budget_amount: &str) -> AtlasResult<atlas_shared::BudgetLine> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_line(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_transfer(
+        &self, org_id: Uuid, version_id: Uuid, transfer_number: &str,
+        description: Option<&str>, from_account_code: &str, from_period_name: Option<&str>,
+        from_department_id: Option<Uuid>, from_cost_center: Option<&str>,
+        to_account_code: &str, to_period_name: Option<&str>,
+        to_department_id: Option<Uuid>, to_cost_center: Option<&str>,
+        amount: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::BudgetTransfer> {
+        Ok(atlas_shared::BudgetTransfer {
+            id: Uuid::new_v4(), organization_id: org_id, version_id,
+            transfer_number: transfer_number.to_string(), description: description.map(String::from),
+            from_account_code: from_account_code.to_string(), from_period_name: from_period_name.map(String::from),
+            from_department_id, from_cost_center: from_cost_center.map(String::from),
+            to_account_code: to_account_code.to_string(), to_period_name: to_period_name.map(String::from),
+            to_department_id, to_cost_center: to_cost_center.map(String::from),
+            amount: amount.to_string(), status: "pending".to_string(),
+            approved_by: None, approved_at: None, rejected_reason: None,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_transfer(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::BudgetTransfer>> { Ok(None) }
+    async fn list_transfers(&self, _version_id: Uuid) -> AtlasResult<Vec<atlas_shared::BudgetTransfer>> { Ok(vec![]) }
+    async fn update_transfer_status(
+        &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _rejected_reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::BudgetTransfer> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
 }

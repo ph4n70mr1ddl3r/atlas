@@ -16,3 +16,4 @@ mod currency;
 mod tax;
 mod reconciliation;
 mod expense;
+mod budget;

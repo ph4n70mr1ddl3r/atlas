@@ -13,6 +13,7 @@ use atlas_core::{
     IntercompanyEngine,
     ReconciliationEngine,
     ExpenseEngine,
+    BudgetEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -24,6 +25,7 @@ use atlas_core::{
     intercompany::PostgresIntercompanyRepository,
     reconciliation::PostgresReconciliationRepository,
     expense::PostgresExpenseRepository,
+    budget::PostgresBudgetRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -49,6 +51,7 @@ pub struct AppState {
     pub intercompany_engine: Arc<IntercompanyEngine>,
     pub reconciliation_engine: Arc<ReconciliationEngine>,
     pub expense_engine: Arc<ExpenseEngine>,
+    pub budget_engine: Arc<BudgetEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -139,6 +142,11 @@ impl AppState {
         let expense_engine = Arc::new(ExpenseEngine::new(Arc::new(
             PostgresExpenseRepository::new(db_pool.clone())
         )));
+
+        // Initialize budget engine
+        let budget_engine = Arc::new(BudgetEngine::new(Arc::new(
+            PostgresBudgetRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -192,6 +200,7 @@ impl AppState {
             intercompany_engine,
             reconciliation_engine,
             expense_engine,
+            budget_engine,
             event_bus,
             jwt_secret,
         };

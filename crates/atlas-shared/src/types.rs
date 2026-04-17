@@ -2065,3 +2065,271 @@ pub struct ExpensePolicyViolation {
     pub message: String,
     pub severity: String, // "warning" or "error"
 }
+
+// ============================================================================
+// Budget Management (Oracle Fusion General Ledger > Budgets)
+// ============================================================================
+
+/// Budget definition (template)
+/// Oracle Fusion: General Ledger > Budgets > Define Budget
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetDefinition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Budget code (e.g., 'FY2024_OPEx', 'FY2024_CAPEx')
+    pub code: String,
+    /// Display name
+    pub name: String,
+    pub description: Option<String>,
+    /// Reference to accounting calendar
+    pub calendar_id: Option<Uuid>,
+    /// Fiscal year this budget covers
+    pub fiscal_year: Option<i32>,
+    /// Budget type: 'operating', 'capital', 'project', 'cash_flow'
+    pub budget_type: String,
+    /// Control level: 'none', 'advisory', 'absolute'
+    pub control_level: String,
+    /// Whether carry-forward of unspent amounts is allowed
+    pub allow_carry_forward: bool,
+    /// Whether transfers between accounts are allowed
+    pub allow_transfers: bool,
+    /// Default currency
+    pub currency_code: String,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update budget definition request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetDefinitionRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub calendar_id: Option<Uuid>,
+    pub fiscal_year: Option<i32>,
+    #[serde(default = "default_budget_type")]
+    pub budget_type: String,
+    #[serde(default = "default_control_level")]
+    pub control_level: String,
+    #[serde(default)]
+    pub allow_carry_forward: bool,
+    #[serde(default = "default_true")]
+    pub allow_transfers: bool,
+    #[serde(default = "default_currency_usd")]
+    pub currency_code: String,
+}
+
+fn default_budget_type() -> String { "operating".to_string() }
+fn default_control_level() -> String { "none".to_string() }
+
+/// Budget version (snapshot with workflow)
+/// Oracle Fusion: General Ledger > Budgets > Budget Versions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetVersion {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// The budget definition this version belongs to
+    pub definition_id: Uuid,
+    /// Auto-incremented version number
+    pub version_number: i32,
+    /// Version label (e.g., 'Original', 'Revised Q2')
+    pub label: Option<String>,
+    /// Status: 'draft', 'submitted', 'approved', 'active', 'closed', 'rejected'
+    pub status: String,
+    /// Totals (calculated from budget lines)
+    pub total_budget_amount: String,
+    pub total_committed_amount: String,
+    pub total_actual_amount: String,
+    pub total_variance_amount: String,
+    /// Approval workflow
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    /// Effective dates
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    /// Notes
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create budget version request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetVersionRequest {
+    /// Budget definition code to create version for
+    pub budget_code: String,
+    pub label: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub notes: Option<String>,
+}
+
+/// Budget line (individual budget amount by account/period/dimension)
+/// Oracle Fusion: General Ledger > Budgets > Enter Budget Amounts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Budget version reference
+    pub version_id: Uuid,
+    /// Line number
+    pub line_number: i32,
+    /// Account reference
+    pub account_code: String,
+    pub account_name: Option<String>,
+    /// Period reference
+    pub period_name: Option<String>,
+    pub period_start_date: Option<chrono::NaiveDate>,
+    pub period_end_date: Option<chrono::NaiveDate>,
+    pub fiscal_year: Option<i32>,
+    pub quarter: Option<i32>,
+    /// Dimension references
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    pub project_id: Option<Uuid>,
+    pub project_name: Option<String>,
+    pub cost_center: Option<String>,
+    /// Budget amounts
+    pub budget_amount: String,
+    pub committed_amount: String,
+    pub actual_amount: String,
+    pub variance_amount: String,
+    pub variance_percent: String,
+    /// Carry-forward
+    pub carry_forward_amount: String,
+    /// Transfer tracking
+    pub transferred_in_amount: String,
+    pub transferred_out_amount: String,
+    /// Description
+    pub description: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update budget line request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetLineRequest {
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub period_name: Option<String>,
+    pub period_start_date: Option<chrono::NaiveDate>,
+    pub period_end_date: Option<chrono::NaiveDate>,
+    pub fiscal_year: Option<i32>,
+    pub quarter: Option<i32>,
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    pub project_id: Option<Uuid>,
+    pub project_name: Option<String>,
+    pub cost_center: Option<String>,
+    /// The budgeted amount
+    pub budget_amount: String,
+    pub description: Option<String>,
+}
+
+/// Budget transfer
+/// Oracle Fusion: General Ledger > Budgets > Transfer Budget Amounts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetTransfer {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Budget version reference
+    pub version_id: Uuid,
+    /// Transfer number
+    pub transfer_number: String,
+    pub description: Option<String>,
+    /// Source account
+    pub from_account_code: String,
+    pub from_period_name: Option<String>,
+    pub from_department_id: Option<Uuid>,
+    pub from_cost_center: Option<String>,
+    /// Destination account
+    pub to_account_code: String,
+    pub to_period_name: Option<String>,
+    pub to_department_id: Option<Uuid>,
+    pub to_cost_center: Option<String>,
+    /// Amount to transfer
+    pub amount: String,
+    /// Status: 'pending', 'approved', 'rejected', 'cancelled'
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create budget transfer request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetTransferRequest {
+    pub budget_code: String,
+    pub from_account_code: String,
+    pub from_period_name: Option<String>,
+    pub from_department_id: Option<Uuid>,
+    pub from_cost_center: Option<String>,
+    pub to_account_code: String,
+    pub to_period_name: Option<String>,
+    pub to_department_id: Option<Uuid>,
+    pub to_cost_center: Option<String>,
+    pub amount: String,
+    pub description: Option<String>,
+}
+
+/// Budget vs Actuals variance report
+/// Oracle Fusion: General Ledger > Budgets > Budget vs Actuals Report
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetVarianceReport {
+    pub definition_id: Uuid,
+    pub definition_code: String,
+    pub definition_name: String,
+    pub version_id: Uuid,
+    pub version_label: Option<String>,
+    pub fiscal_year: Option<i32>,
+    /// Summary totals
+    pub total_budget: String,
+    pub total_actual: String,
+    pub total_committed: String,
+    pub total_variance: String,
+    pub variance_percent: String,
+    /// Line-by-line details
+    pub lines: Vec<BudgetVarianceLine>,
+}
+
+/// Single line in the budget variance report
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetVarianceLine {
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub period_name: Option<String>,
+    pub department_name: Option<String>,
+    pub project_name: Option<String>,
+    pub cost_center: Option<String>,
+    pub budget_amount: String,
+    pub committed_amount: String,
+    pub actual_amount: String,
+    pub variance_amount: String,
+    pub variance_percent: String,
+    /// Whether this line is over budget
+    pub is_over_budget: bool,
+}

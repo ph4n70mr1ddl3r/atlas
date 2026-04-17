@@ -1505,3 +1505,204 @@ impl crate::payment::PaymentRepository for MockPaymentRepository {
         Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
     }
 }
+
+// ============================================================================
+// Mock Subledger Accounting Repository
+// ============================================================================
+
+pub struct MockSubledgerAccountingRepository;
+
+#[async_trait::async_trait]
+impl crate::subledger_accounting::SubledgerAccountingRepository for MockSubledgerAccountingRepository {
+    // Accounting Methods
+    async fn create_accounting_method(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        application: &str, transaction_type: &str, event_class: &str,
+        auto_accounting: bool, allow_manual_entries: bool, apply_rounding: bool,
+        rounding_account_code: Option<&str>, rounding_threshold: &str,
+        require_balancing: bool, intercompany_balancing_account: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AccountingMethod> {
+        Ok(atlas_shared::AccountingMethod {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            application: application.to_string(), transaction_type: transaction_type.to_string(),
+            event_class: event_class.to_string(),
+            auto_accounting, allow_manual_entries, apply_rounding,
+            rounding_account_code: rounding_account_code.map(String::from),
+            rounding_threshold: rounding_threshold.to_string(),
+            require_balancing, intercompany_balancing_account: intercompany_balancing_account.map(String::from),
+            effective_from, effective_to, is_active: true,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_accounting_method(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::AccountingMethod>> { Ok(None) }
+    async fn get_accounting_method_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AccountingMethod>> { Ok(None) }
+    async fn list_accounting_methods(&self, _org_id: Uuid, _application: Option<&str>) -> AtlasResult<Vec<atlas_shared::AccountingMethod>> { Ok(vec![]) }
+    async fn delete_accounting_method(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Derivation Rules
+    async fn create_derivation_rule(
+        &self, org_id: Uuid, accounting_method_id: Uuid, code: &str, name: &str,
+        description: Option<&str>, line_type: &str, priority: i32,
+        conditions: serde_json::Value, source_field: Option<&str>,
+        derivation_type: &str, fixed_account_code: Option<&str>,
+        account_derivation_lookup: serde_json::Value,
+        formula_expression: Option<&str>, sequence: i32,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AccountingDerivationRule> {
+        Ok(atlas_shared::AccountingDerivationRule {
+            id: Uuid::new_v4(), organization_id: org_id, accounting_method_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            line_type: line_type.to_string(), priority, conditions, source_field: source_field.map(String::from),
+            derivation_type: derivation_type.to_string(), fixed_account_code: fixed_account_code.map(String::from),
+            account_derivation_lookup, formula_expression: formula_expression.map(String::from),
+            sequence, is_active: true, effective_from, effective_to,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_derivation_rule(&self, _org_id: Uuid, _method_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::AccountingDerivationRule>> { Ok(None) }
+    async fn list_derivation_rules(&self, _org_id: Uuid, _method_id: Uuid) -> AtlasResult<Vec<atlas_shared::AccountingDerivationRule>> { Ok(vec![]) }
+    async fn list_active_derivation_rules(&self, _org_id: Uuid, _method_id: Uuid, _line_type: &str) -> AtlasResult<Vec<atlas_shared::AccountingDerivationRule>> { Ok(vec![]) }
+    async fn delete_derivation_rule(&self, _org_id: Uuid, _method_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Journal Entries
+    async fn create_journal_entry(
+        &self, org_id: Uuid, source_application: &str, source_transaction_type: &str,
+        source_transaction_id: Uuid, source_transaction_number: Option<&str>,
+        accounting_method_id: Option<Uuid>, entry_number: &str, description: Option<&str>,
+        reference_number: Option<&str>, accounting_date: chrono::NaiveDate, period_name: Option<&str>,
+        currency_code: &str, entered_currency_code: &str,
+        currency_conversion_date: Option<chrono::NaiveDate>, currency_conversion_type: Option<&str>,
+        currency_conversion_rate: Option<&str>,
+        total_debit: &str, total_credit: &str, entered_debit: &str, entered_credit: &str,
+        status: &str, balancing_segment: Option<&str>, is_balanced: bool,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SubledgerJournalEntry> {
+        Ok(atlas_shared::SubledgerJournalEntry {
+            id: Uuid::new_v4(), organization_id: org_id,
+            source_application: source_application.to_string(),
+            source_transaction_type: source_transaction_type.to_string(),
+            source_transaction_id, source_transaction_number: source_transaction_number.map(String::from),
+            accounting_method_id,
+            entry_number: entry_number.to_string(), description: description.map(String::from),
+            reference_number: reference_number.map(String::from),
+            accounting_date, period_name: period_name.map(String::from),
+            currency_code: currency_code.to_string(), entered_currency_code: entered_currency_code.to_string(),
+            currency_conversion_date, currency_conversion_type: currency_conversion_type.map(String::from),
+            currency_conversion_rate: currency_conversion_rate.map(String::from),
+            total_debit: total_debit.to_string(), total_credit: total_credit.to_string(),
+            entered_debit: entered_debit.to_string(), entered_credit: entered_credit.to_string(),
+            status: status.to_string(), error_message: None,
+            balancing_segment: balancing_segment.map(String::from), is_balanced,
+            gl_transfer_status: "pending".to_string(), gl_transfer_date: None, gl_journal_entry_id: None,
+            is_reversal: false, reversal_of_id: None, reversal_reason: None,
+            created_by, posted_by: None, accounted_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_journal_entry(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SubledgerJournalEntry>> { Ok(None) }
+    async fn get_journal_entry_by_number(&self, _org_id: Uuid, _entry_number: &str) -> AtlasResult<Option<atlas_shared::SubledgerJournalEntry>> { Ok(None) }
+    async fn list_journal_entries(
+        &self, _org_id: Uuid, _status: Option<&str>, _source_application: Option<&str>,
+        _source_transaction_type: Option<&str>, _accounting_date_from: Option<chrono::NaiveDate>,
+        _accounting_date_to: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<Vec<atlas_shared::SubledgerJournalEntry>> { Ok(vec![]) }
+    async fn update_journal_entry_status(
+        &self, _id: Uuid, _status: &str, _error_message: Option<&str>,
+        _is_balanced: Option<bool>, _posted_by: Option<Uuid>, _accounted_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SubledgerJournalEntry> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_journal_entry_balances(
+        &self, _id: Uuid, _total_debit: &str, _total_credit: &str,
+        _entered_debit: &str, _entered_credit: &str, _is_balanced: bool,
+    ) -> AtlasResult<atlas_shared::SubledgerJournalEntry> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Journal Lines
+    async fn create_journal_line(
+        &self, org_id: Uuid, journal_entry_id: Uuid, line_number: i32,
+        line_type: &str, account_code: &str, account_description: Option<&str>,
+        derivation_rule_id: Option<Uuid>, entered_amount: &str, accounted_amount: &str,
+        currency_code: &str, conversion_date: Option<chrono::NaiveDate>, conversion_rate: Option<&str>,
+        attribute_category: Option<&str>, attribute1: Option<&str>, attribute2: Option<&str>,
+        attribute3: Option<&str>, attribute4: Option<&str>, attribute5: Option<&str>,
+        source_line_id: Option<Uuid>, source_line_type: Option<&str>,
+        tax_code: Option<&str>, tax_rate: Option<&str>, tax_amount: Option<&str>,
+    ) -> AtlasResult<atlas_shared::SubledgerJournalLine> {
+        Ok(atlas_shared::SubledgerJournalLine {
+            id: Uuid::new_v4(), organization_id: org_id, journal_entry_id, line_number,
+            line_type: line_type.to_string(), account_code: account_code.to_string(),
+            account_description: account_description.map(String::from), derivation_rule_id,
+            entered_amount: entered_amount.to_string(), accounted_amount: accounted_amount.to_string(),
+            currency_code: currency_code.to_string(), conversion_date, conversion_rate: conversion_rate.map(String::from),
+            attribute_category: attribute_category.map(String::from), attribute1: attribute1.map(String::from),
+            attribute2: attribute2.map(String::from), attribute3: attribute3.map(String::from),
+            attribute4: attribute4.map(String::from), attribute5: attribute5.map(String::from),
+            attribute6: None, attribute7: None, attribute8: None, attribute9: None, attribute10: None,
+            tax_code: tax_code.map(String::from), tax_rate: tax_rate.map(String::from),
+            tax_amount: tax_amount.map(String::from),
+            source_line_id, source_line_type: source_line_type.map(String::from),
+            is_reversal_line: false, reversal_of_line_id: None,
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_journal_lines(&self, _journal_entry_id: Uuid) -> AtlasResult<Vec<atlas_shared::SubledgerJournalLine>> { Ok(vec![]) }
+    async fn delete_journal_line(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // SLA Events
+    async fn create_sla_event(
+        &self, org_id: Uuid, event_number: &str, event_type: &str,
+        source_application: &str, source_transaction_type: &str,
+        source_transaction_id: Uuid, journal_entry_id: Option<Uuid>,
+        event_date: chrono::NaiveDate, event_status: &str,
+        description: Option<&str>, error_message: Option<&str>, processed_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SlaEvent> {
+        Ok(atlas_shared::SlaEvent {
+            id: Uuid::new_v4(), organization_id: org_id,
+            event_number: event_number.to_string(), event_type: event_type.to_string(),
+            source_application: source_application.to_string(),
+            source_transaction_type: source_transaction_type.to_string(),
+            source_transaction_id, journal_entry_id, event_date,
+            event_status: event_status.to_string(), description: description.map(String::from),
+            error_message: error_message.map(String::from), processed_by,
+            processed_at: Some(chrono::Utc::now()), metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_sla_events(&self, _org_id: Uuid, _source_application: Option<&str>, _event_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::SlaEvent>> { Ok(vec![]) }
+
+    // GL Transfer Log
+    async fn create_transfer_log(
+        &self, org_id: Uuid, transfer_number: &str, from_period: Option<&str>,
+        status: &str, total_entries: i32, total_debit: &str, total_credit: &str,
+        included_applications: serde_json::Value, transferred_by: Option<Uuid>,
+        entries: serde_json::Value,
+    ) -> AtlasResult<atlas_shared::GlTransferLog> {
+        Ok(atlas_shared::GlTransferLog {
+            id: Uuid::new_v4(), organization_id: org_id,
+            transfer_number: transfer_number.to_string(), transfer_date: chrono::Utc::now(),
+            from_period: from_period.map(String::from), status: status.to_string(),
+            error_message: None, total_entries, total_debit: total_debit.to_string(),
+            total_credit: total_credit.to_string(), included_applications, transferred_by,
+            completed_at: Some(chrono::Utc::now()), entries, metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn update_transfer_log_status(&self, _id: Uuid, _status: &str, _error_message: Option<&str>, _completed_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<atlas_shared::GlTransferLog> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn get_transfer_log(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::GlTransferLog>> { Ok(None) }
+    async fn list_transfer_logs(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::GlTransferLog>> { Ok(vec![]) }
+
+    // Dashboard
+    async fn count_entries_by_status(&self, _org_id: Uuid) -> AtlasResult<serde_json::Value> {
+        Ok(serde_json::json!({"by_status": [], "by_application": []}))
+    }
+}

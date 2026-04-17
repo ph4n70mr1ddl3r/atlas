@@ -33,6 +33,7 @@ pub mod fixed_assets;
 pub mod collections;
 pub mod revenue;
 pub mod payment;
+pub mod subledger_accounting;
 
 pub use schema::*;
 pub use workflow::{
@@ -67,6 +68,7 @@ pub use fixed_assets::{FixedAssetEngine, PostgresFixedAssetRepository as Postgre
 pub use collections::{CollectionsEngine, PostgresCollectionsRepository as PostgresCollectionsRepo};
 pub use revenue::{RevenueEngine, PostgresRevenueRepository as PostgresRevenueRepo};
 pub use payment::{PaymentEngine, PostgresPaymentRepository as PostgresPaymentRepo};
+pub use subledger_accounting::{SubledgerAccountingEngine, PostgresSubledgerAccountingRepository as PostgresSubledgerAccountingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

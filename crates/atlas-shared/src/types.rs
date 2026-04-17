@@ -3458,3 +3458,265 @@ pub struct RevenueModification {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
+// ============================================================================
+// Subledger Accounting Types
+// Oracle Fusion: Financials > General Ledger > Subledger Accounting
+// ============================================================================
+
+/// Accounting Method
+/// Defines how a subledger transaction type is accounted for.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountingMethod {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Application: 'payables', 'receivables', 'expenses', 'assets', 'projects'
+    pub application: String,
+    /// Transaction type within the application
+    pub transaction_type: String,
+    /// Event class: 'create', 'update', 'cancel', 'reverse'
+    pub event_class: String,
+    pub auto_accounting: bool,
+    pub allow_manual_entries: bool,
+    pub apply_rounding: bool,
+    pub rounding_account_code: Option<String>,
+    pub rounding_threshold: String,
+    pub require_balancing: bool,
+    pub intercompany_balancing_account: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Accounting Method Create/Update Request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountingMethodRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub application: String,
+    pub transaction_type: String,
+    pub event_class: Option<String>,
+    pub auto_accounting: Option<bool>,
+    pub allow_manual_entries: Option<bool>,
+    pub apply_rounding: Option<bool>,
+    pub rounding_account_code: Option<String>,
+    pub rounding_threshold: Option<String>,
+    pub require_balancing: Option<bool>,
+    pub intercompany_balancing_account: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+/// Accounting Derivation Rule
+/// Rules for deriving account codes from transaction attributes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountingDerivationRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub accounting_method_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Line type: 'debit', 'credit', 'tax', 'discount'
+    pub line_type: String,
+    /// Priority (lower = higher priority)
+    pub priority: i32,
+    /// Conditions for rule activation
+    pub conditions: serde_json::Value,
+    /// Source field from the transaction
+    pub source_field: Option<String>,
+    /// Derivation type: 'constant', 'lookup', 'formula'
+    pub derivation_type: String,
+    /// Fixed account code (for 'constant' type)
+    pub fixed_account_code: Option<String>,
+    /// Lookup table (for 'lookup' type)
+    pub account_derivation_lookup: serde_json::Value,
+    /// Formula expression (for 'formula' type)
+    pub formula_expression: Option<String>,
+    pub sequence: i32,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subledger Journal Entry
+/// The accounting representation of a subledger transaction.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubledgerJournalEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Source subledger: 'payables', 'receivables', 'expenses', etc.
+    pub source_application: String,
+    /// Transaction type: 'invoice', 'payment', etc.
+    pub source_transaction_type: String,
+    /// ID of the source transaction
+    pub source_transaction_id: Uuid,
+    pub source_transaction_number: Option<String>,
+    /// Accounting method applied
+    pub accounting_method_id: Option<Uuid>,
+    /// Journal entry number (auto-generated)
+    pub entry_number: String,
+    pub description: Option<String>,
+    pub reference_number: Option<String>,
+    /// GL date
+    pub accounting_date: chrono::NaiveDate,
+    pub period_name: Option<String>,
+    /// Currency info
+    pub currency_code: String,
+    pub entered_currency_code: String,
+    pub currency_conversion_date: Option<chrono::NaiveDate>,
+    pub currency_conversion_type: Option<String>,
+    pub currency_conversion_rate: Option<String>,
+    /// Totals
+    pub total_debit: String,
+    pub total_credit: String,
+    pub entered_debit: String,
+    pub entered_credit: String,
+    /// Status: 'draft', 'accounted', 'posted', 'transferred', 'reversed', 'error'
+    pub status: String,
+    pub error_message: Option<String>,
+    /// Balancing
+    pub balancing_segment: Option<String>,
+    pub is_balanced: bool,
+    /// GL transfer tracking
+    pub gl_transfer_status: String,
+    pub gl_transfer_date: Option<DateTime<Utc>>,
+    pub gl_journal_entry_id: Option<Uuid>,
+    /// Reversal tracking
+    pub is_reversal: bool,
+    pub reversal_of_id: Option<Uuid>,
+    pub reversal_reason: Option<String>,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub posted_by: Option<Uuid>,
+    pub accounted_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subledger Journal Line
+/// Individual debit/credit line within a journal entry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubledgerJournalLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub journal_entry_id: Uuid,
+    pub line_number: i32,
+    /// Line type: 'debit', 'credit', 'tax', 'discount', 'rounding'
+    pub line_type: String,
+    /// Account code
+    pub account_code: String,
+    pub account_description: Option<String>,
+    /// Derivation rule that produced this line
+    pub derivation_rule_id: Option<Uuid>,
+    /// Amounts
+    pub entered_amount: String,
+    pub accounted_amount: String,
+    /// Currency
+    pub currency_code: String,
+    pub conversion_date: Option<chrono::NaiveDate>,
+    pub conversion_rate: Option<String>,
+    /// Descriptive flexfield attributes
+    pub attribute_category: Option<String>,
+    pub attribute1: Option<String>,
+    pub attribute2: Option<String>,
+    pub attribute3: Option<String>,
+    pub attribute4: Option<String>,
+    pub attribute5: Option<String>,
+    pub attribute6: Option<String>,
+    pub attribute7: Option<String>,
+    pub attribute8: Option<String>,
+    pub attribute9: Option<String>,
+    pub attribute10: Option<String>,
+    /// Tax
+    pub tax_code: Option<String>,
+    pub tax_rate: Option<String>,
+    pub tax_amount: Option<String>,
+    /// Source reference
+    pub source_line_id: Option<Uuid>,
+    pub source_line_type: Option<String>,
+    /// Reversal
+    pub is_reversal_line: bool,
+    pub reversal_of_line_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subledger Accounting Event
+/// Audit trail of accounting events.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SlaEvent {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub event_number: String,
+    /// Event type: 'creation', 'modification', 'cancellation', 'reversal', 'posting', 'transfer'
+    pub event_type: String,
+    pub source_application: String,
+    pub source_transaction_type: String,
+    pub source_transaction_id: Uuid,
+    pub journal_entry_id: Option<Uuid>,
+    pub event_date: chrono::NaiveDate,
+    /// Status: 'processed', 'error', 'skipped'
+    pub event_status: String,
+    pub description: Option<String>,
+    pub error_message: Option<String>,
+    pub processed_by: Option<Uuid>,
+    pub processed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// GL Transfer Log
+/// Tracks transfers of subledger entries to the General Ledger.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GlTransferLog {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub transfer_number: String,
+    pub transfer_date: DateTime<Utc>,
+    pub from_period: Option<String>,
+    /// Status: 'pending', 'in_progress', 'completed', 'failed', 'reversed'
+    pub status: String,
+    pub error_message: Option<String>,
+    pub total_entries: i32,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub included_applications: serde_json::Value,
+    pub transferred_by: Option<Uuid>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub entries: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subledger Accounting Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SlaDashboardSummary {
+    pub total_entries: i32,
+    pub draft_count: i32,
+    pub accounted_count: i32,
+    pub posted_count: i32,
+    pub transferred_count: i32,
+    pub reversed_count: i32,
+    pub error_count: i32,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub entries_by_application: serde_json::Value,
+    pub entries_by_status: serde_json::Value,
+    pub pending_transfer_count: i32,
+    pub unbalanced_count: i32,
+}

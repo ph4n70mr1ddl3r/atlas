@@ -17,6 +17,7 @@ pub mod reconciliation;
 pub mod expense;
 pub mod budget;
 pub mod fixed_assets;
+pub mod subledger_accounting;
 
 pub use schema::*;
 pub use records::*;
@@ -33,6 +34,7 @@ pub use reconciliation::*;
 pub use expense::*;
 pub use budget::*;
 pub use fixed_assets::*;
+pub use subledger_accounting::*;
 
 use axum::{
     Router,
@@ -419,7 +421,53 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/fixed-assets/retirements", get(list_asset_retirements))
         .route("/fixed-assets/retirements", post(create_asset_retirement))
         .route("/fixed-assets/retirements/:id/approve", post(approve_asset_retirement))
-        
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // Subledger Accounting (Oracle Fusion GL > Subledger Accounting)
+        // ════════════════════════════════════════════════════════════════════════════
+
+        // Accounting Methods
+        .route("/sla/methods", get(list_accounting_methods))
+        .route("/sla/methods", post(create_accounting_method))
+        .route("/sla/methods/:code", get(get_accounting_method))
+        .route("/sla/methods/:code", delete(delete_accounting_method))
+
+        // Derivation Rules
+        .route("/sla/methods/:method_id/rules", get(list_derivation_rules))
+        .route("/sla/methods/:method_id/rules", post(create_derivation_rule))
+        .route("/sla/methods/:method_id/rules/:code", delete(delete_derivation_rule))
+
+        // Resolve Account Code
+        .route("/sla/resolve-account", post(resolve_account_code))
+
+        // Journal Entries
+        .route("/sla/entries", get(list_journal_entries))
+        .route("/sla/entries", post(create_journal_entry))
+        .route("/sla/entries/:id", get(get_journal_entry))
+
+        // Journal Lines
+        .route("/sla/entries/:entry_id/lines", get(list_journal_lines))
+        .route("/sla/entries/:entry_id/lines", post(add_journal_line))
+
+        // Entry Lifecycle
+        .route("/sla/entries/:id/account", post(account_journal_entry))
+        .route("/sla/entries/:id/post", post(post_journal_entry))
+        .route("/sla/entries/:id/reverse", post(reverse_journal_entry))
+
+        // Auto-Accounting
+        .route("/sla/entries/:entry_id/generate-lines", post(generate_journal_lines))
+
+        // Transfer to GL
+        .route("/sla/transfer-to-gl", post(transfer_to_gl))
+        .route("/sla/transfers/:id", get(get_transfer_log))
+        .route("/sla/transfers", get(list_transfer_logs))
+
+        // SLA Events
+        .route("/sla/events", get(list_sla_events))
+
+        // SLA Dashboard
+        .route("/sla/dashboard", get(get_sla_dashboard))
+
         .layer(middleware::from_fn(auth_middleware))
 }
 

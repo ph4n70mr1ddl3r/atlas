@@ -1344,9 +1344,8 @@ pub async fn import_csv(
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // Build field mapping
-    let mapping: std::collections::HashMap<String, String> = if payload.field_mapping.is_object() {
-        payload.field_mapping.as_object().unwrap()
-            .iter()
+    let mapping: std::collections::HashMap<String, String> = if let Some(obj) = payload.field_mapping.as_object() {
+        obj.iter()
             .map(|(k, v)| (k.clone(), v.as_str().unwrap_or(k).to_string()))
             .collect()
     } else {

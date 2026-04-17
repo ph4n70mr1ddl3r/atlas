@@ -334,7 +334,8 @@ pub async fn create_record(
     
     // Validate and sanitize field names, filtering out null values
     // Uses the computed `values` which includes formula-evaluated fields
-    let non_null_fields: Vec<(String, &serde_json::Value)> = values.as_object().unwrap()
+    let values_obj = values.as_object().ok_or(StatusCode::BAD_REQUEST)?;
+    let non_null_fields: Vec<(String, &serde_json::Value)> = values_obj
         .iter()
         .filter(|(_, v)| !v.is_null())
         .map(|(k, v)| sanitize_identifier(k).map(|safe_k| (safe_k, v)))
@@ -449,7 +450,8 @@ pub async fn update_record(
     let old_record = old_row.map(|r| row_to_json(&r));
     
     // Validate and sanitize field names, filter null values
-    let non_null: Vec<(String, &serde_json::Value)> = payload.values.as_object().unwrap()
+    let values_obj = payload.values.as_object().ok_or(StatusCode::BAD_REQUEST)?;
+    let non_null: Vec<(String, &serde_json::Value)> = values_obj
         .iter()
         .filter(|(_, v)| !v.is_null())
         .map(|(k, v)| sanitize_identifier(k).map(|safe_k| (safe_k, v)))

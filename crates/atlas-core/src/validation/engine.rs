@@ -202,7 +202,7 @@ impl ValidationEngine {
         
         match rule {
             ValidationRule::Required => {
-                if value.is_null() || (value.is_string() && value.as_str().unwrap().trim().is_empty()) {
+                if value.is_null() || value.as_str().is_some_and(|s| s.trim().is_empty()) {
                     result.add_error(&field.name, "required", &format!("{} is required", field.label));
                 }
             }

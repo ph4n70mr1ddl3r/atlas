@@ -115,7 +115,7 @@ impl ApprovalEngine {
         let mut request = self.repository.get_request(step.approval_request_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound("Approval request".to_string()))?;
 
-        // Check if this was the final level
+        // Check if this was the current level (not already advanced)
         if step.level >= request.current_level {
             request.current_level += 1;
 

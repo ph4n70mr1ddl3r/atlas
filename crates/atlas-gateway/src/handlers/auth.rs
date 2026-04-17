@@ -223,8 +223,8 @@ pub fn verify_token(token: &str) -> Result<Claims, StatusCode> {
     // Check expiration (belt-and-suspenders; `Validation::default()` already checks exp)
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(i64::MAX);
 
     if token_data.claims.exp < now {
         return Err(StatusCode::UNAUTHORIZED);

@@ -200,7 +200,7 @@ pub async fn get_config_value(
             if parts.len() >= 2 {
                 let entity_name = parts[1];
                 if let Some(entity) = state.schema_engine.get_entity(entity_name) {
-                    return Ok(Json(serde_json::to_value(entity).unwrap()));
+                    return Ok(Json(serde_json::to_value(entity).unwrap_or_default()));
                 }
             }
         }
@@ -208,7 +208,7 @@ pub async fn get_config_value(
             if parts.len() >= 2 {
                 let workflow_name = parts[1];
                 if let Some(workflow) = state.workflow_engine.get_workflow(workflow_name).await {
-                    return Ok(Json(serde_json::to_value(workflow).unwrap()));
+                    return Ok(Json(serde_json::to_value(workflow).unwrap_or_default()));
                 }
             }
         }

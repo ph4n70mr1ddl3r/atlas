@@ -83,6 +83,35 @@ impl RlsFilterBuilder {
         (result, idx)
     }
 
+    /// Return the list of values that should be bound for a given filter,
+    /// in the same order as the `$N` placeholders produced by `build_filter`.
+    ///
+    /// The caller is responsible for binding these values to the query.
+    pub fn bind_rls_values(&self, entity: &str, ctx: &SecurityContext) -> Vec<uuid::Uuid> {
+        let Some(rules) = self.rules.get(entity) else {
+            return vec![];
+        };
+
+        let mut values = Vec::new();
+        for rule in rules.iter()
+            .filter(|rule| {
+                rule.roles.is_empty() || rule.roles.iter().any(|r| ctx.roles.contains(r))
+            })
+        {
+            if rule.condition.contains("{{user_id}}") {
+                if let Some(uid) = ctx.user_id {
+                    values.push(uid);
+                }
+            }
+            if rule.condition.contains("{{organization_id}}") {
+                if let Some(oid) = ctx.organization_id {
+                    values.push(oid);
+                }
+            }
+        }
+        values
+    }
+
     /// Build INSERT check (for checking if user can insert).
     ///
     /// Same parameterized approach as `build_filter`.

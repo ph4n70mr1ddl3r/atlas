@@ -42,7 +42,9 @@ impl GuardEvaluator {
                 self.evaluate_expression(expression, record_data)
             }
             GuardDefinition::Role { roles: _ } => {
-                // Role checking is handled at the engine level
+                // Role checking is handled at the engine level via `user` parameter.
+                // This branch is reached only when `evaluate` is called directly
+                // without a user context, so we cannot authoritatively check here.
                 GuardResult::pass()
             }
             GuardDefinition::Custom { handler } => {

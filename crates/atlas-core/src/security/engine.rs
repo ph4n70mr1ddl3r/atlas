@@ -5,6 +5,16 @@ use super::{SecurityContext, AccessDecision, FieldSecurity, FieldCheck};
 use std::collections::HashMap;
 use tracing::debug;
 
+/// Tri-state result for evaluating a single security rule.
+enum RuleMatch {
+    /// The rule explicitly allows the action.
+    Allow,
+    /// The rule explicitly denies the action (with reason).
+    Deny(String),
+    /// The rule does not apply to this action/context.
+    NotApplicable,
+}
+
 /// Security engine for access control
 pub struct SecurityEngine {
     policies: HashMap<String, SecurityPolicy>,
@@ -42,19 +52,15 @@ impl SecurityEngine {
         
         // Get policy for entity
         if let Some(policy) = self.policies.get(entity) {
-            let mut any_rule_matched = false;
+            let mut allowed = false;
             for rule in &policy.rules {
-                let decision = self.evaluate_rule(rule, action, ctx, record_data);
-                if decision.allowed {
-                    // An explicit Allow rule matched — but check remaining Deny rules
-                    any_rule_matched = true;
-                } else if decision.reason.is_some() {
-                    // An explicit Deny rule matched (allowed=false with a reason)
-                    return decision;
+                match self.evaluate_rule(rule, action, ctx, record_data) {
+                    RuleMatch::Allow => allowed = true,
+                    RuleMatch::Deny(reason) => return AccessDecision { allowed: false, reason: Some(reason) },
+                    RuleMatch::NotApplicable => {},
                 }
-                // If reason is None, the rule didn't apply to this action
             }
-            if any_rule_matched {
+            if allowed {
                 return AccessDecision { allowed: true, reason: Some("Allowed by policy".to_string()) };
             }
         }
@@ -67,37 +73,33 @@ impl SecurityEngine {
         }
     }
     
-    fn evaluate_rule(&self, rule: &SecurityRule, action: &str, ctx: &SecurityContext, record_data: Option<&serde_json::Value>) -> AccessDecision {
+    fn evaluate_rule(&self, rule: &SecurityRule, action: &str, ctx: &SecurityContext, record_data: Option<&serde_json::Value>) -> RuleMatch {
         match rule {
             SecurityRule::Allow { actions, condition } => {
-                if actions.contains(&action.to_string()) {
-                    // Check condition if present
-                    if let Some(cond) = condition {
-                        if let Some(data) = record_data {
-                            if !self.evaluate_condition(cond, ctx, data) {
-                                return AccessDecision { allowed: false, reason: Some("Condition not met".to_string()) };
-                            }
+                if !actions.contains(&action.to_string()) {
+                    return RuleMatch::NotApplicable;
+                }
+                if let Some(cond) = condition {
+                    if let Some(data) = record_data {
+                        if !self.evaluate_condition(cond, ctx, data) {
+                            return RuleMatch::NotApplicable;
                         }
                     }
-                    AccessDecision { allowed: true, reason: Some("Rule allows".to_string()) }
-                } else {
-                    AccessDecision { allowed: true, reason: None } // Rule doesn't apply
                 }
+                RuleMatch::Allow
             }
             SecurityRule::Deny { actions, condition } => {
-                if actions.contains(&action.to_string()) {
-                    // Check condition if present
-                    if let Some(cond) = condition {
-                        if let Some(data) = record_data {
-                            if !self.evaluate_condition(cond, ctx, data) {
-                                return AccessDecision { allowed: true, reason: None }; // Condition not met, rule doesn't apply
-                            }
+                if !actions.contains(&action.to_string()) {
+                    return RuleMatch::NotApplicable;
+                }
+                if let Some(cond) = condition {
+                    if let Some(data) = record_data {
+                        if !self.evaluate_condition(cond, ctx, data) {
+                            return RuleMatch::NotApplicable;
                         }
                     }
-                    AccessDecision { allowed: false, reason: Some("Rule denies".to_string()) }
-                } else {
-                    AccessDecision { allowed: true, reason: None }
                 }
+                RuleMatch::Deny("Rule denies".to_string())
             }
         }
     }

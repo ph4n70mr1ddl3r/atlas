@@ -30,6 +30,7 @@ pub mod reconciliation;
 pub mod budget;
 pub mod expense;
 pub mod fixed_assets;
+pub mod collections;
 
 pub use schema::*;
 pub use workflow::{
@@ -61,6 +62,7 @@ pub use reconciliation::{ReconciliationEngine, PostgresReconciliationRepository 
 pub use expense::{ExpenseEngine, PostgresExpenseRepository as PostgresExpenseRepo};
 pub use budget::{BudgetEngine, PostgresBudgetRepository as PostgresBudgetRepo};
 pub use fixed_assets::{FixedAssetEngine, PostgresFixedAssetRepository as PostgresFixedAssetRepo};
+pub use collections::{CollectionsEngine, PostgresCollectionsRepository as PostgresCollectionsRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

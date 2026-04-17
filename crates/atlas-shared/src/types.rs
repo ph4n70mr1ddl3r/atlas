@@ -2556,3 +2556,377 @@ pub struct AssetRetirement {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
+// ============================================================================
+// Collections & Credit Management (Oracle Fusion Collections)
+// ============================================================================
+
+/// Customer credit profile
+/// Oracle Fusion: Collections > Customer Credit Profiles
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomerCreditProfile {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    /// Credit limit amount
+    pub credit_limit: String,
+    /// Currently used credit
+    pub credit_used: String,
+    /// Available credit (limit - used)
+    pub credit_available: String,
+    /// Risk classification: 'low', 'medium', 'high', 'very_high', 'defaulted'
+    pub risk_classification: String,
+    /// Internal credit score (0-1000)
+    pub credit_score: Option<i32>,
+    /// External credit rating
+    pub external_credit_rating: Option<String>,
+    pub external_rating_agency: Option<String>,
+    pub external_rating_date: Option<chrono::NaiveDate>,
+    /// Default payment terms
+    pub payment_terms: String,
+    /// Average days to pay
+    pub average_days_to_pay: Option<String>,
+    /// Overdue invoice count
+    pub overdue_invoice_count: i32,
+    /// Total overdue amount
+    pub total_overdue_amount: String,
+    /// Oldest overdue date
+    pub oldest_overdue_date: Option<chrono::NaiveDate>,
+    /// Whether customer is on credit hold
+    pub credit_hold: bool,
+    pub credit_hold_reason: Option<String>,
+    pub credit_hold_date: Option<DateTime<Utc>>,
+    pub credit_hold_by: Option<Uuid>,
+    /// Review dates
+    pub last_review_date: Option<chrono::NaiveDate>,
+    pub next_review_date: Option<chrono::NaiveDate>,
+    /// 'active', 'inactive', 'blocked'
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update credit profile request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditProfileRequest {
+    pub customer_id: Uuid,
+    pub credit_limit: String,
+    #[serde(default = "default_risk_medium")]
+    pub risk_classification: String,
+    pub credit_score: Option<i32>,
+    pub external_credit_rating: Option<String>,
+    pub external_rating_agency: Option<String>,
+    pub external_rating_date: Option<chrono::NaiveDate>,
+    #[serde(default = "default_net_30")]
+    pub payment_terms: String,
+    pub next_review_date: Option<chrono::NaiveDate>,
+}
+
+fn default_risk_medium() -> String { "medium".to_string() }
+fn default_net_30() -> String { "net_30".to_string() }
+
+/// Collection strategy definition
+/// Oracle Fusion: Collections > Collection Strategies
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionStrategy {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// 'automatic' or 'manual'
+    pub strategy_type: String,
+    /// Applicable risk classifications
+    pub applicable_risk_classifications: serde_json::Value,
+    /// Aging buckets that trigger this strategy
+    pub trigger_aging_buckets: serde_json::Value,
+    /// Overdue amount threshold
+    pub overdue_amount_threshold: String,
+    /// Ordered collection actions
+    pub actions: serde_json::Value,
+    /// Priority
+    pub priority: i32,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Collection case
+/// Oracle Fusion: Collections > Collection Cases
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionCase {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub case_number: String,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub strategy_id: Option<Uuid>,
+    /// Assigned collector
+    pub assigned_to: Option<Uuid>,
+    pub assigned_to_name: Option<String>,
+    /// 'collection', 'dispute', 'bankruptcy', 'skip_trace'
+    pub case_type: String,
+    /// 'open', 'in_progress', 'resolved', 'closed', 'escalated', 'written_off'
+    pub status: String,
+    /// 'low', 'medium', 'high', 'critical'
+    pub priority: String,
+    /// Financial summary
+    pub total_overdue_amount: String,
+    pub total_disputed_amount: String,
+    pub total_invoiced_amount: String,
+    pub overdue_invoice_count: i32,
+    pub oldest_overdue_date: Option<chrono::NaiveDate>,
+    /// Current strategy step
+    pub current_step: i32,
+    /// Key dates
+    pub opened_date: chrono::NaiveDate,
+    pub target_resolution_date: Option<chrono::NaiveDate>,
+    pub resolved_date: Option<chrono::NaiveDate>,
+    pub closed_date: Option<chrono::NaiveDate>,
+    pub last_action_date: Option<chrono::NaiveDate>,
+    pub next_action_date: Option<chrono::NaiveDate>,
+    /// Resolution
+    pub resolution_type: Option<String>,
+    pub resolution_notes: Option<String>,
+    /// Related invoices
+    pub related_invoice_ids: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Customer interaction record
+/// Oracle Fusion: Collections > Customer Interactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomerInteraction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub case_id: Option<Uuid>,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    /// 'phone_call', 'email', 'letter', 'meeting', 'note', 'sms'
+    pub interaction_type: String,
+    /// 'outbound', 'inbound'
+    pub direction: String,
+    pub contact_name: Option<String>,
+    pub contact_role: Option<String>,
+    pub contact_phone: Option<String>,
+    pub contact_email: Option<String>,
+    pub subject: Option<String>,
+    pub body: Option<String>,
+    /// Outcome: 'contacted', 'left_message', 'no_answer', 'promised_to_pay',
+    /// 'disputed', 'refused', 'agreed_payment_plan', 'escalated', 'no_action'
+    pub outcome: Option<String>,
+    pub follow_up_date: Option<chrono::NaiveDate>,
+    pub follow_up_notes: Option<String>,
+    pub performed_by: Option<Uuid>,
+    pub performed_by_name: Option<String>,
+    pub performed_at: Option<DateTime<Utc>>,
+    pub duration_minutes: Option<i32>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Promise to pay
+/// Oracle Fusion: Collections > Promises to Pay
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromiseToPay {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub case_id: Option<Uuid>,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    /// 'single_payment', 'installment', 'full_balance'
+    pub promise_type: String,
+    pub promised_amount: String,
+    pub paid_amount: String,
+    pub remaining_amount: String,
+    pub promise_date: chrono::NaiveDate,
+    pub installment_count: Option<i32>,
+    pub installment_frequency: Option<String>,
+    /// 'pending', 'partially_kept', 'kept', 'broken', 'cancelled'
+    pub status: String,
+    pub broken_date: Option<chrono::NaiveDate>,
+    pub broken_reason: Option<String>,
+    pub related_invoice_ids: serde_json::Value,
+    pub promised_by_name: Option<String>,
+    pub promised_by_role: Option<String>,
+    pub notes: Option<String>,
+    pub recorded_by: Option<Uuid>,
+    pub recorded_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Dunning campaign
+/// Oracle Fusion: Collections > Dunning Management
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DunningCampaign {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub campaign_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// 'reminder', 'first_notice', 'second_notice', 'final_notice', 'pre_legal', 'legal'
+    pub dunning_level: String,
+    /// 'email', 'letter', 'sms', 'phone'
+    pub communication_method: String,
+    pub template_id: Option<Uuid>,
+    pub template_name: Option<String>,
+    pub min_overdue_days: i32,
+    pub min_overdue_amount: String,
+    pub target_risk_classifications: serde_json::Value,
+    pub exclude_active_cases: bool,
+    pub scheduled_date: Option<chrono::NaiveDate>,
+    pub sent_date: Option<chrono::NaiveDate>,
+    pub target_customer_count: i32,
+    pub sent_count: i32,
+    pub failed_count: i32,
+    /// 'draft', 'scheduled', 'in_progress', 'completed', 'cancelled'
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Dunning letter (individual)
+/// Oracle Fusion: Collections > Dunning Letters
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DunningLetter {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub campaign_id: Option<Uuid>,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub customer_address: Option<serde_json::Value>,
+    pub customer_email: Option<String>,
+    pub dunning_level: String,
+    pub communication_method: String,
+    pub total_overdue_amount: String,
+    pub overdue_invoice_count: i32,
+    pub oldest_overdue_date: Option<chrono::NaiveDate>,
+    /// Aging breakdown
+    pub aging_current: String,
+    pub aging_1_30: String,
+    pub aging_31_60: String,
+    pub aging_61_90: String,
+    pub aging_91_120: String,
+    pub aging_121_plus: String,
+    /// 'pending', 'sent', 'delivered', 'bounced', 'failed', 'viewed'
+    pub status: String,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub delivered_at: Option<DateTime<Utc>>,
+    pub viewed_at: Option<DateTime<Utc>>,
+    pub failure_reason: Option<String>,
+    pub invoice_details: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Receivables aging snapshot
+/// Oracle Fusion: Collections > Aging Analysis
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceivablesAgingSnapshot {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub snapshot_date: chrono::NaiveDate,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub total_outstanding: String,
+    /// Aging buckets
+    pub aging_current: String,
+    pub aging_1_30: String,
+    pub aging_31_60: String,
+    pub aging_61_90: String,
+    pub aging_91_120: String,
+    pub aging_121_plus: String,
+    /// Counts per bucket
+    pub count_current: i32,
+    pub count_1_30: i32,
+    pub count_31_60: i32,
+    pub count_61_90: i32,
+    pub count_91_120: i32,
+    pub count_121_plus: i32,
+    pub weighted_average_days_overdue: Option<String>,
+    pub overdue_percent: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Write-off request
+/// Oracle Fusion: Collections > Write-Off Management
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteOffRequest {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub request_number: String,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    /// 'bad_debt', 'small_balance', 'dispute', 'adjustment'
+    pub write_off_type: String,
+    pub write_off_amount: String,
+    pub write_off_account_code: Option<String>,
+    pub reason: String,
+    pub related_invoice_ids: serde_json::Value,
+    pub case_id: Option<Uuid>,
+    /// 'draft', 'submitted', 'approved', 'rejected', 'processed', 'cancelled'
+    pub status: String,
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    pub journal_entry_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Aging summary report
+/// Oracle Fusion: Collections > Aging Report
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgingSummary {
+    pub organization_id: Uuid,
+    pub as_of_date: chrono::NaiveDate,
+    pub total_outstanding: String,
+    pub total_overdue: String,
+    pub aging_current: String,
+    pub aging_1_30: String,
+    pub aging_31_60: String,
+    pub aging_61_90: String,
+    pub aging_91_120: String,
+    pub aging_121_plus: String,
+    pub customer_count: i32,
+    pub overdue_customer_count: i32,
+    pub weighted_average_days_overdue: String,
+}

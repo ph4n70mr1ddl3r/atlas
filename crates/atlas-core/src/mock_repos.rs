@@ -874,3 +874,255 @@ impl FixedAssetRepository for MockFixedAssetRepository {
         Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
     }
 }
+
+/// Mock collections repository for testing
+pub struct MockCollectionsRepository;
+
+#[async_trait]
+impl crate::collections::CollectionsRepository for MockCollectionsRepository {
+    // Credit Profiles
+    async fn create_credit_profile(
+        &self, org_id: Uuid, customer_id: Uuid, customer_number: Option<&str>,
+        customer_name: Option<&str>, credit_limit: &str, risk_classification: &str,
+        credit_score: Option<i32>, external_credit_rating: Option<&str>,
+        external_rating_agency: Option<&str>, external_rating_date: Option<chrono::NaiveDate>,
+        payment_terms: &str, next_review_date: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CustomerCreditProfile> {
+        Ok(atlas_shared::CustomerCreditProfile {
+            id: Uuid::new_v4(), organization_id: org_id, customer_id,
+            customer_number: customer_number.map(String::from),
+            customer_name: customer_name.map(String::from),
+            credit_limit: credit_limit.to_string(), credit_used: "0".to_string(),
+            credit_available: credit_limit.to_string(),
+            risk_classification: risk_classification.to_string(),
+            credit_score, external_credit_rating: external_credit_rating.map(String::from),
+            external_rating_agency: external_rating_agency.map(String::from),
+            external_rating_date, payment_terms: payment_terms.to_string(),
+            average_days_to_pay: None, overdue_invoice_count: 0,
+            total_overdue_amount: "0".to_string(), oldest_overdue_date: None,
+            credit_hold: false, credit_hold_reason: None, credit_hold_date: None,
+            credit_hold_by: None, last_review_date: None, next_review_date,
+            status: "active".to_string(), metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_credit_profile(&self, _org_id: Uuid, _customer_id: Uuid) -> AtlasResult<Option<atlas_shared::CustomerCreditProfile>> { Ok(None) }
+    async fn get_credit_profile_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CustomerCreditProfile>> { Ok(None) }
+    async fn list_credit_profiles(&self, _org_id: Uuid, _status: Option<&str>, _risk: Option<&str>) -> AtlasResult<Vec<atlas_shared::CustomerCreditProfile>> { Ok(vec![]) }
+    async fn update_credit_profile(
+        &self, _id: Uuid, _credit_limit: Option<&str>, _credit_used: Option<&str>,
+        _risk: Option<&str>, _score: Option<i32>, _terms: Option<&str>,
+        _avg_days: Option<&str>, _overdue_count: Option<i32>, _overdue_amount: Option<&str>,
+        _oldest: Option<chrono::NaiveDate>, _hold: Option<bool>, _hold_reason: Option<&str>,
+        _hold_date: Option<chrono::DateTime<chrono::Utc>>, _hold_by: Option<Uuid>,
+        _last_review: Option<chrono::NaiveDate>, _next_review: Option<chrono::NaiveDate>,
+        _status: Option<&str>,
+    ) -> AtlasResult<atlas_shared::CustomerCreditProfile> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Strategies
+    async fn create_strategy(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        strategy_type: &str, applicable_risk: serde_json::Value, trigger_buckets: serde_json::Value,
+        threshold: &str, actions: serde_json::Value, priority: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CollectionStrategy> {
+        Ok(atlas_shared::CollectionStrategy {
+            id: Uuid::new_v4(), organization_id: org_id, code: code.to_string(),
+            name: name.to_string(), description: description.map(String::from),
+            strategy_type: strategy_type.to_string(), applicable_risk_classifications: applicable_risk,
+            trigger_aging_buckets: trigger_buckets, overdue_amount_threshold: threshold.to_string(),
+            actions, priority, is_active: true, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_strategy(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::CollectionStrategy>> { Ok(None) }
+    async fn list_strategies(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::CollectionStrategy>> { Ok(vec![]) }
+    async fn delete_strategy(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Cases
+    async fn create_case(
+        &self, org_id: Uuid, case_number: &str, customer_id: Uuid,
+        customer_number: Option<&str>, customer_name: Option<&str>,
+        strategy_id: Option<Uuid>, assigned_to: Option<Uuid>, assigned_to_name: Option<&str>,
+        case_type: &str, priority: &str, total_overdue: &str, total_disputed: &str,
+        total_invoiced: &str, overdue_count: i32, oldest_overdue: Option<chrono::NaiveDate>,
+        invoice_ids: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CollectionCase> {
+        Ok(atlas_shared::CollectionCase {
+            id: Uuid::new_v4(), organization_id: org_id,
+            case_number: case_number.to_string(), customer_id,
+            customer_number: customer_number.map(String::from),
+            customer_name: customer_name.map(String::from),
+            strategy_id, assigned_to, assigned_to_name: assigned_to_name.map(String::from),
+            case_type: case_type.to_string(), status: "open".to_string(),
+            priority: priority.to_string(),
+            total_overdue_amount: total_overdue.to_string(),
+            total_disputed_amount: total_disputed.to_string(),
+            total_invoiced_amount: total_invoiced.to_string(),
+            overdue_invoice_count: overdue_count, oldest_overdue_date: oldest_overdue,
+            current_step: 1, opened_date: chrono::Utc::now().date_naive(),
+            target_resolution_date: None, resolved_date: None, closed_date: None,
+            last_action_date: None, next_action_date: None,
+            resolution_type: None, resolution_notes: None,
+            related_invoice_ids: invoice_ids, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_case(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CollectionCase>> { Ok(None) }
+    async fn get_case_by_number(&self, _org_id: Uuid, _case_number: &str) -> AtlasResult<Option<atlas_shared::CollectionCase>> { Ok(None) }
+    async fn list_cases(&self, _org_id: Uuid, _status: Option<&str>, _customer_id: Option<Uuid>, _assigned_to: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::CollectionCase>> { Ok(vec![]) }
+    async fn update_case_status(
+        &self, _id: Uuid, _status: &str, _step: Option<i32>, _assigned: Option<Uuid>,
+        _assigned_name: Option<&str>, _last_action: Option<chrono::NaiveDate>,
+        _next_action: Option<chrono::NaiveDate>, _resolution_type: Option<&str>,
+        _resolution_notes: Option<&str>, _resolved: Option<chrono::NaiveDate>,
+        _closed: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<atlas_shared::CollectionCase> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Interactions
+    async fn create_interaction(
+        &self, org_id: Uuid, case_id: Option<Uuid>, customer_id: Uuid,
+        customer_number: Option<&str>, customer_name: Option<&str>,
+        interaction_type: &str, direction: &str, contact_name: Option<&str>,
+        contact_role: Option<&str>, contact_phone: Option<&str>, contact_email: Option<&str>,
+        subject: Option<&str>, body: Option<&str>, outcome: Option<&str>,
+        follow_up_date: Option<chrono::NaiveDate>, follow_up_notes: Option<&str>,
+        performed_by: Option<Uuid>, performed_by_name: Option<&str>, duration_minutes: Option<i32>,
+    ) -> AtlasResult<atlas_shared::CustomerInteraction> {
+        Ok(atlas_shared::CustomerInteraction {
+            id: Uuid::new_v4(), organization_id: org_id, case_id, customer_id,
+            customer_number: customer_number.map(String::from),
+            customer_name: customer_name.map(String::from),
+            interaction_type: interaction_type.to_string(), direction: direction.to_string(),
+            contact_name: contact_name.map(String::from), contact_role: contact_role.map(String::from),
+            contact_phone: contact_phone.map(String::from), contact_email: contact_email.map(String::from),
+            subject: subject.map(String::from), body: body.map(String::from),
+            outcome: outcome.map(String::from), follow_up_date, follow_up_notes: follow_up_notes.map(String::from),
+            performed_by, performed_by_name: performed_by_name.map(String::from),
+            performed_at: Some(chrono::Utc::now()), duration_minutes,
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_interaction(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CustomerInteraction>> { Ok(None) }
+    async fn list_interactions(&self, _org_id: Uuid, _case_id: Option<Uuid>, _customer_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::CustomerInteraction>> { Ok(vec![]) }
+
+    // Promises to Pay
+    async fn create_promise_to_pay(
+        &self, org_id: Uuid, case_id: Option<Uuid>, customer_id: Uuid,
+        customer_number: Option<&str>, customer_name: Option<&str>,
+        promise_type: &str, promised_amount: &str, promise_date: chrono::NaiveDate,
+        installment_count: Option<i32>, installment_frequency: Option<&str>,
+        invoice_ids: serde_json::Value, promised_by_name: Option<&str>,
+        promised_by_role: Option<&str>, notes: Option<&str>, recorded_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PromiseToPay> {
+        Ok(atlas_shared::PromiseToPay {
+            id: Uuid::new_v4(), organization_id: org_id, case_id, customer_id,
+            customer_number: customer_number.map(String::from),
+            customer_name: customer_name.map(String::from),
+            promise_type: promise_type.to_string(),
+            promised_amount: promised_amount.to_string(), paid_amount: "0".to_string(),
+            remaining_amount: promised_amount.to_string(), promise_date,
+            installment_count, installment_frequency: installment_frequency.map(String::from),
+            status: "pending".to_string(), broken_date: None, broken_reason: None,
+            related_invoice_ids: invoice_ids,
+            promised_by_name: promised_by_name.map(String::from),
+            promised_by_role: promised_by_role.map(String::from),
+            notes: notes.map(String::from), recorded_by, recorded_at: Some(chrono::Utc::now()),
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_promise_to_pay(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PromiseToPay>> { Ok(None) }
+    async fn list_promises_to_pay(&self, _org_id: Uuid, _customer_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::PromiseToPay>> { Ok(vec![]) }
+    async fn update_promise_status(
+        &self, _id: Uuid, _status: &str, _paid: Option<&str>, _remaining: Option<&str>,
+        _broken_date: Option<chrono::NaiveDate>, _broken_reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::PromiseToPay> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Dunning Campaigns
+    async fn create_dunning_campaign(
+        &self, org_id: Uuid, campaign_number: &str, name: &str, description: Option<&str>,
+        dunning_level: &str, comm_method: &str, template_id: Option<Uuid>, template_name: Option<&str>,
+        min_days: i32, min_amount: &str, target_risk: serde_json::Value,
+        exclude_active: bool, scheduled_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::DunningCampaign> {
+        Ok(atlas_shared::DunningCampaign {
+            id: Uuid::new_v4(), organization_id: org_id,
+            campaign_number: campaign_number.to_string(), name: name.to_string(),
+            description: description.map(String::from), dunning_level: dunning_level.to_string(),
+            communication_method: comm_method.to_string(), template_id, template_name: template_name.map(String::from),
+            min_overdue_days: min_days, min_overdue_amount: min_amount.to_string(),
+            target_risk_classifications: target_risk, exclude_active_cases: exclude_active,
+            scheduled_date, sent_date: None, target_customer_count: 0, sent_count: 0,
+            failed_count: 0, status: "draft".to_string(), metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_dunning_campaign(&self, _org_id: Uuid, _num: &str) -> AtlasResult<Option<atlas_shared::DunningCampaign>> { Ok(None) }
+    async fn list_dunning_campaigns(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::DunningCampaign>> { Ok(vec![]) }
+    async fn update_dunning_campaign_status(&self, _id: Uuid, _status: &str, _sent: Option<chrono::NaiveDate>) -> AtlasResult<atlas_shared::DunningCampaign> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Dunning Letters
+    async fn create_dunning_letter(
+        &self, _org_id: Uuid, _campaign_id: Option<Uuid>, _customer_id: Uuid,
+        _customer_number: Option<&str>, _customer_name: Option<&str>, _level: &str,
+        _method: &str, _overdue: &str, _count: i32, _oldest: Option<chrono::NaiveDate>,
+        _current: &str, _a1: &str, _a2: &str, _a3: &str, _a4: &str, _a5: &str,
+        _details: serde_json::Value, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::DunningLetter> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn list_dunning_letters(&self, _org_id: Uuid, _campaign_id: Option<Uuid>, _customer_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::DunningLetter>> { Ok(vec![]) }
+    async fn update_dunning_letter_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::DunningLetter> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Aging Snapshots
+    async fn create_aging_snapshot(
+        &self, _org_id: Uuid, _date: chrono::NaiveDate, _customer_id: Uuid,
+        _customer_number: Option<&str>, _customer_name: Option<&str>,
+        _total: &str, _current: &str, _a1: &str, _a2: &str, _a3: &str, _a4: &str, _a5: &str,
+        _c0: i32, _c1: i32, _c2: i32, _c3: i32, _c4: i32, _c5: i32,
+        _weighted: Option<&str>, _pct: Option<&str>,
+    ) -> AtlasResult<atlas_shared::ReceivablesAgingSnapshot> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn list_aging_snapshots(&self, _org_id: Uuid, _date: chrono::NaiveDate) -> AtlasResult<Vec<atlas_shared::ReceivablesAgingSnapshot>> { Ok(vec![]) }
+
+    // Write-Off Requests
+    async fn create_write_off_request(
+        &self, org_id: Uuid, request_number: &str, customer_id: Uuid,
+        customer_number: Option<&str>, customer_name: Option<&str>,
+        write_off_type: &str, write_off_amount: &str, account_code: Option<&str>,
+        reason: &str, invoice_ids: serde_json::Value, case_id: Option<Uuid>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::WriteOffRequest> {
+        Ok(atlas_shared::WriteOffRequest {
+            id: Uuid::new_v4(), organization_id: org_id,
+            request_number: request_number.to_string(), customer_id,
+            customer_number: customer_number.map(String::from),
+            customer_name: customer_name.map(String::from),
+            write_off_type: write_off_type.to_string(), write_off_amount: write_off_amount.to_string(),
+            write_off_account_code: account_code.map(String::from), reason: reason.to_string(),
+            related_invoice_ids: invoice_ids, case_id, status: "draft".to_string(),
+            submitted_by: None, submitted_at: None, approved_by: None, approved_at: None,
+            rejected_reason: None, journal_entry_id: None, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_write_off_request(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::WriteOffRequest>> { Ok(None) }
+    async fn list_write_off_requests(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::WriteOffRequest>> { Ok(vec![]) }
+    async fn update_write_off_status(
+        &self, _id: Uuid, _status: &str, _submitted_by: Option<Uuid>,
+        _approved_by: Option<Uuid>, _rejected_reason: Option<&str>, _je: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::WriteOffRequest> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+}

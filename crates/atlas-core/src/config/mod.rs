@@ -13,6 +13,12 @@ use std::collections::HashMap;
 use tokio::sync::RwLock;
 
 /// Configuration value
+///
+/// Uses `#[serde(untagged)]` so that plain JSON values are deserialized
+/// transparently (e.g. `"hello"` → `String`, `42` → `Number`).
+/// **Note:** because this is `untagged`, adding new variants is a breaking
+/// change for deserialization.  Prefer adding new keys to the `Object`
+/// variant rather than new enum variants.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(untagged)]
 #[non_exhaustive]

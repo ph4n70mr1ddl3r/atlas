@@ -75,7 +75,7 @@ impl FieldChange {
         for (key, new_val) in new_obj {
             let old_val = old_obj.get(key);
             
-            if old_val != Some(new_val) {
+            if !values_equal(old_val, new_val) {
                 changes.push(FieldChange::new(
                     key,
                     old_val.cloned(),
@@ -96,5 +96,17 @@ impl FieldChange {
         }
         
         changes
+    }
+}
+
+/// Compare two optional JSON values semantically.
+/// Handles None/Null equivalence.
+fn values_equal(old: Option<&serde_json::Value>, new: &serde_json::Value) -> bool {
+    match old {
+        None => new.is_null(),
+        Some(a) => {
+            if a.is_null() && new.is_null() { return true; }
+            a == new
+        }
     }
 }

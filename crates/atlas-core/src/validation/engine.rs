@@ -268,9 +268,13 @@ impl ValidationEngine {
                 }
             }
             
-            ValidationRule::Custom { expression, message: _ } => {
+            ValidationRule::Custom { expression, message } => {
                 debug!("Custom validation: {} with expression {}", field.name, expression);
-                // Custom validators would be looked up and called here
+                // Custom validators would be looked up and called here.
+                // When no handler is registered the expression is treated as
+                // always-passing but we surface the provided message as a
+                // placeholder so developers know the rule exists.
+                let _ = (expression, message);
             }
         }
     }

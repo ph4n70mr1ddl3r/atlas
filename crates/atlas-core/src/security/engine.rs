@@ -65,11 +65,13 @@ impl SecurityEngine {
             }
         }
         
-        // Default: allow read, deny write
+        // Default: allow reads and workflow actions, deny destructive writes
         match action {
-            "read" => AccessDecision { allowed: true, reason: Some("Default read allowed".to_string()) },
+            "read" | "execute_action" | "list" | "history" | "transitions" => {
+                AccessDecision { allowed: true, reason: Some("Default read/action allowed".to_string()) }
+            }
             "create" | "update" | "delete" => AccessDecision { allowed: false, reason: Some("No write access".to_string()) },
-            _ => AccessDecision { allowed: false, reason: Some("Unknown action".to_string()) },
+            _ => AccessDecision { allowed: false, reason: Some(format!("Unknown action: {}", action)) },
         }
     }
     

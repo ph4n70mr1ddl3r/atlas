@@ -60,7 +60,7 @@ impl WorkflowEngine {
         action: &str,
         user: Option<&User>,
         record_data: &serde_json::Value,
-        _comment: Option<String>,
+        comment: Option<String>,
     ) -> AtlasResult<TransitionResult> {
         let workflows = self.workflows.read().await;
         let workflow = workflows.get(workflow_name)
@@ -151,8 +151,11 @@ impl WorkflowEngine {
             "Transition executed: {} -> {} (action: {})",
             current_state, to_state, action
         );
-        
-        Ok(TransitionResult::success(current_state, to_state, action, executed_actions))
+
+        // Store the comment in the transition result for callers to persist
+        let mut result = TransitionResult::success(current_state, to_state, action, executed_actions);
+        result.message = comment;
+        Ok(result)
     }
     
     /// Get available transitions for a state

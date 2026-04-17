@@ -229,6 +229,7 @@ fn build_order_clause(sort: &Option<String>, order: &Option<String>) -> String {
         Some(field) if !field.is_empty() => {
             if !is_valid_identifier(field) {
                 // Fall back to default if the field name looks suspicious
+                tracing::warn!("Invalid sort field '{}' received, falling back to created_at DESC", field);
                 return "ORDER BY created_at DESC".to_string();
             }
             let dir = match order.as_deref() {

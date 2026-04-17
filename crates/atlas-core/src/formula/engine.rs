@@ -208,13 +208,15 @@ impl FormulaEngine {
     }
     
     fn evaluate_binary_op(&self, expr: &str, op: char, ctx: &EvaluationContext) -> Result<Option<FormulaValue>, String> {
-        // Find the operator (not inside quotes, parens, or identifiers)
-        // For '-', skip matches that are preceded by an alphanumeric or '_' (e.g. field names like 'start_date' vs 'a - b')
+        // For correct left-to-right associativity we need to find the
+        // **last** occurrence of the operator at depth 0 (not inside
+        // parentheses or strings).  This ensures `a - b - c` parses as
+        // `(a - b) - c` rather than `a - (b - c)`.
         let mut depth = 0;
         let mut in_string = false;
-        let mut op_idx = None;
+        let mut last_op_byte_idx: Option<usize> = None;
         let chars: Vec<char> = expr.chars().collect();
-        
+
         for i in 0..chars.len() {
             let ch = chars[i];
             match ch {
@@ -233,29 +235,21 @@ impl FormulaEngine {
                             continue; // part of identifier
                         }
                     }
-                    // Must have whitespace or non-identifier chars around the operator
-                    // to distinguish from field names
-                    if op == '+' || op == '-' || op == '*' || op == '/' {
-                        // Check that there's at least something on both sides
-                        if i > 0 && i < chars.len() - 1 {
-                            op_idx = Some(i);
-                            break;
-                        }
-                    } else {
-                        op_idx = Some(i);
-                        break;
+                    // Must have something on both sides
+                    if i > 0 && i < chars.len() - 1 {
+                        // Record byte offset of this candidate
+                        let byte_idx = expr.char_indices()
+                            .nth(i)
+                            .map(|(bi, _)| bi)
+                            .unwrap_or(expr.len());
+                        last_op_byte_idx = Some(byte_idx);
                     }
                 }
                 _ => {}
             }
         }
-        
-        if let Some(idx) = op_idx {
-            // Convert char index to byte index using char_indices
-            let byte_idx = expr.char_indices()
-                .nth(idx)
-                .map(|(bi, _)| bi)
-                .unwrap_or(expr.len());
+
+        if let Some(byte_idx) = last_op_byte_idx {
             let left = expr[..byte_idx].trim();
             let right = expr[byte_idx + op.len_utf8()..].trim(); // operators are ASCII
             
@@ -647,5 +641,27 @@ mod tests {
         
         let result = engine.evaluate("quantity > 5", &ctx).unwrap();
         assert!(matches!(result, FormulaValue::Boolean(true)));
+    }
+    
+    #[test]
+    fn test_left_to_right_associativity() {
+        let engine = FormulaEngine::new();
+        let ctx = create_context();
+        
+        // (10 - 3) - 2 = 5, not 10 - (3 - 2) = 9
+        let result = engine.evaluate("quantity - 3 - 2", &ctx).unwrap();
+        if let FormulaValue::Number(n) = result {
+            assert!((n - 5.0).abs() < 0.01, "Expected 5.0, got {}", n);
+        } else {
+            panic!("Expected number");
+        }
+        
+        // 10 + 5 + 3 = 18
+        let result2 = engine.evaluate("quantity + 5 + 3", &ctx).unwrap();
+        if let FormulaValue::Number(n) = result2 {
+            assert!((n - 18.0).abs() < 0.01, "Expected 18.0, got {}", n);
+        } else {
+            panic!("Expected number");
+        }
     }
 }

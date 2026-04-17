@@ -24,6 +24,7 @@ pub mod notification;
 pub mod approval;
 pub mod period_close;
 pub mod currency;
+pub mod tax;
 
 pub use schema::*;
 pub use workflow::{
@@ -49,6 +50,7 @@ pub use notification::{NotificationEngine, PostgresNotificationRepository as Pos
 pub use approval::{ApprovalEngine, PostgresApprovalRepository as PostgresApprovalRepo};
 pub use period_close::{PeriodCloseEngine, PostgresPeriodCloseRepository as PostgresPeriodCloseRepo};
 pub use currency::{CurrencyEngine, PostgresCurrencyRepository as PostgresCurrencyRepo};
+pub use tax::{TaxEngine, PostgresTaxRepository as PostgresTaxRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

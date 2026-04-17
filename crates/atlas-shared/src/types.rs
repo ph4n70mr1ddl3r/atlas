@@ -1153,3 +1153,284 @@ pub struct DetectedDuplicate {
     pub existing_value: serde_json::Value,
     pub new_value: serde_json::Value,
 }
+
+// ============================================================================
+// Tax Management (Oracle Fusion Tax)
+// ============================================================================
+
+/// Tax regime definition
+/// Oracle Fusion: Tax Configuration > Tax Regimes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxRegime {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub tax_type: String,
+    pub default_inclusive: bool,
+    pub allows_recovery: bool,
+    pub rounding_rule: String,
+    pub rounding_precision: i32,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update tax regime request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxRegimeRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(default = "default_tax_type")]
+    pub tax_type: String,
+    #[serde(default)]
+    pub default_inclusive: bool,
+    #[serde(default)]
+    pub allows_recovery: bool,
+    #[serde(default = "default_rounding_rule")]
+    pub rounding_rule: String,
+    #[serde(default = "default_rounding_precision")]
+    pub rounding_precision: i32,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+fn default_tax_type() -> String { "vat".to_string() }
+fn default_rounding_rule() -> String { "nearest".to_string() }
+fn default_rounding_precision() -> i32 { 2 }
+
+/// Tax jurisdiction
+/// Oracle Fusion: Tax Configuration > Tax Jurisdictions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxJurisdiction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub regime_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub geographic_level: String,
+    pub country_code: Option<String>,
+    pub state_code: Option<String>,
+    pub county: Option<String>,
+    pub city: Option<String>,
+    pub postal_code_pattern: Option<String>,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update tax jurisdiction request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxJurisdictionRequest {
+    pub regime_code: String,
+    pub code: String,
+    pub name: String,
+    #[serde(default = "default_geographic_level")]
+    pub geographic_level: String,
+    pub country_code: Option<String>,
+    pub state_code: Option<String>,
+    pub county: Option<String>,
+    pub city: Option<String>,
+    pub postal_code_pattern: Option<String>,
+}
+
+fn default_geographic_level() -> String { "country".to_string() }
+
+/// Tax rate definition
+/// Oracle Fusion: Tax Configuration > Tax Rates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxRate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub regime_id: Uuid,
+    pub jurisdiction_id: Option<Uuid>,
+    pub code: String,
+    pub name: String,
+    pub rate_percentage: String, // NUMERIC serialized as string
+    pub rate_type: String,
+    pub tax_account_code: Option<String>,
+    pub recoverable: bool,
+    pub recovery_percentage: Option<String>, // NUMERIC serialized as string
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update tax rate request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxRateRequest {
+    pub regime_code: String,
+    pub jurisdiction_code: Option<String>,
+    pub code: String,
+    pub name: String,
+    pub rate_percentage: String,
+    #[serde(default = "default_rate_type_tax")]
+    pub rate_type: String,
+    pub tax_account_code: Option<String>,
+    #[serde(default)]
+    pub recoverable: bool,
+    pub recovery_percentage: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+fn default_rate_type_tax() -> String { "standard".to_string() }
+
+/// Tax determination rule
+/// Oracle Fusion: Tax Rules > Determination Rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxDeterminationRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub regime_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub priority: i32,
+    pub condition: serde_json::Value,
+    pub action: serde_json::Value,
+    pub stop_on_match: bool,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Tax line (calculated tax on a transaction)
+/// Oracle Fusion: Tax lines attached to invoice/purchase order lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub entity_type: String,
+    pub entity_id: Uuid,
+    pub line_id: Option<Uuid>,
+    pub regime_id: Option<Uuid>,
+    pub jurisdiction_id: Option<Uuid>,
+    pub tax_rate_id: Uuid,
+    pub taxable_amount: String,
+    pub tax_rate_percentage: String,
+    pub tax_amount: String,
+    pub is_inclusive: bool,
+    pub original_amount: Option<String>,
+    pub recoverable_amount: Option<String>,
+    pub non_recoverable_amount: Option<String>,
+    pub tax_account_code: Option<String>,
+    pub determination_rule_id: Option<Uuid>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Tax calculation request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxCalculationRequest {
+    /// Entity type (e.g., "sales_orders", "purchase_orders")
+    pub entity_type: String,
+    /// Entity ID
+    pub entity_id: Option<Uuid>,
+    /// Line items to calculate tax for
+    pub lines: Vec<TaxCalculationLine>,
+    /// Transaction context for determination rules
+    pub context: serde_json::Value,
+    /// Whether to persist the tax lines
+    #[serde(default)]
+    pub persist: bool,
+}
+
+/// Single line for tax calculation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxCalculationLine {
+    /// Optional line ID (for linking back)
+    pub line_id: Option<Uuid>,
+    /// Line amount (net)
+    pub amount: String,
+    /// Optional product category for determination
+    pub product_category: Option<String>,
+    /// Optional product code
+    pub product_code: Option<String>,
+    /// Optional ship-from country
+    pub ship_from_country: Option<String>,
+    /// Optional ship-to country
+    pub ship_to_country: Option<String>,
+    /// Optional ship-to state/province
+    pub ship_to_state: Option<String>,
+    /// Optional specific tax rate codes to apply (bypasses determination)
+    pub tax_rate_codes: Option<Vec<String>>,
+    /// Whether the amount includes tax already
+    pub is_inclusive: Option<bool>,
+}
+
+/// Tax calculation result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxCalculationResult {
+    pub lines: Vec<TaxLineResult>,
+    pub total_taxable_amount: String,
+    pub total_tax_amount: String,
+    pub total_recoverable_amount: String,
+    pub total_non_recoverable_amount: String,
+}
+
+/// Tax calculation result for a single line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxLineResult {
+    pub line_id: Option<Uuid>,
+    pub regime_code: Option<String>,
+    pub jurisdiction_code: Option<String>,
+    pub tax_rate_code: String,
+    pub tax_rate_name: String,
+    pub rate_percentage: String,
+    pub taxable_amount: String,
+    pub tax_amount: String,
+    pub is_inclusive: bool,
+    pub recoverable: bool,
+    pub recovery_percentage: Option<String>,
+    pub recoverable_amount: Option<String>,
+    pub non_recoverable_amount: Option<String>,
+}
+
+/// Tax report summary
+/// Oracle Fusion: Tax Reporting > Tax Filing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxReport {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub regime_id: Uuid,
+    pub jurisdiction_id: Option<Uuid>,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub total_taxable_amount: String,
+    pub total_tax_amount: String,
+    pub total_recoverable_amount: String,
+    pub total_non_recoverable_amount: String,
+    pub transaction_count: i32,
+    pub status: String,
+    pub filed_by: Option<Uuid>,
+    pub filed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}

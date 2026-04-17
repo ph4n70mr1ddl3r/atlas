@@ -120,6 +120,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::currency::PostgresCurrencyRepository::new(db_pool.clone()),
     )));
 
+    let tax_engine = Arc::new(atlas_core::TaxEngine::new(Arc::new(
+        atlas_core::tax::PostgresTaxRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -132,6 +136,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         approval_engine,
         period_close_engine,
         currency_engine,
+        tax_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -224,4 +229,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.currency_conversions WHERE entity_type = 'test_items'").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.exchange_rates").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.currencies").execute(pool).await.ok();
+    // Clean tax test data
+    sqlx::query("DELETE FROM _atlas.tax_reports").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.tax_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.tax_determination_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.tax_rates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.tax_jurisdictions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.tax_regimes").execute(pool).await.ok();
 }

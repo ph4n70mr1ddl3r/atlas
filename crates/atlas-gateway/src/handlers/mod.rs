@@ -11,6 +11,7 @@ pub mod fusion;
 pub mod advanced;
 pub mod period_close;
 pub mod currency;
+pub mod tax;
 
 pub use schema::*;
 pub use records::*;
@@ -21,6 +22,7 @@ pub use fusion::*;
 pub use advanced::*;
 pub use period_close::*;
 pub use currency::*;
+pub use tax::*;
 
 use axum::{
     Router,
@@ -204,6 +206,40 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         
         // Bulk Rate Import
         .route("/exchange-rates/import", post(import_rates))
+        
+        // ═══════════════════════════════════════════════════════
+        // Tax Management (Oracle Fusion Tax)
+        // ═══════════════════════════════════════════════════════
+        
+        // Tax Regimes
+        .route("/tax/regimes", get(list_tax_regimes))
+        .route("/tax/regimes", post(create_tax_regime))
+        .route("/tax/regimes/:code", get(get_tax_regime))
+        .route("/tax/regimes/:code", delete(delete_tax_regime))
+        
+        // Tax Jurisdictions
+        .route("/tax/jurisdictions", get(list_tax_jurisdictions))
+        .route("/tax/jurisdictions", post(create_tax_jurisdiction))
+        .route("/tax/jurisdictions/:regime_code/:code", delete(delete_tax_jurisdiction))
+        
+        // Tax Rates
+        .route("/tax/rates", post(create_tax_rate))
+        .route("/tax/rates/:regime_code", get(list_tax_rates))
+        .route("/tax/rates/:regime_code/:code", delete(delete_tax_rate))
+        
+        // Tax Determination Rules
+        .route("/tax/rules", post(create_determination_rule))
+        .route("/tax/rules/:regime_code", get(list_determination_rules))
+        
+        // Tax Calculation
+        .route("/tax/calculate", post(calculate_tax))
+        
+        // Tax Lines (per transaction)
+        .route("/tax/lines/:entity_type/:entity_id", get(get_tax_lines))
+        
+        // Tax Reporting
+        .route("/tax/reports", post(generate_tax_report))
+        .route("/tax/reports", get(list_tax_reports))
         
         .layer(middleware::from_fn(auth_middleware))
 }

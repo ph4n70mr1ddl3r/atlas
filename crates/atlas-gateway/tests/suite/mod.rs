@@ -17,3 +17,4 @@ mod tax;
 mod reconciliation;
 mod expense;
 mod budget;
+mod fixed_assets;

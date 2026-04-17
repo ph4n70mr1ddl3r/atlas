@@ -669,6 +669,22 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::intercompany::PostgresIntercompanyRepository::new(db_pool.clone()),
     )));
 
+    let reconciliation_engine = Arc::new(atlas_core::ReconciliationEngine::new(Arc::new(
+        atlas_core::reconciliation::PostgresReconciliationRepository::new(db_pool.clone()),
+    )));
+
+    let expense_engine = Arc::new(atlas_core::ExpenseEngine::new(Arc::new(
+        atlas_core::expense::PostgresExpenseRepository::new(db_pool.clone()),
+    )));
+
+    let budget_engine = Arc::new(atlas_core::BudgetEngine::new(Arc::new(
+        atlas_core::budget::PostgresBudgetRepository::new(db_pool.clone()),
+    )));
+
+    let fixed_asset_engine = Arc::new(atlas_core::FixedAssetEngine::new(Arc::new(
+        atlas_core::fixed_assets::PostgresFixedAssetRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -683,6 +699,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         currency_engine,
         tax_engine,
         intercompany_engine,
+        reconciliation_engine,
+        expense_engine,
+        budget_engine,
+        fixed_asset_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -11,6 +11,7 @@ use crate::intercompany::IntercompanyRepository;
 use crate::reconciliation::ReconciliationRepository;
 use crate::expense::ExpenseRepository;
 use crate::budget::BudgetRepository;
+use crate::fixed_assets::FixedAssetRepository;
 
 /// Mock schema repository
 pub struct MockSchemaRepository;
@@ -677,6 +678,199 @@ impl BudgetRepository for MockBudgetRepository {
     async fn update_transfer_status(
         &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _rejected_reason: Option<&str>,
     ) -> AtlasResult<atlas_shared::BudgetTransfer> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+}
+
+/// Mock fixed asset repository for testing
+pub struct MockFixedAssetRepository;
+
+#[async_trait]
+impl FixedAssetRepository for MockFixedAssetRepository {
+    async fn create_category(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        default_depreciation_method: &str, default_useful_life_months: i32,
+        default_salvage_value_percent: &str,
+        default_asset_account_code: Option<&str>, default_accum_depr_account_code: Option<&str>,
+        default_depr_expense_account_code: Option<&str>, default_gain_loss_account_code: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AssetCategory> {
+        Ok(atlas_shared::AssetCategory {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            default_depreciation_method: default_depreciation_method.to_string(),
+            default_useful_life_months,
+            default_salvage_value_percent: default_salvage_value_percent.to_string(),
+            default_asset_account_code: default_asset_account_code.map(String::from),
+            default_accum_depr_account_code: default_accum_depr_account_code.map(String::from),
+            default_depr_expense_account_code: default_depr_expense_account_code.map(String::from),
+            default_gain_loss_account_code: default_gain_loss_account_code.map(String::from),
+            is_active: true, created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_category(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::AssetCategory>> { Ok(None) }
+    async fn get_category_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AssetCategory>> { Ok(None) }
+    async fn list_categories(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::AssetCategory>> { Ok(vec![]) }
+    async fn delete_category(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_book(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        book_type: &str, auto_depreciation: bool, depreciation_calendar: &str,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AssetBook> {
+        Ok(atlas_shared::AssetBook {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            book_type: book_type.to_string(), auto_depreciation, depreciation_calendar: depreciation_calendar.to_string(),
+            current_fiscal_year: None, last_depreciation_date: None, is_active: true,
+            metadata: serde_json::json!({}), created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_book(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::AssetBook>> { Ok(None) }
+    async fn get_book_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AssetBook>> { Ok(None) }
+    async fn list_books(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::AssetBook>> { Ok(vec![]) }
+    async fn delete_book(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_asset(
+        &self, org_id: Uuid, asset_number: &str, asset_name: &str, description: Option<&str>,
+        category_id: Option<Uuid>, category_code: Option<&str>,
+        book_id: Option<Uuid>, book_code: Option<&str>,
+        asset_type: &str, original_cost: &str, salvage_value: &str, salvage_value_percent: &str,
+        depreciation_method: &str, useful_life_months: i32, declining_balance_rate: Option<&str>,
+        acquisition_date: Option<chrono::NaiveDate>,
+        location: Option<&str>, department_id: Option<Uuid>, department_name: Option<&str>,
+        custodian_id: Option<Uuid>, custodian_name: Option<&str>,
+        serial_number: Option<&str>, tag_number: Option<&str>, manufacturer: Option<&str>, model: Option<&str>,
+        warranty_expiry: Option<chrono::NaiveDate>, insurance_policy_number: Option<&str>,
+        insurance_expiry: Option<chrono::NaiveDate>, lease_number: Option<&str>, lease_expiry: Option<chrono::NaiveDate>,
+        asset_account_code: Option<&str>, accum_depr_account_code: Option<&str>,
+        depr_expense_account_code: Option<&str>, gain_loss_account_code: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::FixedAsset> {
+        Ok(atlas_shared::FixedAsset {
+            id: Uuid::new_v4(), organization_id: org_id,
+            asset_number: asset_number.to_string(), asset_name: asset_name.to_string(),
+            description: description.map(String::from),
+            category_id, category_code: category_code.map(String::from),
+            book_id, book_code: book_code.map(String::from),
+            asset_type: asset_type.to_string(), status: "draft".to_string(),
+            original_cost: original_cost.to_string(), current_cost: original_cost.to_string(),
+            salvage_value: salvage_value.to_string(), salvage_value_percent: salvage_value_percent.to_string(),
+            depreciation_method: depreciation_method.to_string(), useful_life_months,
+            declining_balance_rate: declining_balance_rate.map(String::from),
+            depreciable_basis: "0".to_string(), accumulated_depreciation: "0".to_string(),
+            net_book_value: original_cost.to_string(), depreciation_per_period: "0".to_string(),
+            periods_depreciated: 0, last_depreciation_date: None, last_depreciation_amount: "0".to_string(),
+            acquisition_date, in_service_date: None, disposal_date: None, retirement_date: None,
+            location: location.map(String::from),
+            department_id, department_name: department_name.map(String::from),
+            custodian_id, custodian_name: custodian_name.map(String::from),
+            serial_number: serial_number.map(String::from), tag_number: tag_number.map(String::from),
+            manufacturer: manufacturer.map(String::from), model: model.map(String::from),
+            warranty_expiry, insurance_policy_number: insurance_policy_number.map(String::from),
+            insurance_expiry, lease_number: lease_number.map(String::from), lease_expiry,
+            asset_account_code: asset_account_code.map(String::from),
+            accum_depr_account_code: accum_depr_account_code.map(String::from),
+            depr_expense_account_code: depr_expense_account_code.map(String::from),
+            gain_loss_account_code: gain_loss_account_code.map(String::from),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_asset(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::FixedAsset>> { Ok(None) }
+    async fn get_asset_by_number(&self, _org_id: Uuid, _asset_number: &str) -> AtlasResult<Option<atlas_shared::FixedAsset>> { Ok(None) }
+    async fn list_assets(&self, _org_id: Uuid, _status: Option<&str>, _category_code: Option<&str>, _book_code: Option<&str>) -> AtlasResult<Vec<atlas_shared::FixedAsset>> { Ok(vec![]) }
+    async fn update_asset_status(&self, _id: Uuid, _status: &str, _in_service_date: Option<chrono::NaiveDate>, _disposal_date: Option<chrono::NaiveDate>, _retirement_date: Option<chrono::NaiveDate>) -> AtlasResult<atlas_shared::FixedAsset> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_asset_depreciation(&self, _id: Uuid, _accumulated_depreciation: &str, _net_book_value: &str, _periods_depreciated: i32, _last_depreciation_date: Option<chrono::NaiveDate>, _last_depreciation_amount: &str) -> AtlasResult<atlas_shared::FixedAsset> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_asset_assignment(&self, _id: Uuid, _department_id: Option<Uuid>, _department_name: Option<&str>, _location: Option<&str>, _custodian_id: Option<Uuid>, _custodian_name: Option<&str>) -> AtlasResult<atlas_shared::FixedAsset> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_asset(&self, _org_id: Uuid, _asset_number: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_depreciation_entry(
+        &self, org_id: Uuid, asset_id: Uuid, fiscal_year: i32, period_number: i32,
+        period_name: Option<&str>, depreciation_date: chrono::NaiveDate,
+        depreciation_amount: &str, accumulated_depreciation: &str, net_book_value: &str,
+        depreciation_method: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AssetDepreciationHistory> {
+        Ok(atlas_shared::AssetDepreciationHistory {
+            id: Uuid::new_v4(), organization_id: org_id, asset_id,
+            fiscal_year, period_number, period_name: period_name.map(String::from),
+            depreciation_date, depreciation_amount: depreciation_amount.to_string(),
+            accumulated_depreciation: accumulated_depreciation.to_string(),
+            net_book_value: net_book_value.to_string(),
+            depreciation_method: depreciation_method.to_string(),
+            journal_entry_id: None, created_by, created_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_depreciation_history(&self, _asset_id: Uuid) -> AtlasResult<Vec<atlas_shared::AssetDepreciationHistory>> { Ok(vec![]) }
+    async fn get_depreciation_for_period(&self, _asset_id: Uuid, _fiscal_year: i32, _period_number: i32) -> AtlasResult<Option<atlas_shared::AssetDepreciationHistory>> { Ok(None) }
+
+    async fn create_transfer(
+        &self, org_id: Uuid, transfer_number: &str, asset_id: Uuid,
+        from_department_id: Option<Uuid>, from_department_name: Option<&str>,
+        from_location: Option<&str>, from_custodian_id: Option<Uuid>, from_custodian_name: Option<&str>,
+        to_department_id: Option<Uuid>, to_department_name: Option<&str>,
+        to_location: Option<&str>, to_custodian_id: Option<Uuid>, to_custodian_name: Option<&str>,
+        transfer_date: chrono::NaiveDate, reason: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AssetTransfer> {
+        Ok(atlas_shared::AssetTransfer {
+            id: Uuid::new_v4(), organization_id: org_id,
+            transfer_number: transfer_number.to_string(), asset_id,
+            from_department_id, from_department_name: from_department_name.map(String::from),
+            from_location: from_location.map(String::from),
+            from_custodian_id, from_custodian_name: from_custodian_name.map(String::from),
+            to_department_id, to_department_name: to_department_name.map(String::from),
+            to_location: to_location.map(String::from),
+            to_custodian_id, to_custodian_name: to_custodian_name.map(String::from),
+            transfer_date, reason: reason.map(String::from),
+            status: "pending".to_string(), approved_by: None, approved_at: None, rejected_reason: None,
+            metadata: serde_json::json!({}), created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_transfer(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AssetTransfer>> { Ok(None) }
+    async fn list_transfers(&self, _org_id: Uuid, _asset_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::AssetTransfer>> { Ok(vec![]) }
+    async fn update_transfer_status(&self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _rejected_reason: Option<&str>) -> AtlasResult<atlas_shared::AssetTransfer> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_retirement(
+        &self, org_id: Uuid, retirement_number: &str, asset_id: Uuid,
+        retirement_type: &str, retirement_date: chrono::NaiveDate,
+        proceeds: &str, removal_cost: &str,
+        net_book_value_at_retirement: &str, accumulated_depreciation_at_retirement: &str,
+        gain_loss_amount: &str, gain_loss_type: Option<&str>,
+        gain_account_code: Option<&str>, loss_account_code: Option<&str>,
+        cash_account_code: Option<&str>, asset_account_code: Option<&str>,
+        accum_depr_account_code: Option<&str>,
+        reference_number: Option<&str>, buyer_name: Option<&str>, notes: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AssetRetirement> {
+        Ok(atlas_shared::AssetRetirement {
+            id: Uuid::new_v4(), organization_id: org_id,
+            retirement_number: retirement_number.to_string(), asset_id,
+            retirement_type: retirement_type.to_string(), retirement_date,
+            proceeds: proceeds.to_string(), removal_cost: removal_cost.to_string(),
+            net_book_value_at_retirement: net_book_value_at_retirement.to_string(),
+            accumulated_depreciation_at_retirement: accumulated_depreciation_at_retirement.to_string(),
+            gain_loss_amount: gain_loss_amount.to_string(), gain_loss_type: gain_loss_type.map(String::from),
+            gain_account_code: gain_account_code.map(String::from), loss_account_code: loss_account_code.map(String::from),
+            cash_account_code: cash_account_code.map(String::from),
+            asset_account_code: asset_account_code.map(String::from),
+            accum_depr_account_code: accum_depr_account_code.map(String::from),
+            reference_number: reference_number.map(String::from), buyer_name: buyer_name.map(String::from),
+            notes: notes.map(String::from),
+            status: "pending".to_string(), approved_by: None, approved_at: None, journal_entry_id: None,
+            metadata: serde_json::json!({}), created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_retirement(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AssetRetirement>> { Ok(None) }
+    async fn list_retirements(&self, _org_id: Uuid, _asset_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::AssetRetirement>> { Ok(vec![]) }
+    async fn update_retirement_status(&self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>) -> AtlasResult<atlas_shared::AssetRetirement> {
         Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
     }
 }

@@ -2333,3 +2333,226 @@ pub struct BudgetVarianceLine {
     /// Whether this line is over budget
     pub is_over_budget: bool,
 }
+
+// ============================================================================
+// Fixed Assets Management (Oracle Fusion Fixed Assets)
+// ============================================================================
+
+/// Asset category definition
+/// Oracle Fusion: Fixed Assets > Asset Categories
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetCategory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Default depreciation method for assets in this category
+    /// 'straight_line', 'declining_balance', 'sum_of_years_digits'
+    pub default_depreciation_method: String,
+    /// Default useful life in months
+    pub default_useful_life_months: i32,
+    /// Default salvage value percentage
+    pub default_salvage_value_percent: String,
+    /// Default GL account codes
+    pub default_asset_account_code: Option<String>,
+    pub default_accum_depr_account_code: Option<String>,
+    pub default_depr_expense_account_code: Option<String>,
+    pub default_gain_loss_account_code: Option<String>,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Asset book definition (corporate, tax)
+/// Oracle Fusion: Fixed Assets > Books
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetBook {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Book type: 'corporate', 'tax'
+    pub book_type: String,
+    pub auto_depreciation: bool,
+    /// Depreciation calendar: 'monthly', 'quarterly', 'yearly'
+    pub depreciation_calendar: String,
+    pub current_fiscal_year: Option<i32>,
+    pub last_depreciation_date: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Fixed asset record
+/// Oracle Fusion: Fixed Assets > Assets
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FixedAsset {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub asset_number: String,
+    pub asset_name: String,
+    pub description: Option<String>,
+    pub category_id: Option<Uuid>,
+    pub category_code: Option<String>,
+    pub book_id: Option<Uuid>,
+    pub book_code: Option<String>,
+    /// Asset type: 'tangible', 'intangible', 'leased', 'cipc'
+    pub asset_type: String,
+    /// Lifecycle status: 'draft', 'acquired', 'in_service', 'under_construction',
+    /// 'disposed', 'retired', 'transferred'
+    pub status: String,
+    // Financial details
+    pub original_cost: String,
+    pub current_cost: String,
+    pub salvage_value: String,
+    pub salvage_value_percent: String,
+    // Depreciation parameters
+    pub depreciation_method: String,
+    pub useful_life_months: i32,
+    pub declining_balance_rate: Option<String>,
+    // Depreciation calculations
+    pub depreciable_basis: String,
+    pub accumulated_depreciation: String,
+    pub net_book_value: String,
+    pub depreciation_per_period: String,
+    // Depreciation tracking
+    pub periods_depreciated: i32,
+    pub last_depreciation_date: Option<chrono::NaiveDate>,
+    pub last_depreciation_amount: String,
+    // Date tracking
+    pub acquisition_date: Option<chrono::NaiveDate>,
+    pub in_service_date: Option<chrono::NaiveDate>,
+    pub disposal_date: Option<chrono::NaiveDate>,
+    pub retirement_date: Option<chrono::NaiveDate>,
+    // Location and assignment
+    pub location: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    pub custodian_id: Option<Uuid>,
+    pub custodian_name: Option<String>,
+    // Physical details
+    pub serial_number: Option<String>,
+    pub tag_number: Option<String>,
+    pub manufacturer: Option<String>,
+    pub model: Option<String>,
+    // Dates
+    pub warranty_expiry: Option<chrono::NaiveDate>,
+    pub insurance_policy_number: Option<String>,
+    pub insurance_expiry: Option<chrono::NaiveDate>,
+    pub lease_number: Option<String>,
+    pub lease_expiry: Option<chrono::NaiveDate>,
+    // GL account codes
+    pub asset_account_code: Option<String>,
+    pub accum_depr_account_code: Option<String>,
+    pub depr_expense_account_code: Option<String>,
+    pub gain_loss_account_code: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Asset depreciation history entry
+/// Oracle Fusion: Fixed Assets > Depreciation History
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetDepreciationHistory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub asset_id: Uuid,
+    pub fiscal_year: i32,
+    pub period_number: i32,
+    pub period_name: Option<String>,
+    pub depreciation_date: chrono::NaiveDate,
+    pub depreciation_amount: String,
+    pub accumulated_depreciation: String,
+    pub net_book_value: String,
+    pub depreciation_method: String,
+    pub journal_entry_id: Option<Uuid>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Asset transfer record
+/// Oracle Fusion: Fixed Assets > Asset Transfers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetTransfer {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub transfer_number: String,
+    pub asset_id: Uuid,
+    // From
+    pub from_department_id: Option<Uuid>,
+    pub from_department_name: Option<String>,
+    pub from_location: Option<String>,
+    pub from_custodian_id: Option<Uuid>,
+    pub from_custodian_name: Option<String>,
+    // To
+    pub to_department_id: Option<Uuid>,
+    pub to_department_name: Option<String>,
+    pub to_location: Option<String>,
+    pub to_custodian_id: Option<Uuid>,
+    pub to_custodian_name: Option<String>,
+    // Details
+    pub transfer_date: chrono::NaiveDate,
+    pub reason: Option<String>,
+    /// Status: 'pending', 'approved', 'rejected', 'completed'
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Asset retirement record
+/// Oracle Fusion: Fixed Assets > Asset Retirements
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetRetirement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub retirement_number: String,
+    pub asset_id: Uuid,
+    /// Retirement type: 'sale', 'scrap', 'donation', 'write_off', 'casualty'
+    pub retirement_type: String,
+    pub retirement_date: chrono::NaiveDate,
+    // Financial details
+    pub proceeds: String,
+    pub removal_cost: String,
+    pub net_book_value_at_retirement: String,
+    pub accumulated_depreciation_at_retirement: String,
+    pub gain_loss_amount: String,
+    /// 'gain' or 'loss'
+    pub gain_loss_type: Option<String>,
+    // Account references
+    pub gain_account_code: Option<String>,
+    pub loss_account_code: Option<String>,
+    pub cash_account_code: Option<String>,
+    pub asset_account_code: Option<String>,
+    pub accum_depr_account_code: Option<String>,
+    // Reference
+    pub reference_number: Option<String>,
+    pub buyer_name: Option<String>,
+    pub notes: Option<String>,
+    /// Status: 'pending', 'approved', 'completed', 'cancelled'
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub journal_entry_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}

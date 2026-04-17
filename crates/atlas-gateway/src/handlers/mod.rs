@@ -16,6 +16,7 @@ pub mod intercompany;
 pub mod reconciliation;
 pub mod expense;
 pub mod budget;
+pub mod fixed_assets;
 
 pub use schema::*;
 pub use records::*;
@@ -31,6 +32,7 @@ pub use intercompany::*;
 pub use reconciliation::*;
 pub use expense::*;
 pub use budget::*;
+pub use fixed_assets::*;
 
 use axum::{
     Router,
@@ -379,6 +381,44 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Budget Control Check
         .route("/budget/definitions/:budget_code/check", post(check_budget_control))
+
+        // ════════════════════════════════════════════════════════════════════
+        // Fixed Assets Management (Oracle Fusion Fixed Assets)
+        // ════════════════════════════════════════════════════════════════════
+
+        // Asset Categories
+        .route("/fixed-assets/categories", get(list_asset_categories))
+        .route("/fixed-assets/categories", post(create_asset_category))
+        .route("/fixed-assets/categories/:code", get(get_asset_category))
+        .route("/fixed-assets/categories/:code", delete(delete_asset_category))
+
+        // Asset Books
+        .route("/fixed-assets/books", get(list_asset_books))
+        .route("/fixed-assets/books", post(create_asset_book))
+
+        // Fixed Assets
+        .route("/fixed-assets/assets", get(list_fixed_assets))
+        .route("/fixed-assets/assets", post(create_fixed_asset))
+        .route("/fixed-assets/assets/:id", get(get_fixed_asset))
+
+        // Asset Lifecycle
+        .route("/fixed-assets/assets/:id/acquire", post(acquire_fixed_asset))
+        .route("/fixed-assets/assets/:id/place-in-service", post(place_asset_in_service))
+
+        // Depreciation
+        .route("/fixed-assets/assets/:id/depreciate", post(calculate_depreciation))
+        .route("/fixed-assets/assets/:id/depreciation-history", get(list_depreciation_history))
+
+        // Asset Transfers
+        .route("/fixed-assets/transfers", get(list_asset_transfers))
+        .route("/fixed-assets/transfers", post(create_asset_transfer))
+        .route("/fixed-assets/transfers/:id/approve", post(approve_asset_transfer))
+        .route("/fixed-assets/transfers/:id/reject", post(reject_asset_transfer))
+
+        // Asset Retirements
+        .route("/fixed-assets/retirements", get(list_asset_retirements))
+        .route("/fixed-assets/retirements", post(create_asset_retirement))
+        .route("/fixed-assets/retirements/:id/approve", post(approve_asset_retirement))
         
         .layer(middleware::from_fn(auth_middleware))
 }

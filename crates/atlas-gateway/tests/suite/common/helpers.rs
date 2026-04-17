@@ -140,6 +140,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::budget::PostgresBudgetRepository::new(db_pool.clone()),
     )));
 
+    let fixed_asset_engine = Arc::new(atlas_core::FixedAssetEngine::new(Arc::new(
+        atlas_core::fixed_assets::PostgresFixedAssetRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -157,6 +161,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         reconciliation_engine,
         expense_engine,
         budget_engine,
+        fixed_asset_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -274,4 +279,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.budget_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.budget_versions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.budget_definitions").execute(pool).await.ok();
+    // Clean fixed asset test data
+    sqlx::query("DELETE FROM _atlas.asset_depreciation_history").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.asset_retirements").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.asset_transfers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fixed_assets").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.asset_categories").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.asset_books").execute(pool).await.ok();
 }

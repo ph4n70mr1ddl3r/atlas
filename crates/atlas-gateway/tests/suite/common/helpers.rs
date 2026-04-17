@@ -112,6 +112,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::approval::PostgresApprovalRepository::new(db_pool.clone()),
     )));
 
+    let period_close_engine = Arc::new(atlas_core::PeriodCloseEngine::new(Arc::new(
+        atlas_core::period_close::PostgresPeriodCloseRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -122,6 +126,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         audit_engine,
         notification_engine,
         approval_engine,
+        period_close_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

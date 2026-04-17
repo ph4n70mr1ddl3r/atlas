@@ -9,6 +9,7 @@ mod admin;
 mod reports;
 pub mod fusion;
 pub mod advanced;
+pub mod period_close;
 
 pub use schema::*;
 pub use records::*;
@@ -17,6 +18,7 @@ pub use admin::*;
 pub use reports::*;
 pub use fusion::*;
 pub use advanced::*;
+pub use period_close::*;
 
 use axum::{
     Router,
@@ -134,6 +136,47 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         // Effective Dating
         .route("/:entity/:id/effective", get(get_effective_record))
         .route("/:entity/:id/effective", post(create_effective_version))
+        
+        // ═══════════════════════════════════════════════════════
+        // Period Close Management (Oracle Fusion GL Period Close)
+        // ═══════════════════════════════════════════════════════
+        
+        // Accounting Calendars
+        .route("/period-close/calendars", get(list_calendars))
+        .route("/period-close/calendars", post(create_calendar))
+        .route("/period-close/calendars/:calendar_id", get(get_calendar))
+        .route("/period-close/calendars/:calendar_id", delete(delete_calendar))
+        
+        // Period Generation & Listing
+        .route("/period-close/calendars/:calendar_id/periods/generate", post(generate_periods))
+        .route("/period-close/calendars/:calendar_id/periods", get(list_periods))
+        .route("/period-close/periods/:period_id", get(get_period))
+        
+        // Period Status Changes
+        .route("/period-close/periods/:period_id/open", post(open_period))
+        .route("/period-close/periods/:period_id/pending-close", post(pending_close_period))
+        .route("/period-close/periods/:period_id/close", post(close_period))
+        .route("/period-close/periods/:period_id/permanently-close", post(permanently_close_period))
+        .route("/period-close/periods/:period_id/reopen", post(reopen_period))
+        
+        // Subledger Status
+        .route("/period-close/periods/:period_id/subledger", post(update_subledger_status))
+        
+        // Period Close Checklist
+        .route("/period-close/periods/:period_id/checklist", get(list_checklist_items))
+        .route("/period-close/periods/:period_id/checklist", post(create_checklist_item))
+        .route("/period-close/periods/:period_id/checklist/:item_id", put(update_checklist_item))
+        .route("/period-close/periods/:period_id/checklist/:item_id", delete(delete_checklist_item))
+        
+        // Period Exceptions
+        .route("/period-close/periods/:period_id/exceptions", post(grant_period_exception))
+        .route("/period-close/periods/:period_id/exceptions/:user_id", delete(revoke_period_exception))
+        
+        // Period Close Dashboard
+        .route("/period-close/calendars/:calendar_id/summary", get(get_close_summary))
+        
+        // Posting Validation
+        .route("/period-close/calendars/:calendar_id/check-posting", get(check_posting_allowed))
         
         .layer(middleware::from_fn(auth_middleware))
 }

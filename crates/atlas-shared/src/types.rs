@@ -794,6 +794,168 @@ pub struct ApprovalStep {
 }
 
 // ============================================================================
+// Period Close Management (Oracle Fusion General Ledger)
+// ============================================================================
+
+/// Accounting calendar definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountingCalendar {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub calendar_type: String,
+    pub fiscal_year_start_month: i32,
+    pub periods_per_year: i32,
+    pub has_adjusting_period: bool,
+    pub current_fiscal_year: Option<i32>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+}
+
+/// Create/update calendar request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountingCalendarRequest {
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(default = "default_monthly")]
+    pub calendar_type: String,
+    #[serde(default = "default_one")]
+    pub fiscal_year_start_month: i32,
+    #[serde(default = "default_twelve")]
+    pub periods_per_year: i32,
+    #[serde(default)]
+    pub has_adjusting_period: bool,
+    pub current_fiscal_year: Option<i32>,
+}
+
+fn default_monthly() -> String { "monthly".to_string() }
+fn default_one() -> i32 { 1 }
+fn default_twelve() -> i32 { 12 }
+
+/// Period status within the financial close cycle
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PeriodStatus {
+    #[default]
+    NotOpened,
+    Future,
+    Open,
+    PendingClose,
+    Closed,
+    PermanentlyClosed,
+}
+
+impl PeriodStatus {
+    /// Whether posting is allowed in this period status
+    pub fn allows_posting(&self) -> bool {
+        matches!(self, PeriodStatus::Open | PeriodStatus::PendingClose)
+    }
+
+    /// Whether the status can be changed
+    pub fn is_changeable(&self) -> bool {
+        !matches!(self, PeriodStatus::PermanentlyClosed)
+    }
+}
+
+/// Accounting period within a calendar
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountingPeriod {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub calendar_id: Uuid,
+    pub period_name: String,
+    pub period_number: i32,
+    pub fiscal_year: i32,
+    pub quarter: Option<i32>,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub status: String,
+    pub status_changed_by: Option<Uuid>,
+    pub status_changed_at: Option<DateTime<Utc>>,
+    pub closed_by: Option<Uuid>,
+    pub closed_at: Option<DateTime<Utc>>,
+    pub period_type: String,
+    // Subledger statuses
+    pub gl_status: String,
+    pub ap_status: String,
+    pub ar_status: String,
+    pub fa_status: String,
+    pub po_status: String,
+    // Aggregated balances (NUMERIC from DB, serialized as string/number)
+    pub total_debits: serde_json::Value,
+    pub total_credits: serde_json::Value,
+    pub net_activity: serde_json::Value,
+    pub beginning_balance: serde_json::Value,
+    pub ending_balance: serde_json::Value,
+    pub journal_entry_count: i32,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Period close checklist item
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PeriodCloseChecklistItem {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub period_id: Uuid,
+    pub task_name: String,
+    pub task_description: Option<String>,
+    pub task_order: i32,
+    pub category: Option<String>,
+    pub subledger: Option<String>,
+    pub status: String,
+    pub assigned_to: Option<Uuid>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub completed_by: Option<Uuid>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub depends_on: Option<Uuid>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create checklist item request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateChecklistItemRequest {
+    pub task_name: String,
+    pub task_description: Option<String>,
+    pub task_order: Option<i32>,
+    pub category: Option<String>,
+    pub subledger: Option<String>,
+    pub assigned_to: Option<Uuid>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub depends_on: Option<Uuid>,
+    pub notes: Option<String>,
+}
+
+/// Period close dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PeriodCloseSummary {
+    pub calendar_id: Uuid,
+    pub calendar_name: String,
+    pub fiscal_year: i32,
+    pub current_period: Option<AccountingPeriod>,
+    pub open_periods: Vec<AccountingPeriod>,
+    pub pending_close_periods: Vec<AccountingPeriod>,
+    pub total_checklist_items: i32,
+    pub completed_checklist_items: i32,
+    pub close_progress_percent: f64,
+}
+
+// ============================================================================
 // Import Job Types
 // ============================================================================
 

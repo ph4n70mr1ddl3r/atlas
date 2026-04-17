@@ -7,11 +7,13 @@ use atlas_core::{
     SecurityEngine, AuditEngine,
     NotificationEngine,
     ApprovalEngine,
+    PeriodCloseEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
     notification::PostgresNotificationRepository,
     approval::PostgresApprovalRepository,
+    period_close::PostgresPeriodCloseRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -31,6 +33,7 @@ pub struct AppState {
     pub audit_engine: Arc<AuditEngine>,
     pub notification_engine: Arc<NotificationEngine>,
     pub approval_engine: Arc<ApprovalEngine>,
+    pub period_close_engine: Arc<PeriodCloseEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -91,6 +94,11 @@ impl AppState {
         let approval_engine = Arc::new(ApprovalEngine::new(Arc::new(
             PostgresApprovalRepository::new(db_pool.clone())
         )));
+
+        // Initialize period close engine
+        let period_close_engine = Arc::new(PeriodCloseEngine::new(Arc::new(
+            PostgresPeriodCloseRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -138,6 +146,7 @@ impl AppState {
             audit_engine,
             notification_engine,
             approval_engine,
+            period_close_engine,
             event_bus,
             jwt_secret,
         };

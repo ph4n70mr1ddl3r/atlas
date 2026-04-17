@@ -657,6 +657,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::period_close::PostgresPeriodCloseRepository::new(db_pool.clone()),
     )));
 
+    let currency_engine = Arc::new(atlas_core::CurrencyEngine::new(Arc::new(
+        atlas_core::currency::PostgresCurrencyRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -668,6 +672,7 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         notification_engine,
         approval_engine,
         period_close_engine,
+        currency_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

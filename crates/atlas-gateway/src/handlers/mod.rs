@@ -10,6 +10,7 @@ mod reports;
 pub mod fusion;
 pub mod advanced;
 pub mod period_close;
+pub mod currency;
 
 pub use schema::*;
 pub use records::*;
@@ -19,6 +20,7 @@ pub use reports::*;
 pub use fusion::*;
 pub use advanced::*;
 pub use period_close::*;
+pub use currency::*;
 
 use axum::{
     Router,
@@ -177,6 +179,31 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         
         // Posting Validation
         .route("/period-close/calendars/:calendar_id/check-posting", get(check_posting_allowed))
+        
+        // ═══════════════════════════════════════════════════════
+        // Multi-Currency Management (Oracle Fusion GL Currency)
+        // ═══════════════════════════════════════════════════════
+        
+        // Currency Definitions
+        .route("/currencies", get(list_currencies))
+        .route("/currencies", post(create_currency))
+        .route("/currencies/base", get(get_base_currency))
+        .route("/currencies/:code", delete(delete_currency))
+        
+        // Exchange Rates
+        .route("/exchange-rates", post(set_exchange_rate))
+        .route("/exchange-rates", get(list_exchange_rates))
+        .route("/exchange-rates/:from/:to", get(get_exchange_rate))
+        .route("/exchange-rates/:id", delete(delete_exchange_rate))
+        
+        // Currency Conversion
+        .route("/currency/convert", post(convert_currency))
+        
+        // Unrealized Gain/Loss
+        .route("/currency/gain-loss", post(calculate_gain_loss))
+        
+        // Bulk Rate Import
+        .route("/exchange-rates/import", post(import_rates))
         
         .layer(middleware::from_fn(auth_middleware))
 }

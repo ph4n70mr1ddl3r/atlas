@@ -116,6 +116,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::period_close::PostgresPeriodCloseRepository::new(db_pool.clone()),
     )));
 
+    let currency_engine = Arc::new(atlas_core::CurrencyEngine::new(Arc::new(
+        atlas_core::currency::PostgresCurrencyRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -127,6 +131,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         notification_engine,
         approval_engine,
         period_close_engine,
+        currency_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -215,4 +220,8 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.workflow_states WHERE entity_type = 'test_items'").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.audit_log WHERE entity_type = 'test_items'").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.entities WHERE name = 'test_items'").execute(pool).await.ok();
+    // Clean currency test data
+    sqlx::query("DELETE FROM _atlas.currency_conversions WHERE entity_type = 'test_items'").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.exchange_rates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.currencies").execute(pool).await.ok();
 }

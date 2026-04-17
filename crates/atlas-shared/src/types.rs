@@ -956,6 +956,115 @@ pub struct PeriodCloseSummary {
 }
 
 // ============================================================================
+// Currency & Exchange Rate Management (Oracle Fusion GL Currency)
+// ============================================================================
+
+/// Supported exchange rate types
+/// Oracle Fusion: Daily Rates, Spot, Corporate, Period Average, Period End, User
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ExchangeRateType {
+    #[default]
+    Daily,
+    Spot,
+    Corporate,
+    PeriodAverage,
+    PeriodEnd,
+    User,
+    Fixed,
+}
+
+/// Currency definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyDefinition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub symbol: String,
+    pub precision: i32,
+    pub is_base_currency: bool,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update currency request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRequest {
+    pub code: String,
+    pub name: String,
+    pub symbol: Option<String>,
+    #[serde(default = "default_precision")]
+    pub precision: i32,
+    #[serde(default)]
+    pub is_base_currency: bool,
+}
+
+fn default_precision() -> i32 { 2 }
+
+/// Exchange rate record
+/// Oracle Fusion: Daily Rates table with from/to currency and effective date
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExchangeRate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub from_currency: String,
+    pub to_currency: String,
+    pub rate_type: String,
+    pub rate: String, // NUMERIC from DB serialized as string
+    pub effective_date: chrono::NaiveDate,
+    pub inverse_rate: Option<String>,
+    pub source: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update exchange rate request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExchangeRateRequest {
+    pub from_currency: String,
+    pub to_currency: String,
+    pub rate_type: String,
+    pub rate: String,
+    pub effective_date: chrono::NaiveDate,
+    pub inverse_rate: Option<String>,
+    pub source: Option<String>,
+}
+
+/// Result of a currency conversion
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyConversionResult {
+    pub from_currency: String,
+    pub to_currency: String,
+    pub from_amount: String,
+    pub to_amount: String,
+    pub exchange_rate: String,
+    pub rate_type: String,
+    pub effective_date: chrono::NaiveDate,
+    pub gain_loss: Option<String>,
+}
+
+/// Unrealized gain/loss on a foreign-currency-denominated balance
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UnrealizedGainLoss {
+    pub currency: String,
+    pub original_amount: String,
+    pub original_rate: String,
+    pub revalued_amount: String,
+    pub current_rate: String,
+    pub gain_loss_amount: String,
+    pub gain_loss_type: String, // "gain" or "loss"
+}
+
+// ============================================================================
 // Import Job Types
 // ============================================================================
 

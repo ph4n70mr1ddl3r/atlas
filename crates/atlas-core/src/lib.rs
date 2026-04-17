@@ -23,6 +23,7 @@ pub mod eventbus;
 pub mod notification;
 pub mod approval;
 pub mod period_close;
+pub mod currency;
 
 pub use schema::*;
 pub use workflow::{
@@ -47,6 +48,7 @@ pub use eventbus::*;
 pub use notification::{NotificationEngine, PostgresNotificationRepository as PostgresNotificationRepo};
 pub use approval::{ApprovalEngine, PostgresApprovalRepository as PostgresApprovalRepo};
 pub use period_close::{PeriodCloseEngine, PostgresPeriodCloseRepository as PostgresPeriodCloseRepo};
+pub use currency::{CurrencyEngine, PostgresCurrencyRepository as PostgresCurrencyRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

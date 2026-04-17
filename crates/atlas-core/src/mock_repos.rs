@@ -12,6 +12,7 @@ use crate::reconciliation::ReconciliationRepository;
 use crate::expense::ExpenseRepository;
 use crate::budget::BudgetRepository;
 use crate::fixed_assets::FixedAssetRepository;
+use crate::revenue::RevenueRepository;
 
 /// Mock schema repository
 pub struct MockSchemaRepository;
@@ -1125,4 +1126,187 @@ impl crate::collections::CollectionsRepository for MockCollectionsRepository {
     ) -> AtlasResult<atlas_shared::WriteOffRequest> {
         Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
     }
+}
+
+/// Mock revenue recognition repository for testing
+pub struct MockRevenueRepository;
+
+#[async_trait]
+impl RevenueRepository for MockRevenueRepository {
+    // Policies
+    async fn create_policy(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        recognition_method: &str, over_time_method: Option<&str>, allocation_basis: &str,
+        default_selling_price: Option<&str>, constrain_variable_consideration: bool,
+        constraint_threshold_percent: Option<&str>,
+        revenue_account_code: Option<&str>, deferred_revenue_account_code: Option<&str>,
+        contra_revenue_account_code: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::RevenuePolicy> {
+        Ok(atlas_shared::RevenuePolicy {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            recognition_method: recognition_method.to_string(),
+            over_time_method: over_time_method.map(String::from),
+            allocation_basis: allocation_basis.to_string(),
+            default_selling_price: default_selling_price.map(String::from),
+            constrain_variable_consideration,
+            constraint_threshold_percent: constraint_threshold_percent.map(String::from),
+            revenue_account_code: revenue_account_code.map(String::from),
+            deferred_revenue_account_code: deferred_revenue_account_code.map(String::from),
+            contra_revenue_account_code: contra_revenue_account_code.map(String::from),
+            is_active: true, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_policy(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::RevenuePolicy>> { Ok(None) }
+    async fn get_policy_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::RevenuePolicy>> { Ok(None) }
+    async fn list_policies(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::RevenuePolicy>> { Ok(vec![]) }
+    async fn delete_policy(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Contracts
+    async fn create_contract(
+        &self, org_id: Uuid, contract_number: &str,
+        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        customer_id: Uuid, customer_number: Option<&str>, customer_name: Option<&str>,
+        contract_date: Option<chrono::NaiveDate>, start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>, total_transaction_price: &str,
+        currency_code: &str, notes: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::RevenueContract> {
+        Ok(atlas_shared::RevenueContract {
+            id: Uuid::new_v4(), organization_id: org_id,
+            contract_number: contract_number.to_string(),
+            source_type: source_type.map(String::from), source_id,
+            source_number: source_number.map(String::from),
+            customer_id, customer_number: customer_number.map(String::from),
+            customer_name: customer_name.map(String::from),
+            contract_date, start_date, end_date,
+            total_transaction_price: total_transaction_price.to_string(),
+            total_allocated_revenue: "0".to_string(),
+            total_recognized_revenue: "0".to_string(),
+            total_deferred_revenue: total_transaction_price.to_string(),
+            status: "draft".to_string(),
+            step1_contract_identified: false, step2_obligations_identified: false,
+            step3_price_determined: false, step4_price_allocated: false,
+            step5_recognition_scheduled: false,
+            currency_code: currency_code.to_string(),
+            notes: notes.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_contract(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::RevenueContract>> { Ok(None) }
+    async fn get_contract_by_number(&self, _org_id: Uuid, _num: &str) -> AtlasResult<Option<atlas_shared::RevenueContract>> { Ok(None) }
+    async fn list_contracts(&self, _org_id: Uuid, _status: Option<&str>, _customer_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::RevenueContract>> { Ok(vec![]) }
+    async fn update_contract_status(
+        &self, _id: Uuid, _status: Option<&str>,
+        _step1: Option<bool>, _step2: Option<bool>, _step3: Option<bool>,
+        _step4: Option<bool>, _step5: Option<bool>,
+        _total_allocated: Option<&str>, _total_recognized: Option<&str>,
+        _total_deferred: Option<&str>, _total_price: Option<&str>,
+        _notes: Option<Option<&str>>,
+    ) -> AtlasResult<atlas_shared::RevenueContract> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Obligations
+    async fn create_obligation(
+        &self, org_id: Uuid, contract_id: Uuid, line_number: i32,
+        description: Option<&str>, product_id: Option<Uuid>, product_name: Option<&str>,
+        source_line_id: Option<Uuid>, revenue_policy_id: Option<Uuid>,
+        recognition_method: Option<&str>, over_time_method: Option<&str>,
+        standalone_selling_price: &str, allocated_transaction_price: &str,
+        satisfaction_method: &str, recognition_start_date: Option<chrono::NaiveDate>,
+        recognition_end_date: Option<chrono::NaiveDate>,
+        revenue_account_code: Option<&str>, deferred_revenue_account_code: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PerformanceObligation> {
+        Ok(atlas_shared::PerformanceObligation {
+            id: Uuid::new_v4(), organization_id: org_id, contract_id, line_number,
+            description: description.map(String::from),
+            product_id, product_name: product_name.map(String::from),
+            source_line_id, revenue_policy_id,
+            recognition_method: recognition_method.map(String::from),
+            over_time_method: over_time_method.map(String::from),
+            standalone_selling_price: standalone_selling_price.to_string(),
+            allocated_transaction_price: allocated_transaction_price.to_string(),
+            total_recognized_revenue: "0".to_string(),
+            deferred_revenue: allocated_transaction_price.to_string(),
+            recognition_start_date, recognition_end_date,
+            percent_complete: None,
+            satisfaction_method: satisfaction_method.to_string(),
+            status: "pending".to_string(),
+            revenue_account_code: revenue_account_code.map(String::from),
+            deferred_revenue_account_code: deferred_revenue_account_code.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_obligation(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PerformanceObligation>> { Ok(None) }
+    async fn list_obligations(&self, _contract_id: Uuid) -> AtlasResult<Vec<atlas_shared::PerformanceObligation>> { Ok(vec![]) }
+    async fn update_obligation_allocation(
+        &self, _id: Uuid, _allocated: &str, _deferred: &str,
+    ) -> AtlasResult<atlas_shared::PerformanceObligation> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_obligation_status(
+        &self, _id: Uuid, _status: &str, _start: Option<&str>, _end: Option<&str>,
+    ) -> AtlasResult<atlas_shared::PerformanceObligation> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_obligation_recognition(
+        &self, _id: Uuid, _recognized: &str, _deferred: &str, _pct: &str, _status: &str,
+    ) -> AtlasResult<atlas_shared::PerformanceObligation> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Schedule Lines
+    async fn create_schedule_line(
+        &self, org_id: Uuid, obligation_id: Uuid, contract_id: Uuid,
+        line_number: i32, recognition_date: chrono::NaiveDate, amount: &str,
+        percent_of_total: &str, recognition_method: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::RevenueScheduleLine> {
+        Ok(atlas_shared::RevenueScheduleLine {
+            id: Uuid::new_v4(), organization_id: org_id,
+            obligation_id, contract_id, line_number,
+            recognition_date, amount: amount.to_string(),
+            recognized_amount: "0".to_string(),
+            status: "planned".to_string(),
+            recognition_method: Some(recognition_method.to_string()),
+            percent_of_total: Some(percent_of_total.to_string()),
+            journal_entry_id: None, recognized_at: None,
+            reversed_by_id: None, reversal_reason: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_schedule_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::RevenueScheduleLine>> { Ok(None) }
+    async fn list_schedule_lines(&self, _obligation_id: Uuid) -> AtlasResult<Vec<atlas_shared::RevenueScheduleLine>> { Ok(vec![]) }
+    async fn list_schedule_lines_by_contract(&self, _contract_id: Uuid) -> AtlasResult<Vec<atlas_shared::RevenueScheduleLine>> { Ok(vec![]) }
+    async fn update_schedule_line_status(
+        &self, _id: Uuid, _status: &str, _recognized: Option<&str>, _reversal: Option<&str>,
+    ) -> AtlasResult<atlas_shared::RevenueScheduleLine> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Modifications
+    async fn create_modification(
+        &self, org_id: Uuid, contract_id: Uuid, modification_number: i32,
+        modification_type: &str, description: Option<&str>,
+        previous_transaction_price: &str, new_transaction_price: &str,
+        previous_end_date: Option<chrono::NaiveDate>, new_end_date: Option<chrono::NaiveDate>,
+        effective_date: chrono::NaiveDate, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::RevenueModification> {
+        Ok(atlas_shared::RevenueModification {
+            id: Uuid::new_v4(), organization_id: org_id, contract_id,
+            modification_number, modification_type: modification_type.to_string(),
+            description: description.map(String::from),
+            previous_transaction_price: previous_transaction_price.to_string(),
+            new_transaction_price: new_transaction_price.to_string(),
+            previous_end_date, new_end_date, effective_date,
+            status: "draft".to_string(), metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_modifications(&self, _contract_id: Uuid) -> AtlasResult<Vec<atlas_shared::RevenueModification>> { Ok(vec![]) }
 }

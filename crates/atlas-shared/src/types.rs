@@ -2930,3 +2930,230 @@ pub struct AgingSummary {
     pub overdue_customer_count: i32,
     pub weighted_average_days_overdue: String,
 }
+
+// ============================================================================
+// Revenue Recognition (ASC 606 / IFRS 15)
+// Oracle Fusion Cloud ERP: Financials > Revenue Management
+// ============================================================================
+
+/// Revenue Recognition Policy
+/// Defines the accounting policy for revenue recognition.
+/// Oracle Fusion equivalent: Revenue Management > Policies
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RevenuePolicy {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique policy code (e.g., "STD_SaaS", "STD_CONSULTING")
+    pub code: String,
+    /// Human-readable name
+    pub name: String,
+    /// Description of the policy
+    pub description: Option<String>,
+    /// Recognition method: "over_time", "point_in_time"
+    pub recognition_method: String,
+    /// Over-time method (when recognition_method = over_time):
+    /// "output", "input", "straight_line"
+    pub over_time_method: Option<String>,
+    /// Allocation basis: "standalone_selling_price", "residual", "equal"
+    pub allocation_basis: String,
+    /// Default standalone selling price (used when SSP is not determined per-product)
+    pub default_selling_price: Option<String>,
+    /// Whether variable consideration is constrained
+    pub constrain_variable_consideration: bool,
+    /// Constraint threshold percentage (0-100)
+    pub constraint_threshold_percent: Option<String>,
+    /// Default revenue account code
+    pub revenue_account_code: Option<String>,
+    /// Default deferred revenue account code
+    pub deferred_revenue_account_code: Option<String>,
+    /// Default contra-revenue account code (for allowances)
+    pub contra_revenue_account_code: Option<String>,
+    /// Whether this policy is active
+    pub is_active: bool,
+    /// Arbitrary metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Revenue Contract (Revenue Arrangement)
+/// Represents a customer contract with one or more performance obligations.
+/// Oracle Fusion equivalent: Revenue Management > Revenue Contracts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RevenueContract {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated contract number (e.g., "RC-0001")
+    pub contract_number: String,
+    /// Reference to the source sales order or agreement
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    /// Customer information
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    /// Contract dates
+    pub contract_date: Option<chrono::NaiveDate>,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub end_date: Option<chrono::NaiveDate>,
+    /// Total transaction price (before allocation)
+    pub total_transaction_price: String,
+    /// Total allocated revenue across all performance obligations
+    pub total_allocated_revenue: String,
+    /// Total recognized revenue to date
+    pub total_recognized_revenue: String,
+    /// Total deferred revenue remaining
+    pub total_deferred_revenue: String,
+    /// Contract status: "draft", "active", "completed", "cancelled", "modified"
+    pub status: String,
+    /// ASC 606 step completion tracking
+    /// Step 1: Identify the contract
+    pub step1_contract_identified: bool,
+    /// Step 2: Identify performance obligations (POs created)
+    pub step2_obligations_identified: bool,
+    /// Step 3: Determine transaction price
+    pub step3_price_determined: bool,
+    /// Step 4: Allocate transaction price
+    pub step4_price_allocated: bool,
+    /// Step 5: Recognize revenue
+    pub step5_recognition_scheduled: bool,
+    /// Currency
+    pub currency_code: String,
+    /// Optional notes
+    pub notes: Option<String>,
+    /// Arbitrary metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Performance Obligation
+/// A distinct good or service promised in a revenue contract.
+/// Oracle Fusion equivalent: Revenue Management > Performance Obligations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PerformanceObligation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Parent revenue contract
+    pub contract_id: Uuid,
+    /// Line number within the contract
+    pub line_number: i32,
+    /// Description of the good or service
+    pub description: Option<String>,
+    /// Product or service reference
+    pub product_id: Option<Uuid>,
+    pub product_name: Option<String>,
+    /// Reference to source line (e.g., sales order line)
+    pub source_line_id: Option<Uuid>,
+    /// Revenue policy applied to this obligation
+    pub revenue_policy_id: Option<Uuid>,
+    /// Recognition method for this specific obligation
+    /// (overrides policy default if set)
+    pub recognition_method: Option<String>,
+    /// Over-time method override
+    pub over_time_method: Option<String>,
+    /// Standalone selling price (SSP)
+    pub standalone_selling_price: String,
+    /// Allocated transaction price (after SSP allocation)
+    pub allocated_transaction_price: String,
+    /// Total recognized revenue for this obligation
+    pub total_recognized_revenue: String,
+    /// Remaining deferred revenue
+    pub deferred_revenue: String,
+    /// Recognition start date
+    pub recognition_start_date: Option<chrono::NaiveDate>,
+    /// Recognition end date (for over-time)
+    pub recognition_end_date: Option<chrono::NaiveDate>,
+    /// Percent complete (for over-time recognition)
+    pub percent_complete: Option<String>,
+    /// Satisfaction method: "over_time", "point_in_time"
+    pub satisfaction_method: String,
+    /// Status: "pending", "in_progress", "satisfied", "partially_satisfied", "cancelled"
+    pub status: String,
+    /// Revenue account overrides
+    pub revenue_account_code: Option<String>,
+    pub deferred_revenue_account_code: Option<String>,
+    /// Arbitrary metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Revenue Recognition Schedule Line
+/// Individual revenue recognition events for a performance obligation.
+/// Oracle Fusion equivalent: Revenue Management > Revenue Schedules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RevenueScheduleLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Parent performance obligation
+    pub obligation_id: Uuid,
+    /// Parent contract (denormalized for querying)
+    pub contract_id: Uuid,
+    /// Schedule line number
+    pub line_number: i32,
+    /// Planned recognition date
+    pub recognition_date: chrono::NaiveDate,
+    /// Amount to recognize
+    pub amount: String,
+    /// Amount actually recognized
+    pub recognized_amount: String,
+    /// Status: "planned", "recognized", "reversed", "cancelled"
+    pub status: String,
+    /// Recognition method used
+    pub recognition_method: Option<String>,
+    /// Percentage of total for this line
+    pub percent_of_total: Option<String>,
+    /// Journal entry reference (posted to GL)
+    pub journal_entry_id: Option<Uuid>,
+    /// When the recognition was actually posted
+    pub recognized_at: Option<DateTime<Utc>>,
+    /// Reversal reference
+    pub reversed_by_id: Option<Uuid>,
+    /// Reason for reversal (if reversed)
+    pub reversal_reason: Option<String>,
+    /// Arbitrary metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Revenue Contract Modification
+/// Tracks changes/amendments to revenue contracts.
+/// Oracle Fusion equivalent: Revenue Management > Contract Modifications
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RevenueModification {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Contract being modified
+    pub contract_id: Uuid,
+    /// Modification number (sequential)
+    pub modification_number: i32,
+    /// Type of modification: "price_change", "scope_change", "term_extension",
+    /// "termination", "add_obligation", "remove_obligation"
+    pub modification_type: String,
+    /// Description of the change
+    pub description: Option<String>,
+    /// Previous total transaction price
+    pub previous_transaction_price: String,
+    /// New total transaction price
+    pub new_transaction_price: String,
+    /// Previous contract end date
+    pub previous_end_date: Option<chrono::NaiveDate>,
+    /// New contract end date
+    pub new_end_date: Option<chrono::NaiveDate>,
+    /// Effective date of the modification
+    pub effective_date: chrono::NaiveDate,
+    /// Status: "draft", "active", "cancelled"
+    pub status: String,
+    /// Arbitrary metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}

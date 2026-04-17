@@ -303,23 +303,45 @@ pub async fn create_record(
     };
     
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
-    
-    // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
+    
+    // Validate data against entity schema (Oracle Fusion: mandatory validation)
+    let validation_result = state.validation_engine.validate(&entity_def, &payload.values, None);
+    if !validation_result.valid {
+        return Ok((StatusCode::BAD_REQUEST, Json(serde_json::json!({
+            "error": "Validation failed",
+            "errors": validation_result.errors,
+        }))));
+    }
+    
+    // Evaluate computed fields and merge into values (Oracle Fusion: formula-driven defaults)
+    let mut values = payload.values.clone();
+    let ctx = atlas_core::formula::EvaluationContext::new(values.clone());
+    for field in &entity_def.fields {
+        if let atlas_shared::FieldType::Computed { formula, return_type: _ } = &field.field_type {
+            if let Ok(computed) = state.formula_engine.evaluate(formula, &ctx) {
+                let json_val: serde_json::Value = computed.into();
+                if let Some(obj) = values.as_object_mut() {
+                    obj.insert(field.name.clone(), json_val);
+                }
+            }
+        }
+    }
     
     // Inject organization_id from JWT claims for multi-tenancy
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
     // Validate and sanitize field names, filtering out null values
-    let non_null_fields: Vec<(String, &serde_json::Value)> = payload.values.as_object().unwrap()
+    // Uses the computed `values` which includes formula-evaluated fields
+    let non_null_fields: Vec<(String, &serde_json::Value)> = values.as_object().unwrap()
         .iter()
         .filter(|(_, v)| !v.is_null())
         .map(|(k, v)| sanitize_identifier(k).map(|safe_k| (safe_k, v)))
         .collect::<Result<Vec<_>, _>>()?;
     
     let fields: Vec<&str> = non_null_fields.iter().map(|(k, _)| k.as_str()).collect();
-    let values: Vec<&serde_json::Value> = non_null_fields.iter().map(|(_, v)| *v).collect();
+    let computed_values: Vec<&serde_json::Value> = non_null_fields.iter().map(|(_, v)| *v).collect();
     
     // Placeholders: ($1::text, $2::text, ..., $N::text, $(N+1)::uuid)
     // We bind all user values as text (sqlx sends Option<String>),
@@ -339,7 +361,7 @@ pub async fn create_record(
         org_placeholder
     );
     let mut db_query = sqlx::query(&query);
-    for value in &values {
+    for value in &computed_values {
         db_query = db_query.bind(json_to_text(value));
     }
     db_query = db_query.bind(org_id);

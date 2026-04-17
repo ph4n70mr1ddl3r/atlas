@@ -105,6 +105,13 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
     let security_engine = Arc::new(SecurityEngine::new());
     let event_bus = Arc::new(NatsEventBus::noop("atlas-gateway-test"));
 
+    let notification_engine = Arc::new(atlas_core::NotificationEngine::new(Arc::new(
+        atlas_core::notification::PostgresNotificationRepository::new(db_pool.clone()),
+    )));
+    let approval_engine = Arc::new(atlas_core::ApprovalEngine::new(Arc::new(
+        atlas_core::approval::PostgresApprovalRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -113,6 +120,8 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         formula_engine,
         security_engine,
         audit_engine,
+        notification_engine,
+        approval_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

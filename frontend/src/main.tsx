@@ -11,6 +11,7 @@ import { EntityDetailPage } from '@/pages/entity-detail'
 import { ReportsPage } from '@/pages/reports'
 import { AdminPage } from '@/pages/admin'
 import { LoginPage } from '@/pages/login'
+import { ApprovalsPage } from '@/pages/approvals'
 
 import '@/styles/globals.css'
 
@@ -43,6 +44,7 @@ function App() {
             }
           >
             <Route index element={<DashboardPage />} />
+            <Route path="approvals" element={<ApprovalsPage />} />
             <Route path=":entity" element={<EntityListPage />} />
             <Route path=":entity/:id" element={<EntityDetailPage />} />
             <Route path="reports" element={<ReportsPage />} />

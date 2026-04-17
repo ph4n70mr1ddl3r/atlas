@@ -9,6 +9,10 @@ import {
   getRecordHistory,
   updateRecord,
   deleteRecord,
+  addFavorite,
+  removeFavorite,
+  checkFavorite,
+  getRelatedRecords,
 } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,7 +21,11 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DynamicForm } from '@/components/dynamic-form'
 import { WorkflowDiagram } from '@/components/workflow-diagram'
-import { ArrowLeft, Edit, Trash2, GitBranch, History } from 'lucide-react'
+import { Comments } from '@/components/comments'
+import {
+  ArrowLeft, Edit, Trash2, GitBranch, History,
+  Star, StarOff, ChevronDown, ChevronRight, Link2,
+} from 'lucide-react'
 import { formatDateTime, formatDate } from '@/lib/utils'
 
 export function EntityDetailPage() {
@@ -27,6 +35,8 @@ export function EntityDetailPage() {
   const [editing, setEditing] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [showWorkflow, setShowWorkflow] = useState(false)
+  const [showComments, setShowComments] = useState(true)
+  const [expandedRelated, setExpandedRelated] = useState<Set<string>>(new Set())
 
   const { data: schema } = useQuery({
     queryKey: ['schema', entity],
@@ -50,6 +60,31 @@ export function EntityDetailPage() {
     queryFn: () => getRecordHistory(entity, id),
     enabled: !!entity && !!id,
   })
+
+  // Favorite status
+  const { data: favStatus } = useQuery({
+    queryKey: ['favorite', entity, id],
+    queryFn: () => checkFavorite(entity, id),
+    enabled: !!entity && !!id,
+  })
+
+  const toggleFavorite = async () => {
+    try {
+      if (favStatus?.is_favorite) {
+        await removeFavorite(entity, id)
+      } else {
+        await addFavorite(entity, id)
+      }
+      qc.invalidateQueries({ queryKey: ['favorite', entity, id] })
+    } catch (err) {
+      console.error('Favorite toggle failed:', err)
+    }
+  }
+
+  // Discover related entities from schema
+  const relatedEntities = schema?.fields.filter(
+    (f) => f.fieldType.type === 'one_to_many',
+  ) ?? []
 
   const handleAction = async (action: string) => {
     try {
@@ -127,6 +162,18 @@ export function EntityDetailPage() {
           </Button>
           <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
             <Trash2 className="mr-2 h-4 w-4" /> Delete
+          </Button>
+          <Button
+            variant={favStatus?.is_favorite ? 'default' : 'outline'}
+            size="sm"
+            onClick={toggleFavorite}
+            title={favStatus?.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {favStatus?.is_favorite ? (
+              <><Star className="mr-2 h-4 w-4 fill-current" /> Favorited</>
+            ) : (
+              <><StarOff className="mr-2 h-4 w-4" /> Favorite</>
+            )}
           </Button>
         </div>
       </div>
@@ -302,6 +349,60 @@ export function EntityDetailPage() {
         </div>
       </div>
 
+      {/* Related Records Sections */}
+      {relatedEntities.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              Related Records
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {relatedEntities.map((field) => {
+              const relEntity = (field.fieldType as { type: string; entity: string }).entity
+              const isOpen = expandedRelated.has(relEntity)
+              return (
+                <RelatedSection
+                  key={relEntity}
+                  entity={entity}
+                  recordId={id}
+                  relatedEntity={relEntity}
+                  label={field.label}
+                  isOpen={isOpen}
+                  onToggle={() => {
+                    setExpandedRelated((prev) => {
+                      const next = new Set(prev)
+                      if (next.has(relEntity)) next.delete(relEntity)
+                      else next.add(relEntity)
+                      return next
+                    })
+                  }}
+                />
+              )
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Comments Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setShowComments(!showComments)}
+          >
+            {showComments ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            Comments
+          </CardTitle>
+        </CardHeader>
+        {showComments && (
+          <CardContent>
+            <Comments entity={entity} recordId={id} />
+          </CardContent>
+        )}
+      </Card>
+
       {/* Edit dialog with dynamic form */}
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="max-w-2xl">
@@ -339,6 +440,82 @@ export function EntityDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+/** Related records sub-section */
+function RelatedSection({
+  entity,
+  recordId,
+  relatedEntity,
+  label,
+  isOpen,
+  onToggle,
+}: {
+  entity: string
+  recordId: string
+  relatedEntity: string
+  label: string
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['related', entity, recordId, relatedEntity],
+    queryFn: () => getRelatedRecords(entity, recordId, relatedEntity, { limit: 5 }),
+    enabled: isOpen,
+  })
+
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors w-full text-left"
+      >
+        {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        {label ?? relatedEntity.replace(/_/g, ' ')}
+        {data && (
+          <Badge variant="secondary" className="text-[10px] ml-1">{data.meta.total}</Badge>
+        )}
+      </button>
+      {isOpen && (
+        <div className="mt-2 ml-6">
+          {isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading...</div>
+          ) : data?.data.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No records found</div>
+          ) : (
+            <div className="space-y-1">
+              {data?.data.slice(0, 5).map((rec, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-muted cursor-pointer"
+                  onClick={() => {
+                    window.location.hash = `/${relatedEntity}/${rec.id}`
+                  }}
+                >
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {(rec.id as string).slice(0, 8)}…
+                  </span>
+                  {Object.entries(rec)
+                    .filter(([k]) => !['id', 'organization_id', 'created_at', 'updated_at', 'deleted_at'].includes(k))
+                    .slice(0, 3)
+                    .map(([k, v]) => (
+                      <span key={k} className="text-xs">
+                        <span className="text-muted-foreground">{k}:</span> {String(v).slice(0, 20)}
+                      </span>
+                    ))}
+                </div>
+              ))}
+              {data && data.meta.total > 5 && (
+                <div className="text-xs text-muted-foreground">
+                  +{data.meta.total - 5} more
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

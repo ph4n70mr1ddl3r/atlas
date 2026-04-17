@@ -12,8 +12,10 @@ import {
   LogOut,
   Menu,
   X,
+  CheckSquare,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { NotificationBell } from '@/components/notification-bell'
 import { useState } from 'react'
 
 const navItems = [
@@ -23,6 +25,7 @@ const navItems = [
   { label: 'Orders', href: '/orders', icon: ShoppingCart },
   { label: 'Products', href: '/products', icon: Package },
   { label: 'Projects', href: '/projects', icon: FileText },
+  { label: 'Approvals', href: '/approvals', icon: CheckSquare },
   { label: 'Reports', href: '/reports', icon: BarChart3 },
   { label: 'Admin', href: '/admin', icon: Settings },
 ]
@@ -100,12 +103,20 @@ export function AppLayout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
-        {/* Top bar (mobile) */}
-        <header className="flex h-16 items-center gap-4 border-b px-6 lg:hidden">
-          <button onClick={() => setSidebarOpen(true)}>
+        {/* Top bar */}
+        <header className="flex h-16 items-center gap-4 border-b px-6">
+          <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-lg font-semibold">Atlas ERP</span>
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Link to="/approvals">
+              <Button variant="ghost" size="icon" title="My Approvals">
+                <CheckSquare className="h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
         </header>
 
         <div className="p-6 lg:p-8">

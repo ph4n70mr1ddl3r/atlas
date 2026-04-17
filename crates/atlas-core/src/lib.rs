@@ -9,6 +9,8 @@
 //! - Audit engine for change tracking
 //! - Configuration engine for hot-reload
 //! - Event bus for inter-service communication
+//! - Notification engine (Oracle Fusion bell-icon notifications)
+//! - Approval engine (Oracle Fusion multi-level approvals)
 
 pub mod schema;
 pub mod workflow;
@@ -18,6 +20,8 @@ pub mod security;
 pub mod audit;
 pub mod config;
 pub mod eventbus;
+pub mod notification;
+pub mod approval;
 
 pub use schema::*;
 pub use workflow::{
@@ -39,6 +43,8 @@ pub use security::*;
 pub use audit::*;
 pub use config::*;
 pub use eventbus::*;
+pub use notification::{NotificationEngine, PostgresNotificationRepository as PostgresNotificationRepo};
+pub use approval::{ApprovalEngine, PostgresApprovalRepository as PostgresApprovalRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

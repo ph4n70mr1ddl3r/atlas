@@ -3,11 +3,15 @@
 //! Shared state for all request handlers.
 
 use atlas_core::{
-    SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine, 
+    SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
     SecurityEngine, AuditEngine,
+    NotificationEngine,
+    ApprovalEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
+    notification::PostgresNotificationRepository,
+    approval::PostgresApprovalRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -25,6 +29,8 @@ pub struct AppState {
     pub formula_engine: Arc<FormulaEngine>,
     pub security_engine: Arc<SecurityEngine>,
     pub audit_engine: Arc<AuditEngine>,
+    pub notification_engine: Arc<NotificationEngine>,
+    pub approval_engine: Arc<ApprovalEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -76,6 +82,16 @@ impl AppState {
                 .unwrap_or_else(|_| NatsEventBus::noop("atlas-gateway"))
         );
         
+        // Initialize notification engine
+        let notification_engine = Arc::new(NotificationEngine::new(Arc::new(
+            PostgresNotificationRepository::new(db_pool.clone())
+        )));
+        
+        // Initialize approval engine
+        let approval_engine = Arc::new(ApprovalEngine::new(Arc::new(
+            PostgresApprovalRepository::new(db_pool.clone())
+        )));
+        
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -120,6 +136,8 @@ impl AppState {
             formula_engine,
             security_engine,
             audit_engine,
+            notification_engine,
+            approval_engine,
             event_bus,
             jwt_secret,
         };

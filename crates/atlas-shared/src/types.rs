@@ -571,3 +571,314 @@ pub struct SchemaVersion {
     pub version: i64,
     pub updated_at: DateTime<Utc>,
 }
+
+// ============================================================================
+// Notification Types (Oracle Fusion bell icon notifications)
+// ============================================================================
+
+/// Notification priority
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum NotificationPriority {
+    Low,
+    #[default]
+    Normal,
+    High,
+    Urgent,
+}
+
+/// Notification type
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum NotificationType {
+    WorkflowAction,
+    ApprovalRequired,
+    Escalation,
+    System,
+    Mention,
+    Assignment,
+    DuplicateDetected,
+    ImportCompleted,
+}
+
+/// Notification record
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Notification {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub user_id: Uuid,
+    pub notification_type: String,
+    pub priority: String,
+    pub title: String,
+    pub message: Option<String>,
+    pub entity_type: Option<String>,
+    pub entity_id: Option<Uuid>,
+    pub action_url: Option<String>,
+    pub workflow_name: Option<String>,
+    pub from_state: Option<String>,
+    pub to_state: Option<String>,
+    pub action: Option<String>,
+    pub performed_by: Option<Uuid>,
+    pub is_read: bool,
+    pub read_at: Option<DateTime<Utc>>,
+    pub is_dismissed: bool,
+    pub dismissed_at: Option<DateTime<Utc>>,
+    pub channels: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub expires_at: Option<DateTime<Utc>>,
+}
+
+/// Create notification request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateNotificationRequest {
+    pub user_id: Option<Uuid>,
+    pub role: Option<String>,
+    pub notification_type: String,
+    pub priority: Option<String>,
+    pub title: String,
+    pub message: Option<String>,
+    pub entity_type: Option<String>,
+    pub entity_id: Option<Uuid>,
+    pub action_url: Option<String>,
+    pub workflow_name: Option<String>,
+    pub from_state: Option<String>,
+    pub to_state: Option<String>,
+    pub action: Option<String>,
+    pub performed_by: Option<Uuid>,
+    pub channels: Option<serde_json::Value>,
+    pub metadata: Option<serde_json::Value>,
+}
+
+// ============================================================================
+// Saved Searches (Oracle Fusion personalized views)
+// ============================================================================
+
+/// Saved search / personalized view
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedSearch {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub user_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub entity_type: String,
+    pub filters: serde_json::Value,
+    pub sort_by: String,
+    pub sort_direction: String,
+    pub columns: serde_json::Value,
+    pub columns_widths: serde_json::Value,
+    pub page_size: i32,
+    pub is_shared: bool,
+    pub is_default: bool,
+    pub color: Option<String>,
+    pub icon: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update saved search request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedSearchRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub entity_type: String,
+    pub filters: Option<serde_json::Value>,
+    pub sort_by: Option<String>,
+    pub sort_direction: Option<String>,
+    pub columns: Option<serde_json::Value>,
+    pub columns_widths: Option<serde_json::Value>,
+    pub page_size: Option<i32>,
+    pub is_shared: Option<bool>,
+    pub is_default: Option<bool>,
+    pub color: Option<String>,
+    pub icon: Option<String>,
+}
+
+// ============================================================================
+// Approval Chains (Oracle Fusion multi-level approvals)
+// ============================================================================
+
+/// Approval chain definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalChain {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub entity_type: String,
+    pub condition_expression: Option<String>,
+    pub chain_definition: serde_json::Value,
+    pub escalation_enabled: bool,
+    pub escalation_hours: i32,
+    pub escalation_to_roles: serde_json::Value,
+    pub allow_delegation: bool,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Approval level within a chain
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalLevel {
+    pub level: i32,
+    pub approver_type: String, // "role", "user", "auto"
+    pub roles: Vec<String>,
+    pub user_ids: Option<Vec<Uuid>>,
+    pub auto_approve_after_hours: Option<i32>,
+}
+
+/// Approval request status
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalStatus {
+    Pending,
+    Approved,
+    Rejected,
+    Escalated,
+    Cancelled,
+    TimedOut,
+}
+
+/// Approval request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalRequest {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub chain_id: Option<Uuid>,
+    pub entity_type: String,
+    pub entity_id: Uuid,
+    pub current_level: i32,
+    pub total_levels: i32,
+    pub status: String,
+    pub requested_by: Uuid,
+    pub requested_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub completed_by: Option<Uuid>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub metadata: serde_json::Value,
+    pub steps: Vec<ApprovalStep>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Individual approval step
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalStep {
+    pub id: Uuid,
+    pub approval_request_id: Uuid,
+    pub level: i32,
+    pub approver_type: String,
+    pub approver_role: Option<String>,
+    pub approver_user_id: Option<Uuid>,
+    pub is_delegated: bool,
+    pub delegated_by: Option<Uuid>,
+    pub delegated_to: Option<Uuid>,
+    pub status: String,
+    pub action_at: Option<DateTime<Utc>>,
+    pub action_by: Option<Uuid>,
+    pub comment: Option<String>,
+    pub auto_approve_after_hours: Option<i32>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+// ============================================================================
+// Import Job Types
+// ============================================================================
+
+/// Import job status
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ImportJobStatus {
+    Pending,
+    Validating,
+    Importing,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+/// Import job tracking
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportJob {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub user_id: Uuid,
+    pub entity_type: String,
+    pub format: String,
+    pub status: String,
+    pub total_rows: i32,
+    pub processed_rows: i32,
+    pub imported_rows: i32,
+    pub failed_rows: i32,
+    pub skipped_rows: i32,
+    pub original_filename: Option<String>,
+    pub file_size_bytes: Option<i64>,
+    pub field_mapping: serde_json::Value,
+    pub upsert_mode: bool,
+    pub skip_validation: bool,
+    pub stop_on_error: bool,
+    pub validation_errors: serde_json::Value,
+    pub import_errors: serde_json::Value,
+    pub duplicate_action: String,
+    pub duplicates_found: i32,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+}
+
+// ============================================================================
+// Duplicate Detection
+// ============================================================================
+
+/// Duplicate detection rule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicateRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub entity_type: String,
+    pub description: Option<String>,
+    pub match_criteria: serde_json::Value,
+    pub filter_condition: serde_json::Value,
+    pub on_duplicate: String,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Duplicate match criterion
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchCriterion {
+    pub field: String,
+    pub match_type: String, // "exact", "fuzzy", "case_insensitive"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub threshold: Option<f64>,
+}
+
+/// Detected duplicate
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DetectedDuplicate {
+    pub rule_name: String,
+    pub entity_type: String,
+    pub existing_record_id: Uuid,
+    pub match_field: String,
+    pub match_type: String,
+    pub existing_value: serde_json::Value,
+    pub new_value: serde_json::Value,
+}

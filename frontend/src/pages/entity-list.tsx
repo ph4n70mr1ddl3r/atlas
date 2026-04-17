@@ -1,20 +1,26 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import {
-  listRecords,
+  listRecordsAdvanced,
   getEntitySchema,
   createRecord,
+  exportCsv,
+  type FilterExpression,
 } from '@/lib/api'
 import { DataTable } from '@/components/data-table'
 import { DynamicForm } from '@/components/dynamic-form'
+import { FilterPanel } from '@/components/filter-panel'
+import { BulkOperations } from '@/components/bulk-operations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, Search, Download, Filter, X } from 'lucide-react'
+import {
+  Plus, Search, Download, X, FileSpreadsheet, CheckSquare,
+} from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 const PAGE_SIZE = 20
@@ -27,6 +33,8 @@ export function EntityListPage() {
   const [search, setSearch] = useState('')
   const [filterField, setFilterField] = useState<string | null>(null)
   const [filterValue, setFilterValue] = useState('')
+  const [structuredFilter, setStructuredFilter] = useState<FilterExpression | null>(null)
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const page = Number(searchParams.get('page') ?? '1') - 1 // 0-based
 
   const { data: schema } = useQuery({
@@ -41,14 +49,15 @@ export function EntityListPage() {
   const orderParam = sorting.length > 0 ? (sorting[0].desc ? 'desc' : 'asc') : undefined
 
   const { data: records, isLoading } = useQuery({
-    queryKey: ['records', entity, page, search, sortParam, orderParam],
+    queryKey: ['records', entity, page, search, sortParam, orderParam, structuredFilter],
     queryFn: () =>
-      listRecords(entity, {
+      listRecordsAdvanced(entity, {
         offset: page * PAGE_SIZE,
         limit: PAGE_SIZE,
         search: search || undefined,
         sort: sortParam,
         order: orderParam,
+        filter: structuredFilter ?? undefined,
       }),
     enabled: !!entity,
   })
@@ -113,15 +122,39 @@ export function EntityListPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/export/${entity}`)}
+            onClick={async () => {
+              try {
+                const blob = await exportCsv(entity, {
+                  fields: schema?.fields.filter((f) => f.isSearchable).map((f) => f.name),
+                  filter: structuredFilter ?? undefined,
+                })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `${entity}_export.csv`
+                a.click()
+                URL.revokeObjectURL(url)
+              } catch (err) {
+                alert(`Export failed: ${err}`)
+              }
+            }}
           >
-            <Download className="mr-2 h-4 w-4" /> Export
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> CSV
           </Button>
           <Button size="sm" onClick={() => setSearchParams({ new: 'true' })}>
             <Plus className="mr-2 h-4 w-4" /> Add {schema?.label ?? 'Record'}
           </Button>
         </div>
       </div>
+
+      {/* Structured Filter Panel */}
+      {schema && (
+        <FilterPanel
+          fields={schema.fields.map((f) => ({ name: f.name, label: f.label, type: f.fieldType.type }))}
+          filter={structuredFilter}
+          onChange={setStructuredFilter}
+        />
+      )}
 
       {/* Search & Filter bar */}
       <div className="flex gap-2 items-center">
@@ -146,39 +179,21 @@ export function EntityListPage() {
           )}
         </div>
 
-        {schema && schema.fields.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <select
-              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={filterField ?? ''}
-              onChange={(e) => setFilterField(e.target.value || null)}
-            >
-              <option value="">All fields</option>
-              {schema.fields
-                .filter((f) => f.isSearchable)
-                .map((f) => (
-                  <option key={f.name} value={f.name}>
-                    {f.label}
-                  </option>
-                ))}
-            </select>
-            {filterField && (
-              <Input
-                placeholder="Filter value…"
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                className="max-w-[200px]"
-              />
-            )}
-          </div>
-        )}
-
         {records?.meta && (
           <span className="text-sm text-muted-foreground ml-auto">
             {records.meta.total.toLocaleString()} record{records.meta.total !== 1 ? 's' : ''}
           </span>
         )}
+
+        <BulkOperations
+          entity={entity}
+          selectedIds={Array.from(selectedRows)}
+          filter={structuredFilter ?? undefined}
+          onCompleted={() => {
+            setSelectedRows(new Set())
+            qc.invalidateQueries({ queryKey: ['records', entity] })
+          }}
+        />
       </div>
 
       {/* Table */}

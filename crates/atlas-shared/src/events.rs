@@ -60,6 +60,23 @@ pub enum EventType {
     WorkflowStateEntered,
     WorkflowStateExited,
     
+    // Approval events (Oracle Fusion)
+    ApprovalRequested,
+    ApprovalStepCompleted,
+    ApprovalDelegated,
+    ApprovalEscalated,
+    
+    // Notification events
+    NotificationCreated,
+    NotificationRead,
+    
+    // Duplicate detection event
+    DuplicateDetected,
+    
+    // Import event
+    ImportCompleted,
+    ImportFailed,
+    
     // Config events
     ConfigChanged,
     ConfigReloaded,
@@ -93,6 +110,22 @@ pub enum EventPayload {
     // Workflow payloads
     WorkflowTransition(WorkflowTransitionPayload),
     
+    // Approval payloads (Oracle Fusion)
+    ApprovalRequested(ApprovalEventPayload),
+    ApprovalStepCompleted(ApprovalEventPayload),
+    ApprovalDelegated(ApprovalDelegationPayload),
+    ApprovalEscalated(ApprovalEventPayload),
+    
+    // Notification payloads
+    NotificationCreated(NotificationEventPayload),
+    
+    // Duplicate detection
+    DuplicateDetected(DuplicateDetectedPayload),
+    
+    // Import
+    ImportCompleted(ImportEventPayload),
+    ImportFailed(ImportEventPayload),
+    
     // Config payloads
     ConfigChanged(ConfigChangedPayload),
     
@@ -116,6 +149,14 @@ impl EventPayload {
             EventPayload::RecordUpdated(_) => EventType::RecordUpdated,
             EventPayload::RecordDeleted(_) => EventType::RecordDeleted,
             EventPayload::WorkflowTransition(_) => EventType::WorkflowTransition,
+            EventPayload::ApprovalRequested(_) => EventType::ApprovalRequested,
+            EventPayload::ApprovalStepCompleted(_) => EventType::ApprovalStepCompleted,
+            EventPayload::ApprovalDelegated(_) => EventType::ApprovalDelegated,
+            EventPayload::ApprovalEscalated(_) => EventType::ApprovalEscalated,
+            EventPayload::NotificationCreated(_) => EventType::NotificationCreated,
+            EventPayload::DuplicateDetected(_) => EventType::DuplicateDetected,
+            EventPayload::ImportCompleted(_) => EventType::ImportCompleted,
+            EventPayload::ImportFailed(_) => EventType::ImportFailed,
             EventPayload::ConfigChanged(_) => EventType::ConfigChanged,
             EventPayload::UserLoggedIn(_) => EventType::UserLoggedIn,
             EventPayload::UserLoggedOut(_) => EventType::UserLoggedOut,
@@ -233,6 +274,74 @@ pub struct HealthCheckPayload {
     pub dependencies: Vec<DependencyStatus>,
 }
 
+// ============================================================================
+// Approval Event Payloads (Oracle Fusion)
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalEventPayload {
+    pub approval_request_id: Uuid,
+    pub entity_type: String,
+    pub entity_id: Uuid,
+    pub level: i32,
+    pub approver_user_id: Option<Uuid>,
+    pub approver_role: Option<String>,
+    pub status: String,
+    pub comment: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalDelegationPayload {
+    pub approval_request_id: Uuid,
+    pub step_id: Uuid,
+    pub delegated_from: Uuid,
+    pub delegated_to: Uuid,
+    pub entity_type: String,
+    pub entity_id: Uuid,
+}
+
+// ============================================================================
+// Notification Event Payload
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationEventPayload {
+    pub notification_id: Uuid,
+    pub user_id: Uuid,
+    pub notification_type: String,
+    pub title: String,
+    pub entity_type: Option<String>,
+    pub entity_id: Option<Uuid>,
+}
+
+// ============================================================================
+// Duplicate Detection & Import Event Payloads
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicateDetectedPayload {
+    pub entity_type: String,
+    pub rule_name: String,
+    pub existing_record_id: Uuid,
+    pub new_record_data: serde_json::Value,
+    pub match_fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportEventPayload {
+    pub job_id: Uuid,
+    pub entity_type: String,
+    pub total_rows: i32,
+    pub imported_rows: i32,
+    pub failed_rows: i32,
+    pub errors: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum HealthStatus {
@@ -286,5 +395,37 @@ pub mod subjects {
     /// Audit subjects
     pub fn audit_log() -> String {
         "atlas.audit".to_string()
+    }
+    
+    /// Approval subjects
+    pub fn approval_requested() -> String {
+        "atlas.approval.requested".to_string()
+    }
+    
+    pub fn approval_completed() -> String {
+        "atlas.approval.completed".to_string()
+    }
+    
+    pub fn approval_delegated() -> String {
+        "atlas.approval.delegated".to_string()
+    }
+    
+    pub fn approval_escalated() -> String {
+        "atlas.approval.escalated".to_string()
+    }
+    
+    /// Notification subjects
+    pub fn notification_created() -> String {
+        "atlas.notification.created".to_string()
+    }
+    
+    /// Import status
+    pub fn import_status() -> String {
+        "atlas.import.status".to_string()
+    }
+    
+    /// Duplicate detection
+    pub fn duplicate_detected() -> String {
+        "atlas.duplicate.detected".to_string()
     }
 }

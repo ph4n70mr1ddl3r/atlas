@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::schema::SchemaRepository;
 use crate::audit::AuditRepository;
 use crate::tax::TaxRepository;
+use crate::intercompany::IntercompanyRepository;
 
 /// Mock schema repository
 pub struct MockSchemaRepository;
@@ -30,6 +31,127 @@ impl AuditRepository for MockAuditRepository {
     async fn query(&self, _query: &crate::audit::AuditQuery) -> AtlasResult<Vec<AuditEntry>> { Ok(vec![]) }
     async fn get_by_id(&self, _id: Uuid) -> AtlasResult<Option<AuditEntry>> { Ok(None) }
     async fn get_by_ids(&self, _ids: &[Uuid]) -> AtlasResult<Vec<AuditEntry>> { Ok(vec![]) }
+}
+
+/// Mock intercompany repository for testing
+pub struct MockIntercompanyRepository;
+
+#[async_trait]
+impl IntercompanyRepository for MockIntercompanyRepository {
+    async fn create_batch(
+        &self, _org_id: Uuid, _batch_number: &str, _description: Option<&str>,
+        _from_entity_id: Uuid, _from_entity_name: &str,
+        _to_entity_id: Uuid, _to_entity_name: &str,
+        _currency_code: &str, _accounting_date: Option<chrono::NaiveDate>,
+        _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::IntercompanyBatch> {
+        Ok(atlas_shared::IntercompanyBatch {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            batch_number: _batch_number.to_string(), description: None,
+            status: "draft".to_string(),
+            from_entity_id: _from_entity_id, from_entity_name: _from_entity_name.to_string(),
+            to_entity_id: _to_entity_id, to_entity_name: _to_entity_name.to_string(),
+            currency_code: _currency_code.to_string(),
+            total_amount: "0".to_string(), total_debit: "0".to_string(),
+            total_credit: "0".to_string(), transaction_count: 0,
+            from_journal_id: None, to_journal_id: None,
+            accounting_date: None, posted_at: None, rejected_reason: None,
+            metadata: serde_json::json!({}),
+            created_by: None, approved_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_batch(&self, _org_id: Uuid, _batch_number: &str) -> AtlasResult<Option<atlas_shared::IntercompanyBatch>> { Ok(None) }
+    async fn get_batch_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::IntercompanyBatch>> { Ok(None) }
+    async fn list_batches(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::IntercompanyBatch>> { Ok(vec![]) }
+    async fn update_batch_status(
+        &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>,
+        _posted_at: Option<chrono::DateTime<chrono::Utc>>, _rejected_reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::IntercompanyBatch> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_batch_totals(
+        &self, _id: Uuid, _total_amount: &str, _total_debit: &str,
+        _total_credit: &str, _transaction_count: i32,
+    ) -> AtlasResult<()> { Ok(()) }
+    async fn create_transaction(
+        &self, _org_id: Uuid, _batch_id: Uuid, _transaction_number: &str,
+        _transaction_type: &str, _description: Option<&str>,
+        _from_entity_id: Uuid, _from_entity_name: &str,
+        _to_entity_id: Uuid, _to_entity_name: &str,
+        _amount: &str, _currency_code: &str, _exchange_rate: Option<&str>,
+        _from_debit_account: Option<&str>, _from_credit_account: Option<&str>,
+        _to_debit_account: Option<&str>, _to_credit_account: Option<&str>,
+        _from_ic_account: &str, _to_ic_account: &str,
+        _transaction_date: chrono::NaiveDate, _due_date: Option<chrono::NaiveDate>,
+        _source_entity_type: Option<&str>, _source_entity_id: Option<Uuid>,
+        _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::IntercompanyTransaction> {
+        Ok(atlas_shared::IntercompanyTransaction {
+            id: Uuid::new_v4(), organization_id: _org_id, batch_id: _batch_id,
+            transaction_number: _transaction_number.to_string(),
+            transaction_type: _transaction_type.to_string(), description: None,
+            from_entity_id: _from_entity_id, from_entity_name: _from_entity_name.to_string(),
+            to_entity_id: _to_entity_id, to_entity_name: _to_entity_name.to_string(),
+            amount: _amount.to_string(), currency_code: _currency_code.to_string(),
+            exchange_rate: None, from_debit_account: None, from_credit_account: None,
+            to_debit_account: None, to_credit_account: None,
+            from_ic_account: _from_ic_account.to_string(),
+            to_ic_account: _to_ic_account.to_string(),
+            status: "draft".to_string(),
+            transaction_date: _transaction_date, due_date: None, settlement_date: None,
+            source_entity_type: None, source_entity_id: None,
+            metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_transaction(&self, _org_id: Uuid, _transaction_number: &str) -> AtlasResult<Option<atlas_shared::IntercompanyTransaction>> { Ok(None) }
+    async fn list_transactions_by_batch(&self, _batch_id: Uuid) -> AtlasResult<Vec<atlas_shared::IntercompanyTransaction>> { Ok(vec![]) }
+    async fn list_transactions_by_entity(&self, _org_id: Uuid, _entity_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::IntercompanyTransaction>> { Ok(vec![]) }
+    async fn update_transaction_status(&self, _id: Uuid, _status: &str, _settlement_date: Option<chrono::NaiveDate>) -> AtlasResult<atlas_shared::IntercompanyTransaction> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn create_settlement(
+        &self, _org_id: Uuid, _settlement_number: &str, _settlement_method: &str,
+        _from_entity_id: Uuid, _to_entity_id: Uuid, _settled_amount: &str,
+        _currency_code: &str, _payment_reference: Option<&str>,
+        _transaction_ids: serde_json::Value, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::IntercompanySettlement> {
+        Ok(atlas_shared::IntercompanySettlement {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            settlement_number: _settlement_number.to_string(),
+            settlement_method: _settlement_method.to_string(),
+            from_entity_id: _from_entity_id, to_entity_id: _to_entity_id,
+            settled_amount: _settled_amount.to_string(),
+            currency_code: _currency_code.to_string(),
+            payment_reference: None, status: "pending".to_string(),
+            settlement_date: chrono::Utc::now().date_naive(),
+            transaction_ids: _transaction_ids,
+            metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_settlements(&self, _org_id: Uuid, _entity_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::IntercompanySettlement>> { Ok(vec![]) }
+    async fn get_balance(&self, _org_id: Uuid, _from_entity_id: Uuid, _to_entity_id: Uuid, _currency_code: &str) -> AtlasResult<Option<atlas_shared::IntercompanyBalance>> { Ok(None) }
+    async fn upsert_balance(
+        &self, _org_id: Uuid, _from_entity_id: Uuid, _to_entity_id: Uuid,
+        _currency_code: &str, _total_outstanding: &str, _total_posted: &str,
+        _total_settled: &str, _open_transaction_count: i32,
+    ) -> AtlasResult<atlas_shared::IntercompanyBalance> {
+        Ok(atlas_shared::IntercompanyBalance {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            from_entity_id: _from_entity_id, to_entity_id: _to_entity_id,
+            currency_code: _currency_code.to_string(),
+            total_outstanding: _total_outstanding.to_string(),
+            total_posted: _total_posted.to_string(),
+            total_settled: _total_settled.to_string(),
+            open_transaction_count: _open_transaction_count,
+            as_of_date: chrono::Utc::now().date_naive(),
+            metadata: serde_json::json!({}),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_balances(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::IntercompanyBalance>> { Ok(vec![]) }
 }
 
 /// Mock tax repository for testing

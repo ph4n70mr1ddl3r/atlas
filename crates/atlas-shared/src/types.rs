@@ -1410,6 +1410,199 @@ pub struct TaxLineResult {
     pub non_recoverable_amount: Option<String>,
 }
 
+// ============================================================================
+// Intercompany Transactions (Oracle Fusion Intercompany)
+// ============================================================================
+
+/// Intercompany transaction batch
+/// Oracle Fusion: Intercompany > Intercompany Batches
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IntercompanyBatch {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_number: String,
+    pub description: Option<String>,
+    /// 'draft', 'submitted', 'approved', 'posted', 'cancelled'
+    pub status: String,
+    pub from_entity_id: Uuid,
+    pub from_entity_name: String,
+    pub to_entity_id: Uuid,
+    pub to_entity_name: String,
+    pub currency_code: String,
+    pub total_amount: String,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub transaction_count: i32,
+    pub from_journal_id: Option<Uuid>,
+    pub to_journal_id: Option<Uuid>,
+    pub accounting_date: Option<chrono::NaiveDate>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create intercompany batch request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IntercompanyBatchRequest {
+    pub batch_number: String,
+    pub description: Option<String>,
+    pub from_entity_id: Uuid,
+    pub from_entity_name: String,
+    pub to_entity_id: Uuid,
+    pub to_entity_name: String,
+    #[serde(default = "default_currency_usd")]
+    pub currency_code: String,
+    pub accounting_date: Option<chrono::NaiveDate>,
+}
+
+fn default_currency_usd() -> String { "USD".to_string() }
+
+/// Intercompany transaction (individual line within a batch)
+/// Oracle Fusion: Intercompany > Intercompany Transactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IntercompanyTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_id: Uuid,
+    pub transaction_number: String,
+    /// 'invoice', 'journal_entry', 'payment', 'charge', 'allocation'
+    pub transaction_type: String,
+    pub description: Option<String>,
+    pub from_entity_id: Uuid,
+    pub from_entity_name: String,
+    pub to_entity_id: Uuid,
+    pub to_entity_name: String,
+    pub amount: String,
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub from_debit_account: Option<String>,
+    pub from_credit_account: Option<String>,
+    pub to_debit_account: Option<String>,
+    pub to_credit_account: Option<String>,
+    pub from_ic_account: String,
+    pub to_ic_account: String,
+    /// 'draft', 'approved', 'posted', 'settled', 'cancelled'
+    pub status: String,
+    pub transaction_date: chrono::NaiveDate,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub settlement_date: Option<chrono::NaiveDate>,
+    pub source_entity_type: Option<String>,
+    pub source_entity_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create intercompany transaction request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IntercompanyTransactionRequest {
+    pub batch_number: String,
+    #[serde(default = "default_ic_transaction_type")]
+    pub transaction_type: String,
+    pub description: Option<String>,
+    pub from_entity_id: Uuid,
+    pub from_entity_name: String,
+    pub to_entity_id: Uuid,
+    pub to_entity_name: String,
+    pub amount: String,
+    #[serde(default = "default_currency_usd")]
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub from_debit_account: Option<String>,
+    pub from_credit_account: Option<String>,
+    pub to_debit_account: Option<String>,
+    pub to_credit_account: Option<String>,
+    pub from_ic_account: Option<String>,
+    pub to_ic_account: Option<String>,
+    pub transaction_date: Option<chrono::NaiveDate>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub source_entity_type: Option<String>,
+    pub source_entity_id: Option<Uuid>,
+}
+
+fn default_ic_transaction_type() -> String { "invoice".to_string() }
+
+/// Intercompany settlement
+/// Oracle Fusion: Intercompany > Settlements
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IntercompanySettlement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub settlement_number: String,
+    /// 'cash', 'netting', 'offset'
+    pub settlement_method: String,
+    pub from_entity_id: Uuid,
+    pub to_entity_id: Uuid,
+    pub settled_amount: String,
+    pub currency_code: String,
+    pub payment_reference: Option<String>,
+    /// 'pending', 'completed', 'cancelled'
+    pub status: String,
+    pub settlement_date: chrono::NaiveDate,
+    pub transaction_ids: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create intercompany settlement request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IntercompanySettlementRequest {
+    pub settlement_number: String,
+    #[serde(default = "default_settlement_method")]
+    pub settlement_method: String,
+    pub from_entity_id: Uuid,
+    pub to_entity_id: Uuid,
+    pub settled_amount: String,
+    #[serde(default = "default_currency_usd")]
+    pub currency_code: String,
+    pub payment_reference: Option<String>,
+    pub transaction_ids: Option<Vec<Uuid>>,
+}
+
+fn default_settlement_method() -> String { "cash".to_string() }
+
+/// Intercompany balance (outstanding due-to/due-from between entities)
+/// Oracle Fusion: Intercompany > Balances Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IntercompanyBalance {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub from_entity_id: Uuid,
+    pub to_entity_id: Uuid,
+    pub currency_code: String,
+    pub total_outstanding: String,
+    pub total_posted: String,
+    pub total_settled: String,
+    pub open_transaction_count: i32,
+    pub as_of_date: chrono::NaiveDate,
+    pub metadata: serde_json::Value,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Intercompany balance summary across all entity pairs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IntercompanyBalanceSummary {
+    pub total_outstanding: String,
+    pub entity_pairs: i32,
+    pub open_transactions: i32,
+    pub balances: Vec<IntercompanyBalance>,
+}
+
 /// Tax report summary
 /// Oracle Fusion: Tax Reporting > Tax Filing
 #[derive(Debug, Clone, Serialize, Deserialize)]

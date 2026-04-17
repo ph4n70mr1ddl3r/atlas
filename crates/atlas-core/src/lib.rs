@@ -25,6 +25,7 @@ pub mod approval;
 pub mod period_close;
 pub mod currency;
 pub mod tax;
+pub mod intercompany;
 
 pub use schema::*;
 pub use workflow::{
@@ -51,6 +52,7 @@ pub use approval::{ApprovalEngine, PostgresApprovalRepository as PostgresApprova
 pub use period_close::{PeriodCloseEngine, PostgresPeriodCloseRepository as PostgresPeriodCloseRepo};
 pub use currency::{CurrencyEngine, PostgresCurrencyRepository as PostgresCurrencyRepo};
 pub use tax::{TaxEngine, PostgresTaxRepository as PostgresTaxRepo};
+pub use intercompany::{IntercompanyEngine, PostgresIntercompanyRepository as PostgresIntercompanyRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

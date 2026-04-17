@@ -665,6 +665,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::tax::PostgresTaxRepository::new(db_pool.clone()),
     )));
 
+    let intercompany_engine = Arc::new(atlas_core::IntercompanyEngine::new(Arc::new(
+        atlas_core::intercompany::PostgresIntercompanyRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -678,6 +682,7 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         period_close_engine,
         currency_engine,
         tax_engine,
+        intercompany_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

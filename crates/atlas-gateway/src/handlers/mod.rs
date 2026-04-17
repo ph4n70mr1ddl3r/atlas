@@ -12,6 +12,7 @@ pub mod advanced;
 pub mod period_close;
 pub mod currency;
 pub mod tax;
+pub mod intercompany;
 
 pub use schema::*;
 pub use records::*;
@@ -23,6 +24,7 @@ pub use advanced::*;
 pub use period_close::*;
 pub use currency::*;
 pub use tax::*;
+pub use intercompany::*;
 
 use axum::{
     Router,
@@ -240,6 +242,32 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         // Tax Reporting
         .route("/tax/reports", post(generate_tax_report))
         .route("/tax/reports", get(list_tax_reports))
+        
+        // ═══════════════════════════════════════════════════════
+        // Intercompany Transactions (Oracle Fusion Intercompany)
+        // ═══════════════════════════════════════════════════════
+        
+        // Intercompany Batches
+        .route("/intercompany/batches", get(list_intercompany_batches))
+        .route("/intercompany/batches", post(create_intercompany_batch))
+        .route("/intercompany/batches/:batch_number", get(get_intercompany_batch))
+        .route("/intercompany/batches/:batch_id/submit", post(submit_intercompany_batch))
+        .route("/intercompany/batches/:batch_id/approve", post(approve_intercompany_batch))
+        .route("/intercompany/batches/:batch_id/post", post(post_intercompany_batch))
+        .route("/intercompany/batches/:batch_id/reject", post(reject_intercompany_batch))
+        
+        // Intercompany Transactions
+        .route("/intercompany/transactions", post(create_intercompany_transaction))
+        .route("/intercompany/transactions/batch/:batch_id", get(list_intercompany_transactions))
+        .route("/intercompany/transactions/entity/:entity_id", get(list_entity_transactions))
+        
+        // Intercompany Settlements
+        .route("/intercompany/settlements", post(create_intercompany_settlement))
+        .route("/intercompany/settlements", get(list_intercompany_settlements))
+        
+        // Intercompany Balances
+        .route("/intercompany/balances/summary", get(get_intercompany_balance_summary))
+        .route("/intercompany/balances/:from_entity_id/:to_entity_id", get(get_intercompany_balance))
         
         .layer(middleware::from_fn(auth_middleware))
 }

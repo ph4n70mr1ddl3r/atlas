@@ -10,6 +10,7 @@ use atlas_core::{
     PeriodCloseEngine,
     CurrencyEngine,
     TaxEngine,
+    IntercompanyEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -18,6 +19,7 @@ use atlas_core::{
     period_close::PostgresPeriodCloseRepository,
     currency::PostgresCurrencyRepository,
     tax::PostgresTaxRepository,
+    intercompany::PostgresIntercompanyRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -40,6 +42,7 @@ pub struct AppState {
     pub period_close_engine: Arc<PeriodCloseEngine>,
     pub currency_engine: Arc<CurrencyEngine>,
     pub tax_engine: Arc<TaxEngine>,
+    pub intercompany_engine: Arc<IntercompanyEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -115,6 +118,11 @@ impl AppState {
         let tax_engine = Arc::new(TaxEngine::new(Arc::new(
             PostgresTaxRepository::new(db_pool.clone())
         )));
+
+        // Initialize intercompany engine
+        let intercompany_engine = Arc::new(IntercompanyEngine::new(Arc::new(
+            PostgresIntercompanyRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -165,6 +173,7 @@ impl AppState {
             period_close_engine,
             currency_engine,
             tax_engine,
+            intercompany_engine,
             event_bus,
             jwt_secret,
         };

@@ -128,6 +128,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::intercompany::PostgresIntercompanyRepository::new(db_pool.clone()),
     )));
 
+    let reconciliation_engine = Arc::new(atlas_core::ReconciliationEngine::new(Arc::new(
+        atlas_core::reconciliation::PostgresReconciliationRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -142,6 +146,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         currency_engine,
         tax_engine,
         intercompany_engine,
+        reconciliation_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -241,4 +246,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.tax_rates").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.tax_jurisdictions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.tax_regimes").execute(pool).await.ok();
+    // Clean reconciliation test data
+    sqlx::query("DELETE FROM _atlas.reconciliation_matches").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.reconciliation_matching_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.reconciliation_summaries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.bank_statement_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.bank_statements").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.system_transactions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.bank_accounts").execute(pool).await.ok();
 }

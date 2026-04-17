@@ -1627,3 +1627,250 @@ pub struct TaxReport {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
+// ============================================================================
+// Bank Reconciliation (Oracle Fusion Cash Management)
+// ============================================================================
+
+/// Bank account definition
+/// Oracle Fusion: Cash Management > Bank Accounts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankAccount {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub account_number: String,
+    pub account_name: String,
+    pub bank_name: String,
+    pub bank_code: Option<String>,
+    pub branch_name: Option<String>,
+    pub branch_code: Option<String>,
+    pub gl_account_code: Option<String>,
+    pub currency_code: String,
+    pub account_type: String,
+    pub last_statement_balance: serde_json::Value,
+    pub last_statement_date: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Create/update bank account request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankAccountRequest {
+    pub account_number: String,
+    pub account_name: String,
+    pub bank_name: String,
+    pub bank_code: Option<String>,
+    pub branch_name: Option<String>,
+    pub branch_code: Option<String>,
+    pub gl_account_code: Option<String>,
+    #[serde(default = "default_currency_usd")]
+    pub currency_code: String,
+    #[serde(default = "default_checking")]
+    pub account_type: String,
+}
+
+fn default_checking() -> String { "checking".to_string() }
+
+/// Bank statement header
+/// Oracle Fusion: Cash Management > Bank Statements
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankStatement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub bank_account_id: Uuid,
+    pub statement_number: String,
+    pub statement_date: chrono::NaiveDate,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub opening_balance: serde_json::Value,
+    pub closing_balance: serde_json::Value,
+    pub total_deposits: serde_json::Value,
+    pub total_withdrawals: serde_json::Value,
+    pub total_interest: serde_json::Value,
+    pub total_charges: serde_json::Value,
+    pub total_lines: i32,
+    pub matched_lines: i32,
+    pub unmatched_lines: i32,
+    pub status: String,
+    pub reconciliation_percent: serde_json::Value,
+    pub imported_by: Option<Uuid>,
+    pub reviewed_by: Option<Uuid>,
+    pub reconciled_by: Option<Uuid>,
+    pub reconciled_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Bank statement line
+/// Oracle Fusion: Individual line items within a bank statement
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankStatementLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub statement_id: Uuid,
+    pub line_number: i32,
+    pub transaction_date: chrono::NaiveDate,
+    pub transaction_type: String,
+    pub amount: serde_json::Value,
+    pub description: Option<String>,
+    pub reference_number: Option<String>,
+    pub check_number: Option<String>,
+    pub counterparty_name: Option<String>,
+    pub counterparty_account: Option<String>,
+    pub match_status: String,
+    pub matched_by: Option<Uuid>,
+    pub matched_at: Option<DateTime<Utc>>,
+    pub match_method: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// System transaction (AP payment, AR receipt, GL entry)
+/// Oracle Fusion: Reconciliation sources
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub bank_account_id: Uuid,
+    pub source_type: String,
+    pub source_id: Uuid,
+    pub source_number: Option<String>,
+    pub transaction_date: chrono::NaiveDate,
+    pub amount: serde_json::Value,
+    pub transaction_type: String,
+    pub description: Option<String>,
+    pub reference_number: Option<String>,
+    pub check_number: Option<String>,
+    pub counterparty_name: Option<String>,
+    pub status: String,
+    pub gl_posting_date: Option<chrono::NaiveDate>,
+    pub currency_code: String,
+    pub exchange_rate: Option<serde_json::Value>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Reconciliation match record
+/// Oracle Fusion: Links between statement lines and system transactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReconciliationMatch {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub statement_id: Uuid,
+    pub statement_line_id: Uuid,
+    pub system_transaction_id: Uuid,
+    pub match_method: String,
+    pub match_confidence: Option<serde_json::Value>,
+    pub matched_by: Option<Uuid>,
+    pub matched_at: Option<DateTime<Utc>>,
+    pub unmatched_by: Option<Uuid>,
+    pub unmatched_at: Option<DateTime<Utc>>,
+    pub status: String,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Reconciliation summary (per account per period)
+/// Oracle Fusion: Reconciliation Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReconciliationSummary {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub bank_account_id: Uuid,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub statement_id: Option<Uuid>,
+    pub statement_balance: serde_json::Value,
+    pub book_balance: serde_json::Value,
+    pub deposits_in_transit: serde_json::Value,
+    pub outstanding_checks: serde_json::Value,
+    pub bank_charges: serde_json::Value,
+    pub bank_interest: serde_json::Value,
+    pub errors_and_omissions: serde_json::Value,
+    pub adjusted_book_balance: serde_json::Value,
+    pub adjusted_bank_balance: serde_json::Value,
+    pub difference: serde_json::Value,
+    pub is_balanced: bool,
+    pub status: String,
+    pub reviewed_by: Option<Uuid>,
+    pub reviewed_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Auto-matching rule
+/// Oracle Fusion: User-defined reconciliation matching rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReconciliationMatchingRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub bank_account_id: Option<Uuid>,
+    pub name: String,
+    pub description: Option<String>,
+    pub priority: i32,
+    pub criteria: serde_json::Value,
+    pub stop_on_match: bool,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create matching rule request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchingRuleRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub bank_account_id: Option<Uuid>,
+    #[serde(default = "default_priority")]
+    pub priority: i32,
+    pub criteria: serde_json::Value,
+    #[serde(default = "default_true_val")]
+    pub stop_on_match: bool,
+}
+
+fn default_priority() -> i32 { 100 }
+fn default_true_val() -> bool { true }
+
+/// Auto-match result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoMatchResult {
+    pub total_lines: i32,
+    pub matched: i32,
+    pub unmatched: i32,
+    pub already_matched: i32,
+    pub matches: Vec<AutoMatchPair>,
+}
+
+/// A single auto-matched pair
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoMatchPair {
+    pub statement_line_id: Uuid,
+    pub system_transaction_id: Uuid,
+    pub match_method: String,
+    pub confidence: f64,
+}

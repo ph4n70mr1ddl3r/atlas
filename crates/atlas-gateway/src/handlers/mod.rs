@@ -13,6 +13,7 @@ pub mod period_close;
 pub mod currency;
 pub mod tax;
 pub mod intercompany;
+pub mod reconciliation;
 
 pub use schema::*;
 pub use records::*;
@@ -25,6 +26,7 @@ pub use period_close::*;
 pub use currency::*;
 pub use tax::*;
 pub use intercompany::*;
+pub use reconciliation::*;
 
 use axum::{
     Router,
@@ -268,6 +270,43 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         // Intercompany Balances
         .route("/intercompany/balances/summary", get(get_intercompany_balance_summary))
         .route("/intercompany/balances/:from_entity_id/:to_entity_id", get(get_intercompany_balance))
+        
+        // ═══════════════════════════════════════════════════════════
+        // Bank Reconciliation (Oracle Fusion Cash Management)
+        // ═══════════════════════════════════════════════════════════
+        
+        // Bank Accounts
+        .route("/reconciliation/bank-accounts", get(list_bank_accounts))
+        .route("/reconciliation/bank-accounts", post(create_bank_account))
+        .route("/reconciliation/bank-accounts/:id", get(get_bank_account))
+        .route("/reconciliation/bank-accounts/:id", delete(delete_bank_account))
+        
+        // Bank Statements
+        .route("/reconciliation/statements", post(create_bank_statement))
+        .route("/reconciliation/statements/bank-account/:bank_account_id", get(list_bank_statements))
+        .route("/reconciliation/statements/:statement_id", get(get_bank_statement))
+        .route("/reconciliation/statements/:statement_id/lines", get(list_statement_lines))
+        
+        // System Transactions
+        .route("/reconciliation/system-transactions", post(create_system_transaction))
+        .route("/reconciliation/system-transactions/unreconciled/:bank_account_id", get(list_unreconciled_transactions))
+        
+        // Auto-Matching
+        .route("/reconciliation/statements/:statement_id/auto-match", post(auto_match_statement))
+        
+        // Manual Matching
+        .route("/reconciliation/statements/:statement_id/manual-match", post(manual_match))
+        .route("/reconciliation/matches/:match_id/unmatch", post(unmatch))
+        .route("/reconciliation/statements/:statement_id/matches", get(list_matches))
+        
+        // Reconciliation Summary
+        .route("/reconciliation/summary", get(get_reconciliation_summary))
+        .route("/reconciliation/summaries", get(list_reconciliation_summaries))
+        
+        // Matching Rules
+        .route("/reconciliation/rules", post(create_matching_rule))
+        .route("/reconciliation/rules", get(list_matching_rules))
+        .route("/reconciliation/rules/:id", delete(delete_matching_rule))
         
         .layer(middleware::from_fn(auth_middleware))
 }

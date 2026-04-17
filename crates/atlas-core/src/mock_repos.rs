@@ -8,6 +8,7 @@ use crate::schema::SchemaRepository;
 use crate::audit::AuditRepository;
 use crate::tax::TaxRepository;
 use crate::intercompany::IntercompanyRepository;
+use crate::reconciliation::ReconciliationRepository;
 
 /// Mock schema repository
 pub struct MockSchemaRepository;
@@ -267,4 +268,168 @@ impl TaxRepository for MockTaxRepository {
         created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
     }) }
     async fn list_tax_reports(&self, _org_id: Uuid, _regime_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::TaxReport>> { Ok(vec![]) }
+}
+
+/// Mock reconciliation repository for testing
+pub struct MockReconciliationRepository;
+
+#[async_trait]
+impl ReconciliationRepository for MockReconciliationRepository {
+    async fn create_bank_account(
+        &self, org_id: Uuid, account_number: &str, account_name: &str, bank_name: &str,
+        bank_code: Option<&str>, branch_name: Option<&str>, branch_code: Option<&str>,
+        gl_account_code: Option<&str>, currency_code: &str, account_type: &str,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::BankAccount> {
+        Ok(atlas_shared::BankAccount {
+            id: Uuid::new_v4(), organization_id: org_id,
+            account_number: account_number.to_string(), account_name: account_name.to_string(),
+            bank_name: bank_name.to_string(), bank_code: bank_code.map(String::from),
+            branch_name: branch_name.map(String::from), branch_code: branch_code.map(String::from),
+            gl_account_code: gl_account_code.map(String::from),
+            currency_code: currency_code.to_string(), account_type: account_type.to_string(),
+            last_statement_balance: serde_json::json!(0),
+            last_statement_date: None, is_active: true,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn get_bank_account(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::BankAccount>> { Ok(None) }
+    async fn list_bank_accounts(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::BankAccount>> { Ok(vec![]) }
+    async fn delete_bank_account(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_bank_statement(
+        &self, org_id: Uuid, bank_account_id: Uuid, statement_number: &str,
+        statement_date: chrono::NaiveDate, start_date: chrono::NaiveDate,
+        end_date: chrono::NaiveDate, opening_balance: &str, closing_balance: &str,
+        imported_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::BankStatement> {
+        Ok(atlas_shared::BankStatement {
+            id: Uuid::new_v4(), organization_id: org_id, bank_account_id,
+            statement_number: statement_number.to_string(), statement_date,
+            start_date, end_date,
+            opening_balance: serde_json::json!(opening_balance),
+            closing_balance: serde_json::json!(closing_balance),
+            total_deposits: serde_json::json!(0), total_withdrawals: serde_json::json!(0),
+            total_interest: serde_json::json!(0), total_charges: serde_json::json!(0),
+            total_lines: 0, matched_lines: 0, unmatched_lines: 0,
+            status: "imported".to_string(), reconciliation_percent: serde_json::json!(0),
+            imported_by, reviewed_by: None, reconciled_by: None, reconciled_at: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn get_bank_statement(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::BankStatement>> { Ok(None) }
+    async fn list_bank_statements(&self, _org_id: Uuid, _bank_account_id: Uuid) -> AtlasResult<Vec<atlas_shared::BankStatement>> { Ok(vec![]) }
+    async fn update_statement_counts(&self, _id: Uuid, _total: i32, _matched: i32, _unmatched: i32, _pct: f64) -> AtlasResult<()> { Ok(()) }
+    async fn update_statement_status(&self, _id: Uuid, _status: &str, _by: Option<Uuid>) -> AtlasResult<atlas_shared::BankStatement> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_statement_line(
+        &self, org_id: Uuid, statement_id: Uuid, line_number: i32,
+        transaction_date: chrono::NaiveDate, transaction_type: &str, amount: &str,
+        description: Option<&str>, reference_number: Option<&str>, check_number: Option<&str>,
+        counterparty_name: Option<&str>, counterparty_account: Option<&str>,
+    ) -> AtlasResult<atlas_shared::BankStatementLine> {
+        Ok(atlas_shared::BankStatementLine {
+            id: Uuid::new_v4(), organization_id: org_id, statement_id, line_number,
+            transaction_date, transaction_type: transaction_type.to_string(),
+            amount: serde_json::json!(amount), description: description.map(String::from),
+            reference_number: reference_number.map(String::from),
+            check_number: check_number.map(String::from),
+            counterparty_name: counterparty_name.map(String::from),
+            counterparty_account: counterparty_account.map(String::from),
+            match_status: "unmatched".to_string(),
+            matched_by: None, matched_at: None, match_method: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn list_statement_lines(&self, _statement_id: Uuid) -> AtlasResult<Vec<atlas_shared::BankStatementLine>> { Ok(vec![]) }
+
+    async fn create_system_transaction(
+        &self, org_id: Uuid, bank_account_id: Uuid, source_type: &str,
+        source_id: Uuid, source_number: Option<&str>, transaction_date: chrono::NaiveDate,
+        amount: &str, transaction_type: &str, description: Option<&str>,
+        reference_number: Option<&str>, check_number: Option<&str>,
+        counterparty_name: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SystemTransaction> {
+        Ok(atlas_shared::SystemTransaction {
+            id: Uuid::new_v4(), organization_id: org_id, bank_account_id,
+            source_type: source_type.to_string(), source_id,
+            source_number: source_number.map(String::from), transaction_date,
+            amount: serde_json::json!(amount),
+            transaction_type: transaction_type.to_string(),
+            description: description.map(String::from),
+            reference_number: reference_number.map(String::from),
+            check_number: check_number.map(String::from),
+            counterparty_name: counterparty_name.map(String::from),
+            status: "unreconciled".to_string(), gl_posting_date: None,
+            currency_code: "USD".to_string(), exchange_rate: None,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn get_system_transaction(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SystemTransaction>> { Ok(None) }
+    async fn list_unreconciled_transactions(&self, _org_id: Uuid, _bank_account_id: Uuid) -> AtlasResult<Vec<atlas_shared::SystemTransaction>> { Ok(vec![]) }
+
+    async fn create_match(
+        &self, org_id: Uuid, statement_id: Uuid, statement_line_id: Uuid,
+        system_transaction_id: Uuid, match_method: &str, match_confidence: Option<f64>,
+        matched_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ReconciliationMatch> {
+        Ok(atlas_shared::ReconciliationMatch {
+            id: Uuid::new_v4(), organization_id: org_id, statement_id,
+            statement_line_id, system_transaction_id,
+            match_method: match_method.to_string(),
+            match_confidence: match_confidence.map(|c| serde_json::json!(c)),
+            matched_by, matched_at: Some(chrono::Utc::now()),
+            unmatched_by: None, unmatched_at: None,
+            status: "active".to_string(), notes: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn get_match(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ReconciliationMatch>> { Ok(None) }
+    async fn list_matches(&self, _statement_id: Uuid) -> AtlasResult<Vec<atlas_shared::ReconciliationMatch>> { Ok(vec![]) }
+    async fn unmatch(&self, _id: Uuid, _unmatched_by: Option<Uuid>) -> AtlasResult<atlas_shared::ReconciliationMatch> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn get_or_create_summary(
+        &self, org_id: Uuid, bank_account_id: Uuid,
+        period_start: chrono::NaiveDate, period_end: chrono::NaiveDate,
+    ) -> AtlasResult<atlas_shared::ReconciliationSummary> {
+        Ok(atlas_shared::ReconciliationSummary {
+            id: Uuid::new_v4(), organization_id: org_id, bank_account_id,
+            period_start, period_end, statement_id: None,
+            statement_balance: serde_json::json!(0), book_balance: serde_json::json!(0),
+            deposits_in_transit: serde_json::json!(0), outstanding_checks: serde_json::json!(0),
+            bank_charges: serde_json::json!(0), bank_interest: serde_json::json!(0),
+            errors_and_omissions: serde_json::json!(0),
+            adjusted_book_balance: serde_json::json!(0), adjusted_bank_balance: serde_json::json!(0),
+            difference: serde_json::json!(0), is_balanced: false,
+            status: "in_progress".to_string(),
+            reviewed_by: None, reviewed_at: None, approved_by: None, approved_at: None,
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn list_summaries(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::ReconciliationSummary>> { Ok(vec![]) }
+
+    async fn create_matching_rule(
+        &self, org_id: Uuid, name: &str, description: Option<&str>,
+        bank_account_id: Option<Uuid>, priority: i32, criteria: serde_json::Value,
+        stop_on_match: bool, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ReconciliationMatchingRule> {
+        Ok(atlas_shared::ReconciliationMatchingRule {
+            id: Uuid::new_v4(), organization_id: org_id, bank_account_id,
+            name: name.to_string(), description: description.map(String::from),
+            priority, criteria, stop_on_match, is_active: true,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_matching_rules(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::ReconciliationMatchingRule>> { Ok(vec![]) }
+    async fn delete_matching_rule(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
 }

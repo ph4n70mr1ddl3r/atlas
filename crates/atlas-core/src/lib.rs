@@ -27,6 +27,7 @@ pub mod currency;
 pub mod tax;
 pub mod intercompany;
 pub mod reconciliation;
+pub mod expense;
 
 pub use schema::*;
 pub use workflow::{
@@ -55,6 +56,7 @@ pub use currency::{CurrencyEngine, PostgresCurrencyRepository as PostgresCurrenc
 pub use tax::{TaxEngine, PostgresTaxRepository as PostgresTaxRepo};
 pub use intercompany::{IntercompanyEngine, PostgresIntercompanyRepository as PostgresIntercompanyRepo};
 pub use reconciliation::{ReconciliationEngine, PostgresReconciliationRepository as PostgresReconciliationRepo};
+pub use expense::{ExpenseEngine, PostgresExpenseRepository as PostgresExpenseRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

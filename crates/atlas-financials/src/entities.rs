@@ -119,3 +119,43 @@ pub fn budget_definition() -> EntityDefinition {
         .reference("owner_id", "Owner", "employees")
         .build()
 }
+
+/// Expense report entity with workflow
+/// Oracle Fusion: Expenses > Expense Reports
+pub fn expense_report_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("expense_report_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted for Approval")
+        .final_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .final_state("reimbursed", "Reimbursed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "reimbursed", "reimburse")
+        .build();
+
+    SchemaBuilder::new("expense_reports", "Expense Report")
+        .plural_label("Expense Reports")
+        .table_name("fin_expense_reports")
+        .description("Employee expense reports for reimbursement")
+        .icon("receipt")
+        .required_string("report_number", "Report Number")
+        .required_string("title", "Title")
+        .string("description", "Description")
+        .reference("employee_id", "Employee", "employees")
+        .reference("department_id", "Department", "departments")
+        .string("purpose", "Purpose")
+        .reference("project_id", "Project", "projects")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "rejected", "reimbursed", "cancelled"
+        ])
+        .currency("total_amount", "Total Amount", "USD")
+        .currency("reimbursable_amount", "Reimbursable Amount", "USD")
+        .date("trip_start_date", "Trip Start Date")
+        .date("trip_end_date", "Trip End Date")
+        .string("cost_center", "Cost Center")
+        .workflow(workflow)
+        .build()
+}

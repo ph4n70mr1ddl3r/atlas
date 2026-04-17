@@ -238,4 +238,19 @@ mod tests {
         let def = entities::budget_definition();
         assert_eq!(def.name, "budgets");
     }
+    
+    #[test]
+    fn test_expense_report_definition_builds() {
+        let def = entities::expense_report_definition();
+        assert_eq!(def.name, "expense_reports");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        // Should have states: draft, submitted, approved, rejected, reimbursed, cancelled
+        assert!(wf.states.iter().any(|s| s.name == "draft"));
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+        assert!(wf.states.iter().any(|s| s.name == "reimbursed"));
+    }
 }

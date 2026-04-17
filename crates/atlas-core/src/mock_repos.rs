@@ -9,6 +9,7 @@ use crate::audit::AuditRepository;
 use crate::tax::TaxRepository;
 use crate::intercompany::IntercompanyRepository;
 use crate::reconciliation::ReconciliationRepository;
+use crate::expense::ExpenseRepository;
 
 /// Mock schema repository
 pub struct MockSchemaRepository;
@@ -432,4 +433,121 @@ impl ReconciliationRepository for MockReconciliationRepository {
     }
     async fn list_matching_rules(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::ReconciliationMatchingRule>> { Ok(vec![]) }
     async fn delete_matching_rule(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+}
+
+/// Mock expense repository for testing
+pub struct MockExpenseRepository;
+
+#[async_trait]
+impl ExpenseRepository for MockExpenseRepository {
+    async fn create_category(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        receipt_required: bool, receipt_threshold: Option<&str>,
+        is_per_diem: bool, default_per_diem_rate: Option<&str>,
+        is_mileage: bool, default_mileage_rate: Option<&str>,
+        expense_account_code: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ExpenseCategory> {
+        Ok(atlas_shared::ExpenseCategory {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            receipt_required, receipt_threshold: receipt_threshold.map(String::from),
+            is_per_diem, default_per_diem_rate: default_per_diem_rate.map(String::from),
+            is_mileage, default_mileage_rate: default_mileage_rate.map(String::from),
+            expense_account_code: expense_account_code.map(String::from),
+            is_active: true, created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_category(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::ExpenseCategory>> { Ok(None) }
+    async fn get_category_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ExpenseCategory>> { Ok(None) }
+    async fn list_categories(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::ExpenseCategory>> { Ok(vec![]) }
+    async fn delete_category(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_policy(
+        &self, org_id: Uuid, name: &str, description: Option<&str>, category_id: Option<Uuid>,
+        min_amount: Option<&str>, max_amount: Option<&str>, daily_limit: Option<&str>, report_limit: Option<&str>,
+        requires_approval_on_violation: bool, violation_action: &str,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ExpensePolicy> {
+        Ok(atlas_shared::ExpensePolicy {
+            id: Uuid::new_v4(), organization_id: org_id, name: name.to_string(),
+            description: description.map(String::from), category_id,
+            min_amount: min_amount.map(String::from), max_amount: max_amount.map(String::from),
+            daily_limit: daily_limit.map(String::from), report_limit: report_limit.map(String::from),
+            requires_approval_on_violation, violation_action: violation_action.to_string(),
+            is_active: true, effective_from, effective_to,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_policy(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ExpensePolicy>> { Ok(None) }
+    async fn list_policies(&self, _org_id: Uuid, _category_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::ExpensePolicy>> { Ok(vec![]) }
+    async fn delete_policy(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_report(
+        &self, org_id: Uuid, report_number: &str, title: &str, description: Option<&str>,
+        employee_id: Uuid, employee_name: Option<&str>, department_id: Option<Uuid>,
+        purpose: Option<&str>, project_id: Option<Uuid>, currency_code: &str,
+        trip_start_date: Option<chrono::NaiveDate>, trip_end_date: Option<chrono::NaiveDate>,
+        cost_center: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ExpenseReport> {
+        Ok(atlas_shared::ExpenseReport {
+            id: Uuid::new_v4(), organization_id: org_id,
+            report_number: report_number.to_string(), title: title.to_string(),
+            description: description.map(String::from), status: "draft".to_string(),
+            employee_id, employee_name: employee_name.map(String::from),
+            department_id, purpose: purpose.map(String::from), project_id,
+            currency_code: currency_code.to_string(),
+            total_amount: "0".to_string(), reimbursable_amount: "0".to_string(),
+            receipt_required_amount: "0".to_string(), receipt_count: 0,
+            trip_start_date, trip_end_date, cost_center: cost_center.map(String::from),
+            approved_by: None, approved_at: None, rejection_reason: None,
+            payment_method: None, payment_reference: None, reimbursed_at: None,
+            metadata: serde_json::json!({}), created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_report(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ExpenseReport>> { Ok(None) }
+    async fn get_report_by_number(&self, _org_id: Uuid, _report_number: &str) -> AtlasResult<Option<atlas_shared::ExpenseReport>> { Ok(None) }
+    async fn list_reports(&self, _org_id: Uuid, _employee_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::ExpenseReport>> { Ok(vec![]) }
+    async fn update_report_status(
+        &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _rejection_reason: Option<&str>, _reimbursed_at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> AtlasResult<atlas_shared::ExpenseReport> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_report_totals(&self, _id: Uuid, _total: &str, _reimbursable: &str, _receipt_required: &str, _count: i32) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_line(
+        &self, org_id: Uuid, report_id: Uuid, line_number: i32,
+        expense_category_id: Option<Uuid>, expense_category_name: Option<&str>, expense_type: &str,
+        description: Option<&str>, expense_date: chrono::NaiveDate, amount: &str,
+        original_currency: Option<&str>, original_amount: Option<&str>, exchange_rate: Option<&str>,
+        is_reimbursable: bool, has_receipt: bool, receipt_reference: Option<&str>,
+        merchant_name: Option<&str>, location: Option<&str>, attendees: Option<serde_json::Value>,
+        per_diem_days: Option<f64>, per_diem_rate: Option<&str>,
+        mileage_distance: Option<f64>, mileage_rate: Option<&str>, mileage_unit: Option<&str>,
+        mileage_from: Option<&str>, mileage_to: Option<&str>,
+        policy_violation: bool, policy_violation_message: Option<&str>,
+        expense_account_code: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ExpenseLine> {
+        Ok(atlas_shared::ExpenseLine {
+            id: Uuid::new_v4(), organization_id: org_id, report_id, line_number,
+            expense_category_id, expense_category_name: expense_category_name.map(String::from),
+            expense_type: expense_type.to_string(), description: description.map(String::from),
+            expense_date, amount: amount.to_string(),
+            original_currency: original_currency.map(String::from),
+            original_amount: original_amount.map(String::from), exchange_rate: exchange_rate.map(String::from),
+            is_reimbursable, has_receipt, receipt_reference: receipt_reference.map(String::from),
+            merchant_name: merchant_name.map(String::from), location: location.map(String::from),
+            attendees, per_diem_days, per_diem_rate: per_diem_rate.map(String::from),
+            mileage_distance, mileage_rate: mileage_rate.map(String::from),
+            mileage_unit: mileage_unit.map(String::from),
+            mileage_from: mileage_from.map(String::from), mileage_to: mileage_to.map(String::from),
+            policy_violation, policy_violation_message: policy_violation_message.map(String::from),
+            expense_account_code: expense_account_code.map(String::from),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ExpenseLine>> { Ok(None) }
+    async fn list_lines_by_report(&self, _report_id: Uuid) -> AtlasResult<Vec<atlas_shared::ExpenseLine>> { Ok(vec![]) }
+    async fn delete_line(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
 }

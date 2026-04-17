@@ -14,6 +14,7 @@ pub mod currency;
 pub mod tax;
 pub mod intercompany;
 pub mod reconciliation;
+pub mod expense;
 
 pub use schema::*;
 pub use records::*;
@@ -27,6 +28,7 @@ pub use currency::*;
 pub use tax::*;
 pub use intercompany::*;
 pub use reconciliation::*;
+pub use expense::*;
 
 use axum::{
     Router,
@@ -307,6 +309,35 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/reconciliation/rules", post(create_matching_rule))
         .route("/reconciliation/rules", get(list_matching_rules))
         .route("/reconciliation/rules/:id", delete(delete_matching_rule))
+        
+        // ═════════════════════════════════════════════════════════════
+        // Expense Management (Oracle Fusion Expenses)
+        // ═════════════════════════════════════════════════════════════
+        
+        // Expense Categories
+        .route("/expense/categories", get(list_expense_categories))
+        .route("/expense/categories", post(create_expense_category))
+        .route("/expense/categories/:code", get(get_expense_category))
+        .route("/expense/categories/:code", delete(delete_expense_category))
+        
+        // Expense Policies
+        .route("/expense/policies", get(list_expense_policies))
+        .route("/expense/policies", post(create_expense_policy))
+        .route("/expense/policies/:id", delete(delete_expense_policy))
+        
+        // Expense Reports
+        .route("/expense/reports", get(list_expense_reports))
+        .route("/expense/reports", post(create_expense_report))
+        .route("/expense/reports/:id", get(get_expense_report))
+        .route("/expense/reports/:id/submit", post(submit_expense_report))
+        .route("/expense/reports/:id/approve", post(approve_expense_report))
+        .route("/expense/reports/:id/reject", post(reject_expense_report))
+        .route("/expense/reports/:id/reimburse", post(reimburse_expense_report))
+        
+        // Expense Lines
+        .route("/expense/reports/:report_id/lines", get(list_expense_lines))
+        .route("/expense/reports/:report_id/lines", post(add_expense_line))
+        .route("/expense/reports/:report_id/lines/:line_id", delete(delete_expense_line))
         
         .layer(middleware::from_fn(auth_middleware))
 }

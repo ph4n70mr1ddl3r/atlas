@@ -1874,3 +1874,194 @@ pub struct AutoMatchPair {
     pub match_method: String,
     pub confidence: f64,
 }
+
+// ============================================================================
+// Expense Management (Oracle Fusion Expenses)
+// ============================================================================
+
+/// Expense category definition
+/// Oracle Fusion: Expenses > Expense Categories
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpenseCategory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Whether this category requires a receipt above a threshold
+    pub receipt_required: bool,
+    /// Amount threshold above which a receipt is required
+    pub receipt_threshold: Option<String>,
+    /// Whether this category is eligible for per-diem
+    pub is_per_diem: bool,
+    /// Default per-diem rate (if is_per_diem)
+    pub default_per_diem_rate: Option<String>,
+    /// Whether this category is eligible for mileage
+    pub is_mileage: bool,
+    /// Default mileage rate per unit (if is_mileage)
+    pub default_mileage_rate: Option<String>,
+    /// GL account code for posting
+    pub expense_account_code: Option<String>,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Expense policy definition
+/// Oracle Fusion: Expenses > Expense Policies
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpensePolicy {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    /// The expense category this policy applies to (None = all categories)
+    pub category_id: Option<Uuid>,
+    /// Minimum expense amount that triggers policy
+    pub min_amount: Option<String>,
+    /// Maximum expense amount allowed without special approval
+    pub max_amount: Option<String>,
+    /// Maximum daily total for the category
+    pub daily_limit: Option<String>,
+    /// Maximum total per expense report for the category
+    pub report_limit: Option<String>,
+    /// Whether violations require manager approval
+    pub requires_approval_on_violation: bool,
+    /// Action on violation: "warn", "block", "require_justification"
+    pub violation_action: String,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Expense report header
+/// Oracle Fusion: Expenses > Expense Reports
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpenseReport {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub report_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    /// 'draft', 'submitted', 'approved', 'rejected', 'reimbursed', 'cancelled'
+    pub status: String,
+    /// Employee who submitted the report
+    pub employee_id: Uuid,
+    pub employee_name: Option<String>,
+    /// Department for cost center
+    pub department_id: Option<Uuid>,
+    /// Purpose of the expense
+    pub purpose: Option<String>,
+    /// Project reference (for project billing)
+    pub project_id: Option<Uuid>,
+    /// Currency code
+    pub currency_code: String,
+    /// Total amount of all expense lines
+    pub total_amount: String,
+    /// Total reimbursable amount
+    pub reimbursable_amount: String,
+    /// Total amount requiring receipts
+    pub receipt_required_amount: String,
+    /// Number of attached receipts
+    pub receipt_count: i32,
+    /// Business trip start date
+    pub trip_start_date: Option<chrono::NaiveDate>,
+    /// Business trip end date
+    pub trip_end_date: Option<chrono::NaiveDate>,
+    /// Cost center override
+    pub cost_center: Option<String>,
+    /// Approval information
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejection_reason: Option<String>,
+    /// Payment information
+    pub payment_method: Option<String>,
+    pub payment_reference: Option<String>,
+    pub reimbursed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Individual expense line within a report
+/// Oracle Fusion: Expense Lines within Expense Reports
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpenseLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub report_id: Uuid,
+    pub line_number: i32,
+    pub expense_category_id: Option<Uuid>,
+    pub expense_category_name: Option<String>,
+    /// 'expense', 'per_diem', 'mileage', 'credit_card'
+    pub expense_type: String,
+    /// Free-text description of the expense
+    pub description: Option<String>,
+    /// Date the expense was incurred
+    pub expense_date: chrono::NaiveDate,
+    /// Amount in the report currency
+    pub amount: String,
+    /// Original currency if different from report currency
+    pub original_currency: Option<String>,
+    /// Original amount in the foreign currency
+    pub original_amount: Option<String>,
+    /// Exchange rate applied
+    pub exchange_rate: Option<String>,
+    /// Whether this expense is reimbursable
+    pub is_reimbursable: bool,
+    /// Whether a receipt is attached
+    pub has_receipt: bool,
+    /// Receipt attachment reference
+    pub receipt_reference: Option<String>,
+    /// Merchant / vendor name
+    pub merchant_name: Option<String>,
+    /// Location where expense was incurred
+    pub location: Option<String>,
+    /// Attendees (for entertainment / meals)
+    pub attendees: Option<serde_json::Value>,
+    /// For per-diem: number of days
+    pub per_diem_days: Option<f64>,
+    /// For per-diem: daily rate
+    pub per_diem_rate: Option<String>,
+    /// For mileage: distance
+    pub mileage_distance: Option<f64>,
+    /// For mileage: rate per unit
+    pub mileage_rate: Option<String>,
+    /// For mileage: unit ("miles" or "km")
+    pub mileage_unit: Option<String>,
+    /// For mileage: starting location
+    pub mileage_from: Option<String>,
+    /// For mileage: ending location
+    pub mileage_to: Option<String>,
+    /// Whether this line violates any expense policy
+    pub policy_violation: bool,
+    /// Policy violation details
+    pub policy_violation_message: Option<String>,
+    /// GL account code override
+    pub expense_account_code: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Expense policy violation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpensePolicyViolation {
+    pub line_id: Uuid,
+    pub policy_id: Uuid,
+    pub policy_name: String,
+    pub field: String,
+    pub message: String,
+    pub severity: String, // "warning" or "error"
+}

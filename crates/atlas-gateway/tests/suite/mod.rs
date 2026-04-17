@@ -15,3 +15,4 @@ mod period_close;
 mod currency;
 mod tax;
 mod reconciliation;
+mod expense;

@@ -3720,3 +3720,247 @@ pub struct SlaDashboardSummary {
     pub pending_transfer_count: i32,
     pub unbalanced_count: i32,
 }
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Encumbrance Management (Oracle Fusion GL > Encumbrance Management)
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// Tracks financial commitments before actual expenditure:
+// - Requisitions → Preliminary encumbrances
+// - Purchase Orders → Encumbrances (commitments)
+// - Invoices → Partial/Full liquidation of encumbrances
+// - Contracts → Long-term commitment tracking
+//
+// Supports budgetary control by reserving funds against budgets.
+
+/// Encumbrance Type definition
+/// Defines the types of commitments an organization tracks.
+/// Oracle Fusion equivalent: GL > Encumbrance Types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncumbranceType {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique code (e.g., "PURCHASE_ORDER", "REQUISITION", "CONTRACT")
+    pub code: String,
+    /// Human-readable name
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Category: "commitment", "obligation", "preliminary"
+    pub category: String,
+    /// Whether this encumbrance type is enabled
+    pub is_enabled: bool,
+    /// Whether this type can be manually entered
+    pub allow_manual_entry: bool,
+    /// Default encumbrance account code for this type
+    pub default_encumbrance_account_code: Option<String>,
+    /// Whether year-end carry-forward is allowed
+    pub allow_carry_forward: bool,
+    /// Priority for budget control (lower = checked first)
+    pub priority: i32,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Encumbrance Entry header
+/// Represents a commitment transaction (e.g., a purchase order creates an encumbrance).
+/// Oracle Fusion equivalent: GL > Encumbrance Entries
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncumbranceEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated entry number (e.g., "ENC-2024-00001")
+    pub entry_number: String,
+    /// Encumbrance type ID
+    pub encumbrance_type_id: Uuid,
+    /// Encumbrance type code (denormalized)
+    pub encumbrance_type_code: String,
+    /// Source document type (e.g., "purchase_order", "requisition", "contract")
+    pub source_type: Option<String>,
+    /// Source document ID
+    pub source_id: Option<Uuid>,
+    /// Source document number (e.g., PO-00123)
+    pub source_number: Option<String>,
+    /// Description/purpose of the encumbrance
+    pub description: Option<String>,
+    /// Encumbrance date (when the commitment was made)
+    pub encumbrance_date: chrono::NaiveDate,
+    /// Original encumbrance amount
+    pub original_amount: String,
+    /// Current remaining encumbrance amount
+    pub current_amount: String,
+    /// Amount that has been liquidated (matched to actual expenditure)
+    pub liquidated_amount: String,
+    /// Amount that has been manually adjusted
+    pub adjusted_amount: String,
+    /// Currency code
+    pub currency_code: String,
+    /// Status: "draft", "active", "partially_liquidated", "fully_liquidated", "cancelled", "expired"
+    pub status: String,
+    /// Budget period or fiscal year reference
+    pub fiscal_year: Option<i32>,
+    /// Period name
+    pub period_name: Option<String>,
+    /// Whether this entry has been carried forward from a prior year
+    pub is_carry_forward: bool,
+    /// Original entry ID if this is a carry-forward
+    pub carried_forward_from_id: Option<Uuid>,
+    /// Expiry date for time-limited commitments
+    pub expiry_date: Option<chrono::NaiveDate>,
+    /// Reference to the associated budget line (if applicable)
+    pub budget_line_id: Option<Uuid>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub cancelled_by: Option<Uuid>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub cancellation_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Encumbrance Line
+/// Individual line within an encumbrance entry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncumbranceLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub entry_id: Uuid,
+    /// Line number within the entry
+    pub line_number: i32,
+    /// Account code being encumbered
+    pub account_code: String,
+    /// Account description
+    pub account_description: Option<String>,
+    /// Department ID
+    pub department_id: Option<Uuid>,
+    /// Department name
+    pub department_name: Option<String>,
+    /// Project ID
+    pub project_id: Option<Uuid>,
+    /// Project name
+    pub project_name: Option<String>,
+    /// Cost center
+    pub cost_center: Option<String>,
+    /// Original encumbered amount
+    pub original_amount: String,
+    /// Current remaining amount
+    pub current_amount: String,
+    /// Liquidated amount
+    pub liquidated_amount: String,
+    /// Encumbrance account code (the account tracking the commitment)
+    pub encumbrance_account_code: Option<String>,
+    /// Source line reference
+    pub source_line_id: Option<Uuid>,
+    /// Descriptive flexfields
+    pub attribute_category: Option<String>,
+    pub attribute1: Option<String>,
+    pub attribute2: Option<String>,
+    pub attribute3: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Encumbrance Liquidation
+/// Records the reduction of an encumbrance when actual expenditure occurs
+/// (e.g., when an invoice is matched to a purchase order).
+/// Oracle Fusion equivalent: GL > Encumbrance Liquidation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncumbranceLiquidation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated liquidation number
+    pub liquidation_number: String,
+    /// The encumbrance entry being liquidated
+    pub encumbrance_entry_id: Uuid,
+    /// Specific line being liquidated (None = header-level liquidation)
+    pub encumbrance_line_id: Option<Uuid>,
+    /// Liquidation type: "full", "partial", "final"
+    pub liquidation_type: String,
+    /// Amount being liquidated
+    pub liquidation_amount: String,
+    /// Source document type (e.g., "invoice", "payment", "journal_entry")
+    pub source_type: Option<String>,
+    /// Source document ID
+    pub source_id: Option<Uuid>,
+    /// Source document number
+    pub source_number: Option<String>,
+    /// Description
+    pub description: Option<String>,
+    /// Liquidation date
+    pub liquidation_date: chrono::NaiveDate,
+    /// Status: "draft", "processed", "reversed"
+    pub status: String,
+    /// Reversal reference
+    pub reversed_by_id: Option<Uuid>,
+    pub reversal_reason: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Encumbrance Year-End Processing
+/// Tracks carry-forward of open encumbrances to the next fiscal year.
+/// Oracle Fusion equivalent: GL > Encumbrance Year-End Processing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncumbranceCarryForward {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Processing batch number
+    pub batch_number: String,
+    /// Source fiscal year
+    pub from_fiscal_year: i32,
+    /// Target fiscal year
+    pub to_fiscal_year: i32,
+    /// Status: "draft", "processing", "completed", "reversed"
+    pub status: String,
+    /// Total number of entries carried forward
+    pub entry_count: i32,
+    /// Total amount carried forward
+    pub total_amount: String,
+    /// Description/notes
+    pub description: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub processed_by: Option<Uuid>,
+    pub processed_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Encumbrance Dashboard Summary
+/// Provides an overview of encumbrance activity for budgetary control.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncumbranceSummary {
+    /// Total active encumbrance amount
+    pub total_active_amount: String,
+    /// Total liquidated amount (period)
+    pub total_liquidated_amount: String,
+    /// Total adjusted amount (period)
+    pub total_adjusted_amount: String,
+    /// Count of active entries
+    pub active_entry_count: i32,
+    /// Count of entries by status
+    pub entries_by_status: serde_json::Value,
+    /// Count of entries by type
+    pub entries_by_type: serde_json::Value,
+    /// Breakdown by account code
+    pub by_account: serde_json::Value,
+    /// Breakdown by department
+    pub by_department: serde_json::Value,
+    /// Expiring soon count (next 30 days)
+    pub expiring_soon_count: i32,
+    /// Expiring soon amount
+    pub expiring_soon_amount: String,
+}

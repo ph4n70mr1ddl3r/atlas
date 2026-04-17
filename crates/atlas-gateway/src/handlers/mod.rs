@@ -18,6 +18,7 @@ pub mod expense;
 pub mod budget;
 pub mod fixed_assets;
 pub mod subledger_accounting;
+mod encumbrance;
 
 pub use schema::*;
 pub use records::*;
@@ -35,6 +36,7 @@ pub use expense::*;
 pub use budget::*;
 pub use fixed_assets::*;
 pub use subledger_accounting::*;
+pub use encumbrance::*;
 
 use axum::{
     Router,
@@ -467,6 +469,40 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // SLA Dashboard
         .route("/sla/dashboard", get(get_sla_dashboard))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Encumbrance Management (Oracle Fusion GL > Encumbrance Management)
+        // ════════════════════════════════════════════════════════════════════════════════
+
+        // Encumbrance Types
+        .route("/encumbrance/types", get(list_encumbrance_types))
+        .route("/encumbrance/types", post(create_encumbrance_type))
+        .route("/encumbrance/types/:code", get(get_encumbrance_type))
+        .route("/encumbrance/types/:code", delete(delete_encumbrance_type))
+
+        // Encumbrance Entries
+        .route("/encumbrance/entries", post(create_encumbrance_entry))
+        .route("/encumbrance/entries", get(list_encumbrance_entries))
+        .route("/encumbrance/entries/:id", get(get_encumbrance_entry))
+        .route("/encumbrance/entries/:id/activate", post(activate_encumbrance_entry))
+        .route("/encumbrance/entries/:id/cancel", post(cancel_encumbrance_entry))
+
+        // Encumbrance Lines
+        .route("/encumbrance/entries/:entry_id/lines", post(add_encumbrance_line))
+        .route("/encumbrance/entries/:entry_id/lines", get(list_encumbrance_lines))
+        .route("/encumbrance/lines/:line_id", delete(delete_encumbrance_line))
+
+        // Liquidations
+        .route("/encumbrance/liquidations", post(create_liquidation))
+        .route("/encumbrance/liquidations", get(list_liquidations))
+        .route("/encumbrance/liquidations/:id/reverse", post(reverse_liquidation))
+
+        // Year-End Carry-Forward
+        .route("/encumbrance/carry-forward", post(process_carry_forward))
+        .route("/encumbrance/carry-forward", get(list_carry_forwards))
+
+        // Encumbrance Summary Dashboard
+        .route("/encumbrance/summary", get(get_encumbrance_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

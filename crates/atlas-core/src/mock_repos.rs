@@ -1706,3 +1706,138 @@ impl crate::subledger_accounting::SubledgerAccountingRepository for MockSubledge
         Ok(serde_json::json!({"by_status": [], "by_application": []}))
     }
 }
+
+// ============================================================================
+// Mock Encumbrance Repository
+// ============================================================================
+
+pub struct MockEncumbranceRepository;
+
+#[async_trait]
+impl crate::encumbrance::EncumbranceRepository for MockEncumbranceRepository {
+    // Encumbrance Types
+    async fn create_encumbrance_type(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        category: &str, allow_manual_entry: bool, default_encumbrance_account_code: Option<&str>,
+        allow_carry_forward: bool, priority: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EncumbranceType> {
+        Ok(atlas_shared::EncumbranceType {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            category: category.to_string(), is_enabled: true, allow_manual_entry,
+            default_encumbrance_account_code: default_encumbrance_account_code.map(String::from),
+            allow_carry_forward, priority, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_encumbrance_type(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::EncumbranceType>> { Ok(None) }
+    async fn get_encumbrance_type_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EncumbranceType>> { Ok(None) }
+    async fn list_encumbrance_types(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::EncumbranceType>> { Ok(vec![]) }
+    async fn delete_encumbrance_type(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Entries
+    async fn create_entry(
+        &self, org_id: Uuid, entry_number: &str, encumbrance_type_id: Uuid,
+        encumbrance_type_code: &str, source_type: Option<&str>, source_id: Option<Uuid>,
+        source_number: Option<&str>, description: Option<&str>, encumbrance_date: chrono::NaiveDate,
+        original_amount: &str, current_amount: &str, currency_code: &str, status: &str,
+        fiscal_year: Option<i32>, period_name: Option<&str>, expiry_date: Option<chrono::NaiveDate>,
+        budget_line_id: Option<Uuid>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EncumbranceEntry> {
+        Ok(atlas_shared::EncumbranceEntry {
+            id: Uuid::new_v4(), organization_id: org_id,
+            entry_number: entry_number.to_string(), encumbrance_type_id, encumbrance_type_code: encumbrance_type_code.to_string(),
+            source_type: source_type.map(String::from), source_id, source_number: source_number.map(String::from),
+            description: description.map(String::from), encumbrance_date,
+            original_amount: original_amount.to_string(), current_amount: current_amount.to_string(),
+            liquidated_amount: "0".to_string(), adjusted_amount: "0".to_string(),
+            currency_code: currency_code.to_string(), status: status.to_string(),
+            fiscal_year, period_name: period_name.map(String::from),
+            is_carry_forward: false, carried_forward_from_id: None,
+            expiry_date, budget_line_id, metadata: serde_json::json!({}),
+            created_by, approved_by: None, cancelled_by: None, cancelled_at: None, cancellation_reason: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_entry(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EncumbranceEntry>> { Ok(None) }
+    async fn get_entry_by_number(&self, _org_id: Uuid, _entry_number: &str) -> AtlasResult<Option<atlas_shared::EncumbranceEntry>> { Ok(None) }
+    async fn list_entries(&self, _org_id: Uuid, _status: Option<&str>, _encumbrance_type_code: Option<&str>, _source_type: Option<&str>, _fiscal_year: Option<i32>) -> AtlasResult<Vec<atlas_shared::EncumbranceEntry>> { Ok(vec![]) }
+    async fn update_entry_amounts(&self, _id: Uuid, _current: &str, _liquidated: &str, _adjusted: &str, _status: &str) -> AtlasResult<atlas_shared::EncumbranceEntry> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_entry_status(&self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _cancelled_by: Option<Uuid>, _cancellation_reason: Option<&str>) -> AtlasResult<atlas_shared::EncumbranceEntry> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Lines
+    async fn create_line(
+        &self, org_id: Uuid, entry_id: Uuid, line_number: i32, account_code: &str,
+        account_description: Option<&str>, department_id: Option<Uuid>, department_name: Option<&str>,
+        project_id: Option<Uuid>, project_name: Option<&str>, cost_center: Option<&str>,
+        original_amount: &str, current_amount: &str, encumbrance_account_code: Option<&str>,
+        source_line_id: Option<Uuid>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EncumbranceLine> {
+        Ok(atlas_shared::EncumbranceLine {
+            id: Uuid::new_v4(), organization_id: org_id, entry_id, line_number,
+            account_code: account_code.to_string(), account_description: account_description.map(String::from),
+            department_id, department_name: department_name.map(String::from),
+            project_id, project_name: project_name.map(String::from),
+            cost_center: cost_center.map(String::from),
+            original_amount: original_amount.to_string(), current_amount: current_amount.to_string(),
+            liquidated_amount: "0".to_string(),
+            encumbrance_account_code: encumbrance_account_code.map(String::from),
+            source_line_id, attribute_category: None, attribute1: None, attribute2: None, attribute3: None,
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EncumbranceLine>> { Ok(None) }
+    async fn list_lines_by_entry(&self, _entry_id: Uuid) -> AtlasResult<Vec<atlas_shared::EncumbranceLine>> { Ok(vec![]) }
+    async fn update_line_amounts(&self, _id: Uuid, _current: &str, _liquidated: &str) -> AtlasResult<atlas_shared::EncumbranceLine> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_line(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // Liquidations
+    async fn create_liquidation(
+        &self, org_id: Uuid, liquidation_number: &str, encumbrance_entry_id: Uuid,
+        encumbrance_line_id: Option<Uuid>, liquidation_type: &str, liquidation_amount: &str,
+        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        description: Option<&str>, liquidation_date: chrono::NaiveDate, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EncumbranceLiquidation> {
+        Ok(atlas_shared::EncumbranceLiquidation {
+            id: Uuid::new_v4(), organization_id: org_id,
+            liquidation_number: liquidation_number.to_string(), encumbrance_entry_id,
+            encumbrance_line_id, liquidation_type: liquidation_type.to_string(),
+            liquidation_amount: liquidation_amount.to_string(),
+            source_type: source_type.map(String::from), source_id, source_number: source_number.map(String::from),
+            description: description.map(String::from), liquidation_date,
+            status: "draft".to_string(), reversed_by_id: None, reversal_reason: None,
+            metadata: serde_json::json!({}), created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_liquidation(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EncumbranceLiquidation>> { Ok(None) }
+    async fn list_liquidations(&self, _org_id: Uuid, _entry_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::EncumbranceLiquidation>> { Ok(vec![]) }
+    async fn update_liquidation_status(&self, _id: Uuid, _status: &str, _reversed_by_id: Option<Uuid>, _reversal_reason: Option<&str>) -> AtlasResult<atlas_shared::EncumbranceLiquidation> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Carry-Forward
+    async fn create_carry_forward(
+        &self, org_id: Uuid, batch_number: &str, from_fiscal_year: i32, to_fiscal_year: i32,
+        description: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EncumbranceCarryForward> {
+        Ok(atlas_shared::EncumbranceCarryForward {
+            id: Uuid::new_v4(), organization_id: org_id,
+            batch_number: batch_number.to_string(), from_fiscal_year, to_fiscal_year,
+            status: "draft".to_string(), entry_count: 0, total_amount: "0".to_string(),
+            description: description.map(String::from), metadata: serde_json::json!({}),
+            created_by, processed_by: None, processed_at: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_carry_forward(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EncumbranceCarryForward>> { Ok(None) }
+    async fn list_carry_forwards(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::EncumbranceCarryForward>> { Ok(vec![]) }
+    async fn update_carry_forward_status(&self, _id: Uuid, _status: &str, _count: i32, _amount: &str, _processed_by: Option<Uuid>) -> AtlasResult<atlas_shared::EncumbranceCarryForward> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+}

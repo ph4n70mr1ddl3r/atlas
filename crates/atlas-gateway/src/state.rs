@@ -16,6 +16,7 @@ use atlas_core::{
     BudgetEngine,
     FixedAssetEngine,
     SubledgerAccountingEngine,
+    EncumbranceEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -30,6 +31,7 @@ use atlas_core::{
     budget::PostgresBudgetRepository,
     fixed_assets::PostgresFixedAssetRepository,
     subledger_accounting::PostgresSubledgerAccountingRepository,
+    encumbrance::PostgresEncumbranceRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -58,6 +60,7 @@ pub struct AppState {
     pub budget_engine: Arc<BudgetEngine>,
     pub fixed_asset_engine: Arc<FixedAssetEngine>,
     pub sla_engine: Arc<SubledgerAccountingEngine>,
+    pub encumbrance_engine: Arc<EncumbranceEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -163,6 +166,11 @@ impl AppState {
         let sla_engine = Arc::new(SubledgerAccountingEngine::new(Arc::new(
             PostgresSubledgerAccountingRepository::new(db_pool.clone())
         )));
+
+        // Initialize encumbrance engine
+        let encumbrance_engine = Arc::new(EncumbranceEngine::new(Arc::new(
+            PostgresEncumbranceRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -219,6 +227,7 @@ impl AppState {
             budget_engine,
             fixed_asset_engine,
             sla_engine,
+            encumbrance_engine,
             event_bus,
             jwt_secret,
         };

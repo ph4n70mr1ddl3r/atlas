@@ -685,6 +685,14 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::fixed_assets::PostgresFixedAssetRepository::new(db_pool.clone()),
     )));
 
+    let sla_engine = Arc::new(atlas_core::SubledgerAccountingEngine::new(Arc::new(
+        atlas_core::subledger_accounting::PostgresSubledgerAccountingRepository::new(db_pool.clone()),
+    )));
+
+    let encumbrance_engine = Arc::new(atlas_core::EncumbranceEngine::new(Arc::new(
+        atlas_core::encumbrance::PostgresEncumbranceRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -703,6 +711,8 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         expense_engine,
         budget_engine,
         fixed_asset_engine,
+        sla_engine,
+        encumbrance_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

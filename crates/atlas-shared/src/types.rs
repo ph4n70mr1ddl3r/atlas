@@ -3123,6 +3123,307 @@ pub struct RevenueScheduleLine {
     pub updated_at: DateTime<Utc>,
 }
 
+// ============================================================================
+// Payment Management (Oracle Fusion Payables > Payments)
+// ============================================================================
+
+/// Payment terms definition
+/// Oracle Fusion: Payables > Setup > Payment Terms
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentTerm {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique code (e.g., "NET30", "2_10_NET30", "DUE_ON_RECEIPT")
+    pub code: String,
+    /// Display name (e.g., "Net 30 Days")
+    pub name: String,
+    pub description: Option<String>,
+    /// Number of days from invoice date until payment is due
+    pub due_days: i32,
+    /// Days within which a discount is available
+    pub discount_days: Option<i32>,
+    /// Discount percentage for early payment
+    pub discount_percentage: Option<String>,
+    /// Whether this is an installment payment term
+    pub is_installment: bool,
+    /// Number of installments
+    pub installment_count: Option<i32>,
+    /// Installment frequency: 'monthly', 'quarterly', 'weekly'
+    pub installment_frequency: Option<String>,
+    /// Default payment method
+    pub default_payment_method: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update payment terms request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentTermRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(default = "default_thirty")]
+    pub due_days: i32,
+    pub discount_days: Option<i32>,
+    pub discount_percentage: Option<String>,
+    #[serde(default)]
+    pub is_installment: bool,
+    pub installment_count: Option<i32>,
+    pub installment_frequency: Option<String>,
+    pub default_payment_method: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+fn default_thirty() -> i32 { 30 }
+
+/// Payment batch (payment run)
+/// Oracle Fusion: Payables > Payments > Payment Batches
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentBatch {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_number: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    /// When payments should be issued
+    pub payment_date: chrono::NaiveDate,
+    /// Bank account to pay from
+    pub bank_account_id: Option<Uuid>,
+    /// Payment method: 'check', 'eft', 'wire', 'ach'
+    pub payment_method: String,
+    pub currency_code: String,
+    /// Selection criteria used to select invoices for payment
+    pub selection_criteria: serde_json::Value,
+    /// Counts and totals
+    pub total_invoice_count: i32,
+    pub total_payment_count: i32,
+    pub total_payment_amount: String,
+    pub total_discount_taken: String,
+    /// Status: 'draft', 'selected', 'approved', 'formatted', 'confirmed', 'cancelled'
+    pub status: String,
+    /// Workflow tracking
+    pub selected_by: Option<Uuid>,
+    pub selected_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub formatted_by: Option<Uuid>,
+    pub formatted_at: Option<DateTime<Utc>>,
+    pub confirmed_by: Option<Uuid>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub cancelled_by: Option<Uuid>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub cancellation_reason: Option<String>,
+    /// Generated payment file reference
+    pub payment_file_name: Option<String>,
+    pub payment_file_reference: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create payment batch request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentBatchRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub payment_date: chrono::NaiveDate,
+    pub bank_account_id: Option<Uuid>,
+    #[serde(default = "default_check_method")]
+    pub payment_method: String,
+    #[serde(default = "default_currency_usd")]
+    pub currency_code: String,
+    pub selection_criteria: Option<serde_json::Value>,
+}
+
+fn default_check_method() -> String { "check".to_string() }
+
+/// Individual payment
+/// Oracle Fusion: Payables > Payments > Payments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Payment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub payment_number: String,
+    pub batch_id: Option<Uuid>,
+    /// Supplier information
+    pub supplier_id: Uuid,
+    pub supplier_number: Option<String>,
+    pub supplier_name: Option<String>,
+    pub supplier_site: Option<String>,
+    /// Payment details
+    pub payment_date: chrono::NaiveDate,
+    pub payment_method: String,
+    pub currency_code: String,
+    /// Amounts
+    pub payment_amount: String,
+    pub discount_taken: String,
+    pub bank_charges: String,
+    /// Bank account (source of funds)
+    pub bank_account_id: Option<Uuid>,
+    pub bank_account_name: Option<String>,
+    /// GL account codes
+    pub cash_account_code: Option<String>,
+    pub ap_account_code: Option<String>,
+    pub discount_account_code: Option<String>,
+    /// Status: 'draft', 'issued', 'cleared', 'voided', 'reconciled', 'stopped'
+    pub status: String,
+    /// Check / reference number
+    pub check_number: Option<String>,
+    pub reference_number: Option<String>,
+    /// Void tracking
+    pub voided_by: Option<Uuid>,
+    pub voided_at: Option<DateTime<Utc>>,
+    pub void_reason: Option<String>,
+    /// Reissue tracking
+    pub reissued_from_payment_id: Option<Uuid>,
+    pub reissued_payment_id: Option<Uuid>,
+    /// Clearance tracking
+    pub cleared_date: Option<chrono::NaiveDate>,
+    pub cleared_by: Option<Uuid>,
+    pub cleared_at: Option<DateTime<Utc>>,
+    /// GL posting
+    pub journal_entry_id: Option<Uuid>,
+    pub posted_at: Option<DateTime<Utc>>,
+    /// Remittance
+    pub remittance_sent: bool,
+    pub remittance_sent_at: Option<DateTime<Utc>>,
+    pub remittance_method: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Payment line (invoice covered by a payment)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub payment_id: Uuid,
+    pub line_number: i32,
+    /// Invoice reference
+    pub invoice_id: Uuid,
+    pub invoice_number: Option<String>,
+    pub invoice_date: Option<chrono::NaiveDate>,
+    pub invoice_due_date: Option<chrono::NaiveDate>,
+    /// Amounts
+    pub invoice_amount: Option<String>,
+    pub amount_paid: String,
+    pub discount_taken: String,
+    pub withholding_amount: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Scheduled payment
+/// Oracle Fusion: Payables > Payments > Scheduled Payments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduledPayment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub invoice_id: Uuid,
+    pub invoice_number: Option<String>,
+    pub supplier_id: Uuid,
+    pub supplier_name: Option<String>,
+    /// Scheduling
+    pub scheduled_payment_date: chrono::NaiveDate,
+    pub scheduled_amount: String,
+    pub installment_number: i32,
+    pub payment_method: Option<String>,
+    pub bank_account_id: Option<Uuid>,
+    /// Batch selection
+    pub is_selected: bool,
+    pub selected_batch_id: Option<Uuid>,
+    pub payment_id: Option<Uuid>,
+    /// Status: 'pending', 'selected', 'paid', 'cancelled'
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Payment format
+/// Oracle Fusion: Payables > Setup > Payment Formats
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentFormat {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Format type: 'file', 'printed_check', 'edi', 'xml', 'json'
+    pub format_type: String,
+    pub template_reference: Option<String>,
+    pub applicable_methods: serde_json::Value,
+    pub is_system: bool,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Remittance advice
+/// Oracle Fusion: Payables > Payments > Remittance Advice
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemittanceAdvice {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub payment_id: Uuid,
+    /// Delivery
+    pub delivery_method: String,
+    pub delivery_address: Option<String>,
+    pub contact_name: Option<String>,
+    pub contact_email: Option<String>,
+    /// Content
+    pub subject: Option<String>,
+    pub body: Option<String>,
+    /// Status: 'pending', 'sent', 'delivered', 'failed'
+    pub status: String,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub delivered_at: Option<DateTime<Utc>>,
+    pub failure_reason: Option<String>,
+    /// Payment summary
+    pub payment_summary: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Payment dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentDashboardSummary {
+    pub total_pending_payment_count: i32,
+    pub total_pending_payment_amount: String,
+    pub total_paid_payment_count: i32,
+    pub total_paid_payment_amount: String,
+    pub total_discount_taken: String,
+    pub payments_by_method: serde_json::Value,
+    pub payments_by_status: serde_json::Value,
+    /// Upcoming scheduled payments (next 7 days)
+    pub upcoming_scheduled_count: i32,
+    pub upcoming_scheduled_amount: String,
+}
+
 /// Revenue Contract Modification
 /// Tracks changes/amendments to revenue contracts.
 /// Oracle Fusion equivalent: Revenue Management > Contract Modifications

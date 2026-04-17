@@ -32,6 +32,7 @@ pub mod expense;
 pub mod fixed_assets;
 pub mod collections;
 pub mod revenue;
+pub mod payment;
 
 pub use schema::*;
 pub use workflow::{
@@ -65,6 +66,7 @@ pub use budget::{BudgetEngine, PostgresBudgetRepository as PostgresBudgetRepo};
 pub use fixed_assets::{FixedAssetEngine, PostgresFixedAssetRepository as PostgresFixedAssetRepo};
 pub use collections::{CollectionsEngine, PostgresCollectionsRepository as PostgresCollectionsRepo};
 pub use revenue::{RevenueEngine, PostgresRevenueRepository as PostgresRevenueRepo};
+pub use payment::{PaymentEngine, PostgresPaymentRepository as PostgresPaymentRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

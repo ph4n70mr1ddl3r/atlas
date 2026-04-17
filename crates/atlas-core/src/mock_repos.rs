@@ -1310,3 +1310,198 @@ impl RevenueRepository for MockRevenueRepository {
     }
     async fn list_modifications(&self, _contract_id: Uuid) -> AtlasResult<Vec<atlas_shared::RevenueModification>> { Ok(vec![]) }
 }
+
+/// Mock payment repository for testing
+pub struct MockPaymentRepository;
+
+#[async_trait]
+impl crate::payment::PaymentRepository for MockPaymentRepository {
+    // Payment Terms
+    async fn create_payment_term(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        due_days: i32, discount_days: Option<i32>, discount_percentage: Option<&str>,
+        is_installment: bool, installment_count: Option<i32>, installment_frequency: Option<&str>,
+        default_payment_method: Option<&str>, effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PaymentTerm> {
+        Ok(atlas_shared::PaymentTerm {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            due_days, discount_days, discount_percentage: discount_percentage.map(String::from),
+            is_installment, installment_count, installment_frequency: installment_frequency.map(String::from),
+            default_payment_method: default_payment_method.map(String::from),
+            effective_from, effective_to, is_active: true,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_payment_term(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::PaymentTerm>> { Ok(None) }
+    async fn get_payment_term_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PaymentTerm>> { Ok(None) }
+    async fn list_payment_terms(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::PaymentTerm>> { Ok(vec![]) }
+    async fn delete_payment_term(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Payment Batches
+    async fn create_payment_batch(
+        &self, org_id: Uuid, batch_number: &str, name: Option<&str>, description: Option<&str>,
+        payment_date: chrono::NaiveDate, bank_account_id: Option<Uuid>, payment_method: &str,
+        currency_code: &str, selection_criteria: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PaymentBatch> {
+        Ok(atlas_shared::PaymentBatch {
+            id: Uuid::new_v4(), organization_id: org_id,
+            batch_number: batch_number.to_string(), name: name.map(String::from),
+            description: description.map(String::from),
+            payment_date, bank_account_id, payment_method: payment_method.to_string(),
+            currency_code: currency_code.to_string(), selection_criteria,
+            total_invoice_count: 0, total_payment_count: 0,
+            total_payment_amount: "0".to_string(), total_discount_taken: "0".to_string(),
+            status: "draft".to_string(),
+            selected_by: None, selected_at: None, approved_by: None, approved_at: None,
+            formatted_by: None, formatted_at: None, confirmed_by: None, confirmed_at: None,
+            cancelled_by: None, cancelled_at: None, cancellation_reason: None,
+            payment_file_name: None, payment_file_reference: None,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_payment_batch(&self, _org_id: Uuid, _batch_number: &str) -> AtlasResult<Option<atlas_shared::PaymentBatch>> { Ok(None) }
+    async fn get_payment_batch_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PaymentBatch>> { Ok(None) }
+    async fn list_payment_batches(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::PaymentBatch>> { Ok(vec![]) }
+    async fn update_payment_batch_status(
+        &self, _id: Uuid, _status: &str, _action_by: Option<Uuid>, _cancellation_reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::PaymentBatch> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_payment_batch_totals(
+        &self, _id: Uuid, _invoice_count: i32, _payment_count: i32, _payment_amount: &str, _discount_taken: &str,
+    ) -> AtlasResult<()> { Ok(()) }
+
+    // Payments
+    async fn create_payment(
+        &self, org_id: Uuid, payment_number: &str, batch_id: Option<Uuid>,
+        supplier_id: Uuid, supplier_number: Option<&str>, supplier_name: Option<&str>,
+        supplier_site: Option<&str>, payment_date: chrono::NaiveDate, payment_method: &str,
+        currency_code: &str, payment_amount: &str, discount_taken: &str,
+        bank_account_id: Option<Uuid>, bank_account_name: Option<&str>,
+        cash_account_code: Option<&str>, ap_account_code: Option<&str>,
+        discount_account_code: Option<&str>, check_number: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::Payment> {
+        Ok(atlas_shared::Payment {
+            id: Uuid::new_v4(), organization_id: org_id,
+            payment_number: payment_number.to_string(), batch_id,
+            supplier_id, supplier_number: supplier_number.map(String::from),
+            supplier_name: supplier_name.map(String::from), supplier_site: supplier_site.map(String::from),
+            payment_date, payment_method: payment_method.to_string(),
+            currency_code: currency_code.to_string(),
+            payment_amount: payment_amount.to_string(), discount_taken: discount_taken.to_string(),
+            bank_charges: "0".to_string(),
+            bank_account_id, bank_account_name: bank_account_name.map(String::from),
+            cash_account_code: cash_account_code.map(String::from),
+            ap_account_code: ap_account_code.map(String::from),
+            discount_account_code: discount_account_code.map(String::from),
+            status: "draft".to_string(), check_number: check_number.map(String::from),
+            reference_number: None,
+            voided_by: None, voided_at: None, void_reason: None,
+            reissued_from_payment_id: None, reissued_payment_id: None,
+            cleared_date: None, cleared_by: None, cleared_at: None,
+            journal_entry_id: None, posted_at: None,
+            remittance_sent: false, remittance_sent_at: None, remittance_method: None,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_payment(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::Payment>> { Ok(None) }
+    async fn get_payment_by_number(&self, _org_id: Uuid, _payment_number: &str) -> AtlasResult<Option<atlas_shared::Payment>> { Ok(None) }
+    async fn list_payments(&self, _org_id: Uuid, _status: Option<&str>, _supplier_id: Option<Uuid>, _batch_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::Payment>> { Ok(vec![]) }
+    async fn update_payment_status(
+        &self, _id: Uuid, _status: &str, _cleared_date: Option<chrono::NaiveDate>,
+        _cleared_by: Option<Uuid>, _void_reason: Option<&str>, _voided_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::Payment> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Payment Lines
+    async fn create_payment_line(
+        &self, org_id: Uuid, payment_id: Uuid, line_number: i32,
+        invoice_id: Uuid, invoice_number: Option<&str>, invoice_date: Option<chrono::NaiveDate>,
+        invoice_due_date: Option<chrono::NaiveDate>, invoice_amount: Option<&str>,
+        amount_paid: &str, discount_taken: &str, withholding_amount: &str,
+    ) -> AtlasResult<atlas_shared::PaymentLine> {
+        Ok(atlas_shared::PaymentLine {
+            id: Uuid::new_v4(), organization_id: org_id, payment_id, line_number,
+            invoice_id, invoice_number: invoice_number.map(String::from),
+            invoice_date, invoice_due_date,
+            invoice_amount: invoice_amount.map(String::from),
+            amount_paid: amount_paid.to_string(), discount_taken: discount_taken.to_string(),
+            withholding_amount: withholding_amount.to_string(),
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_payment_lines(&self, _payment_id: Uuid) -> AtlasResult<Vec<atlas_shared::PaymentLine>> { Ok(vec![]) }
+
+    // Scheduled Payments
+    async fn create_scheduled_payment(
+        &self, org_id: Uuid, invoice_id: Uuid, invoice_number: Option<&str>,
+        supplier_id: Uuid, supplier_name: Option<&str>,
+        scheduled_payment_date: chrono::NaiveDate, scheduled_amount: &str,
+        installment_number: i32, payment_method: Option<&str>,
+        bank_account_id: Option<Uuid>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ScheduledPayment> {
+        Ok(atlas_shared::ScheduledPayment {
+            id: Uuid::new_v4(), organization_id: org_id,
+            invoice_id, invoice_number: invoice_number.map(String::from),
+            supplier_id, supplier_name: supplier_name.map(String::from),
+            scheduled_payment_date, scheduled_amount: scheduled_amount.to_string(),
+            installment_number, payment_method: payment_method.map(String::from),
+            bank_account_id, is_selected: false, selected_batch_id: None, payment_id: None,
+            status: "pending".to_string(), metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_scheduled_payments(&self, _org_id: Uuid, _status: Option<&str>, _supplier_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::ScheduledPayment>> { Ok(vec![]) }
+    async fn update_scheduled_payment_status(
+        &self, _id: Uuid, _status: &str, _selected_batch_id: Option<Uuid>, _payment_id: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ScheduledPayment> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Payment Formats
+    async fn create_payment_format(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        format_type: &str, template_reference: Option<&str>,
+        applicable_methods: serde_json::Value, is_system: bool,
+    ) -> AtlasResult<atlas_shared::PaymentFormat> {
+        Ok(atlas_shared::PaymentFormat {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            format_type: format_type.to_string(), template_reference: template_reference.map(String::from),
+            applicable_methods, is_system, is_active: true,
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_payment_formats(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::PaymentFormat>> { Ok(vec![]) }
+    async fn delete_payment_format(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Remittance Advice
+    async fn create_remittance_advice(
+        &self, org_id: Uuid, payment_id: Uuid, delivery_method: &str,
+        delivery_address: Option<&str>, contact_name: Option<&str>,
+        contact_email: Option<&str>, subject: Option<&str>, body: Option<&str>,
+        payment_summary: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::RemittanceAdvice> {
+        Ok(atlas_shared::RemittanceAdvice {
+            id: Uuid::new_v4(), organization_id: org_id, payment_id,
+            delivery_method: delivery_method.to_string(), delivery_address: delivery_address.map(String::from),
+            contact_name: contact_name.map(String::from), contact_email: contact_email.map(String::from),
+            subject: subject.map(String::from), body: body.map(String::from),
+            status: "pending".to_string(), sent_at: None, delivered_at: None, failure_reason: None,
+            payment_summary, metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_remittance_advices(&self, _org_id: Uuid, _payment_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::RemittanceAdvice>> { Ok(vec![]) }
+    async fn update_remittance_advice_status(&self, _id: Uuid, _status: &str, _failure_reason: Option<&str>) -> AtlasResult<atlas_shared::RemittanceAdvice> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+}

@@ -200,6 +200,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::sales_commission::PostgresSalesCommissionRepository::new(db_pool.clone()),
     )));
 
+    let treasury_engine = Arc::new(atlas_core::TreasuryEngine::new(Arc::new(
+        atlas_core::treasury::PostgresTreasuryRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -232,6 +236,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         customer_returns_engine,
         pricing_engine,
         sales_commission_engine,
+        treasury_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -413,4 +418,8 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.commission_rate_tiers").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.commission_plans").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.sales_reps").execute(pool).await.ok();
+    // Clean treasury test data
+    sqlx::query("DELETE FROM _atlas.treasury_settlements").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.treasury_deals").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.treasury_counterparties").execute(pool).await.ok();
 }

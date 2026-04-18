@@ -2641,3 +2641,112 @@ impl crate::procurement_contracts::ProcurementContractRepository for MockProcure
     }
     async fn list_spend_entries(&self, _contract_id: Uuid) -> AtlasResult<Vec<atlas_shared::ContractSpend>> { Ok(vec![]) }
 }
+
+/// Mock treasury repository for testing
+pub struct MockTreasuryRepository;
+
+#[async_trait]
+impl crate::treasury::TreasuryRepository for MockTreasuryRepository {
+    async fn create_counterparty(
+        &self, org_id: Uuid, counterparty_code: &str, name: &str, counterparty_type: &str,
+        country_code: Option<&str>, credit_rating: Option<&str>, credit_limit: Option<&str>,
+        settlement_currency: Option<&str>, contact_name: Option<&str>, contact_email: Option<&str>,
+        contact_phone: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TreasuryCounterparty> {
+        Ok(atlas_shared::TreasuryCounterparty {
+            id: Uuid::new_v4(), organization_id: org_id,
+            counterparty_code: counterparty_code.to_string(), name: name.to_string(),
+            counterparty_type: counterparty_type.to_string(),
+            country_code: country_code.map(String::from), credit_rating: credit_rating.map(String::from),
+            credit_limit: credit_limit.map(String::from),
+            settlement_currency: settlement_currency.map(String::from),
+            contact_name: contact_name.map(String::from), contact_email: contact_email.map(String::from),
+            contact_phone: contact_phone.map(String::from),
+            is_active: true, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_counterparty(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::TreasuryCounterparty>> { Ok(None) }
+    async fn get_counterparty_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TreasuryCounterparty>> { Ok(None) }
+    async fn list_counterparties(&self, _org_id: Uuid, _active_only: bool) -> AtlasResult<Vec<atlas_shared::TreasuryCounterparty>> { Ok(vec![]) }
+    async fn delete_counterparty(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_deal(
+        &self, org_id: Uuid, deal_number: &str, deal_type: &str, description: Option<&str>,
+        counterparty_id: Uuid, counterparty_name: Option<&str>, currency_code: &str,
+        principal_amount: &str, interest_rate: Option<&str>, interest_basis: Option<&str>,
+        start_date: chrono::NaiveDate, maturity_date: chrono::NaiveDate, term_days: i32,
+        fx_buy_currency: Option<&str>, fx_buy_amount: Option<&str>,
+        fx_sell_currency: Option<&str>, fx_sell_amount: Option<&str>, fx_rate: Option<&str>,
+        gl_account_code: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TreasuryDeal> {
+        Ok(atlas_shared::TreasuryDeal {
+            id: Uuid::new_v4(), organization_id: org_id,
+            deal_number: deal_number.to_string(), deal_type: deal_type.to_string(),
+            description: description.map(String::from),
+            counterparty_id, counterparty_name: counterparty_name.map(String::from),
+            currency_code: currency_code.to_string(),
+            principal_amount: principal_amount.to_string(),
+            interest_rate: interest_rate.map(String::from),
+            interest_basis: interest_basis.map(String::from),
+            start_date, maturity_date, term_days,
+            fx_buy_currency: fx_buy_currency.map(String::from),
+            fx_buy_amount: fx_buy_amount.map(String::from),
+            fx_sell_currency: fx_sell_currency.map(String::from),
+            fx_sell_amount: fx_sell_amount.map(String::from),
+            fx_rate: fx_rate.map(String::from),
+            accrued_interest: "0".to_string(), settlement_amount: None,
+            gl_account_code: gl_account_code.map(String::from),
+            status: "draft".to_string(),
+            authorized_by: None, authorized_at: None,
+            settled_at: None, matured_at: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_deal(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TreasuryDeal>> { Ok(None) }
+    async fn get_deal_by_number(&self, _org_id: Uuid, _deal_number: &str) -> AtlasResult<Option<atlas_shared::TreasuryDeal>> { Ok(None) }
+    async fn list_deals(&self, _org_id: Uuid, _deal_type: Option<&str>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::TreasuryDeal>> { Ok(vec![]) }
+    async fn update_deal_status(
+        &self, _id: Uuid, _status: &str, _authorized_by: Option<Uuid>,
+        _settled_at: Option<chrono::DateTime<chrono::Utc>>, _matured_at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> AtlasResult<atlas_shared::TreasuryDeal> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_deal_interest(&self, _id: Uuid, _accrued_interest: &str, _settlement_amount: Option<&str>) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_settlement(
+        &self, org_id: Uuid, deal_id: Uuid, settlement_number: &str, settlement_type: &str,
+        settlement_date: chrono::NaiveDate, principal_amount: &str, interest_amount: &str,
+        total_amount: &str, payment_reference: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TreasurySettlement> {
+        Ok(atlas_shared::TreasurySettlement {
+            id: Uuid::new_v4(), organization_id: org_id, deal_id,
+            settlement_number: settlement_number.to_string(),
+            settlement_type: settlement_type.to_string(),
+            settlement_date, principal_amount: principal_amount.to_string(),
+            interest_amount: interest_amount.to_string(),
+            total_amount: total_amount.to_string(),
+            payment_reference: payment_reference.map(String::from),
+            journal_entry_id: None, status: "pending".to_string(),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_settlements(&self, _deal_id: Uuid) -> AtlasResult<Vec<atlas_shared::TreasurySettlement>> { Ok(vec![]) }
+    async fn update_settlement_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::TreasurySettlement> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::TreasuryDashboardSummary> {
+        Ok(atlas_shared::TreasuryDashboardSummary {
+            total_active_deals: 0, total_investments: "0".to_string(),
+            total_borrowings: "0".to_string(), total_fx_exposure: "0".to_string(),
+            total_accrued_interest: "0".to_string(),
+            deals_maturing_7_days: 0, deals_maturing_30_days: 0,
+            investment_count: 0, borrowing_count: 0, fx_deal_count: 0,
+            active_counterparties: 0,
+            deals_by_status: serde_json::json!({}), deals_by_type: serde_json::json!({}),
+            maturity_profile: serde_json::json!({}),
+        })
+    }
+}

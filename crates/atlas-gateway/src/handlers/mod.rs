@@ -31,6 +31,7 @@ pub mod inventory;
 pub mod customer_returns;
 pub mod pricing;
 pub mod sales_commission;
+pub mod treasury;
 
 pub use schema::*;
 pub use records::*;
@@ -61,6 +62,7 @@ pub use inventory::*;
 pub use customer_returns::*;
 pub use pricing::*;
 pub use sales_commission::*;
+pub use treasury::*;
 
 use axum::{
     Router,
@@ -974,6 +976,33 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Commission Dashboard
         .route("/commission/dashboard", get(get_commission_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Treasury Management (Oracle Fusion Treasury)
+        // ═══════════════════════════════════════════════════════════
+
+        // Counterparties
+        .route("/treasury/counterparties", post(create_counterparty))
+        .route("/treasury/counterparties", get(list_counterparties))
+        .route("/treasury/counterparties/:code", get(get_counterparty))
+        .route("/treasury/counterparties/:code", delete(delete_counterparty))
+
+        // Treasury Deals
+        .route("/treasury/deals", post(create_deal))
+        .route("/treasury/deals", get(list_deals))
+        .route("/treasury/deals/:id", get(get_deal))
+
+        // Deal Lifecycle
+        .route("/treasury/deals/:id/authorize", post(authorize_deal))
+        .route("/treasury/deals/:id/settle", post(settle_deal))
+        .route("/treasury/deals/:id/mature", post(mature_deal))
+        .route("/treasury/deals/:id/cancel", post(cancel_deal))
+
+        // Deal Settlements
+        .route("/treasury/deals/:id/settlements", get(list_deal_settlements))
+
+        // Treasury Dashboard
+        .route("/treasury/dashboard", get(get_treasury_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

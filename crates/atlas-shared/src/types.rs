@@ -7475,3 +7475,110 @@ pub struct CommissionTopPerformer {
     pub rank: i32,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Treasury Management (Oracle Fusion Treasury)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Counterparty (bank or financial institution) for treasury operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TreasuryCounterparty {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub counterparty_code: String,
+    pub name: String,
+    pub counterparty_type: String, // bank, financial_institution, internal
+    pub country_code: Option<String>,
+    pub credit_rating: Option<String>,
+    pub credit_limit: Option<String>,
+    pub settlement_currency: Option<String>,
+    pub contact_name: Option<String>,
+    pub contact_email: Option<String>,
+    pub contact_phone: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Treasury deal (investment, borrowing, or FX deal)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TreasuryDeal {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub deal_number: String,
+    pub deal_type: String, // investment, borrowing, fx_forward, fx_spot
+    pub description: Option<String>,
+    pub counterparty_id: Uuid,
+    pub counterparty_name: Option<String>,
+    pub currency_code: String,
+    pub principal_amount: String,
+    pub interest_rate: Option<String>,
+    pub interest_basis: Option<String>, // actual_360, actual_365, 30_360
+    pub start_date: chrono::NaiveDate,
+    pub maturity_date: chrono::NaiveDate,
+    pub term_days: i32,
+    /// For FX deals: the bought currency
+    pub fx_buy_currency: Option<String>,
+    /// For FX deals: the bought amount
+    pub fx_buy_amount: Option<String>,
+    /// For FX deals: the sold currency
+    pub fx_sell_currency: Option<String>,
+    /// For FX deals: the sold amount
+    pub fx_sell_amount: Option<String>,
+    /// For FX deals: the exchange rate
+    pub fx_rate: Option<String>,
+    pub accrued_interest: String,
+    pub settlement_amount: Option<String>,
+    pub gl_account_code: Option<String>,
+    pub status: String, // draft, authorized, settled, matured, cancelled
+    pub authorized_by: Option<Uuid>,
+    pub authorized_at: Option<DateTime<Utc>>,
+    pub settled_at: Option<DateTime<Utc>>,
+    pub matured_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Treasury deal settlement record
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TreasurySettlement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub deal_id: Uuid,
+    pub settlement_number: String,
+    pub settlement_type: String, // full, partial, early
+    pub settlement_date: chrono::NaiveDate,
+    pub principal_amount: String,
+    pub interest_amount: String,
+    pub total_amount: String,
+    pub payment_reference: Option<String>,
+    pub journal_entry_id: Option<Uuid>,
+    pub status: String, // pending, completed, reversed
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Treasury dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TreasuryDashboardSummary {
+    pub total_active_deals: i32,
+    pub total_investments: String,
+    pub total_borrowings: String,
+    pub total_fx_exposure: String,
+    pub total_accrued_interest: String,
+    pub deals_maturing_7_days: i32,
+    pub deals_maturing_30_days: i32,
+    pub investment_count: i32,
+    pub borrowing_count: i32,
+    pub fx_deal_count: i32,
+    pub active_counterparties: i32,
+    pub deals_by_status: serde_json::Value,
+    pub deals_by_type: serde_json::Value,
+    pub maturity_profile: serde_json::Value,
+}
+

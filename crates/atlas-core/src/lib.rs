@@ -48,6 +48,7 @@ pub mod inventory;
 pub mod customer_returns;
 pub mod pricing;
 pub mod sales_commission;
+pub mod treasury;
 
 pub use schema::*;
 pub use workflow::{
@@ -97,6 +98,7 @@ pub use inventory::{InventoryEngine, PostgresInventoryRepository as PostgresInve
 pub use customer_returns::{CustomerReturnsEngine, PostgresCustomerReturnsRepository as PostgresCustomerReturnsRepo};
 pub use pricing::{PricingEngine, PostgresPricingRepository as PostgresPricingRepo};
 pub use sales_commission::{SalesCommissionEngine, PostgresSalesCommissionRepository as PostgresSalesCommissionRepo};
+pub use treasury::{TreasuryEngine, PostgresTreasuryRepository as PostgresTreasuryRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

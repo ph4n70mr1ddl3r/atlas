@@ -28,6 +28,7 @@ pub mod financial_reporting;
 pub mod multi_book;
 pub mod procurement_contracts;
 pub mod inventory;
+pub mod customer_returns;
 
 pub use schema::*;
 pub use records::*;
@@ -55,6 +56,7 @@ pub use financial_reporting::*;
 pub use multi_book::*;
 pub use procurement_contracts::*;
 pub use inventory::*;
+pub use customer_returns::*;
 
 use axum::{
     Router,
@@ -840,6 +842,41 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/inventory/subinventories", post(create_subinventory))
         .route("/inventory/subinventories/:inventory_org_id", get(list_subinventories))
         .route("/inventory/dashboard", get(get_inventory_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Customer Returns / RMA (Oracle Fusion Order Management > Returns)
+        // ═══════════════════════════════════════════════════════
+
+        // Return Reasons
+        .route("/returns/reasons", post(create_return_reason))
+        .route("/returns/reasons", get(list_return_reasons))
+        .route("/returns/reasons/:code", get(get_return_reason))
+        .route("/returns/reasons/:code", delete(delete_return_reason))
+
+        // Return Authorizations (RMAs)
+        .route("/returns/rmas", post(create_rma))
+        .route("/returns/rmas", get(list_rmas))
+        .route("/returns/rmas/:id", get(get_rma))
+        .route("/returns/rmas/:id/submit", post(submit_rma))
+        .route("/returns/rmas/:id/approve", post(approve_rma))
+        .route("/returns/rmas/:id/reject", post(reject_rma))
+        .route("/returns/rmas/:id/cancel", post(cancel_rma))
+
+        // Return Lines
+        .route("/returns/rmas/:rma_id/lines", post(add_return_line))
+        .route("/returns/rmas/:rma_id/lines", get(list_return_lines))
+        .route("/returns/lines/:line_id/receive", post(receive_return_line))
+        .route("/returns/lines/:line_id/inspect", post(inspect_return_line))
+
+        // Credit Memos
+        .route("/returns/rmas/:rma_id/credit-memo", post(generate_credit_memo))
+        .route("/returns/credit-memos", get(list_credit_memos))
+        .route("/returns/credit-memos/:id", get(get_credit_memo))
+        .route("/returns/credit-memos/:id/issue", post(issue_credit_memo))
+        .route("/returns/credit-memos/:id/cancel", post(cancel_credit_memo))
+
+        // Dashboard
+        .route("/returns/dashboard", get(get_returns_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

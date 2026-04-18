@@ -184,6 +184,14 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::procurement_contracts::PostgresProcurementContractRepository::new(db_pool.clone()),
     )));
 
+    let customer_returns_engine = Arc::new(atlas_core::CustomerReturnsEngine::new(Arc::new(
+        atlas_core::customer_returns::PostgresCustomerReturnsRepository::new(db_pool.clone()),
+    )));
+
+    let inventory_engine = Arc::new(atlas_core::InventoryEngine::new(Arc::new(
+        atlas_core::inventory::PostgresInventoryRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -212,6 +220,8 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         financial_reporting_engine,
         multi_book_engine,
         procurement_contract_engine,
+        inventory_engine,
+        customer_returns_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -379,4 +389,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.procurement_contract_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.procurement_contracts").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.procurement_contract_types").execute(pool).await.ok();
+    // Clean customer returns test data
+    sqlx::query("DELETE FROM _atlas.credit_memos").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.return_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.return_authorizations").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.return_reasons").execute(pool).await.ok();
 }

@@ -6932,3 +6932,139 @@ pub struct InventoryDashboardSummary {
     pub low_stock_items: i32,
 }
 
+// ============================================================================
+// Customer Returns Management / Return Material Authorization (RMA)
+// Oracle Fusion Cloud ERP: Order Management > Returns
+// ============================================================================
+
+/// Return reason code definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReturnReason {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub return_type: String, // standard_return, exchange, repair, warranty
+    pub default_disposition: Option<String>, // return_to_stock, scrap, inspect, repair
+    pub requires_approval: bool,
+    pub credit_issued_automatically: bool,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Return Material Authorization (RMA) header
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReturnAuthorization {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rma_number: String,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub return_type: String, // standard_return, exchange, repair, warranty
+    pub status: String, // draft, submitted, approved, rejected, partially_received, received, closed, cancelled
+    pub reason_code: Option<String>,
+    pub reason_name: Option<String>,
+    pub original_order_number: Option<String>,
+    pub original_order_id: Option<Uuid>,
+    pub customer_contact: Option<String>,
+    pub customer_email: Option<String>,
+    pub customer_phone: Option<String>,
+    pub return_date: chrono::NaiveDate,
+    pub expected_receipt_date: Option<chrono::NaiveDate>,
+    pub total_quantity: String,
+    pub total_amount: String,
+    pub total_credit_amount: String,
+    pub currency_code: String,
+    pub notes: Option<String>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    pub credit_memo_id: Option<Uuid>,
+    pub credit_memo_number: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// RMA line item
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReturnLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rma_id: Uuid,
+    pub line_number: i32,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub original_line_id: Option<Uuid>,
+    pub original_quantity: String,
+    pub return_quantity: String,
+    pub unit_price: String,
+    pub return_amount: String,
+    pub credit_amount: String,
+    pub reason_code: Option<String>,
+    pub disposition: Option<String>, // return_to_stock, scrap, inspect, repair, exchange
+    pub lot_number: Option<String>,
+    pub serial_number: Option<String>,
+    pub condition: Option<String>, // good, damaged, defective, wrong_item
+    pub received_quantity: String,
+    pub received_date: Option<chrono::NaiveDate>,
+    pub inspection_status: Option<String>, // pending, passed, failed, pending_review
+    pub inspection_notes: Option<String>,
+    pub credit_status: Option<String>, // pending, issued, reversed
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Credit memo generated from returns
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreditMemo {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub credit_memo_number: String,
+    pub rma_id: Option<Uuid>,
+    pub rma_number: Option<String>,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub amount: String,
+    pub currency_code: String,
+    pub status: String, // draft, issued, applied, partially_applied, reversed, cancelled
+    pub applied_amount: String,
+    pub remaining_amount: String,
+    pub issue_date: Option<chrono::NaiveDate>,
+    pub applied_to_invoice_id: Option<Uuid>,
+    pub applied_to_invoice_number: Option<String>,
+    pub gl_account_code: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Customer Returns dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReturnsDashboardSummary {
+    pub total_rmas: i32,
+    pub open_rmas: i32,
+    pub pending_approval: i32,
+    pub pending_receipt: i32,
+    pub pending_inspection: i32,
+    pub total_credit_issued_amount: String,
+    pub total_credit_pending_amount: String,
+    pub rmas_by_status: serde_json::Value,
+    pub rmas_by_reason: serde_json::Value,
+    pub rmas_by_disposition: serde_json::Value,
+    pub top_returned_items: serde_json::Value,
+    pub average_processing_days: String,
+}
+

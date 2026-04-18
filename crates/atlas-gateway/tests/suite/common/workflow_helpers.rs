@@ -721,6 +721,18 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::multi_book::PostgresMultiBookAccountingRepository::new(db_pool.clone()),
     )));
 
+    let procurement_contract_engine = Arc::new(atlas_core::ProcurementContractEngine::new(Arc::new(
+        atlas_core::procurement_contracts::PostgresProcurementContractRepository::new(db_pool.clone()),
+    )));
+
+    let inventory_engine = Arc::new(atlas_core::InventoryEngine::new(Arc::new(
+        atlas_core::inventory::PostgresInventoryRepository::new(db_pool.clone()),
+    )));
+
+    let customer_returns_engine = Arc::new(atlas_core::CustomerReturnsEngine::new(Arc::new(
+        atlas_core::customer_returns::PostgresCustomerReturnsRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -748,6 +760,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         cost_allocation_engine,
         financial_reporting_engine,
         multi_book_engine,
+        procurement_contract_engine,
+        inventory_engine,
+        customer_returns_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -45,6 +45,7 @@ pub mod withholding_tax;
 pub mod multi_book;
 pub mod procurement_contracts;
 pub mod inventory;
+pub mod customer_returns;
 
 pub use schema::*;
 pub use workflow::{
@@ -91,6 +92,7 @@ pub use withholding_tax::{WithholdingTaxEngine, PostgresWithholdingTaxRepository
 pub use multi_book::{MultiBookAccountingEngine, PostgresMultiBookAccountingRepository as PostgresMultiBookAccountingRepo};
 pub use procurement_contracts::{ProcurementContractEngine, PostgresProcurementContractRepository as PostgresProcurementContractRepo};
 pub use inventory::{InventoryEngine, PostgresInventoryRepository as PostgresInventoryRepo};
+pub use customer_returns::{CustomerReturnsEngine, PostgresCustomerReturnsRepository as PostgresCustomerReturnsRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

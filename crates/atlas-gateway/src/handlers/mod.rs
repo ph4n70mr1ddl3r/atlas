@@ -26,6 +26,7 @@ pub mod project_costing;
 pub mod cost_allocation;
 pub mod financial_reporting;
 pub mod multi_book;
+pub mod procurement_contracts;
 
 pub use schema::*;
 pub use records::*;
@@ -51,6 +52,7 @@ pub use project_costing::*;
 pub use cost_allocation::*;
 pub use financial_reporting::*;
 pub use multi_book::*;
+pub use procurement_contracts::*;
 
 use axum::{
     Router,
@@ -775,6 +777,47 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Multi-Book Dashboard
         .route("/multi-book/dashboard", get(get_multi_book_summary))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Procurement Contracts (Oracle Fusion SCM > Procurement > Contracts)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Contract Types
+        .route("/procurement-contracts/types", get(list_contract_types))
+        .route("/procurement-contracts/types", post(create_contract_type))
+        .route("/procurement-contracts/types/:code", get(get_contract_type))
+        .route("/procurement-contracts/types/:code", delete(delete_contract_type))
+
+        // Contracts
+        .route("/procurement-contracts", post(create_contract))
+        .route("/procurement-contracts", get(list_contracts))
+        .route("/procurement-contracts/:id", get(get_contract))
+        .route("/procurement-contracts/:id/submit", post(submit_contract))
+        .route("/procurement-contracts/:id/approve", post(approve_contract))
+        .route("/procurement-contracts/:id/reject", post(reject_contract))
+        .route("/procurement-contracts/:id/terminate", post(terminate_contract))
+        .route("/procurement-contracts/:id/close", post(close_contract))
+
+        // Contract Lines
+        .route("/procurement-contracts/:contract_id/lines", post(add_contract_line))
+        .route("/procurement-contracts/:contract_id/lines", get(list_contract_lines))
+        .route("/procurement-contracts/lines/:line_id", delete(delete_contract_line))
+
+        // Milestones
+        .route("/procurement-contracts/:contract_id/milestones", post(add_milestone))
+        .route("/procurement-contracts/:contract_id/milestones", get(list_milestones))
+        .route("/procurement-contracts/milestones/:milestone_id", put(update_milestone))
+
+        // Renewals
+        .route("/procurement-contracts/:contract_id/renewals", post(renew_contract))
+        .route("/procurement-contracts/:contract_id/renewals", get(list_renewals))
+
+        // Spend Tracking
+        .route("/procurement-contracts/:contract_id/spend", post(record_spend))
+        .route("/procurement-contracts/:contract_id/spend", get(list_spend_entries))
+
+        // Dashboard
+        .route("/procurement-contracts/dashboard", get(get_dashboard_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

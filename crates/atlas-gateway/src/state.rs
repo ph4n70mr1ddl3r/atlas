@@ -24,6 +24,7 @@ use atlas_core::{
     CostAllocationEngine,
     FinancialReportingEngine,
     MultiBookAccountingEngine,
+    ProcurementContractEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -46,6 +47,7 @@ use atlas_core::{
     cost_allocation::PostgresCostAllocationRepository,
     financial_reporting::PostgresFinancialReportingRepository,
     multi_book::PostgresMultiBookAccountingRepository,
+    procurement_contracts::PostgresProcurementContractRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -82,6 +84,7 @@ pub struct AppState {
     pub cost_allocation_engine: Arc<CostAllocationEngine>,
     pub financial_reporting_engine: Arc<FinancialReportingEngine>,
     pub multi_book_engine: Arc<MultiBookAccountingEngine>,
+    pub procurement_contract_engine: Arc<ProcurementContractEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -227,6 +230,11 @@ impl AppState {
         let multi_book_engine = Arc::new(MultiBookAccountingEngine::new(Arc::new(
             PostgresMultiBookAccountingRepository::new(db_pool.clone())
         )));
+
+        // Initialize procurement contracts engine
+        let procurement_contract_engine = Arc::new(ProcurementContractEngine::new(Arc::new(
+            PostgresProcurementContractRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -291,6 +299,7 @@ impl AppState {
             cost_allocation_engine,
             financial_reporting_engine,
             multi_book_engine,
+            procurement_contract_engine,
             event_bus,
             jwt_secret,
         };

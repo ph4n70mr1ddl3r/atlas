@@ -2445,3 +2445,199 @@ impl crate::withholding_tax::WithholdingTaxRepository for MockWithholdingTaxRepo
         Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
     }
 }
+
+/// Mock procurement contract repository for testing
+pub struct MockProcurementContractRepository;
+
+#[async_trait]
+impl crate::procurement_contracts::ProcurementContractRepository for MockProcurementContractRepository {
+    async fn create_contract_type(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        contract_classification: &str, requires_approval: bool,
+        default_duration_days: Option<i32>,
+        allow_amount_commitment: bool, allow_quantity_commitment: bool,
+        allow_line_additions: bool, allow_price_adjustment: bool,
+        allow_renewal: bool, allow_termination: bool,
+        max_renewals: Option<i32>,
+        default_payment_terms_code: Option<&str>,
+        default_currency_code: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ContractType> {
+        Ok(atlas_shared::ContractType {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            contract_classification: contract_classification.to_string(),
+            requires_approval, default_duration_days,
+            allow_amount_commitment, allow_quantity_commitment,
+            allow_line_additions, allow_price_adjustment,
+            allow_renewal, allow_termination, max_renewals,
+            default_payment_terms_code: default_payment_terms_code.map(String::from),
+            default_currency_code: default_currency_code.map(String::from),
+            is_active: true, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_contract_type(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::ContractType>> { Ok(None) }
+    async fn get_contract_type_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ContractType>> { Ok(None) }
+    async fn list_contract_types(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::ContractType>> { Ok(vec![]) }
+    async fn delete_contract_type(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_contract(
+        &self, org_id: Uuid, contract_number: &str, title: &str, description: Option<&str>,
+        contract_type_code: Option<&str>, contract_classification: &str,
+        supplier_id: Uuid, supplier_number: Option<&str>,
+        supplier_name: Option<&str>, supplier_contact: Option<&str>,
+        buyer_id: Option<Uuid>, buyer_name: Option<&str>,
+        start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>,
+        total_committed_amount: &str, currency_code: &str,
+        payment_terms_code: Option<&str>, price_type: &str,
+        max_renewals: Option<i32>, notes: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ProcurementContract> {
+        Ok(atlas_shared::ProcurementContract {
+            id: Uuid::new_v4(), organization_id: org_id,
+            contract_number: contract_number.to_string(),
+            title: title.to_string(), description: description.map(String::from),
+            contract_type_code: contract_type_code.map(String::from),
+            contract_classification: contract_classification.to_string(),
+            status: "draft".to_string(),
+            supplier_id, supplier_number: supplier_number.map(String::from),
+            supplier_name: supplier_name.map(String::from),
+            supplier_contact: supplier_contact.map(String::from),
+            buyer_id, buyer_name: buyer_name.map(String::from),
+            start_date, end_date,
+            total_committed_amount: total_committed_amount.to_string(),
+            total_released_amount: "0".to_string(),
+            total_invoiced_amount: "0".to_string(),
+            currency_code: currency_code.to_string(),
+            payment_terms_code: payment_terms_code.map(String::from),
+            price_type: price_type.to_string(),
+            renewal_count: 0, max_renewals, line_count: 0, milestone_count: 0,
+            approved_by: None, approved_at: None, rejection_reason: None,
+            termination_reason: None, terminated_by: None, terminated_at: None,
+            notes: notes.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_contract(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ProcurementContract>> { Ok(None) }
+    async fn get_contract_by_number(&self, _org_id: Uuid, _contract_number: &str) -> AtlasResult<Option<atlas_shared::ProcurementContract>> { Ok(None) }
+    async fn list_contracts(&self, _org_id: Uuid, _status: Option<&str>, _supplier_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::ProcurementContract>> { Ok(vec![]) }
+    async fn update_contract_status(
+        &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>,
+        _rejection_reason: Option<&str>, _terminated_by: Option<Uuid>, _termination_reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::ProcurementContract> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_contract_totals(
+        &self, _id: Uuid, _total_committed: Option<&str>, _total_released: Option<&str>,
+        _total_invoiced: Option<&str>, _line_count: Option<i32>, _milestone_count: Option<i32>,
+    ) -> AtlasResult<atlas_shared::ProcurementContract> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_contract_dates(
+        &self, _id: Uuid, _start_date: Option<chrono::NaiveDate>, _end_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<atlas_shared::ProcurementContract> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn increment_renewal_count(&self, _id: Uuid) -> AtlasResult<atlas_shared::ProcurementContract> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_contract_line(
+        &self, org_id: Uuid, contract_id: Uuid, line_number: i32,
+        item_description: &str, item_code: Option<&str>,
+        category: Option<&str>, uom: Option<&str>,
+        quantity_committed: Option<&str>, quantity_released: &str,
+        unit_price: &str, line_amount: &str, amount_released: &str,
+        delivery_date: Option<chrono::NaiveDate>, supplier_part_number: Option<&str>,
+        account_code: Option<&str>, cost_center: Option<&str>,
+        project_id: Option<Uuid>, notes: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ContractLine> {
+        Ok(atlas_shared::ContractLine {
+            id: Uuid::new_v4(), organization_id: org_id, contract_id, line_number,
+            item_description: item_description.to_string(),
+            item_code: item_code.map(String::from),
+            category: category.map(String::from),
+            uom: uom.map(String::from),
+            quantity_committed: quantity_committed.map(String::from),
+            quantity_released: quantity_released.to_string(),
+            unit_price: unit_price.to_string(),
+            line_amount: line_amount.to_string(),
+            amount_released: amount_released.to_string(),
+            delivery_date, supplier_part_number: supplier_part_number.map(String::from),
+            account_code: account_code.map(String::from),
+            cost_center: cost_center.map(String::from),
+            project_id, notes: notes.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_contract_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ContractLine>> { Ok(None) }
+    async fn list_contract_lines(&self, _contract_id: Uuid) -> AtlasResult<Vec<atlas_shared::ContractLine>> { Ok(vec![]) }
+    async fn delete_contract_line(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_milestone(
+        &self, org_id: Uuid, contract_id: Uuid, contract_line_id: Option<Uuid>,
+        milestone_number: i32, name: &str, description: Option<&str>,
+        milestone_type: &str, target_date: chrono::NaiveDate,
+        amount: &str, percent_of_total: &str, deliverable: Option<&str>,
+        is_billable: bool, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ContractMilestone> {
+        Ok(atlas_shared::ContractMilestone {
+            id: Uuid::new_v4(), organization_id: org_id, contract_id, contract_line_id,
+            milestone_number, name: name.to_string(), description: description.map(String::from),
+            milestone_type: milestone_type.to_string(), target_date, actual_date: None,
+            status: "pending".to_string(), amount: amount.to_string(),
+            percent_of_total: percent_of_total.to_string(),
+            deliverable: deliverable.map(String::from), is_billable,
+            approved_by: None, approved_at: None, notes: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_milestone(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ContractMilestone>> { Ok(None) }
+    async fn list_milestones(&self, _contract_id: Uuid) -> AtlasResult<Vec<atlas_shared::ContractMilestone>> { Ok(vec![]) }
+    async fn update_milestone_status(
+        &self, _id: Uuid, _status: &str, _actual_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<atlas_shared::ContractMilestone> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_renewal(
+        &self, org_id: Uuid, contract_id: Uuid, renewal_number: i32,
+        previous_end_date: chrono::NaiveDate, new_end_date: chrono::NaiveDate,
+        renewal_type: &str, terms_changed: Option<&str>,
+        renewed_by: Option<Uuid>, notes: Option<&str>,
+    ) -> AtlasResult<atlas_shared::ContractRenewal> {
+        Ok(atlas_shared::ContractRenewal {
+            id: Uuid::new_v4(), organization_id: org_id, contract_id, renewal_number,
+            previous_end_date, new_end_date,
+            renewal_type: renewal_type.to_string(),
+            terms_changed: terms_changed.map(String::from),
+            renewed_by, renewed_at: chrono::Utc::now(),
+            notes: notes.map(String::from),
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_renewals(&self, _contract_id: Uuid) -> AtlasResult<Vec<atlas_shared::ContractRenewal>> { Ok(vec![]) }
+
+    async fn create_spend_entry(
+        &self, org_id: Uuid, contract_id: Uuid, contract_line_id: Option<Uuid>,
+        source_type: &str, source_id: Option<Uuid>, source_number: Option<&str>,
+        transaction_date: chrono::NaiveDate, amount: &str, quantity: Option<&str>,
+        description: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ContractSpend> {
+        Ok(atlas_shared::ContractSpend {
+            id: Uuid::new_v4(), organization_id: org_id, contract_id, contract_line_id,
+            source_type: source_type.to_string(), source_id,
+            source_number: source_number.map(String::from),
+            transaction_date, amount: amount.to_string(),
+            quantity: quantity.map(String::from), description: description.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_spend_entries(&self, _contract_id: Uuid) -> AtlasResult<Vec<atlas_shared::ContractSpend>> { Ok(vec![]) }
+}

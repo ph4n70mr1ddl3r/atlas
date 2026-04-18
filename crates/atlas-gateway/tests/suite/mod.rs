@@ -26,3 +26,4 @@ mod project_costing;
 mod cost_allocation;
 mod financial_reporting;
 mod multi_book;
+mod procurement_contracts;

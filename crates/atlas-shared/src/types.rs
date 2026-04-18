@@ -6266,4 +6266,302 @@ pub struct MultiBookSummary {
     pub entry_counts_by_book: serde_json::Value,
 }
 
+// ============================================================================
+// Procurement Contracts (Oracle Fusion SCM > Procurement > Contracts)
+// ============================================================================
+
+/// Contract type definition (e.g. Blanket Purchase Agreement, Contract Purchase Agreement)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractType {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique code for the contract type
+    pub code: String,
+    /// Display name
+    pub name: String,
+    /// Human-readable description
+    pub description: Option<String>,
+    /// Type classification: "blanket", "purchase_agreement", "service", "lease", "other"
+    pub contract_classification: String,
+    /// Whether this contract type requires approval before activation
+    pub requires_approval: bool,
+    /// Default contract duration in days (optional)
+    pub default_duration_days: Option<i32>,
+    /// Whether the contract allows amount-based commitments
+    pub allow_amount_commitment: bool,
+    /// Whether the contract allows quantity-based commitments
+    pub allow_quantity_commitment: bool,
+    /// Whether contract lines can be added after activation
+    pub allow_line_additions: bool,
+    /// Whether contract price can be adjusted
+    pub allow_price_adjustment: bool,
+    /// Whether renewal is allowed
+    pub allow_renewal: bool,
+    /// Whether termination is allowed
+    pub allow_termination: bool,
+    /// Maximum number of renewals (None = unlimited)
+    pub max_renewals: Option<i32>,
+    /// Default payment terms code
+    pub default_payment_terms_code: Option<String>,
+    /// Default currency code
+    pub default_currency_code: Option<String>,
+    /// Whether this contract type is active
+    pub is_active: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Procurement contract header
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProcurementContract {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// System-generated contract number
+    pub contract_number: String,
+    /// Descriptive title
+    pub title: String,
+    /// Description of the contract
+    pub description: Option<String>,
+    /// Contract type code
+    pub contract_type_code: Option<String>,
+    /// Contract classification: "blanket", "purchase_agreement", "service", "lease", "other"
+    pub contract_classification: String,
+    /// Current status: "draft", "pending_approval", "active", "expired", "terminated", "closed"
+    pub status: String,
+    /// Supplier/vendor UUID
+    pub supplier_id: Uuid,
+    /// Supplier number
+    pub supplier_number: Option<String>,
+    /// Supplier name
+    pub supplier_name: Option<String>,
+    /// Supplier contact name
+    pub supplier_contact: Option<String>,
+    /// Buyer/procurement officer UUID
+    pub buyer_id: Option<Uuid>,
+    /// Buyer name
+    pub buyer_name: Option<String>,
+    /// Contract start date
+    pub start_date: Option<chrono::NaiveDate>,
+    /// Contract end date
+    pub end_date: Option<chrono::NaiveDate>,
+    /// Total committed amount
+    pub total_committed_amount: String,
+    /// Total released (ordered) amount against this contract
+    pub total_released_amount: String,
+    /// Total invoiced amount against this contract
+    pub total_invoiced_amount: String,
+    /// Currency code
+    pub currency_code: String,
+    /// Payment terms code
+    pub payment_terms_code: Option<String>,
+    /// Whether price is fixed or variable
+    pub price_type: String,
+    /// Number of renewals so far
+    pub renewal_count: i32,
+    /// Maximum allowed renewals
+    pub max_renewals: Option<i32>,
+    /// Number of contract lines
+    pub line_count: i32,
+    /// Number of milestones
+    pub milestone_count: i32,
+    /// Approver UUID
+    pub approved_by: Option<Uuid>,
+    /// Approval timestamp
+    pub approved_at: Option<DateTime<Utc>>,
+    /// Rejection reason (if applicable)
+    pub rejection_reason: Option<String>,
+    /// Termination reason (if applicable)
+    pub termination_reason: Option<String>,
+    /// Terminated by
+    pub terminated_by: Option<Uuid>,
+    /// Termination date
+    pub terminated_at: Option<DateTime<Utc>>,
+    /// Notes
+    pub notes: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Procurement contract line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Parent contract
+    pub contract_id: Uuid,
+    /// Line number within contract
+    pub line_number: i32,
+    /// Product/item description
+    pub item_description: String,
+    /// Product/item code or SKU
+    pub item_code: Option<String>,
+    /// Product category
+    pub category: Option<String>,
+    /// Unit of measure
+    pub uom: Option<String>,
+    /// Quantity committed
+    pub quantity_committed: Option<String>,
+    /// Quantity released (ordered so far)
+    pub quantity_released: String,
+    /// Unit price
+    pub unit_price: String,
+    /// Line amount (quantity_committed * unit_price)
+    pub line_amount: String,
+    /// Amount released (invoiced/spent so far)
+    pub amount_released: String,
+    /// Delivery date
+    pub delivery_date: Option<chrono::NaiveDate>,
+    /// Supplier part number
+    pub supplier_part_number: Option<String>,
+    /// GL account code
+    pub account_code: Option<String>,
+    /// Cost center
+    pub cost_center: Option<String>,
+    /// Project ID
+    pub project_id: Option<Uuid>,
+    /// Line notes
+    pub notes: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Contract milestone / deliverable
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractMilestone {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Parent contract
+    pub contract_id: Uuid,
+    /// Optional parent line
+    pub contract_line_id: Option<Uuid>,
+    /// Milestone sequence number
+    pub milestone_number: i32,
+    /// Milestone name/title
+    pub name: String,
+    /// Detailed description
+    pub description: Option<String>,
+    /// Milestone type: "delivery", "payment", "review", "acceptance", "custom"
+    pub milestone_type: String,
+    /// Target completion date
+    pub target_date: chrono::NaiveDate,
+    /// Actual completion date
+    pub actual_date: Option<chrono::NaiveDate>,
+    /// Status: "pending", "in_progress", "completed", "overdue", "cancelled"
+    pub status: String,
+    /// Amount associated with this milestone
+    pub amount: String,
+    /// Percentage of total contract (for progress tracking)
+    pub percent_of_total: String,
+    /// Deliverable description
+    pub deliverable: Option<String>,
+    /// Whether this milestone is billable
+    pub is_billable: bool,
+    /// Approved by
+    pub approved_by: Option<Uuid>,
+    /// Approved date
+    pub approved_at: Option<DateTime<Utc>>,
+    /// Notes
+    pub notes: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Contract renewal record
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractRenewal {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Parent contract
+    pub contract_id: Uuid,
+    /// Renewal number (1 for first renewal, etc.)
+    pub renewal_number: i32,
+    /// Previous end date
+    pub previous_end_date: chrono::NaiveDate,
+    /// New end date
+    pub new_end_date: chrono::NaiveDate,
+    /// Renewal type: "automatic", "manual", "negotiated"
+    pub renewal_type: String,
+    /// Any terms that changed during renewal
+    pub terms_changed: Option<String>,
+    /// Renewed by
+    pub renewed_by: Option<Uuid>,
+    /// Renewal date
+    pub renewed_at: DateTime<Utc>,
+    /// Notes
+    pub notes: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Contract spend entry (tracks actual spend against contract)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractSpend {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Parent contract
+    pub contract_id: Uuid,
+    /// Optional parent contract line
+    pub contract_line_id: Option<Uuid>,
+    /// Source document type (e.g. "purchase_order", "invoice")
+    pub source_type: String,
+    /// Source document ID
+    pub source_id: Option<Uuid>,
+    /// Source document number
+    pub source_number: Option<String>,
+    /// Transaction date
+    pub transaction_date: chrono::NaiveDate,
+    /// Amount
+    pub amount: String,
+    /// Quantity (if applicable)
+    pub quantity: Option<String>,
+    /// Description
+    pub description: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Procurement Contracts dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractDashboardSummary {
+    /// Total contracts count
+    pub total_contracts: i32,
+    /// Active contracts count
+    pub active_contracts: i32,
+    /// Contracts expiring within 30 days
+    pub expiring_contracts_count: i32,
+    /// Total committed amount across all active contracts
+    pub total_committed_amount: String,
+    /// Total released/spent amount
+    pub total_released_amount: String,
+    /// Utilization percentage (released / committed)
+    pub utilization_percent: String,
+    /// Contracts by status
+    pub contracts_by_status: serde_json::Value,
+    /// Contracts by type
+    pub contracts_by_type: serde_json::Value,
+    /// Top suppliers by committed amount
+    pub top_suppliers: serde_json::Value,
+}
 

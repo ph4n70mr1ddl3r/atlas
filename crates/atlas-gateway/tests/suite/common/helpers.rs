@@ -180,6 +180,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::multi_book::PostgresMultiBookAccountingRepository::new(db_pool.clone()),
     )));
 
+    let procurement_contract_engine = Arc::new(atlas_core::ProcurementContractEngine::new(Arc::new(
+        atlas_core::procurement_contracts::PostgresProcurementContractRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -207,6 +211,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         cost_allocation_engine,
         financial_reporting_engine,
         multi_book_engine,
+        procurement_contract_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -367,4 +372,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.book_journal_entries").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.account_mappings").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.accounting_books").execute(pool).await.ok();
+    // Clean procurement contracts test data
+    sqlx::query("DELETE FROM _atlas.procurement_contract_spend").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contract_renewals").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contract_milestones").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contract_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contracts").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contract_types").execute(pool).await.ok();
 }

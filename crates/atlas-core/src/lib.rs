@@ -40,6 +40,7 @@ pub mod sourcing;
 pub mod lease;
 pub mod project_costing;
 pub mod cost_allocation;
+pub mod financial_reporting;
 
 pub use schema::*;
 pub use workflow::{
@@ -81,6 +82,7 @@ pub use sourcing::{SourcingEngine, PostgresSourcingRepository as PostgresSourcin
 pub use lease::{LeaseAccountingEngine, PostgresLeaseAccountingRepository as PostgresLeaseAccountingRepo};
 pub use project_costing::{ProjectCostingEngine, PostgresProjectCostingRepository as PostgresProjectCostingRepo};
 pub use cost_allocation::{CostAllocationEngine, PostgresCostAllocationRepository as PostgresCostAllocationRepo};
+pub use financial_reporting::{FinancialReportingEngine, PostgresFinancialReportingRepository as PostgresFinancialReportingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

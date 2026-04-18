@@ -5485,4 +5485,199 @@ pub struct AllocationSummary {
     pub top_rules: serde_json::Value,
 }
 
+// ============================================================================
+// Financial Reporting (Oracle Fusion GL > Financial Reporting Center)
+// ============================================================================
+
+/// Report template types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum FinancialReportType {
+    TrialBalance,
+    IncomeStatement,
+    BalanceSheet,
+    CashFlow,
+    Custom,
+}
+
+impl std::fmt::Display for FinancialReportType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FinancialReportType::TrialBalance => write!(f, "trial_balance"),
+            FinancialReportType::IncomeStatement => write!(f, "income_statement"),
+            FinancialReportType::BalanceSheet => write!(f, "balance_sheet"),
+            FinancialReportType::CashFlow => write!(f, "cash_flow"),
+            FinancialReportType::Custom => write!(f, "custom"),
+        }
+    }
+}
+
+/// Financial Report Template definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinancialReportTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// trial_balance, income_statement, balance_sheet, cash_flow, custom
+    pub report_type: String,
+    pub currency_code: String,
+    /// sequential, tree, grouped
+    pub row_display_order: String,
+    pub column_display_order: String,
+    /// none, thousands, millions, units
+    pub rounding_option: String,
+    pub show_zero_amounts: bool,
+    pub segment_filter: serde_json::Value,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Report Row definition (a line on the report)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinancialReportRow {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Uuid,
+    pub row_number: i32,
+    /// header, data, total, subtotal, separator, text
+    pub line_type: String,
+    pub label: String,
+    pub indent_level: i32,
+    /// Account range filter for data rows
+    pub account_range_from: Option<String>,
+    pub account_range_to: Option<String>,
+    pub account_filter: serde_json::Value,
+    /// Compute action: total, subtotal, variance, percent, constant
+    pub compute_action: Option<String>,
+    /// Row IDs to use for computation
+    pub compute_source_rows: serde_json::Value,
+    pub show_line: bool,
+    pub bold: bool,
+    pub underline: bool,
+    pub double_underline: bool,
+    pub page_break_before: bool,
+    pub scaling_factor: Option<String>,
+    pub parent_row_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Report Column definition (period/scenario columns across the top)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinancialReportColumn {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Uuid,
+    pub column_number: i32,
+    /// actuals, budget, variance, percent_variance, prior_year, ytd, qtd, custom
+    pub column_type: String,
+    pub header_label: String,
+    pub sub_header_label: Option<String>,
+    /// Period offset from the base period (-1 = prior period, 0 = current)
+    pub period_offset: i32,
+    /// period, qtd, ytd, inception_to_date
+    pub period_type: String,
+    /// Compute action for calculated columns
+    pub compute_action: Option<String>,
+    pub compute_source_columns: serde_json::Value,
+    pub show_column: bool,
+    pub column_width: Option<i32>,
+    pub format_override: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Financial Report Run (an execution instance of a template)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinancialReportRun {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Uuid,
+    pub run_number: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    /// draft, generated, approved, published, archived
+    pub status: String,
+    pub as_of_date: Option<chrono::NaiveDate>,
+    pub period_from: Option<chrono::NaiveDate>,
+    pub period_to: Option<chrono::NaiveDate>,
+    pub currency_code: String,
+    pub segment_filter: serde_json::Value,
+    pub include_unposted: bool,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub net_change: String,
+    pub beginning_balance: String,
+    pub ending_balance: String,
+    pub row_count: i32,
+    pub generated_by: Option<Uuid>,
+    pub generated_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub published_by: Option<Uuid>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A single cell in a generated report
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinancialReportResult {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_id: Uuid,
+    pub row_id: Uuid,
+    pub column_id: Uuid,
+    pub row_number: i32,
+    pub column_number: i32,
+    pub amount: String,
+    pub debit_amount: String,
+    pub credit_amount: String,
+    pub beginning_balance: String,
+    pub ending_balance: String,
+    pub is_computed: bool,
+    pub compute_note: Option<String>,
+    pub display_amount: Option<String>,
+    pub display_format: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Favourite report (user bookmark)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinancialReportFavourite {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub user_id: Uuid,
+    pub template_id: Uuid,
+    pub display_name: Option<String>,
+    pub position: i32,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Financial Reporting Dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinancialReportingSummary {
+    pub template_count: i32,
+    pub active_template_count: i32,
+    pub run_count: i32,
+    pub recent_runs: Vec<FinancialReportRun>,
+    pub templates_by_type: serde_json::Value,
+    pub total_amount_reported: String,
+}
+
 

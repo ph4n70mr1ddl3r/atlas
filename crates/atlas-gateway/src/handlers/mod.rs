@@ -24,6 +24,7 @@ pub mod sourcing;
 pub mod lease;
 pub mod project_costing;
 pub mod cost_allocation;
+pub mod financial_reporting;
 
 pub use schema::*;
 pub use records::*;
@@ -47,6 +48,7 @@ pub use sourcing::*;
 pub use lease::*;
 pub use project_costing::*;
 pub use cost_allocation::*;
+pub use financial_reporting::*;
 
 use axum::{
     Router,
@@ -696,6 +698,50 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Cost Allocation Dashboard
         .route("/cost-allocation/summary", get(get_allocation_summary))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Financial Reporting (Oracle Fusion GL > Financial Reporting Center)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Report Templates
+        .route("/financial-reporting/templates", get(list_financial_templates))
+        .route("/financial-reporting/templates", post(create_financial_template))
+        .route("/financial-reporting/templates/:code", get(get_financial_template))
+        .route("/financial-reporting/templates/:code", delete(delete_financial_template))
+
+        // Report Rows
+        .route("/financial-reporting/templates/:template_id/rows", get(list_financial_rows))
+        .route("/financial-reporting/templates/:template_id/rows", post(create_financial_row))
+        .route("/financial-reporting/rows/:id", delete(delete_financial_row))
+
+        // Report Columns
+        .route("/financial-reporting/templates/:template_id/columns", get(list_financial_columns))
+        .route("/financial-reporting/templates/:template_id/columns", post(create_financial_column))
+        .route("/financial-reporting/columns/:id", delete(delete_financial_column))
+
+        // Report Generation
+        .route("/financial-reporting/templates/:template_code/generate", post(generate_financial_report))
+        .route("/financial-reporting/runs", get(list_financial_runs))
+        .route("/financial-reporting/runs/:id", get(get_financial_run))
+        .route("/financial-reporting/runs/:run_id/results", get(get_financial_run_results))
+
+        // Report Lifecycle
+        .route("/financial-reporting/runs/:id/approve", post(approve_financial_report))
+        .route("/financial-reporting/runs/:id/publish", post(publish_financial_report))
+        .route("/financial-reporting/runs/:id/archive", post(archive_financial_report))
+
+        // Quick Templates
+        .route("/financial-reporting/quick/trial-balance", post(create_financial_trial_balance))
+        .route("/financial-reporting/quick/income-statement", post(create_financial_income_statement))
+        .route("/financial-reporting/quick/balance-sheet", post(create_financial_balance_sheet))
+
+        // Favourites
+        .route("/financial-reporting/favourites", get(list_financial_favourites))
+        .route("/financial-reporting/favourites/:template_id", post(add_financial_favourite))
+        .route("/financial-reporting/favourites/:template_id", delete(remove_financial_favourite))
+
+        // Dashboard
+        .route("/financial-reporting/dashboard", get(get_financial_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -160,6 +160,22 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::sourcing::PostgresSourcingRepository::new(db_pool.clone()),
     )));
 
+    let lease_accounting_engine = Arc::new(atlas_core::LeaseAccountingEngine::new(Arc::new(
+        atlas_core::lease::PostgresLeaseAccountingRepository::new(db_pool.clone()),
+    )));
+
+    let project_costing_engine = Arc::new(atlas_core::ProjectCostingEngine::new(Arc::new(
+        atlas_core::project_costing::PostgresProjectCostingRepository::new(db_pool.clone()),
+    )));
+
+    let cost_allocation_engine = Arc::new(atlas_core::CostAllocationEngine::new(Arc::new(
+        atlas_core::cost_allocation::PostgresCostAllocationRepository::new(db_pool.clone()),
+    )));
+
+    let financial_reporting_engine = Arc::new(atlas_core::FinancialReportingEngine::new(Arc::new(
+        atlas_core::financial_reporting::PostgresFinancialReportingRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -182,6 +198,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         encumbrance_engine,
         cash_management_engine,
         sourcing_engine,
+        lease_accounting_engine,
+        project_costing_engine,
+        cost_allocation_engine,
+        financial_reporting_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -329,4 +349,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.sourcing_event_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.sourcing_events").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.sourcing_templates").execute(pool).await.ok();
+    // Clean financial reporting test data
+    sqlx::query("DELETE FROM _atlas.financial_report_results").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_runs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_favourites").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_columns").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_rows").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_templates").execute(pool).await.ok();
 }

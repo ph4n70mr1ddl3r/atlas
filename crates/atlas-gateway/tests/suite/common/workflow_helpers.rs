@@ -701,6 +701,22 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::sourcing::PostgresSourcingRepository::new(db_pool.clone()),
     )));
 
+    let lease_accounting_engine = Arc::new(atlas_core::LeaseAccountingEngine::new(Arc::new(
+        atlas_core::lease::PostgresLeaseAccountingRepository::new(db_pool.clone()),
+    )));
+
+    let project_costing_engine = Arc::new(atlas_core::ProjectCostingEngine::new(Arc::new(
+        atlas_core::project_costing::PostgresProjectCostingRepository::new(db_pool.clone()),
+    )));
+
+    let cost_allocation_engine = Arc::new(atlas_core::CostAllocationEngine::new(Arc::new(
+        atlas_core::cost_allocation::PostgresCostAllocationRepository::new(db_pool.clone()),
+    )));
+
+    let financial_reporting_engine = Arc::new(atlas_core::FinancialReportingEngine::new(Arc::new(
+        atlas_core::financial_reporting::PostgresFinancialReportingRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -723,6 +739,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         encumbrance_engine,
         cash_management_engine,
         sourcing_engine,
+        lease_accounting_engine,
+        project_costing_engine,
+        cost_allocation_engine,
+        financial_reporting_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

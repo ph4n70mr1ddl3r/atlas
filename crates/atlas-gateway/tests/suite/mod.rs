@@ -24,3 +24,4 @@ mod sourcing;
 mod lease;
 mod project_costing;
 mod cost_allocation;
+mod financial_reporting;

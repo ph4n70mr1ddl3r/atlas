@@ -8016,6 +8016,188 @@ pub struct GrantComplianceReport {
     pub updated_at: DateTime<Utc>,
 }
 
+// ============================================================================
+// Corporate Card Management
+// Oracle Fusion Cloud ERP: Financials > Expenses > Corporate Cards
+// ============================================================================
+
+/// Corporate Card Program – defines a card programme with an issuer bank.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CorporateCardProgram {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub program_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub issuer_bank: String,
+    pub card_network: String,
+    /// e.g. "corporate", "purchasing", "travel"
+    pub card_type: String,
+    pub currency_code: String,
+    pub default_single_purchase_limit: String,
+    pub default_monthly_limit: String,
+    pub default_cash_limit: String,
+    pub default_atm_limit: String,
+    pub allow_cash_withdrawal: bool,
+    pub allow_international: bool,
+    pub auto_deactivate_on_termination: bool,
+    pub expense_matching_method: String,
+    pub billing_cycle_day: i32,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Corporate Card – an individual card issued to an employee.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CorporateCard {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub program_id: Uuid,
+    pub card_number_masked: String,
+    pub cardholder_name: String,
+    pub cardholder_id: Uuid,
+    pub cardholder_email: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    /// "active", "suspended", "cancelled", "expired", "lost", "stolen"
+    pub status: String,
+    pub issue_date: chrono::NaiveDate,
+    pub expiry_date: chrono::NaiveDate,
+    pub single_purchase_limit: String,
+    pub monthly_limit: String,
+    pub cash_limit: String,
+    pub atm_limit: String,
+    pub current_balance: String,
+    pub total_spend_current_cycle: String,
+    pub last_statement_balance: String,
+    pub last_statement_date: Option<chrono::NaiveDate>,
+    pub gl_liability_account: Option<String>,
+    pub gl_expense_account: Option<String>,
+    pub cost_center: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Corporate Card Transaction – a charge or credit on a corporate card.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CorporateCardTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub card_id: Uuid,
+    pub program_id: Uuid,
+    pub transaction_reference: String,
+    pub posting_date: chrono::NaiveDate,
+    pub transaction_date: chrono::NaiveDate,
+    pub merchant_name: String,
+    pub merchant_category: Option<String>,
+    pub merchant_category_code: Option<String>,
+    pub amount: String,
+    pub currency_code: String,
+    pub original_amount: Option<String>,
+    pub original_currency: Option<String>,
+    pub exchange_rate: Option<String>,
+    /// "charge", "credit", "payment", "cash_withdrawal", "fee", "interest"
+    pub transaction_type: String,
+    /// "unmatched", "matched", "disputed", "approved", "rejected"
+    pub status: String,
+    pub expense_report_id: Option<Uuid>,
+    pub expense_line_id: Option<Uuid>,
+    pub matched_at: Option<DateTime<Utc>>,
+    pub matched_by: Option<Uuid>,
+    pub match_confidence: Option<String>,
+    pub dispute_reason: Option<String>,
+    pub dispute_date: Option<chrono::NaiveDate>,
+    pub dispute_resolution: Option<String>,
+    pub gl_posted: bool,
+    pub gl_journal_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Corporate Card Statement – a monthly billing statement from the card issuer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CorporateCardStatement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub program_id: Uuid,
+    pub statement_number: String,
+    pub statement_date: chrono::NaiveDate,
+    pub billing_period_start: chrono::NaiveDate,
+    pub billing_period_end: chrono::NaiveDate,
+    pub opening_balance: String,
+    pub closing_balance: String,
+    pub total_charges: String,
+    pub total_credits: String,
+    pub total_payments: String,
+    pub total_fees: String,
+    pub total_interest: String,
+    pub payment_due_date: Option<chrono::NaiveDate>,
+    pub minimum_payment: String,
+    pub total_transaction_count: i32,
+    pub matched_transaction_count: i32,
+    pub unmatched_transaction_count: i32,
+    /// "imported", "processing", "matched", "reconciled", "paid"
+    pub status: String,
+    pub payment_reference: Option<String>,
+    pub paid_at: Option<DateTime<Utc>>,
+    pub gl_payment_journal_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub imported_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Corporate Card Spending Limit Override – temporary or permanent limit changes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CorporateCardLimitOverride {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub card_id: Uuid,
+    pub override_type: String,
+    pub original_value: String,
+    pub new_value: String,
+    pub reason: String,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    /// "pending", "approved", "rejected", "expired"
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Corporate Card Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CorporateCardDashboardSummary {
+    pub total_active_cards: i32,
+    pub total_programs: i32,
+    pub total_cards_by_status: serde_json::Value,
+    pub total_spend_current_month: String,
+    pub total_spend_previous_month: String,
+    pub spend_change_percent: String,
+    pub total_unmatched_transactions: i32,
+    pub total_unreconciled_statements: i32,
+    pub total_disputed_transactions: i32,
+    pub top_spenders: serde_json::Value,
+    pub spend_by_category: serde_json::Value,
+    pub limit_overrides_pending: i32,
+}
+
 /// Grant Management Dashboard Summary
 /// Oracle Fusion: Grants Management > Dashboard
 #[derive(Debug, Clone, Serialize, Deserialize)]

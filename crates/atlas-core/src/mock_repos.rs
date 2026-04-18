@@ -2935,3 +2935,217 @@ impl crate::subscription::SubscriptionRepository for MockSubscriptionRepository 
         })
     }
 }
+
+/// Mock corporate card repository for testing
+pub struct MockCorporateCardRepository;
+
+#[async_trait]
+impl crate::corporate_card::CorporateCardRepository for MockCorporateCardRepository {
+    // ── Card Programmes ─────────────────────────────────────────────
+    async fn create_program(
+        &self, org_id: Uuid, program_code: &str, name: &str, description: Option<&str>,
+        issuer_bank: &str, card_network: &str, card_type: &str, currency_code: &str,
+        default_single_purchase_limit: &str, default_monthly_limit: &str,
+        default_cash_limit: &str, default_atm_limit: &str,
+        allow_cash_withdrawal: bool, allow_international: bool,
+        auto_deactivate_on_termination: bool, expense_matching_method: &str,
+        billing_cycle_day: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CorporateCardProgram> {
+        Ok(atlas_shared::CorporateCardProgram {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            program_code: program_code.to_string(),
+            name: name.to_string(),
+            description: description.map(String::from),
+            issuer_bank: issuer_bank.to_string(),
+            card_network: card_network.to_string(),
+            card_type: card_type.to_string(),
+            currency_code: currency_code.to_string(),
+            default_single_purchase_limit: default_single_purchase_limit.to_string(),
+            default_monthly_limit: default_monthly_limit.to_string(),
+            default_cash_limit: default_cash_limit.to_string(),
+            default_atm_limit: default_atm_limit.to_string(),
+            allow_cash_withdrawal,
+            allow_international,
+            auto_deactivate_on_termination,
+            expense_matching_method: expense_matching_method.to_string(),
+            billing_cycle_day,
+            is_active: true,
+            metadata: serde_json::json!({}),
+            created_by,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_program(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::CorporateCardProgram>> { Ok(None) }
+    async fn get_program_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CorporateCardProgram>> { Ok(None) }
+    async fn list_programs(&self, _org_id: Uuid, _active_only: bool) -> AtlasResult<Vec<atlas_shared::CorporateCardProgram>> { Ok(vec![]) }
+
+    // ── Cards ───────────────────────────────────────────────────────
+    async fn create_card(
+        &self, org_id: Uuid, program_id: Uuid, card_number_masked: &str,
+        cardholder_name: &str, cardholder_id: Uuid, cardholder_email: Option<&str>,
+        department_id: Option<Uuid>, department_name: Option<&str>,
+        status: &str, issue_date: chrono::NaiveDate, expiry_date: chrono::NaiveDate,
+        single_purchase_limit: &str, monthly_limit: &str,
+        cash_limit: &str, atm_limit: &str,
+        gl_liability_account: Option<&str>, gl_expense_account: Option<&str>,
+        cost_center: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CorporateCard> {
+        Ok(atlas_shared::CorporateCard {
+            id: Uuid::new_v4(), organization_id: org_id, program_id,
+            card_number_masked: card_number_masked.to_string(),
+            cardholder_name: cardholder_name.to_string(),
+            cardholder_id, cardholder_email: cardholder_email.map(String::from),
+            department_id, department_name: department_name.map(String::from),
+            status: status.to_string(), issue_date, expiry_date,
+            single_purchase_limit: single_purchase_limit.to_string(),
+            monthly_limit: monthly_limit.to_string(),
+            cash_limit: cash_limit.to_string(),
+            atm_limit: atm_limit.to_string(),
+            current_balance: "0".to_string(),
+            total_spend_current_cycle: "0".to_string(),
+            last_statement_balance: "0".to_string(),
+            last_statement_date: None,
+            gl_liability_account: gl_liability_account.map(String::from),
+            gl_expense_account: gl_expense_account.map(String::from),
+            cost_center: cost_center.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_card(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CorporateCard>> { Ok(None) }
+    async fn get_card_by_masked_number(&self, _org_id: Uuid, _masked: &str) -> AtlasResult<Option<atlas_shared::CorporateCard>> { Ok(None) }
+    async fn list_cards(&self, _org_id: Uuid, _program_id: Option<Uuid>, _cardholder_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::CorporateCard>> { Ok(vec![]) }
+    async fn update_card_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::CorporateCard> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_card_limits(&self, _id: Uuid, _single_purchase: &str, _monthly: &str, _cash: &str, _atm: &str) -> AtlasResult<()> { Ok(()) }
+    async fn update_card_spend(&self, _id: Uuid, _amount: &str, _balance: &str) -> AtlasResult<()> { Ok(()) }
+
+    // ── Transactions ────────────────────────────────────────────────
+    async fn create_transaction(
+        &self, org_id: Uuid, card_id: Uuid, program_id: Uuid,
+        transaction_reference: &str, posting_date: chrono::NaiveDate,
+        transaction_date: chrono::NaiveDate, merchant_name: &str,
+        merchant_category: Option<&str>, merchant_category_code: Option<&str>,
+        amount: &str, currency_code: &str,
+        original_amount: Option<&str>, original_currency: Option<&str>,
+        exchange_rate: Option<&str>, transaction_type: &str,
+    ) -> AtlasResult<atlas_shared::CorporateCardTransaction> {
+        Ok(atlas_shared::CorporateCardTransaction {
+            id: Uuid::new_v4(), organization_id: org_id, card_id, program_id,
+            transaction_reference: transaction_reference.to_string(),
+            posting_date, transaction_date,
+            merchant_name: merchant_name.to_string(),
+            merchant_category: merchant_category.map(String::from),
+            merchant_category_code: merchant_category_code.map(String::from),
+            amount: amount.to_string(),
+            currency_code: currency_code.to_string(),
+            original_amount: original_amount.map(String::from),
+            original_currency: original_currency.map(String::from),
+            exchange_rate: exchange_rate.map(String::from),
+            transaction_type: transaction_type.to_string(),
+            status: "unmatched".to_string(),
+            expense_report_id: None, expense_line_id: None,
+            matched_at: None, matched_by: None, match_confidence: None,
+            dispute_reason: None, dispute_date: None, dispute_resolution: None,
+            gl_posted: false, gl_journal_id: None,
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_transaction(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CorporateCardTransaction>> { Ok(None) }
+    async fn get_transaction_by_ref(&self, _org_id: Uuid, _reference: &str) -> AtlasResult<Option<atlas_shared::CorporateCardTransaction>> { Ok(None) }
+    async fn list_transactions(&self, _org_id: Uuid, _card_id: Option<Uuid>, _status: Option<&str>, _date_from: Option<chrono::NaiveDate>, _date_to: Option<chrono::NaiveDate>) -> AtlasResult<Vec<atlas_shared::CorporateCardTransaction>> { Ok(vec![]) }
+    async fn update_transaction_match(&self, _id: Uuid, _expense_report_id: Option<Uuid>, _expense_line_id: Option<Uuid>, _status: &str, _matched_by: Option<Uuid>, _match_confidence: Option<&str>) -> AtlasResult<atlas_shared::CorporateCardTransaction> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_transaction_dispute(&self, _id: Uuid, _reason: Option<&str>, _dispute_date: Option<chrono::NaiveDate>, _resolution: Option<&str>, _status: &str) -> AtlasResult<atlas_shared::CorporateCardTransaction> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // ── Statements ──────────────────────────────────────────────────
+    async fn create_statement(
+        &self, org_id: Uuid, program_id: Uuid, statement_number: &str,
+        statement_date: chrono::NaiveDate, billing_period_start: chrono::NaiveDate, billing_period_end: chrono::NaiveDate,
+        opening_balance: &str, closing_balance: &str,
+        total_charges: &str, total_credits: &str, total_payments: &str,
+        total_fees: &str, total_interest: &str,
+        payment_due_date: Option<chrono::NaiveDate>, minimum_payment: &str,
+        imported_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CorporateCardStatement> {
+        Ok(atlas_shared::CorporateCardStatement {
+            id: Uuid::new_v4(), organization_id: org_id, program_id,
+            statement_number: statement_number.to_string(),
+            statement_date, billing_period_start, billing_period_end,
+            opening_balance: opening_balance.to_string(),
+            closing_balance: closing_balance.to_string(),
+            total_charges: total_charges.to_string(),
+            total_credits: total_credits.to_string(),
+            total_payments: total_payments.to_string(),
+            total_fees: total_fees.to_string(),
+            total_interest: total_interest.to_string(),
+            payment_due_date, minimum_payment: minimum_payment.to_string(),
+            total_transaction_count: 0, matched_transaction_count: 0, unmatched_transaction_count: 0,
+            status: "imported".to_string(),
+            payment_reference: None, paid_at: None, gl_payment_journal_id: None,
+            metadata: serde_json::json!({}),
+            imported_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_statement(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CorporateCardStatement>> { Ok(None) }
+    async fn list_statements(&self, _org_id: Uuid, _program_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::CorporateCardStatement>> { Ok(vec![]) }
+    async fn update_statement_counts(&self, _id: Uuid, _total: i32, _matched: i32, _unmatched: i32) -> AtlasResult<()> { Ok(()) }
+    async fn update_statement_status(&self, _id: Uuid, _status: &str, _payment_reference: Option<&str>) -> AtlasResult<atlas_shared::CorporateCardStatement> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // ── Limit Overrides ─────────────────────────────────────────────
+    async fn create_limit_override(
+        &self, org_id: Uuid, card_id: Uuid, override_type: &str,
+        original_value: &str, new_value: &str, reason: &str,
+        effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CorporateCardLimitOverride> {
+        Ok(atlas_shared::CorporateCardLimitOverride {
+            id: Uuid::new_v4(), organization_id: org_id, card_id,
+            override_type: override_type.to_string(),
+            original_value: original_value.to_string(),
+            new_value: new_value.to_string(),
+            reason: reason.to_string(),
+            effective_from, effective_to,
+            status: "pending".to_string(),
+            approved_by: None, approved_at: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_limit_override(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CorporateCardLimitOverride>> { Ok(None) }
+    async fn list_limit_overrides(&self, _card_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::CorporateCardLimitOverride>> { Ok(vec![]) }
+    async fn update_limit_override_status(&self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>) -> AtlasResult<atlas_shared::CorporateCardLimitOverride> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // ── Dashboard ───────────────────────────────────────────────────
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::CorporateCardDashboardSummary> {
+        Ok(atlas_shared::CorporateCardDashboardSummary {
+            total_active_cards: 0, total_programs: 0,
+            total_cards_by_status: serde_json::json!({}),
+            total_spend_current_month: "0".to_string(),
+            total_spend_previous_month: "0".to_string(),
+            spend_change_percent: "0".to_string(),
+            total_unmatched_transactions: 0,
+            total_unreconciled_statements: 0,
+            total_disputed_transactions: 0,
+            top_spenders: serde_json::json!([]),
+            spend_by_category: serde_json::json!({}),
+            limit_overrides_pending: 0,
+        })
+    }
+}

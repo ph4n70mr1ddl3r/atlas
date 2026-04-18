@@ -51,6 +51,7 @@ pub mod sales_commission;
 pub mod subscription;
 pub mod treasury;
 pub mod grant_management;
+pub mod corporate_card;
 
 pub use schema::*;
 pub use workflow::{
@@ -103,6 +104,7 @@ pub use sales_commission::{SalesCommissionEngine, PostgresSalesCommissionReposit
 pub use treasury::{TreasuryEngine, PostgresTreasuryRepository as PostgresTreasuryRepo};
 pub use subscription::{SubscriptionEngine, PostgresSubscriptionRepository as PostgresSubscriptionRepo};
 pub use grant_management::{GrantManagementEngine, PostgresGrantManagementRepository as PostgresGrantManagementRepo};
+pub use corporate_card::{CorporateCardEngine, PostgresCorporateCardRepository as PostgresCorporateCardRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

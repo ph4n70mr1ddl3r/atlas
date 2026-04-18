@@ -7068,3 +7068,213 @@ pub struct ReturnsDashboardSummary {
     pub average_processing_days: String,
 }
 
+// ============================================================================
+// Advanced Pricing Management (Oracle Fusion Order Management > Pricing)
+// ============================================================================
+
+/// Price List definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceList {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub currency_code: String,
+    pub list_type: String,
+    pub pricing_basis: String,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Price List Line (item-level pricing)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceListLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub price_list_id: Uuid,
+    pub line_number: i32,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub pricing_unit_of_measure: String,
+    pub list_price: String,
+    pub unit_price: String,
+    pub cost_price: String,
+    pub margin_percent: String,
+    pub minimum_quantity: String,
+    pub maximum_quantity: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Price Tier (quantity break)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceTier {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub price_list_line_id: Uuid,
+    pub tier_number: i32,
+    pub from_quantity: String,
+    pub to_quantity: Option<String>,
+    pub price: String,
+    pub discount_percent: String,
+    pub price_type: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Discount Rule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiscountRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub discount_type: String,
+    pub discount_value: String,
+    pub application_method: String,
+    pub stacking_rule: String,
+    pub priority: i32,
+    pub condition: serde_json::Value,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub is_active: bool,
+    pub usage_count: i32,
+    pub max_usage: Option<i32>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Charge Definition (shipping, handling, surcharges)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChargeDefinition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub charge_type: String,
+    pub charge_category: String,
+    pub calculation_method: String,
+    pub charge_amount: String,
+    pub charge_percent: String,
+    pub minimum_charge: String,
+    pub maximum_charge: Option<String>,
+    pub taxable: bool,
+    pub condition: serde_json::Value,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Pricing Strategy
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PricingStrategy {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub strategy_type: String,
+    pub priority: i32,
+    pub condition: serde_json::Value,
+    pub price_list_id: Option<Uuid>,
+    pub markup_percent: String,
+    pub markdown_percent: String,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Price Calculation Log entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceCalculationLog {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub calculation_date: DateTime<Utc>,
+    pub entity_type: String,
+    pub entity_id: Uuid,
+    pub line_id: Option<Uuid>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub requested_quantity: Option<String>,
+    pub unit_list_price: String,
+    pub unit_selling_price: String,
+    pub discount_amount: String,
+    pub discount_rule_id: Option<Uuid>,
+    pub charge_amount: String,
+    pub charge_definition_id: Option<Uuid>,
+    pub strategy_id: Option<Uuid>,
+    pub price_list_id: Option<Uuid>,
+    pub calculation_steps: serde_json::Value,
+    pub currency_code: String,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Result of a price calculation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceCalculationResult {
+    pub list_price: String,
+    pub discount_amount: String,
+    pub charge_amount: String,
+    pub unit_selling_price: String,
+    pub extended_price: String,
+    pub currency_code: String,
+    pub applied_discount_rule_code: Option<String>,
+    pub applied_charge_code: Option<String>,
+    pub applied_price_list_code: Option<String>,
+    pub applied_strategy_code: Option<String>,
+    pub tier_applied: Option<i32>,
+    pub calculation_steps: Vec<PriceCalculationStep>,
+}
+
+/// A single step in the pricing calculation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceCalculationStep {
+    pub step_type: String,
+    pub description: String,
+    pub amount_before: String,
+    pub amount_after: String,
+    pub rule_applied: Option<String>,
+}
+
+/// Pricing dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PricingDashboardSummary {
+    pub total_price_lists: i32,
+    pub active_price_lists: i32,
+    pub total_discount_rules: i32,
+    pub active_discount_rules: i32,
+    pub total_charge_definitions: i32,
+    pub total_strategies: i32,
+    pub total_calculations_today: i32,
+    pub price_lists_by_status: serde_json::Value,
+    pub discount_rules_by_type: serde_json::Value,
+    pub charges_by_type: serde_json::Value,
+}
+

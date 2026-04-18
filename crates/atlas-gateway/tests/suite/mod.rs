@@ -29,3 +29,4 @@ mod multi_book;
 mod procurement_contracts;
 mod inventory;
 mod customer_returns;
+mod pricing;

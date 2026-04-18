@@ -29,6 +29,7 @@ pub mod multi_book;
 pub mod procurement_contracts;
 pub mod inventory;
 pub mod customer_returns;
+pub mod pricing;
 
 pub use schema::*;
 pub use records::*;
@@ -57,6 +58,7 @@ pub use multi_book::*;
 pub use procurement_contracts::*;
 pub use inventory::*;
 pub use customer_returns::*;
+pub use pricing::*;
 
 use axum::{
     Router,
@@ -877,6 +879,52 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/returns/dashboard", get(get_returns_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Advanced Pricing (Oracle Fusion Order Management > Pricing)
+        // ═══════════════════════════════════════════════════════
+
+        // Price Lists
+        .route("/pricing/price-lists", post(create_price_list))
+        .route("/pricing/price-lists", get(list_price_lists))
+        .route("/pricing/price-lists/:code", get(get_price_list))
+        .route("/pricing/price-lists/:code", delete(delete_price_list))
+        .route("/pricing/price-lists/:id/activate", post(activate_price_list))
+        .route("/pricing/price-lists/:id/deactivate", post(deactivate_price_list))
+
+        // Price List Lines
+        .route("/pricing/price-lists/:price_list_id/lines", post(add_price_list_line))
+        .route("/pricing/price-lists/:price_list_id/lines", get(list_price_list_lines))
+        .route("/pricing/lines/:id", delete(delete_price_list_line))
+
+        // Price Tiers
+        .route("/pricing/lines/:price_list_line_id/tiers", post(add_price_tier))
+        .route("/pricing/lines/:price_list_line_id/tiers", get(list_price_tiers))
+
+        // Discount Rules
+        .route("/pricing/discount-rules", post(create_discount_rule))
+        .route("/pricing/discount-rules", get(list_discount_rules))
+        .route("/pricing/discount-rules/:code", get(get_discount_rule))
+        .route("/pricing/discount-rules/:code", delete(delete_discount_rule))
+
+        // Charge Definitions
+        .route("/pricing/charges", post(create_charge_definition))
+        .route("/pricing/charges", get(list_charge_definitions))
+        .route("/pricing/charges/:code", get(get_charge_definition))
+        .route("/pricing/charges/:code", delete(delete_charge_definition))
+
+        // Pricing Strategies
+        .route("/pricing/strategies", post(create_pricing_strategy))
+        .route("/pricing/strategies", get(list_pricing_strategies))
+
+        // Price Calculation
+        .route("/pricing/calculate", post(calculate_price))
+
+        // Calculation Logs
+        .route("/pricing/calculation-logs", get(list_calculation_logs))
+
+        // Pricing Dashboard
+        .route("/pricing/dashboard", get(get_pricing_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

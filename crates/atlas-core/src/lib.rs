@@ -46,6 +46,7 @@ pub mod multi_book;
 pub mod procurement_contracts;
 pub mod inventory;
 pub mod customer_returns;
+pub mod pricing;
 
 pub use schema::*;
 pub use workflow::{
@@ -93,6 +94,7 @@ pub use multi_book::{MultiBookAccountingEngine, PostgresMultiBookAccountingRepos
 pub use procurement_contracts::{ProcurementContractEngine, PostgresProcurementContractRepository as PostgresProcurementContractRepo};
 pub use inventory::{InventoryEngine, PostgresInventoryRepository as PostgresInventoryRepo};
 pub use customer_returns::{CustomerReturnsEngine, PostgresCustomerReturnsRepository as PostgresCustomerReturnsRepo};
+pub use pricing::{PricingEngine, PostgresPricingRepository as PostgresPricingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -4700,3 +4700,253 @@ pub struct SourcingSummary {
     /// Upcoming deadlines
     pub upcoming_deadlines: serde_json::Value,
 }
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Lease Accounting (ASC 842 / IFRS 16)
+// Oracle Fusion Cloud ERP: Financials > Lease Management
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// Oracle Fusion Cloud ERP Lease Management provides:
+// - Lease Contracts: Track lease agreements with classification (operating/finance)
+// - Right-of-Use (ROU) Assets: Asset recognition for leased assets
+// - Lease Liability: Present value of future lease payments
+// - Amortization Schedules: Liability amortization and asset depreciation
+// - Lease Payments: Payment schedules with escalation/renewal terms
+// - Lease Modifications: Accounting for changes to lease terms
+// - Lease Impairment: ROU asset impairment review
+// - Lease Termination: Early termination accounting
+//
+// Oracle Fusion equivalent: Financials > Lease Management
+
+/// Lease Accounting Method
+/// ASC 842 distinguishes between operating and finance leases for lessees.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum LeaseClassification {
+    #[default]
+    Operating,
+    Finance,
+}
+
+/// Lease contract header
+/// Represents a lease agreement between a lessee and lessor.
+/// Oracle Fusion equivalent: Lease Management > Lease Contracts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeaseContract {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated lease number (e.g., "LSE-2024-00001")
+    pub lease_number: String,
+    /// Lease title / description
+    pub title: String,
+    pub description: Option<String>,
+    /// Classification: "operating" or "finance"
+    pub classification: String,
+    /// Lessor / supplier information
+    pub lessor_id: Option<Uuid>,
+    pub lessor_name: Option<String>,
+    /// Asset being leased
+    pub asset_description: Option<String>,
+    /// Asset location
+    pub location: Option<String>,
+    /// Department
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    /// Lease dates
+    pub commencement_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    /// Lease term in months
+    pub lease_term_months: i32,
+    /// Whether the lease includes a purchase option
+    pub purchase_option_exists: bool,
+    /// Whether the purchase option is reasonably certain to be exercised
+    pub purchase_option_likely: bool,
+    /// Whether there is a renewal option
+    pub renewal_option_exists: bool,
+    /// Renewal option term in months
+    pub renewal_option_months: Option<i32>,
+    /// Whether renewal is reasonably certain to be exercised
+    pub renewal_option_likely: bool,
+    /// Discount rate (incremental borrowing rate)
+    pub discount_rate: String,
+    /// Currency
+    pub currency_code: String,
+    /// Payment frequency: "monthly", "quarterly", "annually"
+    pub payment_frequency: String,
+    /// Annual escalation rate percentage
+    pub escalation_rate: Option<String>,
+    /// Escalation frequency in months (e.g., 12 for annual)
+    pub escalation_frequency_months: Option<i32>,
+    /// Financial summary
+    pub total_lease_payments: String,
+    pub initial_lease_liability: String,
+    pub initial_rou_asset_value: String,
+    pub residual_guarantee_amount: Option<String>,
+    /// Current balances
+    pub current_lease_liability: String,
+    pub current_rou_asset_value: String,
+    pub accumulated_rou_depreciation: String,
+    /// Payment tracking
+    pub total_payments_made: String,
+    pub periods_elapsed: i32,
+    /// GL account codes
+    pub rou_asset_account_code: Option<String>,
+    pub rou_depreciation_account_code: Option<String>,
+    pub lease_liability_account_code: Option<String>,
+    pub lease_expense_account_code: Option<String>,
+    pub interest_expense_account_code: Option<String>,
+    /// Status: "draft", "active", "modified", "impaired", "terminated", "expired"
+    pub status: String,
+    /// Impairment tracking
+    pub impairment_amount: Option<String>,
+    pub impairment_date: Option<chrono::NaiveDate>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Lease payment schedule line
+/// Oracle Fusion equivalent: Lease Management > Payment Schedule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeasePayment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub lease_id: Uuid,
+    /// Period sequence number
+    pub period_number: i32,
+    /// Payment due date
+    pub payment_date: chrono::NaiveDate,
+    /// Total payment amount
+    pub payment_amount: String,
+    /// Interest portion of the payment
+    pub interest_amount: String,
+    /// Principal portion of the payment
+    pub principal_amount: String,
+    /// Remaining lease liability after this payment
+    pub remaining_liability: String,
+    /// ROU asset value after depreciation for this period
+    pub rou_asset_value: String,
+    /// ROU depreciation for this period
+    pub rou_depreciation: String,
+    /// Accumulated ROU depreciation after this period
+    pub accumulated_depreciation: String,
+    /// Straight-line lease expense (for operating leases)
+    pub lease_expense: String,
+    /// Whether this payment has been made
+    pub is_paid: bool,
+    /// Payment reference
+    pub payment_reference: Option<String>,
+    /// GL journal entry reference
+    pub journal_entry_id: Option<Uuid>,
+    /// Status: "scheduled", "paid", "overdue", "cancelled"
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Lease modification
+/// Tracks changes to lease terms that require remeasurement.
+/// Oracle Fusion equivalent: Lease Management > Modifications
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeaseModification {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub lease_id: Uuid,
+    /// Modification number (sequential)
+    pub modification_number: i32,
+    /// Type: "term_extension", "scope_change", "payment_change", "rate_change",
+    ///       "reclassification"
+    pub modification_type: String,
+    /// Description of the modification
+    pub description: Option<String>,
+    /// Effective date of the modification
+    pub effective_date: chrono::NaiveDate,
+    /// Previous lease term (months)
+    pub previous_term_months: Option<i32>,
+    /// New lease term (months)
+    pub new_term_months: Option<i32>,
+    /// Previous end date
+    pub previous_end_date: Option<chrono::NaiveDate>,
+    /// New end date
+    pub new_end_date: Option<chrono::NaiveDate>,
+    /// Previous discount rate
+    pub previous_discount_rate: Option<String>,
+    /// New discount rate
+    pub new_discount_rate: Option<String>,
+    /// Change in lease liability due to modification
+    pub liability_adjustment: String,
+    /// Change in ROU asset due to modification
+    pub rou_asset_adjustment: String,
+    /// Status: "pending", "processed", "reversed"
+    pub status: String,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Lease termination
+/// Oracle Fusion equivalent: Lease Management > Termination
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeaseTermination {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub lease_id: Uuid,
+    /// Termination type: "early", "end_of_term", "mutual_agreement", "default"
+    pub termination_type: String,
+    /// Termination date
+    pub termination_date: chrono::NaiveDate,
+    /// Reason for termination
+    pub reason: Option<String>,
+    /// Remaining lease liability at termination
+    pub remaining_liability: String,
+    /// ROU asset value at termination (net of depreciation)
+    pub remaining_rou_asset: String,
+    /// Termination penalty / fee
+    pub termination_penalty: String,
+    /// Gain/loss on termination
+    pub gain_loss_amount: String,
+    /// "gain" or "loss"
+    pub gain_loss_type: Option<String>,
+    /// GL journal entry reference
+    pub journal_entry_id: Option<Uuid>,
+    /// Status: "pending", "processed", "reversed"
+    pub status: String,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Lease Accounting Dashboard Summary
+/// Oracle Fusion equivalent: Lease Management Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeaseDashboardSummary {
+    pub total_active_leases: i32,
+    pub total_lease_liability: String,
+    pub total_rou_assets: String,
+    pub total_rou_depreciation: String,
+    pub total_net_rou_assets: String,
+    pub total_payments_made: String,
+    pub operating_lease_count: i32,
+    pub finance_lease_count: i32,
+    pub upcoming_payments_count: i32,
+    pub upcoming_payments_amount: String,
+    pub leases_expiring_90_days: i32,
+    pub leases_by_classification: serde_json::Value,
+    pub leases_by_status: serde_json::Value,
+    pub liability_by_period: serde_json::Value,
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Lease Accounting (ASC 842 /

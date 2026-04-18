@@ -1972,3 +1972,157 @@ impl crate::cash_management::CashManagementRepository for MockCashManagementRepo
     async fn list_forecast_lines(&self, _forecast_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashForecastLine>> { Ok(vec![]) }
     async fn list_forecast_lines_by_period(&self, _forecast_id: Uuid, _start: chrono::NaiveDate, _end: chrono::NaiveDate) -> AtlasResult<Vec<atlas_shared::CashForecastLine>> { Ok(vec![]) }
 }
+
+/// Mock lease accounting repository for testing
+pub struct MockLeaseAccountingRepository;
+
+#[async_trait]
+impl crate::lease::LeaseAccountingRepository for MockLeaseAccountingRepository {
+    async fn create_lease(
+        &self, org_id: Uuid, lease_number: &str, title: &str, description: Option<&str>,
+        classification: &str,
+        lessor_id: Option<Uuid>, lessor_name: Option<&str>,
+        asset_description: Option<&str>, location: Option<&str>,
+        department_id: Option<Uuid>, department_name: Option<&str>,
+        commencement_date: chrono::NaiveDate, end_date: chrono::NaiveDate, lease_term_months: i32,
+        purchase_option_exists: bool, purchase_option_likely: bool,
+        renewal_option_exists: bool, renewal_option_months: Option<i32>, renewal_option_likely: bool,
+        discount_rate: &str, currency_code: &str, payment_frequency: &str,
+        annual_payment_amount: &str,
+        escalation_rate: Option<&str>, escalation_frequency_months: Option<i32>,
+        total_lease_payments: &str, initial_lease_liability: &str, initial_rou_asset_value: &str,
+        residual_guarantee_amount: Option<&str>,
+        current_lease_liability: &str, current_rou_asset_value: &str,
+        accumulated_rou_depreciation: &str, total_payments_made: &str, periods_elapsed: i32,
+        rou_asset_account_code: Option<&str>, rou_depreciation_account_code: Option<&str>,
+        lease_liability_account_code: Option<&str>, lease_expense_account_code: Option<&str>,
+        interest_expense_account_code: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::LeaseContract> {
+        Ok(atlas_shared::LeaseContract {
+            id: Uuid::new_v4(), organization_id: org_id,
+            lease_number: lease_number.to_string(), title: title.to_string(),
+            description: description.map(String::from), classification: classification.to_string(),
+            lessor_id, lessor_name: lessor_name.map(String::from),
+            asset_description: asset_description.map(String::from),
+            location: location.map(String::from),
+            department_id, department_name: department_name.map(String::from),
+            commencement_date, end_date, lease_term_months,
+            purchase_option_exists, purchase_option_likely,
+            renewal_option_exists, renewal_option_months, renewal_option_likely,
+            discount_rate: discount_rate.to_string(),
+            currency_code: currency_code.to_string(),
+            payment_frequency: payment_frequency.to_string(),
+            escalation_rate: escalation_rate.map(String::from),
+            escalation_frequency_months,
+            total_lease_payments: total_lease_payments.to_string(),
+            initial_lease_liability: initial_lease_liability.to_string(),
+            initial_rou_asset_value: initial_rou_asset_value.to_string(),
+            residual_guarantee_amount: residual_guarantee_amount.map(String::from),
+            current_lease_liability: current_lease_liability.to_string(),
+            current_rou_asset_value: current_rou_asset_value.to_string(),
+            accumulated_rou_depreciation: accumulated_rou_depreciation.to_string(),
+            total_payments_made: total_payments_made.to_string(),
+            periods_elapsed, status: "draft".to_string(),
+            rou_asset_account_code: rou_asset_account_code.map(String::from),
+            rou_depreciation_account_code: rou_depreciation_account_code.map(String::from),
+            lease_liability_account_code: lease_liability_account_code.map(String::from),
+            lease_expense_account_code: lease_expense_account_code.map(String::from),
+            interest_expense_account_code: interest_expense_account_code.map(String::from),
+            impairment_amount: None, impairment_date: None,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_lease(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::LeaseContract>> { Ok(None) }
+    async fn get_lease_by_number(&self, _org_id: Uuid, _lease_number: &str) -> AtlasResult<Option<atlas_shared::LeaseContract>> { Ok(None) }
+    async fn list_leases(&self, _org_id: Uuid, _status: Option<&str>, _classification: Option<&str>) -> AtlasResult<Vec<atlas_shared::LeaseContract>> { Ok(vec![]) }
+    async fn update_lease_status(&self, _id: Uuid, _status: &str, _impairment_amount: Option<&str>, _impairment_date: Option<chrono::NaiveDate>) -> AtlasResult<atlas_shared::LeaseContract> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_lease_balances(&self, _id: Uuid, _current_liability: &str, _current_rou: &str, _accumulated_depreciation: &str, _total_payments_made: &str, _periods_elapsed: i32) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_payment(
+        &self, org_id: Uuid, lease_id: Uuid, period_number: i32, payment_date: chrono::NaiveDate,
+        payment_amount: &str, interest_amount: &str, principal_amount: &str,
+        remaining_liability: &str, rou_asset_value: &str, rou_depreciation: &str,
+        accumulated_depreciation: &str, lease_expense: &str, is_paid: bool,
+        payment_reference: Option<&str>, journal_entry_id: Option<Uuid>, status: &str,
+    ) -> AtlasResult<atlas_shared::LeasePayment> {
+        Ok(atlas_shared::LeasePayment {
+            id: Uuid::new_v4(), organization_id: org_id, lease_id, period_number, payment_date,
+            payment_amount: payment_amount.to_string(), interest_amount: interest_amount.to_string(),
+            principal_amount: principal_amount.to_string(), remaining_liability: remaining_liability.to_string(),
+            rou_asset_value: rou_asset_value.to_string(), rou_depreciation: rou_depreciation.to_string(),
+            accumulated_depreciation: accumulated_depreciation.to_string(),
+            lease_expense: lease_expense.to_string(), is_paid,
+            payment_reference: payment_reference.map(String::from),
+            journal_entry_id, status: status.to_string(),
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_payment_by_period(&self, _lease_id: Uuid, _period_number: i32) -> AtlasResult<Option<atlas_shared::LeasePayment>> { Ok(None) }
+    async fn list_payments(&self, _lease_id: Uuid) -> AtlasResult<Vec<atlas_shared::LeasePayment>> { Ok(vec![]) }
+    async fn update_payment_status(&self, _id: Uuid, _status: &str, _is_paid: bool, _payment_reference: Option<&str>, _journal_entry_id: Option<Uuid>) -> AtlasResult<atlas_shared::LeasePayment> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_modification(
+        &self, org_id: Uuid, lease_id: Uuid, modification_number: i32, modification_type: &str,
+        description: Option<&str>, effective_date: chrono::NaiveDate,
+        previous_term_months: Option<i32>, new_term_months: Option<i32>,
+        previous_end_date: Option<chrono::NaiveDate>, new_end_date: Option<chrono::NaiveDate>,
+        previous_discount_rate: Option<&str>, new_discount_rate: Option<&str>,
+        liability_adjustment: &str, rou_asset_adjustment: &str, status: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::LeaseModification> {
+        Ok(atlas_shared::LeaseModification {
+            id: Uuid::new_v4(), organization_id: org_id, lease_id,
+            modification_number, modification_type: modification_type.to_string(),
+            description: description.map(String::from), effective_date,
+            previous_term_months, new_term_months, previous_end_date, new_end_date,
+            previous_discount_rate: previous_discount_rate.map(String::from),
+            new_discount_rate: new_discount_rate.map(String::from),
+            liability_adjustment: liability_adjustment.to_string(),
+            rou_asset_adjustment: rou_asset_adjustment.to_string(),
+            status: status.to_string(),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_next_modification_number(&self, _lease_id: Uuid) -> AtlasResult<i32> { Ok(1) }
+    async fn list_modifications(&self, _lease_id: Uuid) -> AtlasResult<Vec<atlas_shared::LeaseModification>> { Ok(vec![]) }
+
+    async fn create_termination(
+        &self, org_id: Uuid, lease_id: Uuid, termination_type: &str, termination_date: chrono::NaiveDate,
+        reason: Option<&str>, remaining_liability: &str, remaining_rou_asset: &str,
+        termination_penalty: &str, gain_loss_amount: &str, gain_loss_type: Option<&str>,
+        journal_entry_id: Option<Uuid>, status: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::LeaseTermination> {
+        Ok(atlas_shared::LeaseTermination {
+            id: Uuid::new_v4(), organization_id: org_id, lease_id,
+            termination_type: termination_type.to_string(), termination_date, reason: reason.map(String::from),
+            remaining_liability: remaining_liability.to_string(), remaining_rou_asset: remaining_rou_asset.to_string(),
+            termination_penalty: termination_penalty.to_string(),
+            gain_loss_amount: gain_loss_amount.to_string(), gain_loss_type: gain_loss_type.map(String::from),
+            journal_entry_id, status: status.to_string(),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_terminations(&self, _lease_id: Uuid) -> AtlasResult<Vec<atlas_shared::LeaseTermination>> { Ok(vec![]) }
+
+    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::LeaseDashboardSummary> {
+        Ok(atlas_shared::LeaseDashboardSummary {
+            total_active_leases: 0, total_lease_liability: "0".to_string(),
+            total_rou_assets: "0".to_string(), total_rou_depreciation: "0".to_string(),
+            total_net_rou_assets: "0".to_string(), total_payments_made: "0".to_string(),
+            operating_lease_count: 0, finance_lease_count: 0,
+            upcoming_payments_count: 0, upcoming_payments_amount: "0".to_string(),
+            leases_expiring_90_days: 0,
+            leases_by_classification: serde_json::json!({}),
+            leases_by_status: serde_json::json!({}),
+            liability_by_period: serde_json::json!({}),
+        })
+    }
+}

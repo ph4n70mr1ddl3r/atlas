@@ -37,6 +37,7 @@ pub mod subledger_accounting;
 pub mod encumbrance;
 pub mod cash_management;
 pub mod sourcing;
+pub mod lease;
 
 pub use schema::*;
 pub use workflow::{
@@ -75,6 +76,7 @@ pub use subledger_accounting::{SubledgerAccountingEngine, PostgresSubledgerAccou
 pub use encumbrance::{EncumbranceEngine, PostgresEncumbranceRepository as PostgresEncumbranceRepo};
 pub use cash_management::{CashManagementEngine, PostgresCashManagementRepository as PostgresCashManagementRepo};
 pub use sourcing::{SourcingEngine, PostgresSourcingRepository as PostgresSourcingRepo};
+pub use lease::{LeaseAccountingEngine, PostgresLeaseAccountingRepository as PostgresLeaseAccountingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

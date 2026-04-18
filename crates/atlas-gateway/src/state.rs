@@ -19,6 +19,7 @@ use atlas_core::{
     EncumbranceEngine,
     CashManagementEngine,
     SourcingEngine,
+    LeaseAccountingEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -36,6 +37,7 @@ use atlas_core::{
     encumbrance::PostgresEncumbranceRepository,
     cash_management::PostgresCashManagementRepository,
     sourcing::PostgresSourcingRepository,
+    lease::PostgresLeaseAccountingRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -67,6 +69,7 @@ pub struct AppState {
     pub encumbrance_engine: Arc<EncumbranceEngine>,
     pub cash_management_engine: Arc<CashManagementEngine>,
     pub sourcing_engine: Arc<SourcingEngine>,
+    pub lease_accounting_engine: Arc<LeaseAccountingEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -187,6 +190,11 @@ impl AppState {
         let sourcing_engine = Arc::new(SourcingEngine::new(Arc::new(
             PostgresSourcingRepository::new(db_pool.clone())
         )));
+
+        // Initialize lease accounting engine
+        let lease_accounting_engine = Arc::new(LeaseAccountingEngine::new(Arc::new(
+            PostgresLeaseAccountingRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -246,6 +254,7 @@ impl AppState {
             encumbrance_engine,
             cash_management_engine,
             sourcing_engine,
+            lease_accounting_engine,
             event_bus,
             jwt_secret,
         };

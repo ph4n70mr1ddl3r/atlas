@@ -21,6 +21,7 @@ pub mod subledger_accounting;
 mod encumbrance;
 pub mod cash_management;
 pub mod sourcing;
+pub mod lease;
 
 pub use schema::*;
 pub use records::*;
@@ -41,6 +42,7 @@ pub use subledger_accounting::*;
 pub use encumbrance::*;
 pub use cash_management::*;
 pub use sourcing::*;
+pub use lease::*;
 
 use axum::{
     Router,
@@ -588,6 +590,34 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Sourcing Dashboard
         .route("/sourcing/summary", get(get_sourcing_summary))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Lease Accounting (ASC 842 / IFRS 16) (Oracle Fusion Lease Management)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Lease Contracts
+        .route("/lease/contracts", get(list_leases))
+        .route("/lease/contracts", post(create_lease))
+        .route("/lease/contracts/:id", get(get_lease))
+        .route("/lease/contracts/:id/activate", post(activate_lease))
+
+        // Lease Payments
+        .route("/lease/contracts/:id/payments", get(list_lease_payments))
+        .route("/lease/contracts/:id/payments", post(process_lease_payment))
+
+        // Lease Modifications
+        .route("/lease/contracts/:id/modifications", post(create_lease_modification))
+        .route("/lease/contracts/:id/modifications", get(list_lease_modifications))
+
+        // Lease Impairment
+        .route("/lease/contracts/:id/impairment", post(record_lease_impairment))
+
+        // Lease Termination
+        .route("/lease/contracts/:id/terminate", post(terminate_lease))
+        .route("/lease/contracts/:id/terminations", get(list_lease_terminations))
+
+        // Lease Dashboard
+        .route("/lease/dashboard", get(get_lease_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

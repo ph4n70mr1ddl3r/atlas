@@ -32,6 +32,7 @@ pub mod customer_returns;
 pub mod pricing;
 pub mod sales_commission;
 pub mod treasury;
+pub mod grant_management;
 
 pub use schema::*;
 pub use records::*;
@@ -63,6 +64,26 @@ pub use customer_returns::*;
 pub use pricing::*;
 pub use sales_commission::*;
 pub use treasury::*;
+pub use grant_management::{
+    create_sponsor, list_sponsors, get_sponsor, delete_sponsor,
+    create_indirect_cost_rate, list_indirect_cost_rates,
+    create_award as create_grant_award, list_awards as list_grant_awards,
+    get_award as get_grant_award, activate_award, suspend_award,
+    complete_award, terminate_award,
+    create_budget_line as create_grant_budget_line,
+    list_budget_lines as list_grant_budget_lines,
+    create_expenditure as create_grant_expenditure,
+    list_expenditures as list_grant_expenditures,
+    approve_expenditure, reverse_expenditure,
+    create_billing as create_grant_billing,
+    list_billings as list_grant_billings,
+    submit_billing as submit_grant_billing,
+    approve_billing as approve_grant_billing,
+    mark_billing_paid,
+    create_compliance_report, list_compliance_reports,
+    submit_compliance_report, approve_compliance_report,
+    get_grant_dashboard,
+};
 
 use axum::{
     Router,
@@ -1003,6 +1024,55 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Treasury Dashboard
         .route("/treasury/dashboard", get(get_treasury_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Grant Management (Oracle Fusion Grants Management)
+        // ═══════════════════════════════════════════════════════════
+
+        // Sponsors
+        .route("/grants/sponsors", post(create_sponsor))
+        .route("/grants/sponsors", get(list_sponsors))
+        .route("/grants/sponsors/:code", get(get_sponsor))
+        .route("/grants/sponsors/:code", delete(delete_sponsor))
+
+        // Indirect Cost Rates
+        .route("/grants/indirect-cost-rates", post(create_indirect_cost_rate))
+        .route("/grants/indirect-cost-rates", get(list_indirect_cost_rates))
+
+        // Awards
+        .route("/grants/awards", post(create_grant_award))
+        .route("/grants/awards", get(list_grant_awards))
+        .route("/grants/awards/:id", get(get_grant_award))
+        .route("/grants/awards/:id/activate", post(activate_award))
+        .route("/grants/awards/:id/suspend", post(suspend_award))
+        .route("/grants/awards/:id/complete", post(complete_award))
+        .route("/grants/awards/:id/terminate", post(terminate_award))
+
+        // Budget Lines
+        .route("/grants/awards/:award_id/budget-lines", post(create_grant_budget_line))
+        .route("/grants/awards/:award_id/budget-lines", get(list_grant_budget_lines))
+
+        // Expenditures
+        .route("/grants/awards/:award_id/expenditures", post(create_grant_expenditure))
+        .route("/grants/awards/:award_id/expenditures", get(list_grant_expenditures))
+        .route("/grants/expenditures/:id/approve", post(approve_expenditure))
+        .route("/grants/expenditures/:id/reverse", post(reverse_expenditure))
+
+        // Billing
+        .route("/grants/awards/:award_id/billings", post(create_grant_billing))
+        .route("/grants/awards/:award_id/billings", get(list_grant_billings))
+        .route("/grants/billings/:id/submit", post(submit_grant_billing))
+        .route("/grants/billings/:id/approve", post(approve_grant_billing))
+        .route("/grants/billings/:id/pay", post(mark_billing_paid))
+
+        // Compliance Reports
+        .route("/grants/awards/:award_id/reports", post(create_compliance_report))
+        .route("/grants/awards/:award_id/reports", get(list_compliance_reports))
+        .route("/grants/reports/:id/submit", post(submit_compliance_report))
+        .route("/grants/reports/:id/approve", post(approve_compliance_report))
+
+        // Grant Dashboard
+        .route("/grants/dashboard", get(get_grant_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

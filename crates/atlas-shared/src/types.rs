@@ -7775,3 +7775,264 @@ pub struct SubscriptionDashboardSummary {
     pub revenue_by_product: serde_json::Value,
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Grant Management (Oracle Fusion Grants Management)
+// ═══════════════════════════════════════════════════════════════
+
+/// Grant Sponsor (funding organization)
+/// Oracle Fusion: Grants Management > Sponsors
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrantSponsor {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub sponsor_code: String,
+    pub name: String,
+    pub sponsor_type: String,
+    pub country_code: Option<String>,
+    pub taxpayer_id: Option<String>,
+    pub contact_name: Option<String>,
+    pub contact_email: Option<String>,
+    pub contact_phone: Option<String>,
+    pub address_line1: Option<String>,
+    pub address_line2: Option<String>,
+    pub city: Option<String>,
+    pub state_province: Option<String>,
+    pub postal_code: Option<String>,
+    pub payment_terms: Option<String>,
+    pub billing_frequency: String,
+    pub currency_code: String,
+    pub credit_limit: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Indirect Cost Rate Agreement
+/// Oracle Fusion: Grants Management > Indirect Cost Rates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrantIndirectCostRate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rate_name: String,
+    pub rate_type: String,
+    pub rate_percentage: String,
+    pub base_type: String,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub negotiated_by: Option<String>,
+    pub approved_by: Option<Uuid>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Grant Award
+/// Oracle Fusion: Grants Management > Awards
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrantAward {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub award_number: String,
+    pub award_title: String,
+    pub sponsor_id: Uuid,
+    pub sponsor_name: Option<String>,
+    pub sponsor_award_number: Option<String>,
+    pub status: String,
+    pub award_type: String,
+    pub award_purpose: Option<String>,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub budget_start_date: Option<chrono::NaiveDate>,
+    pub budget_end_date: Option<chrono::NaiveDate>,
+    pub total_award_amount: String,
+    pub direct_costs_total: String,
+    pub indirect_costs_total: String,
+    pub cost_sharing_total: String,
+    pub total_funded: String,
+    pub total_billed: String,
+    pub total_collected: String,
+    pub total_expenditures: String,
+    pub total_commitments: String,
+    pub available_balance: String,
+    pub currency_code: String,
+    pub indirect_cost_rate_id: Option<Uuid>,
+    pub indirect_cost_rate: String,
+    pub cost_sharing_required: bool,
+    pub cost_sharing_percent: String,
+    pub principal_investigator_id: Option<Uuid>,
+    pub principal_investigator_name: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    pub project_id: Option<Uuid>,
+    pub cost_center: Option<String>,
+    pub gl_revenue_account: Option<String>,
+    pub gl_receivable_account: Option<String>,
+    pub gl_deferred_account: Option<String>,
+    pub billing_frequency: String,
+    pub billing_basis: String,
+    pub reporting_requirements: Option<String>,
+    pub compliance_notes: Option<String>,
+    pub closeout_date: Option<chrono::NaiveDate>,
+    pub closeout_notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Grant Budget Line
+/// Oracle Fusion: Grants Management > Award Budgets
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrantBudgetLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub award_id: Uuid,
+    pub line_number: i32,
+    pub budget_category: String,
+    pub description: Option<String>,
+    pub account_code: Option<String>,
+    pub budget_amount: String,
+    pub committed_amount: String,
+    pub expended_amount: String,
+    pub billed_amount: String,
+    pub available_balance: String,
+    pub period_start: Option<chrono::NaiveDate>,
+    pub period_end: Option<chrono::NaiveDate>,
+    pub fiscal_year: Option<i32>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Grant Expenditure
+/// Oracle Fusion: Grants Management > Expenditures
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrantExpenditure {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub award_id: Uuid,
+    pub expenditure_number: String,
+    pub expenditure_type: String,
+    pub expenditure_date: chrono::NaiveDate,
+    pub description: Option<String>,
+    pub budget_line_id: Option<Uuid>,
+    pub budget_category: Option<String>,
+    pub amount: String,
+    pub indirect_cost_amount: String,
+    pub total_amount: String,
+    pub cost_sharing_amount: String,
+    pub employee_id: Option<Uuid>,
+    pub employee_name: Option<String>,
+    pub vendor_id: Option<Uuid>,
+    pub vendor_name: Option<String>,
+    pub source_entity_type: Option<String>,
+    pub source_entity_id: Option<Uuid>,
+    pub source_entity_number: Option<String>,
+    pub gl_debit_account: Option<String>,
+    pub gl_credit_account: Option<String>,
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub billed_at: Option<DateTime<Utc>>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Grant Billing (invoice to sponsor)
+/// Oracle Fusion: Grants Management > Billings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrantBilling {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub award_id: Uuid,
+    pub invoice_number: String,
+    pub invoice_date: chrono::NaiveDate,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub direct_costs_billed: String,
+    pub indirect_costs_billed: String,
+    pub cost_sharing_billed: String,
+    pub total_amount: String,
+    pub amount_received: String,
+    pub status: String,
+    pub expenditure_ids: serde_json::Value,
+    pub notes: Option<String>,
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub paid_at: Option<DateTime<Utc>>,
+    pub payment_reference: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Grant Compliance Report
+/// Oracle Fusion: Grants Management > Compliance Reports
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrantComplianceReport {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub award_id: Uuid,
+    pub report_type: String,
+    pub report_title: Option<String>,
+    pub reporting_period_start: chrono::NaiveDate,
+    pub reporting_period_end: chrono::NaiveDate,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub total_expenditures: String,
+    pub total_billed: String,
+    pub total_received: String,
+    pub cash_draws: String,
+    pub obligations: String,
+    pub content: serde_json::Value,
+    pub notes: Option<String>,
+    pub prepared_by: Option<Uuid>,
+    pub reviewed_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Grant Management Dashboard Summary
+/// Oracle Fusion: Grants Management > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrantDashboardSummary {
+    pub total_active_awards: i32,
+    pub total_sponsors: i32,
+    pub total_award_value: String,
+    pub total_funded: String,
+    pub total_expenditures: String,
+    pub total_available_balance: String,
+    pub total_pending_billings: i32,
+    pub total_overdue_reports: i32,
+    pub awards_expiring_30_days: i32,
+    pub budget_utilization_percent: String,
+    pub awards_by_status: serde_json::Value,
+    pub expenditures_by_category: serde_json::Value,
+    pub top_sponsors: serde_json::Value,
+}
+

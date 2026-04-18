@@ -47,6 +47,7 @@ pub mod procurement_contracts;
 pub mod inventory;
 pub mod customer_returns;
 pub mod pricing;
+pub mod sales_commission;
 
 pub use schema::*;
 pub use workflow::{
@@ -95,6 +96,7 @@ pub use procurement_contracts::{ProcurementContractEngine, PostgresProcurementCo
 pub use inventory::{InventoryEngine, PostgresInventoryRepository as PostgresInventoryRepo};
 pub use customer_returns::{CustomerReturnsEngine, PostgresCustomerReturnsRepository as PostgresCustomerReturnsRepo};
 pub use pricing::{PricingEngine, PostgresPricingRepository as PostgresPricingRepo};
+pub use sales_commission::{SalesCommissionEngine, PostgresSalesCommissionRepository as PostgresSalesCommissionRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

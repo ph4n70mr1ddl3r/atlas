@@ -30,6 +30,7 @@ pub mod procurement_contracts;
 pub mod inventory;
 pub mod customer_returns;
 pub mod pricing;
+pub mod sales_commission;
 
 pub use schema::*;
 pub use records::*;
@@ -59,6 +60,7 @@ pub use procurement_contracts::*;
 pub use inventory::*;
 pub use customer_returns::*;
 pub use pricing::*;
+pub use sales_commission::*;
 
 use axum::{
     Router,
@@ -925,6 +927,53 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Pricing Dashboard
         .route("/pricing/dashboard", get(get_pricing_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Sales Commission (Oracle Fusion Incentive Compensation)
+        // ═══════════════════════════════════════════════════════════
+
+        // Sales Representatives
+        .route("/commission/reps", post(create_rep))
+        .route("/commission/reps", get(list_reps))
+        .route("/commission/reps/:code", get(get_rep))
+        .route("/commission/reps/:code", delete(delete_rep))
+
+        // Commission Plans
+        .route("/commission/plans", post(create_commission_plan))
+        .route("/commission/plans", get(list_commission_plans))
+        .route("/commission/plans/:code", get(get_commission_plan))
+        .route("/commission/plans/:code", delete(delete_commission_plan))
+        .route("/commission/plans/:id/activate", post(activate_commission_plan))
+        .route("/commission/plans/:id/deactivate", post(deactivate_commission_plan))
+
+        // Commission Rate Tiers
+        .route("/commission/plans/:plan_id/tiers", post(add_rate_tier))
+        .route("/commission/plans/:plan_id/tiers", get(list_rate_tiers))
+
+        // Plan Assignments
+        .route("/commission/assignments", post(assign_plan))
+        .route("/commission/assignments", get(list_assignments))
+
+        // Sales Quotas
+        .route("/commission/quotas", post(create_quota))
+        .route("/commission/quotas", get(list_quotas))
+        .route("/commission/quotas/:id", get(get_quota))
+
+        // Commission Transactions
+        .route("/commission/transactions", post(credit_transaction))
+        .route("/commission/transactions", get(list_commission_transactions))
+        .route("/commission/transactions/:id", get(get_commission_transaction))
+
+        // Payouts
+        .route("/commission/payouts", post(process_payout))
+        .route("/commission/payouts", get(list_payouts))
+        .route("/commission/payouts/:id", get(get_payout))
+        .route("/commission/payouts/:id/lines", get(get_payout_lines))
+        .route("/commission/payouts/:id/approve", post(approve_payout))
+        .route("/commission/payouts/:id/reject", post(reject_payout))
+
+        // Commission Dashboard
+        .route("/commission/dashboard", get(get_commission_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

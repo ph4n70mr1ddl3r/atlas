@@ -737,6 +737,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::pricing::PostgresPricingRepository::new(db_pool.clone()),
     )));
 
+    let sales_commission_engine = Arc::new(atlas_core::SalesCommissionEngine::new(Arc::new(
+        atlas_core::sales_commission::PostgresSalesCommissionRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -768,6 +772,7 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         inventory_engine,
         customer_returns_engine,
         pricing_engine,
+        sales_commission_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

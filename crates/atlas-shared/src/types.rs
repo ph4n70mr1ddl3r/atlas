@@ -7278,3 +7278,200 @@ pub struct PricingDashboardSummary {
     pub charges_by_type: serde_json::Value,
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Sales Commission Management
+// Oracle Fusion Cloud ERP: Incentive Compensation
+// ═══════════════════════════════════════════════════════════════════
+
+/// Sales Representative profile for commission tracking
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SalesRepresentative {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rep_code: String,
+    pub employee_id: Option<Uuid>,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: Option<String>,
+    pub territory_code: Option<String>,
+    pub territory_name: Option<String>,
+    pub manager_id: Option<Uuid>,
+    pub manager_name: Option<String>,
+    pub hire_date: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Commission Plan defining how a rep earns commission
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommissionPlan {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub plan_type: String,
+    pub basis: String,
+    pub calculation_method: String,
+    pub default_rate: String,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Commission rate tier within a plan (e.g., 0-10k at 5%, 10k-50k at 8%)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommissionRateTier {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub plan_id: Uuid,
+    pub tier_number: i32,
+    pub from_amount: String,
+    pub to_amount: Option<String>,
+    pub rate_percent: String,
+    pub flat_amount: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Plan assignment linking a rep to a commission plan
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlanAssignment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rep_id: Uuid,
+    pub plan_id: Uuid,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Sales Quota for a rep in a given period
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SalesQuota {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rep_id: Uuid,
+    pub plan_id: Option<Uuid>,
+    pub quota_number: String,
+    pub period_name: String,
+    pub period_start_date: chrono::NaiveDate,
+    pub period_end_date: chrono::NaiveDate,
+    pub quota_type: String,
+    pub target_amount: String,
+    pub achieved_amount: String,
+    pub achievement_percent: String,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Commission transaction (a credited sale earning commission)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommissionTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rep_id: Uuid,
+    pub plan_id: Option<Uuid>,
+    pub quota_id: Option<Uuid>,
+    pub transaction_number: String,
+    pub source_type: String,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub transaction_date: chrono::NaiveDate,
+    pub sale_amount: String,
+    pub commission_basis_amount: String,
+    pub commission_rate: String,
+    pub commission_amount: String,
+    pub currency_code: String,
+    pub status: String,
+    pub payout_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Commission payout batch
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommissionPayout {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub payout_number: String,
+    pub period_name: String,
+    pub period_start_date: chrono::NaiveDate,
+    pub period_end_date: chrono::NaiveDate,
+    pub total_payout_amount: String,
+    pub currency_code: String,
+    pub rep_count: i32,
+    pub transaction_count: i32,
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub rejected_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Individual payout line per rep within a batch
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommissionPayoutLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub payout_id: Uuid,
+    pub rep_id: Uuid,
+    pub rep_name: String,
+    pub plan_id: Option<Uuid>,
+    pub plan_code: Option<String>,
+    pub gross_commission: String,
+    pub adjustment_amount: String,
+    pub net_commission: String,
+    pub currency_code: String,
+    pub transaction_count: i32,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Commission Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommissionDashboardSummary {
+    pub total_reps: i32,
+    pub active_reps: i32,
+    pub total_plans: i32,
+    pub active_plans: i32,
+    pub total_quotas: i32,
+    pub total_transactions: i32,
+    pub total_pending_payouts: i32,
+    pub total_commission_this_month: String,
+    pub total_quota_achievement_percent: String,
+    pub payouts_by_status: serde_json::Value,
+    pub top_performers: Vec<CommissionTopPerformer>,
+}
+
+/// Top performer in commission dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommissionTopPerformer {
+    pub rep_id: Uuid,
+    pub rep_name: String,
+    pub total_commission: String,
+    pub quota_achievement: String,
+    pub rank: i32,
+}
+

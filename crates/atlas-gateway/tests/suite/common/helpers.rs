@@ -196,6 +196,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::pricing::PostgresPricingRepository::new(db_pool.clone()),
     )));
 
+    let sales_commission_engine = Arc::new(atlas_core::SalesCommissionEngine::new(Arc::new(
+        atlas_core::sales_commission::PostgresSalesCommissionRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -227,6 +231,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         inventory_engine,
         customer_returns_engine,
         pricing_engine,
+        sales_commission_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -399,4 +404,13 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.return_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.return_authorizations").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.return_reasons").execute(pool).await.ok();
+    // Clean sales commission test data
+    sqlx::query("DELETE FROM _atlas.commission_payout_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.commission_transactions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.commission_payouts").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sales_quotas").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.plan_assignments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.commission_rate_tiers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.commission_plans").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sales_reps").execute(pool).await.ok();
 }

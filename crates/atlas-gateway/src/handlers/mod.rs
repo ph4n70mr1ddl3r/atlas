@@ -27,6 +27,7 @@ pub mod cost_allocation;
 pub mod financial_reporting;
 pub mod multi_book;
 pub mod procurement_contracts;
+pub mod inventory;
 
 pub use schema::*;
 pub use records::*;
@@ -53,6 +54,7 @@ pub use cost_allocation::*;
 pub use financial_reporting::*;
 pub use multi_book::*;
 pub use procurement_contracts::*;
+pub use inventory::*;
 
 use axum::{
     Router,
@@ -818,6 +820,26 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/procurement-contracts/dashboard", get(get_dashboard_summary))
+
+        // ═══════════════════════════════════════════════════════
+        // Inventory Management (Oracle Fusion SCM > Inventory)
+        // ═══════════════════════════════════════════════════════
+        .route("/inventory/organizations", post(create_inventory_org))
+        .route("/inventory/organizations", get(list_inventory_orgs))
+        .route("/inventory/organizations/:code", get(get_inventory_org))
+        .route("/inventory/organizations/:code", delete(delete_inventory_org))
+        .route("/inventory/items", post(create_item))
+        .route("/inventory/items", get(list_items))
+        .route("/inventory/items/:id", get(get_item))
+        .route("/inventory/on-hand", get(list_on_hand_balances))
+        .route("/inventory/transactions/receive", post(receive_item))
+        .route("/inventory/transactions/issue", post(issue_item))
+        .route("/inventory/transactions/transfer", post(transfer_item))
+        .route("/inventory/transactions/adjust", post(adjust_item))
+        .route("/inventory/transactions", get(list_transactions))
+        .route("/inventory/subinventories", post(create_subinventory))
+        .route("/inventory/subinventories/:inventory_org_id", get(list_subinventories))
+        .route("/inventory/dashboard", get(get_inventory_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

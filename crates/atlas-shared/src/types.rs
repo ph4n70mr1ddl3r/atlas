@@ -6565,3 +6565,370 @@ pub struct ContractDashboardSummary {
     pub top_suppliers: serde_json::Value,
 }
 
+// ════════════════════════════════════════════════════════════════════════════════
+// Inventory Management (Oracle Fusion SCM > Inventory Management)
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// Oracle Fusion Cloud ERP Inventory Management provides:
+// - Inventory Organizations: Warehouses, stores, and distribution centers
+// - Items: Products, materials, and supplies with full attribute tracking
+// - Item Categories: Hierarchical classification of items
+// - Subinventories: Logical storage areas within organizations
+// - Locators: Specific bins/shelves within subinventories
+// - On-Hand Balances: Real-time stock quantities with lot/serial/revision tracking
+// - Inventory Transactions: All material movements (receipts, issues, transfers, adjustments)
+// - Transaction Types: Configurable transaction type definitions
+// - Cycle Counts: Periodic stock verification with variance analysis
+// - Transaction Reasons: Coded reasons for material movements
+//
+// Oracle Fusion equivalent: SCM > Inventory Management
+
+/// Inventory Organization (warehouse, store, distribution center)
+/// Oracle Fusion: Inventory > Organizations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryOrganization {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// "warehouse", "store", "distribution_center", "manufacturing", "other"
+    pub org_type: String,
+    pub location_code: Option<String>,
+    pub address: Option<serde_json::Value>,
+    pub is_active: bool,
+    pub default_subinventory_code: Option<String>,
+    pub default_currency_code: String,
+    pub requires_approval_for_issues: bool,
+    pub requires_approval_for_transfers: bool,
+    pub enable_lot_control: bool,
+    pub enable_serial_control: bool,
+    pub enable_revision_control: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Item Category (hierarchical)
+/// Oracle Fusion: Inventory > Item Categories
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ItemCategory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub parent_category_id: Option<Uuid>,
+    pub track_as_asset: bool,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Item (product, material, supply)
+/// Oracle Fusion: Inventory > Items
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Item {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub item_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub long_description: Option<String>,
+    pub category_id: Option<Uuid>,
+    pub category_code: Option<String>,
+    /// "inventory", "non_inventory", "service", "expense", "capital"
+    pub item_type: String,
+    pub uom: String,
+    pub secondary_uom: Option<String>,
+    pub weight: Option<String>,
+    pub weight_uom: Option<String>,
+    pub volume: Option<String>,
+    pub volume_uom: Option<String>,
+    pub list_price: String,
+    pub standard_cost: String,
+    pub min_order_quantity: Option<String>,
+    pub max_order_quantity: Option<String>,
+    pub lead_time_days: i32,
+    pub shelf_life_days: Option<i32>,
+    pub is_lot_controlled: bool,
+    pub is_serial_controlled: bool,
+    pub is_revision_controlled: bool,
+    pub is_perishable: bool,
+    pub is_hazardous: bool,
+    pub is_purchasable: bool,
+    pub is_sellable: bool,
+    pub is_stockable: bool,
+    pub inventory_asset_account_code: Option<String>,
+    pub expense_account_code: Option<String>,
+    pub cost_of_goods_sold_account: Option<String>,
+    pub revenue_account_code: Option<String>,
+    pub image_url: Option<String>,
+    pub barcode: Option<String>,
+    pub supplier_item_codes: serde_json::Value,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subinventory (logical storage area)
+/// Oracle Fusion: Inventory > Subinventories
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Subinventory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub inventory_org_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// "storage", "receiving", "staging", "inspection", "packing", "other"
+    pub subinventory_type: String,
+    pub asset_subinventory: bool,
+    pub quantity_tracked: bool,
+    pub location_code: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Locator (bin/shelf/row within a subinventory)
+/// Oracle Fusion: Inventory > Locators
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Locator {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub subinventory_id: Uuid,
+    pub code: String,
+    pub description: Option<String>,
+    pub picker_order: i32,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// On-Hand Balance (real-time stock quantity)
+/// Oracle Fusion: Inventory > On-hand Quantities
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OnHandBalance {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub inventory_org_id: Uuid,
+    pub item_id: Uuid,
+    pub subinventory_id: Uuid,
+    pub locator_id: Option<Uuid>,
+    pub lot_number: Option<String>,
+    pub serial_number: Option<String>,
+    pub revision: Option<String>,
+    pub quantity: String,
+    pub reserved_quantity: String,
+    pub available_quantity: String,
+    pub unit_cost: String,
+    pub total_value: String,
+    pub last_transaction_date: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Inventory Transaction Type
+/// Oracle Fusion: Inventory > Transaction Types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryTransactionType {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// "receive", "issue", "transfer", "adjustment", "return_to_vendor",
+    /// "return_to_customer", "cycle_count_adjustment", "misc_receipt", "misc_issue"
+    pub transaction_action: String,
+    /// "manual", "purchase_order", "sales_order", "work_order", "system"
+    pub source_type: String,
+    pub is_system: bool,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Inventory Transaction (material movement)
+/// Oracle Fusion: Inventory > Transactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub transaction_number: String,
+    pub transaction_type_id: Option<Uuid>,
+    pub transaction_type_code: Option<String>,
+    pub transaction_action: String,
+    pub source_type: String,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub source_line_id: Option<Uuid>,
+    pub item_id: Uuid,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    // From location
+    pub from_inventory_org_id: Option<Uuid>,
+    pub from_subinventory_id: Option<Uuid>,
+    pub from_locator_id: Option<Uuid>,
+    // To location
+    pub to_inventory_org_id: Option<Uuid>,
+    pub to_subinventory_id: Option<Uuid>,
+    pub to_locator_id: Option<Uuid>,
+    // Quantities
+    pub quantity: String,
+    pub uom: String,
+    pub unit_cost: String,
+    pub total_cost: String,
+    // Lot/Serial/Revision
+    pub lot_number: Option<String>,
+    pub serial_number: Option<String>,
+    pub revision: Option<String>,
+    // Dates
+    pub transaction_date: DateTime<Utc>,
+    pub accounting_date: Option<chrono::NaiveDate>,
+    // Reference
+    pub reason_id: Option<Uuid>,
+    pub reason_name: Option<String>,
+    pub reference: Option<String>,
+    pub reference_type: Option<String>,
+    pub notes: Option<String>,
+    // GL
+    pub is_posted: bool,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub journal_entry_id: Option<Uuid>,
+    // Workflow
+    /// "pending", "approved", "processed", "cancelled"
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    // Audit
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cycle Count Header
+/// Oracle Fusion: Inventory > Cycle Counts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CycleCountHeader {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub count_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub inventory_org_id: Uuid,
+    pub subinventory_id: Option<Uuid>,
+    pub count_date: chrono::NaiveDate,
+    /// "draft", "in_progress", "completed", "cancelled"
+    pub status: String,
+    /// "full", "abc", "random", "by_category"
+    pub count_method: String,
+    pub tolerance_percent: String,
+    pub total_items: i32,
+    pub counted_items: i32,
+    pub matched_items: i32,
+    pub mismatched_items: i32,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cycle Count Line
+/// Oracle Fusion: Inventory > Cycle Count Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CycleCountLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub cycle_count_id: Uuid,
+    pub line_number: i32,
+    pub item_id: Uuid,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub subinventory_id: Option<Uuid>,
+    pub locator_id: Option<Uuid>,
+    pub lot_number: Option<String>,
+    pub revision: Option<String>,
+    pub system_quantity: String,
+    pub count_quantity_1: Option<String>,
+    pub count_quantity_2: Option<String>,
+    pub count_quantity_3: Option<String>,
+    pub count_date_1: Option<DateTime<Utc>>,
+    pub count_date_2: Option<DateTime<Utc>>,
+    pub count_date_3: Option<DateTime<Utc>>,
+    pub counted_by_1: Option<Uuid>,
+    pub counted_by_2: Option<Uuid>,
+    pub counted_by_3: Option<Uuid>,
+    pub approved_quantity: Option<String>,
+    pub variance_quantity: Option<String>,
+    pub variance_percent: Option<String>,
+    pub is_matched: bool,
+    /// "pending", "counted", "recount", "approved", "adjusted"
+    pub status: String,
+    pub adjustment_transaction_id: Option<Uuid>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Transaction Reason
+/// Oracle Fusion: Inventory > Transaction Reasons
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionReason {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub applicable_actions: serde_json::Value,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Inventory Dashboard Summary
+/// Oracle Fusion: Inventory Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryDashboardSummary {
+    pub total_items: i32,
+    pub active_items: i32,
+    pub total_organizations: i32,
+    pub total_on_hand_value: String,
+    pub total_pending_transactions: i32,
+    pub total_processed_transactions: i32,
+    pub items_by_type: serde_json::Value,
+    pub items_by_category: serde_json::Value,
+    pub transactions_by_action: serde_json::Value,
+    pub top_items_by_value: serde_json::Value,
+    pub pending_cycle_counts: i32,
+    pub low_stock_items: i32,
+}
+

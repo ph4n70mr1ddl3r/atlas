@@ -44,6 +44,7 @@ pub mod financial_reporting;
 pub mod withholding_tax;
 pub mod multi_book;
 pub mod procurement_contracts;
+pub mod inventory;
 
 pub use schema::*;
 pub use workflow::{
@@ -89,6 +90,7 @@ pub use financial_reporting::{FinancialReportingEngine, PostgresFinancialReporti
 pub use withholding_tax::{WithholdingTaxEngine, PostgresWithholdingTaxRepository as PostgresWithholdingTaxRepo};
 pub use multi_book::{MultiBookAccountingEngine, PostgresMultiBookAccountingRepository as PostgresMultiBookAccountingRepo};
 pub use procurement_contracts::{ProcurementContractEngine, PostgresProcurementContractRepository as PostgresProcurementContractRepo};
+pub use inventory::{InventoryEngine, PostgresInventoryRepository as PostgresInventoryRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

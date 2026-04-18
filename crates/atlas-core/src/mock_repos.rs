@@ -3149,3 +3149,239 @@ impl crate::corporate_card::CorporateCardRepository for MockCorporateCardReposit
         })
     }
 }
+
+/// Mock financial consolidation repository for testing
+pub struct MockFinancialConsolidationRepository;
+
+#[async_trait]
+impl crate::financial_consolidation::FinancialConsolidationRepository for MockFinancialConsolidationRepository {
+    // ── Consolidation Ledgers ───────────────────────────────────────
+    async fn create_ledger(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        base_currency_code: &str, translation_method: &str,
+        equity_elimination_method: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConsolidationLedger> {
+        Ok(atlas_shared::ConsolidationLedger {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            base_currency_code: base_currency_code.to_string(),
+            translation_method: translation_method.to_string(),
+            equity_elimination_method: equity_elimination_method.to_string(),
+            is_active: true,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_ledger(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::ConsolidationLedger>> { Ok(None) }
+    async fn get_ledger_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ConsolidationLedger>> { Ok(None) }
+    async fn list_ledgers(&self, _org_id: Uuid, _active_only: bool) -> AtlasResult<Vec<atlas_shared::ConsolidationLedger>> { Ok(vec![]) }
+
+    // ── Consolidation Entities ──────────────────────────────────────
+    async fn create_entity(
+        &self, org_id: Uuid, ledger_id: Uuid, entity_id: Uuid,
+        entity_name: &str, entity_code: &str, local_currency_code: &str,
+        ownership_percentage: &str, consolidation_method: &str,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConsolidationEntity> {
+        Ok(atlas_shared::ConsolidationEntity {
+            id: Uuid::new_v4(), organization_id: org_id, ledger_id, entity_id,
+            entity_name: entity_name.to_string(), entity_code: entity_code.to_string(),
+            local_currency_code: local_currency_code.to_string(),
+            ownership_percentage: ownership_percentage.to_string(),
+            consolidation_method: consolidation_method.to_string(),
+            is_active: true, include_in_consolidation: true,
+            effective_from, effective_to,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_entity(&self, _ledger_id: Uuid, _entity_code: &str) -> AtlasResult<Option<atlas_shared::ConsolidationEntity>> { Ok(None) }
+    async fn get_entity_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ConsolidationEntity>> { Ok(None) }
+    async fn list_entities(&self, _ledger_id: Uuid, _active_only: bool) -> AtlasResult<Vec<atlas_shared::ConsolidationEntity>> { Ok(vec![]) }
+
+    // ── Consolidation Scenarios ─────────────────────────────────────
+    async fn create_scenario(
+        &self, org_id: Uuid, ledger_id: Uuid, scenario_number: &str,
+        name: &str, description: Option<&str>,
+        fiscal_year: i32, period_name: &str,
+        period_start_date: chrono::NaiveDate, period_end_date: chrono::NaiveDate,
+        translation_rate_type: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConsolidationScenario> {
+        Ok(atlas_shared::ConsolidationScenario {
+            id: Uuid::new_v4(), organization_id: org_id, ledger_id,
+            scenario_number: scenario_number.to_string(),
+            name: name.to_string(), description: description.map(String::from),
+            fiscal_year, period_name: period_name.to_string(),
+            period_start_date, period_end_date,
+            status: "draft".to_string(),
+            translation_date: None, translation_rate_type: translation_rate_type.map(String::from),
+            total_entities: 0, total_eliminations: 0, total_adjustments: 0,
+            total_debits: "0".to_string(), total_credits: "0".to_string(),
+            is_balanced: false,
+            approved_by: None, approved_at: None,
+            posted_by: None, posted_at: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_scenario(&self, _org_id: Uuid, _scenario_number: &str) -> AtlasResult<Option<atlas_shared::ConsolidationScenario>> { Ok(None) }
+    async fn get_scenario_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ConsolidationScenario>> { Ok(None) }
+    async fn list_scenarios(&self, _org_id: Uuid, _ledger_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::ConsolidationScenario>> { Ok(vec![]) }
+    async fn update_scenario_status(
+        &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _posted_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConsolidationScenario> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_scenario_totals(
+        &self, _id: Uuid, _total_entities: i32, _total_eliminations: i32,
+        _total_adjustments: i32, _total_debits: &str, _total_credits: &str, _is_balanced: bool,
+    ) -> AtlasResult<()> { Ok(()) }
+
+    // ── Trial Balance Lines ─────────────────────────────────────────
+    async fn create_trial_balance_line(
+        &self, org_id: Uuid, scenario_id: Uuid,
+        entity_id: Option<Uuid>, entity_code: Option<&str>,
+        account_code: &str, account_name: Option<&str>,
+        account_type: Option<&str>, financial_statement: Option<&str>,
+        local_debit: &str, local_credit: &str, local_balance: &str,
+        exchange_rate: Option<&str>,
+        translated_debit: &str, translated_credit: &str, translated_balance: &str,
+        elimination_debit: &str, elimination_credit: &str, elimination_balance: &str,
+        minority_interest_debit: &str, minority_interest_credit: &str, minority_interest_balance: &str,
+        consolidated_debit: &str, consolidated_credit: &str, consolidated_balance: &str,
+        is_elimination_entry: bool, line_type: &str,
+    ) -> AtlasResult<atlas_shared::ConsolidationTrialBalanceLine> {
+        Ok(atlas_shared::ConsolidationTrialBalanceLine {
+            id: Uuid::new_v4(), organization_id: org_id, scenario_id,
+            entity_id, entity_code: entity_code.map(String::from),
+            account_code: account_code.to_string(),
+            account_name: account_name.map(String::from),
+            account_type: account_type.map(String::from),
+            financial_statement: financial_statement.map(String::from),
+            local_debit: local_debit.to_string(), local_credit: local_credit.to_string(),
+            local_balance: local_balance.to_string(),
+            exchange_rate: exchange_rate.map(String::from),
+            translated_debit: translated_debit.to_string(), translated_credit: translated_credit.to_string(),
+            translated_balance: translated_balance.to_string(),
+            elimination_debit: elimination_debit.to_string(), elimination_credit: elimination_credit.to_string(),
+            elimination_balance: elimination_balance.to_string(),
+            minority_interest_debit: minority_interest_debit.to_string(),
+            minority_interest_credit: minority_interest_credit.to_string(),
+            minority_interest_balance: minority_interest_balance.to_string(),
+            consolidated_debit: consolidated_debit.to_string(),
+            consolidated_credit: consolidated_credit.to_string(),
+            consolidated_balance: consolidated_balance.to_string(),
+            is_elimination_entry, line_type: line_type.to_string(),
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn list_trial_balance(
+        &self, _scenario_id: Uuid, _entity_id: Option<Uuid>, _line_type: Option<&str>,
+    ) -> AtlasResult<Vec<atlas_shared::ConsolidationTrialBalanceLine>> { Ok(vec![]) }
+    async fn delete_trial_balance_by_scenario(&self, _scenario_id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // ── Elimination Rules ───────────────────────────────────────────
+    async fn create_elimination_rule(
+        &self, org_id: Uuid, ledger_id: Uuid, rule_code: &str,
+        name: &str, description: Option<&str>, elimination_type: &str,
+        from_entity_id: Option<Uuid>, to_entity_id: Option<Uuid>,
+        from_account_pattern: Option<&str>, to_account_pattern: Option<&str>,
+        offset_account_code: &str, priority: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConsolidationEliminationRule> {
+        Ok(atlas_shared::ConsolidationEliminationRule {
+            id: Uuid::new_v4(), organization_id: org_id, ledger_id,
+            rule_code: rule_code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            elimination_type: elimination_type.to_string(),
+            from_entity_id, to_entity_id,
+            from_account_pattern: from_account_pattern.map(String::from),
+            to_account_pattern: to_account_pattern.map(String::from),
+            offset_account_code: offset_account_code.to_string(),
+            priority, is_active: true,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_elimination_rule(&self, _ledger_id: Uuid, _rule_code: &str) -> AtlasResult<Option<atlas_shared::ConsolidationEliminationRule>> { Ok(None) }
+    async fn list_elimination_rules(&self, _ledger_id: Uuid, _active_only: bool) -> AtlasResult<Vec<atlas_shared::ConsolidationEliminationRule>> { Ok(vec![]) }
+
+    // ── Adjustments ─────────────────────────────────────────────────
+    async fn create_adjustment(
+        &self, org_id: Uuid, scenario_id: Uuid, adjustment_number: &str,
+        description: Option<&str>, account_code: &str, account_name: Option<&str>,
+        entity_id: Option<Uuid>, entity_code: Option<&str>,
+        debit: &str, credit: &str, adjustment_type: &str,
+        reference: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConsolidationAdjustment> {
+        Ok(atlas_shared::ConsolidationAdjustment {
+            id: Uuid::new_v4(), organization_id: org_id, scenario_id,
+            adjustment_number: adjustment_number.to_string(),
+            description: description.map(String::from),
+            account_code: account_code.to_string(),
+            account_name: account_name.map(String::from),
+            entity_id, entity_code: entity_code.map(String::from),
+            debit: debit.to_string(), credit: credit.to_string(),
+            adjustment_type: adjustment_type.to_string(),
+            reference: reference.map(String::from),
+            status: "draft".to_string(),
+            approved_by: None, approved_at: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_adjustment(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ConsolidationAdjustment>> { Ok(None) }
+    async fn list_adjustments(&self, _scenario_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::ConsolidationAdjustment>> { Ok(vec![]) }
+    async fn update_adjustment_status(
+        &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConsolidationAdjustment> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // ── Translation Rates ───────────────────────────────────────────
+    async fn create_translation_rate(
+        &self, org_id: Uuid, scenario_id: Uuid, entity_id: Uuid,
+        from_currency: &str, to_currency: &str,
+        rate_type: &str, exchange_rate: &str,
+        effective_date: chrono::NaiveDate,
+    ) -> AtlasResult<atlas_shared::ConsolidationTranslationRate> {
+        Ok(atlas_shared::ConsolidationTranslationRate {
+            id: Uuid::new_v4(), organization_id: org_id, scenario_id, entity_id,
+            from_currency: from_currency.to_string(),
+            to_currency: to_currency.to_string(),
+            rate_type: rate_type.to_string(),
+            exchange_rate: exchange_rate.to_string(),
+            effective_date,
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_translation_rate(
+        &self, _scenario_id: Uuid, _entity_id: Uuid, _rate_type: &str,
+    ) -> AtlasResult<Option<atlas_shared::ConsolidationTranslationRate>> { Ok(None) }
+    async fn list_translation_rates(&self, _scenario_id: Uuid) -> AtlasResult<Vec<atlas_shared::ConsolidationTranslationRate>> { Ok(vec![]) }
+
+    // ── Dashboard ───────────────────────────────────────────────────
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::ConsolidationDashboardSummary> {
+        Ok(atlas_shared::ConsolidationDashboardSummary {
+            total_ledgers: 0,
+            total_active_scenarios: 0,
+            total_entities: 0,
+            total_elimination_rules: 0,
+            last_consolidation_date: None,
+            last_consolidation_status: None,
+            scenarios_by_status: serde_json::json!({}),
+            entities_by_method: serde_json::json!({}),
+            consolidation_completion_percent: "0".to_string(),
+        })
+    }
+}

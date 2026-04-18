@@ -8218,3 +8218,218 @@ pub struct GrantDashboardSummary {
     pub top_sponsors: serde_json::Value,
 }
 
+// ============================================================================
+// Financial Consolidation (Oracle Fusion General Ledger > Consolidation)
+// ============================================================================
+
+/// Consolidation Ledger – defines a consolidation scope with translation method.
+/// Oracle Fusion: General Ledger > Consolidation > Consolidation Ledgers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsolidationLedger {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub base_currency_code: String,
+    /// "current_rate", "temporal", "weighted_average"
+    pub translation_method: String,
+    /// "full", "proportional", "equity_method"
+    pub equity_elimination_method: String,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Consolidation Entity – a subsidiary / BU participating in consolidation.
+/// Oracle Fusion: Consolidation > Consolidation Entities
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsolidationEntity {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub ledger_id: Uuid,
+    pub entity_id: Uuid,
+    pub entity_name: String,
+    pub entity_code: String,
+    pub local_currency_code: String,
+    pub ownership_percentage: String,
+    /// "full", "proportional", "equity_method"
+    pub consolidation_method: String,
+    pub is_active: bool,
+    pub include_in_consolidation: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Consolidation Scenario – a periodic consolidation run.
+/// Oracle Fusion: Consolidation > Consolidation Workbench
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsolidationScenario {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub ledger_id: Uuid,
+    pub scenario_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub fiscal_year: i32,
+    pub period_name: String,
+    pub period_start_date: chrono::NaiveDate,
+    pub period_end_date: chrono::NaiveDate,
+    /// "draft", "in_progress", "pending_review", "approved", "posted", "reversed"
+    pub status: String,
+    pub translation_date: Option<chrono::NaiveDate>,
+    pub translation_rate_type: Option<String>,
+    pub total_entities: i32,
+    pub total_eliminations: i32,
+    pub total_adjustments: i32,
+    pub total_debits: String,
+    pub total_credits: String,
+    pub is_balanced: bool,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub posted_by: Option<Uuid>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Consolidation Trial Balance Line.
+/// Oracle Fusion: Consolidated Trial Balance report
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsolidationTrialBalanceLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub scenario_id: Uuid,
+    pub entity_id: Option<Uuid>,
+    pub entity_code: Option<String>,
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub account_type: Option<String>,
+    pub financial_statement: Option<String>,
+    pub local_debit: String,
+    pub local_credit: String,
+    pub local_balance: String,
+    pub exchange_rate: Option<String>,
+    pub translated_debit: String,
+    pub translated_credit: String,
+    pub translated_balance: String,
+    pub elimination_debit: String,
+    pub elimination_credit: String,
+    pub elimination_balance: String,
+    pub minority_interest_debit: String,
+    pub minority_interest_credit: String,
+    pub minority_interest_balance: String,
+    pub consolidated_debit: String,
+    pub consolidated_credit: String,
+    pub consolidated_balance: String,
+    pub is_elimination_entry: bool,
+    /// "entity", "elimination", "adjustment", "minority", "consolidated"
+    pub line_type: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Intercompany Elimination Rule.
+/// Oracle Fusion: Consolidation > Elimination Rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsolidationEliminationRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub ledger_id: Uuid,
+    pub rule_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// "intercompany_receivable_payable", "intercompany_revenue_expense",
+    /// "investment_equity", "intercompany_inventory_profit", "other"
+    pub elimination_type: String,
+    pub from_entity_id: Option<Uuid>,
+    pub to_entity_id: Option<Uuid>,
+    pub from_account_pattern: Option<String>,
+    pub to_account_pattern: Option<String>,
+    pub offset_account_code: String,
+    pub priority: i32,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Consolidation Adjustment – manual journal adjustment within a scenario.
+/// Oracle Fusion: Consolidation > Adjustments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsolidationAdjustment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub scenario_id: Uuid,
+    pub adjustment_number: String,
+    pub description: Option<String>,
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub entity_id: Option<Uuid>,
+    pub entity_code: Option<String>,
+    pub debit: String,
+    pub credit: String,
+    /// "manual", "reclassification", "correction"
+    pub adjustment_type: String,
+    pub reference: Option<String>,
+    /// "draft", "approved", "posted"
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Consolidation Currency Translation Rate.
+/// Oracle Fusion: Consolidation > Translation Rates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsolidationTranslationRate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub scenario_id: Uuid,
+    pub entity_id: Uuid,
+    pub from_currency: String,
+    pub to_currency: String,
+    /// "period_end", "average", "historical", "spot"
+    pub rate_type: String,
+    pub exchange_rate: String,
+    pub effective_date: chrono::NaiveDate,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Financial Consolidation Dashboard Summary.
+/// Oracle Fusion: Consolidation > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsolidationDashboardSummary {
+    pub total_ledgers: i32,
+    pub total_active_scenarios: i32,
+    pub total_entities: i32,
+    pub total_elimination_rules: i32,
+    pub last_consolidation_date: Option<String>,
+    pub last_consolidation_status: Option<String>,
+    pub scenarios_by_status: serde_json::Value,
+    pub entities_by_method: serde_json::Value,
+    pub consolidation_completion_percent: String,
+}
+

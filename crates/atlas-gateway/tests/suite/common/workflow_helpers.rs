@@ -717,6 +717,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::financial_reporting::PostgresFinancialReportingRepository::new(db_pool.clone()),
     )));
 
+    let multi_book_engine = Arc::new(atlas_core::MultiBookAccountingEngine::new(Arc::new(
+        atlas_core::multi_book::PostgresMultiBookAccountingRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -743,6 +747,7 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         project_costing_engine,
         cost_allocation_engine,
         financial_reporting_engine,
+        multi_book_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -42,6 +42,7 @@ pub mod project_costing;
 pub mod cost_allocation;
 pub mod financial_reporting;
 pub mod withholding_tax;
+pub mod multi_book;
 
 pub use schema::*;
 pub use workflow::{
@@ -85,6 +86,7 @@ pub use project_costing::{ProjectCostingEngine, PostgresProjectCostingRepository
 pub use cost_allocation::{CostAllocationEngine, PostgresCostAllocationRepository as PostgresCostAllocationRepo};
 pub use financial_reporting::{FinancialReportingEngine, PostgresFinancialReportingRepository as PostgresFinancialReportingRepo};
 pub use withholding_tax::{WithholdingTaxEngine, PostgresWithholdingTaxRepository as PostgresWithholdingTaxRepo};
+pub use multi_book::{MultiBookAccountingEngine, PostgresMultiBookAccountingRepository as PostgresMultiBookAccountingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

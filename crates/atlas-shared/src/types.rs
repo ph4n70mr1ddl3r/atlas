@@ -6006,4 +6006,264 @@ pub struct WithholdingSummary {
     pub certificates_issued: i32,
 }
 
+// ============================================================================
+// Multi-Book Accounting (Secondary Ledgers)
+// Oracle Fusion equivalent: General Ledger > Multi-Book Accounting
+// ============================================================================
+
+/// Accounting Book (Primary or Secondary)
+/// Represents a complete accounting representation with its own chart of accounts,
+/// calendar, and currency. Primary book is the main ledger; secondary books
+/// represent alternate accounting standards (e.g., IFRS, local GAAP, statutory).
+/// Oracle Fusion equivalent: General Ledger > Accounting Books
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountingBook {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique book code (e.g., "PRIMARY_GAAP", "IFRS_BOOK", "LOCAL_STATUTORY")
+    pub code: String,
+    /// Display name
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Book type: "primary" or "secondary"
+    pub book_type: String,
+    /// Chart of accounts identifier / code
+    pub chart_of_accounts_code: String,
+    /// Accounting calendar code (references period-close calendars)
+    pub calendar_code: String,
+    /// Base currency code for this book
+    pub currency_code: String,
+    /// Whether this book is enabled for posting
+    pub is_enabled: bool,
+    /// Whether auto-propagation from primary is enabled (secondary books only)
+    pub auto_propagation_enabled: bool,
+    /// Mapping level: "journal" or "subledger"
+    pub mapping_level: String,
+    /// Status: "draft", "active", "inactive", "suspended"
+    pub status: String,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update accounting book request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountingBookRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub book_type: String,
+    pub chart_of_accounts_code: String,
+    pub calendar_code: String,
+    pub currency_code: String,
+    pub auto_propagation_enabled: Option<bool>,
+    pub mapping_level: Option<String>,
+}
+
+/// Account Mapping Rule
+/// Maps account segments from a source book to a target book.
+/// Oracle Fusion equivalent: General Ledger > Multi-Book > Account Mappings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountMapping {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Source accounting book ID
+    pub source_book_id: Uuid,
+    /// Target accounting book ID
+    pub target_book_id: Uuid,
+    /// Source account code / range
+    pub source_account_code: String,
+    /// Target account code
+    pub target_account_code: String,
+    /// Optional segment-level mappings (JSON: {"segment_name": "value"})
+    pub segment_mappings: serde_json::Value,
+    /// Priority (lower = higher priority)
+    pub priority: i32,
+    /// Whether this rule is active
+    pub is_active: bool,
+    /// Effective dates
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create account mapping request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountMappingRequest {
+    pub source_book_id: Uuid,
+    pub target_book_id: Uuid,
+    pub source_account_code: String,
+    pub target_account_code: String,
+    pub segment_mappings: Option<serde_json::Value>,
+    pub priority: Option<i32>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+/// Book Journal Entry
+/// A journal entry in a specific accounting book, either posted directly
+/// or propagated from another book.
+/// Oracle Fusion equivalent: General Ledger > Multi-Book > Journal Entries
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BookJournalEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// The accounting book this entry belongs to
+    pub book_id: Uuid,
+    /// Journal entry number (auto-generated within the book)
+    pub entry_number: String,
+    /// Journal header description
+    pub header_description: Option<String>,
+    /// Source book ID (if propagated)
+    pub source_book_id: Option<Uuid>,
+    /// Source journal entry ID (if propagated)
+    pub source_entry_id: Option<Uuid>,
+    /// External reference (e.g., subledger transaction ID)
+    pub external_reference: Option<String>,
+    /// Accounting date
+    pub accounting_date: chrono::NaiveDate,
+    /// Period name
+    pub period_name: Option<String>,
+    /// Total debit amount
+    pub total_debit: String,
+    /// Total credit amount
+    pub total_credit: String,
+    /// Status: "draft", "posted", "propagated", "reversed"
+    pub status: String,
+    /// Whether this was auto-propagated
+    pub is_auto_propagated: bool,
+    /// Currency
+    pub currency_code: String,
+    /// Conversion rate (if different from source book currency)
+    pub conversion_rate: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub posted_by: Option<Uuid>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Book Journal Line
+/// Individual debit/credit line within a book journal entry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BookJournalLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Parent journal entry
+    pub entry_id: Uuid,
+    /// Line number within the entry
+    pub line_number: i32,
+    /// Account code in this book's chart of accounts
+    pub account_code: String,
+    /// Account name (denormalized)
+    pub account_name: Option<String>,
+    /// Debit amount
+    pub debit_amount: String,
+    /// Credit amount
+    pub credit_amount: String,
+    /// Description
+    pub description: Option<String>,
+    /// Tax code
+    pub tax_code: Option<String>,
+    /// Source line ID (if propagated)
+    pub source_line_id: Option<Uuid>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create book journal entry request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BookJournalEntryRequest {
+    pub book_id: Uuid,
+    pub header_description: Option<String>,
+    pub external_reference: Option<String>,
+    pub accounting_date: chrono::NaiveDate,
+    pub period_name: Option<String>,
+    pub currency_code: String,
+    pub lines: Vec<BookJournalLineRequest>,
+}
+
+/// Create book journal line request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BookJournalLineRequest {
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub debit_amount: String,
+    pub credit_amount: String,
+    pub description: Option<String>,
+    pub tax_code: Option<String>,
+}
+
+/// Propagation Log Entry
+/// Tracks the propagation of journal entries between books.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PropagationLog {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Source book
+    pub source_book_id: Uuid,
+    /// Target book
+    pub target_book_id: Uuid,
+    /// Source journal entry
+    pub source_entry_id: Uuid,
+    /// Created target journal entry
+    pub target_entry_id: Option<Uuid>,
+    /// Status: "pending", "completed", "failed", "skipped"
+    pub status: String,
+    /// Number of lines propagated
+    pub lines_propagated: i32,
+    /// Number of lines unmapped (skipped)
+    pub lines_unmapped: i32,
+    /// Error message (if failed)
+    pub error_message: Option<String>,
+    /// Propagation timestamp
+    pub propagated_at: DateTime<Utc>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Multi-Book Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MultiBookSummary {
+    /// Total accounting books
+    pub book_count: i32,
+    /// Primary book code
+    pub primary_book_code: Option<String>,
+    /// Count of secondary books
+    pub secondary_book_count: i32,
+    /// Active mapping rules count
+    pub mapping_rule_count: i32,
+    /// Recent propagations count
+    pub recent_propagation_count: i32,
+    /// Propagation success rate
+    pub propagation_success_rate: String,
+    /// Unposted entries by book
+    pub unposted_entries_by_book: serde_json::Value,
+    /// Journal entry counts by book
+    pub entry_counts_by_book: serde_json::Value,
+}
+
 

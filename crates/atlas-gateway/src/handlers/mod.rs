@@ -25,6 +25,7 @@ pub mod lease;
 pub mod project_costing;
 pub mod cost_allocation;
 pub mod financial_reporting;
+pub mod multi_book;
 
 pub use schema::*;
 pub use records::*;
@@ -49,6 +50,7 @@ pub use lease::*;
 pub use project_costing::*;
 pub use cost_allocation::*;
 pub use financial_reporting::*;
+pub use multi_book::*;
 
 use axum::{
     Router,
@@ -742,6 +744,37 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/financial-reporting/dashboard", get(get_financial_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Multi-Book Accounting (Oracle Fusion GL > Multi-Book Accounting)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Accounting Books
+        .route("/multi-book/books", get(list_accounting_books))
+        .route("/multi-book/books", post(create_accounting_book))
+        .route("/multi-book/books/:code", get(get_accounting_book))
+        .route("/multi-book/books/:code/status", put(update_accounting_book_status))
+        .route("/multi-book/books/:code", delete(delete_accounting_book))
+
+        // Account Mappings
+        .route("/multi-book/mappings", post(create_account_mapping))
+        .route("/multi-book/mappings", get(list_account_mappings))
+        .route("/multi-book/mappings/:id", delete(delete_account_mapping))
+
+        // Journal Entries
+        .route("/multi-book/entries", post(create_book_journal_entry))
+        .route("/multi-book/entries/:id", get(get_book_journal_entry))
+        .route("/multi-book/books/:book_id/entries", get(list_book_journal_entries))
+        .route("/multi-book/entries/:entry_id/lines", get(get_book_journal_lines))
+        .route("/multi-book/entries/:id/post", post(post_book_journal_entry))
+        .route("/multi-book/entries/:id/reverse", post(reverse_book_journal_entry))
+
+        // Propagation
+        .route("/multi-book/entries/:id/propagate", post(propagate_entry))
+        .route("/multi-book/propagation-logs", get(list_propagation_logs))
+
+        // Multi-Book Dashboard
+        .route("/multi-book/dashboard", get(get_multi_book_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

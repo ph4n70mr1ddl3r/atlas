@@ -176,6 +176,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::financial_reporting::PostgresFinancialReportingRepository::new(db_pool.clone()),
     )));
 
+    let multi_book_engine = Arc::new(atlas_core::MultiBookAccountingEngine::new(Arc::new(
+        atlas_core::multi_book::PostgresMultiBookAccountingRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -202,6 +206,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         project_costing_engine,
         cost_allocation_engine,
         financial_reporting_engine,
+        multi_book_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -356,4 +361,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.financial_report_columns").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.financial_report_rows").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.financial_report_templates").execute(pool).await.ok();
+    // Clean multi-book accounting test data
+    sqlx::query("DELETE FROM _atlas.propagation_logs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.book_journal_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.book_journal_entries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.account_mappings").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.accounting_books").execute(pool).await.ok();
 }

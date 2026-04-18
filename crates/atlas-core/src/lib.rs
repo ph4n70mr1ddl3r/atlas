@@ -38,6 +38,7 @@ pub mod encumbrance;
 pub mod cash_management;
 pub mod sourcing;
 pub mod lease;
+pub mod project_costing;
 
 pub use schema::*;
 pub use workflow::{
@@ -77,6 +78,7 @@ pub use encumbrance::{EncumbranceEngine, PostgresEncumbranceRepository as Postgr
 pub use cash_management::{CashManagementEngine, PostgresCashManagementRepository as PostgresCashManagementRepo};
 pub use sourcing::{SourcingEngine, PostgresSourcingRepository as PostgresSourcingRepo};
 pub use lease::{LeaseAccountingEngine, PostgresLeaseAccountingRepository as PostgresLeaseAccountingRepo};
+pub use project_costing::{ProjectCostingEngine, PostgresProjectCostingRepository as PostgresProjectCostingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

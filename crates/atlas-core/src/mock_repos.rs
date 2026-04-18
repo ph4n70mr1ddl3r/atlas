@@ -13,6 +13,7 @@ use crate::expense::ExpenseRepository;
 use crate::budget::BudgetRepository;
 use crate::fixed_assets::FixedAssetRepository;
 use crate::revenue::RevenueRepository;
+use crate::project_costing::ProjectCostingRepository;
 
 /// Mock schema repository
 pub struct MockSchemaRepository;
@@ -2123,6 +2124,165 @@ impl crate::lease::LeaseAccountingRepository for MockLeaseAccountingRepository {
             leases_by_classification: serde_json::json!({}),
             leases_by_status: serde_json::json!({}),
             liability_by_period: serde_json::json!({}),
+        })
+    }
+}
+
+/// Mock project costing repository for testing
+pub struct MockProjectCostingRepository;
+
+#[async_trait]
+impl ProjectCostingRepository for MockProjectCostingRepository {
+    async fn create_cost_transaction(
+        &self, org_id: Uuid, transaction_number: &str,
+        project_id: Uuid, _project_number: Option<&str>,
+        task_id: Option<Uuid>, _task_number: Option<&str>,
+        cost_type: &str, raw_cost_amount: &str, burdened_cost_amount: &str,
+        burden_amount: &str, currency_code: &str, transaction_date: chrono::NaiveDate,
+        gl_date: Option<chrono::NaiveDate>, description: Option<&str>,
+        supplier_id: Option<Uuid>, supplier_name: Option<&str>,
+        employee_id: Option<Uuid>, employee_name: Option<&str>,
+        expenditure_category: Option<&str>, quantity: Option<&str>,
+        unit_of_measure: Option<&str>, unit_rate: Option<&str>,
+        is_billable: bool, is_capitalizable: bool,
+        original_transaction_id: Option<Uuid>, adjustment_type: Option<&str>,
+        adjustment_reason: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ProjectCostTransaction> {
+        Ok(atlas_shared::ProjectCostTransaction {
+            id: Uuid::new_v4(), organization_id: org_id,
+            transaction_number: transaction_number.to_string(),
+            project_id, project_number: None, task_id, task_number: None,
+            cost_type: cost_type.to_string(),
+            raw_cost_amount: raw_cost_amount.to_string(),
+            burdened_cost_amount: burdened_cost_amount.to_string(),
+            burden_amount: burden_amount.to_string(),
+            currency_code: currency_code.to_string(),
+            transaction_date, gl_date,
+            description: description.map(String::from),
+            supplier_id, supplier_name: supplier_name.map(String::from),
+            employee_id, employee_name: employee_name.map(String::from),
+            expenditure_category: expenditure_category.map(String::from),
+            quantity: quantity.map(String::from),
+            unit_of_measure: unit_of_measure.map(String::from),
+            unit_rate: unit_rate.map(String::from),
+            is_billable, is_capitalizable,
+            status: "draft".to_string(),
+            distribution_id: None, original_transaction_id,
+            adjustment_type: adjustment_type.map(String::from),
+            adjustment_reason: adjustment_reason.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, approved_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_cost_transaction(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ProjectCostTransaction>> { Ok(None) }
+    async fn get_cost_transaction_by_number(&self, _org_id: Uuid, _transaction_number: &str) -> AtlasResult<Option<atlas_shared::ProjectCostTransaction>> { Ok(None) }
+    async fn list_cost_transactions(&self, _org_id: Uuid, _project_id: Option<Uuid>, _cost_type: Option<&str>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::ProjectCostTransaction>> { Ok(vec![]) }
+    async fn update_cost_transaction_status(&self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>) -> AtlasResult<atlas_shared::ProjectCostTransaction> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_burden_schedule(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        status: &str, effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        is_default: bool, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::BurdenSchedule> {
+        Ok(atlas_shared::BurdenSchedule {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            status: status.to_string(), effective_from, effective_to,
+            is_default, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_burden_schedule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::BurdenSchedule>> { Ok(None) }
+    async fn get_burden_schedule_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::BurdenSchedule>> { Ok(None) }
+    async fn list_burden_schedules(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::BurdenSchedule>> { Ok(vec![]) }
+    async fn get_default_burden_schedule(&self, _org_id: Uuid) -> AtlasResult<Option<atlas_shared::BurdenSchedule>> { Ok(None) }
+    async fn update_burden_schedule_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::BurdenSchedule> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_burden_schedule_line(
+        &self, org_id: Uuid, schedule_id: Uuid, line_number: i32,
+        cost_type: &str, expenditure_category: Option<&str>,
+        burden_rate_percent: &str, burden_account_code: Option<&str>,
+    ) -> AtlasResult<atlas_shared::BurdenScheduleLine> {
+        Ok(atlas_shared::BurdenScheduleLine {
+            id: Uuid::new_v4(), organization_id: org_id, schedule_id, line_number,
+            cost_type: cost_type.to_string(),
+            expenditure_category: expenditure_category.map(String::from),
+            burden_rate_percent: burden_rate_percent.to_string(),
+            burden_account_code: burden_account_code.map(String::from),
+            is_active: true, metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_burden_schedule_lines(&self, _schedule_id: Uuid) -> AtlasResult<Vec<atlas_shared::BurdenScheduleLine>> { Ok(vec![]) }
+    async fn get_applicable_burden_rate(&self, _schedule_id: Uuid, _cost_type: &str, _expenditure_category: Option<&str>) -> AtlasResult<Option<atlas_shared::BurdenScheduleLine>> { Ok(None) }
+
+    async fn create_cost_adjustment(
+        &self, org_id: Uuid, adjustment_number: &str, original_transaction_id: Uuid,
+        adjustment_type: &str, adjustment_amount: &str, new_raw_cost: &str,
+        new_burdened_cost: &str, reason: &str, description: Option<&str>,
+        effective_date: chrono::NaiveDate, transfer_to_project_id: Option<Uuid>,
+        transfer_to_task_id: Option<Uuid>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ProjectCostAdjustment> {
+        Ok(atlas_shared::ProjectCostAdjustment {
+            id: Uuid::new_v4(), organization_id: org_id,
+            adjustment_number: adjustment_number.to_string(),
+            original_transaction_id,
+            adjustment_type: adjustment_type.to_string(),
+            adjustment_amount: adjustment_amount.to_string(),
+            new_raw_cost: new_raw_cost.to_string(),
+            new_burdened_cost: new_burdened_cost.to_string(),
+            reason: reason.to_string(),
+            description: description.map(String::from),
+            effective_date, transfer_to_project_id, transfer_to_task_id,
+            status: "pending".to_string(), created_transaction_id: None,
+            metadata: serde_json::json!({}),
+            created_by, approved_by: None, approved_at: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_cost_adjustment(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ProjectCostAdjustment>> { Ok(None) }
+    async fn list_cost_adjustments(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::ProjectCostAdjustment>> { Ok(vec![]) }
+    async fn update_cost_adjustment_status(
+        &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _created_transaction_id: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ProjectCostAdjustment> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_cost_distribution(
+        &self, org_id: Uuid, transaction_id: Uuid, line_number: i32,
+        debit_account_code: &str, credit_account_code: &str, amount: &str,
+        distribution_type: &str, gl_date: chrono::NaiveDate,
+    ) -> AtlasResult<atlas_shared::ProjectCostDistribution> {
+        Ok(atlas_shared::ProjectCostDistribution {
+            id: Uuid::new_v4(), organization_id: org_id, transaction_id, line_number,
+            debit_account_code: debit_account_code.to_string(),
+            credit_account_code: credit_account_code.to_string(),
+            amount: amount.to_string(), distribution_type: distribution_type.to_string(),
+            gl_date, is_posted: false, gl_batch_id: None,
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_cost_distributions(&self, _transaction_id: Uuid) -> AtlasResult<Vec<atlas_shared::ProjectCostDistribution>> { Ok(vec![]) }
+    async fn list_unposted_distributions(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::ProjectCostDistribution>> { Ok(vec![]) }
+    async fn mark_distribution_posted(&self, _id: Uuid, _gl_batch_id: Option<Uuid>) -> AtlasResult<atlas_shared::ProjectCostDistribution> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn get_costing_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::ProjectCostingSummary> {
+        Ok(atlas_shared::ProjectCostingSummary {
+            project_count: 0, total_raw_costs: "0".to_string(),
+            total_burdened_costs: "0".to_string(), total_burden: "0".to_string(),
+            total_capitalized: "0".to_string(), total_billed: "0".to_string(),
+            costs_by_type: serde_json::json!({}), costs_by_project: serde_json::json!({}),
+            costs_by_month: serde_json::json!({}),
+            pending_adjustments: 0, pending_distributions: 0,
         })
     }
 }

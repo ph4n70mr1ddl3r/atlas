@@ -4949,4 +4949,250 @@ pub struct LeaseDashboardSummary {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// Lease Accounting (ASC 842 /
+// Project Costing (Oracle Fusion Cloud ERP: Project Management > Project Costing)
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// Oracle Fusion Cloud ERP Project Costing provides:
+// - Cost Transactions: Track labor, material, expense, and other costs against projects/tasks
+// - Burden Schedules: Define overhead/burden rate schedules for cost types
+// - Cost Burdening: Apply burden rates to raw costs to compute burdened amounts
+// - Cost Adjustments: Adjust previously recorded costs (increase, decrease, transfer)
+// - Cost Distributions: Distribute project costs to GL accounts
+// - Capitalization: Capitalize eligible project costs as fixed assets
+// - Cost Reporting: Dashboard with cost breakdowns by project, type, and period
+//
+// Oracle Fusion equivalent: Project Management > Project Costing
+
+/// Project cost transaction
+/// Records a cost incurred against a project/task.
+/// Oracle Fusion: Project Costing > Cost Transactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectCostTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated transaction number (e.g., "PJC-2024-00001")
+    pub transaction_number: String,
+    /// Project reference
+    pub project_id: Uuid,
+    /// Project number (denormalized for display)
+    pub project_number: Option<String>,
+    /// Task reference (optional - cost can be at project level)
+    pub task_id: Option<Uuid>,
+    /// Task number (denormalized)
+    pub task_number: Option<String>,
+    /// Cost type: "labor", "material", "expense", "equipment", "other"
+    pub cost_type: String,
+    /// Raw cost amount (before burdening)
+    pub raw_cost_amount: String,
+    /// Burdened cost amount (raw + burden)
+    pub burdened_cost_amount: String,
+    /// Burden amount (overhead applied)
+    pub burden_amount: String,
+    /// Currency code
+    pub currency_code: String,
+    /// Transaction date (when cost was incurred)
+    pub transaction_date: chrono::NaiveDate,
+    /// GL posting date
+    pub gl_date: Option<chrono::NaiveDate>,
+    /// Description of the cost
+    pub description: Option<String>,
+    /// Supplier/vendor reference (for material/expense costs)
+    pub supplier_id: Option<Uuid>,
+    /// Supplier name (denormalized)
+    pub supplier_name: Option<String>,
+    /// Employee reference (for labor costs)
+    pub employee_id: Option<Uuid>,
+    /// Employee name (denormalized)
+    pub employee_name: Option<String>,
+    /// Expenditure type / category
+    pub expenditure_category: Option<String>,
+    /// Quantity (hours for labor, units for material)
+    pub quantity: Option<String>,
+    /// Unit of measure ("hours", "each", "lot")
+    pub unit_of_measure: Option<String>,
+    /// Rate per unit
+    pub unit_rate: Option<String>,
+    /// Billable flag (whether this cost can be billed to customer)
+    pub is_billable: bool,
+    /// Capitalizable flag (whether this cost can be capitalized as an asset)
+    pub is_capitalizable: bool,
+    /// Status: "draft", "approved", "distributed", "adjusted", "reversed", "capitalized"
+    pub status: String,
+    /// GL distribution reference
+    pub distribution_id: Option<Uuid>,
+    /// Original transaction reference (for adjustments)
+    pub original_transaction_id: Option<Uuid>,
+    /// Adjustment type (if this is an adjustment): "increase", "decrease", "transfer"
+    pub adjustment_type: Option<String>,
+    /// Adjustment reason
+    pub adjustment_reason: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Burden schedule definition
+/// Defines overhead/burden rates to be applied to project costs.
+/// Oracle Fusion: Project Costing > Burden Schedules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BurdenSchedule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Schedule code (e.g., "OH-STD-2024")
+    pub code: String,
+    /// Schedule name
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Status: "draft", "active", "inactive"
+    pub status: String,
+    /// Effective from date
+    pub effective_from: chrono::NaiveDate,
+    /// Effective to date
+    pub effective_to: Option<chrono::NaiveDate>,
+    /// Whether this is the default schedule for the organization
+    pub is_default: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Burden schedule line (maps cost type to burden rate)
+/// Oracle Fusion: Project Costing > Burden Schedule Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BurdenScheduleLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Parent schedule reference
+    pub schedule_id: Uuid,
+    /// Line number within schedule
+    pub line_number: i32,
+    /// Cost type this line applies to: "labor", "material", "expense", "equipment", "other"
+    pub cost_type: String,
+    /// Expenditure category filter (None = applies to all of this cost type)
+    pub expenditure_category: Option<String>,
+    /// Burden rate percentage (e.g., "25.00" means 25% overhead)
+    pub burden_rate_percent: String,
+    /// GL account code for the burden amount
+    pub burden_account_code: Option<String>,
+    /// Whether this line is active
+    pub is_active: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cost adjustment
+/// Records adjustments to previously recorded cost transactions.
+/// Oracle Fusion: Project Costing > Cost Adjustments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectCostAdjustment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated adjustment number
+    pub adjustment_number: String,
+    /// Original cost transaction being adjusted
+    pub original_transaction_id: Uuid,
+    /// Adjustment type: "increase", "decrease", "transfer", "reversal"
+    pub adjustment_type: String,
+    /// Adjustment amount (absolute value)
+    pub adjustment_amount: String,
+    /// New total raw cost after adjustment
+    pub new_raw_cost: String,
+    /// New burdened cost after adjustment
+    pub new_burdened_cost: String,
+    /// Reason for the adjustment
+    pub reason: String,
+    /// Description
+    pub description: Option<String>,
+    /// Effective date of the adjustment
+    pub effective_date: chrono::NaiveDate,
+    /// For transfers: destination project
+    pub transfer_to_project_id: Option<Uuid>,
+    /// For transfers: destination task
+    pub transfer_to_task_id: Option<Uuid>,
+    /// Status: "pending", "approved", "rejected", "processed"
+    pub status: String,
+    /// Created cost transaction (the adjustment transaction)
+    pub created_transaction_id: Option<Uuid>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cost distribution line (GL posting for a cost transaction)
+/// Oracle Fusion: Project Costing > Cost Distributions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectCostDistribution {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Source cost transaction
+    pub transaction_id: Uuid,
+    /// Distribution line number
+    pub line_number: i32,
+    /// GL account code for the debit
+    pub debit_account_code: String,
+    /// GL account code for the credit
+    pub credit_account_code: String,
+    /// Distribution amount
+    pub amount: String,
+    /// Distribution type: "raw_cost", "burden", "total"
+    pub distribution_type: String,
+    /// GL posting date
+    pub gl_date: chrono::NaiveDate,
+    /// Whether this has been posted to GL
+    pub is_posted: bool,
+    /// GL batch reference
+    pub gl_batch_id: Option<Uuid>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Project Costing Dashboard Summary
+/// Oracle Fusion: Project Costing Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectCostingSummary {
+    /// Total number of projects with costs
+    pub project_count: i32,
+    /// Total raw costs across all projects
+    pub total_raw_costs: String,
+    /// Total burdened costs across all projects
+    pub total_burdened_costs: String,
+    /// Total burden (overhead) across all projects
+    pub total_burden: String,
+    /// Total capitalized costs
+    pub total_capitalized: String,
+    /// Total billed to customers
+    pub total_billed: String,
+    /// Costs by type breakdown
+    pub costs_by_type: serde_json::Value,
+    /// Costs by project breakdown (top projects)
+    pub costs_by_project: serde_json::Value,
+    /// Costs by month trend
+    pub costs_by_month: serde_json::Value,
+    /// Pending adjustments count
+    pub pending_adjustments: i32,
+    /// Pending distributions count
+    pub pending_distributions: i32,
+}
+

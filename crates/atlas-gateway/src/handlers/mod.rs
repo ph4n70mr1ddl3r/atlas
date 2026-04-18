@@ -22,6 +22,7 @@ mod encumbrance;
 pub mod cash_management;
 pub mod sourcing;
 pub mod lease;
+pub mod project_costing;
 
 pub use schema::*;
 pub use records::*;
@@ -43,6 +44,7 @@ pub use encumbrance::*;
 pub use cash_management::*;
 pub use sourcing::*;
 pub use lease::*;
+pub use project_costing::*;
 
 use axum::{
     Router,
@@ -618,6 +620,38 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Lease Dashboard
         .route("/lease/dashboard", get(get_lease_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Project Costing (Oracle Fusion Project Management > Project Costing)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Cost Transactions
+        .route("/project-costing/transactions", get(list_cost_transactions))
+        .route("/project-costing/transactions", post(create_cost_transaction))
+        .route("/project-costing/transactions/:id", get(get_cost_transaction))
+        .route("/project-costing/transactions/:id/approve", post(approve_cost_transaction))
+        .route("/project-costing/transactions/:id/reverse", post(reverse_cost_transaction))
+
+        // Burden Schedules
+        .route("/project-costing/burden-schedules", get(list_burden_schedules))
+        .route("/project-costing/burden-schedules", post(create_burden_schedule))
+        .route("/project-costing/burden-schedules/:code", get(get_burden_schedule))
+        .route("/project-costing/burden-schedules/:id/activate", post(activate_burden_schedule))
+        .route("/project-costing/burden-schedules/:schedule_id/lines", get(list_burden_schedule_lines))
+        .route("/project-costing/burden-schedules/:schedule_id/lines", post(add_burden_schedule_line))
+
+        // Cost Adjustments
+        .route("/project-costing/adjustments", get(list_cost_adjustments))
+        .route("/project-costing/adjustments", post(create_cost_adjustment))
+        .route("/project-costing/adjustments/:id/approve", post(approve_cost_adjustment))
+
+        // Cost Distributions
+        .route("/project-costing/transactions/:id/distribute", post(distribute_cost_transaction))
+        .route("/project-costing/transactions/:transaction_id/distributions", get(list_cost_distributions))
+        .route("/project-costing/distributions/post", post(post_distributions))
+
+        // Project Costing Dashboard
+        .route("/project-costing/dashboard", get(get_costing_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

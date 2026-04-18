@@ -7582,3 +7582,196 @@ pub struct TreasuryDashboardSummary {
     pub maturity_profile: serde_json::Value,
 }
 
+// ============================================================================
+// Subscription Management (Oracle Fusion Subscription Management)
+// ============================================================================
+
+/// Subscription product in the catalog
+/// Oracle Fusion: Subscription Management > Products
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionProduct {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub product_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub product_type: String,
+    pub billing_frequency: String,
+    pub default_duration_months: i32,
+    pub is_auto_renew: bool,
+    pub cancellation_notice_days: i32,
+    pub setup_fee: String,
+    pub tier_type: String,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subscription product price tier
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionPriceTier {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub product_id: Uuid,
+    pub tier_name: Option<String>,
+    pub min_quantity: String,
+    pub max_quantity: Option<String>,
+    pub unit_price: String,
+    pub discount_percent: String,
+    pub currency_code: String,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subscription (main header)
+/// Oracle Fusion: Subscription Management > Subscriptions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Subscription {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub subscription_number: String,
+    pub customer_id: Uuid,
+    pub customer_name: Option<String>,
+    pub product_id: Uuid,
+    pub product_code: Option<String>,
+    pub product_name: Option<String>,
+    pub description: Option<String>,
+    pub status: String,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: Option<chrono::NaiveDate>,
+    pub renewal_date: Option<chrono::NaiveDate>,
+    pub billing_frequency: String,
+    pub billing_day_of_month: i32,
+    pub billing_alignment: String,
+    pub currency_code: String,
+    pub quantity: String,
+    pub unit_price: String,
+    pub list_price: String,
+    pub discount_percent: String,
+    pub setup_fee: String,
+    pub recurring_amount: String,
+    pub total_contract_value: String,
+    pub total_billed: String,
+    pub total_revenue_recognized: String,
+    pub duration_months: i32,
+    pub is_auto_renew: bool,
+    pub cancellation_date: Option<chrono::NaiveDate>,
+    pub cancellation_reason: Option<String>,
+    pub suspension_reason: Option<String>,
+    pub sales_rep_id: Option<Uuid>,
+    pub sales_rep_name: Option<String>,
+    pub gl_revenue_account: Option<String>,
+    pub gl_deferred_account: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subscription amendment (change to an active subscription)
+/// Oracle Fusion: Subscription Management > Amendments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionAmendment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub subscription_id: Uuid,
+    pub amendment_number: String,
+    pub amendment_type: String,
+    pub description: Option<String>,
+    pub old_quantity: Option<String>,
+    pub new_quantity: Option<String>,
+    pub old_unit_price: Option<String>,
+    pub new_unit_price: Option<String>,
+    pub old_recurring_amount: Option<String>,
+    pub new_recurring_amount: Option<String>,
+    pub old_end_date: Option<chrono::NaiveDate>,
+    pub new_end_date: Option<chrono::NaiveDate>,
+    pub effective_date: chrono::NaiveDate,
+    pub proration_credit: Option<String>,
+    pub proration_charge: Option<String>,
+    pub status: String,
+    pub applied_at: Option<DateTime<Utc>>,
+    pub applied_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subscription billing schedule line
+/// Oracle Fusion: Subscription Management > Billing Schedule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionBillingLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub subscription_id: Uuid,
+    pub schedule_number: i32,
+    pub billing_date: chrono::NaiveDate,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub amount: String,
+    pub proration_amount: String,
+    pub total_amount: String,
+    pub invoice_id: Option<Uuid>,
+    pub invoice_number: Option<String>,
+    pub status: String,
+    pub paid_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subscription revenue schedule line (ASC 606 / IFRS 15)
+/// Oracle Fusion: Subscription Management > Revenue Schedules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionRevenueLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub subscription_id: Uuid,
+    pub billing_schedule_id: Option<Uuid>,
+    pub period_name: String,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub revenue_amount: String,
+    pub deferred_amount: String,
+    pub recognized_to_date: String,
+    pub status: String,
+    pub recognized_at: Option<DateTime<Utc>>,
+    pub journal_entry_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Subscription dashboard summary
+/// Oracle Fusion: Subscription Management > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionDashboardSummary {
+    pub total_active_subscriptions: i32,
+    pub total_subscribers: i32,
+    pub total_monthly_recurring_revenue: String,
+    pub total_annual_recurring_revenue: String,
+    pub total_contract_value: String,
+    pub total_billed: String,
+    pub total_revenue_recognized: String,
+    pub total_deferred_revenue: String,
+    pub churn_rate_percent: String,
+    pub renewals_due_30_days: i32,
+    pub new_subscriptions_this_month: i32,
+    pub cancelled_this_month: i32,
+    pub subscriptions_by_status: serde_json::Value,
+    pub revenue_by_product: serde_json::Value,
+}
+

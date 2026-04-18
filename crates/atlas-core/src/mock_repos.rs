@@ -1,7 +1,7 @@
 //! Mock repositories for testing and development
 
 use atlas_shared::{EntityDefinition, AuditEntry};
-use atlas_shared::errors::AtlasResult;
+use atlas_shared::errors::{AtlasResult, AtlasError};
 use async_trait::async_trait;
 use uuid::Uuid;
 use crate::schema::SchemaRepository;
@@ -2747,6 +2747,191 @@ impl crate::treasury::TreasuryRepository for MockTreasuryRepository {
             active_counterparties: 0,
             deals_by_status: serde_json::json!({}), deals_by_type: serde_json::json!({}),
             maturity_profile: serde_json::json!({}),
+        })
+    }
+}
+
+/// Mock subscription repository for testing
+pub struct MockSubscriptionRepository;
+
+#[async_trait]
+impl crate::subscription::SubscriptionRepository for MockSubscriptionRepository {
+    // Products
+    async fn create_product(&self, _org_id: Uuid, _product_code: &str, _name: &str,
+        _description: Option<&str>, _product_type: &str, _billing_frequency: &str,
+        _default_duration_months: i32, _is_auto_renew: bool, _cancellation_notice_days: i32,
+        _setup_fee: &str, _tier_type: &str, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SubscriptionProduct> {
+        Ok(atlas_shared::SubscriptionProduct {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            product_code: _product_code.to_string(), name: _name.to_string(),
+            description: None, product_type: _product_type.to_string(),
+            billing_frequency: _billing_frequency.to_string(),
+            default_duration_months: _default_duration_months,
+            is_auto_renew: _is_auto_renew,
+            cancellation_notice_days: _cancellation_notice_days,
+            setup_fee: _setup_fee.to_string(), tier_type: _tier_type.to_string(),
+            is_active: true, metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_product(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::SubscriptionProduct>> { Ok(None) }
+    async fn get_product_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SubscriptionProduct>> { Ok(None) }
+    async fn list_products(&self, _org_id: Uuid, _active_only: bool) -> AtlasResult<Vec<atlas_shared::SubscriptionProduct>> { Ok(vec![]) }
+    async fn delete_product(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Price Tiers
+    async fn create_price_tier(&self, _org_id: Uuid, _product_id: Uuid, _tier_name: Option<&str>,
+        _min_quantity: &str, _max_quantity: Option<&str>, _unit_price: &str,
+        _discount_percent: &str, _currency_code: &str,
+        _effective_from: Option<chrono::NaiveDate>, _effective_to: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<atlas_shared::SubscriptionPriceTier> {
+        Ok(atlas_shared::SubscriptionPriceTier {
+            id: Uuid::new_v4(), organization_id: _org_id, product_id: _product_id,
+            tier_name: None, min_quantity: _min_quantity.to_string(),
+            max_quantity: None, unit_price: _unit_price.to_string(),
+            discount_percent: _discount_percent.to_string(),
+            currency_code: _currency_code.to_string(),
+            effective_from: None, effective_to: None, is_active: true,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_price_tiers(&self, _org_id: Uuid, _product_id: Uuid) -> AtlasResult<Vec<atlas_shared::SubscriptionPriceTier>> { Ok(vec![]) }
+
+    // Subscriptions
+    #[allow(clippy::too_many_arguments)]
+    async fn create_subscription(&self, _org_id: Uuid, _subscription_number: &str,
+        _customer_id: Uuid, _customer_name: Option<&str>, _product_id: Uuid,
+        _product_code: Option<&str>, _product_name: Option<&str>, _description: Option<&str>,
+        _status: &str, _start_date: chrono::NaiveDate, _end_date: Option<chrono::NaiveDate>,
+        _renewal_date: Option<&chrono::NaiveDate>, _billing_frequency: &str,
+        _billing_day_of_month: i32, _billing_alignment: &str, _currency_code: &str,
+        _quantity: &str, _unit_price: &str, _list_price: &str, _discount_percent: &str,
+        _setup_fee: &str, _recurring_amount: &str, _total_contract_value: &str,
+        _total_billed: &str, _total_revenue_recognized: &str, _duration_months: i32,
+        _is_auto_renew: bool, _cancellation_date: Option<chrono::NaiveDate>,
+        _cancellation_reason: Option<&str>, _suspension_reason: Option<&str>,
+        _sales_rep_id: Option<Uuid>, _sales_rep_name: Option<&str>,
+        _gl_revenue_account: Option<&str>, _gl_deferred_account: Option<&str>,
+        _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::Subscription> {
+        Ok(atlas_shared::Subscription {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            subscription_number: _subscription_number.to_string(),
+            customer_id: _customer_id, customer_name: _customer_name.map(String::from),
+            product_id: _product_id, product_code: _product_code.map(String::from),
+            product_name: _product_name.map(String::from), description: None,
+            status: _status.to_string(), start_date: _start_date, end_date: _end_date,
+            renewal_date: _renewal_date.copied(), billing_frequency: _billing_frequency.to_string(),
+            billing_day_of_month: _billing_day_of_month,
+            billing_alignment: _billing_alignment.to_string(),
+            currency_code: _currency_code.to_string(),
+            quantity: _quantity.to_string(), unit_price: _unit_price.to_string(),
+            list_price: _list_price.to_string(), discount_percent: _discount_percent.to_string(),
+            setup_fee: _setup_fee.to_string(), recurring_amount: _recurring_amount.to_string(),
+            total_contract_value: _total_contract_value.to_string(),
+            total_billed: _total_billed.to_string(),
+            total_revenue_recognized: _total_revenue_recognized.to_string(),
+            duration_months: _duration_months, is_auto_renew: _is_auto_renew,
+            cancellation_date: None, cancellation_reason: None, suspension_reason: None,
+            sales_rep_id: None, sales_rep_name: None,
+            gl_revenue_account: None, gl_deferred_account: None,
+            metadata: serde_json::json!({}), created_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_subscription(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::Subscription>> { Ok(None) }
+    async fn get_subscription_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::Subscription>> { Ok(None) }
+    async fn list_subscriptions(&self, _org_id: Uuid, _status: Option<&str>, _customer_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::Subscription>> { Ok(vec![]) }
+    async fn update_subscription_status(&self, _id: Uuid, _status: &str, _cancellation_date: Option<chrono::NaiveDate>, _cancellation_reason: Option<&str>, _suspension_reason: Option<&str>) -> AtlasResult<atlas_shared::Subscription> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_subscription_dates(&self, _id: Uuid, _end_date: Option<chrono::NaiveDate>, _renewal_date: Option<&chrono::NaiveDate>) -> AtlasResult<atlas_shared::Subscription> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_subscription_pricing(&self, _id: Uuid, _quantity: &str, _unit_price: &str, _recurring_amount: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Amendments
+    #[allow(clippy::too_many_arguments)]
+    async fn create_amendment(&self, _org_id: Uuid, _subscription_id: Uuid, _amendment_number: &str,
+        _amendment_type: &str, _description: Option<&str>,
+        _old_quantity: Option<&str>, _new_quantity: Option<&str>,
+        _old_unit_price: Option<&str>, _new_unit_price: Option<&str>,
+        _old_recurring_amount: Option<&str>, _new_recurring_amount: Option<&str>,
+        _old_end_date: Option<&chrono::NaiveDate>, _new_end_date: Option<&chrono::NaiveDate>,
+        _effective_date: chrono::NaiveDate, _proration_credit: &str, _proration_charge: &str,
+        _status: &str, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SubscriptionAmendment> {
+        Ok(atlas_shared::SubscriptionAmendment {
+            id: Uuid::new_v4(), organization_id: _org_id, subscription_id: _subscription_id,
+            amendment_number: _amendment_number.to_string(),
+            amendment_type: _amendment_type.to_string(), description: None,
+            old_quantity: None, new_quantity: None, old_unit_price: None, new_unit_price: None,
+            old_recurring_amount: None, new_recurring_amount: None,
+            old_end_date: None, new_end_date: None, effective_date: _effective_date,
+            proration_credit: None, proration_charge: None,
+            status: _status.to_string(), applied_at: None, applied_by: None,
+            metadata: serde_json::json!({}), created_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_amendment(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SubscriptionAmendment>> { Ok(None) }
+    async fn list_amendments(&self, _subscription_id: Uuid) -> AtlasResult<Vec<atlas_shared::SubscriptionAmendment>> { Ok(vec![]) }
+    async fn update_amendment_status(&self, _id: Uuid, _status: &str, _applied_by: Option<Uuid>) -> AtlasResult<atlas_shared::SubscriptionAmendment> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Billing Schedule
+    async fn create_billing_line(&self, _org_id: Uuid, _subscription_id: Uuid, _schedule_number: i32,
+        _billing_date: chrono::NaiveDate, _period_start: chrono::NaiveDate, _period_end: chrono::NaiveDate,
+        _amount: &str, _proration_amount: &str, _total_amount: &str,
+    ) -> AtlasResult<atlas_shared::SubscriptionBillingLine> {
+        Ok(atlas_shared::SubscriptionBillingLine {
+            id: Uuid::new_v4(), organization_id: _org_id, subscription_id: _subscription_id,
+            schedule_number: _schedule_number, billing_date: _billing_date,
+            period_start: _period_start, period_end: _period_end,
+            amount: _amount.to_string(), proration_amount: _proration_amount.to_string(),
+            total_amount: _total_amount.to_string(), invoice_id: None, invoice_number: None,
+            status: "pending".to_string(), paid_at: None, metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_billing_lines(&self, _subscription_id: Uuid) -> AtlasResult<Vec<atlas_shared::SubscriptionBillingLine>> { Ok(vec![]) }
+
+    // Revenue Schedule
+    async fn create_revenue_line(&self, _org_id: Uuid, _subscription_id: Uuid, _billing_schedule_id: Option<Uuid>,
+        _period_name: &str, _period_start: chrono::NaiveDate, _period_end: chrono::NaiveDate,
+        _revenue_amount: &str, _deferred_amount: &str, _recognized_to_date: &str, _status: &str,
+    ) -> AtlasResult<atlas_shared::SubscriptionRevenueLine> {
+        Ok(atlas_shared::SubscriptionRevenueLine {
+            id: Uuid::new_v4(), organization_id: _org_id, subscription_id: _subscription_id,
+            billing_schedule_id: _billing_schedule_id, period_name: _period_name.to_string(),
+            period_start: _period_start, period_end: _period_end,
+            revenue_amount: _revenue_amount.to_string(),
+            deferred_amount: _deferred_amount.to_string(),
+            recognized_to_date: _recognized_to_date.to_string(),
+            status: _status.to_string(), recognized_at: None, journal_entry_id: None,
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_revenue_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SubscriptionRevenueLine>> { Ok(None) }
+    async fn list_revenue_lines(&self, _subscription_id: Uuid) -> AtlasResult<Vec<atlas_shared::SubscriptionRevenueLine>> { Ok(vec![]) }
+    async fn update_revenue_line_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::SubscriptionRevenueLine> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Dashboard
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::SubscriptionDashboardSummary> {
+        Ok(atlas_shared::SubscriptionDashboardSummary {
+            total_active_subscriptions: 0, total_subscribers: 0,
+            total_monthly_recurring_revenue: "0".to_string(),
+            total_annual_recurring_revenue: "0".to_string(),
+            total_contract_value: "0".to_string(), total_billed: "0".to_string(),
+            total_revenue_recognized: "0".to_string(), total_deferred_revenue: "0".to_string(),
+            churn_rate_percent: "0".to_string(), renewals_due_30_days: 0,
+            new_subscriptions_this_month: 0, cancelled_this_month: 0,
+            subscriptions_by_status: serde_json::json!({}),
+            revenue_by_product: serde_json::json!({}),
         })
     }
 }

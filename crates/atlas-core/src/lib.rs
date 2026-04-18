@@ -48,6 +48,7 @@ pub mod inventory;
 pub mod customer_returns;
 pub mod pricing;
 pub mod sales_commission;
+pub mod subscription;
 pub mod treasury;
 
 pub use schema::*;
@@ -99,6 +100,7 @@ pub use customer_returns::{CustomerReturnsEngine, PostgresCustomerReturnsReposit
 pub use pricing::{PricingEngine, PostgresPricingRepository as PostgresPricingRepo};
 pub use sales_commission::{SalesCommissionEngine, PostgresSalesCommissionRepository as PostgresSalesCommissionRepo};
 pub use treasury::{TreasuryEngine, PostgresTreasuryRepository as PostgresTreasuryRepo};
+pub use subscription::{SubscriptionEngine, PostgresSubscriptionRepository as PostgresSubscriptionRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

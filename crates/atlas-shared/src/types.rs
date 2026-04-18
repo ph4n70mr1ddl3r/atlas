@@ -4257,3 +4257,446 @@ pub struct CashForecastSummary {
     /// Balance trend (array of period-end balances)
     pub balance_trend: serde_json::Value,
 }
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Procurement Sourcing Management (Oracle Fusion SCM > Procurement > Sourcing)
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// Oracle Fusion Cloud ERP Procurement Sourcing provides:
+// - Sourcing Events: RFQs (Request for Quote), RFPs (Request for Proposal), RFI
+// - Supplier Responses: Bids/quotation submissions with line-level pricing
+// - Scoring & Evaluation: Weighted scoring criteria, team evaluation
+// - Award: Best-value analysis, split awards, multi-supplier awards
+// - Templates: Reusable sourcing templates for recurring procurement
+// - Negotiation: Multi-round negotiation with suppliers
+//
+// Oracle Fusion equivalent: Procurement > Sourcing > Negotiations
+
+/// Sourcing Event (Negotiation)
+/// Represents an RFQ, RFP, or other sourcing event sent to suppliers.
+/// Oracle Fusion equivalent: Procurement > Sourcing > Negotiations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourcingEvent {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated event number (e.g., "SE-2024-00001")
+    pub event_number: String,
+    /// Event title/subject
+    pub title: String,
+    /// Description of what is being sourced
+    pub description: Option<String>,
+    /// Event type: "rfq" (Request for Quote), "rfp" (Request for Proposal),
+    /// "rfi" (Request for Information), "auction" (Reverse Auction)
+    pub event_type: String,
+    /// Status: "draft", "published", "response_open", "evaluation", "awarded",
+    ///         "cancelled", "closed"
+    pub status: String,
+    /// Style: "sealed" (blind bidding), "open" (visible bids), "reverse_auction"
+    pub style: String,
+    /// Deadline for supplier responses
+    pub response_deadline: chrono::NaiveDate,
+    /// When the event was published
+    pub published_at: Option<DateTime<Utc>>,
+    /// When the event was closed/awarded
+    pub closed_at: Option<DateTime<Utc>>,
+    /// Currency for all pricing
+    pub currency_code: String,
+    /// Sourcing template reference
+    pub template_id: Option<Uuid>,
+    /// Template name (denormalized)
+    pub template_name: Option<String>,
+    /// Evaluation team lead
+    pub evaluation_lead_id: Option<Uuid>,
+    pub evaluation_lead_name: Option<String>,
+    /// Scoring method: "weighted", "pass_fail", "manual", "lowest_price"
+    pub scoring_method: String,
+    /// Whether supplier responses are visible to other suppliers
+    pub are_bids_visible: bool,
+    /// Allow suppliers to see their rank
+    pub allow_supplier_rank_visibility: bool,
+    /// Contact for inquiries
+    pub contact_person_id: Option<Uuid>,
+    pub contact_person_name: Option<String>,
+    /// Terms and conditions
+    pub terms_and_conditions: Option<String>,
+    /// Attachment references
+    pub attachments: serde_json::Value,
+    /// Number of invited suppliers
+    pub invited_supplier_count: i32,
+    /// Number of suppliers who responded
+    pub response_count: i32,
+    /// Award summary
+    pub award_summary: serde_json::Value,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub cancelled_by: Option<Uuid>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub cancellation_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sourcing Event Line
+/// Individual items or services being sourced within an event.
+/// Oracle Fusion equivalent: Negotiation Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourcingEventLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Parent sourcing event
+    pub event_id: Uuid,
+    /// Line number within the event
+    pub line_number: i32,
+    /// Item / service description
+    pub description: String,
+    /// Item number / SKU reference
+    pub item_number: Option<String>,
+    /// Item category
+    pub category: Option<String>,
+    /// Quantity being sourced
+    pub quantity: String,
+    /// Unit of measure (e.g., "EA", "KG", "LOT")
+    pub uom: String,
+    /// Target / estimated unit price
+    pub target_price: Option<String>,
+    /// Target / estimated total price
+    pub target_total: Option<String>,
+    /// Required delivery date
+    pub need_by_date: Option<chrono::NaiveDate>,
+    /// Ship-to location
+    pub ship_to: Option<String>,
+    /// Technical specifications
+    pub specifications: Option<serde_json::Value>,
+    /// Whether partial quantity bids are allowed
+    pub allow_partial_quantity: bool,
+    /// Minimum award quantity (for split awards)
+    pub min_award_quantity: Option<String>,
+    /// Line status: "open", "awarded", "cancelled"
+    pub status: String,
+    /// Awarded supplier ID (after award)
+    pub awarded_supplier_id: Option<Uuid>,
+    /// Awarded supplier name (denormalized)
+    pub awarded_supplier_name: Option<String>,
+    /// Awarded unit price (after award)
+    pub awarded_price: Option<String>,
+    /// Awarded quantity (for split awards)
+    pub awarded_quantity: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sourcing Event Invite
+/// Tracks which suppliers are invited to participate in a sourcing event.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourcingInvite {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Sourcing event reference
+    pub event_id: Uuid,
+    /// Supplier reference
+    pub supplier_id: Uuid,
+    /// Supplier name (denormalized)
+    pub supplier_name: Option<String>,
+    /// Supplier email for notifications
+    pub supplier_email: Option<String>,
+    /// Whether the supplier has viewed the event
+    pub is_viewed: bool,
+    pub viewed_at: Option<DateTime<Utc>>,
+    /// Whether the supplier has responded
+    pub has_responded: bool,
+    pub responded_at: Option<DateTime<Utc>>,
+    /// Status: "invited", "viewed", "responded", "declined", "disqualified"
+    pub status: String,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Response (Bid/Quotation)
+/// A supplier's response to a sourcing event with line-level pricing.
+/// Oracle Fusion equivalent: Supplier Response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierResponse {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Sourcing event reference
+    pub event_id: Uuid,
+    /// Response number (auto-generated)
+    pub response_number: String,
+    /// Supplier reference
+    pub supplier_id: Uuid,
+    /// Supplier name (denormalized)
+    pub supplier_name: Option<String>,
+    /// Status: "draft", "submitted", "under_review", "shortlisted", "rejected",
+    ///         "awarded", "disqualified"
+    pub status: String,
+    /// Total bid amount (sum of all line amounts)
+    pub total_amount: String,
+    /// Total score (after evaluation)
+    pub total_score: Option<String>,
+    /// Rank among all responses (after evaluation)
+    pub rank: Option<i32>,
+    /// Whether this response meets all requirements
+    pub is_compliant: Option<bool>,
+    /// Supplier notes / cover letter
+    pub cover_letter: Option<String>,
+    /// Validity date for the bid
+    pub valid_until: Option<chrono::NaiveDate>,
+    /// Payment terms offered
+    pub payment_terms: Option<String>,
+    /// Delivery lead time in days
+    pub lead_time_days: Option<i32>,
+    /// Warranty offered (months)
+    pub warranty_months: Option<i32>,
+    /// Attachment references
+    pub attachments: serde_json::Value,
+    /// Evaluation notes
+    pub evaluation_notes: Option<String>,
+    /// Submitted at
+    pub submitted_at: Option<DateTime<Utc>>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub evaluated_by: Option<Uuid>,
+    pub evaluated_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Response Line
+/// Individual line pricing within a supplier's response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierResponseLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Response header reference
+    pub response_id: Uuid,
+    /// Sourcing event line reference
+    pub event_line_id: Uuid,
+    /// Line number
+    pub line_number: i32,
+    /// Quoted unit price
+    pub unit_price: String,
+    /// Quoted quantity
+    pub quantity: String,
+    /// Total line amount (unit_price × quantity)
+    pub line_amount: String,
+    /// Discount percentage offered
+    pub discount_percent: Option<String>,
+    /// Effective price after discount
+    pub effective_price: Option<String>,
+    /// Promised delivery date
+    pub promised_delivery_date: Option<chrono::NaiveDate>,
+    /// Lead time in days
+    pub lead_time_days: Option<i32>,
+    /// Whether this line meets specifications
+    pub is_compliant: Option<bool>,
+    /// Line score (after evaluation)
+    pub score: Option<String>,
+    /// Notes from the supplier
+    pub supplier_notes: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Scoring Criterion
+/// Defines an evaluation criterion for scoring supplier responses.
+/// Oracle Fusion equivalent: Negotiation > Requirements & Scoring
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScoringCriterion {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Sourcing event reference
+    pub event_id: Uuid,
+    /// Criterion name (e.g., "Price", "Quality", "Delivery Time", "Technical Fit")
+    pub name: String,
+    /// Description of how to evaluate this criterion
+    pub description: Option<String>,
+    /// Weight in total score (0-100, all criteria should sum to 100)
+    pub weight: String,
+    /// Maximum possible score
+    pub max_score: String,
+    /// Criterion type: "price", "quality", "delivery", "technical", "compliance", "custom"
+    pub criterion_type: String,
+    /// Display order
+    pub display_order: i32,
+    /// Whether this is a mandatory (knockout) criterion
+    pub is_mandatory: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Score given to a specific response for a specific criterion.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResponseScore {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Response reference
+    pub response_id: Uuid,
+    /// Scoring criterion reference
+    pub criterion_id: Uuid,
+    /// Score given (0 to max_score)
+    pub score: String,
+    /// Weighted score (score × weight / 100)
+    pub weighted_score: String,
+    /// Evaluator's notes
+    pub notes: Option<String>,
+    /// Evaluator
+    pub scored_by: Option<Uuid>,
+    pub scored_at: Option<DateTime<Utc>>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sourcing Award
+/// Records the award decision for a sourcing event.
+/// Oracle Fusion equivalent: Negotiation > Award
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourcingAward {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Sourcing event reference
+    pub event_id: Uuid,
+    /// Award number (auto-generated)
+    pub award_number: String,
+    /// Status: "pending", "approved", "rejected", "cancelled"
+    pub status: String,
+    /// Award method: "single", "split", "best_value", "lowest_price"
+    pub award_method: String,
+    /// Total awarded amount
+    pub total_awarded_amount: String,
+    /// Reason for award decision
+    pub award_rationale: Option<String>,
+    /// Awarded by
+    pub awarded_by: Option<Uuid>,
+    pub awarded_at: Option<DateTime<Utc>>,
+    /// Approved by
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    /// Rejected reason
+    pub rejected_reason: Option<String>,
+    /// Award lines (supplier-level awards)
+    pub lines: serde_json::Value,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sourcing Award Line
+/// Individual line in an award (maps event lines to winning suppliers).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourcingAwardLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Award header reference
+    pub award_id: Uuid,
+    /// Sourcing event line reference
+    pub event_line_id: Uuid,
+    /// Winning supplier response reference
+    pub response_id: Uuid,
+    /// Winning supplier
+    pub supplier_id: Uuid,
+    pub supplier_name: Option<String>,
+    /// Awarded quantity
+    pub awarded_quantity: String,
+    /// Awarded unit price
+    pub awarded_unit_price: String,
+    /// Awarded total amount
+    pub awarded_amount: String,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sourcing Template
+/// Reusable template for creating sourcing events.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourcingTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Template code
+    pub code: String,
+    /// Template name
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Default event type
+    pub default_event_type: String,
+    /// Default style
+    pub default_style: String,
+    /// Default scoring method
+    pub default_scoring_method: String,
+    /// Default response deadline offset (days from publish)
+    pub default_response_deadline_days: i32,
+    /// Default currency
+    pub currency_code: String,
+    /// Whether bids are visible by default
+    pub default_bids_visible: bool,
+    /// Default terms and conditions
+    pub default_terms: Option<String>,
+    /// Predefined scoring criteria (JSON array)
+    pub default_scoring_criteria: serde_json::Value,
+    /// Predefined line templates (JSON array)
+    pub default_lines: serde_json::Value,
+    /// Is active
+    pub is_active: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sourcing Dashboard Summary
+/// Overview of sourcing activity for the procurement dashboard.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourcingSummary {
+    /// Total active events
+    pub active_event_count: i32,
+    /// Total draft events
+    pub draft_event_count: i32,
+    /// Events pending evaluation
+    pub pending_evaluation_count: i32,
+    /// Events awarded (period)
+    pub awarded_event_count: i32,
+    /// Total awarded value (period)
+    pub total_awarded_value: String,
+    /// Average savings percentage vs target price
+    pub average_savings_percent: String,
+    /// Events by status
+    pub events_by_status: serde_json::Value,
+    /// Events by type
+    pub events_by_type: serde_json::Value,
+    /// Top suppliers by award value
+    pub top_suppliers: serde_json::Value,
+    /// Upcoming deadlines
+    pub upcoming_deadlines: serde_json::Value,
+}

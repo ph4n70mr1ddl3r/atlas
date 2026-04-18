@@ -20,6 +20,7 @@ pub mod fixed_assets;
 pub mod subledger_accounting;
 mod encumbrance;
 pub mod cash_management;
+pub mod sourcing;
 
 pub use schema::*;
 pub use records::*;
@@ -39,6 +40,7 @@ pub use fixed_assets::*;
 pub use subledger_accounting::*;
 pub use encumbrance::*;
 pub use cash_management::*;
+pub use sourcing::*;
 
 use axum::{
     Router,
@@ -536,6 +538,56 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Forecast Summary (Dashboard)
         .route("/cash-management/forecast-summary", get(get_forecast_summary))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Procurement Sourcing (Oracle Fusion SCM > Procurement > Sourcing)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Sourcing Events
+        .route("/sourcing/events", post(create_sourcing_event))
+        .route("/sourcing/events", get(list_sourcing_events))
+        .route("/sourcing/events/:id", get(get_sourcing_event))
+        .route("/sourcing/events/:id/publish", post(publish_sourcing_event))
+        .route("/sourcing/events/:id/close", post(close_sourcing_event))
+        .route("/sourcing/events/:id/cancel", post(cancel_sourcing_event))
+
+        // Event Lines
+        .route("/sourcing/events/:event_id/lines", post(add_event_line))
+        .route("/sourcing/events/:event_id/lines", get(list_event_lines))
+
+        // Supplier Invitations
+        .route("/sourcing/events/:event_id/invites", post(invite_supplier))
+        .route("/sourcing/events/:event_id/invites", get(list_invites))
+
+        // Supplier Responses
+        .route("/sourcing/events/:event_id/responses", post(submit_response))
+        .route("/sourcing/events/:event_id/responses", get(list_responses))
+        .route("/sourcing/responses/:id", get(get_response))
+        .route("/sourcing/responses/:response_id/lines", post(add_response_line))
+        .route("/sourcing/responses/:response_id/lines", get(list_response_lines))
+
+        // Scoring & Evaluation
+        .route("/sourcing/events/:event_id/criteria", post(add_scoring_criterion))
+        .route("/sourcing/events/:event_id/criteria", get(list_scoring_criteria))
+        .route("/sourcing/responses/:response_id/score", post(score_response))
+        .route("/sourcing/events/:event_id/evaluate", post(evaluate_responses))
+
+        // Award Management
+        .route("/sourcing/events/:event_id/awards", post(create_award))
+        .route("/sourcing/events/:event_id/awards", get(list_awards))
+        .route("/sourcing/awards/:id", get(get_award))
+        .route("/sourcing/awards/:id/approve", post(approve_award))
+        .route("/sourcing/awards/:id/reject", post(reject_award))
+        .route("/sourcing/awards/:award_id/lines", get(list_award_lines))
+
+        // Sourcing Templates
+        .route("/sourcing/templates", post(create_sourcing_template))
+        .route("/sourcing/templates", get(list_sourcing_templates))
+        .route("/sourcing/templates/:code", get(get_sourcing_template))
+        .route("/sourcing/templates/:code", delete(delete_sourcing_template))
+
+        // Sourcing Dashboard
+        .route("/sourcing/summary", get(get_sourcing_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

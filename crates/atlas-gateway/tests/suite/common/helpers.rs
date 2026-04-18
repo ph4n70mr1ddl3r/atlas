@@ -156,6 +156,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::cash_management::PostgresCashManagementRepository::new(db_pool.clone()),
     )));
 
+    let sourcing_engine = Arc::new(atlas_core::SourcingEngine::new(Arc::new(
+        atlas_core::sourcing::PostgresSourcingRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -177,6 +181,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         sla_engine,
         encumbrance_engine,
         cash_management_engine,
+        sourcing_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -313,4 +318,15 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.cash_forecast_sources").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.cash_forecast_templates").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.cash_positions").execute(pool).await.ok();
+    // Clean sourcing test data
+    sqlx::query("DELETE FROM _atlas.sourcing_award_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_awards").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.response_scores").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.scoring_criteria").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supplier_response_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supplier_responses").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_invites").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_event_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_events").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_templates").execute(pool).await.ok();
 }

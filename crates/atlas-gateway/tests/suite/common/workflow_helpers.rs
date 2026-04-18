@@ -697,6 +697,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::cash_management::PostgresCashManagementRepository::new(db_pool.clone()),
     )));
 
+    let sourcing_engine = Arc::new(atlas_core::SourcingEngine::new(Arc::new(
+        atlas_core::sourcing::PostgresSourcingRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -718,6 +722,7 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         sla_engine,
         encumbrance_engine,
         cash_management_engine,
+        sourcing_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

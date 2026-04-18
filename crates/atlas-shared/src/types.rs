@@ -5680,4 +5680,330 @@ pub struct FinancialReportingSummary {
     pub total_amount_reported: String,
 }
 
+// ════════════════════════════════════════════════════════════════════════════════
+// Withholding Tax Management (Oracle Fusion Payables > Withholding Tax)
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// Oracle Fusion Cloud ERP Withholding Tax provides:
+// - Withholding Tax Codes: Define individual withholding tax types with rates
+// - Withholding Tax Groups: Group multiple tax codes into reusable sets
+// - Supplier Assignments: Assign withholding tax groups to suppliers
+// - Withholding Thresholds: Minimum amounts before withholding applies
+// - Automatic Computation: Calculate withholding amounts during payment
+// - Withholding Certificates: Track and report withheld taxes
+// - Exemptions: Manage supplier exemptions from withholding
+//
+// Oracle Fusion equivalent: Financials > Payables > Withholding Tax
+
+/// Withholding Tax Code definition
+/// Defines an individual withholding tax type with its rate and account.
+/// Oracle Fusion equivalent: Payables > Withholding Tax > Tax Codes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingTaxCode {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique code (e.g., "FEDERAL_WHT", "STATE_WHT", "VAT_WHT")
+    pub code: String,
+    /// Display name
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Tax type: "income_tax", "vat", "service_tax", "contract_tax", "royalty",
+    ///           "dividend", "interest", "other"
+    pub tax_type: String,
+    /// Withholding rate percentage
+    pub rate_percentage: String,
+    /// Minimum threshold amount below which no withholding applies
+    pub threshold_amount: String,
+    /// Whether the threshold is cumulative (year-to-date) or per-invoice
+    pub threshold_is_cumulative: bool,
+    /// GL account code for the withholding liability
+    pub withholding_account_code: Option<String>,
+    /// GL account code for the withholding expense
+    pub expense_account_code: Option<String>,
+    /// Whether this tax code is active
+    pub is_active: bool,
+    /// Effective dates
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update withholding tax code request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingTaxCodeRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(default = "default_wht_tax_type")]
+    pub tax_type: String,
+    pub rate_percentage: String,
+    #[serde(default = "default_zero_str")]
+    pub threshold_amount: String,
+    #[serde(default)]
+    pub threshold_is_cumulative: bool,
+    pub withholding_account_code: Option<String>,
+    pub expense_account_code: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+fn default_wht_tax_type() -> String { "income_tax".to_string() }
+fn default_zero_str() -> String { "0".to_string() }
+
+/// Withholding Tax Group
+/// Groups multiple withholding tax codes into a reusable set assignable to suppliers.
+/// Oracle Fusion equivalent: Payables > Withholding Tax > Tax Groups
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingTaxGroup {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique group code (e.g., "STD_WHT", "CONTRACTOR_WHT")
+    pub code: String,
+    /// Display name
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Member tax codes
+    pub tax_codes: Vec<WithholdingTaxGroupMember>,
+    /// Whether this group is active
+    pub is_active: bool,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Member of a withholding tax group
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingTaxGroupMember {
+    pub id: Uuid,
+    pub group_id: Uuid,
+    /// Reference to the withholding tax code
+    pub tax_code_id: Uuid,
+    /// Tax code (denormalized)
+    pub tax_code: String,
+    /// Tax code name (denormalized)
+    pub tax_code_name: String,
+    /// Optional rate override percentage (overrides the tax code default)
+    pub rate_override: Option<String>,
+    /// Whether this member is active in the group
+    pub is_active: bool,
+    /// Display order
+    pub display_order: i32,
+}
+
+/// Create withholding tax group request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingTaxGroupRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Tax code IDs to include in the group
+    pub tax_code_ids: Vec<Uuid>,
+}
+
+/// Supplier Withholding Tax Assignment
+/// Links a supplier to a withholding tax group.
+/// Oracle Fusion equivalent: Payables > Suppliers > Withholding Tax
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierWithholdingAssignment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Supplier reference
+    pub supplier_id: Uuid,
+    /// Supplier number (denormalized)
+    pub supplier_number: Option<String>,
+    /// Supplier name (denormalized)
+    pub supplier_name: Option<String>,
+    /// Assigned withholding tax group
+    pub tax_group_id: Uuid,
+    /// Tax group code (denormalized)
+    pub tax_group_code: String,
+    /// Tax group name (denormalized)
+    pub tax_group_name: String,
+    /// Whether the supplier is exempt from withholding
+    pub is_exempt: bool,
+    /// Exemption reason (if exempt)
+    pub exemption_reason: Option<String>,
+    /// Exemption certificate number
+    pub exemption_certificate: Option<String>,
+    /// Exemption valid until
+    pub exemption_valid_until: Option<chrono::NaiveDate>,
+    /// Whether this assignment is active
+    pub is_active: bool,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update supplier withholding assignment request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierWithholdingAssignmentRequest {
+    pub supplier_id: Uuid,
+    pub tax_group_code: String,
+    pub is_exempt: Option<bool>,
+    pub exemption_reason: Option<String>,
+    pub exemption_certificate: Option<String>,
+    pub exemption_valid_until: Option<chrono::NaiveDate>,
+}
+
+/// Withholding Tax Certificate
+/// Certificate issued for tax withheld from a supplier payment.
+/// Oracle Fusion equivalent: Payables > Withholding Tax > Certificates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingCertificate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated certificate number
+    pub certificate_number: String,
+    /// Supplier information
+    pub supplier_id: Uuid,
+    pub supplier_number: Option<String>,
+    pub supplier_name: Option<String>,
+    /// Tax type (from the tax code)
+    pub tax_type: String,
+    /// Tax code reference
+    pub tax_code_id: Uuid,
+    pub tax_code: String,
+    /// Period the certificate covers
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    /// Amounts
+    pub total_invoice_amount: String,
+    pub total_withheld_amount: String,
+    /// Rate applied
+    pub rate_percentage: String,
+    /// Payment references covered by this certificate
+    pub payment_ids: serde_json::Value,
+    /// Status: "draft", "issued", "acknowledged", "cancelled"
+    pub status: String,
+    /// Date the certificate was issued
+    pub issued_at: Option<DateTime<Utc>>,
+    /// Date acknowledged by supplier
+    pub acknowledged_at: Option<DateTime<Utc>>,
+    /// Notes
+    pub notes: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Withholding Tax Line (computed withholding on a payment)
+/// Records the actual tax withheld from a specific payment.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingTaxLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Payment reference
+    pub payment_id: Uuid,
+    pub payment_number: Option<String>,
+    /// Invoice reference
+    pub invoice_id: Uuid,
+    pub invoice_number: Option<String>,
+    /// Supplier information
+    pub supplier_id: Uuid,
+    pub supplier_name: Option<String>,
+    /// Tax code applied
+    pub tax_code_id: Uuid,
+    pub tax_code: String,
+    pub tax_code_name: Option<String>,
+    /// Tax type
+    pub tax_type: String,
+    /// Rate applied
+    pub rate_percentage: String,
+    /// Amounts
+    pub taxable_amount: String,
+    pub withheld_amount: String,
+    /// GL account
+    pub withholding_account_code: Option<String>,
+    /// Status: "pending", "withheld", "remitted", "refunded"
+    pub status: String,
+    /// Remittance tracking
+    pub remittance_date: Option<chrono::NaiveDate>,
+    pub remittance_reference: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Result of a withholding tax computation for a payment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingComputationResult {
+    /// The supplier's tax group (if assigned)
+    pub tax_group_code: Option<String>,
+    /// Whether the supplier is exempt
+    pub is_exempt: bool,
+    /// Individual withholding lines computed
+    pub lines: Vec<WithholdingComputedLine>,
+    /// Total amount subject to withholding
+    pub total_taxable_amount: String,
+    /// Total withholding amount
+    pub total_withheld_amount: String,
+    /// Net payment amount (after withholding)
+    pub net_payment_amount: String,
+}
+
+/// Single computed withholding line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingComputedLine {
+    pub tax_code_id: Uuid,
+    pub tax_code: String,
+    pub tax_type: String,
+    pub rate_percentage: String,
+    pub threshold_amount: String,
+    pub taxable_amount: String,
+    pub withheld_amount: String,
+    pub withholding_account_code: Option<String>,
+    /// Whether withholding was skipped due to threshold
+    pub threshold_applied: bool,
+}
+
+/// Withholding Tax Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithholdingSummary {
+    /// Total active tax codes
+    pub active_tax_code_count: i32,
+    /// Total tax groups
+    pub tax_group_count: i32,
+    /// Total assigned suppliers
+    pub assigned_supplier_count: i32,
+    /// Total exempt suppliers
+    pub exempt_supplier_count: i32,
+    /// Total withheld (period)
+    pub total_withheld_amount: String,
+    /// Total remitted (period)
+    pub total_remitted_amount: String,
+    /// Total pending remittance
+    pub total_pending_remittance: String,
+    /// Withholding by tax type
+    pub by_tax_type: serde_json::Value,
+    /// Withholding by supplier (top suppliers)
+    pub by_supplier: serde_json::Value,
+    /// Recent certificates
+    pub certificates_issued: i32,
+}
+
 

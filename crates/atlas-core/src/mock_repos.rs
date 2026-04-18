@@ -2286,3 +2286,162 @@ impl ProjectCostingRepository for MockProjectCostingRepository {
         })
     }
 }
+
+/// Mock withholding tax repository for testing
+pub struct MockWithholdingTaxRepository;
+
+#[async_trait]
+impl crate::withholding_tax::WithholdingTaxRepository for MockWithholdingTaxRepository {
+    async fn create_tax_code(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        tax_type: &str, rate_percentage: &str, threshold_amount: &str,
+        threshold_is_cumulative: bool, withholding_account_code: Option<&str>,
+        expense_account_code: Option<&str>, effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::WithholdingTaxCode> {
+        Ok(atlas_shared::WithholdingTaxCode {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            tax_type: tax_type.to_string(),
+            rate_percentage: rate_percentage.to_string(),
+            threshold_amount: threshold_amount.to_string(),
+            threshold_is_cumulative,
+            withholding_account_code: withholding_account_code.map(String::from),
+            expense_account_code: expense_account_code.map(String::from),
+            is_active: true, effective_from, effective_to,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_tax_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::WithholdingTaxCode>> { Ok(None) }
+    async fn get_tax_code_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::WithholdingTaxCode>> { Ok(None) }
+    async fn list_tax_codes(&self, _org_id: Uuid, _tax_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::WithholdingTaxCode>> { Ok(vec![]) }
+    async fn delete_tax_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_tax_group(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::WithholdingTaxGroup> {
+        Ok(atlas_shared::WithholdingTaxGroup {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            tax_codes: vec![], is_active: true,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_tax_group(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::WithholdingTaxGroup>> { Ok(None) }
+    async fn get_tax_group_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::WithholdingTaxGroup>> { Ok(None) }
+    async fn list_tax_groups(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::WithholdingTaxGroup>> { Ok(vec![]) }
+    async fn delete_tax_group(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn add_group_member(
+        &self, group_id: Uuid, tax_code_id: Uuid, rate_override: Option<&str>,
+        display_order: i32,
+    ) -> AtlasResult<atlas_shared::WithholdingTaxGroupMember> {
+        Ok(atlas_shared::WithholdingTaxGroupMember {
+            id: Uuid::new_v4(), group_id, tax_code_id,
+            tax_code: "MOCK".to_string(), tax_code_name: "Mock Tax Code".to_string(),
+            rate_override: rate_override.map(String::from),
+            is_active: true, display_order,
+        })
+    }
+    async fn list_group_members(&self, _group_id: Uuid) -> AtlasResult<Vec<atlas_shared::WithholdingTaxGroupMember>> { Ok(vec![]) }
+    async fn remove_group_member(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_supplier_assignment(
+        &self, org_id: Uuid, supplier_id: Uuid, supplier_number: Option<&str>,
+        supplier_name: Option<&str>, tax_group_id: Uuid, is_exempt: bool,
+        exemption_reason: Option<&str>, exemption_certificate: Option<&str>,
+        exemption_valid_until: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SupplierWithholdingAssignment> {
+        Ok(atlas_shared::SupplierWithholdingAssignment {
+            id: Uuid::new_v4(), organization_id: org_id, supplier_id,
+            supplier_number: supplier_number.map(String::from),
+            supplier_name: supplier_name.map(String::from),
+            tax_group_id,
+            tax_group_code: "MOCK_GROUP".to_string(),
+            tax_group_name: "Mock Group".to_string(),
+            is_exempt, exemption_reason: exemption_reason.map(String::from),
+            exemption_certificate: exemption_certificate.map(String::from),
+            exemption_valid_until, is_active: true,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_supplier_assignment(&self, _org_id: Uuid, _supplier_id: Uuid) -> AtlasResult<Option<atlas_shared::SupplierWithholdingAssignment>> { Ok(None) }
+    async fn list_supplier_assignments(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::SupplierWithholdingAssignment>> { Ok(vec![]) }
+    async fn delete_supplier_assignment(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_withholding_line(
+        &self, org_id: Uuid, payment_id: Uuid, payment_number: Option<&str>,
+        invoice_id: Uuid, invoice_number: Option<&str>,
+        supplier_id: Uuid, supplier_name: Option<&str>,
+        tax_code_id: Uuid, tax_code: &str, tax_code_name: Option<&str>,
+        tax_type: &str, rate_percentage: &str, taxable_amount: &str,
+        withheld_amount: &str, withholding_account_code: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::WithholdingTaxLine> {
+        Ok(atlas_shared::WithholdingTaxLine {
+            id: Uuid::new_v4(), organization_id: org_id,
+            payment_id, payment_number: payment_number.map(String::from),
+            invoice_id, invoice_number: invoice_number.map(String::from),
+            supplier_id, supplier_name: supplier_name.map(String::from),
+            tax_code_id, tax_code: tax_code.to_string(),
+            tax_code_name: tax_code_name.map(String::from),
+            tax_type: tax_type.to_string(),
+            rate_percentage: rate_percentage.to_string(),
+            taxable_amount: taxable_amount.to_string(),
+            withheld_amount: withheld_amount.to_string(),
+            withholding_account_code: withholding_account_code.map(String::from),
+            status: "pending".to_string(),
+            remittance_date: None, remittance_reference: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_withholding_lines_by_payment(&self, _payment_id: Uuid) -> AtlasResult<Vec<atlas_shared::WithholdingTaxLine>> { Ok(vec![]) }
+    async fn get_withholding_lines_by_supplier(
+        &self, _org_id: Uuid, _supplier_id: Uuid,
+        _from_date: Option<chrono::NaiveDate>, _to_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<Vec<atlas_shared::WithholdingTaxLine>> { Ok(vec![]) }
+    async fn update_withholding_line_status(
+        &self, _id: Uuid, _status: &str,
+        _remittance_date: Option<chrono::NaiveDate>, _remittance_reference: Option<&str>,
+    ) -> AtlasResult<atlas_shared::WithholdingTaxLine> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_certificate(
+        &self, org_id: Uuid, certificate_number: &str,
+        supplier_id: Uuid, supplier_number: Option<&str>,
+        supplier_name: Option<&str>, tax_type: &str,
+        tax_code_id: Uuid, tax_code: &str,
+        period_start: chrono::NaiveDate, period_end: chrono::NaiveDate,
+        total_invoice_amount: &str, total_withheld_amount: &str,
+        rate_percentage: &str, payment_ids: serde_json::Value,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::WithholdingCertificate> {
+        Ok(atlas_shared::WithholdingCertificate {
+            id: Uuid::new_v4(), organization_id: org_id,
+            certificate_number: certificate_number.to_string(),
+            supplier_id, supplier_number: supplier_number.map(String::from),
+            supplier_name: supplier_name.map(String::from),
+            tax_type: tax_type.to_string(), tax_code_id,
+            tax_code: tax_code.to_string(),
+            period_start, period_end,
+            total_invoice_amount: total_invoice_amount.to_string(),
+            total_withheld_amount: total_withheld_amount.to_string(),
+            rate_percentage: rate_percentage.to_string(),
+            payment_ids, status: "draft".to_string(),
+            issued_at: None, acknowledged_at: None,
+            notes: None, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_certificate(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::WithholdingCertificate>> { Ok(None) }
+    async fn get_certificate_by_number(&self, _org_id: Uuid, _certificate_number: &str) -> AtlasResult<Option<atlas_shared::WithholdingCertificate>> { Ok(None) }
+    async fn list_certificates(&self, _org_id: Uuid, _supplier_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::WithholdingCertificate>> { Ok(vec![]) }
+    async fn update_certificate_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::WithholdingCertificate> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+}

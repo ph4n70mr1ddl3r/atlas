@@ -41,6 +41,7 @@ pub mod lease;
 pub mod project_costing;
 pub mod cost_allocation;
 pub mod financial_reporting;
+pub mod withholding_tax;
 
 pub use schema::*;
 pub use workflow::{
@@ -83,6 +84,7 @@ pub use lease::{LeaseAccountingEngine, PostgresLeaseAccountingRepository as Post
 pub use project_costing::{ProjectCostingEngine, PostgresProjectCostingRepository as PostgresProjectCostingRepo};
 pub use cost_allocation::{CostAllocationEngine, PostgresCostAllocationRepository as PostgresCostAllocationRepo};
 pub use financial_reporting::{FinancialReportingEngine, PostgresFinancialReportingRepository as PostgresFinancialReportingRepo};
+pub use withholding_tax::{WithholdingTaxEngine, PostgresWithholdingTaxRepository as PostgresWithholdingTaxRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

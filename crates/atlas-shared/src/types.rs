@@ -5196,3 +5196,293 @@ pub struct ProjectCostingSummary {
     pub pending_distributions: i32,
 }
 
+// ════════════════════════════════════════════════════════════════════════════════
+// Cost Allocations (Oracle Fusion GL > Cost Allocation / Mass Allocations)
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// Oracle Fusion Cloud ERP Cost Allocations provide:
+// - Allocation Pools: Define cost pools (groups of accounts) to be allocated
+// - Allocation Bases: Statistical or financial bases for distribution
+//   (e.g., headcount, square footage, revenue, direct costs)
+// - Allocation Rules: Map pools to target cost centers using bases
+// - Rule Versions: Versioned rules with effective dates and approval workflow
+// - Rule Execution: Run allocations to generate journal entries
+// - Recurring Schedules: Schedule periodic allocation runs
+// - Allocation History: Audit trail of all allocation runs
+//
+// Oracle Fusion equivalent: Financials > General Ledger > Allocations
+
+/// Cost allocation pool definition
+/// A pool defines a group of cost accounts whose balances are to be distributed.
+/// Oracle Fusion equivalent: GL > Allocations > Cost Pools
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AllocationPool {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique pool code (e.g., "RENT_POOL", "IT_OVERHEAD")
+    pub code: String,
+    /// Display name
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Pool type: "cost_center", "project", "department", "custom"
+    pub pool_type: String,
+    /// Account code filter for selecting pool source balances
+    /// (e.g., {"account_codes": ["6100", "6110"]})
+    pub source_account_codes: serde_json::Value,
+    /// Department filter for pool source (optional)
+    pub source_department_id: Option<Uuid>,
+    /// Cost center filter for pool source (optional)
+    pub source_cost_center: Option<String>,
+    /// Whether this pool is active
+    pub is_active: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Allocation base definition
+/// Defines the statistical or financial measure used to distribute costs.
+/// Oracle Fusion equivalent: GL > Allocations > Allocation Bases
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AllocationBase {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique base code (e.g., "HEADCOUNT", "SQFT", "REVENUE")
+    pub code: String,
+    /// Display name (e.g., "Employee Headcount", "Square Footage")
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Base type: "statistical" (user-entered), "financial" (from GL)
+    pub base_type: String,
+    /// For financial bases: the account code pattern to use as the base
+    pub financial_account_code: Option<String>,
+    /// Unit of measure (e.g., "persons", "sq_meters", "USD")
+    pub unit_of_measure: Option<String>,
+    /// Whether this base is active
+    pub is_active: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Statistical base value
+/// User-entered or imported statistical measures per cost center/department.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AllocationBaseValue {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Reference to the allocation base
+    pub base_id: Uuid,
+    /// Base code (denormalized)
+    pub base_code: String,
+    /// Dimension reference (department, cost center, or project)
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    pub cost_center: Option<String>,
+    pub project_id: Option<Uuid>,
+    /// The statistical value
+    pub value: String,
+    /// Effective date of this value
+    pub effective_date: chrono::NaiveDate,
+    /// Source: "manual", "import", "system"
+    pub source: String,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Allocation rule definition
+/// Maps a cost pool to target cost centers using an allocation base.
+/// Oracle Fusion equivalent: GL > Allocations > Allocation Rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AllocationRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated rule number (e.g., "ALLOC-001")
+    pub rule_number: String,
+    /// Rule name (e.g., "Rent Allocation by SQFT")
+    pub name: String,
+    /// Description
+    pub description: Option<String>,
+    /// Reference to the cost pool
+    pub pool_id: Uuid,
+    /// Pool code (denormalized)
+    pub pool_code: String,
+    /// Reference to the allocation base
+    pub base_id: Uuid,
+    /// Base code (denormalized)
+    pub base_code: String,
+    /// Allocation method: "proportional", "fixed_percent", "fixed_amount"
+    pub allocation_method: String,
+    /// Journal entry description template
+    pub journal_description: Option<String>,
+    /// Offset (contra) account for the credit side of the allocation
+    pub offset_account_code: Option<String>,
+    /// Rule status: "draft", "active", "inactive"
+    pub status: String,
+    /// Current version number
+    pub current_version: i32,
+    /// Effective dates
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    /// Whether this rule generates reversing entries
+    pub is_reversing: bool,
+    /// Currency code
+    pub currency_code: String,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Allocation rule target line
+/// Defines a target cost center and optional fixed percentage/amount.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AllocationRuleTarget {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Rule reference
+    pub rule_id: Uuid,
+    /// Line number
+    pub line_number: i32,
+    /// Target department
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    /// Target cost center
+    pub cost_center: Option<String>,
+    /// Target project
+    pub project_id: Option<Uuid>,
+    pub project_name: Option<String>,
+    /// Target debit account code (where the allocated cost goes)
+    pub target_account_code: String,
+    /// Fixed percentage (for "fixed_percent" method)
+    pub fixed_percent: Option<String>,
+    /// Fixed amount (for "fixed_amount" method)
+    pub fixed_amount: Option<String>,
+    /// Whether this target line is active
+    pub is_active: bool,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Allocation run (execution)
+/// Represents a single execution of an allocation rule.
+/// Oracle Fusion equivalent: GL > Allocations > Run Allocations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AllocationRun {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated run number (e.g., "ARUN-2024-00001")
+    pub run_number: String,
+    /// Rule reference
+    pub rule_id: Uuid,
+    /// Rule name (denormalized)
+    pub rule_name: String,
+    /// Rule number (denormalized)
+    pub rule_number: String,
+    /// Allocation period start
+    pub period_start: chrono::NaiveDate,
+    /// Allocation period end
+    pub period_end: chrono::NaiveDate,
+    /// Total source amount (from pool)
+    pub total_source_amount: String,
+    /// Total allocated amount
+    pub total_allocated_amount: String,
+    /// Number of target lines generated
+    pub line_count: i32,
+    /// Status: "draft", "posted", "reversed"
+    pub status: String,
+    /// Journal entry reference (the generated GL batch)
+    pub journal_entry_id: Option<Uuid>,
+    /// Run date
+    pub run_date: chrono::NaiveDate,
+    /// Reversal reference
+    pub reversed_by_id: Option<Uuid>,
+    pub reversal_reason: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub posted_by: Option<Uuid>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Allocation run line (individual debit/credit)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AllocationRunLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Run header reference
+    pub run_id: Uuid,
+    /// Line number
+    pub line_number: i32,
+    /// Line type: "debit" (target), "credit" (offset/source)
+    pub line_type: String,
+    /// Account code
+    pub account_code: String,
+    /// Department ID
+    pub department_id: Option<Uuid>,
+    /// Department name
+    pub department_name: Option<String>,
+    /// Cost center
+    pub cost_center: Option<String>,
+    /// Project ID
+    pub project_id: Option<Uuid>,
+    /// Allocated amount
+    pub amount: String,
+    /// Base value used for this allocation
+    pub base_value_used: Option<String>,
+    /// Percentage of total base
+    pub percent_of_total: Option<String>,
+    /// Description
+    pub description: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Allocation summary for dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AllocationSummary {
+    /// Total active rules
+    pub active_rule_count: i32,
+    /// Total pools
+    pub pool_count: i32,
+    /// Total allocation runs (period)
+    pub run_count: i32,
+    /// Total allocated amount (period)
+    pub total_allocated_amount: String,
+    /// Runs by status
+    pub runs_by_status: serde_json::Value,
+    /// Allocations by pool
+    pub allocations_by_pool: serde_json::Value,
+    /// Top allocation rules by amount
+    pub top_rules: serde_json::Value,
+}
+
+

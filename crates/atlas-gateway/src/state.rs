@@ -21,6 +21,7 @@ use atlas_core::{
     SourcingEngine,
     LeaseAccountingEngine,
     ProjectCostingEngine,
+    CostAllocationEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -40,6 +41,7 @@ use atlas_core::{
     sourcing::PostgresSourcingRepository,
     lease::PostgresLeaseAccountingRepository,
     project_costing::PostgresProjectCostingRepository,
+    cost_allocation::PostgresCostAllocationRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -73,6 +75,7 @@ pub struct AppState {
     pub sourcing_engine: Arc<SourcingEngine>,
     pub lease_accounting_engine: Arc<LeaseAccountingEngine>,
     pub project_costing_engine: Arc<ProjectCostingEngine>,
+    pub cost_allocation_engine: Arc<CostAllocationEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -203,6 +206,11 @@ impl AppState {
         let project_costing_engine = Arc::new(ProjectCostingEngine::new(Arc::new(
             PostgresProjectCostingRepository::new(db_pool.clone())
         )));
+
+        // Initialize cost allocation engine
+        let cost_allocation_engine = Arc::new(CostAllocationEngine::new(Arc::new(
+            PostgresCostAllocationRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -264,6 +272,7 @@ impl AppState {
             sourcing_engine,
             lease_accounting_engine,
             project_costing_engine,
+            cost_allocation_engine,
             event_bus,
             jwt_secret,
         };

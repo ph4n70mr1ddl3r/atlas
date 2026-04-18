@@ -23,6 +23,7 @@ pub mod cash_management;
 pub mod sourcing;
 pub mod lease;
 pub mod project_costing;
+pub mod cost_allocation;
 
 pub use schema::*;
 pub use records::*;
@@ -45,6 +46,7 @@ pub use cash_management::*;
 pub use sourcing::*;
 pub use lease::*;
 pub use project_costing::*;
+pub use cost_allocation::*;
 
 use axum::{
     Router,
@@ -652,6 +654,48 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Project Costing Dashboard
         .route("/project-costing/dashboard", get(get_costing_summary))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Cost Allocation (Oracle Fusion GL > Allocations / Mass Allocations)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Allocation Pools
+        .route("/cost-allocation/pools", get(list_allocation_pools))
+        .route("/cost-allocation/pools", post(create_allocation_pool))
+        .route("/cost-allocation/pools/:code", get(get_allocation_pool))
+        .route("/cost-allocation/pools/:code", delete(delete_allocation_pool))
+
+        // Allocation Bases
+        .route("/cost-allocation/bases", get(list_allocation_bases))
+        .route("/cost-allocation/bases", post(create_allocation_base))
+        .route("/cost-allocation/bases/:code", get(get_allocation_base))
+        .route("/cost-allocation/bases/:code", delete(delete_allocation_base))
+
+        // Base Values
+        .route("/cost-allocation/base-values", post(set_base_value))
+        .route("/cost-allocation/base-values", get(list_base_values))
+
+        // Allocation Rules
+        .route("/cost-allocation/rules", get(list_allocation_rules))
+        .route("/cost-allocation/rules", post(create_allocation_rule))
+        .route("/cost-allocation/rules/:id", get(get_allocation_rule))
+        .route("/cost-allocation/rules/:id/activate", post(activate_allocation_rule))
+        .route("/cost-allocation/rules/:id/deactivate", post(deactivate_allocation_rule))
+
+        // Rule Targets
+        .route("/cost-allocation/rules/:rule_id/targets", post(add_rule_target))
+        .route("/cost-allocation/rules/:rule_id/targets", get(list_rule_targets))
+
+        // Allocation Runs
+        .route("/cost-allocation/rules/:rule_id/execute", post(execute_allocation_rule))
+        .route("/cost-allocation/runs", get(list_allocation_runs))
+        .route("/cost-allocation/runs/:id", get(get_allocation_run))
+        .route("/cost-allocation/runs/:id/post", post(post_allocation_run))
+        .route("/cost-allocation/runs/:id/reverse", post(reverse_allocation_run))
+        .route("/cost-allocation/runs/:run_id/lines", get(list_allocation_run_lines))
+
+        // Cost Allocation Dashboard
+        .route("/cost-allocation/summary", get(get_allocation_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

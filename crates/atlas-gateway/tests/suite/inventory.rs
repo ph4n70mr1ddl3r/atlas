@@ -23,7 +23,7 @@ async fn setup_inventory_test() -> (std::sync::Arc<atlas_gateway::AppState>, axu
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
     // Run migration for inventory management tables
-    sqlx::query(include_str!("../../../migrations/030_inventory_management.sql"))
+    sqlx::query(include_str!("../../../../migrations/030_inventory_management.sql"))
         .execute(&state.db_pool)
         .await
         .ok(); // Ignore errors if tables already exist

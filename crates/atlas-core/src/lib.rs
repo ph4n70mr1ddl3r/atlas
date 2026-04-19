@@ -58,6 +58,7 @@ pub mod recurring_journal;
 pub mod manual_journal;
 pub mod document_sequencing;
 pub mod descriptive_flexfield;
+pub mod cross_validation;
 
 pub use schema::*;
 pub use workflow::{
@@ -117,6 +118,7 @@ pub use recurring_journal::{RecurringJournalEngine, PostgresRecurringJournalRepo
 pub use manual_journal::{ManualJournalEngine, PostgresManualJournalRepository as PostgresManualJournalRepo};
 pub use document_sequencing::{DocumentSequencingEngine, PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo};
 pub use descriptive_flexfield::{DescriptiveFlexfieldEngine, PostgresDescriptiveFlexfieldRepository as PostgresDescriptiveFlexfieldRepo};
+pub use cross_validation::{CrossValidationEngine, PostgresCrossValidationRepository as PostgresCrossValidationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

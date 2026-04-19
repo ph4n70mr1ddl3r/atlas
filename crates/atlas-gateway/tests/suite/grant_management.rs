@@ -276,7 +276,7 @@ async fn test_budget_lines() {
     let mut award = create_test_award(&app, "AWD-BUD-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
 
     // Activate award first
-    let award_id = award["id"].as_str().unwrap();
+    let award_id = award["id"].as_str().unwrap().to_string();
     let r = app.clone().oneshot(Request::builder().method("POST")
         .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
         .header(&k, &v)
@@ -333,7 +333,7 @@ async fn test_expenditure_lifecycle() {
 
     let sponsor = create_test_sponsor(&app, "DOE", "Dept of Energy").await;
     let mut award = create_test_award(&app, "AWD-EXP-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
-    let award_id = award["id"].as_str().unwrap();
+    let award_id = award["id"].as_str().unwrap().to_string();
 
     // Activate
     let r = app.clone().oneshot(Request::builder().method("POST")
@@ -674,7 +674,7 @@ async fn test_list_awards_filtering() {
 
     // Create two awards
     create_test_award(&app, "AWD-FLT-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
-    create_test_award(&app, "AWD-FLT-002", Uuid::parse_str(sponsor["id"].as_str().unwrap()).await).await;
+    create_test_award(&app, "AWD-FLT-002", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
 
     // Filter by status=draft
     let r = app.clone().oneshot(Request::builder()

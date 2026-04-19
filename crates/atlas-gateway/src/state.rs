@@ -35,6 +35,7 @@ use atlas_core::{
     RecurringJournalEngine,
     ManualJournalEngine,
     DescriptiveFlexfieldEngine,
+    CrossValidationEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -68,6 +69,7 @@ use atlas_core::{
     recurring_journal::PostgresRecurringJournalRepository,
     manual_journal::PostgresManualJournalRepository,
     descriptive_flexfield::PostgresDescriptiveFlexfieldRepository,
+    cross_validation::PostgresCrossValidationRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -115,6 +117,7 @@ pub struct AppState {
     pub recurring_journal_engine: Arc<RecurringJournalEngine>,
     pub manual_journal_engine: Arc<ManualJournalEngine>,
     pub dff_engine: Arc<DescriptiveFlexfieldEngine>,
+    pub cvr_engine: Arc<CrossValidationEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -315,6 +318,11 @@ impl AppState {
         let dff_engine = Arc::new(DescriptiveFlexfieldEngine::new(Arc::new(
             PostgresDescriptiveFlexfieldRepository::new(db_pool.clone())
         )));
+
+        // Initialize cross-validation rule engine
+        let cvr_engine = Arc::new(CrossValidationEngine::new(Arc::new(
+            PostgresCrossValidationRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -390,6 +398,7 @@ impl AppState {
             recurring_journal_engine,
             manual_journal_engine,
             dff_engine,
+            cvr_engine,
             event_bus,
             jwt_secret,
         };

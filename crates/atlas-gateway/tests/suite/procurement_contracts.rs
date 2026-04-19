@@ -22,7 +22,7 @@ async fn setup_procurement_contracts_test() -> (std::sync::Arc<atlas_gateway::Ap
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
     // Run migration for procurement contracts tables
-    sqlx::query(include_str!("../../../migrations/029_procurement_contracts.sql"))
+    sqlx::query(include_str!("../../../../migrations/029_procurement_contracts.sql"))
         .execute(&state.db_pool)
         .await
         .ok(); // Ignore errors if tables already exist

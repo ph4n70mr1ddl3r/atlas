@@ -9148,3 +9148,103 @@ pub struct FlexfieldDashboardSummary {
     pub flexfields_by_entity: serde_json::Value,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Cross-Validation Rules (Oracle Fusion GL > Chart of Accounts > Cross-Validation)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Cross-Validation Rules prevent users from creating invalid combinations
+// of account segment values. For example, you can prevent creating an
+// account like "1000.Cash.4000.Marketing" if that combination doesn't
+// make business sense.
+//
+// Each rule defines a pattern of segment values that must (or must not)
+// co-occur. Patterns use exact values or wildcards ("%" = any value,
+// "T" = typed shorthand, etc.).
+//
+// Oracle Fusion equivalent: General Ledger > Setup > Chart of Accounts >
+//   Cross-Validation Rules
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// A Cross-Validation Rule (CVR) definition.
+/// Each rule has a name, an enabled flag, effective dates, an error message,
+/// and a type ("allow" or "deny").
+///
+/// Oracle Fusion: General Ledger > Setup > Chart of Accounts > Cross-Validation Rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CrossValidationRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique code for the rule, e.g. "CVR_CASH_MARKETING"
+    pub code: String,
+    /// Human-readable name
+    pub name: String,
+    /// Description of the rule
+    pub description: Option<String>,
+    /// Rule type: "deny" blocks matching combinations, "allow" permits them
+    pub rule_type: String,
+    /// Error message shown when the rule is violated
+    pub error_message: String,
+    /// Whether this rule is enabled
+    pub is_enabled: bool,
+    /// Priority order (lower = evaluated first)
+    pub priority: i32,
+    /// Segment names in the chart of accounts (e.g. ["company", "department", "account"])
+    pub segment_names: Vec<String>,
+    /// Effective from date
+    pub effective_from: Option<chrono::NaiveDate>,
+    /// Effective to date
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A validation line within a Cross-Validation Rule.
+/// Each line specifies a pattern for the account segment combination.
+/// Patterns use exact values or "%" as a wildcard meaning "any value".
+///
+/// Example ("deny" rule with 2 lines):
+///   Line 1 (from): {"patterns": ["1000", "%", "%"]}  -- company=1000
+///   Line 2 (to):   {"patterns": ["%", "%", "5000"]}  -- account=5000
+///   Meaning: Deny any combination where company=1000 AND account=5000
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CrossValidationRuleLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rule_id: Uuid,
+    /// Line type: "from" (left side) or "to" (right side)
+    pub line_type: String,
+    /// Pattern values for each segment. "%" = any value, exact string = exact match
+    pub patterns: Vec<String>,
+    /// Display order
+    pub display_order: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Result of a cross-validation check.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CrossValidationResult {
+    /// Whether the combination is valid (passes all rules)
+    pub is_valid: bool,
+    /// List of violated rule codes
+    pub violated_rules: Vec<String>,
+    /// List of error messages from violated rules
+    pub error_messages: Vec<String>,
+}
+
+/// Dashboard summary for Cross-Validation Rules.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CrossValidationDashboardSummary {
+    pub total_rules: i32,
+    pub enabled_rules: i32,
+    pub deny_rules: i32,
+    pub allow_rules: i32,
+    pub total_lines: i32,
+    pub rules_by_type: serde_json::Value,
+}
+

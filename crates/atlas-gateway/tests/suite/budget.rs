@@ -90,7 +90,7 @@ async fn add_test_line(
 async fn test_create_budget_definition() {
     let (_state, app) = setup_budget_test().await;
 
-    let def = create_test_definition(&app, "FY2024_OPEX", "FY2024 Operating Budget", "operating", "advisory");
+    let def = create_test_definition(&app, "FY2024_OPEX", "FY2024 Operating Budget", "operating", "advisory").await;
 
     assert_eq!(def["code"], "FY2024_OPEX");
     assert_eq!(def["name"], "FY2024 Operating Budget");
@@ -103,8 +103,8 @@ async fn test_create_budget_definition() {
 async fn test_list_budget_definitions() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "BUDGET1", "Budget One", "operating", "none");
-    create_test_definition(&app, "BUDGET2", "Budget Two", "capital", "absolute");
+    create_test_definition(&app, "BUDGET1", "Budget One", "operating", "none").await;
+    create_test_definition(&app, "BUDGET2", "Budget Two", "capital", "absolute").await;
 
     let (k, v) = auth_header(&admin_claims());
     let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/budget/definitions")
@@ -121,7 +121,7 @@ async fn test_list_budget_definitions() {
 async fn test_get_budget_definition() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024", "FY2024 Budget", "operating", "none");
+    create_test_definition(&app, "FY2024", "FY2024 Budget", "operating", "none").await;
 
     let (k, v) = auth_header(&admin_claims());
     let r = app.clone().oneshot(Request::builder().method("GET")
@@ -139,7 +139,7 @@ async fn test_get_budget_definition() {
 async fn test_delete_budget_definition() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "TO_DELETE", "To Delete", "operating", "none");
+    create_test_definition(&app, "TO_DELETE", "To Delete", "operating", "none").await;
 
     let (k, v) = auth_header(&admin_claims());
     let r = app.clone().oneshot(Request::builder().method("DELETE")
@@ -182,17 +182,17 @@ async fn test_budget_version_lifecycle() {
     let (_state, app) = setup_budget_test().await;
 
     // Create definition
-    create_test_definition(&app, "FY2024_LC", "Lifecycle Test", "operating", "none");
+    create_test_definition(&app, "FY2024_LC", "Lifecycle Test", "operating", "none").await;
 
     // Create version
-    let version = create_test_version(&app, "FY2024_LC", "Original");
+    let version = create_test_version(&app, "FY2024_LC", "Original").await;
     let version_id = version["id"].as_str().unwrap();
     assert_eq!(version["status"], "draft");
     assert_eq!(version["version_number"], 1);
 
     // Add lines
-    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00");
-    add_test_line(&app, version_id, "6100-OFFICE", Some("Jan-2024"), "2000.00");
+    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00").await;
+    add_test_line(&app, version_id, "6100-OFFICE", Some("Jan-2024"), "2000.00").await;
 
     // Submit
     let (k, v) = auth_header(&admin_claims());
@@ -240,8 +240,8 @@ async fn test_budget_version_lifecycle() {
 async fn test_submit_empty_version_fails() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_EMPTY", "Empty Test", "operating", "none");
-    let version = create_test_version(&app, "FY2024_EMPTY", "Empty");
+    create_test_definition(&app, "FY2024_EMPTY", "Empty Test", "operating", "none").await;
+    let version = create_test_version(&app, "FY2024_EMPTY", "Empty").await;
     let version_id = version["id"].as_str().unwrap();
 
     // Submit without any lines should fail
@@ -257,8 +257,8 @@ async fn test_submit_empty_version_fails() {
 async fn test_approve_draft_fails() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_AD", "Approve Draft Test", "operating", "none");
-    let version = create_test_version(&app, "FY2024_AD", "Draft");
+    create_test_definition(&app, "FY2024_AD", "Approve Draft Test", "operating", "none").await;
+    let version = create_test_version(&app, "FY2024_AD", "Draft").await;
     let version_id = version["id"].as_str().unwrap();
 
     // Approve a draft should fail
@@ -274,11 +274,11 @@ async fn test_approve_draft_fails() {
 async fn test_reject_submitted_version() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_REJ", "Reject Test", "operating", "none");
-    let version = create_test_version(&app, "FY2024_REJ", "Original");
+    create_test_definition(&app, "FY2024_REJ", "Reject Test", "operating", "none").await;
+    let version = create_test_version(&app, "FY2024_REJ", "Original").await;
     let version_id = version["id"].as_str().unwrap();
 
-    add_test_line(&app, version_id, "6000-TEST", None, "1000.00");
+    add_test_line(&app, version_id, "6000-TEST", None, "1000.00").await;
 
     // Submit
     let (k, v) = auth_header(&admin_claims());
@@ -311,16 +311,16 @@ async fn test_reject_submitted_version() {
 async fn test_add_budget_lines_and_totals() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_LINES", "Lines Test", "operating", "none");
-    let version = create_test_version(&app, "FY2024_LINES", "Original");
+    create_test_definition(&app, "FY2024_LINES", "Lines Test", "operating", "none").await;
+    let version = create_test_version(&app, "FY2024_LINES", "Original").await;
     let version_id = version["id"].as_str().unwrap();
 
-    let line1 = add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00");
+    let line1 = add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00").await;
     assert_eq!(line1["account_code"], "6000-TRAVEL");
     assert_eq!(line1["budget_amount"], "5000.00");
     assert_eq!(line1["line_number"], 1);
 
-    let line2 = add_test_line(&app, version_id, "6100-OFFICE", Some("Jan-2024"), "3000.00");
+    let line2 = add_test_line(&app, version_id, "6100-OFFICE", Some("Jan-2024"), "3000.00").await;
     assert_eq!(line2["line_number"], 2);
 
     // Check version totals updated
@@ -341,12 +341,12 @@ async fn test_add_budget_lines_and_totals() {
 async fn test_add_line_to_non_draft_fails() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_ND", "Non-Draft Test", "operating", "none");
-    let version = create_test_version(&app, "FY2024_ND", "Original");
+    create_test_definition(&app, "FY2024_ND", "Non-Draft Test", "operating", "none").await;
+    let version = create_test_version(&app, "FY2024_ND", "Original").await;
     let version_id = version["id"].as_str().unwrap();
 
     // Add a line and submit + approve + activate
-    add_test_line(&app, version_id, "6000-TEST", None, "1000.00");
+    add_test_line(&app, version_id, "6000-TEST", None, "1000.00").await;
     let (k, v) = auth_header(&admin_claims());
     app.clone().oneshot(Request::builder().method("POST")
         .uri(&format!("/api/v1/budget/versions/{}/submit", version_id))
@@ -377,11 +377,11 @@ async fn test_add_line_to_non_draft_fails() {
 async fn test_duplicate_line_fails() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_DUP", "Duplicate Test", "operating", "none");
-    let version = create_test_version(&app, "FY2024_DUP", "Original");
+    create_test_definition(&app, "FY2024_DUP", "Duplicate Test", "operating", "none").await;
+    let version = create_test_version(&app, "FY2024_DUP", "Original").await;
     let version_id = version["id"].as_str().unwrap();
 
-    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00");
+    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00").await;
 
     // Same account + period should fail
     let (k, v) = auth_header(&admin_claims());
@@ -401,11 +401,11 @@ async fn test_duplicate_line_fails() {
 async fn test_delete_budget_line() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_DEL", "Delete Test", "operating", "none");
-    let version = create_test_version(&app, "FY2024_DEL", "Original");
+    create_test_definition(&app, "FY2024_DEL", "Delete Test", "operating", "none").await;
+    let version = create_test_version(&app, "FY2024_DEL", "Original").await;
     let version_id = version["id"].as_str().unwrap();
 
-    let line = add_test_line(&app, version_id, "6000-DEL", None, "1000.00");
+    let line = add_test_line(&app, version_id, "6000-DEL", None, "1000.00").await;
     let line_id = line["id"].as_str().unwrap();
 
     // Delete the line
@@ -425,13 +425,13 @@ async fn test_delete_budget_line() {
 async fn test_budget_transfer_workflow() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_XFER", "Transfer Test", "operating", "advisory");
-    let version = create_test_version(&app, "FY2024_XFER", "Original");
+    create_test_definition(&app, "FY2024_XFER", "Transfer Test", "operating", "advisory").await;
+    let version = create_test_version(&app, "FY2024_XFER", "Original").await;
     let version_id = version["id"].as_str().unwrap();
 
     // Add two lines
-    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "10000.00");
-    add_test_line(&app, version_id, "6100-OFFICE", Some("Jan-2024"), "5000.00");
+    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "10000.00").await;
+    add_test_line(&app, version_id, "6100-OFFICE", Some("Jan-2024"), "5000.00").await;
 
     // Submit → Approve → Activate
     let (k, v) = auth_header(&admin_claims());
@@ -483,12 +483,12 @@ async fn test_budget_transfer_workflow() {
 async fn test_transfer_insufficient_budget_fails() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_XFAIL", "Transfer Fail Test", "operating", "advisory");
-    let version = create_test_version(&app, "FY2024_XFAIL", "Original");
+    create_test_definition(&app, "FY2024_XFAIL", "Transfer Fail Test", "operating", "advisory").await;
+    let version = create_test_version(&app, "FY2024_XFAIL", "Original").await;
     let version_id = version["id"].as_str().unwrap();
 
-    add_test_line(&app, version_id, "6000-SMALL", Some("Jan-2024"), "1000.00");
-    add_test_line(&app, version_id, "6100-BIG", Some("Jan-2024"), "5000.00");
+    add_test_line(&app, version_id, "6000-SMALL", Some("Jan-2024"), "1000.00").await;
+    add_test_line(&app, version_id, "6100-BIG", Some("Jan-2024"), "5000.00").await;
 
     let (k, v) = auth_header(&admin_claims());
     app.clone().oneshot(Request::builder().method("POST")
@@ -527,12 +527,12 @@ async fn test_transfer_insufficient_budget_fails() {
 async fn test_budget_variance_report() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_VAR", "Variance Test", "operating", "none");
-    let version = create_test_version(&app, "FY2024_VAR", "Original");
+    create_test_definition(&app, "FY2024_VAR", "Variance Test", "operating", "none").await;
+    let version = create_test_version(&app, "FY2024_VAR", "Original").await;
     let version_id = version["id"].as_str().unwrap();
 
-    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00");
-    add_test_line(&app, version_id, "6100-OFFICE", Some("Jan-2024"), "3000.00");
+    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00").await;
+    add_test_line(&app, version_id, "6100-OFFICE", Some("Jan-2024"), "3000.00").await;
 
     // Get variance report (works on draft too)
     let (k, v) = auth_header(&admin_claims());
@@ -562,11 +562,11 @@ async fn test_budget_variance_report() {
 async fn test_budget_control_check() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_CTRL", "Control Test", "operating", "absolute");
-    let version = create_test_version(&app, "FY2024_CTRL", "Original");
+    create_test_definition(&app, "FY2024_CTRL", "Control Test", "operating", "absolute").await;
+    let version = create_test_version(&app, "FY2024_CTRL", "Original").await;
     let version_id = version["id"].as_str().unwrap();
 
-    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00");
+    add_test_line(&app, version_id, "6000-TRAVEL", Some("Jan-2024"), "5000.00").await;
 
     // Activate
     let (k, v) = auth_header(&admin_claims());
@@ -622,12 +622,12 @@ async fn test_budget_control_check() {
 async fn test_activating_new_version_closes_old() {
     let (_state, app) = setup_budget_test().await;
 
-    create_test_definition(&app, "FY2024_REPLACE", "Replace Test", "operating", "none");
+    create_test_definition(&app, "FY2024_REPLACE", "Replace Test", "operating", "none").await;
 
     // Create and activate first version
-    let v1 = create_test_version(&app, "FY2024_REPLACE", "Original");
+    let v1 = create_test_version(&app, "FY2024_REPLACE", "Original").await;
     let v1_id = v1["id"].as_str().unwrap();
-    add_test_line(&app, v1_id, "6000-TEST", None, "1000.00");
+    add_test_line(&app, v1_id, "6000-TEST", None, "1000.00").await;
 
     let (k, v) = auth_header(&admin_claims());
     app.clone().oneshot(Request::builder().method("POST")
@@ -644,9 +644,9 @@ async fn test_activating_new_version_closes_old() {
     ).await.unwrap();
 
     // Create and activate second version
-    let v2 = create_test_version(&app, "FY2024_REPLACE", "Revised");
+    let v2 = create_test_version(&app, "FY2024_REPLACE", "Revised").await;
     let v2_id = v2["id"].as_str().unwrap();
-    add_test_line(&app, v2_id, "6000-TEST", None, "2000.00");
+    add_test_line(&app, v2_id, "6000-TEST", None, "2000.00").await;
 
     app.clone().oneshot(Request::builder().method("POST")
         .uri(&format!("/api/v1/budget/versions/{}/submit", v2_id))

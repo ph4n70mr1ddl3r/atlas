@@ -225,6 +225,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::descriptive_flexfield::PostgresDescriptiveFlexfieldRepository::new(db_pool.clone()),
     )));
 
+    let cvr_engine = Arc::new(atlas_core::CrossValidationEngine::new(Arc::new(
+        atlas_core::cross_validation::PostgresCrossValidationRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -263,6 +267,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         recurring_journal_engine,
         manual_journal_engine,
         dff_engine,
+        cvr_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -471,4 +476,7 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.dff_flexfields").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.dff_value_set_entries").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.dff_value_sets").execute(pool).await.ok();
+    // Clean cross-validation test data
+    sqlx::query("DELETE FROM _atlas.cross_validation_rule_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.cross_validation_rules").execute(pool).await.ok();
 }

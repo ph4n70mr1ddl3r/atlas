@@ -765,6 +765,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::descriptive_flexfield::PostgresDescriptiveFlexfieldRepository::new(db_pool.clone()),
     )));
 
+    let cvr_engine = Arc::new(atlas_core::CrossValidationEngine::new(Arc::new(
+        atlas_core::cross_validation::PostgresCrossValidationRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -803,6 +807,7 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         recurring_journal_engine,
         manual_journal_engine,
         dff_engine,
+        cvr_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -37,6 +37,7 @@ pub mod supplier_qualification;
 pub mod recurring_journal;
 pub mod manual_journal;
 pub mod descriptive_flexfield;
+pub mod cross_validation;
 
 pub use schema::*;
 pub use records::*;
@@ -131,6 +132,19 @@ pub use descriptive_flexfield::{
     create_segment, list_segments_by_context, list_segments_by_flexfield, delete_segment,
     set_flexfield_data, get_flexfield_data, delete_flexfield_data,
     get_flexfield_dashboard,
+};
+pub use cross_validation::{
+    create_rule as create_cvr_rule,
+    list_rules as list_cvr_rules,
+    get_rule as get_cvr_rule,
+    enable_rule as enable_cvr_rule,
+    disable_rule as disable_cvr_rule,
+    delete_rule as delete_cvr_rule,
+    create_rule_line as create_cvr_rule_line,
+    list_rule_lines as list_cvr_rule_lines,
+    delete_rule_line as delete_cvr_rule_line,
+    validate_combination,
+    get_cvr_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1289,6 +1303,29 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/flexfields/dashboard", get(get_flexfield_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Cross-Validation Rules (Oracle Fusion GL > Chart of Accounts > CVR)
+        // ═══════════════════════════════════════════════════════════
+
+        // Rules
+        .route("/cross-validation/rules", post(create_cvr_rule))
+        .route("/cross-validation/rules", get(list_cvr_rules))
+        .route("/cross-validation/rules/:code", get(get_cvr_rule))
+        .route("/cross-validation/rules/:id/enable", post(enable_cvr_rule))
+        .route("/cross-validation/rules/:id/disable", post(disable_cvr_rule))
+        .route("/cross-validation/rules/:code", delete(delete_cvr_rule))
+
+        // Rule Lines
+        .route("/cross-validation/rules/:rule_code/lines", post(create_cvr_rule_line))
+        .route("/cross-validation/rules/:rule_code/lines", get(list_cvr_rule_lines))
+        .route("/cross-validation/lines/:id", delete(delete_cvr_rule_line))
+
+        // Validation
+        .route("/cross-validation/validate", post(validate_combination))
+
+        // Dashboard
+        .route("/cross-validation/dashboard", get(get_cvr_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

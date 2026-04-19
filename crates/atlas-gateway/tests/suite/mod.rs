@@ -39,3 +39,4 @@ mod manual_journal;
 mod descriptive_flexfield;
 mod cross_validation;
 mod scheduled_process;
+mod segregation_of_duties;

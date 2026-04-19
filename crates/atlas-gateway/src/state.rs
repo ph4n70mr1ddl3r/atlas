@@ -37,6 +37,7 @@ use atlas_core::{
     DescriptiveFlexfieldEngine,
     CrossValidationEngine,
     ScheduledProcessEngine,
+    SegregationOfDutiesEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -72,6 +73,7 @@ use atlas_core::{
     descriptive_flexfield::PostgresDescriptiveFlexfieldRepository,
     cross_validation::PostgresCrossValidationRepository,
     scheduled_process::PostgresScheduledProcessRepository,
+    segregation_of_duties::PostgresSegregationOfDutiesRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -121,6 +123,7 @@ pub struct AppState {
     pub dff_engine: Arc<DescriptiveFlexfieldEngine>,
     pub cvr_engine: Arc<CrossValidationEngine>,
     pub scheduled_process_engine: Arc<ScheduledProcessEngine>,
+    pub sod_engine: Arc<SegregationOfDutiesEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -331,6 +334,11 @@ impl AppState {
         let scheduled_process_engine = Arc::new(ScheduledProcessEngine::new(Arc::new(
             PostgresScheduledProcessRepository::new(db_pool.clone())
         )));
+
+        // Initialize segregation of duties engine
+        let sod_engine = Arc::new(SegregationOfDutiesEngine::new(Arc::new(
+            PostgresSegregationOfDutiesRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -408,6 +416,7 @@ impl AppState {
             dff_engine,
             cvr_engine,
             scheduled_process_engine,
+            sod_engine,
             event_bus,
             jwt_secret,
         };

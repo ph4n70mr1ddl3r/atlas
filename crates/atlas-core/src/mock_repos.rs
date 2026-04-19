@@ -13,6 +13,7 @@ use crate::expense::ExpenseRepository;
 use crate::budget::BudgetRepository;
 use crate::fixed_assets::FixedAssetRepository;
 use crate::revenue::RevenueRepository;
+use crate::segregation_of_duties::SegregationOfDutiesRepository;
 use crate::project_costing::ProjectCostingRepository;
 
 /// Mock schema repository
@@ -3518,6 +3519,108 @@ impl crate::supplier_qualification::SupplierQualificationRepository for MockSupp
             total_certifications_active: 0, total_certifications_expiring_30_days: 0,
             qualification_rate_percent: "0".to_string(), initiatives_by_status: serde_json::json!({}),
             certifications_by_type: serde_json::json!({}),
+        })
+    }
+}
+
+/// Mock Segregation of Duties repository for testing
+pub struct MockSegregationOfDutiesRepository;
+
+#[async_trait]
+impl SegregationOfDutiesRepository for MockSegregationOfDutiesRepository {
+    async fn create_rule(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        first_duties: Vec<String>, second_duties: Vec<String>,
+        enforcement_mode: &str, risk_level: &str,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SodRule> {
+        Ok(atlas_shared::SodRule {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            first_duties, second_duties,
+            enforcement_mode: enforcement_mode.to_string(), risk_level: risk_level.to_string(),
+            is_active: true, effective_from, effective_to,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_rule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::SodRule>> { Ok(None) }
+    async fn get_rule_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SodRule>> { Ok(None) }
+    async fn list_rules(&self, _org_id: Uuid, _active_only: bool) -> AtlasResult<Vec<atlas_shared::SodRule>> { Ok(vec![]) }
+    async fn update_rule_status(&self, _id: Uuid, _is_active: bool) -> AtlasResult<atlas_shared::SodRule> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_rule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_role_assignment(
+        &self, org_id: Uuid, user_id: Uuid, role_name: &str, duty_code: &str, assigned_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SodRoleAssignment> {
+        Ok(atlas_shared::SodRoleAssignment {
+            id: Uuid::new_v4(), organization_id: org_id, user_id,
+            role_name: role_name.to_string(), duty_code: duty_code.to_string(),
+            assigned_by, assigned_at: chrono::Utc::now(), is_active: true,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_role_assignments_for_user(&self, _org_id: Uuid, _user_id: Uuid) -> AtlasResult<Vec<atlas_shared::SodRoleAssignment>> { Ok(vec![]) }
+    async fn list_role_assignments(&self, _org_id: Uuid, _user_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::SodRoleAssignment>> { Ok(vec![]) }
+    async fn deactivate_role_assignment(&self, _id: Uuid) -> AtlasResult<atlas_shared::SodRoleAssignment> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_violation(
+        &self, org_id: Uuid, rule_id: Uuid, rule_code: &str, user_id: Uuid,
+        first_matched_duties: Vec<String>, second_matched_duties: Vec<String>,
+    ) -> AtlasResult<atlas_shared::SodViolation> {
+        Ok(atlas_shared::SodViolation {
+            id: Uuid::new_v4(), organization_id: org_id,
+            rule_id, rule_code: rule_code.to_string(), user_id,
+            first_matched_duties, second_matched_duties,
+            violation_status: "open".to_string(),
+            detected_at: chrono::Utc::now(), resolved_at: None, resolved_by: None,
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_violation(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SodViolation>> { Ok(None) }
+    async fn list_violations(&self, _org_id: Uuid, _user_id: Option<Uuid>, _status: Option<&str>, _risk_level: Option<&str>) -> AtlasResult<Vec<atlas_shared::SodViolation>> { Ok(vec![]) }
+    async fn update_violation_status(&self, _id: Uuid, _status: &str, _resolved_by: Option<Uuid>) -> AtlasResult<atlas_shared::SodViolation> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn find_existing_violation(&self, _rule_id: Uuid, _user_id: Uuid) -> AtlasResult<Option<atlas_shared::SodViolation>> { Ok(None) }
+
+    async fn create_mitigating_control(
+        &self, org_id: Uuid, violation_id: Uuid, control_name: &str, control_description: &str,
+        control_owner_id: Option<Uuid>, review_frequency: &str,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SodMitigatingControl> {
+        Ok(atlas_shared::SodMitigatingControl {
+            id: Uuid::new_v4(), organization_id: org_id, violation_id,
+            control_name: control_name.to_string(), control_description: control_description.to_string(),
+            control_owner_id, review_frequency: review_frequency.to_string(),
+            effective_from, effective_to, approved_by: None, approved_at: None,
+            status: "pending_approval".to_string(),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_mitigating_controls_for_violation(&self, _violation_id: Uuid) -> AtlasResult<Vec<atlas_shared::SodMitigatingControl>> { Ok(vec![]) }
+    async fn list_mitigating_controls(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::SodMitigatingControl>> { Ok(vec![]) }
+    async fn approve_mitigating_control(&self, _id: Uuid, _approved_by: Uuid) -> AtlasResult<atlas_shared::SodMitigatingControl> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn revoke_mitigating_control(&self, _id: Uuid) -> AtlasResult<atlas_shared::SodMitigatingControl> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::SodDashboardSummary> {
+        Ok(atlas_shared::SodDashboardSummary {
+            total_rules: 0, active_rules: 0,
+            total_violations: 0, open_violations: 0,
+            mitigated_violations: 0, exception_violations: 0,
+            violations_by_risk_level: serde_json::json!({}),
+            recent_violations: vec![],
+            rules_summary: serde_json::json!({}),
         })
     }
 }

@@ -39,6 +39,7 @@ pub mod manual_journal;
 pub mod descriptive_flexfield;
 pub mod cross_validation;
 pub mod scheduled_process;
+mod segregation_of_duties;
 
 pub use schema::*;
 pub use records::*;
@@ -171,6 +172,28 @@ pub use scheduled_process::{
     list_process_logs,
     add_process_log,
     get_scheduled_process_dashboard,
+};
+pub use segregation_of_duties::{
+    create_sod_rule,
+    get_sod_rule,
+    list_sod_rules,
+    activate_sod_rule,
+    deactivate_sod_rule,
+    delete_sod_rule,
+    assign_sod_role,
+    list_sod_assignments,
+    remove_sod_assignment,
+    check_sod_conflict,
+    run_sod_detection,
+    list_sod_violations,
+    get_sod_violation,
+    resolve_sod_violation,
+    accept_sod_exception,
+    create_sod_mitigation,
+    list_sod_mitigations,
+    approve_sod_mitigation,
+    revoke_sod_mitigation,
+    get_sod_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1391,6 +1414,42 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/scheduled-processes/dashboard", get(get_scheduled_process_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Segregation of Duties (Oracle Fusion Advanced Access Control)
+        // ═══════════════════════════════════════════════════════════
+
+        // SoD Rules
+        .route("/sod/rules", post(create_sod_rule))
+        .route("/sod/rules", get(list_sod_rules))
+        .route("/sod/rules/:code", get(get_sod_rule))
+        .route("/sod/rules/:code", delete(delete_sod_rule))
+        .route("/sod/rules/:id/activate", post(activate_sod_rule))
+        .route("/sod/rules/:id/deactivate", post(deactivate_sod_rule))
+
+        // Role Assignments
+        .route("/sod/assignments", post(assign_sod_role))
+        .route("/sod/assignments", get(list_sod_assignments))
+        .route("/sod/assignments/:id", delete(remove_sod_assignment))
+
+        // Conflict Detection
+        .route("/sod/check", post(check_sod_conflict))
+        .route("/sod/detect", post(run_sod_detection))
+
+        // Violations
+        .route("/sod/violations", get(list_sod_violations))
+        .route("/sod/violations/:id", get(get_sod_violation))
+        .route("/sod/violations/:id/resolve", post(resolve_sod_violation))
+        .route("/sod/violations/:id/exception", post(accept_sod_exception))
+
+        // Mitigating Controls
+        .route("/sod/mitigations", post(create_sod_mitigation))
+        .route("/sod/violations/:violation_id/mitigations", get(list_sod_mitigations))
+        .route("/sod/mitigations/:id/approve", post(approve_sod_mitigation))
+        .route("/sod/mitigations/:id/revoke", post(revoke_sod_mitigation))
+
+        // SoD Dashboard
+        .route("/sod/dashboard", get(get_sod_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

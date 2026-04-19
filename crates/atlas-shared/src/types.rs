@@ -9382,3 +9382,138 @@ pub struct ScheduledProcessDashboardSummary {
     pub processes_by_type: serde_json::Value,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Segregation of Duties (SoD)
+// Oracle Fusion: Advanced Access Control > Segregation of Duties
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// An SoD rule defines a pair (or set) of incompatible duties/roles.
+/// For example: "Create Vendor" and "Approve Vendor Payments" must not be
+/// held by the same person.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SodRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// The set of duties that conflict with each other.
+    /// A violation occurs when a single user holds duties from
+    /// *both* `first_duties` AND `second_duties`.
+    pub first_duties: Vec<String>,
+    pub second_duties: Vec<String>,
+    /// "preventive" = block violating role assignments,
+    /// "detective" = report but allow
+    pub enforcement_mode: String,
+    /// Risk level: "high", "medium", "low"
+    pub risk_level: String,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// An SoD violation detected for a specific user against a rule.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SodViolation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rule_id: Uuid,
+    pub rule_code: String,
+    pub user_id: Uuid,
+    /// The duties from the first set the user holds
+    pub first_matched_duties: Vec<String>,
+    /// The duties from the second set the user holds
+    pub second_matched_duties: Vec<String>,
+    pub violation_status: String, // "open", "mitigated", "exception", "resolved"
+    pub detected_at: DateTime<Utc>,
+    pub resolved_at: Option<DateTime<Utc>>,
+    pub resolved_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A mitigating control applied to an SoD violation.
+/// In Oracle Fusion, this is a documented compensating control that
+/// reduces the risk of the conflict to an acceptable level.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SodMitigatingControl {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub violation_id: Uuid,
+    pub control_name: String,
+    pub control_description: String,
+    /// Who is responsible for executing this control
+    pub control_owner_id: Option<Uuid>,
+    /// Frequency: "daily", "weekly", "monthly", "quarterly"
+    pub review_frequency: String,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub status: String, // "active", "expired", "revoked"
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Role assignment entry tracked for SoD analysis.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SodRoleAssignment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub user_id: Uuid,
+    pub role_name: String,
+    /// The duty/privilege this role grants
+    pub duty_code: String,
+    pub assigned_by: Option<Uuid>,
+    pub assigned_at: DateTime<Utc>,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Result of checking a proposed role assignment for conflicts.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SodConflictCheckResult {
+    pub has_conflicts: bool,
+    pub conflicts: Vec<SodConflictDetail>,
+    pub would_be_blocked: bool,
+}
+
+/// Details of a single conflict found during a check.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SodConflictDetail {
+    pub rule_id: Uuid,
+    pub rule_code: String,
+    pub rule_name: String,
+    pub risk_level: String,
+    pub enforcement_mode: String,
+    pub conflicting_duty: String,
+    pub existing_duties_causing_conflict: Vec<String>,
+}
+
+/// Dashboard summary for SoD compliance.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SodDashboardSummary {
+    pub total_rules: i32,
+    pub active_rules: i32,
+    pub total_violations: i32,
+    pub open_violations: i32,
+    pub mitigated_violations: i32,
+    pub exception_violations: i32,
+    pub violations_by_risk_level: serde_json::Value,
+    pub recent_violations: Vec<SodViolation>,
+    pub rules_summary: serde_json::Value,
+}
+

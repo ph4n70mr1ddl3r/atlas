@@ -53,6 +53,7 @@ pub mod treasury;
 pub mod grant_management;
 pub mod corporate_card;
 pub mod financial_consolidation;
+pub mod supplier_qualification;
 
 pub use schema::*;
 pub use workflow::{
@@ -107,6 +108,7 @@ pub use subscription::{SubscriptionEngine, PostgresSubscriptionRepository as Pos
 pub use grant_management::{GrantManagementEngine, PostgresGrantManagementRepository as PostgresGrantManagementRepo};
 pub use corporate_card::{CorporateCardEngine, PostgresCorporateCardRepository as PostgresCorporateCardRepo};
 pub use financial_consolidation::{FinancialConsolidationEngine, PostgresFinancialConsolidationRepository as PostgresFinancialConsolidationRepo};
+pub use supplier_qualification::{SupplierQualificationEngine, PostgresSupplierQualificationRepository as PostgresSupplierQualificationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

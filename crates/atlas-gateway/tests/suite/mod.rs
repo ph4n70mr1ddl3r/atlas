@@ -33,3 +33,4 @@ mod pricing;
 mod sales_commission;
 mod treasury;
 mod grant_management;
+mod supplier_qualification;

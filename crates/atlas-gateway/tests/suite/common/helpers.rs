@@ -204,6 +204,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::treasury::PostgresTreasuryRepository::new(db_pool.clone()),
     )));
 
+    let supplier_qualification_engine = Arc::new(atlas_core::SupplierQualificationEngine::new(Arc::new(
+        atlas_core::supplier_qualification::PostgresSupplierQualificationRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -237,6 +241,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         pricing_engine,
         sales_commission_engine,
         treasury_engine,
+        supplier_qualification_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -422,4 +427,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.treasury_settlements").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.treasury_deals").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.treasury_counterparties").execute(pool).await.ok();
+    // Clean supplier qualification test data
+    sqlx::query("DELETE FROM _atlas.supplier_qualification_responses").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supplier_qualification_invitations").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supplier_qualification_initiatives").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supplier_certifications").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.qualification_questions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.qualification_areas").execute(pool).await.ok();
 }

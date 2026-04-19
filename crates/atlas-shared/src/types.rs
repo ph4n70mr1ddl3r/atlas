@@ -8433,3 +8433,181 @@ pub struct ConsolidationDashboardSummary {
     pub consolidation_completion_percent: String,
 }
 
+// ============================================================================
+// Supplier Qualification Management (Oracle Fusion Procurement > Supplier Qualification)
+// ============================================================================
+
+/// Qualification Area – defines a category of qualification criteria.
+/// Oracle Fusion: Procurement > Supplier Qualification > Areas
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QualificationArea {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub area_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// "questionnaire", "certificate", "financial", "site_visit", "reference", "other"
+    pub area_type: String,
+    /// "manual", "weighted", "pass_fail"
+    pub scoring_model: String,
+    pub passing_score: String,
+    pub is_mandatory: bool,
+    pub renewal_period_days: i32,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Qualification Question – individual question within an area.
+/// Oracle Fusion: Procurement > Supplier Qualification > Questions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QualificationQuestion {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub area_id: Uuid,
+    pub question_number: i32,
+    pub question_text: String,
+    pub description: Option<String>,
+    /// "text", "yes_no", "numeric", "date", "multi_choice", "file_upload"
+    pub response_type: String,
+    pub choices: Option<serde_json::Value>,
+    pub is_required: bool,
+    pub weight: String,
+    pub max_score: String,
+    pub help_text: Option<String>,
+    pub display_order: i32,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Qualification Initiative – a qualification campaign/run.
+/// Oracle Fusion: Procurement > Supplier Qualification > Initiatives
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierQualificationInitiative {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub initiative_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub area_id: Uuid,
+    /// "new_supplier", "requalification", "compliance", "ad_hoc"
+    pub qualification_purpose: String,
+    /// "draft", "active", "pending_evaluations", "completed", "cancelled"
+    pub status: String,
+    pub deadline: Option<chrono::NaiveDate>,
+    pub total_invited: i32,
+    pub total_responded: i32,
+    pub total_qualified: i32,
+    pub total_disqualified: i32,
+    pub total_pending: i32,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Qualification Invitation – per-supplier qualification within an initiative.
+/// Oracle Fusion: Procurement > Supplier Qualification > Invitations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierQualificationInvitation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub initiative_id: Uuid,
+    pub supplier_id: Uuid,
+    pub supplier_name: String,
+    pub supplier_contact_name: Option<String>,
+    pub supplier_contact_email: Option<String>,
+    /// "initiated", "pending_response", "under_evaluation", "qualified", "disqualified", "expired", "withdrawn"
+    pub status: String,
+    pub invitation_date: Option<DateTime<Utc>>,
+    pub response_date: Option<DateTime<Utc>>,
+    pub evaluation_date: Option<DateTime<Utc>>,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub overall_score: String,
+    pub max_possible_score: String,
+    pub score_percentage: String,
+    pub qualified_by: Option<Uuid>,
+    pub disqualified_reason: Option<String>,
+    pub evaluation_notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Qualification Response – individual answer to a question.
+/// Oracle Fusion: Procurement > Supplier Qualification > Responses
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierQualificationResponse {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub invitation_id: Uuid,
+    pub question_id: Uuid,
+    pub response_text: Option<String>,
+    pub response_value: Option<serde_json::Value>,
+    pub file_reference: Option<String>,
+    pub score: String,
+    pub max_score: String,
+    pub evaluator_notes: Option<String>,
+    pub evaluated_by: Option<Uuid>,
+    pub evaluated_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Certification – track ongoing supplier certifications.
+/// Oracle Fusion: Procurement > Supplier Qualification > Certifications
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierCertification {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub supplier_id: Uuid,
+    pub supplier_name: String,
+    pub certification_type: String,
+    pub certification_name: String,
+    pub certifying_body: Option<String>,
+    pub certificate_number: Option<String>,
+    /// "active", "expired", "revoked", "pending_renewal"
+    pub status: String,
+    pub issued_date: Option<chrono::NaiveDate>,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub renewal_date: Option<chrono::NaiveDate>,
+    pub qualification_invitation_id: Option<Uuid>,
+    pub document_reference: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Qualification Dashboard Summary.
+/// Oracle Fusion: Procurement > Supplier Qualification > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierQualificationDashboardSummary {
+    pub total_active_areas: i32,
+    pub total_active_initiatives: i32,
+    pub total_suppliers_invited: i32,
+    pub total_suppliers_qualified: i32,
+    pub total_suppliers_pending: i32,
+    pub total_suppliers_disqualified: i32,
+    pub total_certifications_active: i32,
+    pub total_certifications_expiring_30_days: i32,
+    pub qualification_rate_percent: String,
+    pub initiatives_by_status: serde_json::Value,
+    pub certifications_by_type: serde_json::Value,
+}
+

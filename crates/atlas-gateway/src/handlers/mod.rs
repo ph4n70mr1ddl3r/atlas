@@ -33,6 +33,7 @@ pub mod pricing;
 pub mod sales_commission;
 pub mod treasury;
 pub mod grant_management;
+pub mod supplier_qualification;
 
 pub use schema::*;
 pub use records::*;
@@ -83,6 +84,21 @@ pub use grant_management::{
     create_compliance_report, list_compliance_reports,
     submit_compliance_report, approve_compliance_report,
     get_grant_dashboard,
+};
+pub use supplier_qualification::{
+    create_qualification_area, get_qualification_area,
+    list_qualification_areas, delete_qualification_area,
+    create_qualification_question, list_qualification_questions,
+    delete_qualification_question,
+    create_initiative, get_initiative, list_initiatives,
+    activate_initiative, complete_initiative, cancel_initiative,
+    invite_supplier, list_invitations,
+    submit_invitation_response, start_evaluation,
+    qualify_supplier, disqualify_supplier,
+    create_response, list_responses, score_response,
+    create_certification, list_certifications,
+    revoke_certification, renew_certification,
+    get_qualification_dashboard,
 };
 
 use axum::{
@@ -1073,6 +1089,53 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Grant Dashboard
         .route("/grants/dashboard", get(get_grant_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Supplier Qualification (Oracle Fusion Procurement > Supplier Qualification)
+        // ═══════════════════════════════════════════════════════════
+
+        // Qualification Areas
+        .route("/supplier-qualification/areas", post(create_qualification_area))
+        .route("/supplier-qualification/areas", get(list_qualification_areas))
+        .route("/supplier-qualification/areas/:code", get(get_qualification_area))
+        .route("/supplier-qualification/areas/:code", delete(delete_qualification_area))
+
+        // Qualification Questions
+        .route("/supplier-qualification/areas/:area_id/questions", post(create_qualification_question))
+        .route("/supplier-qualification/areas/:area_id/questions", get(list_qualification_questions))
+        .route("/supplier-qualification/questions/:id", delete(delete_qualification_question))
+
+        // Initiatives
+        .route("/supplier-qualification/initiatives", post(create_initiative))
+        .route("/supplier-qualification/initiatives", get(list_initiatives))
+        .route("/supplier-qualification/initiatives/:id", get(get_initiative))
+        .route("/supplier-qualification/initiatives/:id/activate", post(activate_initiative))
+        .route("/supplier-qualification/initiatives/:id/complete", post(complete_initiative))
+        .route("/supplier-qualification/initiatives/:id/cancel", post(cancel_initiative))
+
+        // Supplier Invitations
+        .route("/supplier-qualification/initiatives/:initiative_id/invitations", post(invite_supplier))
+        .route("/supplier-qualification/initiatives/:initiative_id/invitations", get(list_invitations))
+
+        // Invitation Lifecycle
+        .route("/supplier-qualification/invitations/:invitation_id/submit", post(submit_invitation_response))
+        .route("/supplier-qualification/invitations/:invitation_id/evaluate", post(start_evaluation))
+        .route("/supplier-qualification/invitations/:invitation_id/qualify", post(qualify_supplier))
+        .route("/supplier-qualification/invitations/:invitation_id/disqualify", post(disqualify_supplier))
+
+        // Responses
+        .route("/supplier-qualification/invitations/:invitation_id/responses", post(create_response))
+        .route("/supplier-qualification/invitations/:invitation_id/responses", get(list_responses))
+        .route("/supplier-qualification/responses/:response_id/score", post(score_response))
+
+        // Certifications
+        .route("/supplier-qualification/certifications", post(create_certification))
+        .route("/supplier-qualification/certifications", get(list_certifications))
+        .route("/supplier-qualification/certifications/:id/revoke", post(revoke_certification))
+        .route("/supplier-qualification/certifications/:id/renew", post(renew_certification))
+
+        // Dashboard
+        .route("/supplier-qualification/dashboard", get(get_qualification_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -31,6 +31,7 @@ use atlas_core::{
     SalesCommissionEngine,
     TreasuryEngine,
     GrantManagementEngine,
+    SupplierQualificationEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -60,6 +61,7 @@ use atlas_core::{
     sales_commission::PostgresSalesCommissionRepository,
     treasury::PostgresTreasuryRepository,
     grant_management::PostgresGrantManagementRepository,
+    supplier_qualification::PostgresSupplierQualificationRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -103,6 +105,7 @@ pub struct AppState {
     pub sales_commission_engine: Arc<SalesCommissionEngine>,
     pub treasury_engine: Arc<TreasuryEngine>,
     pub grant_management_engine: Arc<GrantManagementEngine>,
+    pub supplier_qualification_engine: Arc<SupplierQualificationEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -283,6 +286,11 @@ impl AppState {
         let grant_management_engine = Arc::new(GrantManagementEngine::new(Arc::new(
             PostgresGrantManagementRepository::new(db_pool.clone())
         )));
+
+        // Initialize supplier qualification engine
+        let supplier_qualification_engine = Arc::new(SupplierQualificationEngine::new(Arc::new(
+            PostgresSupplierQualificationRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -354,6 +362,7 @@ impl AppState {
             sales_commission_engine,
             treasury_engine,
             grant_management_engine,
+            supplier_qualification_engine,
             event_bus,
             jwt_secret,
         };

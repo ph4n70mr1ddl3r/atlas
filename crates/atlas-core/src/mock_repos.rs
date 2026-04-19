@@ -3385,3 +3385,139 @@ impl crate::financial_consolidation::FinancialConsolidationRepository for MockFi
         })
     }
 }
+
+/// Mock supplier qualification repository for testing
+pub struct MockSupplierQualificationRepository;
+
+#[async_trait::async_trait]
+impl crate::supplier_qualification::SupplierQualificationRepository for MockSupplierQualificationRepository {
+    async fn create_area(
+        &self, _org_id: Uuid, _area_code: &str, _name: &str, _description: Option<&str>,
+        _area_type: &str, _scoring_model: &str, _passing_score: &str,
+        _is_mandatory: bool, _renewal_period_days: i32, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::QualificationArea> {
+        Ok(atlas_shared::QualificationArea {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            area_code: _area_code.to_string(), name: _name.to_string(),
+            description: None, area_type: _area_type.to_string(),
+            scoring_model: _scoring_model.to_string(), passing_score: _passing_score.to_string(),
+            is_mandatory: _is_mandatory, renewal_period_days: _renewal_period_days,
+            is_active: true, metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_area(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::QualificationArea>> { Ok(None) }
+    async fn get_area_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::QualificationArea>> { Ok(None) }
+    async fn list_areas(&self, _org_id: Uuid, _active_only: bool) -> AtlasResult<Vec<atlas_shared::QualificationArea>> { Ok(vec![]) }
+    async fn delete_area(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+    async fn create_question(
+        &self, _org_id: Uuid, _area_id: Uuid, _question_number: i32, _question_text: &str,
+        _description: Option<&str>, _response_type: &str, _choices: Option<serde_json::Value>,
+        _is_required: bool, _weight: &str, _max_score: &str, _help_text: Option<&str>, _display_order: i32,
+    ) -> AtlasResult<atlas_shared::QualificationQuestion> {
+        Ok(atlas_shared::QualificationQuestion {
+            id: Uuid::new_v4(), organization_id: _org_id, area_id: _area_id,
+            question_number: _question_number, question_text: _question_text.to_string(),
+            description: None, response_type: _response_type.to_string(), choices: None,
+            is_required: _is_required, weight: _weight.to_string(), max_score: _max_score.to_string(),
+            help_text: None, display_order: _display_order, is_active: true,
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_questions(&self, _area_id: Uuid) -> AtlasResult<Vec<atlas_shared::QualificationQuestion>> { Ok(vec![]) }
+    async fn delete_question(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+    async fn create_initiative(
+        &self, _org_id: Uuid, _initiative_number: &str, _name: &str, _description: Option<&str>,
+        _area_id: Uuid, _qualification_purpose: &str, _deadline: Option<chrono::NaiveDate>, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SupplierQualificationInitiative> {
+        Ok(atlas_shared::SupplierQualificationInitiative {
+            id: Uuid::new_v4(), organization_id: _org_id, initiative_number: _initiative_number.to_string(),
+            name: _name.to_string(), description: None, area_id: _area_id,
+            qualification_purpose: _qualification_purpose.to_string(), status: "draft".to_string(),
+            deadline: None, total_invited: 0, total_responded: 0, total_qualified: 0,
+            total_disqualified: 0, total_pending: 0, completed_at: None,
+            metadata: serde_json::json!({}), created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_initiative(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SupplierQualificationInitiative>> { Ok(None) }
+    async fn list_initiatives(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::SupplierQualificationInitiative>> { Ok(vec![]) }
+    async fn update_initiative_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::SupplierQualificationInitiative> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_initiative_counts(&self, _id: Uuid, _invited: i32, _responded: i32, _qualified: i32, _disqualified: i32, _pending: i32) -> AtlasResult<()> { Ok(()) }
+    async fn create_invitation(
+        &self, _org_id: Uuid, _initiative_id: Uuid, _supplier_id: Uuid, _supplier_name: &str,
+        _supplier_contact_name: Option<&str>, _supplier_contact_email: Option<&str>,
+        _expiry_date: Option<chrono::NaiveDate>, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SupplierQualificationInvitation> {
+        Ok(atlas_shared::SupplierQualificationInvitation {
+            id: Uuid::new_v4(), organization_id: _org_id, initiative_id: _initiative_id,
+            supplier_id: _supplier_id, supplier_name: _supplier_name.to_string(),
+            supplier_contact_name: None, supplier_contact_email: None,
+            status: "initiated".to_string(), invitation_date: None, response_date: None,
+            evaluation_date: None, expiry_date: None, overall_score: "0".to_string(),
+            max_possible_score: "0".to_string(), score_percentage: "0".to_string(),
+            qualified_by: None, disqualified_reason: None, evaluation_notes: None,
+            metadata: serde_json::json!({}), created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_invitation(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SupplierQualificationInvitation>> { Ok(None) }
+    async fn list_invitations_by_initiative(&self, _initiative_id: Uuid) -> AtlasResult<Vec<atlas_shared::SupplierQualificationInvitation>> { Ok(vec![]) }
+    async fn list_invitations_by_supplier(&self, _org_id: Uuid, _supplier_id: Uuid) -> AtlasResult<Vec<atlas_shared::SupplierQualificationInvitation>> { Ok(vec![]) }
+    async fn update_invitation_status(&self, _id: Uuid, _status: &str, _response_date: Option<chrono::DateTime<chrono::Utc>>, _evaluation_date: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<atlas_shared::SupplierQualificationInvitation> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_invitation_scores(&self, _id: Uuid, _overall_score: &str, _max_possible_score: &str, _score_percentage: &str, _qualified_by: Option<Uuid>, _disqualified_reason: Option<&str>, _evaluation_notes: Option<&str>) -> AtlasResult<atlas_shared::SupplierQualificationInvitation> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn create_response(
+        &self, _org_id: Uuid, _invitation_id: Uuid, _question_id: Uuid, _response_text: Option<&str>,
+        _response_value: Option<serde_json::Value>, _file_reference: Option<&str>,
+    ) -> AtlasResult<atlas_shared::SupplierQualificationResponse> {
+        Ok(atlas_shared::SupplierQualificationResponse {
+            id: Uuid::new_v4(), organization_id: _org_id, invitation_id: _invitation_id,
+            question_id: _question_id, response_text: _response_text.map(String::from),
+            response_value: None, file_reference: None, score: "0".to_string(),
+            max_score: "0".to_string(), evaluator_notes: None, evaluated_by: None,
+            evaluated_at: None, metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_response(&self, _invitation_id: Uuid, _question_id: Uuid) -> AtlasResult<Option<atlas_shared::SupplierQualificationResponse>> { Ok(None) }
+    async fn list_responses(&self, _invitation_id: Uuid) -> AtlasResult<Vec<atlas_shared::SupplierQualificationResponse>> { Ok(vec![]) }
+    async fn score_response(&self, _id: Uuid, _score: &str, _evaluator_notes: Option<&str>, _evaluated_by: Option<Uuid>) -> AtlasResult<atlas_shared::SupplierQualificationResponse> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn create_certification(
+        &self, _org_id: Uuid, _supplier_id: Uuid, _supplier_name: &str,
+        _certification_type: &str, _certification_name: &str, _certifying_body: Option<&str>,
+        _certificate_number: Option<&str>, _status: &str, _issued_date: Option<chrono::NaiveDate>,
+        _expiry_date: Option<chrono::NaiveDate>, _renewal_date: Option<chrono::NaiveDate>,
+        _qualification_invitation_id: Option<Uuid>, _document_reference: Option<&str>,
+        _notes: Option<&str>, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SupplierCertification> {
+        Ok(atlas_shared::SupplierCertification {
+            id: Uuid::new_v4(), organization_id: _org_id, supplier_id: _supplier_id,
+            supplier_name: _supplier_name.to_string(), certification_type: _certification_type.to_string(),
+            certification_name: _certification_name.to_string(), certifying_body: None,
+            certificate_number: None, status: "active".to_string(), issued_date: None,
+            expiry_date: None, renewal_date: None, qualification_invitation_id: None,
+            document_reference: None, notes: None, metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_certification(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SupplierCertification>> { Ok(None) }
+    async fn list_certifications(&self, _org_id: Uuid, _supplier_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::SupplierCertification>> { Ok(vec![]) }
+    async fn update_certification_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::SupplierCertification> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::SupplierQualificationDashboardSummary> {
+        Ok(atlas_shared::SupplierQualificationDashboardSummary {
+            total_active_areas: 0, total_active_initiatives: 0, total_suppliers_invited: 0,
+            total_suppliers_qualified: 0, total_suppliers_pending: 0, total_suppliers_disqualified: 0,
+            total_certifications_active: 0, total_certifications_expiring_30_days: 0,
+            qualification_rate_percent: "0".to_string(), initiatives_by_status: serde_json::json!({}),
+            certifications_by_type: serde_json::json!({}),
+        })
+    }
+}

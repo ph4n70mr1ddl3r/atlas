@@ -40,6 +40,7 @@ pub mod descriptive_flexfield;
 pub mod cross_validation;
 pub mod scheduled_process;
 mod segregation_of_duties;
+mod allocation;
 
 pub use schema::*;
 pub use records::*;
@@ -194,6 +195,36 @@ pub use segregation_of_duties::{
     approve_sod_mitigation,
     revoke_sod_mitigation,
     get_sod_dashboard,
+};
+pub use allocation::{
+    create_allocation_pool,
+    get_allocation_pool,
+    list_allocation_pools,
+    activate_allocation_pool,
+    deactivate_allocation_pool,
+    delete_allocation_pool,
+    create_allocation_basis,
+    get_allocation_basis,
+    list_allocation_bases,
+    activate_allocation_basis,
+    deactivate_allocation_basis,
+    delete_allocation_basis,
+    add_allocation_basis_detail,
+    list_allocation_basis_details,
+    recalculate_basis_percentages,
+    create_allocation_rule,
+    get_allocation_rule,
+    list_allocation_rules,
+    activate_allocation_rule,
+    deactivate_allocation_rule,
+    delete_allocation_rule,
+    execute_allocation,
+    get_allocation_run,
+    list_allocation_runs,
+    post_allocation_run,
+    reverse_allocation_run,
+    cancel_allocation_run,
+    get_allocation_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1450,6 +1481,50 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // SoD Dashboard
         .route("/sod/dashboard", get(get_sod_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // GL Allocations (Oracle Fusion General Ledger > Allocations)
+        // ═══════════════════════════════════════════════════════════
+
+        // Allocation Pools
+        .route("/allocation/pools", post(create_allocation_pool))
+        .route("/allocation/pools", get(list_allocation_pools))
+        .route("/allocation/pools/:code", get(get_allocation_pool))
+        .route("/allocation/pools/:code", delete(delete_allocation_pool))
+        .route("/allocation/pools/:id/activate", post(activate_allocation_pool))
+        .route("/allocation/pools/:id/deactivate", post(deactivate_allocation_pool))
+
+        // Allocation Bases
+        .route("/allocation/bases", post(create_allocation_basis))
+        .route("/allocation/bases", get(list_allocation_bases))
+        .route("/allocation/bases/:code", get(get_allocation_basis))
+        .route("/allocation/bases/:code", delete(delete_allocation_basis))
+        .route("/allocation/bases/:id/activate", post(activate_allocation_basis))
+        .route("/allocation/bases/:id/deactivate", post(deactivate_allocation_basis))
+
+        // Basis Details
+        .route("/allocation/bases/:basis_code/details", post(add_allocation_basis_detail))
+        .route("/allocation/bases/:basis_code/details", get(list_allocation_basis_details))
+        .route("/allocation/bases/:basis_code/recalculate", post(recalculate_basis_percentages))
+
+        // Allocation Rules
+        .route("/allocation/rules", post(create_allocation_rule))
+        .route("/allocation/rules", get(list_allocation_rules))
+        .route("/allocation/rules/:code", get(get_allocation_rule))
+        .route("/allocation/rules/:code", delete(delete_allocation_rule))
+        .route("/allocation/rules/:id/activate", post(activate_allocation_rule))
+        .route("/allocation/rules/:id/deactivate", post(deactivate_allocation_rule))
+
+        // Allocation Runs
+        .route("/allocation/runs", post(execute_allocation))
+        .route("/allocation/runs", get(list_allocation_runs))
+        .route("/allocation/runs/:id", get(get_allocation_run))
+        .route("/allocation/runs/:id/post", post(post_allocation_run))
+        .route("/allocation/runs/:id/reverse", post(reverse_allocation_run))
+        .route("/allocation/runs/:id/cancel", post(cancel_allocation_run))
+
+        // Allocation Dashboard
+        .route("/allocation/dashboard", get(get_allocation_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

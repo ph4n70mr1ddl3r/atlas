@@ -61,6 +61,7 @@ pub mod descriptive_flexfield;
 pub mod cross_validation;
 pub mod scheduled_process;
 pub mod segregation_of_duties;
+pub mod allocation;
 
 pub use schema::*;
 pub use workflow::{
@@ -123,6 +124,7 @@ pub use descriptive_flexfield::{DescriptiveFlexfieldEngine, PostgresDescriptiveF
 pub use cross_validation::{CrossValidationEngine, PostgresCrossValidationRepository as PostgresCrossValidationRepo};
 pub use scheduled_process::{ScheduledProcessEngine, PostgresScheduledProcessRepository as PostgresScheduledProcessRepo};
 pub use segregation_of_duties::{SegregationOfDutiesEngine, PostgresSegregationOfDutiesRepository as PostgresSegregationOfDutiesRepo};
+pub use allocation::{AllocationEngine, PostgresAllocationRepository as PostgresAllocationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

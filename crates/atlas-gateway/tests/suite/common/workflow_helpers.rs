@@ -777,6 +777,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::segregation_of_duties::PostgresSegregationOfDutiesRepository::new(db_pool.clone()),
     )));
 
+    let allocation_engine = Arc::new(atlas_core::AllocationEngine::new(Arc::new(
+        atlas_core::allocation::PostgresAllocationRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -818,6 +822,7 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         cvr_engine,
         scheduled_process_engine,
         sod_engine,
+        allocation_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

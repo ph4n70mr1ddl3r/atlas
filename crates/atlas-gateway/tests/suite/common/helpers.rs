@@ -238,6 +238,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::segregation_of_duties::PostgresSegregationOfDutiesRepository::new(db_pool.clone()),
     )));
 
+    let allocation_engine = Arc::new(atlas_core::AllocationEngine::new(Arc::new(
+        atlas_core::allocation::PostgresAllocationRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -279,6 +283,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         cvr_engine,
         scheduled_process_engine,
         sod_engine,
+        allocation_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -495,4 +500,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.scheduled_process_recurrences").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.scheduled_processes").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.scheduled_process_templates").execute(pool).await.ok();
+    // Clean allocation test data
+    sqlx::query("DELETE FROM _atlas.gl_allocation_run_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_runs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_target_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_basis_details").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_bases").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_pools").execute(pool).await.ok();
 }

@@ -9517,3 +9517,359 @@ pub struct SodDashboardSummary {
     pub rules_summary: serde_json::Value,
 }
 
+// ============================================================================
+// General Ledger Allocations (Oracle Fusion GL Allocations)
+// ============================================================================
+
+/// GL Allocation pool definition
+/// Oracle Fusion: General Ledger > Allocations > Allocation Pools
+/// Represents a pool of costs/amounts to be distributed to targets.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationPool {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique code for this pool (e.g., "RENT_POOL", "IT_OVERHEAD")
+    pub code: String,
+    /// Human-readable name
+    pub name: String,
+    pub description: Option<String>,
+    /// Pool type: 'cost_center', 'account_range', 'manual'
+    pub pool_type: String,
+    /// Source account code or range for the pool
+    pub source_account_code: Option<String>,
+    pub source_account_range_from: Option<String>,
+    pub source_account_range_to: Option<String>,
+    /// Source cost center or department
+    pub source_department_id: Option<Uuid>,
+    /// Source project
+    pub source_project_id: Option<Uuid>,
+    /// Currency code
+    pub currency_code: String,
+    /// Whether this pool is active
+    pub is_active: bool,
+    /// Start/end dates for effective period
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update GL allocation pool request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationPoolRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(default = "default_pool_type")]
+    pub pool_type: String,
+    pub source_account_code: Option<String>,
+    pub source_account_range_from: Option<String>,
+    pub source_account_range_to: Option<String>,
+    pub source_department_id: Option<Uuid>,
+    pub source_project_id: Option<Uuid>,
+    #[serde(default = "default_currency_usd")]
+    pub currency_code: String,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+fn default_pool_type() -> String { "cost_center".to_string() }
+
+/// GL Allocation basis definition
+/// Oracle Fusion: General Ledger > Allocations > Allocation Bases
+/// Defines how amounts are distributed (e.g., headcount, revenue, square footage).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationBasis {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique code (e.g., "HEADCOUNT", "REVENUE", "SQFT")
+    pub code: String,
+    /// Human-readable name
+    pub name: String,
+    pub description: Option<String>,
+    /// Basis type: 'statistical', 'financial', 'percentage'
+    pub basis_type: String,
+    /// Unit of measure (e.g., 'people', 'USD', 'sq_ft')
+    pub unit_of_measure: Option<String>,
+    /// Whether the basis amounts are entered manually or sourced from GL
+    pub is_manual: bool,
+    /// GL account code to source basis amounts from (if not manual)
+    pub source_account_code: Option<String>,
+    /// Whether this basis is active
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update GL allocation basis request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationBasisRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(default = "default_basis_type")]
+    pub basis_type: String,
+    pub unit_of_measure: Option<String>,
+    #[serde(default)]
+    pub is_manual: bool,
+    pub source_account_code: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+fn default_basis_type() -> String { "statistical".to_string() }
+
+/// GL Allocation basis detail (individual target's share of the basis)
+/// Oracle Fusion: General Ledger > Allocations > Basis Details
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationBasisDetail {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// The basis this detail belongs to
+    pub basis_id: Uuid,
+    /// Target dimension: department, cost center, project, or account
+    pub target_department_id: Option<Uuid>,
+    pub target_department_name: Option<String>,
+    pub target_cost_center: Option<String>,
+    pub target_project_id: Option<Uuid>,
+    pub target_project_name: Option<String>,
+    pub target_account_code: Option<String>,
+    /// The basis amount (headcount count, revenue amount, square footage, etc.)
+    pub basis_amount: String,
+    /// The percentage this detail represents of the total basis
+    pub percentage: String,
+    /// Effective period
+    pub period_name: Option<String>,
+    pub period_start_date: Option<chrono::NaiveDate>,
+    pub period_end_date: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update GL allocation basis detail request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationBasisDetailRequest {
+    pub target_department_id: Option<Uuid>,
+    pub target_department_name: Option<String>,
+    pub target_cost_center: Option<String>,
+    pub target_project_id: Option<Uuid>,
+    pub target_project_name: Option<String>,
+    pub target_account_code: Option<String>,
+    pub basis_amount: String,
+    pub period_name: Option<String>,
+    pub period_start_date: Option<chrono::NaiveDate>,
+    pub period_end_date: Option<chrono::NaiveDate>,
+}
+
+/// GL Allocation rule definition
+/// Oracle Fusion: General Ledger > Allocations > Allocation Rules
+/// Maps a pool to targets using a basis.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Unique code (e.g., "RENT_ALLOC", "IT_OVERHEAD_ALLOC")
+    pub code: String,
+    /// Human-readable name
+    pub name: String,
+    pub description: Option<String>,
+    /// The pool to allocate from
+    pub pool_id: Uuid,
+    pub pool_code: String,
+    /// The basis to use for distribution
+    pub basis_id: Uuid,
+    pub basis_code: String,
+    /// Allocation method: 'proportional', 'fixed_percentage', 'step_down'
+    pub allocation_method: String,
+    /// Offset method: 'none', 'same_account', 'specified_account'
+    pub offset_method: String,
+    /// Offset account for the credit side of the allocation
+    pub offset_account_code: Option<String>,
+    /// Journal batch name prefix for generated entries
+    pub journal_batch_prefix: Option<String>,
+    /// Whether allocations round differences to the largest target
+    pub round_to_largest: bool,
+    /// Minimum allocation threshold (amounts below this are not allocated)
+    pub minimum_threshold: Option<String>,
+    /// Whether this rule is active
+    pub is_active: bool,
+    /// Effective dates
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    /// Target lines for this allocation rule
+    pub target_lines: Vec<GlAllocationTargetLine>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// GL Allocation target line
+/// Oracle Fusion: General Ledger > Allocations > Target Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationTargetLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rule_id: Uuid,
+    pub line_number: i32,
+    pub target_department_id: Option<Uuid>,
+    pub target_department_name: Option<String>,
+    pub target_cost_center: Option<String>,
+    pub target_project_id: Option<Uuid>,
+    pub target_project_name: Option<String>,
+    pub target_account_code: String,
+    pub target_account_name: Option<String>,
+    pub fixed_percentage: Option<String>,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update GL allocation rule request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationRuleRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub pool_code: String,
+    pub basis_code: String,
+    #[serde(default = "default_gl_allocation_method")]
+    pub allocation_method: String,
+    #[serde(default = "default_gl_offset_method")]
+    pub offset_method: String,
+    pub offset_account_code: Option<String>,
+    pub journal_batch_prefix: Option<String>,
+    #[serde(default)]
+    pub round_to_largest: bool,
+    pub minimum_threshold: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub target_lines: Option<Vec<GlAllocationTargetLineRequest>>,
+}
+
+fn default_gl_allocation_method() -> String { "proportional".to_string() }
+fn default_gl_offset_method() -> String { "same_account".to_string() }
+
+/// Create/update GL allocation target line request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationTargetLineRequest {
+    pub target_department_id: Option<Uuid>,
+    pub target_department_name: Option<String>,
+    pub target_cost_center: Option<String>,
+    pub target_project_id: Option<Uuid>,
+    pub target_project_name: Option<String>,
+    pub target_account_code: String,
+    pub target_account_name: Option<String>,
+    pub fixed_percentage: Option<String>,
+    pub is_active: Option<bool>,
+}
+
+/// GL Allocation run (generated journal entry batch)
+/// Oracle Fusion: General Ledger > Allocations > Allocation Runs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationRun {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_number: String,
+    pub rule_id: Uuid,
+    pub rule_code: String,
+    pub rule_name: String,
+    pub period_name: String,
+    pub period_start_date: chrono::NaiveDate,
+    pub period_end_date: chrono::NaiveDate,
+    pub pool_amount: String,
+    pub allocation_method: String,
+    pub total_allocated: String,
+    pub total_offset: String,
+    pub rounding_difference: String,
+    pub target_count: i32,
+    pub journal_batch_id: Option<Uuid>,
+    pub journal_batch_name: Option<String>,
+    pub status: String,
+    pub run_date: chrono::NaiveDate,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub reversed_at: Option<DateTime<Utc>>,
+    pub posted_by: Option<Uuid>,
+    pub results: Vec<GlAllocationRunLine>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Individual line in a GL allocation run
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationRunLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_id: Uuid,
+    pub line_number: i32,
+    pub target_department_id: Option<Uuid>,
+    pub target_department_name: Option<String>,
+    pub target_cost_center: Option<String>,
+    pub target_project_id: Option<Uuid>,
+    pub target_project_name: Option<String>,
+    pub target_account_code: String,
+    pub target_account_name: Option<String>,
+    pub source_account_code: Option<String>,
+    pub basis_amount: String,
+    pub basis_percentage: String,
+    pub allocated_amount: String,
+    pub offset_amount: String,
+    pub line_type: String,
+    pub journal_line_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// GL Allocation run request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationRunRequest {
+    pub rule_code: String,
+    pub period_name: String,
+    pub period_start_date: chrono::NaiveDate,
+    pub period_end_date: chrono::NaiveDate,
+    pub run_date: Option<chrono::NaiveDate>,
+    pub pool_amount_override: Option<String>,
+}
+
+/// GL Allocation dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAllocationDashboardSummary {
+    pub total_pools: i32,
+    pub active_pools: i32,
+    pub total_bases: i32,
+    pub active_bases: i32,
+    pub total_rules: i32,
+    pub active_rules: i32,
+    pub total_runs: i32,
+    pub posted_runs: i32,
+    pub draft_runs: i32,
+    pub total_allocated_amount: String,
+    pub pools_by_type: serde_json::Value,
+    pub rules_by_method: serde_json::Value,
+}
+

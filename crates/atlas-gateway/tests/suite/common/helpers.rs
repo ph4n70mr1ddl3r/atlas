@@ -204,8 +204,16 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::treasury::PostgresTreasuryRepository::new(db_pool.clone()),
     )));
 
+    let grant_management_engine = Arc::new(atlas_core::GrantManagementEngine::new(Arc::new(
+        atlas_core::grant_management::PostgresGrantManagementRepository::new(db_pool.clone()),
+    )));
+
     let supplier_qualification_engine = Arc::new(atlas_core::SupplierQualificationEngine::new(Arc::new(
         atlas_core::supplier_qualification::PostgresSupplierQualificationRepository::new(db_pool.clone()),
+    )));
+
+    let recurring_journal_engine = Arc::new(atlas_core::RecurringJournalEngine::new(Arc::new(
+        atlas_core::recurring_journal::PostgresRecurringJournalRepository::new(db_pool.clone()),
     )));
 
     let state = atlas_gateway::AppState {
@@ -241,7 +249,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         pricing_engine,
         sales_commission_engine,
         treasury_engine,
+        grant_management_engine,
         supplier_qualification_engine,
+        recurring_journal_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -434,4 +444,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.supplier_certifications").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.qualification_questions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.qualification_areas").execute(pool).await.ok();
+    // Clean recurring journal test data
+    sqlx::query("DELETE FROM _atlas.recurring_journal_generation_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.recurring_journal_generations").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.recurring_journal_schedule_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.recurring_journal_schedules").execute(pool).await.ok();
 }

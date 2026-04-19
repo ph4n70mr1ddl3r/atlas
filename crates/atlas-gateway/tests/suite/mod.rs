@@ -34,3 +34,4 @@ mod sales_commission;
 mod treasury;
 mod grant_management;
 mod supplier_qualification;
+mod recurring_journal;

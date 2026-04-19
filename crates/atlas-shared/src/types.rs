@@ -8611,3 +8611,129 @@ pub struct SupplierQualificationDashboardSummary {
     pub certifications_by_type: serde_json::Value,
 }
 
+// ============================================================================
+// Recurring Journals (Oracle Fusion GL > Recurring Journals)
+// ============================================================================
+
+/// Recurring journal schedule definition.
+/// Oracle Fusion: General Ledger > Journals > Recurring Journals
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecurringJournalSchedule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub recurrence_type: String,       // daily, weekly, monthly, quarterly, semi_annual, annual
+    pub journal_type: String,          // standard, skeleton, incremental
+    pub currency_code: String,
+    pub status: String,                // draft, active, inactive
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub last_generation_date: Option<chrono::NaiveDate>,
+    pub next_generation_date: Option<chrono::NaiveDate>,
+    pub total_generations: i32,
+    pub incremental_percent: Option<String>,
+    pub auto_post: bool,
+    pub reversal_method: Option<String>,
+    pub ledger_id: Option<Uuid>,
+    pub journal_category: Option<String>,
+    pub reference_template: Option<String>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A template line within a recurring journal schedule.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecurringJournalScheduleLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_id: Uuid,
+    pub line_number: i32,
+    pub line_type: String,             // debit, credit
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub description: Option<String>,
+    pub amount: String,
+    pub currency_code: String,
+    pub tax_code: Option<String>,
+    pub cost_center: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A single generation run of a recurring journal.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecurringJournalGeneration {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_id: Uuid,
+    pub generation_number: i32,
+    pub journal_entry_id: Option<Uuid>,
+    pub journal_entry_number: Option<String>,
+    pub generation_date: chrono::NaiveDate,
+    pub period_name: Option<String>,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub line_count: i32,
+    pub status: String,               // generated, posted, reversed, cancelled
+    pub reversal_entry_id: Option<Uuid>,
+    pub reversed_at: Option<DateTime<Utc>>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub generated_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A single generated journal line.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecurringJournalGenerationLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub generation_id: Uuid,
+    pub schedule_line_id: Option<Uuid>,
+    pub line_number: i32,
+    pub line_type: String,
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub description: Option<String>,
+    pub amount: String,
+    pub currency_code: String,
+    pub tax_code: Option<String>,
+    pub cost_center: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Recurring Journals Dashboard Summary.
+/// Oracle Fusion: General Ledger > Recurring Journals > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecurringJournalDashboardSummary {
+    pub total_active_schedules: i32,
+    pub total_draft_schedules: i32,
+    pub total_generations: i32,
+    pub total_generations_this_month: i32,
+    pub total_generated_amount: String,
+    pub schedules_due_today: i32,
+    pub schedules_overdue: i32,
+    pub schedules_by_recurrence: serde_json::Value,
+    pub schedules_by_status: serde_json::Value,
+    pub recent_generations: Vec<RecurringJournalGeneration>,
+}
+

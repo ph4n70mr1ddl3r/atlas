@@ -34,6 +34,7 @@ pub mod sales_commission;
 pub mod treasury;
 pub mod grant_management;
 pub mod supplier_qualification;
+pub mod recurring_journal;
 
 pub use schema::*;
 pub use records::*;
@@ -99,6 +100,25 @@ pub use supplier_qualification::{
     create_certification, list_certifications,
     revoke_certification, renew_certification,
     get_qualification_dashboard,
+};
+pub use recurring_journal::{
+    create_schedule as create_recurring_schedule,
+    get_schedule as get_recurring_schedule,
+    list_schedules as list_recurring_schedules,
+    activate_schedule as activate_recurring_schedule,
+    deactivate_schedule as deactivate_recurring_schedule,
+    delete_schedule as delete_recurring_schedule,
+    add_schedule_line as add_recurring_schedule_line,
+    list_schedule_lines as list_recurring_schedule_lines,
+    delete_schedule_line as delete_recurring_schedule_line,
+    generate_journal,
+    get_generation,
+    list_generations as list_recurring_generations,
+    post_generation,
+    reverse_generation,
+    cancel_generation,
+    list_generation_lines as list_recurring_generation_lines,
+    get_dashboard as get_recurring_journal_dashboard,
 };
 
 use axum::{
@@ -1136,6 +1156,35 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/supplier-qualification/dashboard", get(get_qualification_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Recurring Journals (Oracle Fusion GL > Recurring Journals)
+        // ═══════════════════════════════════════════════════════════
+
+        // Schedules
+        .route("/recurring-journals/schedules", post(create_recurring_schedule))
+        .route("/recurring-journals/schedules", get(list_recurring_schedules))
+        .route("/recurring-journals/schedules/:schedule_number", get(get_recurring_schedule))
+        .route("/recurring-journals/schedules/:schedule_number", delete(delete_recurring_schedule))
+        .route("/recurring-journals/schedules/:id/activate", post(activate_recurring_schedule))
+        .route("/recurring-journals/schedules/:id/deactivate", post(deactivate_recurring_schedule))
+
+        // Schedule Lines
+        .route("/recurring-journals/schedules/:schedule_id/lines", post(add_recurring_schedule_line))
+        .route("/recurring-journals/schedules/:schedule_id/lines", get(list_recurring_schedule_lines))
+        .route("/recurring-journals/lines/:line_id", delete(delete_recurring_schedule_line))
+
+        // Generation
+        .route("/recurring-journals/schedules/:schedule_id/generate", post(generate_journal))
+        .route("/recurring-journals/generations/:id", get(get_generation))
+        .route("/recurring-journals/schedules/:schedule_id/generations", get(list_recurring_generations))
+        .route("/recurring-journals/generations/:id/post", post(post_generation))
+        .route("/recurring-journals/generations/:id/reverse", post(reverse_generation))
+        .route("/recurring-journals/generations/:id/cancel", post(cancel_generation))
+        .route("/recurring-journals/generations/:generation_id/lines", get(list_recurring_generation_lines))
+
+        // Dashboard
+        .route("/recurring-journals/dashboard", get(get_recurring_journal_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

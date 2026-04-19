@@ -54,6 +54,7 @@ pub mod grant_management;
 pub mod corporate_card;
 pub mod financial_consolidation;
 pub mod supplier_qualification;
+pub mod recurring_journal;
 
 pub use schema::*;
 pub use workflow::{
@@ -109,6 +110,7 @@ pub use grant_management::{GrantManagementEngine, PostgresGrantManagementReposit
 pub use corporate_card::{CorporateCardEngine, PostgresCorporateCardRepository as PostgresCorporateCardRepo};
 pub use financial_consolidation::{FinancialConsolidationEngine, PostgresFinancialConsolidationRepository as PostgresFinancialConsolidationRepo};
 pub use supplier_qualification::{SupplierQualificationEngine, PostgresSupplierQualificationRepository as PostgresSupplierQualificationRepo};
+pub use recurring_journal::{RecurringJournalEngine, PostgresRecurringJournalRepository as PostgresRecurringJournalRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

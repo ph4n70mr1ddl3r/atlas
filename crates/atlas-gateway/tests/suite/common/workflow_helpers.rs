@@ -745,6 +745,18 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::treasury::PostgresTreasuryRepository::new(db_pool.clone()),
     )));
 
+    let grant_management_engine = Arc::new(atlas_core::GrantManagementEngine::new(Arc::new(
+        atlas_core::grant_management::PostgresGrantManagementRepository::new(db_pool.clone()),
+    )));
+
+    let supplier_qualification_engine = Arc::new(atlas_core::SupplierQualificationEngine::new(Arc::new(
+        atlas_core::supplier_qualification::PostgresSupplierQualificationRepository::new(db_pool.clone()),
+    )));
+
+    let recurring_journal_engine = Arc::new(atlas_core::RecurringJournalEngine::new(Arc::new(
+        atlas_core::recurring_journal::PostgresRecurringJournalRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -778,6 +790,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         pricing_engine,
         sales_commission_engine,
         treasury_engine,
+        grant_management_engine,
+        supplier_qualification_engine,
+        recurring_journal_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

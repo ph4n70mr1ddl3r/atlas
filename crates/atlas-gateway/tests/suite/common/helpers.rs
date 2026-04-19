@@ -9,6 +9,7 @@ use atlas_core::{
     SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
     SecurityEngine, AuditEngine,
     eventbus::NatsEventBus,
+    ManualJournalEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -216,6 +217,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::recurring_journal::PostgresRecurringJournalRepository::new(db_pool.clone()),
     )));
 
+    let manual_journal_engine = Arc::new(ManualJournalEngine::new(Arc::new(
+        atlas_core::manual_journal::PostgresManualJournalRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -252,6 +257,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         grant_management_engine,
         supplier_qualification_engine,
         recurring_journal_engine,
+        manual_journal_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -449,4 +455,8 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.recurring_journal_generations").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.recurring_journal_schedule_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.recurring_journal_schedules").execute(pool).await.ok();
+    // Clean manual journal test data
+    sqlx::query("DELETE FROM _atlas.journal_entry_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.journal_entries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.journal_batches").execute(pool).await.ok();
 }

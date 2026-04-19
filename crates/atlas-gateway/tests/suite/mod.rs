@@ -35,3 +35,4 @@ mod treasury;
 mod grant_management;
 mod supplier_qualification;
 mod recurring_journal;
+mod manual_journal;

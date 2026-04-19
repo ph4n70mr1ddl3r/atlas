@@ -8737,3 +8737,127 @@ pub struct RecurringJournalDashboardSummary {
     pub recent_generations: Vec<RecurringJournalGeneration>,
 }
 
+// ============================================================================
+// Manual Journal Entries (Oracle Fusion GL > Journals > New Journal)
+// ============================================================================
+
+/// A journal batch that groups multiple journal entries.
+/// Oracle Fusion: General Ledger > Journals > Journal Batch
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalBatch {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub status: String,
+    pub ledger_id: Option<Uuid>,
+    pub currency_code: String,
+    pub accounting_date: Option<chrono::NaiveDate>,
+    pub period_name: Option<String>,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub entry_count: i32,
+    pub source: String,
+    pub is_automatic_post: bool,
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub posted_by: Option<Uuid>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub rejection_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A journal entry within a batch, containing debit/credit lines.
+/// Oracle Fusion: General Ledger > Journals > Journal Entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_id: Uuid,
+    pub entry_number: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub status: String,
+    pub ledger_id: Option<Uuid>,
+    pub currency_code: String,
+    pub accounting_date: Option<chrono::NaiveDate>,
+    pub period_name: Option<String>,
+    pub journal_category: String,
+    pub journal_source: String,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub line_count: i32,
+    pub is_balanced: bool,
+    pub is_reversal: bool,
+    pub reversal_of_entry_id: Option<Uuid>,
+    pub reversed_by_entry_id: Option<Uuid>,
+    pub reference_number: Option<String>,
+    pub external_reference: Option<String>,
+    pub statistical_entry: bool,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A journal entry line (debit or credit).
+/// Oracle Fusion: General Ledger > Journals > Journal Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalEntryLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub entry_id: Uuid,
+    pub line_number: i32,
+    pub line_type: String,
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub description: Option<String>,
+    pub amount: String,
+    pub entered_amount: Option<String>,
+    pub entered_currency_code: Option<String>,
+    pub exchange_rate: Option<String>,
+    pub tax_code: Option<String>,
+    pub cost_center: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
+    pub intercompany_entity_id: Option<Uuid>,
+    pub statistical_amount: Option<String>,
+    pub reference1: Option<String>,
+    pub reference2: Option<String>,
+    pub reference3: Option<String>,
+    pub reference4: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Manual Journal Entries Dashboard Summary.
+/// Oracle Fusion: General Ledger > Journals > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ManualJournalDashboardSummary {
+    pub total_batches: i32,
+    pub total_draft_batches: i32,
+    pub total_posted_batches: i32,
+    pub total_entries: i32,
+    pub total_posted_entries: i32,
+    pub total_debits: String,
+    pub total_credits: String,
+    pub batches_pending_approval: i32,
+    pub entries_by_category: serde_json::Value,
+    pub batches_by_status: serde_json::Value,
+    pub recent_batches: Vec<JournalBatch>,
+}
+

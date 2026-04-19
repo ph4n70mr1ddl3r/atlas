@@ -757,6 +757,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::recurring_journal::PostgresRecurringJournalRepository::new(db_pool.clone()),
     )));
 
+    let manual_journal_engine = Arc::new(atlas_core::ManualJournalEngine::new(Arc::new(
+        atlas_core::manual_journal::PostgresManualJournalRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -793,6 +797,7 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         grant_management_engine,
         supplier_qualification_engine,
         recurring_journal_engine,
+        manual_journal_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

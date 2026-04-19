@@ -35,6 +35,7 @@ pub mod treasury;
 pub mod grant_management;
 pub mod supplier_qualification;
 pub mod recurring_journal;
+pub mod manual_journal;
 
 pub use schema::*;
 pub use records::*;
@@ -119,6 +120,25 @@ pub use recurring_journal::{
     cancel_generation,
     list_generation_lines as list_recurring_generation_lines,
     get_dashboard as get_recurring_journal_dashboard,
+};
+pub use manual_journal::{
+    create_batch as create_journal_batch,
+    get_batch as get_journal_batch,
+    list_batches as list_journal_batches,
+    delete_batch as delete_journal_batch,
+    submit_batch,
+    approve_batch as approve_journal_batch,
+    reject_batch as reject_journal_batch,
+    post_batch as post_journal_batch,
+    reverse_batch as reverse_journal_batch,
+    create_entry as create_journal_entry,
+    get_entry as get_journal_entry,
+    list_entries_by_batch as list_journal_entries_by_batch,
+    list_entries as list_journal_entries,
+    delete_entry as delete_journal_entry,
+    add_line as add_journal_line,
+    list_lines as list_journal_lines,
+    get_dashboard as get_manual_journal_dashboard,
 };
 
 use axum::{
@@ -1156,6 +1176,35 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/supplier-qualification/dashboard", get(get_qualification_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Manual Journal Entries (Oracle Fusion GL > Journals > New Journal)
+        // ═══════════════════════════════════════════════════════════
+
+        // Journal Batches
+        .route("/journals/batches", post(create_journal_batch))
+        .route("/journals/batches", get(list_journal_batches))
+        .route("/journals/batches/:batch_number", get(get_journal_batch))
+        .route("/journals/batches/:batch_number", delete(delete_journal_batch))
+        .route("/journals/batches/:id/submit", post(submit_batch))
+        .route("/journals/batches/:id/approve", post(approve_journal_batch))
+        .route("/journals/batches/:id/reject", post(reject_journal_batch))
+        .route("/journals/batches/:id/post", post(post_journal_batch))
+        .route("/journals/batches/:id/reverse", post(reverse_journal_batch))
+
+        // Journal Entries
+        .route("/journals/batches/:batch_id/entries", post(create_journal_entry))
+        .route("/journals/batches/:batch_id/entries", get(list_journal_entries_by_batch))
+        .route("/journals/entries/:id", get(get_journal_entry))
+        .route("/journals/entries", get(list_journal_entries))
+        .route("/journals/entries/:id", delete(delete_journal_entry))
+
+        // Journal Lines
+        .route("/journals/entries/:entry_id/lines", post(add_journal_line))
+        .route("/journals/entries/:entry_id/lines", get(list_journal_lines))
+
+        // Dashboard
+        .route("/journals/dashboard", get(get_manual_journal_dashboard))
 
         // ═══════════════════════════════════════════════════════════
         // Recurring Journals (Oracle Fusion GL > Recurring Journals)

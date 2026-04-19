@@ -8960,3 +8960,191 @@ pub struct DocumentSequenceDashboardSummary {
     pub sequences_by_document_type: serde_json::Value,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Descriptive Flexfields (Oracle Fusion DFF)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Descriptive Flexfields allow administrators to add custom configurable
+// fields to any entity at runtime. They support:
+// - Global segments (always visible on the entity)
+// - Context-sensitive segments (visible based on a context value)
+// - Value sets with validation rules (table-validated, independent, dependent, etc.)
+// - Required / optional segments with defaults
+//
+// Oracle Fusion equivalent: Application Extensions > Flexfields > Descriptive
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// A value set defines the list of valid values for a flexfield segment.
+/// Value sets enforce validation at data entry time.
+///
+/// Oracle Fusion: Setup and Maintenance > Manage Value Sets
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlexfieldValueSet {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Type of validation: "none", "independent", "dependent", "table", "format_only"
+    pub validation_type: String,
+    /// Data type for values: "string", "number", "date", "datetime"
+    pub data_type: String,
+    /// Maximum length for string values
+    pub max_length: i32,
+    /// Minimum length for string values
+    pub min_length: i32,
+    /// For format_only: regex or format pattern
+    pub format_mask: Option<String>,
+    /// For table validation: table name, value column, meaning column, WHERE clause
+    pub table_validation: Option<serde_json::Value>,
+    /// For independent: list of valid values stored as JSON
+    pub independent_values: Option<serde_json::Value>,
+    /// For dependent: reference to parent value set code
+    pub parent_value_set_code: Option<String>,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A value set value entry (for independent and dependent value sets).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlexfieldValueSetEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub value_set_id: Uuid,
+    pub value: String,
+    pub meaning: Option<String>,
+    pub description: Option<String>,
+    /// For dependent value sets: the parent value this depends on
+    pub parent_value: Option<String>,
+    pub is_enabled: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub sort_order: i32,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A descriptive flexfield definition attached to an entity.
+///
+/// Oracle Fusion: Application Extensions > Flexfields > Descriptive Flexfields
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DescriptiveFlexfield {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// The entity/table this flexfield is attached to (e.g., "purchase_orders")
+    pub entity_name: String,
+    /// The column on the entity table where the context value is stored (default: "dff_context")
+    pub context_column: String,
+    /// Default context code used when no context is specified
+    pub default_context_code: Option<String>,
+    /// Whether the flexfield is active
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A context within a flexfield. Contexts group segments and allow
+/// context-sensitive custom fields (different fields appear based on context).
+///
+/// Oracle Fusion: Each DFF can have multiple contexts (e.g., "US", "EU" for
+/// region-specific fields, or "IT", "Hardware" for category-specific fields)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlexfieldContext {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub flexfield_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Whether this is a global context (segments apply to all records)
+    pub is_global: bool,
+    pub is_enabled: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A segment (custom field) within a flexfield context.
+/// Segments are ordered and can be required or optional.
+///
+/// Oracle Fusion: Each context has 1-N segments with display ordering
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlexfieldSegment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub flexfield_id: Uuid,
+    pub context_id: Uuid,
+    pub segment_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Display order within the context
+    pub display_order: i32,
+    /// The column used to store this segment's value (e.g., "attribute1", "attribute2")
+    pub column_name: String,
+    /// Data type: "string", "number", "date", "datetime"
+    pub data_type: String,
+    /// Whether this segment is required
+    pub is_required: bool,
+    /// Whether this segment is read-only
+    pub is_read_only: bool,
+    /// Whether this segment is visible on forms
+    pub is_visible: bool,
+    /// Default value for the segment
+    pub default_value: Option<String>,
+    /// Reference to the value set for validation (by ID)
+    pub value_set_id: Option<Uuid>,
+    /// Reference to the value set for validation (by code, denormalized)
+    pub value_set_code: Option<String>,
+    /// Help text shown to users
+    pub help_text: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Flexfield data values stored for a specific entity record.
+/// The context value plus all segment values for that context.
+///
+/// Oracle Fusion: DFF values are stored in attribute columns on the entity row
+/// or in a dedicated flexfield values table.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlexfieldData {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub flexfield_id: Uuid,
+    pub entity_name: String,
+    pub entity_id: Uuid,
+    /// The context code selected for this record
+    pub context_code: String,
+    /// Segment values as a JSON object: {"segment_code": "value", ...}
+    pub segment_values: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Dashboard summary for descriptive flexfields.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlexfieldDashboardSummary {
+    pub total_flexfields: i32,
+    pub active_flexfields: i32,
+    pub total_contexts: i32,
+    pub total_segments: i32,
+    pub total_value_sets: i32,
+    pub flexfields_by_entity: serde_json::Value,
+}
+

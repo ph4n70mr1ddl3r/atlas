@@ -57,6 +57,7 @@ pub mod supplier_qualification;
 pub mod recurring_journal;
 pub mod manual_journal;
 pub mod document_sequencing;
+pub mod descriptive_flexfield;
 
 pub use schema::*;
 pub use workflow::{
@@ -115,6 +116,7 @@ pub use supplier_qualification::{SupplierQualificationEngine, PostgresSupplierQu
 pub use recurring_journal::{RecurringJournalEngine, PostgresRecurringJournalRepository as PostgresRecurringJournalRepo};
 pub use manual_journal::{ManualJournalEngine, PostgresManualJournalRepository as PostgresManualJournalRepo};
 pub use document_sequencing::{DocumentSequencingEngine, PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo};
+pub use descriptive_flexfield::{DescriptiveFlexfieldEngine, PostgresDescriptiveFlexfieldRepository as PostgresDescriptiveFlexfieldRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

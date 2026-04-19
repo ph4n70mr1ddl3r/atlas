@@ -34,6 +34,7 @@ use atlas_core::{
     SupplierQualificationEngine,
     RecurringJournalEngine,
     ManualJournalEngine,
+    DescriptiveFlexfieldEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -66,6 +67,7 @@ use atlas_core::{
     supplier_qualification::PostgresSupplierQualificationRepository,
     recurring_journal::PostgresRecurringJournalRepository,
     manual_journal::PostgresManualJournalRepository,
+    descriptive_flexfield::PostgresDescriptiveFlexfieldRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -112,6 +114,7 @@ pub struct AppState {
     pub supplier_qualification_engine: Arc<SupplierQualificationEngine>,
     pub recurring_journal_engine: Arc<RecurringJournalEngine>,
     pub manual_journal_engine: Arc<ManualJournalEngine>,
+    pub dff_engine: Arc<DescriptiveFlexfieldEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -307,6 +310,11 @@ impl AppState {
         let manual_journal_engine = Arc::new(ManualJournalEngine::new(Arc::new(
             PostgresManualJournalRepository::new(db_pool.clone())
         )));
+
+        // Initialize descriptive flexfield engine
+        let dff_engine = Arc::new(DescriptiveFlexfieldEngine::new(Arc::new(
+            PostgresDescriptiveFlexfieldRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -381,6 +389,7 @@ impl AppState {
             supplier_qualification_engine,
             recurring_journal_engine,
             manual_journal_engine,
+            dff_engine,
             event_bus,
             jwt_secret,
         };

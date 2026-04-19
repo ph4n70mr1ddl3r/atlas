@@ -36,6 +36,7 @@ pub mod grant_management;
 pub mod supplier_qualification;
 pub mod recurring_journal;
 pub mod manual_journal;
+pub mod descriptive_flexfield;
 
 pub use schema::*;
 pub use records::*;
@@ -120,6 +121,16 @@ pub use recurring_journal::{
     cancel_generation,
     list_generation_lines as list_recurring_generation_lines,
     get_dashboard as get_recurring_journal_dashboard,
+};
+pub use descriptive_flexfield::{
+    create_value_set, list_value_sets, get_value_set, delete_value_set,
+    create_value_set_entry, list_value_set_entries, delete_value_set_entry,
+    create_flexfield, list_flexfields, get_flexfield,
+    activate_flexfield, deactivate_flexfield, delete_flexfield,
+    create_context, list_contexts, disable_context, enable_context, delete_context,
+    create_segment, list_segments_by_context, list_segments_by_flexfield, delete_segment,
+    set_flexfield_data, get_flexfield_data, delete_flexfield_data,
+    get_flexfield_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1234,6 +1245,50 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/recurring-journals/dashboard", get(get_recurring_journal_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Descriptive Flexfields (Oracle Fusion DFF)
+        // ═══════════════════════════════════════════════════════════
+
+        // Value Sets
+        .route("/flexfields/value-sets", post(create_value_set))
+        .route("/flexfields/value-sets", get(list_value_sets))
+        .route("/flexfields/value-sets/:code", get(get_value_set))
+        .route("/flexfields/value-sets/:code", delete(delete_value_set))
+
+        // Value Set Entries
+        .route("/flexfields/value-sets/:code/entries", post(create_value_set_entry))
+        .route("/flexfields/value-sets/:code/entries", get(list_value_set_entries))
+        .route("/flexfields/value-sets/entries/:id", delete(delete_value_set_entry))
+
+        // Flexfields
+        .route("/flexfields", post(create_flexfield))
+        .route("/flexfields", get(list_flexfields))
+        .route("/flexfields/:code", get(get_flexfield))
+        .route("/flexfields/:id/activate", post(activate_flexfield))
+        .route("/flexfields/:id/deactivate", post(deactivate_flexfield))
+        .route("/flexfields/:code", delete(delete_flexfield))
+
+        // Contexts
+        .route("/flexfields/:flexfield_code/contexts", post(create_context))
+        .route("/flexfields/:flexfield_code/contexts", get(list_contexts))
+        .route("/flexfields/contexts/:id/disable", post(disable_context))
+        .route("/flexfields/contexts/:id/enable", post(enable_context))
+        .route("/flexfields/contexts/:id", delete(delete_context))
+
+        // Segments
+        .route("/flexfields/:flexfield_code/contexts/:context_code/segments", post(create_segment))
+        .route("/flexfields/:flexfield_code/contexts/:context_code/segments", get(list_segments_by_context))
+        .route("/flexfields/:flexfield_code/segments", get(list_segments_by_flexfield))
+        .route("/flexfields/segments/:id", delete(delete_segment))
+
+        // Flexfield Data (per-record values)
+        .route("/flexfields/data/:entity_name/:entity_id", post(set_flexfield_data))
+        .route("/flexfields/data/:entity_name/:entity_id", get(get_flexfield_data))
+        .route("/flexfields/data/:entity_name/:entity_id", delete(delete_flexfield_data))
+
+        // Dashboard
+        .route("/flexfields/dashboard", get(get_flexfield_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

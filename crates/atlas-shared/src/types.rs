@@ -9248,3 +9248,137 @@ pub struct CrossValidationDashboardSummary {
     pub rules_by_type: serde_json::Value,
 }
 
+// ============================================================================
+// Scheduled Processes (Oracle Fusion Enterprise Scheduler Service)
+// ============================================================================
+// Oracle Fusion: Navigator > Tools > Scheduled Processes
+// Allows users to submit, schedule, and monitor batch processes, reports,
+// data imports/exports, and custom jobs.
+
+/// Process template definition
+/// Oracle Fusion: Scheduled Processes > Manage Process Templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduledProcessTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub process_type: String,
+    pub executor_type: String,
+    pub executor_config: serde_json::Value,
+    pub parameters: serde_json::Value,
+    pub default_parameters: serde_json::Value,
+    pub timeout_minutes: i32,
+    pub max_retries: i32,
+    pub retry_delay_minutes: i32,
+    pub requires_approval: bool,
+    pub approval_chain_id: Option<Uuid>,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Submitted process instance
+/// Oracle Fusion: Scheduled Processes > Submit New Process / Monitor
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduledProcess {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Option<Uuid>,
+    pub template_code: Option<String>,
+    pub process_name: String,
+    pub process_type: String,
+    pub description: Option<String>,
+    pub status: String,
+    pub priority: String,
+    pub submitted_by: Uuid,
+    pub submitted_at: DateTime<Utc>,
+    pub scheduled_start_at: Option<DateTime<Utc>>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub cancelled_by: Option<Uuid>,
+    pub cancel_reason: Option<String>,
+    pub last_heartbeat_at: Option<DateTime<Utc>>,
+    pub retry_count: i32,
+    pub max_retries: i32,
+    pub timeout_minutes: i32,
+    pub progress_percent: i32,
+    pub parameters: serde_json::Value,
+    pub result_summary: Option<String>,
+    pub output_file_url: Option<String>,
+    pub output_format: String,
+    pub log_output: Option<String>,
+    pub error_message: Option<String>,
+    pub parent_process_id: Option<Uuid>,
+    pub recurrence_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Recurrence schedule for recurring process submissions
+/// Oracle Fusion: Scheduled Processes > Schedule > Recurrence
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduledProcessRecurrence {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub template_id: Uuid,
+    pub template_code: Option<String>,
+    pub parameters: serde_json::Value,
+    pub recurrence_type: String,
+    pub recurrence_config: serde_json::Value,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: Option<chrono::NaiveDate>,
+    pub next_run_at: Option<DateTime<Utc>>,
+    pub last_run_at: Option<DateTime<Utc>>,
+    pub run_count: i32,
+    pub max_runs: Option<i32>,
+    pub is_active: bool,
+    pub submitted_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Process execution log entry
+/// Oracle Fusion: Scheduled Processes > Process Details > Log
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduledProcessLog {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub process_id: Uuid,
+    pub log_level: String,
+    pub message: String,
+    pub details: Option<serde_json::Value>,
+    pub step_name: Option<String>,
+    pub duration_ms: Option<i32>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Scheduled processes dashboard summary
+/// Oracle Fusion: Scheduled Processes > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduledProcessDashboardSummary {
+    pub total_processes: i32,
+    pub pending_processes: i32,
+    pub running_processes: i32,
+    pub completed_processes: i32,
+    pub failed_processes: i32,
+    pub cancelled_processes: i32,
+    pub scheduled_processes: i32,
+    pub active_recurrences: i32,
+    pub recent_processes: Vec<ScheduledProcess>,
+    pub processes_by_type: serde_json::Value,
+}
+

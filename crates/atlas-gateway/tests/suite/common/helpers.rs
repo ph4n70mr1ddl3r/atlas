@@ -10,6 +10,7 @@ use atlas_core::{
     SecurityEngine, AuditEngine,
     eventbus::NatsEventBus,
     ManualJournalEngine,
+    ScheduledProcessEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -229,6 +230,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::cross_validation::PostgresCrossValidationRepository::new(db_pool.clone()),
     )));
 
+    let scheduled_process_engine = Arc::new(ScheduledProcessEngine::new(Arc::new(
+        atlas_core::scheduled_process::PostgresScheduledProcessRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -268,6 +273,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         manual_journal_engine,
         dff_engine,
         cvr_engine,
+        scheduled_process_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -479,4 +485,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     // Clean cross-validation test data
     sqlx::query("DELETE FROM _atlas.cross_validation_rule_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.cross_validation_rules").execute(pool).await.ok();
+    // Clean scheduled process test data
+    sqlx::query("DELETE FROM _atlas.scheduled_process_logs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.scheduled_process_recurrences").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.scheduled_processes").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.scheduled_process_templates").execute(pool).await.ok();
 }

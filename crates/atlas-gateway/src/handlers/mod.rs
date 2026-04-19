@@ -38,6 +38,7 @@ pub mod recurring_journal;
 pub mod manual_journal;
 pub mod descriptive_flexfield;
 pub mod cross_validation;
+pub mod scheduled_process;
 
 pub use schema::*;
 pub use records::*;
@@ -145,6 +146,31 @@ pub use cross_validation::{
     delete_rule_line as delete_cvr_rule_line,
     validate_combination,
     get_cvr_dashboard,
+};
+pub use scheduled_process::{
+    create_template as create_process_template,
+    get_template as get_process_template,
+    list_templates as list_process_templates,
+    activate_template as activate_process_template,
+    deactivate_template as deactivate_process_template,
+    delete_template as delete_process_template,
+    submit_process,
+    get_process,
+    list_processes,
+    start_process,
+    complete_process,
+    cancel_process,
+    update_progress,
+    approve_process,
+    create_recurrence as create_process_recurrence,
+    get_recurrence as get_process_recurrence,
+    list_recurrences as list_process_recurrences,
+    deactivate_recurrence as deactivate_process_recurrence,
+    delete_recurrence as delete_process_recurrence,
+    process_due_recurrences,
+    list_process_logs,
+    add_process_log,
+    get_scheduled_process_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1326,6 +1352,45 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/cross-validation/dashboard", get(get_cvr_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Scheduled Processes (Oracle Fusion Enterprise Scheduler)
+        // ═══════════════════════════════════════════════════════════
+
+        // Process Templates
+        .route("/scheduled-processes/templates", post(create_process_template))
+        .route("/scheduled-processes/templates", get(list_process_templates))
+        .route("/scheduled-processes/templates/:code", get(get_process_template))
+        .route("/scheduled-processes/templates/:code", delete(delete_process_template))
+        .route("/scheduled-processes/templates/:id/activate", post(activate_process_template))
+        .route("/scheduled-processes/templates/:id/deactivate", post(deactivate_process_template))
+
+        // Process Submission & Management
+        .route("/scheduled-processes", post(submit_process))
+        .route("/scheduled-processes", get(list_processes))
+        .route("/scheduled-processes/:id", get(get_process))
+        .route("/scheduled-processes/:id/start", post(start_process))
+        .route("/scheduled-processes/:id/complete", post(complete_process))
+        .route("/scheduled-processes/:id/cancel", post(cancel_process))
+        .route("/scheduled-processes/:id/progress", post(update_progress))
+        .route("/scheduled-processes/:id/approve", post(approve_process))
+
+        // Process Logs
+        .route("/scheduled-processes/:id/logs", get(list_process_logs))
+        .route("/scheduled-processes/:id/logs", post(add_process_log))
+
+        // Recurrence Schedules
+        .route("/scheduled-processes/recurrences", post(create_process_recurrence))
+        .route("/scheduled-processes/recurrences", get(list_process_recurrences))
+        .route("/scheduled-processes/recurrences/:id", get(get_process_recurrence))
+        .route("/scheduled-processes/recurrences/:id", delete(delete_process_recurrence))
+        .route("/scheduled-processes/recurrences/:id/deactivate", post(deactivate_process_recurrence))
+
+        // Cron-like trigger for due recurrences
+        .route("/scheduled-processes/recurrences/process-due", post(process_due_recurrences))
+
+        // Dashboard
+        .route("/scheduled-processes/dashboard", get(get_scheduled_process_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -769,6 +769,10 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::cross_validation::PostgresCrossValidationRepository::new(db_pool.clone()),
     )));
 
+    let scheduled_process_engine = Arc::new(atlas_core::ScheduledProcessEngine::new(Arc::new(
+        atlas_core::scheduled_process::PostgresScheduledProcessRepository::new(db_pool.clone()),
+    )));
+
     let state = AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -808,6 +812,7 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         manual_journal_engine,
         dff_engine,
         cvr_engine,
+        scheduled_process_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -36,6 +36,7 @@ use atlas_core::{
     ManualJournalEngine,
     DescriptiveFlexfieldEngine,
     CrossValidationEngine,
+    ScheduledProcessEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -70,6 +71,7 @@ use atlas_core::{
     manual_journal::PostgresManualJournalRepository,
     descriptive_flexfield::PostgresDescriptiveFlexfieldRepository,
     cross_validation::PostgresCrossValidationRepository,
+    scheduled_process::PostgresScheduledProcessRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -118,6 +120,7 @@ pub struct AppState {
     pub manual_journal_engine: Arc<ManualJournalEngine>,
     pub dff_engine: Arc<DescriptiveFlexfieldEngine>,
     pub cvr_engine: Arc<CrossValidationEngine>,
+    pub scheduled_process_engine: Arc<ScheduledProcessEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -323,6 +326,11 @@ impl AppState {
         let cvr_engine = Arc::new(CrossValidationEngine::new(Arc::new(
             PostgresCrossValidationRepository::new(db_pool.clone())
         )));
+
+        // Initialize scheduled process engine
+        let scheduled_process_engine = Arc::new(ScheduledProcessEngine::new(Arc::new(
+            PostgresScheduledProcessRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -399,6 +407,7 @@ impl AppState {
             manual_journal_engine,
             dff_engine,
             cvr_engine,
+            scheduled_process_engine,
             event_bus,
             jwt_secret,
         };

@@ -56,6 +56,7 @@ pub mod financial_consolidation;
 pub mod supplier_qualification;
 pub mod recurring_journal;
 pub mod manual_journal;
+pub mod document_sequencing;
 
 pub use schema::*;
 pub use workflow::{
@@ -113,6 +114,7 @@ pub use financial_consolidation::{FinancialConsolidationEngine, PostgresFinancia
 pub use supplier_qualification::{SupplierQualificationEngine, PostgresSupplierQualificationRepository as PostgresSupplierQualificationRepo};
 pub use recurring_journal::{RecurringJournalEngine, PostgresRecurringJournalRepository as PostgresRecurringJournalRepo};
 pub use manual_journal::{ManualJournalEngine, PostgresManualJournalRepository as PostgresManualJournalRepo};
+pub use document_sequencing::{DocumentSequencingEngine, PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -8861,3 +8861,102 @@ pub struct ManualJournalDashboardSummary {
     pub recent_batches: Vec<JournalBatch>,
 }
 
+// ============================================================================
+// Document Sequencing
+// Oracle Fusion: General Ledger > Setup > Document Sequencing
+// ============================================================================
+
+/// A document sequence definition.
+/// Controls automatic numbering of business documents (invoices, POs, journals, etc.)
+/// Supports gapless (regulatory compliance) and gap-permitted (operational) modes.
+/// Oracle Fusion: General Ledger > Setup > Sequences > Document Sequences
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentSequence {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub sequence_type: String, // gapless, gap_permitted, manual
+    pub document_type: String, // invoice, purchase_order, journal_entry, payment, receipt, etc.
+    pub initial_value: i64,
+    pub current_value: i64,
+    pub increment_by: i32,
+    pub max_value: Option<i64>,
+    pub cycle_flag: bool,
+    pub prefix: Option<String>,
+    pub suffix: Option<String>,
+    pub pad_length: i32,
+    pub pad_character: String,
+    pub reset_frequency: Option<String>, // daily, monthly, quarterly, annually, never
+    pub last_reset_date: Option<chrono::NaiveDate>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub status: String, // active, inactive
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A sequence assignment that maps a document sequence to a specific
+/// document category + business unit + ledger combination.
+/// Oracle Fusion: General Ledger > Setup > Sequences > Sequence Assignments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentSequenceAssignment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub sequence_id: Uuid,
+    pub sequence_code: String,
+    pub document_category: String, // e.g. "accounts_payable_invoice", "gl_journal"
+    pub business_unit_id: Option<Uuid>,
+    pub ledger_id: Option<Uuid>,
+    pub method: String, // automatic, manual
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub priority: i32,
+    pub status: String, // active, inactive
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// An audit record for a generated document number.
+/// Tracks every number assignment for compliance and traceability.
+/// Oracle Fusion: General Ledger > Sequences > Sequence Audit
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentSequenceAudit {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub sequence_id: Uuid,
+    pub sequence_code: String,
+    pub generated_number: String,
+    pub numeric_value: i64,
+    pub document_category: String,
+    pub document_id: Option<Uuid>,
+    pub document_number: Option<String>,
+    pub business_unit_id: Option<Uuid>,
+    pub generated_at: DateTime<Utc>,
+    pub generated_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Summary statistics for document sequences.
+/// Oracle Fusion: General Ledger > Sequences > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentSequenceDashboardSummary {
+    pub total_sequences: i32,
+    pub active_sequences: i32,
+    pub gapless_sequences: i32,
+    pub gap_permitted_sequences: i32,
+    pub total_numbers_generated: i64,
+    pub total_assignments: i32,
+    pub recent_audits: Vec<DocumentSequenceAudit>,
+    pub sequences_by_type: serde_json::Value,
+    pub sequences_by_document_type: serde_json::Value,
+}
+

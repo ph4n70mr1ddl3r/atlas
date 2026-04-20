@@ -10437,3 +10437,275 @@ pub struct BenefitsSummary {
     pub enrollments_by_plan_type: serde_json::Value,
 }
 
+// ============================================================================
+// AutoInvoice (Oracle Fusion Receivables AutoInvoice)
+// ============================================================================
+
+/// AutoInvoice grouping rule definition.
+/// Oracle Fusion: Receivables > AutoInvoice > Grouping Rules
+/// Controls how imported transaction lines are grouped into invoices.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceGroupingRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    /// Transaction types this rule applies to (e.g., ["invoice", "credit_memo"])
+    pub transaction_types: serde_json::Value,
+    /// Fields to group by (e.g., ["bill_to_customer_id", "currency_code"])
+    pub group_by_fields: serde_json::Value,
+    /// Line ordering fields (e.g., ["line_number", "item_code"])
+    pub line_order_by: serde_json::Value,
+    /// Whether this is the default grouping rule
+    pub is_default: bool,
+    pub is_active: bool,
+    pub priority: i32,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// AutoInvoice validation rule.
+/// Oracle Fusion: Receivables > AutoInvoice > Validation Rules
+/// Validates transaction lines before invoice creation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceValidationRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    /// The field being validated
+    pub field_name: String,
+    /// Validation type: "required", "format", "reference", "range", "custom"
+    pub validation_type: String,
+    /// Expression or value for the validation
+    pub validation_expression: Option<String>,
+    /// Error message when validation fails
+    pub error_message: String,
+    /// Whether to reject the entire line on failure (vs. flag as warning)
+    pub is_fatal: bool,
+    /// Transaction types this rule applies to
+    pub transaction_types: serde_json::Value,
+    pub is_active: bool,
+    pub priority: i32,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// AutoInvoice import batch (header for a batch of transaction lines being imported).
+/// Oracle Fusion: Receivables > AutoInvoice > Import
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceBatch {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_number: String,
+    pub batch_source: String,
+    pub description: Option<String>,
+    /// 'pending', 'validating', 'validated', 'processing', 'completed', 'failed', 'cancelled'
+    pub status: String,
+    pub total_lines: i32,
+    pub valid_lines: i32,
+    pub invalid_lines: i32,
+    pub invoices_created: i32,
+    pub invoices_total_amount: String,
+    pub grouping_rule_id: Option<Uuid>,
+    pub validation_errors: serde_json::Value,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// AutoInvoice transaction line (raw line being imported).
+/// Oracle Fusion: Receivables > AutoInvoice > Interface Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_id: Uuid,
+    pub line_number: i32,
+    /// Source system identifier
+    pub source_line_id: Option<String>,
+    /// Transaction type: "invoice", "credit_memo", "debit_memo", "on_account_credit"
+    pub transaction_type: String,
+    pub customer_id: Option<Uuid>,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub bill_to_customer_id: Option<Uuid>,
+    pub bill_to_site_id: Option<Uuid>,
+    pub ship_to_customer_id: Option<Uuid>,
+    pub ship_to_site_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub quantity: Option<String>,
+    pub unit_of_measure: Option<String>,
+    pub unit_price: String,
+    pub line_amount: String,
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub transaction_date: chrono::NaiveDate,
+    pub gl_date: chrono::NaiveDate,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub revenue_account_code: Option<String>,
+    pub receivable_account_code: Option<String>,
+    pub tax_code: Option<String>,
+    pub tax_amount: Option<String>,
+    pub sales_rep_id: Option<Uuid>,
+    pub sales_rep_name: Option<String>,
+    pub memo_line: Option<String>,
+    pub reference_number: Option<String>,
+    pub sales_order_number: Option<String>,
+    pub sales_order_line: Option<String>,
+    /// 'pending', 'valid', 'invalid', 'grouped', 'error'
+    pub status: String,
+    pub validation_errors: serde_json::Value,
+    /// Assigned invoice ID after grouping
+    pub invoice_id: Option<Uuid>,
+    pub invoice_line_number: Option<i32>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// AutoInvoice result — the generated AR invoice.
+/// Oracle Fusion: Receivables > Transactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceResult {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_id: Uuid,
+    pub invoice_number: String,
+    pub transaction_type: String,
+    pub customer_id: Option<Uuid>,
+    pub bill_to_customer_id: Option<Uuid>,
+    pub bill_to_site_id: Option<Uuid>,
+    pub ship_to_customer_id: Option<Uuid>,
+    pub ship_to_site_id: Option<Uuid>,
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub transaction_date: chrono::NaiveDate,
+    pub gl_date: chrono::NaiveDate,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub subtotal: String,
+    pub tax_amount: String,
+    pub total_amount: String,
+    pub line_count: i32,
+    pub receivable_account_code: Option<String>,
+    pub sales_rep_id: Option<Uuid>,
+    pub sales_order_number: Option<String>,
+    pub reference_number: Option<String>,
+    /// 'draft', 'complete', 'posted', 'cancelled'
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// AutoInvoice result line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceResultLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub invoice_id: Uuid,
+    pub line_number: i32,
+    pub source_line_id: Option<String>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub quantity: Option<String>,
+    pub unit_of_measure: Option<String>,
+    pub unit_price: String,
+    pub line_amount: String,
+    pub tax_code: Option<String>,
+    pub tax_amount: Option<String>,
+    pub revenue_account_code: Option<String>,
+    pub sales_order_number: Option<String>,
+    pub sales_order_line: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// AutoInvoice import request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceImportRequest {
+    pub batch_source: String,
+    pub description: Option<String>,
+    pub lines: Vec<AutoInvoiceLineRequest>,
+    pub grouping_rule_id: Option<Uuid>,
+}
+
+/// Single line in an AutoInvoice import
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceLineRequest {
+    pub source_line_id: Option<String>,
+    pub transaction_type: Option<String>,
+    pub customer_id: Option<Uuid>,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub bill_to_customer_id: Option<Uuid>,
+    pub bill_to_site_id: Option<Uuid>,
+    pub ship_to_customer_id: Option<Uuid>,
+    pub ship_to_site_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub quantity: Option<String>,
+    pub unit_of_measure: Option<String>,
+    pub unit_price: Option<String>,
+    pub line_amount: Option<String>,
+    #[serde(default = "default_currency_usd")]
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub transaction_date: Option<chrono::NaiveDate>,
+    pub gl_date: Option<chrono::NaiveDate>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub revenue_account_code: Option<String>,
+    pub receivable_account_code: Option<String>,
+    pub tax_code: Option<String>,
+    pub tax_amount: Option<String>,
+    pub sales_rep_id: Option<Uuid>,
+    pub sales_rep_name: Option<String>,
+    pub memo_line: Option<String>,
+    pub reference_number: Option<String>,
+    pub sales_order_number: Option<String>,
+    pub sales_order_line: Option<String>,
+}
+
+/// AutoInvoice processing summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceSummary {
+    pub total_batches: i32,
+    pub pending_batches: i32,
+    pub completed_batches: i32,
+    pub failed_batches: i32,
+    pub total_lines_imported: i32,
+    pub total_invoices_created: i32,
+    pub total_invoice_amount: String,
+}
+
+/// Validation error for an AutoInvoice line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoInvoiceValidationError {
+    pub line_number: i32,
+    pub field_name: String,
+    pub validation_rule: String,
+    pub error_message: String,
+    pub is_fatal: bool,
+}
+

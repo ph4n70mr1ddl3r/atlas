@@ -65,6 +65,7 @@ pub mod allocation;
 pub mod currency_revaluation;
 pub mod purchase_requisition;
 pub mod benefits;
+pub mod autoinvoice;
 
 pub use schema::*;
 pub use workflow::{
@@ -131,6 +132,7 @@ pub use allocation::{AllocationEngine, PostgresAllocationRepository as PostgresA
 pub use currency_revaluation::{CurrencyRevaluationEngine, PostgresCurrencyRevaluationRepository as PostgresCurrencyRevaluationRepo};
 pub use purchase_requisition::{PurchaseRequisitionEngine, PostgresPurchaseRequisitionRepository as PostgresPurchaseRequisitionRepo};
 pub use benefits::{BenefitsEngine, PostgresBenefitsRepository as PostgresBenefitsRepo};
+pub use autoinvoice::{AutoInvoiceEngine, PostgresAutoInvoiceRepository as PostgresAutoInvoiceRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

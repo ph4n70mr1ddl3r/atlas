@@ -15,6 +15,7 @@ use crate::fixed_assets::FixedAssetRepository;
 use crate::revenue::RevenueRepository;
 use crate::segregation_of_duties::SegregationOfDutiesRepository;
 use crate::project_costing::ProjectCostingRepository;
+use crate::autoinvoice::AutoInvoiceRepository;
 
 /// Mock schema repository
 pub struct MockSchemaRepository;
@@ -3621,6 +3622,199 @@ impl SegregationOfDutiesRepository for MockSegregationOfDutiesRepository {
             violations_by_risk_level: serde_json::json!({}),
             recent_violations: vec![],
             rules_summary: serde_json::json!({}),
+        })
+    }
+}
+
+/// Mock AutoInvoice repository for testing
+pub struct MockAutoInvoiceRepository;
+
+#[async_trait]
+impl AutoInvoiceRepository for MockAutoInvoiceRepository {
+    async fn create_grouping_rule(
+        &self, org_id: Uuid, name: &str, description: Option<&str>,
+        transaction_types: serde_json::Value, group_by_fields: serde_json::Value,
+        line_order_by: serde_json::Value, is_default: bool, priority: i32,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AutoInvoiceGroupingRule> {
+        Ok(atlas_shared::AutoInvoiceGroupingRule {
+            id: Uuid::new_v4(), organization_id: org_id,
+            name: name.to_string(), description: description.map(String::from),
+            transaction_types, group_by_fields, line_order_by,
+            is_default, is_active: true, priority,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_grouping_rule(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AutoInvoiceGroupingRule>> { Ok(None) }
+    async fn get_grouping_rule_by_name(&self, _org_id: Uuid, _name: &str) -> AtlasResult<Option<atlas_shared::AutoInvoiceGroupingRule>> { Ok(None) }
+    async fn get_default_grouping_rule(&self, _org_id: Uuid) -> AtlasResult<Option<atlas_shared::AutoInvoiceGroupingRule>> { Ok(None) }
+    async fn list_grouping_rules(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::AutoInvoiceGroupingRule>> { Ok(vec![]) }
+    async fn delete_grouping_rule(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_validation_rule(
+        &self, org_id: Uuid, name: &str, description: Option<&str>,
+        field_name: &str, validation_type: &str, validation_expression: Option<&str>,
+        error_message: &str, is_fatal: bool, transaction_types: serde_json::Value,
+        priority: i32, effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AutoInvoiceValidationRule> {
+        Ok(atlas_shared::AutoInvoiceValidationRule {
+            id: Uuid::new_v4(), organization_id: org_id,
+            name: name.to_string(), description: description.map(String::from),
+            field_name: field_name.to_string(), validation_type: validation_type.to_string(),
+            validation_expression: validation_expression.map(String::from),
+            error_message: error_message.to_string(), is_fatal, transaction_types,
+            is_active: true, priority, effective_from, effective_to,
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_validation_rules(&self, _org_id: Uuid, _transaction_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::AutoInvoiceValidationRule>> { Ok(vec![]) }
+    async fn list_validation_rules(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::AutoInvoiceValidationRule>> { Ok(vec![]) }
+    async fn delete_validation_rule(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_batch(
+        &self, org_id: Uuid, batch_number: &str, batch_source: &str,
+        description: Option<&str>, grouping_rule_id: Option<Uuid>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AutoInvoiceBatch> {
+        Ok(atlas_shared::AutoInvoiceBatch {
+            id: Uuid::new_v4(), organization_id: org_id,
+            batch_number: batch_number.to_string(), batch_source: batch_source.to_string(),
+            description: description.map(String::from),
+            status: "pending".to_string(),
+            total_lines: 0, valid_lines: 0, invalid_lines: 0,
+            invoices_created: 0, invoices_total_amount: "0".to_string(),
+            grouping_rule_id, validation_errors: serde_json::json!([]),
+            started_at: None, completed_at: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_batch(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AutoInvoiceBatch>> { Ok(None) }
+    async fn get_batch_by_number(&self, _org_id: Uuid, _batch_number: &str) -> AtlasResult<Option<atlas_shared::AutoInvoiceBatch>> { Ok(None) }
+    async fn list_batches(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::AutoInvoiceBatch>> { Ok(vec![]) }
+    async fn update_batch_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::AutoInvoiceBatch> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_batch_counts(
+        &self, _id: Uuid, _total_lines: i32, _valid_lines: i32, _invalid_lines: i32,
+        _invoices_created: i32, _invoices_total_amount: &str, _validation_errors: serde_json::Value,
+    ) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_line(
+        &self, org_id: Uuid, batch_id: Uuid, line_number: i32,
+        source_line_id: Option<&str>, transaction_type: &str,
+        customer_id: Option<Uuid>, customer_number: Option<&str>, customer_name: Option<&str>,
+        bill_to_customer_id: Option<Uuid>, bill_to_site_id: Option<Uuid>,
+        ship_to_customer_id: Option<Uuid>, ship_to_site_id: Option<Uuid>,
+        item_code: Option<&str>, item_description: Option<&str>,
+        quantity: Option<&str>, unit_of_measure: Option<&str>,
+        unit_price: &str, line_amount: &str, currency_code: &str,
+        exchange_rate: Option<&str>,
+        transaction_date: chrono::NaiveDate, gl_date: chrono::NaiveDate, due_date: Option<chrono::NaiveDate>,
+        revenue_account_code: Option<&str>, receivable_account_code: Option<&str>,
+        tax_code: Option<&str>, tax_amount: Option<&str>,
+        sales_rep_id: Option<Uuid>, sales_rep_name: Option<&str>,
+        memo_line: Option<&str>, reference_number: Option<&str>,
+        sales_order_number: Option<&str>, sales_order_line: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AutoInvoiceLine> {
+        Ok(atlas_shared::AutoInvoiceLine {
+            id: Uuid::new_v4(), organization_id: org_id, batch_id, line_number,
+            source_line_id: source_line_id.map(String::from),
+            transaction_type: transaction_type.to_string(),
+            customer_id, customer_number: customer_number.map(String::from),
+            customer_name: customer_name.map(String::from),
+            bill_to_customer_id, bill_to_site_id,
+            ship_to_customer_id, ship_to_site_id,
+            item_code: item_code.map(String::from), item_description: item_description.map(String::from),
+            quantity: quantity.map(String::from), unit_of_measure: unit_of_measure.map(String::from),
+            unit_price: unit_price.to_string(), line_amount: line_amount.to_string(),
+            currency_code: currency_code.to_string(), exchange_rate: exchange_rate.map(String::from),
+            transaction_date, gl_date, due_date,
+            revenue_account_code: revenue_account_code.map(String::from),
+            receivable_account_code: receivable_account_code.map(String::from),
+            tax_code: tax_code.map(String::from), tax_amount: tax_amount.map(String::from),
+            sales_rep_id, sales_rep_name: sales_rep_name.map(String::from),
+            memo_line: memo_line.map(String::from), reference_number: reference_number.map(String::from),
+            sales_order_number: sales_order_number.map(String::from),
+            sales_order_line: sales_order_line.map(String::from),
+            status: "pending".to_string(), validation_errors: serde_json::json!([]),
+            invoice_id: None, invoice_line_number: None,
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AutoInvoiceLine>> { Ok(None) }
+    async fn list_lines_by_batch(&self, _batch_id: Uuid) -> AtlasResult<Vec<atlas_shared::AutoInvoiceLine>> { Ok(vec![]) }
+    async fn list_lines_by_status(&self, _batch_id: Uuid, _status: &str) -> AtlasResult<Vec<atlas_shared::AutoInvoiceLine>> { Ok(vec![]) }
+    async fn update_line_status(&self, _id: Uuid, _status: &str, _validation_errors: serde_json::Value) -> AtlasResult<()> { Ok(()) }
+    async fn update_line_invoice(&self, _id: Uuid, _invoice_id: Uuid, _invoice_line_number: i32) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_result(
+        &self, org_id: Uuid, batch_id: Uuid, invoice_number: &str,
+        transaction_type: &str, customer_id: Option<Uuid>,
+        bill_to_customer_id: Option<Uuid>, bill_to_site_id: Option<Uuid>,
+        ship_to_customer_id: Option<Uuid>, ship_to_site_id: Option<Uuid>,
+        currency_code: &str, exchange_rate: Option<&str>,
+        transaction_date: chrono::NaiveDate, gl_date: chrono::NaiveDate,
+        due_date: Option<chrono::NaiveDate>,
+        receivable_account_code: Option<&str>, sales_rep_id: Option<Uuid>,
+        sales_order_number: Option<&str>, reference_number: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AutoInvoiceResult> {
+        Ok(atlas_shared::AutoInvoiceResult {
+            id: Uuid::new_v4(), organization_id: org_id, batch_id,
+            invoice_number: invoice_number.to_string(),
+            transaction_type: transaction_type.to_string(),
+            customer_id, bill_to_customer_id, bill_to_site_id,
+            ship_to_customer_id, ship_to_site_id,
+            currency_code: currency_code.to_string(),
+            exchange_rate: exchange_rate.map(String::from),
+            transaction_date, gl_date, due_date,
+            subtotal: "0".to_string(), tax_amount: "0".to_string(),
+            total_amount: "0".to_string(), line_count: 0,
+            receivable_account_code: receivable_account_code.map(String::from),
+            sales_rep_id, sales_order_number: sales_order_number.map(String::from),
+            reference_number: reference_number.map(String::from),
+            status: "draft".to_string(), metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_result(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AutoInvoiceResult>> { Ok(None) }
+    async fn get_result_by_invoice_number(&self, _org_id: Uuid, _invoice_number: &str) -> AtlasResult<Option<atlas_shared::AutoInvoiceResult>> { Ok(None) }
+    async fn list_results_by_batch(&self, _batch_id: Uuid) -> AtlasResult<Vec<atlas_shared::AutoInvoiceResult>> { Ok(vec![]) }
+    async fn update_result_totals(&self, _id: Uuid, _subtotal: &str, _tax_amount: &str, _total_amount: &str, _line_count: i32) -> AtlasResult<()> { Ok(()) }
+    async fn update_result_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::AutoInvoiceResult> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_result_line(
+        &self, org_id: Uuid, invoice_id: Uuid, line_number: i32,
+        source_line_id: Option<&str>, item_code: Option<&str>, item_description: Option<&str>,
+        quantity: Option<&str>, unit_of_measure: Option<&str>,
+        unit_price: &str, line_amount: &str, tax_code: Option<&str>, tax_amount: Option<&str>,
+        revenue_account_code: Option<&str>, sales_order_number: Option<&str>, sales_order_line: Option<&str>,
+    ) -> AtlasResult<atlas_shared::AutoInvoiceResultLine> {
+        Ok(atlas_shared::AutoInvoiceResultLine {
+            id: Uuid::new_v4(), organization_id: org_id, invoice_id, line_number,
+            source_line_id: source_line_id.map(String::from),
+            item_code: item_code.map(String::from), item_description: item_description.map(String::from),
+            quantity: quantity.map(String::from), unit_of_measure: unit_of_measure.map(String::from),
+            unit_price: unit_price.to_string(), line_amount: line_amount.to_string(),
+            tax_code: tax_code.map(String::from), tax_amount: tax_amount.map(String::from),
+            revenue_account_code: revenue_account_code.map(String::from),
+            sales_order_number: sales_order_number.map(String::from),
+            sales_order_line: sales_order_line.map(String::from),
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_result_lines(&self, _invoice_id: Uuid) -> AtlasResult<Vec<atlas_shared::AutoInvoiceResultLine>> { Ok(vec![]) }
+
+    async fn get_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::AutoInvoiceSummary> {
+        Ok(atlas_shared::AutoInvoiceSummary {
+            total_batches: 0, pending_batches: 0, completed_batches: 0,
+            failed_batches: 0, total_lines_imported: 0,
+            total_invoices_created: 0, total_invoice_amount: "0".to_string(),
         })
     }
 }

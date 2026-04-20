@@ -143,8 +143,9 @@ impl PostgresCorporateCardRepository {
 }
 
 fn get_numeric(row: &sqlx::postgres::PgRow, col: &str) -> String {
-    let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
-    v.to_string()
+    row.try_get::<String, _>(col)
+        .or_else(|_| row.try_get::<&str, _>(col).map(|s| s.to_string()))
+        .unwrap_or_else(|_| "0.00".to_string())
 }
 
 fn row_to_program(row: &sqlx::postgres::PgRow) -> CorporateCardProgram {
@@ -318,7 +319,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                  auto_deactivate_on_termination, expense_matching_method,
                  billing_cycle_day, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,
-                    $9::numeric,$10::numeric,$11::numeric,$12::numeric,
+                    $9,$10,$11,$12,
                     $13,$14,$15,$16,$17,$18)
             RETURNING *"#,
         )
@@ -392,7 +393,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                  gl_liability_account, gl_expense_account, cost_center,
                  created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
-                    $12::numeric,$13::numeric,$14::numeric,$15::numeric,
+                    $12,$13,$14,$15,
                     $16,$17,$18,$19)
             RETURNING *"#,
         )
@@ -460,8 +461,8 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     ) -> AtlasResult<()> {
         sqlx::query(
             r#"UPDATE _atlas.corporate_cards
-            SET single_purchase_limit=$2::numeric, monthly_limit=$3::numeric,
-                cash_limit=$4::numeric, atm_limit=$5::numeric, updated_at=now()
+            SET single_purchase_limit=$2, monthly_limit=$3,
+                cash_limit=$4, atm_limit=$5, updated_at=now()
             WHERE id=$1"#,
         )
         .bind(id).bind(single_purchase).bind(monthly).bind(cash).bind(atm)
@@ -473,8 +474,8 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     async fn update_card_spend(&self, id: Uuid, amount: &str, balance: &str) -> AtlasResult<()> {
         sqlx::query(
             r#"UPDATE _atlas.corporate_cards
-            SET total_spend_current_cycle=$2::numeric,
-                current_balance=$3::numeric, updated_at=now()
+            SET total_spend_current_cycle=$2,
+                current_balance=$3, updated_at=now()
             WHERE id=$1"#,
         )
         .bind(id).bind(amount).bind(balance)
@@ -503,8 +504,8 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                  original_amount, original_currency, exchange_rate,
                  transaction_type)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,
-                    $10::numeric,$11,
-                    $12::numeric,$13,$14::numeric,$15)
+                    $10,$11,
+                    $12,$13,$14,$15)
             RETURNING *"#,
         )
         .bind(org_id).bind(card_id).bind(program_id).bind(transaction_reference)
@@ -616,10 +617,10 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                  total_fees, total_interest,
                  payment_due_date, minimum_payment, imported_by)
             VALUES ($1,$2,$3,$4,$5,$6,
-                    $7::numeric,$8::numeric,
-                    $9::numeric,$10::numeric,$11::numeric,
-                    $12::numeric,$13::numeric,
-                    $14,$15::numeric,$16)
+                    $7,$8,
+                    $9,$10,$11,
+                    $12,$13,
+                    $14,$15,$16)
             RETURNING *"#,
         )
         .bind(org_id).bind(program_id).bind(statement_number).bind(statement_date)
@@ -702,7 +703,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                 (organization_id, card_id, override_type,
                  original_value, new_value, reason,
                  effective_from, effective_to, created_by)
-            VALUES ($1,$2,$3,$4::numeric,$5::numeric,$6,$7,$8,$9)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
             RETURNING *"#,
         )
         .bind(org_id).bind(card_id).bind(override_type)
@@ -761,7 +762,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
             r#"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_cards,
                 COUNT(*) as total_cards,
-                COALESCE(SUM(total_spend_current_cycle) FILTER (WHERE status = 'active'), 0) as current_spend
+                COALESCE(SUM(total_spend_current_cycle::numeric) FILTER (WHERE status = 'active'), 0) as current_spend
             FROM _atlas.corporate_cards WHERE organization_id = $1"#,
         )
         .bind(org_id).fetch_one(&self.pool).await

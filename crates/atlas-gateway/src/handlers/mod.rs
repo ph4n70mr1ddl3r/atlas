@@ -42,6 +42,8 @@ pub mod scheduled_process;
 mod segregation_of_duties;
 mod allocation;
 mod currency_revaluation;
+mod purchase_requisition;
+mod corporate_card;
 
 pub use schema::*;
 pub use records::*;
@@ -244,6 +246,59 @@ pub use currency_revaluation::{
     reverse_revaluation_run,
     cancel_revaluation_run,
     get_revaluation_dashboard,
+};
+pub use purchase_requisition::{
+    create_requisition,
+    get_requisition,
+    list_requisitions,
+    update_requisition,
+    delete_requisition,
+    add_requisition_line,
+    list_requisition_lines,
+    remove_requisition_line,
+    add_requisition_distribution,
+    list_requisition_distributions,
+    submit_requisition,
+    approve_requisition,
+    reject_requisition,
+    cancel_requisition,
+    close_requisition,
+    return_requisition,
+    list_requisition_approvals,
+    autocreate,
+    list_autocreate_links,
+    cancel_autocreate_link,
+    get_requisition_dashboard,
+};
+pub use corporate_card::{
+    create_program as create_corporate_card_program,
+    get_program as get_corporate_card_program,
+    list_programs as list_corporate_card_programs,
+    issue_card,
+    get_card as get_corporate_card,
+    list_cards as list_corporate_cards,
+    suspend_card,
+    reactivate_card,
+    cancel_card,
+    report_lost,
+    report_stolen,
+    import_transaction,
+    get_transaction as get_corporate_card_transaction,
+    list_transactions as list_corporate_card_transactions,
+    match_transaction as match_corporate_card_transaction,
+    unmatch_transaction as unmatch_corporate_card_transaction,
+    dispute_transaction as dispute_corporate_card_transaction,
+    resolve_dispute as resolve_corporate_card_dispute,
+    import_statement as import_corporate_card_statement,
+    get_statement as get_corporate_card_statement,
+    list_statements as list_corporate_card_statements,
+    reconcile_statement as reconcile_corporate_card_statement,
+    pay_statement as pay_corporate_card_statement,
+    request_limit_override,
+    approve_limit_override,
+    reject_limit_override,
+    list_limit_overrides,
+    get_corporate_card_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1572,6 +1627,87 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         
         // Dashboard
         .route("/currency-revaluation/dashboard", get(get_revaluation_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════
+        // Purchase Requisitions (Oracle Fusion Self-Service Procurement > Requisitions)
+        // ═══════════════════════════════════════════════════════════════
+
+        // Requisitions
+        .route("/requisitions", post(create_requisition))
+        .route("/requisitions", get(list_requisitions))
+        .route("/requisitions/:id", get(get_requisition))
+        .route("/requisitions/:id", put(update_requisition))
+        .route("/requisitions/:id", delete(delete_requisition))
+
+        // Requisition Lines
+        .route("/requisitions/:requisition_id/lines", post(add_requisition_line))
+        .route("/requisitions/:requisition_id/lines", get(list_requisition_lines))
+        .route("/requisitions/lines/:line_id", delete(remove_requisition_line))
+
+        // Distributions
+        .route("/requisitions/:requisition_id/lines/:line_id/distributions", post(add_requisition_distribution))
+        .route("/requisitions/lines/:line_id/distributions", get(list_requisition_distributions))
+
+        // Approval Workflow
+        .route("/requisitions/:id/submit", post(submit_requisition))
+        .route("/requisitions/:id/approve", post(approve_requisition))
+        .route("/requisitions/:id/reject", post(reject_requisition))
+        .route("/requisitions/:id/cancel", post(cancel_requisition))
+        .route("/requisitions/:id/close", post(close_requisition))
+        .route("/requisitions/:id/return", post(return_requisition))
+        .route("/requisitions/:id/approvals", get(list_requisition_approvals))
+
+        // AutoCreate (Convert to PO)
+        .route("/requisitions/autocreate", post(autocreate))
+        .route("/requisitions/:requisition_id/autocreate-links", get(list_autocreate_links))
+        .route("/requisitions/autocreate/:link_id/cancel", post(cancel_autocreate_link))
+
+        // Dashboard
+        .route("/requisitions/dashboard", get(get_requisition_dashboard))
+
+        // ══════════════════════════════════════════════════════════════════════
+        // Corporate Card Management (Oracle Fusion Expenses > Corporate Cards)
+        // ══════════════════════════════════════════════════════════════════════
+
+        // Card Programmes
+        .route("/corporate-cards/programs", get(list_corporate_card_programs))
+        .route("/corporate-cards/programs", post(create_corporate_card_program))
+        .route("/corporate-cards/programs/:code", get(get_corporate_card_program))
+
+        // Cards
+        .route("/corporate-cards/cards", get(list_corporate_cards))
+        .route("/corporate-cards/cards", post(issue_card))
+        .route("/corporate-cards/cards/:id", get(get_corporate_card))
+        .route("/corporate-cards/cards/:id/suspend", post(suspend_card))
+        .route("/corporate-cards/cards/:id/reactivate", post(reactivate_card))
+        .route("/corporate-cards/cards/:id/cancel", post(cancel_card))
+        .route("/corporate-cards/cards/:id/lost", post(report_lost))
+        .route("/corporate-cards/cards/:id/stolen", post(report_stolen))
+
+        // Transactions
+        .route("/corporate-cards/transactions", get(list_corporate_card_transactions))
+        .route("/corporate-cards/transactions", post(import_transaction))
+        .route("/corporate-cards/transactions/:id", get(get_corporate_card_transaction))
+        .route("/corporate-cards/transactions/:id/match", post(match_corporate_card_transaction))
+        .route("/corporate-cards/transactions/:id/unmatch", post(unmatch_corporate_card_transaction))
+        .route("/corporate-cards/transactions/:id/dispute", post(dispute_corporate_card_transaction))
+        .route("/corporate-cards/transactions/:id/resolve-dispute", post(resolve_corporate_card_dispute))
+
+        // Statements
+        .route("/corporate-cards/statements", get(list_corporate_card_statements))
+        .route("/corporate-cards/statements", post(import_corporate_card_statement))
+        .route("/corporate-cards/statements/:id", get(get_corporate_card_statement))
+        .route("/corporate-cards/statements/:id/reconcile", post(reconcile_corporate_card_statement))
+        .route("/corporate-cards/statements/:id/pay", post(pay_corporate_card_statement))
+
+        // Spending Limit Overrides
+        .route("/corporate-cards/limit-overrides", get(list_limit_overrides))
+        .route("/corporate-cards/limit-overrides", post(request_limit_override))
+        .route("/corporate-cards/limit-overrides/:id/approve", post(approve_limit_override))
+        .route("/corporate-cards/limit-overrides/:id/reject", post(reject_limit_override))
+
+        // Dashboard
+        .route("/corporate-cards/dashboard", get(get_corporate_card_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

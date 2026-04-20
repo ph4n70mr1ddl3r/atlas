@@ -63,6 +63,7 @@ pub mod scheduled_process;
 pub mod segregation_of_duties;
 pub mod allocation;
 pub mod currency_revaluation;
+pub mod purchase_requisition;
 
 pub use schema::*;
 pub use workflow::{
@@ -127,6 +128,7 @@ pub use scheduled_process::{ScheduledProcessEngine, PostgresScheduledProcessRepo
 pub use segregation_of_duties::{SegregationOfDutiesEngine, PostgresSegregationOfDutiesRepository as PostgresSegregationOfDutiesRepo};
 pub use allocation::{AllocationEngine, PostgresAllocationRepository as PostgresAllocationRepo};
 pub use currency_revaluation::{CurrencyRevaluationEngine, PostgresCurrencyRevaluationRepository as PostgresCurrencyRevaluationRepo};
+pub use purchase_requisition::{PurchaseRequisitionEngine, PostgresPurchaseRequisitionRepository as PostgresPurchaseRequisitionRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

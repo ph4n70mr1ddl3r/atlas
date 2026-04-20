@@ -243,10 +243,7 @@ impl CorporateCardEngine {
 
     /// Suspend a card
     pub async fn suspend_card(&self, card_id: Uuid) -> AtlasResult<CorporateCard> {
-        let _card = self.get_card_or_error(card_id)?;
-        self.repository.get_card(card_id).await?;
-        let card = self.repository.get_card(card_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {} not found", card_id)))?;
+        let card = self.get_card_or_error(card_id).await?;
 
         if card.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -951,8 +948,9 @@ impl CorporateCardEngine {
     // ========================================================================
 
     /// Helper: fetch card or return EntityNotFound
-    fn get_card_or_error(&self, card_id: Uuid) -> AtlasResult<CorporateCard> {
-        Err(AtlasError::EntityNotFound(format!("Card {} not found", card_id)))
+    async fn get_card_or_error(&self, card_id: Uuid) -> AtlasResult<CorporateCard> {
+        self.repository.get_card(card_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {} not found", card_id)))
     }
 
     /// Validate a spending limit against card limits

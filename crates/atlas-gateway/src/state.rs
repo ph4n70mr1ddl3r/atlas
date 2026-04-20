@@ -40,6 +40,8 @@ use atlas_core::{
     SegregationOfDutiesEngine,
     AllocationEngine,
     CurrencyRevaluationEngine,
+    PurchaseRequisitionEngine,
+    CorporateCardEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -78,6 +80,8 @@ use atlas_core::{
     segregation_of_duties::PostgresSegregationOfDutiesRepository,
     allocation::PostgresAllocationRepository,
     currency_revaluation::PostgresCurrencyRevaluationRepository,
+    purchase_requisition::PostgresPurchaseRequisitionRepository,
+    corporate_card::PostgresCorporateCardRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -130,6 +134,8 @@ pub struct AppState {
     pub sod_engine: Arc<SegregationOfDutiesEngine>,
     pub allocation_engine: Arc<AllocationEngine>,
     pub currency_revaluation_engine: Arc<CurrencyRevaluationEngine>,
+    pub purchase_requisition_engine: Arc<PurchaseRequisitionEngine>,
+    pub corporate_card_engine: Arc<CorporateCardEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -355,7 +361,17 @@ impl AppState {
         let currency_revaluation_engine = Arc::new(CurrencyRevaluationEngine::new(Arc::new(
             PostgresCurrencyRevaluationRepository::new(db_pool.clone())
         )));
-        
+
+        // Initialize purchase requisition engine
+        let purchase_requisition_engine = Arc::new(PurchaseRequisitionEngine::new(Arc::new(
+            PostgresPurchaseRequisitionRepository::new(db_pool.clone())
+        )));
+
+        // Initialize corporate card engine
+        let corporate_card_engine = Arc::new(CorporateCardEngine::new(Arc::new(
+            PostgresCorporateCardRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -435,6 +451,8 @@ impl AppState {
             sod_engine,
             allocation_engine,
             currency_revaluation_engine,
+            purchase_requisition_engine,
+            corporate_card_engine,
             event_bus,
             jwt_secret,
         };

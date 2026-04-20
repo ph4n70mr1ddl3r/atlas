@@ -823,6 +823,15 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         scheduled_process_engine,
         sod_engine,
         allocation_engine,
+        currency_revaluation_engine: Arc::new(atlas_core::CurrencyRevaluationEngine::new(Arc::new(
+            atlas_core::currency_revaluation::PostgresCurrencyRevaluationRepository::new(db_pool.clone()),
+        ))),
+        purchase_requisition_engine: Arc::new(atlas_core::PurchaseRequisitionEngine::new(Arc::new(
+            atlas_core::purchase_requisition::PostgresPurchaseRequisitionRepository::new(db_pool.clone()),
+        ))),
+        corporate_card_engine: Arc::new(atlas_core::CorporateCardEngine::new(Arc::new(
+            atlas_core::corporate_card::PostgresCorporateCardRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -246,6 +246,14 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::currency_revaluation::PostgresCurrencyRevaluationRepository::new(db_pool.clone()),
     )));
 
+    let purchase_requisition_engine = Arc::new(atlas_core::PurchaseRequisitionEngine::new(Arc::new(
+        atlas_core::purchase_requisition::PostgresPurchaseRequisitionRepository::new(db_pool.clone()),
+    )));
+
+    let corporate_card_engine = Arc::new(atlas_core::CorporateCardEngine::new(Arc::new(
+        atlas_core::corporate_card::PostgresCorporateCardRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -289,6 +297,8 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         sod_engine,
         allocation_engine,
         currency_revaluation_engine,
+        purchase_requisition_engine,
+        corporate_card_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -518,4 +528,16 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.currency_revaluation_runs").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.currency_revaluation_accounts").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.currency_revaluation_definitions").execute(pool).await.ok();
+    // Clean purchase requisition test data
+    sqlx::query("DELETE FROM _atlas.autocreate_links").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.requisition_approvals").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.requisition_distributions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.requisition_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.purchase_requisitions").execute(pool).await.ok();
+    // Clean corporate card test data
+    sqlx::query("DELETE FROM _atlas.corporate_card_limit_overrides").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.corporate_card_transactions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.corporate_card_statements").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.corporate_cards").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.corporate_card_programs").execute(pool).await.ok();
 }

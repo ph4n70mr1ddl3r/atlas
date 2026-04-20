@@ -10071,3 +10071,204 @@ pub struct CurrencyRevaluationDashboardSummary {
     pub definitions_by_type: serde_json::Value,
 }
 
+// ============================================================================
+// Purchase Requisitions (Oracle Fusion Self-Service Procurement > Requisitions)
+// ============================================================================
+
+/// Purchase Requisition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PurchaseRequisition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub requisition_number: String,
+    pub description: Option<String>,
+    pub urgency_code: String,
+    pub status: String,
+    pub requester_id: Option<Uuid>,
+    pub requester_name: Option<String>,
+    pub department: Option<String>,
+    pub justification: Option<String>,
+    pub budget_code: Option<String>,
+    pub amount_limit: Option<String>,
+    pub total_amount: String,
+    pub currency_code: String,
+    pub charge_account_code: Option<String>,
+    pub delivery_address: Option<String>,
+    pub requested_delivery_date: Option<chrono::NaiveDate>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub submitted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub closed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub notes: Option<String>,
+    pub lines: Vec<RequisitionLine>,
+    pub approvals: Vec<RequisitionApproval>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Requisition Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequisitionLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub requisition_id: Uuid,
+    pub line_number: i32,
+    pub item_code: Option<String>,
+    pub item_description: String,
+    pub category: Option<String>,
+    pub quantity: String,
+    pub unit_of_measure: String,
+    pub unit_price: String,
+    pub line_amount: String,
+    pub currency_code: String,
+    pub charge_account_code: Option<String>,
+    pub requested_delivery_date: Option<chrono::NaiveDate>,
+    pub supplier_id: Option<Uuid>,
+    pub supplier_name: Option<String>,
+    pub status: String,
+    pub source_type: String,
+    pub source_reference: Option<String>,
+    pub notes: Option<String>,
+    pub distributions: Vec<RequisitionDistribution>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Requisition Distribution (accounting split)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequisitionDistribution {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub requisition_id: Uuid,
+    pub line_id: Uuid,
+    pub distribution_number: i32,
+    pub charge_account_code: String,
+    pub allocation_percentage: String,
+    pub amount: String,
+    pub project_code: Option<String>,
+    pub cost_center: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Requisition Approval
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequisitionApproval {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub requisition_id: Uuid,
+    pub approver_id: Uuid,
+    pub approver_name: Option<String>,
+    pub action: String,
+    pub comments: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AutoCreate Link (requisition to PO tracking)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutocreateLink {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub requisition_id: Uuid,
+    pub requisition_line_id: Uuid,
+    pub purchase_order_id: Option<Uuid>,
+    pub purchase_order_number: Option<String>,
+    pub purchase_order_line_id: Option<Uuid>,
+    pub purchase_order_line_number: Option<i32>,
+    pub quantity_ordered: String,
+    pub status: String,
+    pub autocreate_date: chrono::DateTime<chrono::Utc>,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Purchase Requisition Create Request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PurchaseRequisitionRequest {
+    pub description: Option<String>,
+    pub urgency_code: Option<String>,
+    pub requester_id: Option<Uuid>,
+    pub requester_name: Option<String>,
+    pub department: Option<String>,
+    pub justification: Option<String>,
+    pub budget_code: Option<String>,
+    pub amount_limit: Option<String>,
+    pub currency_code: Option<String>,
+    pub charge_account_code: Option<String>,
+    pub delivery_address: Option<String>,
+    pub requested_delivery_date: Option<chrono::NaiveDate>,
+    pub notes: Option<String>,
+    pub lines: Vec<RequisitionLineRequest>,
+}
+
+/// Requisition Line Create Request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequisitionLineRequest {
+    pub item_code: Option<String>,
+    pub item_description: String,
+    pub category: Option<String>,
+    pub quantity: Option<String>,
+    pub unit_of_measure: Option<String>,
+    pub unit_price: Option<String>,
+    pub currency_code: Option<String>,
+    pub charge_account_code: Option<String>,
+    pub requested_delivery_date: Option<chrono::NaiveDate>,
+    pub supplier_id: Option<Uuid>,
+    pub supplier_name: Option<String>,
+    pub source_type: Option<String>,
+    pub source_reference: Option<String>,
+    pub notes: Option<String>,
+    pub distributions: Option<Vec<RequisitionDistributionRequest>>,
+}
+
+/// Requisition Distribution Create Request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequisitionDistributionRequest {
+    pub charge_account_code: String,
+    pub allocation_percentage: Option<String>,
+    pub amount: Option<String>,
+    pub project_code: Option<String>,
+    pub cost_center: Option<String>,
+}
+
+/// AutoCreate Request (convert requisitions to POs)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutocreateRequest {
+    pub requisition_line_ids: Vec<Uuid>,
+    pub purchase_order_number: Option<String>,
+    pub supplier_id: Option<Uuid>,
+    pub supplier_name: Option<String>,
+}
+
+/// Requisition Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequisitionDashboardSummary {
+    pub total_requisitions: i32,
+    pub draft_requisitions: i32,
+    pub submitted_requisitions: i32,
+    pub approved_requisitions: i32,
+    pub rejected_requisitions: i32,
+    pub cancelled_requisitions: i32,
+    pub total_amount: String,
+    pub autocreate_pending: i32,
+    pub autocreate_ordered: i32,
+    pub by_priority: serde_json::Value,
+}
+

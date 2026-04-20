@@ -44,6 +44,7 @@ mod allocation;
 mod currency_revaluation;
 mod purchase_requisition;
 mod corporate_card;
+pub mod benefits;
 
 pub use schema::*;
 pub use records::*;
@@ -299,6 +300,23 @@ pub use corporate_card::{
     reject_limit_override,
     list_limit_overrides,
     get_corporate_card_dashboard,
+};
+pub use benefits::{
+    create_benefits_plan,
+    get_benefits_plan,
+    list_benefits_plans,
+    delete_benefits_plan,
+    create_enrollment as create_benefits_enrollment,
+    get_enrollment as get_benefits_enrollment,
+    list_enrollments as list_benefits_enrollments,
+    activate_enrollment as activate_benefits_enrollment,
+    waive_enrollment as waive_benefits_enrollment,
+    cancel_enrollment as cancel_benefits_enrollment,
+    suspend_enrollment as suspend_benefits_enrollment,
+    reactivate_enrollment as reactivate_benefits_enrollment,
+    generate_deductions,
+    list_deductions as list_benefits_deductions,
+    get_benefits_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1708,6 +1726,33 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/corporate-cards/dashboard", get(get_corporate_card_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Benefits Administration (Oracle Fusion HCM > Benefits)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Benefits Plans
+        .route("/benefits/plans", get(list_benefits_plans))
+        .route("/benefits/plans", post(create_benefits_plan))
+        .route("/benefits/plans/:code", get(get_benefits_plan))
+        .route("/benefits/plans/:code", delete(delete_benefits_plan))
+
+        // Benefits Enrollments
+        .route("/benefits/enrollments", post(create_benefits_enrollment))
+        .route("/benefits/enrollments", get(list_benefits_enrollments))
+        .route("/benefits/enrollments/:id", get(get_benefits_enrollment))
+        .route("/benefits/enrollments/:id/activate", post(activate_benefits_enrollment))
+        .route("/benefits/enrollments/:id/waive", post(waive_benefits_enrollment))
+        .route("/benefits/enrollments/:id/cancel", post(cancel_benefits_enrollment))
+        .route("/benefits/enrollments/:id/suspend", post(suspend_benefits_enrollment))
+        .route("/benefits/enrollments/:id/reactivate", post(reactivate_benefits_enrollment))
+
+        // Benefits Deductions
+        .route("/benefits/deductions/generate", post(generate_deductions))
+        .route("/benefits/deductions", get(list_benefits_deductions))
+
+        // Benefits Dashboard
+        .route("/benefits/dashboard", get(get_benefits_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -254,6 +254,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::corporate_card::PostgresCorporateCardRepository::new(db_pool.clone()),
     )));
 
+    let benefits_engine = Arc::new(atlas_core::BenefitsEngine::new(Arc::new(
+        atlas_core::benefits::PostgresBenefitsRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -299,6 +303,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         currency_revaluation_engine,
         purchase_requisition_engine,
         corporate_card_engine,
+        benefits_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -540,4 +545,8 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.corporate_card_statements").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.corporate_cards").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.corporate_card_programs").execute(pool).await.ok();
+    // Clean benefits test data
+    sqlx::query("DELETE FROM _atlas.benefits_deductions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.benefits_enrollments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.benefits_plans").execute(pool).await.ok();
 }

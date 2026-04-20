@@ -721,8 +721,8 @@ mod tests {
         assert!(total_amount <= amount_limit);
 
         let exceed_limit: f64 = 15000.0;
-        assert!(total_amount > exceed_limit == false);
-        assert!(total_amount > amount_limit == false);
+        assert!(!(total_amount > exceed_limit));
+        assert!(!(total_amount > amount_limit));
     }
 
     #[test]

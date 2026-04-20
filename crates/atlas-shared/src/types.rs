@@ -10272,3 +10272,168 @@ pub struct RequisitionDashboardSummary {
     pub by_priority: serde_json::Value,
 }
 
+// ============================================================================
+// Benefits Administration (Oracle Fusion HCM > Benefits)
+// ============================================================================
+
+/// Benefits plan definition
+/// Oracle Fusion: Benefits > Benefits Plans
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BenefitsPlan {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Plan type: medical, dental, vision, life_insurance, disability, retirement, hsa, fsa
+    pub plan_type: String,
+    /// Coverage tier options available for this plan
+    pub coverage_tiers: serde_json::Value,
+    /// Provider/insurance carrier name
+    pub provider_name: Option<String>,
+    /// External plan ID from carrier
+    pub provider_plan_id: Option<String>,
+    /// Plan year start date
+    pub plan_year_start: Option<chrono::NaiveDate>,
+    /// Plan year end date
+    pub plan_year_end: Option<chrono::NaiveDate>,
+    /// Open enrollment start date
+    pub open_enrollment_start: Option<chrono::NaiveDate>,
+    /// Open enrollment end date
+    pub open_enrollment_end: Option<chrono::NaiveDate>,
+    /// Whether employees can make mid-year changes (qualifying life events)
+    pub allow_life_event_changes: bool,
+    /// Whether the plan requires evidence of insurability
+    pub requires_eoi: bool,
+    /// Waiting period in days before new hires can enroll
+    pub waiting_period_days: i32,
+    /// Maximum number of dependents allowed
+    pub max_dependents: Option<i32>,
+    /// Whether the plan is currently active and available for enrollment
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Benefits plan coverage tier (e.g., Employee Only, Employee + Spouse, Family)
+/// Oracle Fusion: Benefits > Coverage Options
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CoverageTier {
+    /// Tier code: employee_only, employee_spouse, employee_child, family
+    pub tier_code: String,
+    /// Human-readable tier name
+    pub tier_name: String,
+    /// Employee's contribution per pay period (employer-paid portion excluded)
+    pub employee_cost: String,
+    /// Employer's contribution per pay period
+    pub employer_cost: String,
+    /// Total cost per pay period
+    pub total_cost: String,
+}
+
+/// Employee benefits enrollment
+/// Oracle Fusion: Benefits > Enrollments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BenefitsEnrollment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub employee_id: Uuid,
+    pub employee_name: Option<String>,
+    pub plan_id: Uuid,
+    pub plan_code: Option<String>,
+    pub plan_name: Option<String>,
+    pub plan_type: Option<String>,
+    /// Selected coverage tier code
+    pub coverage_tier: String,
+    /// Enrollment type: open_enrollment, new_hire, life_event, manual
+    pub enrollment_type: String,
+    /// Enrollment status: pending, active, waived, cancelled, suspended
+    pub status: String,
+    /// Effective start date of coverage
+    pub effective_start_date: chrono::NaiveDate,
+    /// Effective end date of coverage
+    pub effective_end_date: Option<chrono::NaiveDate>,
+    /// Employee cost per pay period (deduction amount)
+    pub employee_cost: String,
+    /// Employer cost per pay period
+    pub employer_cost: String,
+    /// Total cost per pay period
+    pub total_cost: String,
+    /// Payroll deduction frequency: per_pay_period, monthly, semi_monthly
+    pub deduction_frequency: String,
+    /// GL account code for employee deduction
+    pub deduction_account_code: Option<String>,
+    /// GL account code for employer contribution
+    pub employer_contribution_account_code: Option<String>,
+    /// Enrolled dependents
+    pub dependents: serde_json::Value,
+    /// Qualifying life event reason (if enrollment due to life event)
+    pub life_event_reason: Option<String>,
+    /// Life event date
+    pub life_event_date: Option<chrono::NaiveDate>,
+    /// Who processed this enrollment
+    pub processed_by: Option<Uuid>,
+    /// When the enrollment was processed
+    pub processed_at: Option<DateTime<Utc>>,
+    /// Cancellation reason
+    pub cancellation_reason: Option<String>,
+    /// When the enrollment was cancelled
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Benefits deduction record (tracks each payroll deduction)
+/// Oracle Fusion: Payroll > Element Entries > Benefits Deductions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BenefitsDeduction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub enrollment_id: Uuid,
+    pub employee_id: Uuid,
+    pub plan_id: Uuid,
+    pub plan_code: Option<String>,
+    pub plan_name: Option<String>,
+    /// Deduction amount (employee portion)
+    pub employee_amount: String,
+    /// Employer contribution amount
+    pub employer_amount: String,
+    /// Total deduction amount
+    pub total_amount: String,
+    /// Pay period this deduction applies to
+    pub pay_period_start: chrono::NaiveDate,
+    pub pay_period_end: chrono::NaiveDate,
+    /// GL account code for the deduction
+    pub deduction_account_code: Option<String>,
+    /// Whether the deduction has been processed through payroll
+    pub is_processed: bool,
+    pub processed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Benefits enrollment summary (dashboard view)
+/// Oracle Fusion: Benefits > Benefits Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BenefitsSummary {
+    pub total_plans: i32,
+    pub active_plans: i32,
+    pub total_enrollments: i32,
+    pub active_enrollments: i32,
+    pub pending_enrollments: i32,
+    pub waived_enrollments: i32,
+    pub total_employee_cost: String,
+    pub total_employer_cost: String,
+    pub enrollments_by_plan_type: serde_json::Value,
+}
+

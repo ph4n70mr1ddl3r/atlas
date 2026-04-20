@@ -832,6 +832,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         corporate_card_engine: Arc::new(atlas_core::CorporateCardEngine::new(Arc::new(
             atlas_core::corporate_card::PostgresCorporateCardRepository::new(db_pool.clone()),
         ))),
+        benefits_engine: Arc::new(atlas_core::BenefitsEngine::new(Arc::new(
+            atlas_core::benefits::PostgresBenefitsRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

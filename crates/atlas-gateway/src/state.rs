@@ -42,6 +42,7 @@ use atlas_core::{
     CurrencyRevaluationEngine,
     PurchaseRequisitionEngine,
     CorporateCardEngine,
+    BenefitsEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -82,6 +83,7 @@ use atlas_core::{
     currency_revaluation::PostgresCurrencyRevaluationRepository,
     purchase_requisition::PostgresPurchaseRequisitionRepository,
     corporate_card::PostgresCorporateCardRepository,
+    benefits::PostgresBenefitsRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -136,6 +138,7 @@ pub struct AppState {
     pub currency_revaluation_engine: Arc<CurrencyRevaluationEngine>,
     pub purchase_requisition_engine: Arc<PurchaseRequisitionEngine>,
     pub corporate_card_engine: Arc<CorporateCardEngine>,
+    pub benefits_engine: Arc<BenefitsEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -372,6 +375,11 @@ impl AppState {
             PostgresCorporateCardRepository::new(db_pool.clone())
         )));
 
+        // Initialize benefits administration engine
+        let benefits_engine = Arc::new(BenefitsEngine::new(Arc::new(
+            PostgresBenefitsRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -453,6 +461,7 @@ impl AppState {
             currency_revaluation_engine,
             purchase_requisition_engine,
             corporate_card_engine,
+            benefits_engine,
             event_bus,
             jwt_secret,
         };

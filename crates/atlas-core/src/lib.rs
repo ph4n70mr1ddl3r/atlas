@@ -64,6 +64,7 @@ pub mod segregation_of_duties;
 pub mod allocation;
 pub mod currency_revaluation;
 pub mod purchase_requisition;
+pub mod benefits;
 
 pub use schema::*;
 pub use workflow::{
@@ -129,6 +130,7 @@ pub use segregation_of_duties::{SegregationOfDutiesEngine, PostgresSegregationOf
 pub use allocation::{AllocationEngine, PostgresAllocationRepository as PostgresAllocationRepo};
 pub use currency_revaluation::{CurrencyRevaluationEngine, PostgresCurrencyRevaluationRepository as PostgresCurrencyRevaluationRepo};
 pub use purchase_requisition::{PurchaseRequisitionEngine, PostgresPurchaseRequisitionRepository as PostgresPurchaseRequisitionRepo};
+pub use benefits::{BenefitsEngine, PostgresBenefitsRepository as PostgresBenefitsRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -62,6 +62,7 @@ pub mod cross_validation;
 pub mod scheduled_process;
 pub mod segregation_of_duties;
 pub mod allocation;
+pub mod currency_revaluation;
 
 pub use schema::*;
 pub use workflow::{
@@ -125,6 +126,7 @@ pub use cross_validation::{CrossValidationEngine, PostgresCrossValidationReposit
 pub use scheduled_process::{ScheduledProcessEngine, PostgresScheduledProcessRepository as PostgresScheduledProcessRepo};
 pub use segregation_of_duties::{SegregationOfDutiesEngine, PostgresSegregationOfDutiesRepository as PostgresSegregationOfDutiesRepo};
 pub use allocation::{AllocationEngine, PostgresAllocationRepository as PostgresAllocationRepo};
+pub use currency_revaluation::{CurrencyRevaluationEngine, PostgresCurrencyRevaluationRepository as PostgresCurrencyRevaluationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

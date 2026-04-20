@@ -41,3 +41,4 @@ mod cross_validation;
 mod scheduled_process;
 mod segregation_of_duties;
 mod allocation;
+mod currency_revaluation;

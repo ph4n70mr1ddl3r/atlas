@@ -41,6 +41,7 @@ pub mod cross_validation;
 pub mod scheduled_process;
 mod segregation_of_duties;
 mod allocation;
+mod currency_revaluation;
 
 pub use schema::*;
 pub use records::*;
@@ -225,6 +226,24 @@ pub use allocation::{
     reverse_allocation_run,
     cancel_allocation_run,
     get_allocation_dashboard,
+};
+pub use currency_revaluation::{
+    create_revaluation_definition,
+    get_revaluation_definition,
+    list_revaluation_definitions,
+    activate_revaluation_definition,
+    deactivate_revaluation_definition,
+    delete_revaluation_definition,
+    add_revaluation_account,
+    list_revaluation_accounts,
+    remove_revaluation_account,
+    execute_revaluation,
+    get_revaluation_run,
+    list_revaluation_runs,
+    post_revaluation_run,
+    reverse_revaluation_run,
+    cancel_revaluation_run,
+    get_revaluation_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1525,6 +1544,34 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Allocation Dashboard
         .route("/allocation/dashboard", get(get_allocation_dashboard))
+        
+        // ═══════════════════════════════════════════════════════════════
+        // Currency Revaluation (Oracle Fusion GL Currency Revaluation)
+        // ═══════════════════════════════════════════════════════════════
+        
+        // Definitions
+        .route("/currency-revaluation/definitions", get(list_revaluation_definitions))
+        .route("/currency-revaluation/definitions", post(create_revaluation_definition))
+        .route("/currency-revaluation/definitions/:code", get(get_revaluation_definition))
+        .route("/currency-revaluation/definitions/:code", delete(delete_revaluation_definition))
+        .route("/currency-revaluation/definitions/:id/activate", post(activate_revaluation_definition))
+        .route("/currency-revaluation/definitions/:id/deactivate", post(deactivate_revaluation_definition))
+        
+        // Accounts
+        .route("/currency-revaluation/definitions/:code/accounts", post(add_revaluation_account))
+        .route("/currency-revaluation/definitions/:code/accounts", get(list_revaluation_accounts))
+        .route("/currency-revaluation/accounts/:id", delete(remove_revaluation_account))
+        
+        // Runs
+        .route("/currency-revaluation/runs", post(execute_revaluation))
+        .route("/currency-revaluation/runs", get(list_revaluation_runs))
+        .route("/currency-revaluation/runs/:id", get(get_revaluation_run))
+        .route("/currency-revaluation/runs/:id/post", post(post_revaluation_run))
+        .route("/currency-revaluation/runs/:id/reverse", post(reverse_revaluation_run))
+        .route("/currency-revaluation/runs/:id/cancel", post(cancel_revaluation_run))
+        
+        // Dashboard
+        .route("/currency-revaluation/dashboard", get(get_revaluation_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

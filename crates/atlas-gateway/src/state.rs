@@ -39,6 +39,7 @@ use atlas_core::{
     ScheduledProcessEngine,
     SegregationOfDutiesEngine,
     AllocationEngine,
+    CurrencyRevaluationEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -76,6 +77,7 @@ use atlas_core::{
     scheduled_process::PostgresScheduledProcessRepository,
     segregation_of_duties::PostgresSegregationOfDutiesRepository,
     allocation::PostgresAllocationRepository,
+    currency_revaluation::PostgresCurrencyRevaluationRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -127,6 +129,7 @@ pub struct AppState {
     pub scheduled_process_engine: Arc<ScheduledProcessEngine>,
     pub sod_engine: Arc<SegregationOfDutiesEngine>,
     pub allocation_engine: Arc<AllocationEngine>,
+    pub currency_revaluation_engine: Arc<CurrencyRevaluationEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -347,6 +350,11 @@ impl AppState {
         let allocation_engine = Arc::new(AllocationEngine::new(Arc::new(
             PostgresAllocationRepository::new(db_pool.clone())
         )));
+
+        // Initialize currency revaluation engine
+        let currency_revaluation_engine = Arc::new(CurrencyRevaluationEngine::new(Arc::new(
+            PostgresCurrencyRevaluationRepository::new(db_pool.clone())
+        )));
         
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
@@ -426,6 +434,7 @@ impl AppState {
             scheduled_process_engine,
             sod_engine,
             allocation_engine,
+            currency_revaluation_engine,
             event_bus,
             jwt_secret,
         };

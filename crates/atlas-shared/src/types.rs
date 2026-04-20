@@ -9873,3 +9873,201 @@ pub struct GlAllocationDashboardSummary {
     pub rules_by_method: serde_json::Value,
 }
 
+// ============================================================================
+// Currency Revaluation Types
+// Oracle Fusion Cloud ERP: General Ledger > Currency Revaluation
+// ============================================================================
+
+/// Currency Revaluation Definition
+/// Defines which accounts to revalue, what rate to use, and where to post gains/losses
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRevaluationDefinition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub revaluation_type: String,
+    pub currency_code: String,
+    pub rate_type: String,
+    pub gain_account_code: String,
+    pub loss_account_code: String,
+    pub unrealized_gain_account_code: Option<String>,
+    pub unrealized_loss_account_code: Option<String>,
+    pub account_range_from: Option<String>,
+    pub account_range_to: Option<String>,
+    pub include_subledger: bool,
+    pub auto_reverse: bool,
+    pub reversal_period_offset: i32,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub accounts: Vec<CurrencyRevaluationAccount>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Account included in a revaluation definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRevaluationAccount {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub definition_id: Uuid,
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub account_type: String,
+    pub is_included: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Currency Revaluation Run
+/// A batch execution of a revaluation definition for a specific period
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRevaluationRun {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_number: String,
+    pub definition_id: Uuid,
+    pub definition_code: String,
+    pub definition_name: String,
+    pub period_name: String,
+    pub period_start_date: chrono::NaiveDate,
+    pub period_end_date: chrono::NaiveDate,
+    pub revaluation_date: chrono::NaiveDate,
+    pub currency_code: String,
+    pub rate_type: String,
+    pub total_revalued_amount: String,
+    pub total_gain_amount: String,
+    pub total_loss_amount: String,
+    pub total_entries: i32,
+    pub status: String,
+    pub reversal_run_id: Option<Uuid>,
+    pub original_run_id: Option<Uuid>,
+    pub reversed_at: Option<DateTime<Utc>>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub posted_by: Option<Uuid>,
+    pub lines: Vec<CurrencyRevaluationLine>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Individual line in a revaluation run (one per account)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRevaluationLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_id: Uuid,
+    pub line_number: i32,
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub account_type: String,
+    pub original_amount: String,
+    pub original_currency: String,
+    pub original_exchange_rate: String,
+    pub original_base_amount: String,
+    pub revalued_exchange_rate: String,
+    pub revalued_base_amount: String,
+    pub gain_loss_amount: String,
+    pub gain_loss_type: String,
+    pub gain_loss_account_code: String,
+    pub reversal_line_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create revaluation definition request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRevaluationDefinitionRequest {
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(default = "default_revaluation_type")]
+    pub revaluation_type: String,
+    pub currency_code: String,
+    #[serde(default = "default_rate_type_period_end")]
+    pub rate_type: String,
+    pub gain_account_code: String,
+    pub loss_account_code: String,
+    pub unrealized_gain_account_code: Option<String>,
+    pub unrealized_loss_account_code: Option<String>,
+    pub account_range_from: Option<String>,
+    pub account_range_to: Option<String>,
+    #[serde(default)]
+    pub include_subledger: bool,
+    #[serde(default = "default_true")]
+    pub auto_reverse: bool,
+    #[serde(default = "default_one")]
+    pub reversal_period_offset: i32,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub accounts: Option<Vec<CurrencyRevaluationAccountRequest>>,
+}
+
+fn default_revaluation_type() -> String { "period_end".to_string() }
+fn default_rate_type_period_end() -> String { "period_end".to_string() }
+fn default_account_type_asset() -> String { "asset".to_string() }
+
+/// Create revaluation account request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRevaluationAccountRequest {
+    pub account_code: String,
+    pub account_name: Option<String>,
+    #[serde(default = "default_account_type_asset")]
+    pub account_type: String,
+    #[serde(default = "default_true")]
+    pub is_included: bool,
+}
+
+/// Execute revaluation run request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRevaluationRunRequest {
+    pub definition_code: String,
+    pub period_name: String,
+    pub period_start_date: chrono::NaiveDate,
+    pub period_end_date: chrono::NaiveDate,
+    pub revaluation_date: Option<chrono::NaiveDate>,
+    pub rate_type_override: Option<String>,
+    pub balances: Vec<CurrencyRevaluationBalanceRequest>,
+}
+
+/// Balance input for revaluation run
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRevaluationBalanceRequest {
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub account_type: String,
+    pub original_amount: String,
+    pub original_currency: String,
+    pub original_exchange_rate: String,
+    pub original_base_amount: String,
+}
+
+/// Currency Revaluation dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrencyRevaluationDashboardSummary {
+    pub total_definitions: i32,
+    pub active_definitions: i32,
+    pub total_runs: i32,
+    pub posted_runs: i32,
+    pub draft_runs: i32,
+    pub reversed_runs: i32,
+    pub total_gain_amount: String,
+    pub total_loss_amount: String,
+    pub definitions_by_type: serde_json::Value,
+}
+

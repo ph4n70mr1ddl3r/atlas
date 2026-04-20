@@ -242,6 +242,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::allocation::PostgresAllocationRepository::new(db_pool.clone()),
     )));
 
+    let currency_revaluation_engine = Arc::new(atlas_core::CurrencyRevaluationEngine::new(Arc::new(
+        atlas_core::currency_revaluation::PostgresCurrencyRevaluationRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -284,6 +288,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         scheduled_process_engine,
         sod_engine,
         allocation_engine,
+        currency_revaluation_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -508,4 +513,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.gl_allocation_basis_details").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.gl_allocation_bases").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.gl_allocation_pools").execute(pool).await.ok();
+    // Clean currency revaluation test data
+    sqlx::query("DELETE FROM _atlas.currency_revaluation_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.currency_revaluation_runs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.currency_revaluation_accounts").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.currency_revaluation_definitions").execute(pool).await.ok();
 }

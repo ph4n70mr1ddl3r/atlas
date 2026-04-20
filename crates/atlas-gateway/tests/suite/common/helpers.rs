@@ -11,6 +11,7 @@ use atlas_core::{
     eventbus::NatsEventBus,
     ManualJournalEngine,
     ScheduledProcessEngine,
+    CreditManagementEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -262,6 +263,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::performance::PostgresPerformanceRepository::new(db_pool.clone()),
     )));
 
+    let credit_management_engine = Arc::new(atlas_core::CreditManagementEngine::new(Arc::new(
+        atlas_core::credit_management::PostgresCreditManagementRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -309,6 +314,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         corporate_card_engine,
         benefits_engine,
         performance_engine,
+        credit_management_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -563,4 +569,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.performance_review_cycles").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.performance_rating_models").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.performance_dashboard").execute(pool).await.ok();
+    // Clean credit management test data
+    sqlx::query("DELETE FROM _atlas.credit_holds").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.credit_reviews").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.credit_exposure").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.credit_limits").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.credit_profiles").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.credit_check_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.credit_scoring_models").execute(pool).await.ok();
 }

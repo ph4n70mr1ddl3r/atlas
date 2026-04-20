@@ -46,6 +46,7 @@ mod purchase_requisition;
 mod corporate_card;
 pub mod performance;
 pub mod benefits;
+pub mod credit_management;
 
 pub use schema::*;
 pub use records::*;
@@ -350,6 +351,41 @@ pub use performance::{
     list_feedback as list_performance_feedback,
     submit_feedback as submit_performance_feedback,
     get_performance_dashboard,
+};
+pub use credit_management::{
+    create_scoring_model,
+    get_scoring_model,
+    list_scoring_models,
+    delete_scoring_model,
+    create_profile,
+    get_profile,
+    list_profiles,
+    update_profile_status,
+    update_profile_score,
+    delete_profile,
+    create_credit_limit,
+    list_credit_limits,
+    update_credit_limit,
+    set_temp_limit,
+    delete_credit_limit,
+    create_check_rule,
+    list_check_rules,
+    delete_check_rule,
+    calculate_exposure,
+    get_latest_exposure,
+    perform_credit_check,
+    create_hold,
+    list_holds,
+    release_hold,
+    override_hold,
+    create_review,
+    list_reviews,
+    start_review,
+    complete_review,
+    approve_review,
+    reject_review,
+    cancel_review,
+    get_credit_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1836,6 +1872,55 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Performance Dashboard
         .route("/performance/dashboard/:review_cycle_id", get(get_performance_dashboard))
+
+        // Credit Management - Scoring Models
+        .route("/credit/scoring-models", post(create_scoring_model))
+        .route("/credit/scoring-models", get(list_scoring_models))
+        .route("/credit/scoring-models/:code", get(get_scoring_model))
+        .route("/credit/scoring-models/:code", delete(delete_scoring_model))
+
+        // Credit Management - Profiles
+        .route("/credit/profiles", post(create_profile))
+        .route("/credit/profiles", get(list_profiles))
+        .route("/credit/profiles/:id", get(get_profile))
+        .route("/credit/profiles/:id/status", post(update_profile_status))
+        .route("/credit/profiles/:id/score", post(update_profile_score))
+        .route("/credit/profiles/:id", delete(delete_profile))
+
+        // Credit Management - Limits
+        .route("/credit/limits", post(create_credit_limit))
+        .route("/credit/limits/:id", put(update_credit_limit))
+        .route("/credit/limits/:id/temp", post(set_temp_limit))
+        .route("/credit/limits/:id", delete(delete_credit_limit))
+        .route("/credit/profiles/:profile_id/limits", get(list_credit_limits))
+
+        // Credit Management - Check Rules
+        .route("/credit/check-rules", post(create_check_rule))
+        .route("/credit/check-rules", get(list_check_rules))
+        .route("/credit/check-rules/:id", delete(delete_check_rule))
+
+        // Credit Management - Exposure
+        .route("/credit/exposure/calculate", post(calculate_exposure))
+        .route("/credit/exposure/check", post(perform_credit_check))
+        .route("/credit/profiles/:profile_id/exposure", get(get_latest_exposure))
+
+        // Credit Management - Holds
+        .route("/credit/holds", post(create_hold))
+        .route("/credit/holds", get(list_holds))
+        .route("/credit/holds/:id/release", post(release_hold))
+        .route("/credit/holds/:id/override", post(override_hold))
+
+        // Credit Management - Reviews
+        .route("/credit/reviews", post(create_review))
+        .route("/credit/reviews", get(list_reviews))
+        .route("/credit/reviews/:id/start", post(start_review))
+        .route("/credit/reviews/:id/complete", post(complete_review))
+        .route("/credit/reviews/:id/approve", post(approve_review))
+        .route("/credit/reviews/:id/reject", post(reject_review))
+        .route("/credit/reviews/:id/cancel", post(cancel_review))
+
+        // Credit Management - Dashboard
+        .route("/credit/dashboard", get(get_credit_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

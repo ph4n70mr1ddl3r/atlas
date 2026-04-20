@@ -10916,3 +10916,209 @@ pub struct PerformanceDashboard {
     pub feedback_count: i32,
 }
 
+// ============================================================================
+// Credit Management Types
+// Oracle Fusion Cloud: Receivables > Credit Management
+// ============================================================================
+
+/// Credit scoring model defines how customer creditworthiness is assessed.
+/// Oracle Fusion: Credit Management > Credit Scoring Models
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditScoringModel {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub model_type: String,
+    pub scoring_criteria: serde_json::Value,
+    pub score_ranges: serde_json::Value,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Credit profile per customer or customer group.
+/// Oracle Fusion: Credit Management > Credit Profiles
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditProfile {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub profile_number: String,
+    pub profile_name: String,
+    pub description: Option<String>,
+    pub profile_type: String,
+    pub customer_id: Option<Uuid>,
+    pub customer_name: Option<String>,
+    pub customer_group_id: Option<Uuid>,
+    pub customer_group_name: Option<String>,
+    pub scoring_model_id: Option<Uuid>,
+    pub credit_score: Option<String>,
+    pub credit_rating: Option<String>,
+    pub risk_level: String,
+    pub status: String,
+    pub review_frequency_days: i32,
+    pub last_review_date: Option<chrono::NaiveDate>,
+    pub next_review_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Credit limit (supports multi-currency and global limits).
+/// Oracle Fusion: Credit Management > Credit Limits
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditLimit {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub profile_id: Uuid,
+    pub limit_type: String,
+    pub currency_code: Option<String>,
+    pub credit_limit: String,
+    pub temp_limit_increase: String,
+    pub temp_limit_expiry: Option<chrono::NaiveDate>,
+    pub used_amount: String,
+    pub available_amount: String,
+    pub hold_amount: String,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Credit check rule defines when credit checks are triggered.
+/// Oracle Fusion: Credit Management > Credit Check Rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditCheckRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub check_point: String,
+    pub check_type: String,
+    pub condition: serde_json::Value,
+    pub action_on_failure: String,
+    pub priority: i32,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Credit exposure tracks total exposure per profile.
+/// Oracle Fusion: Credit Management > Credit Exposure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditExposure {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub profile_id: Uuid,
+    pub exposure_date: chrono::NaiveDate,
+    pub open_receivables: String,
+    pub open_orders: String,
+    pub open_shipments: String,
+    pub open_invoices: String,
+    pub unapplied_cash: String,
+    pub on_hold_amount: String,
+    pub total_exposure: String,
+    pub credit_limit: String,
+    pub available_credit: String,
+    pub utilization_percent: String,
+    pub currency_code: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Credit hold placed on transactions when credit limits exceeded.
+/// Oracle Fusion: Credit Management > Credit Holds
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditHold {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub profile_id: Uuid,
+    pub hold_number: String,
+    pub hold_type: String,
+    pub entity_type: String,
+    pub entity_id: Uuid,
+    pub entity_number: Option<String>,
+    pub hold_amount: Option<String>,
+    pub reason: Option<String>,
+    pub status: String,
+    pub released_by: Option<Uuid>,
+    pub released_at: Option<DateTime<Utc>>,
+    pub release_reason: Option<String>,
+    pub overridden_by: Option<Uuid>,
+    pub overridden_at: Option<DateTime<Utc>>,
+    pub override_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Credit review (periodic or triggered review of a credit profile).
+/// Oracle Fusion: Credit Management > Credit Reviews
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditReview {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub profile_id: Uuid,
+    pub review_number: String,
+    pub review_type: String,
+    pub status: String,
+    pub previous_credit_limit: Option<String>,
+    pub recommended_credit_limit: Option<String>,
+    pub approved_credit_limit: Option<String>,
+    pub previous_score: Option<String>,
+    pub new_score: Option<String>,
+    pub previous_rating: Option<String>,
+    pub new_rating: Option<String>,
+    pub findings: Option<String>,
+    pub recommendations: Option<String>,
+    pub reviewer_id: Option<Uuid>,
+    pub reviewer_name: Option<String>,
+    pub reviewed_at: Option<DateTime<Utc>>,
+    pub approver_id: Option<Uuid>,
+    pub approver_name: Option<String>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Credit management dashboard summary.
+/// Oracle Fusion: Credit Management > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditManagementDashboard {
+    pub total_profiles: i32,
+    pub active_profiles: i32,
+    pub blocked_profiles: i32,
+    pub total_credit_limit: String,
+    pub total_exposure: String,
+    pub total_available: String,
+    pub active_holds: i32,
+    pub pending_reviews: i32,
+    pub overdue_reviews: i32,
+    pub average_utilization: String,
+}
+

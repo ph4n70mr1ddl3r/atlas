@@ -67,6 +67,7 @@ pub mod purchase_requisition;
 pub mod benefits;
 pub mod autoinvoice;
 pub mod performance;
+pub mod credit_management;
 
 pub use schema::*;
 pub use workflow::{
@@ -135,6 +136,7 @@ pub use purchase_requisition::{PurchaseRequisitionEngine, PostgresPurchaseRequis
 pub use benefits::{BenefitsEngine, PostgresBenefitsRepository as PostgresBenefitsRepo};
 pub use autoinvoice::{AutoInvoiceEngine, PostgresAutoInvoiceRepository as PostgresAutoInvoiceRepo};
 pub use performance::{PerformanceEngine, PostgresPerformanceRepository as PostgresPerformanceRepo};
+pub use credit_management::{CreditManagementEngine, PostgresCreditManagementRepository as PostgresCreditManagementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

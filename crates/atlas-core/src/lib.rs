@@ -66,6 +66,7 @@ pub mod currency_revaluation;
 pub mod purchase_requisition;
 pub mod benefits;
 pub mod autoinvoice;
+pub mod performance;
 
 pub use schema::*;
 pub use workflow::{
@@ -133,6 +134,7 @@ pub use currency_revaluation::{CurrencyRevaluationEngine, PostgresCurrencyRevalu
 pub use purchase_requisition::{PurchaseRequisitionEngine, PostgresPurchaseRequisitionRepository as PostgresPurchaseRequisitionRepo};
 pub use benefits::{BenefitsEngine, PostgresBenefitsRepository as PostgresBenefitsRepo};
 pub use autoinvoice::{AutoInvoiceEngine, PostgresAutoInvoiceRepository as PostgresAutoInvoiceRepo};
+pub use performance::{PerformanceEngine, PostgresPerformanceRepository as PostgresPerformanceRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -10709,3 +10709,210 @@ pub struct AutoInvoiceValidationError {
     pub is_fatal: bool,
 }
 
+// ============================================================================
+// Performance Management (Oracle Fusion HCM Performance Review)
+// ============================================================================
+
+/// Performance rating model (defines the rating scale).
+/// Oracle Fusion: My Client Groups > Performance > Rating Models
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PerformanceRatingModel {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Rating scale entries, e.g. [{"value":1,"label":"Below Expectations"}, ...]
+    pub rating_scale: serde_json::Value,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Performance review cycle (defines a review period).
+/// Oracle Fusion: My Client Groups > Performance > Review Cycles
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PerformanceReviewCycle {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    /// Cycle type: annual, mid_year, quarterly, project_end, probation
+    pub cycle_type: String,
+    /// Status: draft, planning, goal_setting, self_evaluation, manager_evaluation, calibration, completed, cancelled
+    pub status: String,
+    pub rating_model_id: Option<Uuid>,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub goal_setting_start: Option<chrono::NaiveDate>,
+    pub goal_setting_end: Option<chrono::NaiveDate>,
+    pub self_evaluation_start: Option<chrono::NaiveDate>,
+    pub self_evaluation_end: Option<chrono::NaiveDate>,
+    pub manager_evaluation_start: Option<chrono::NaiveDate>,
+    pub manager_evaluation_end: Option<chrono::NaiveDate>,
+    pub calibration_date: Option<chrono::NaiveDate>,
+    pub require_goals: bool,
+    pub require_competencies: bool,
+    pub min_goals: i32,
+    pub max_goals: i32,
+    pub goal_weight_total: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Competency definition.
+/// Oracle Fusion: My Client Groups > Performance > Competencies
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PerformanceCompetency {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Category: core, leadership, technical, functional
+    pub category: Option<String>,
+    pub rating_model_id: Option<Uuid>,
+    pub behavioral_indicators: serde_json::Value,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Performance document (one per employee per review cycle).
+/// Oracle Fusion: My Client Groups > Performance > Performance Documents
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PerformanceDocument {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub review_cycle_id: Uuid,
+    pub employee_id: Uuid,
+    pub employee_name: Option<String>,
+    pub manager_id: Option<Uuid>,
+    pub manager_name: Option<String>,
+    pub document_number: String,
+    /// Status: not_started, goal_setting, self_evaluation, manager_evaluation, calibration, completed, cancelled
+    pub status: String,
+    pub overall_rating: Option<String>,
+    pub overall_rating_label: Option<String>,
+    pub self_overall_rating: Option<String>,
+    pub self_comments: Option<String>,
+    pub manager_overall_rating: Option<String>,
+    pub manager_comments: Option<String>,
+    pub calibration_rating: Option<String>,
+    pub calibration_comments: Option<String>,
+    pub final_rating: Option<String>,
+    pub final_comments: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Performance goal (linked to a performance document).
+/// Oracle Fusion: My Client Groups > Performance > Goals
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PerformanceGoal {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub document_id: Uuid,
+    pub employee_id: Uuid,
+    pub goal_name: String,
+    pub description: Option<String>,
+    /// Category: performance, development, project, behavioral
+    pub goal_category: Option<String>,
+    /// Status: draft, active, completed, cancelled
+    pub status: String,
+    pub weight: String,
+    pub target_metric: Option<String>,
+    pub actual_result: Option<String>,
+    pub self_rating: Option<String>,
+    pub self_comments: Option<String>,
+    pub manager_rating: Option<String>,
+    pub manager_comments: Option<String>,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub completed_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Competency assessment (linked to a performance document).
+/// Oracle Fusion: My Client Groups > Performance > Competency Assessments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompetencyAssessment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub document_id: Uuid,
+    pub employee_id: Uuid,
+    pub competency_id: Uuid,
+    pub self_rating: Option<String>,
+    pub self_comments: Option<String>,
+    pub manager_rating: Option<String>,
+    pub manager_comments: Option<String>,
+    pub calibration_rating: Option<String>,
+    pub calibration_comments: Option<String>,
+    pub final_rating: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Performance feedback (360-degree feedback, ad-hoc).
+/// Oracle Fusion: My Client Groups > Performance > Feedback
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PerformanceFeedback {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub document_id: Option<Uuid>,
+    pub employee_id: Uuid,
+    pub from_user_id: Uuid,
+    pub from_user_name: Option<String>,
+    /// Feedback type: peer, manager, direct_report, external, self
+    pub feedback_type: String,
+    pub subject: Option<String>,
+    pub content: String,
+    /// Visibility: private, manager_only, manager_and_employee, everyone
+    pub visibility: String,
+    /// Status: draft, submitted, acknowledged, withdrawn
+    pub status: String,
+    pub acknowledged_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Performance dashboard summary for a review cycle.
+/// Oracle Fusion: My Client Groups > Performance > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PerformanceDashboard {
+    pub review_cycle_id: Uuid,
+    pub total_documents: i32,
+    pub not_started_count: i32,
+    pub goal_setting_count: i32,
+    pub self_evaluation_count: i32,
+    pub manager_evaluation_count: i32,
+    pub calibration_count: i32,
+    pub completed_count: i32,
+    pub cancelled_count: i32,
+    pub average_rating: Option<String>,
+    pub goals_total: i32,
+    pub goals_completed: i32,
+    pub feedback_count: i32,
+}
+

@@ -44,6 +44,7 @@ mod allocation;
 mod currency_revaluation;
 mod purchase_requisition;
 mod corporate_card;
+pub mod performance;
 pub mod benefits;
 
 pub use schema::*;
@@ -317,6 +318,38 @@ pub use benefits::{
     generate_deductions,
     list_deductions as list_benefits_deductions,
     get_benefits_dashboard,
+};
+pub use performance::{
+    create_rating_model,
+    get_rating_model,
+    list_rating_models,
+    delete_rating_model,
+    create_review_cycle,
+    get_review_cycle,
+    list_review_cycles,
+    transition_cycle,
+    create_competency,
+    get_competency,
+    list_competencies,
+    delete_competency,
+    create_document as create_performance_document,
+    get_document as get_performance_document,
+    list_documents as list_performance_documents,
+    transition_document,
+    submit_self_evaluation,
+    submit_manager_evaluation,
+    finalize_document as finalize_performance_document,
+    create_goal,
+    list_goals as list_performance_goals,
+    complete_goal,
+    rate_goal,
+    delete_goal as delete_performance_goal,
+    upsert_competency_assessment,
+    list_competency_assessments as list_competency_assessments_for_document,
+    create_feedback as create_performance_feedback,
+    list_feedback as list_performance_feedback,
+    submit_feedback as submit_performance_feedback,
+    get_performance_dashboard,
 };
 pub use manual_journal::{
     create_batch as create_journal_batch,
@@ -1753,6 +1786,56 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Benefits Dashboard
         .route("/benefits/dashboard", get(get_benefits_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════════════════════════
+        // Performance Management (Oracle Fusion HCM > Performance)
+        // ═══════════════════════════════════════════════════════════════════════════════════
+
+        // Rating Models
+        .route("/performance/rating-models", get(list_rating_models))
+        .route("/performance/rating-models", post(create_rating_model))
+        .route("/performance/rating-models/:code", get(get_rating_model))
+        .route("/performance/rating-models/:code", delete(delete_rating_model))
+
+        // Review Cycles
+        .route("/performance/cycles", post(create_review_cycle))
+        .route("/performance/cycles", get(list_review_cycles))
+        .route("/performance/cycles/:id", get(get_review_cycle))
+        .route("/performance/cycles/:id/transition", post(transition_cycle))
+
+        // Competencies
+        .route("/performance/competencies", post(create_competency))
+        .route("/performance/competencies", get(list_competencies))
+        .route("/performance/competencies/:code", get(get_competency))
+        .route("/performance/competencies/:code", delete(delete_competency))
+
+        // Performance Documents
+        .route("/performance/documents", post(create_performance_document))
+        .route("/performance/documents", get(list_performance_documents))
+        .route("/performance/documents/:id", get(get_performance_document))
+        .route("/performance/documents/:id/transition", post(transition_document))
+        .route("/performance/documents/:id/self-evaluation", post(submit_self_evaluation))
+        .route("/performance/documents/:id/manager-evaluation", post(submit_manager_evaluation))
+        .route("/performance/documents/:id/finalize", post(finalize_performance_document))
+
+        // Goals
+        .route("/performance/goals", post(create_goal))
+        .route("/performance/documents/:document_id/goals", get(list_performance_goals))
+        .route("/performance/goals/:id/complete", post(complete_goal))
+        .route("/performance/goals/:id/rate", post(rate_goal))
+        .route("/performance/goals/:id", delete(delete_performance_goal))
+
+        // Competency Assessments
+        .route("/performance/assessments", post(upsert_competency_assessment))
+        .route("/performance/documents/:document_id/assessments", get(list_competency_assessments_for_document))
+
+        // Feedback
+        .route("/performance/feedback", post(create_performance_feedback))
+        .route("/performance/feedback", get(list_performance_feedback))
+        .route("/performance/feedback/:id/submit", post(submit_performance_feedback))
+
+        // Performance Dashboard
+        .route("/performance/dashboard/:review_cycle_id", get(get_performance_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

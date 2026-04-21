@@ -49,6 +49,7 @@ pub mod benefits;
 pub mod credit_management;
 pub mod product_information;
 pub mod transfer_pricing;
+pub mod order_management;
 
 pub use schema::*;
 pub use records::*;
@@ -2015,6 +2016,41 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/transfer-pricing/dashboard", get(transfer_pricing::get_tp_dashboard))
+
+        // ========================================================================
+        // Order Management (Oracle Fusion SCM > Order Management)
+        // ========================================================================
+        .route("/orders", post(order_management::create_order))
+        .route("/orders", get(order_management::list_orders))
+        .route("/orders/:id", get(order_management::get_order_by_id))
+        .route("/orders/by-number/:order_number", get(order_management::get_order))
+        .route("/orders/:id/submit", post(order_management::submit_order))
+        .route("/orders/:id/confirm", post(order_management::confirm_order))
+        .route("/orders/:id/close", post(order_management::close_order))
+        .route("/orders/:id/cancel", post(order_management::cancel_order))
+
+        // Order Lines
+        .route("/orders/lines", post(order_management::add_order_line))
+        .route("/orders/lines/:id", get(order_management::get_order_line))
+        .route("/orders/lines/:id/ship", post(order_management::ship_order_line))
+        .route("/orders/lines/:id/cancel", post(order_management::cancel_order_line))
+        .route("/orders/:order_id/lines", get(order_management::list_order_lines))
+
+        // Order Holds
+        .route("/orders/holds", post(order_management::apply_hold))
+        .route("/orders/holds/:id/release", post(order_management::release_hold))
+        .route("/orders/:order_id/holds", get(order_management::list_holds))
+
+        // Shipments
+        .route("/orders/shipments", post(order_management::create_shipment))
+        .route("/orders/shipments", get(order_management::list_shipments))
+        .route("/orders/shipments/:id", get(order_management::get_shipment))
+        .route("/orders/shipments/:id/confirm", post(order_management::confirm_shipment))
+        .route("/orders/shipments/:id/tracking", post(order_management::update_tracking))
+        .route("/orders/shipments/:id/deliver", post(order_management::confirm_delivery))
+
+        // Order Management Dashboard
+        .route("/orders/dashboard", get(order_management::get_order_management_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

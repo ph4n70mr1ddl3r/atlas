@@ -70,6 +70,7 @@ pub mod performance;
 pub mod credit_management;
 pub mod product_information;
 pub mod quality_management;
+pub mod transfer_pricing;
 
 pub use schema::*;
 pub use workflow::{
@@ -141,6 +142,7 @@ pub use performance::{PerformanceEngine, PostgresPerformanceRepository as Postgr
 pub use credit_management::{CreditManagementEngine, PostgresCreditManagementRepository as PostgresCreditManagementRepo};
 pub use product_information::{ProductInformationEngine, PostgresProductInformationRepository as PostgresProductInformationRepo};
 pub use quality_management::{QualityManagementEngine, PostgresQualityManagementRepository as PostgresQualityManagementRepo};
+pub use transfer_pricing::{TransferPricingEngine, PostgresTransferPricingRepository as PostgresTransferPricingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

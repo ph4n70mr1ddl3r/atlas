@@ -11578,3 +11578,194 @@ pub struct QualityDashboardSummary {
     pub ncrs_by_type: serde_json::Value,
 }
 
+// ============================================================================
+// Transfer Pricing (Oracle Fusion Financials > Transfer Pricing)
+// ============================================================================
+
+/// Transfer Pricing Policy
+/// Defines the pricing method and parameters for intercompany transactions.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransferPricingPolicy {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub policy_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub pricing_method: String,
+    pub from_entity_id: Option<Uuid>,
+    pub from_entity_name: Option<String>,
+    pub to_entity_id: Option<Uuid>,
+    pub to_entity_name: Option<String>,
+    pub product_category: Option<String>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub geography: Option<String>,
+    pub tax_jurisdiction: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub arm_length_range_low: String,
+    pub arm_length_range_mid: String,
+    pub arm_length_range_high: String,
+    pub margin_pct: String,
+    pub cost_base: Option<String>,
+    pub status: String,
+    pub version: i32,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Transfer Price Transaction
+/// Individual intercompany transaction with calculated transfer price.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransferPriceTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub transaction_number: String,
+    pub policy_id: Option<Uuid>,
+    pub from_entity_id: Option<Uuid>,
+    pub from_entity_name: Option<String>,
+    pub to_entity_id: Option<Uuid>,
+    pub to_entity_name: Option<String>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub quantity: String,
+    pub unit_cost: String,
+    pub transfer_price: String,
+    pub total_amount: String,
+    pub currency_code: String,
+    pub transaction_date: chrono::NaiveDate,
+    pub gl_date: Option<chrono::NaiveDate>,
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub margin_applied: Option<String>,
+    pub margin_amount: Option<String>,
+    pub is_arm_length_compliant: Option<bool>,
+    pub compliance_notes: Option<String>,
+    pub status: String,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Benchmark Study (Arm's-Length Analysis)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BenchmarkStudy {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub study_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub policy_id: Option<Uuid>,
+    pub analysis_method: String,
+    pub fiscal_year: Option<i32>,
+    pub from_entity_id: Option<Uuid>,
+    pub from_entity_name: Option<String>,
+    pub to_entity_id: Option<Uuid>,
+    pub to_entity_name: Option<String>,
+    pub product_category: Option<String>,
+    pub tested_party: Option<String>,
+    pub interquartile_range_low: String,
+    pub interquartile_range_mid: String,
+    pub interquartile_range_high: String,
+    pub tested_result: String,
+    pub is_within_range: Option<bool>,
+    pub conclusion: Option<String>,
+    pub prepared_by: Option<Uuid>,
+    pub prepared_by_name: Option<String>,
+    pub reviewed_by: Option<Uuid>,
+    pub reviewed_by_name: Option<String>,
+    pub status: String,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Benchmark Comparable Company
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BenchmarkComparable {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub benchmark_id: Uuid,
+    pub comparable_number: i32,
+    pub company_name: String,
+    pub country: Option<String>,
+    pub industry_code: Option<String>,
+    pub industry_description: Option<String>,
+    pub fiscal_year: Option<i32>,
+    pub revenue: String,
+    pub operating_income: String,
+    pub operating_margin_pct: String,
+    pub net_income: String,
+    pub total_assets: String,
+    pub employees: Option<i32>,
+    pub data_source: Option<String>,
+    pub is_included: bool,
+    pub exclusion_reason: Option<String>,
+    pub relevance_score: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Documentation Package (BEPS / Local File / Master File / CbCR)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransferPricingDocumentation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub doc_number: String,
+    pub title: String,
+    pub doc_type: String,
+    pub fiscal_year: i32,
+    pub country: Option<String>,
+    pub reporting_entity_id: Option<Uuid>,
+    pub reporting_entity_name: Option<String>,
+    pub description: Option<String>,
+    pub content_summary: Option<String>,
+    pub policy_ids: Option<serde_json::Value>,
+    pub benchmark_ids: Option<serde_json::Value>,
+    pub filing_date: Option<chrono::NaiveDate>,
+    pub filing_deadline: Option<chrono::NaiveDate>,
+    pub responsible_party: Option<String>,
+    pub status: String,
+    pub reviewed_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub filed_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Transfer Pricing Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransferPricingDashboard {
+    pub total_policies: i32,
+    pub active_policies: i32,
+    pub total_transactions: i32,
+    pub total_transaction_value: String,
+    pub pending_transactions: i32,
+    pub non_compliant_transactions: i32,
+    pub compliance_rate_pct: String,
+    pub total_benchmarks: i32,
+    pub active_benchmarks: i32,
+    pub benchmarks_within_range: i32,
+    pub total_documentation: i32,
+    pub pending_filings: i32,
+    pub overdue_filings: i32,
+    pub transactions_by_method: serde_json::Value,
+    pub transactions_by_status: serde_json::Value,
+}
+

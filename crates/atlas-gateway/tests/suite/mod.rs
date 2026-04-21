@@ -47,3 +47,4 @@ mod benefits;
 mod performance;
 mod credit_management;
 mod product_information;
+mod transfer_pricing;

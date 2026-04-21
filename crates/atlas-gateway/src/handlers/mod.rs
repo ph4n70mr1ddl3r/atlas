@@ -48,6 +48,7 @@ pub mod performance;
 pub mod benefits;
 pub mod credit_management;
 pub mod product_information;
+pub mod transfer_pricing;
 
 pub use schema::*;
 pub use records::*;
@@ -1970,6 +1971,50 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // PIM Dashboard
         .route("/pim/dashboard", get(product_information::get_pim_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Transfer Pricing (Oracle Fusion Financials > Transfer Pricing)
+        // ═══════════════════════════════════════════════════════
+
+        // Policies
+        .route("/transfer-pricing/policies", post(transfer_pricing::create_policy))
+        .route("/transfer-pricing/policies", get(transfer_pricing::list_policies))
+        .route("/transfer-pricing/policies/:code", get(transfer_pricing::get_policy))
+        .route("/transfer-pricing/policies/:id/activate", post(transfer_pricing::activate_policy))
+        .route("/transfer-pricing/policies/:id/deactivate", post(transfer_pricing::deactivate_policy))
+        .route("/transfer-pricing/policies/:code", delete(transfer_pricing::delete_policy))
+
+        // Transactions
+        .route("/transfer-pricing/transactions", post(transfer_pricing::create_transaction))
+        .route("/transfer-pricing/transactions", get(transfer_pricing::list_transactions))
+        .route("/transfer-pricing/transactions/:id", get(transfer_pricing::get_transaction))
+        .route("/transfer-pricing/transactions/:id/submit", post(transfer_pricing::submit_transaction))
+        .route("/transfer-pricing/transactions/:id/approve", post(transfer_pricing::approve_transaction))
+        .route("/transfer-pricing/transactions/:id/reject", post(transfer_pricing::reject_transaction))
+
+        // Benchmarks
+        .route("/transfer-pricing/benchmarks", post(transfer_pricing::create_benchmark))
+        .route("/transfer-pricing/benchmarks", get(transfer_pricing::list_benchmarks))
+        .route("/transfer-pricing/benchmarks/:id", get(transfer_pricing::get_benchmark))
+        .route("/transfer-pricing/benchmarks/:id/submit", post(transfer_pricing::submit_benchmark))
+        .route("/transfer-pricing/benchmarks/:id/approve", post(transfer_pricing::approve_benchmark))
+        .route("/transfer-pricing/benchmarks/:id/reject", post(transfer_pricing::reject_benchmark))
+        .route("/transfer-pricing/benchmarks/:id", delete(transfer_pricing::delete_benchmark))
+
+        // Comparables
+        .route("/transfer-pricing/benchmarks/:benchmark_id/comparables", post(transfer_pricing::add_comparable))
+        .route("/transfer-pricing/benchmarks/:benchmark_id/comparables", get(transfer_pricing::list_comparables))
+
+        // Documentation
+        .route("/transfer-pricing/documentation", post(transfer_pricing::create_documentation))
+        .route("/transfer-pricing/documentation", get(transfer_pricing::list_documentation))
+        .route("/transfer-pricing/documentation/:id", get(transfer_pricing::get_documentation))
+        .route("/transfer-pricing/documentation/:id/submit", post(transfer_pricing::submit_documentation))
+        .route("/transfer-pricing/documentation/:id/approve", post(transfer_pricing::approve_documentation))
+        .route("/transfer-pricing/documentation/:id/file", post(transfer_pricing::file_documentation))
+
+        // Dashboard
+        .route("/transfer-pricing/dashboard", get(transfer_pricing::get_tp_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

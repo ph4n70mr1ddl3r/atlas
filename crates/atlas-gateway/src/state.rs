@@ -46,6 +46,7 @@ use atlas_core::{
     PerformanceEngine,
     CreditManagementEngine,
     ProductInformationEngine,
+    TransferPricingEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -90,6 +91,7 @@ use atlas_core::{
     performance::PostgresPerformanceRepository,
     credit_management::PostgresCreditManagementRepository,
     product_information::PostgresProductInformationRepository,
+    transfer_pricing::PostgresTransferPricingRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -148,6 +150,7 @@ pub struct AppState {
     pub performance_engine: Arc<PerformanceEngine>,
     pub credit_management_engine: Arc<CreditManagementEngine>,
     pub product_information_engine: Arc<ProductInformationEngine>,
+    pub transfer_pricing_engine: Arc<TransferPricingEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -404,6 +407,11 @@ impl AppState {
             PostgresProductInformationRepository::new(db_pool.clone())
         )));
 
+        // Initialize transfer pricing engine
+        let transfer_pricing_engine = Arc::new(TransferPricingEngine::new(Arc::new(
+            PostgresTransferPricingRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -489,6 +497,7 @@ impl AppState {
             performance_engine,
             credit_management_engine,
             product_information_engine,
+            transfer_pricing_engine,
             event_bus,
             jwt_secret,
         };

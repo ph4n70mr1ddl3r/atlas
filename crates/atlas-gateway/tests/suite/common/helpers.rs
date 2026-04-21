@@ -13,6 +13,7 @@ use atlas_core::{
     ScheduledProcessEngine,
     CreditManagementEngine,
     ProductInformationEngine,
+    TransferPricingEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -272,6 +273,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::product_information::PostgresProductInformationRepository::new(db_pool.clone()),
     )));
 
+    let transfer_pricing_engine = Arc::new(atlas_core::TransferPricingEngine::new(Arc::new(
+        atlas_core::transfer_pricing::PostgresTransferPricingRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -321,6 +326,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         performance_engine,
         credit_management_engine,
         product_information_engine,
+        transfer_pricing_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -583,4 +589,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.credit_profiles").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.credit_check_rules").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.credit_scoring_models").execute(pool).await.ok();
+    // Clean transfer pricing test data
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_comparables").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_documentation").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_transactions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_benchmarks").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_policies").execute(pool).await.ok();
 }

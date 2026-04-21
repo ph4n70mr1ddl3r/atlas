@@ -844,6 +844,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         product_information_engine: Arc::new(atlas_core::ProductInformationEngine::new(Arc::new(
             atlas_core::product_information::PostgresProductInformationRepository::new(db_pool.clone()),
         ))),
+        transfer_pricing_engine: Arc::new(atlas_core::TransferPricingEngine::new(Arc::new(
+            atlas_core::transfer_pricing::PostgresTransferPricingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

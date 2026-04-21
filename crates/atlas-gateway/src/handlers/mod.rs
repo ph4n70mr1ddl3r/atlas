@@ -47,6 +47,7 @@ mod corporate_card;
 pub mod performance;
 pub mod benefits;
 pub mod credit_management;
+pub mod product_information;
 
 pub use schema::*;
 pub use records::*;
@@ -1921,6 +1922,54 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Credit Management - Dashboard
         .route("/credit/dashboard", get(get_credit_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Product Information Management (Oracle Fusion Product Hub)
+        // ═══════════════════════════════════════════════════════
+
+        // Product Items
+        .route("/pim/items", post(product_information::create_item))
+        .route("/pim/items", get(product_information::list_items))
+        .route("/pim/items/by-number/:item_number", get(product_information::get_item_by_number))
+        .route("/pim/items/:id", get(product_information::get_item))
+        .route("/pim/items/:id/status", post(product_information::update_item_status))
+        .route("/pim/items/:id/lifecycle", post(product_information::update_item_lifecycle))
+        .route("/pim/items/:id", delete(product_information::delete_item))
+
+        // Item Categories
+        .route("/pim/categories", post(product_information::create_category))
+        .route("/pim/categories", get(product_information::list_categories))
+        .route("/pim/categories/:id", get(product_information::get_category))
+        .route("/pim/categories/:id", delete(product_information::delete_category))
+
+        // Item Category Assignments
+        .route("/pim/items/:item_id/categories", post(product_information::assign_item_category))
+        .route("/pim/items/:item_id/categories", get(product_information::list_item_categories))
+        .route("/pim/item-categories/:assignment_id", delete(product_information::remove_item_category))
+
+        // Item Cross-References
+        .route("/pim/items/:item_id/cross-references", post(product_information::create_cross_reference))
+        .route("/pim/items/:item_id/cross-references", get(product_information::list_cross_references))
+        .route("/pim/cross-references", get(product_information::list_all_cross_references))
+        .route("/pim/cross-references/:id", delete(product_information::delete_cross_reference))
+
+        // Item Templates
+        .route("/pim/templates", post(product_information::create_template))
+        .route("/pim/templates", get(product_information::list_templates))
+        .route("/pim/templates/:id", delete(product_information::delete_template))
+
+        // New Item Requests (NIR)
+        .route("/pim/new-item-requests", post(product_information::create_new_item_request))
+        .route("/pim/new-item-requests", get(product_information::list_new_item_requests))
+        .route("/pim/new-item-requests/:id", get(product_information::get_new_item_request))
+        .route("/pim/new-item-requests/:id/submit", post(product_information::submit_new_item_request))
+        .route("/pim/new-item-requests/:id/approve", post(product_information::approve_new_item_request))
+        .route("/pim/new-item-requests/:id/reject", post(product_information::reject_new_item_request))
+        .route("/pim/new-item-requests/:id/implement", post(product_information::implement_new_item_request))
+        .route("/pim/new-item-requests/:id/cancel", post(product_information::cancel_new_item_request))
+
+        // PIM Dashboard
+        .route("/pim/dashboard", get(product_information::get_pim_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

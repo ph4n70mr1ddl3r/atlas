@@ -12,6 +12,7 @@ use atlas_core::{
     ManualJournalEngine,
     ScheduledProcessEngine,
     CreditManagementEngine,
+    ProductInformationEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -267,6 +268,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::credit_management::PostgresCreditManagementRepository::new(db_pool.clone()),
     )));
 
+    let product_information_engine = Arc::new(atlas_core::ProductInformationEngine::new(Arc::new(
+        atlas_core::product_information::PostgresProductInformationRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -315,6 +320,7 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         benefits_engine,
         performance_engine,
         credit_management_engine,
+        product_information_engine,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

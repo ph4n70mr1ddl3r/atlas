@@ -16,6 +16,7 @@ use crate::revenue::RevenueRepository;
 use crate::segregation_of_duties::SegregationOfDutiesRepository;
 use crate::project_costing::ProjectCostingRepository;
 use crate::autoinvoice::AutoInvoiceRepository;
+use crate::product_information::ProductInformationRepository;
 
 /// Mock schema repository
 pub struct MockSchemaRepository;
@@ -3815,6 +3816,245 @@ impl AutoInvoiceRepository for MockAutoInvoiceRepository {
             total_batches: 0, pending_batches: 0, completed_batches: 0,
             failed_batches: 0, total_lines_imported: 0,
             total_invoices_created: 0, total_invoice_amount: "0".to_string(),
+        })
+    }
+}
+
+/// Mock Product Information repository for testing
+pub struct MockProductInformationRepository;
+
+#[async_trait]
+impl ProductInformationRepository for MockProductInformationRepository {
+    async fn create_item(
+        &self, org_id: Uuid, item_number: &str, item_name: &str,
+        description: Option<&str>, long_description: Option<&str>,
+        item_type: &str, status: &str, lifecycle_phase: &str,
+        primary_uom_code: &str, secondary_uom_code: Option<&str>,
+        weight: Option<&str>, weight_uom: Option<&str>,
+        volume: Option<&str>, volume_uom: Option<&str>,
+        hazmat_flag: bool, lot_control_flag: bool, serial_control_flag: bool,
+        shelf_life_days: Option<i32>,
+        min_order_quantity: Option<&str>, max_order_quantity: Option<&str>,
+        lead_time_days: Option<i32>,
+        list_price: Option<&str>, cost_price: Option<&str>,
+        currency_code: &str,
+        inventory_item_flag: bool, purchasable_flag: bool,
+        sellable_flag: bool, stock_enabled_flag: bool, invoice_enabled_flag: bool,
+        default_buyer_id: Option<Uuid>, default_supplier_id: Option<Uuid>,
+        template_id: Option<Uuid>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ProductItem> {
+        Ok(atlas_shared::ProductItem {
+            id: Uuid::new_v4(), organization_id: org_id,
+            item_number: item_number.to_string(), item_name: item_name.to_string(),
+            description: description.map(String::from),
+            long_description: long_description.map(String::from),
+            item_type: item_type.to_string(),
+            status: status.to_string(), lifecycle_phase: lifecycle_phase.to_string(),
+            primary_uom_code: primary_uom_code.to_string(),
+            secondary_uom_code: secondary_uom_code.map(String::from),
+            weight: weight.map(String::from), weight_uom: weight_uom.map(String::from),
+            volume: volume.map(String::from), volume_uom: volume_uom.map(String::from),
+            hazmat_flag, lot_control_flag, serial_control_flag, shelf_life_days,
+            min_order_quantity: min_order_quantity.map(String::from),
+            max_order_quantity: max_order_quantity.map(String::from),
+            lead_time_days,
+            list_price: list_price.map(String::from),
+            cost_price: cost_price.map(String::from),
+            currency_code: currency_code.to_string(),
+            inventory_item_flag, purchasable_flag, sellable_flag,
+            stock_enabled_flag, invoice_enabled_flag,
+            default_buyer_id, default_supplier_id, template_id,
+            thumbnail_url: None, image_url: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_item(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ProductItem>> { Ok(None) }
+    async fn get_item_by_number(&self, _org_id: Uuid, _item_number: &str) -> AtlasResult<Option<atlas_shared::ProductItem>> { Ok(None) }
+    async fn list_items(&self, _org_id: Uuid, _status: Option<&str>, _item_type: Option<&str>, _category_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::ProductItem>> { Ok(vec![]) }
+    async fn update_item_status(&self, id: Uuid, status: &str, lifecycle_phase: Option<&str>) -> AtlasResult<atlas_shared::ProductItem> {
+        Ok(atlas_shared::ProductItem {
+            id, organization_id: Uuid::new_v4(),
+            item_number: "MOCK".to_string(), item_name: "Mock".to_string(),
+            description: None, long_description: None,
+            item_type: "finished_good".to_string(),
+            status: status.to_string(),
+            lifecycle_phase: lifecycle_phase.unwrap_or("concept").to_string(),
+            primary_uom_code: "EA".to_string(), secondary_uom_code: None,
+            weight: None, weight_uom: None, volume: None, volume_uom: None,
+            hazmat_flag: false, lot_control_flag: false, serial_control_flag: false,
+            shelf_life_days: None,
+            min_order_quantity: None, max_order_quantity: None, lead_time_days: None,
+            list_price: None, cost_price: None,
+            currency_code: "USD".to_string(),
+            inventory_item_flag: true, purchasable_flag: true, sellable_flag: true,
+            stock_enabled_flag: true, invoice_enabled_flag: true,
+            default_buyer_id: None, default_supplier_id: None, template_id: None,
+            thumbnail_url: None, image_url: None,
+            metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn update_item_lifecycle(&self, id: Uuid, lifecycle_phase: &str) -> AtlasResult<atlas_shared::ProductItem> {
+        Ok(atlas_shared::ProductItem {
+            id, organization_id: Uuid::new_v4(),
+            item_number: "MOCK".to_string(), item_name: "Mock".to_string(),
+            description: None, long_description: None,
+            item_type: "finished_good".to_string(),
+            status: "draft".to_string(), lifecycle_phase: lifecycle_phase.to_string(),
+            primary_uom_code: "EA".to_string(), secondary_uom_code: None,
+            weight: None, weight_uom: None, volume: None, volume_uom: None,
+            hazmat_flag: false, lot_control_flag: false, serial_control_flag: false,
+            shelf_life_days: None,
+            min_order_quantity: None, max_order_quantity: None, lead_time_days: None,
+            list_price: None, cost_price: None,
+            currency_code: "USD".to_string(),
+            inventory_item_flag: true, purchasable_flag: true, sellable_flag: true,
+            stock_enabled_flag: true, invoice_enabled_flag: true,
+            default_buyer_id: None, default_supplier_id: None, template_id: None,
+            thumbnail_url: None, image_url: None,
+            metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn delete_item(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_category(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        parent_category_id: Option<Uuid>, level_number: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PimCategory> {
+        Ok(atlas_shared::PimCategory {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            parent_category_id, level_number,
+            item_count: 0, is_active: true,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_category(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PimCategory>> { Ok(None) }
+    async fn get_category_by_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::PimCategory>> { Ok(None) }
+    async fn list_categories(&self, _org_id: Uuid, _parent_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::PimCategory>> { Ok(vec![]) }
+    async fn delete_category(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn assign_item_category(
+        &self, org_id: Uuid, item_id: Uuid, category_id: Uuid, is_primary: bool, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PimCategoryAssignment> {
+        Ok(atlas_shared::PimCategoryAssignment {
+            id: Uuid::new_v4(), organization_id: org_id,
+            item_id, category_id, is_primary, created_by,
+            created_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_primary_category_assignment(&self, _item_id: Uuid) -> AtlasResult<Option<atlas_shared::PimCategoryAssignment>> { Ok(None) }
+    async fn list_item_categories(&self, _item_id: Uuid) -> AtlasResult<Vec<atlas_shared::PimCategoryAssignment>> { Ok(vec![]) }
+    async fn remove_item_category(&self, _assignment_id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_cross_reference(
+        &self, org_id: Uuid, item_id: Uuid, cross_reference_type: &str, cross_reference_value: &str,
+        description: Option<&str>, source_system: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PimCrossReference> {
+        Ok(atlas_shared::PimCrossReference {
+            id: Uuid::new_v4(), organization_id: org_id, item_id,
+            cross_reference_type: cross_reference_type.to_string(),
+            cross_reference_value: cross_reference_value.to_string(),
+            description: description.map(String::from),
+            source_system: source_system.map(String::from),
+            effective_from, effective_to,
+            is_active: true, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_cross_reference_by_value(&self, _org_id: Uuid, _xref_type: &str, _value: &str) -> AtlasResult<Option<atlas_shared::PimCrossReference>> { Ok(None) }
+    async fn list_cross_references(&self, _item_id: Uuid) -> AtlasResult<Vec<atlas_shared::PimCrossReference>> { Ok(vec![]) }
+    async fn list_all_cross_references(&self, _org_id: Uuid, _xref_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::PimCrossReference>> { Ok(vec![]) }
+    async fn delete_cross_reference(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_template(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        item_type: &str, default_uom_code: Option<&str>, default_category_id: Option<Uuid>,
+        default_inventory_flag: bool, default_purchasable_flag: bool,
+        default_sellable_flag: bool, default_stock_enabled_flag: bool,
+        attribute_defaults: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PimItemTemplate> {
+        Ok(atlas_shared::PimItemTemplate {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            item_type: item_type.to_string(),
+            default_uom_code: default_uom_code.map(String::from),
+            default_category_id,
+            default_inventory_flag, default_purchasable_flag,
+            default_sellable_flag, default_stock_enabled_flag,
+            attribute_defaults, is_active: true,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_template(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PimItemTemplate>> { Ok(None) }
+    async fn get_template_by_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::PimItemTemplate>> { Ok(None) }
+    async fn list_templates(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::PimItemTemplate>> { Ok(vec![]) }
+    async fn delete_template(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_new_item_request(
+        &self, org_id: Uuid, request_number: &str, title: &str, description: Option<&str>,
+        item_type: &str, priority: &str, status: &str,
+        requested_item_number: Option<&str>, requested_item_name: Option<&str>,
+        requested_category_id: Option<Uuid>, justification: Option<&str>,
+        target_launch_date: Option<chrono::NaiveDate>, estimated_cost: Option<&str>,
+        currency_code: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PimNewItemRequest> {
+        Ok(atlas_shared::PimNewItemRequest {
+            id: Uuid::new_v4(), organization_id: org_id,
+            request_number: request_number.to_string(),
+            title: title.to_string(), description: description.map(String::from),
+            item_type: item_type.to_string(), priority: priority.to_string(),
+            status: status.to_string(),
+            requested_item_number: requested_item_number.map(String::from),
+            requested_item_name: requested_item_name.map(String::from),
+            requested_category_id, justification: justification.map(String::from),
+            target_launch_date, estimated_cost: estimated_cost.map(String::from),
+            currency_code: currency_code.to_string(),
+            requested_by: created_by, approved_by: None, approved_at: None,
+            rejection_reason: None, implemented_item_id: None, implemented_at: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_new_item_request(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PimNewItemRequest>> { Ok(None) }
+    async fn list_new_item_requests(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::PimNewItemRequest>> { Ok(vec![]) }
+    async fn update_nir_status(
+        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
+        approved_at: Option<chrono::DateTime<chrono::Utc>>, rejection_reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::PimNewItemRequest> {
+        Ok(atlas_shared::PimNewItemRequest {
+            id, organization_id: Uuid::new_v4(),
+            request_number: "MOCK".to_string(),
+            title: "Mock".to_string(), description: None,
+            item_type: "finished_good".to_string(), priority: "medium".to_string(),
+            status: status.to_string(),
+            requested_item_number: None, requested_item_name: None,
+            requested_category_id: None, justification: None,
+            target_launch_date: None, estimated_cost: None,
+            currency_code: "USD".to_string(),
+            requested_by: None, approved_by, approved_at,
+            rejection_reason: rejection_reason.map(String::from),
+            implemented_item_id: None, implemented_at: None,
+            metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn update_nir_implemented(&self, _id: Uuid, _implemented_item_id: Uuid, _implemented_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<()> { Ok(()) }
+
+    async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::PimDashboard> {
+        Ok(atlas_shared::PimDashboard {
+            total_items: 0, active_items: 0, draft_items: 0, obsolete_items: 0,
+            total_categories: 0, pending_nir_count: 0, approved_nir_count: 0,
+            cross_reference_count: 0, recently_created_items: 0,
+            items_by_type: serde_json::json!({}),
         })
     }
 }

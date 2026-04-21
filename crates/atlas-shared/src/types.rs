@@ -11122,3 +11122,234 @@ pub struct CreditManagementDashboard {
     pub average_utilization: String,
 }
 
+// ============================================================================
+// Product Information Management (PIM)
+// Oracle Fusion Cloud: Product Hub / Product Information Management
+//
+// Central product master data management including items, categories,
+// cross-references, lifecycle phases, and new item request workflows.
+// ============================================================================
+
+/// Item status within its lifecycle.
+/// Oracle Fusion: Product Development > Item > Status
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ItemStatus {
+    Draft,
+    Active,
+    Obsolete,
+    Inactive,
+    PendingApproval,
+}
+
+impl std::fmt::Display for ItemStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ItemStatus::Draft => write!(f, "draft"),
+            ItemStatus::Active => write!(f, "active"),
+            ItemStatus::Obsolete => write!(f, "obsolete"),
+            ItemStatus::Inactive => write!(f, "inactive"),
+            ItemStatus::PendingApproval => write!(f, "pending_approval"),
+        }
+    }
+}
+
+/// Lifecycle phase for an item.
+/// Oracle Fusion: Product Hub > Item Lifecycle
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum LifecyclePhase {
+    Concept,
+    Design,
+    Prototype,
+    Production,
+    PhaseOut,
+    Obsolete,
+}
+
+impl std::fmt::Display for LifecyclePhase {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LifecyclePhase::Concept => write!(f, "concept"),
+            LifecyclePhase::Design => write!(f, "design"),
+            LifecyclePhase::Prototype => write!(f, "prototype"),
+            LifecyclePhase::Production => write!(f, "production"),
+            LifecyclePhase::PhaseOut => write!(f, "phase_out"),
+            LifecyclePhase::Obsolete => write!(f, "obsolete"),
+        }
+    }
+}
+
+/// Product item master record.
+/// Oracle Fusion: Product Hub > Manage Items
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductItem {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub item_number: String,
+    pub item_name: String,
+    pub description: Option<String>,
+    pub long_description: Option<String>,
+    pub item_type: String, // finished_good, subassembly, component, service, supply, expense
+    pub status: String,
+    pub lifecycle_phase: String,
+    pub primary_uom_code: String,
+    pub secondary_uom_code: Option<String>,
+    pub weight: Option<String>,
+    pub weight_uom: Option<String>,
+    pub volume: Option<String>,
+    pub volume_uom: Option<String>,
+    pub hazmat_flag: bool,
+    pub lot_control_flag: bool,
+    pub serial_control_flag: bool,
+    pub shelf_life_days: Option<i32>,
+    pub min_order_quantity: Option<String>,
+    pub max_order_quantity: Option<String>,
+    pub lead_time_days: Option<i32>,
+    pub list_price: Option<String>,
+    pub cost_price: Option<String>,
+    pub currency_code: String,
+    pub inventory_item_flag: bool,
+    pub purchasable_flag: bool,
+    pub sellable_flag: bool,
+    pub stock_enabled_flag: bool,
+    pub invoice_enabled_flag: bool,
+    pub default_buyer_id: Option<Uuid>,
+    pub default_supplier_id: Option<Uuid>,
+    pub template_id: Option<Uuid>,
+    pub thumbnail_url: Option<String>,
+    pub image_url: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// PIM Item category for hierarchical classification.
+/// Oracle Fusion: Product Hub > Manage Item Classes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PimCategory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub parent_category_id: Option<Uuid>,
+    pub level_number: i32,
+    pub item_count: i32,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// PIM item-to-category assignment.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PimCategoryAssignment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub item_id: Uuid,
+    pub category_id: Uuid,
+    pub is_primary: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Item cross-reference for mapping item identifiers across systems.
+/// Oracle Fusion: Product Hub > Manage Cross-References
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PimCrossReference {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub item_id: Uuid,
+    pub cross_reference_type: String, // gtin, upc, ean, supplier, customer, internal, other
+    pub cross_reference_value: String,
+    pub description: Option<String>,
+    pub source_system: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// New Item Request (NIR) for introducing new products through workflow.
+/// Oracle Fusion: Product Hub > New Item Request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PimNewItemRequest {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub request_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub item_type: String,
+    pub priority: String, // low, medium, high, critical
+    pub status: String,   // draft, submitted, approved, rejected, implemented, cancelled
+    pub requested_item_number: Option<String>,
+    pub requested_item_name: Option<String>,
+    pub requested_category_id: Option<Uuid>,
+    pub justification: Option<String>,
+    pub target_launch_date: Option<chrono::NaiveDate>,
+    pub estimated_cost: Option<String>,
+    pub currency_code: String,
+    pub requested_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejection_reason: Option<String>,
+    pub implemented_item_id: Option<Uuid>,
+    pub implemented_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Item template for standardizing item creation.
+/// Oracle Fusion: Product Hub > Manage Item Templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PimItemTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub item_type: String,
+    pub default_uom_code: Option<String>,
+    pub default_category_id: Option<Uuid>,
+    pub default_inventory_flag: bool,
+    pub default_purchasable_flag: bool,
+    pub default_sellable_flag: bool,
+    pub default_stock_enabled_flag: bool,
+    pub attribute_defaults: serde_json::Value,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// PIM Dashboard summary.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PimDashboard {
+    pub total_items: i32,
+    pub active_items: i32,
+    pub draft_items: i32,
+    pub obsolete_items: i32,
+    pub total_categories: i32,
+    pub pending_nir_count: i32,
+    pub approved_nir_count: i32,
+    pub cross_reference_count: i32,
+    pub recently_created_items: i32,
+    pub items_by_type: serde_json::Value,
+}
+

@@ -68,6 +68,7 @@ pub mod benefits;
 pub mod autoinvoice;
 pub mod performance;
 pub mod credit_management;
+pub mod product_information;
 
 pub use schema::*;
 pub use workflow::{
@@ -137,6 +138,7 @@ pub use benefits::{BenefitsEngine, PostgresBenefitsRepository as PostgresBenefit
 pub use autoinvoice::{AutoInvoiceEngine, PostgresAutoInvoiceRepository as PostgresAutoInvoiceRepo};
 pub use performance::{PerformanceEngine, PostgresPerformanceRepository as PostgresPerformanceRepo};
 pub use credit_management::{CreditManagementEngine, PostgresCreditManagementRepository as PostgresCreditManagementRepo};
+pub use product_information::{ProductInformationEngine, PostgresProductInformationRepository as PostgresProductInformationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

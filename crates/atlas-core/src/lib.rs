@@ -69,6 +69,7 @@ pub mod autoinvoice;
 pub mod performance;
 pub mod credit_management;
 pub mod product_information;
+pub mod quality_management;
 
 pub use schema::*;
 pub use workflow::{
@@ -139,6 +140,7 @@ pub use autoinvoice::{AutoInvoiceEngine, PostgresAutoInvoiceRepository as Postgr
 pub use performance::{PerformanceEngine, PostgresPerformanceRepository as PostgresPerformanceRepo};
 pub use credit_management::{CreditManagementEngine, PostgresCreditManagementRepository as PostgresCreditManagementRepo};
 pub use product_information::{ProductInformationEngine, PostgresProductInformationRepository as PostgresProductInformationRepo};
+pub use quality_management::{QualityManagementEngine, PostgresQualityManagementRepository as PostgresQualityManagementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

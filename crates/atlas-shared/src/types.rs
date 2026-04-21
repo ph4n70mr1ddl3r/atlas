@@ -11892,6 +11892,45 @@ pub struct FulfillmentShipment {
     pub updated_at: DateTime<Utc>,
 }
 
+/// Create Sales Order Request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateSalesOrderRequest {
+    pub customer_id: Option<Uuid>,
+    pub customer_name: Option<String>,
+    pub customer_po_number: Option<String>,
+    pub order_date: chrono::NaiveDate,
+    pub requested_ship_date: Option<chrono::NaiveDate>,
+    pub requested_delivery_date: Option<chrono::NaiveDate>,
+    pub ship_to_address: Option<String>,
+    pub bill_to_address: Option<String>,
+    pub currency_code: String,
+    pub payment_terms: Option<String>,
+    pub shipping_method: Option<String>,
+    pub sales_channel: Option<String>,
+    pub salesperson_id: Option<Uuid>,
+    pub salesperson_name: Option<String>,
+    pub created_by: Option<Uuid>,
+}
+
+/// Add Order Line Request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddOrderLineRequest {
+    pub org_id: Uuid,
+    pub order_id: Uuid,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub quantity_ordered: String,
+    pub unit_selling_price: String,
+    pub unit_list_price: Option<String>,
+    pub discount_percent: Option<String>,
+    pub discount_amount: Option<String>,
+    pub tax_code: Option<String>,
+    pub requested_ship_date: Option<chrono::NaiveDate>,
+    pub promised_delivery_date: Option<chrono::NaiveDate>,
+    pub ship_from_warehouse: Option<String>,
+}
+
 /// Order Management Dashboard Summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderManagementDashboard {

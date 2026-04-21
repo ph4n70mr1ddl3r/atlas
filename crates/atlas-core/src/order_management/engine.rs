@@ -8,8 +8,8 @@ use crate::order_management::repository::OrderManagementRepository;
 use atlas_shared::{
     AtlasError, AtlasResult, SalesOrder, SalesOrderLine,
     OrderHold, FulfillmentShipment, OrderManagementDashboard,
+    CreateSalesOrderRequest, AddOrderLineRequest,
 };
-use async_trait::async_trait;
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -39,6 +39,7 @@ const VALID_SHIPMENT_STATUSES: &[&str] = &[
 /// Valid line statuses
 const VALID_LINE_STATUSES: &[&str] = &[
     "open", "reserved", "staged", "shipped", "delivered", "cancelled", "backordered",
+    "partially_shipped",
 ];
 
 /// Valid line fulfillment statuses
@@ -64,26 +65,12 @@ impl OrderManagementEngine {
     pub async fn create_order(
         &self,
         org_id: Uuid,
-        customer_id: Option<Uuid>,
-        customer_name: Option<&str>,
-        customer_po_number: Option<&str>,
-        order_date: chrono::NaiveDate,
-        requested_ship_date: Option<chrono::NaiveDate>,
-        requested_delivery_date: Option<chrono::NaiveDate>,
-        ship_to_address: Option<&str>,
-        bill_to_address: Option<&str>,
-        currency_code: &str,
-        payment_terms: Option<&str>,
-        shipping_method: Option<&str>,
-        sales_channel: Option<&str>,
-        salesperson_id: Option<Uuid>,
-        salesperson_name: Option<&str>,
-        created_by: Option<Uuid>,
+        req: CreateSalesOrderRequest,
     ) -> AtlasResult<SalesOrder> {
-        if currency_code.is_empty() {
+        if req.currency_code.is_empty() {
             return Err(AtlasError::ValidationFailed("Currency code is required".to_string()));
         }
-        if let Some(channel) = sales_channel {
+        if let Some(channel) = &req.sales_channel {
             if channel.is_empty() {
                 return Err(AtlasError::ValidationFailed("Sales channel cannot be empty".to_string()));
             }
@@ -94,11 +81,20 @@ impl OrderManagementEngine {
         info!("Creating sales order {} for org {}", order_number, org_id);
 
         self.repository.create_order(
-            org_id, &order_number, customer_id, customer_name,
-            customer_po_number, order_date, requested_ship_date,
-            requested_delivery_date, ship_to_address, bill_to_address,
-            currency_code, payment_terms, shipping_method, sales_channel,
-            salesperson_id, salesperson_name, created_by,
+            org_id, &order_number, req.customer_id,
+            req.customer_name.as_deref(),
+            req.customer_po_number.as_deref(),
+            req.order_date, req.requested_ship_date,
+            req.requested_delivery_date,
+            req.ship_to_address.as_deref(),
+            req.bill_to_address.as_deref(),
+            &req.currency_code,
+            req.payment_terms.as_deref(),
+            req.shipping_method.as_deref(),
+            req.sales_channel.as_deref(),
+            req.salesperson_id,
+            req.salesperson_name.as_deref(),
+            req.created_by,
         ).await
     }
 
@@ -225,23 +221,10 @@ impl OrderManagementEngine {
     /// Add a line to an order
     pub async fn add_order_line(
         &self,
-        org_id: Uuid,
-        order_id: Uuid,
-        item_id: Option<Uuid>,
-        item_code: Option<&str>,
-        item_description: Option<&str>,
-        quantity_ordered: &str,
-        unit_selling_price: &str,
-        unit_list_price: Option<&str>,
-        discount_percent: Option<&str>,
-        discount_amount: Option<&str>,
-        tax_code: Option<&str>,
-        requested_ship_date: Option<chrono::NaiveDate>,
-        promised_delivery_date: Option<chrono::NaiveDate>,
-        ship_from_warehouse: Option<&str>,
+        req: AddOrderLineRequest,
     ) -> AtlasResult<SalesOrderLine> {
-        let order = self.repository.get_order_by_id(order_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", order_id)))?;
+        let order = self.repository.get_order_by_id(req.order_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", req.order_id)))?;
 
         if order.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -250,10 +233,10 @@ impl OrderManagementEngine {
             )));
         }
 
-        let qty: f64 = quantity_ordered.parse().map_err(|_| AtlasError::ValidationFailed(
+        let qty: f64 = req.quantity_ordered.parse().map_err(|_| AtlasError::ValidationFailed(
             "Quantity must be a valid number".to_string(),
         ))?;
-        let price: f64 = unit_selling_price.parse().map_err(|_| AtlasError::ValidationFailed(
+        let price: f64 = req.unit_selling_price.parse().map_err(|_| AtlasError::ValidationFailed(
             "Unit selling price must be a valid number".to_string(),
         ))?;
 
@@ -265,11 +248,11 @@ impl OrderManagementEngine {
         }
 
         // Validate discount
-        if let Some(dp) = discount_percent {
+        if let Some(dp) = &req.discount_percent {
             let pct: f64 = dp.parse().map_err(|_| AtlasError::ValidationFailed(
                 "Discount percent must be a valid number".to_string(),
             ))?;
-            if pct < 0.0 || pct > 100.0 {
+            if !(0.0..=100.0).contains(&pct) {
                 return Err(AtlasError::ValidationFailed(
                     "Discount percent must be between 0 and 100".to_string(),
                 ));
@@ -277,21 +260,24 @@ impl OrderManagementEngine {
         }
 
         // Determine next line number
-        let existing_lines = self.repository.list_order_lines(order_id).await?;
+        let existing_lines = self.repository.list_order_lines(req.order_id).await?;
         let line_number = (existing_lines.len() as i32) + 1;
 
         info!("Adding line {} to order {}", line_number, order.order_number);
 
         let line = self.repository.create_order_line(
-            org_id, order_id, line_number,
-            item_id, item_code, item_description,
-            quantity_ordered, unit_selling_price, unit_list_price,
-            discount_percent, discount_amount, tax_code,
-            requested_ship_date, promised_delivery_date, ship_from_warehouse,
+            req.org_id, req.order_id, line_number,
+            req.item_id, req.item_code.as_deref(), req.item_description.as_deref(),
+            &req.quantity_ordered, &req.unit_selling_price,
+            req.unit_list_price.as_deref(),
+            req.discount_percent.as_deref(), req.discount_amount.as_deref(),
+            req.tax_code.as_deref(),
+            req.requested_ship_date, req.promised_delivery_date,
+            req.ship_from_warehouse.as_deref(),
         ).await?;
 
         // Recalculate order totals
-        self.repository.update_order_totals(order_id).await?;
+        self.repository.update_order_totals(req.order_id).await?;
 
         Ok(line)
     }
@@ -344,6 +330,18 @@ impl OrderManagementEngine {
         let line_status = if total_shipped >= ordered { "shipped" } else { "partially_shipped" };
         let fulfillment = if total_shipped >= ordered { "shipped" } else { "released" };
 
+        // Validate computed statuses are in the allowed set
+        if !VALID_LINE_STATUSES.contains(&line_status) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid computed line status '{}'. Must be one of: {}", line_status, VALID_LINE_STATUSES.join(", ")
+            )));
+        }
+        if !VALID_LINE_FULFILLMENT_STATUSES.contains(&fulfillment) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid computed fulfillment status '{}'. Must be one of: {}", fulfillment, VALID_LINE_FULFILLMENT_STATUSES.join(", ")
+            )));
+        }
+
         info!("Shipping {} units for order line {} (status: {})", shipped, line.line_number, line_status);
 
         self.repository.update_line_quantities(
@@ -360,7 +358,7 @@ impl OrderManagementEngine {
     }
 
     /// Cancel an order line
-    pub async fn cancel_order_line(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<SalesOrderLine> {
+    pub async fn cancel_order_line(&self, id: Uuid, _reason: Option<&str>) -> AtlasResult<SalesOrderLine> {
         let line = self.repository.get_order_line(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {} not found", id)))?;
 
@@ -381,7 +379,17 @@ impl OrderManagementEngine {
             Some("0"),
         ).await?;
 
-        self.repository.update_line_status(id, "cancelled", "not_started").await
+        let result = self.repository.update_line_status(id, "cancelled", "not_started").await?;
+
+        // Store the cancellation reason (the constant "cancelled" is always valid, but the
+        // repository call is already made; in a real DB impl update_line_cancellation_reason
+        // would persist this alongside the status change).
+        if let Some(_r) = _reason {
+            // TODO: pass to repository when cancellation_reason column is exposed via
+            // a dedicated update method (currently update_line_status doesn't accept it).
+        }
+
+        Ok(result)
     }
 
     // ========================================================================
@@ -630,10 +638,49 @@ impl OrderManagementEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{DateTime, Utc};
+    use atlas_shared::{CreateSalesOrderRequest, AddOrderLineRequest};
 
     use std::collections::HashMap;
     use std::sync::Mutex;
+
+    fn empty_order_request() -> CreateSalesOrderRequest {
+        CreateSalesOrderRequest {
+            customer_id: None,
+            customer_name: None,
+            customer_po_number: None,
+            order_date: chrono::Utc::now().date_naive(),
+            requested_ship_date: None,
+            requested_delivery_date: None,
+            ship_to_address: None,
+            bill_to_address: None,
+            currency_code: String::new(),
+            payment_terms: None,
+            shipping_method: None,
+            sales_channel: None,
+            salesperson_id: None,
+            salesperson_name: None,
+            created_by: None,
+        }
+    }
+
+    fn empty_line_request() -> AddOrderLineRequest {
+        AddOrderLineRequest {
+            org_id: Uuid::nil(),
+            order_id: Uuid::nil(),
+            item_id: None,
+            item_code: None,
+            item_description: None,
+            quantity_ordered: String::new(),
+            unit_selling_price: String::new(),
+            unit_list_price: None,
+            discount_percent: None,
+            discount_amount: None,
+            tax_code: None,
+            requested_ship_date: None,
+            promised_delivery_date: None,
+            ship_from_warehouse: None,
+        }
+    }
 
     /// Stateful mock that simulates a real repository's persistence
     struct MockState {
@@ -994,10 +1041,13 @@ mod tests {
     async fn test_create_order_validates_currency() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let result = engine.create_order(
-            Uuid::new_v4(), None, Some("Acme Corp"), None,
-            chrono::Utc::now().date_naive(), None, None, None, None,
-            "",  // empty currency
-            None, None, None, None, None, None,
+            Uuid::new_v4(),
+            CreateSalesOrderRequest {
+                customer_name: Some("Acme Corp".to_string()),
+                order_date: chrono::Utc::now().date_naive(),
+                currency_code: "".to_string(),  // empty currency
+                ..empty_order_request()
+            },
         ).await;
         assert!(result.is_err());
         let msg = format!("{:?}", result.unwrap_err());
@@ -1008,12 +1058,22 @@ mod tests {
     async fn test_create_order_success() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let result = engine.create_order(
-            Uuid::new_v4(), Some(Uuid::new_v4()), Some("Acme Corp"),
-            Some("PO-12345"), chrono::Utc::now().date_naive(),
-            Some(chrono::Utc::now().date_naive()), None,
-            Some("123 Main St"), Some("456 Billing Ave"),
-            "USD", Some("Net 30"), Some("FedEx"), Some("direct"),
-            None, Some("Jane Doe"), None,
+            Uuid::new_v4(),
+            CreateSalesOrderRequest {
+                customer_id: Some(Uuid::new_v4()),
+                customer_name: Some("Acme Corp".to_string()),
+                customer_po_number: Some("PO-12345".to_string()),
+                order_date: chrono::Utc::now().date_naive(),
+                requested_ship_date: Some(chrono::Utc::now().date_naive()),
+                ship_to_address: Some("123 Main St".to_string()),
+                bill_to_address: Some("456 Billing Ave".to_string()),
+                currency_code: "USD".to_string(),
+                payment_terms: Some("Net 30".to_string()),
+                shipping_method: Some("FedEx".to_string()),
+                sales_channel: Some("direct".to_string()),
+                salesperson_name: Some("Jane Doe".to_string()),
+                ..empty_order_request()
+            },
         ).await;
         assert!(result.is_ok());
         let order = result.unwrap();
@@ -1027,14 +1087,13 @@ mod tests {
     async fn test_create_order_generates_unique_number() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let org_id = Uuid::new_v4();
-        let o1 = engine.create_order(
-            org_id, None, None, None, chrono::Utc::now().date_naive(),
-            None, None, None, None, "USD", None, None, None, None, None, None,
-        ).await.unwrap();
-        let o2 = engine.create_order(
-            org_id, None, None, None, chrono::Utc::now().date_naive(),
-            None, None, None, None, "USD", None, None, None, None, None, None,
-        ).await.unwrap();
+        let req = CreateSalesOrderRequest {
+            order_date: chrono::Utc::now().date_naive(),
+            currency_code: "USD".to_string(),
+            ..empty_order_request()
+        };
+        let o1 = engine.create_order(org_id, req.clone()).await.unwrap();
+        let o2 = engine.create_order(org_id, req).await.unwrap();
         assert_ne!(o1.order_number, o2.order_number);
     }
 
@@ -1092,9 +1151,15 @@ mod tests {
     async fn test_add_order_line_validates_quantity() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let result = engine.add_order_line(
-            Uuid::new_v4(), Uuid::new_v4(), None, Some("ITEM-01"),
-            Some("Widget"), "-5", "10.00", None, None, None,
-            None, None, None, None,
+            AddOrderLineRequest {
+                org_id: Uuid::new_v4(),
+                order_id: Uuid::new_v4(),
+                item_code: Some("ITEM-01".to_string()),
+                item_description: Some("Widget".to_string()),
+                quantity_ordered: "-5".to_string(),
+                unit_selling_price: "10.00".to_string(),
+                ..empty_line_request()
+            },
         ).await;
         assert!(result.is_err());
         let msg = format!("{:?}", result.unwrap_err());
@@ -1105,9 +1170,15 @@ mod tests {
     async fn test_add_order_line_validates_price() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let result = engine.add_order_line(
-            Uuid::new_v4(), Uuid::new_v4(), None, Some("ITEM-01"),
-            Some("Widget"), "10", "-5.00", None, None, None,
-            None, None, None, None,
+            AddOrderLineRequest {
+                org_id: Uuid::new_v4(),
+                order_id: Uuid::new_v4(),
+                item_code: Some("ITEM-01".to_string()),
+                item_description: Some("Widget".to_string()),
+                quantity_ordered: "10".to_string(),
+                unit_selling_price: "-5.00".to_string(),
+                ..empty_line_request()
+            },
         ).await;
         assert!(result.is_err());
         let msg = format!("{:?}", result.unwrap_err());
@@ -1118,9 +1189,16 @@ mod tests {
     async fn test_add_order_line_validates_discount_range() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let result = engine.add_order_line(
-            Uuid::new_v4(), Uuid::new_v4(), None, Some("ITEM-01"),
-            Some("Widget"), "10", "25.00", None, Some("150"), None,
-            None, None, None, None,
+            AddOrderLineRequest {
+                org_id: Uuid::new_v4(),
+                order_id: Uuid::new_v4(),
+                item_code: Some("ITEM-01".to_string()),
+                item_description: Some("Widget".to_string()),
+                quantity_ordered: "10".to_string(),
+                unit_selling_price: "25.00".to_string(),
+                discount_percent: Some("150".to_string()),
+                ..empty_line_request()
+            },
         ).await;
         assert!(result.is_err());
         let msg = format!("{:?}", result.unwrap_err());
@@ -1133,10 +1211,21 @@ mod tests {
         let org_id = Uuid::new_v4();
         let order_id = Uuid::new_v4();
         let result = engine.add_order_line(
-            org_id, order_id, Some(Uuid::new_v4()), Some("ITEM-01"),
-            Some("Premium Widget"), "100", "25.00", Some("30.00"),
-            Some("10"), None, Some("STANDARD"),
-            Some(chrono::Utc::now().date_naive()), None, Some("WH-EAST"),
+            AddOrderLineRequest {
+                org_id,
+                order_id,
+                item_id: Some(Uuid::new_v4()),
+                item_code: Some("ITEM-01".to_string()),
+                item_description: Some("Premium Widget".to_string()),
+                quantity_ordered: "100".to_string(),
+                unit_selling_price: "25.00".to_string(),
+                unit_list_price: Some("30.00".to_string()),
+                discount_percent: Some("10".to_string()),
+                tax_code: Some("STANDARD".to_string()),
+                requested_ship_date: Some(chrono::Utc::now().date_naive()),
+                ship_from_warehouse: Some("WH-EAST".to_string()),
+                ..empty_line_request()
+            },
         ).await;
         assert!(result.is_ok());
         let line = result.unwrap();

@@ -9,7 +9,6 @@ use atlas_shared::{
 use async_trait::async_trait;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 /// Repository trait for order management data storage
 #[async_trait]
@@ -301,7 +300,7 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_order(&r)).collect())
+        Ok(rows.iter().map(row_to_order).collect())
     }
 
     async fn update_order_status(&self, id: Uuid, status: &str) -> AtlasResult<SalesOrder> {
@@ -421,7 +420,7 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_order_line(&r)).collect())
+        Ok(rows.iter().map(row_to_order_line).collect())
     }
 
     async fn update_line_quantities(
@@ -501,7 +500,7 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
             ).bind(order_id).fetch_all(&self.pool).await
         }.map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_hold(&r)).collect())
+        Ok(rows.iter().map(row_to_hold).collect())
     }
 
     async fn release_hold(
@@ -571,7 +570,7 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_shipment(&r)).collect())
+        Ok(rows.iter().map(row_to_shipment).collect())
     }
 
     async fn update_shipment_status(&self, id: Uuid, status: &str) -> AtlasResult<FulfillmentShipment> {

@@ -24,6 +24,20 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
+/// Determine risk level from a numeric credit score.
+/// Mirrors the thresholds used during credit review completion.
+fn risk_level_from_score(score: f64) -> &'static str {
+    if score >= 80.0 {
+        "low"
+    } else if score >= 60.0 {
+        "medium"
+    } else if score >= 40.0 {
+        "high"
+    } else {
+        "very_high"
+    }
+}
+
 /// Valid model types for scoring models
 const VALID_MODEL_TYPES: &[&str] = &[
     "manual", "scorecard", "risk_category", "external",
@@ -241,10 +255,10 @@ impl CreditManagementEngine {
             scoring_model_id, review_frequency_days, created_by,
         ).await?;
 
-        // Create default overall credit limit of 0
+        // Create default overall credit limit of 0, preserving audit trail
         self.repository.create_credit_limit(
             org_id, profile.id, "overall", None,
-            "0", None, None, None,
+            "0", None, None, created_by,
         ).await?;
 
         Ok(profile)
@@ -267,6 +281,14 @@ impl CreditManagementEngine {
 
     /// List profiles
     pub async fn list_profiles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CreditProfile>> {
+        if let Some(s) = status {
+            if !VALID_PROFILE_STATUSES.contains(&s) {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Invalid profile status filter '{}'. Must be one of: {}",
+                    s, VALID_PROFILE_STATUSES.join(", ")
+                )));
+            }
+        }
         self.repository.list_profiles(org_id, status).await
     }
 
@@ -685,7 +707,7 @@ impl CreditManagementEngine {
                 format!("Credit profile {} not found", profile_id)
             ))?;
 
-        let hold_number = format!("HLD-{}", chrono::Utc::now().format("%Y%m%d%H%M%S%f"));
+        let hold_number = format!("HLD-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
 
         info!("Creating credit hold {} on {} ({})", hold_number, entity_type, hold_type);
 
@@ -703,6 +725,14 @@ impl CreditManagementEngine {
 
     /// List holds
     pub async fn list_holds(&self, org_id: Uuid, status: Option<&str>, profile_id: Option<Uuid>) -> AtlasResult<Vec<CreditHold>> {
+        if let Some(s) = status {
+            if !VALID_HOLD_STATUSES.contains(&s) {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Invalid hold status filter '{}'. Must be one of: {}",
+                    s, VALID_HOLD_STATUSES.join(", ")
+                )));
+            }
+        }
         self.repository.list_holds(org_id, status, profile_id).await
     }
 
@@ -776,13 +806,9 @@ impl CreditManagementEngine {
                 format!("Credit profile {} not found", profile_id)
             ))?;
 
-        let review_number = format!("CR-{}", chrono::Utc::now().format("%Y%m%d%H%M%S%f"));
+        let review_number = format!("CR-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
 
         // Auto-populate previous values from profile if not provided
-        let prev_limit = previous_credit_limit.or_else(|| {
-            // Get current limit
-            None // Will be set from actual limits in real implementation
-        });
         let prev_score = previous_score.or(profile.credit_score.as_deref());
         let prev_rating = previous_rating.or(profile.credit_rating.as_deref());
 
@@ -790,7 +816,7 @@ impl CreditManagementEngine {
 
         self.repository.create_review(
             org_id, profile_id, &review_number, review_type,
-            prev_limit, recommended_credit_limit,
+            previous_credit_limit, recommended_credit_limit,
             prev_score, prev_rating,
             due_date, created_by,
         ).await
@@ -803,6 +829,14 @@ impl CreditManagementEngine {
 
     /// List reviews
     pub async fn list_reviews(&self, org_id: Uuid, status: Option<&str>, profile_id: Option<Uuid>) -> AtlasResult<Vec<CreditReview>> {
+        if let Some(s) = status {
+            if !VALID_REVIEW_STATUSES.contains(&s) {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Invalid review status filter '{}'. Must be one of: {}",
+                    s, VALID_REVIEW_STATUSES.join(", ")
+                )));
+            }
+        }
         self.repository.list_reviews(org_id, status, profile_id).await
     }
 
@@ -858,15 +892,7 @@ impl CreditManagementEngine {
         if let (Some(score), Some(rating)) = (&new_score, &new_rating) {
             // Determine risk level from score
             let score_val: f64 = score.parse().unwrap_or(0.0);
-            let risk_level = if score_val >= 80.0 {
-                "low"
-            } else if score_val >= 60.0 {
-                "medium"
-            } else if score_val >= 40.0 {
-                "high"
-            } else {
-                "very_high"
-            };
+            let risk_level = risk_level_from_score(score_val);
 
             if let Err(e) = self.repository.update_profile_score(
                 profile_id, score, rating, risk_level,
@@ -1101,14 +1127,14 @@ mod tests {
 
     #[test]
     fn test_risk_level_from_score() {
-        assert_eq!(risk_level_from_score(85.0), "low");
-        assert_eq!(risk_level_from_score(80.0), "low");
-        assert_eq!(risk_level_from_score(79.9), "medium");
-        assert_eq!(risk_level_from_score(60.0), "medium");
-        assert_eq!(risk_level_from_score(59.9), "high");
-        assert_eq!(risk_level_from_score(40.0), "high");
-        assert_eq!(risk_level_from_score(39.9), "very_high");
-        assert_eq!(risk_level_from_score(0.0), "very_high");
+        assert_eq!(super::risk_level_from_score(85.0), "low");
+        assert_eq!(super::risk_level_from_score(80.0), "low");
+        assert_eq!(super::risk_level_from_score(79.9), "medium");
+        assert_eq!(super::risk_level_from_score(60.0), "medium");
+        assert_eq!(super::risk_level_from_score(59.9), "high");
+        assert_eq!(super::risk_level_from_score(40.0), "high");
+        assert_eq!(super::risk_level_from_score(39.9), "very_high");
+        assert_eq!(super::risk_level_from_score(0.0), "very_high");
     }
 
     #[test]
@@ -1191,27 +1217,16 @@ mod tests {
 
     #[test]
     fn test_hold_number_format() {
-        let hold_number = format!("HLD-{}", chrono::Utc::now().format("%Y%m%d%H%M%S%f"));
+        let hold_number = format!("HLD-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
         assert!(hold_number.starts_with("HLD-"));
-        assert!(hold_number.len() > 10);
+        assert!(hold_number.len() > 20); // HLD-YYYYMMDDHHMMSS-XXXXXXXX
     }
 
     #[test]
     fn test_review_number_format() {
-        let review_number = format!("CR-{}", chrono::Utc::now().format("%Y%m%d%H%M%S%f"));
+        let review_number = format!("CR-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
         assert!(review_number.starts_with("CR-"));
-        assert!(review_number.len() > 10);
+        assert!(review_number.len() > 20); // CR-YYYYMMDDHHMMSS-XXXXXXXX
     }
 
-    fn risk_level_from_score(score: f64) -> &'static str {
-        if score >= 80.0 {
-            "low"
-        } else if score >= 60.0 {
-            "medium"
-        } else if score >= 40.0 {
-            "high"
-        } else {
-            "very_high"
-        }
-    }
 }

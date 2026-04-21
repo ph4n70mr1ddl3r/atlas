@@ -499,7 +499,6 @@ pub async fn perform_credit_check(
         org_id, payload.profile_id, &payload.requested_amount, &payload.check_point,
     ).await {
         Ok(result) => {
-            let _status = if result.passed { StatusCode::OK } else { StatusCode::OK };
             Ok(Json(serde_json::json!({
                 "passed": result.passed,
                 "reason": result.reason,

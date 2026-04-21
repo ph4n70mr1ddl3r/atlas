@@ -11769,3 +11769,145 @@ pub struct TransferPricingDashboard {
     pub transactions_by_status: serde_json::Value,
 }
 
+// ============================================================================
+// Order Management (Oracle Fusion SCM > Order Management)
+// ============================================================================
+
+/// Sales Order Header
+/// Oracle Fusion equivalent: Order Management > Sales Orders
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SalesOrder {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub order_number: String,
+    pub customer_id: Option<Uuid>,
+    pub customer_name: Option<String>,
+    pub customer_po_number: Option<String>,
+    pub order_date: chrono::NaiveDate,
+    pub requested_ship_date: Option<chrono::NaiveDate>,
+    pub actual_ship_date: Option<chrono::NaiveDate>,
+    pub requested_delivery_date: Option<chrono::NaiveDate>,
+    pub actual_delivery_date: Option<chrono::NaiveDate>,
+    pub ship_to_address: Option<String>,
+    pub bill_to_address: Option<String>,
+    pub currency_code: String,
+    pub subtotal_amount: String,
+    pub tax_amount: String,
+    pub shipping_charges: String,
+    pub total_amount: String,
+    pub payment_terms: Option<String>,
+    pub shipping_method: Option<String>,
+    pub sales_channel: Option<String>,
+    pub salesperson_id: Option<Uuid>,
+    pub salesperson_name: Option<String>,
+    pub status: String,
+    pub fulfillment_status: String,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub closed_at: Option<DateTime<Utc>>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub cancellation_reason: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sales Order Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SalesOrderLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub order_id: Uuid,
+    pub line_number: i32,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub quantity_ordered: String,
+    pub quantity_shipped: String,
+    pub quantity_cancelled: String,
+    pub quantity_backordered: String,
+    pub unit_selling_price: String,
+    pub unit_list_price: Option<String>,
+    pub line_amount: String,
+    pub discount_percent: Option<String>,
+    pub discount_amount: Option<String>,
+    pub tax_code: Option<String>,
+    pub tax_amount: String,
+    pub requested_ship_date: Option<chrono::NaiveDate>,
+    pub actual_ship_date: Option<chrono::NaiveDate>,
+    pub promised_delivery_date: Option<chrono::NaiveDate>,
+    pub ship_from_warehouse: Option<String>,
+    pub fulfillment_status: String,
+    pub status: String,
+    pub cancellation_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Order Hold
+/// Oracle Fusion: Order Management > Order Holds
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderHold {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub order_id: Uuid,
+    pub order_line_id: Option<Uuid>,
+    pub hold_type: String,
+    pub hold_reason: String,
+    pub applied_by: Option<Uuid>,
+    pub applied_by_name: Option<String>,
+    pub released_by: Option<Uuid>,
+    pub released_by_name: Option<String>,
+    pub released_at: Option<DateTime<Utc>>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Fulfillment Shipment
+/// Oracle Fusion: Order Management > Shipments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FulfillmentShipment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub shipment_number: String,
+    pub order_id: Uuid,
+    pub order_line_ids: serde_json::Value,
+    pub warehouse: Option<String>,
+    pub carrier: Option<String>,
+    pub tracking_number: Option<String>,
+    pub shipping_method: Option<String>,
+    pub ship_date: Option<chrono::NaiveDate>,
+    pub estimated_delivery_date: Option<chrono::NaiveDate>,
+    pub actual_delivery_date: Option<chrono::NaiveDate>,
+    pub delivery_confirmation: Option<String>,
+    pub status: String,
+    pub shipped_by: Option<Uuid>,
+    pub shipped_by_name: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Order Management Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderManagementDashboard {
+    pub total_orders: i32,
+    pub open_orders: i32,
+    pub orders_in_fulfillment: i32,
+    pub completed_orders: i32,
+    pub cancelled_orders: i32,
+    pub total_order_value: String,
+    pub average_order_value: String,
+    pub orders_on_hold: i32,
+    pub backordered_lines: i32,
+    pub overdue_shipments: i32,
+    pub orders_by_status: serde_json::Value,
+    pub orders_by_channel: serde_json::Value,
+    pub fulfillment_rate_pct: String,
+    pub on_time_shipment_pct: String,
+}
+

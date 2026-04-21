@@ -77,6 +77,7 @@ pub async fn get_order(
 
 pub async fn get_order_by_id(
     State(state): State<Arc<AppState>>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -228,6 +229,7 @@ pub async fn add_order_line(
 
 pub async fn get_order_line(
     State(state): State<Arc<AppState>>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -244,6 +246,7 @@ pub async fn get_order_line(
 
 pub async fn list_order_lines(
     State(state): State<Arc<AppState>>,
+    Extension(_claims): Extension<Claims>,
     Path(order_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let order_id = Uuid::parse_str(&order_id).map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -352,6 +355,7 @@ pub async fn apply_hold(
 
 pub async fn get_hold(
     State(state): State<Arc<AppState>>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -373,6 +377,7 @@ pub struct ListHoldsQuery {
 
 pub async fn list_holds(
     State(state): State<Arc<AppState>>,
+    Extension(_claims): Extension<Claims>,
     Path(order_id): Path<String>,
     Query(params): Query<ListHoldsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -467,6 +472,7 @@ pub async fn create_shipment(
 
 pub async fn get_shipment(
     State(state): State<Arc<AppState>>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;

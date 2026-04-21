@@ -335,7 +335,7 @@ impl OrderManagementEngine {
     }
 
     /// Cancel an order line
-    pub async fn cancel_order_line(&self, id: Uuid, _reason: Option<&str>) -> AtlasResult<SalesOrderLine> {
+    pub async fn cancel_order_line(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<SalesOrderLine> {
         let line = self.repository.get_order_line(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {} not found", id)))?;
 
@@ -356,11 +356,8 @@ impl OrderManagementEngine {
             Some("0"),
         ).await?;
 
+        self.repository.update_line_cancellation_reason(id, reason).await?;
         let result = self.repository.update_line_status(id, "cancelled", "not_started").await?;
-
-        // Note: cancellation_reason is stored via the line's cancellation_reason column.
-        // A future enhancement should add update_line_cancellation_reason to the repository trait
-        // so the reason parameter can be persisted.
 
         Ok(result)
     }
@@ -575,6 +572,9 @@ impl OrderManagementEngine {
     }
 
     /// Confirm delivery
+    ///
+    /// Marks a single shipment as delivered. The order's status only transitions
+    /// to "delivered" when **all** shipments for the order have been delivered.
     pub async fn confirm_delivery(
         &self,
         id: Uuid,
@@ -598,10 +598,19 @@ impl OrderManagementEngine {
             id, None, Some(delivery_date), delivery_confirmation,
         ).await?;
 
-        // Update order dates
+        // Update order delivery date
         self.repository.update_order_dates(shipment.order_id, None, Some(delivery_date)).await?;
-        self.repository.update_order_status(shipment.order_id, "delivered").await?;
-        self.repository.update_order_fulfillment(shipment.order_id, "delivered").await?;
+
+        // Only transition order to "delivered" when ALL shipments are delivered
+        let all_shipments = self.repository.list_shipments(
+            updated.organization_id, None, Some(shipment.order_id),
+        ).await?;
+        let all_delivered = all_shipments.iter().all(|s| s.status == "delivered");
+
+        if all_delivered {
+            self.repository.update_order_status(shipment.order_id, "delivered").await?;
+            self.repository.update_order_fulfillment(shipment.order_id, "delivered").await?;
+        }
 
         Ok(updated)
     }
@@ -676,18 +685,18 @@ mod tests {
     }
 
     struct MockOrderRepo {
-        state: Mutex<MockState>,
+        state: Arc<Mutex<MockState>>,
     }
 
     impl MockOrderRepo {
         fn new() -> Self {
             Self {
-                state: Mutex::new(MockState {
+                state: Arc::new(Mutex::new(MockState {
                     order_status: HashMap::new(),
                     line_data: HashMap::new(),
                     hold_active: HashMap::new(),
                     shipment_data: HashMap::new(),
-                }),
+                })),
             }
         }
 
@@ -878,18 +887,23 @@ mod tests {
             if let Some(qs) = quantity_shipped { line.quantity_shipped = qs.to_string(); }
             if let Some(qc) = quantity_cancelled { line.quantity_cancelled = qc.to_string(); }
             if let Some(qb) = quantity_backordered { line.quantity_backordered = qb.to_string(); }
-            // Persist in mock state
             self.state.lock().unwrap().line_data.insert(id, line.clone());
-            Ok(self.make_line(id))
+            Ok(line)
         }
 
         async fn update_line_status(&self, id: Uuid, status: &str, fulfillment_status: &str) -> AtlasResult<SalesOrderLine> {
             let mut line = self.make_line(id);
             line.status = status.to_string();
             line.fulfillment_status = fulfillment_status.to_string();
-            // Persist in mock state so subsequent reads see both qty + status
             self.state.lock().unwrap().line_data.insert(id, line.clone());
-            Ok(self.make_line(id))
+            Ok(line)
+        }
+
+        async fn update_line_cancellation_reason(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<()> {
+            let mut line = self.make_line(id);
+            line.cancellation_reason = reason.map(|s| s.to_string());
+            self.state.lock().unwrap().line_data.insert(id, line);
+            Ok(())
         }
 
         async fn create_hold(
@@ -972,7 +986,14 @@ mod tests {
                 .shipment_data.get(&id).cloned())
         }
 
-        async fn list_shipments(&self, _org_id: Uuid, _status: Option<&str>, _order_id: Option<Uuid>) -> AtlasResult<Vec<FulfillmentShipment>> { Ok(vec![]) }
+        async fn list_shipments(&self, _org_id: Uuid, _status: Option<&str>, _order_id: Option<Uuid>) -> AtlasResult<Vec<FulfillmentShipment>> {
+            // Return shipments from state so all_delivered checks work
+            let shipments: Vec<FulfillmentShipment> = self.state.lock().unwrap()
+                .shipment_data.values().cloned()
+                .filter(|s| _order_id.map_or(true, |oid| s.order_id == oid))
+                .collect();
+            Ok(shipments)
+        }
 
         async fn update_shipment_status(&self, id: Uuid, status: &str) -> AtlasResult<FulfillmentShipment> {
             let mut ship = self.get_shipment(id).await?.unwrap();
@@ -1607,5 +1628,72 @@ mod tests {
         // Verify order is in processing, not shipped
         let order = engine.get_order_by_id(order_id).await.unwrap().unwrap();
         assert_eq!(order.status, "processing");
+    }
+
+    #[tokio::test]
+    async fn test_confirm_delivery_transitions_order_when_all_shipments_delivered() {
+        let repo = MockOrderRepo::new();
+        let order_id = Uuid::new_v4();
+        repo.state.lock().unwrap().order_status.insert(order_id, "processing".to_string());
+        let state_handle = repo.state.clone();
+        let engine = OrderManagementEngine::new(Arc::new(repo));
+
+        // Create a shipment
+        let shipment = engine.create_shipment(
+            Uuid::new_v4(), order_id, vec![Uuid::new_v4()],
+            None, None, None, None, None, None,
+        ).await.unwrap();
+
+        // Set shipment to "shipped" (prerequisite for delivery)
+        state_handle.lock().unwrap().shipment_data.get_mut(&shipment.id).unwrap().status = "shipped".to_string();
+
+        // Confirm delivery — should transition order to "delivered" since it's the only shipment
+        let result = engine.confirm_delivery(
+            shipment.id, chrono::Utc::now().date_naive(), Some("Signed by customer"),
+        ).await;
+        assert!(result.is_ok());
+        let delivered = result.unwrap();
+        assert_eq!(delivered.status, "delivered");
+
+        // Order should now be "delivered"
+        let order = engine.get_order_by_id(order_id).await.unwrap().unwrap();
+        assert_eq!(order.status, "delivered");
+        // Note: fulfillment_status is "not_started" in the mock because make_order
+        // doesn't track it from state. The real Postgres repository handles this correctly.
+    }
+
+    #[tokio::test]
+    async fn test_cancel_line_preserves_reason() {
+        let repo = MockOrderRepo::new();
+        let line_id = Uuid::new_v4();
+        repo.state.lock().unwrap().line_data.insert(line_id, SalesOrderLine {
+            id: line_id, organization_id: Uuid::new_v4(),
+            order_id: Uuid::new_v4(), line_number: 1,
+            item_id: None, item_code: Some("ITEM-01".to_string()),
+            item_description: Some("Widget".to_string()),
+            quantity_ordered: "10".to_string(),
+            quantity_shipped: "0".to_string(),
+            quantity_cancelled: "0".to_string(),
+            quantity_backordered: "0".to_string(),
+            unit_selling_price: "25".to_string(),
+            unit_list_price: None, line_amount: "250".to_string(),
+            discount_percent: None, discount_amount: None,
+            tax_code: None, tax_amount: "0".to_string(),
+            requested_ship_date: None, actual_ship_date: None,
+            promised_delivery_date: None, ship_from_warehouse: None,
+            fulfillment_status: "not_started".to_string(),
+            status: "open".to_string(),
+            cancellation_reason: None,
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        });
+        let engine = OrderManagementEngine::new(Arc::new(repo));
+        let result = engine.cancel_order_line(line_id, Some("No longer needed")).await;
+        assert!(result.is_ok());
+        let line = result.unwrap();
+        assert_eq!(line.status, "cancelled");
+        assert_eq!(line.quantity_cancelled, "10.0000");
+        // Cancellation reason is persisted via update_line_cancellation_reason
+        assert_eq!(line.cancellation_reason, Some("No longer needed".to_string()));
     }
 }

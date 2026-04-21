@@ -61,6 +61,9 @@ pub trait OrderManagementRepository: Send + Sync {
     ) -> AtlasResult<SalesOrderLine>;
     async fn update_line_status(&self, id: Uuid, status: &str, fulfillment_status: &str) -> AtlasResult<SalesOrderLine>;
 
+    /// Update the cancellation reason on an order line
+    async fn update_line_cancellation_reason(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<()>;
+
     // Order Holds
     async fn create_hold(
         &self, org_id: Uuid, order_id: Uuid, order_line_id: Option<Uuid>,
@@ -455,6 +458,16 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_order_line(&row))
+    }
+
+    async fn update_line_cancellation_reason(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<()> {
+        sqlx::query(
+            "UPDATE _atlas.sales_order_lines SET cancellation_reason=$2, updated_at=now() WHERE id=$1",
+        )
+        .bind(id).bind(reason)
+        .execute(&self.pool).await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        Ok(())
     }
 
     // ========================================================================

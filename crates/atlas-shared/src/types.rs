@@ -11950,3 +11950,100 @@ pub struct OrderManagementDashboard {
     pub on_time_shipment_pct: String,
 }
 
+// ============================================================================
+// Approval Delegation Rules (Oracle Fusion BPM Worklist > Rules > Delegation)
+// ============================================================================
+
+/// Approval delegation rule
+/// Oracle Fusion: BPM Worklist > Rules > Configure Delegation
+/// Users proactively set up delegation rules like:
+/// "While I'm on vacation from June 1-15, delegate all my approvals to Jane Smith"
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalDelegationRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub delegator_id: Uuid,
+    pub delegate_to_id: Uuid,
+    pub rule_name: String,
+    pub description: Option<String>,
+    /// 'all', 'by_category', 'by_role', 'by_entity'
+    pub delegation_type: String,
+    /// For type 'by_category': categories as JSON array
+    pub categories: serde_json::Value,
+    /// For type 'by_role': roles as JSON array
+    pub roles: serde_json::Value,
+    /// For type 'by_entity': entity types as JSON array
+    pub entity_types: serde_json::Value,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub is_active: bool,
+    pub auto_activate: bool,
+    pub auto_expire: bool,
+    /// 'scheduled', 'active', 'expired', 'cancelled'
+    pub status: String,
+    pub activated_at: Option<DateTime<Utc>>,
+    pub expired_at: Option<DateTime<Utc>>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub cancelled_by: Option<Uuid>,
+    pub cancellation_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create/update delegation rule request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateDelegationRuleRequest {
+    pub delegate_to_id: String,
+    pub rule_name: String,
+    pub description: Option<String>,
+    #[serde(default = "default_delegation_all")]
+    pub delegation_type: String,
+    #[serde(default)]
+    pub categories: Option<serde_json::Value>,
+    #[serde(default)]
+    pub roles: Option<serde_json::Value>,
+    #[serde(default)]
+    pub entity_types: Option<serde_json::Value>,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub auto_activate: Option<bool>,
+    pub auto_expire: Option<bool>,
+}
+
+fn default_delegation_all() -> String { "all".to_string() }
+
+/// Delegation history entry (tracks when delegations were actually used)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DelegationHistoryEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub delegation_rule_id: Uuid,
+    pub original_approver_id: Uuid,
+    pub delegated_to_id: Uuid,
+    pub approval_step_id: Option<Uuid>,
+    pub approval_request_id: Option<Uuid>,
+    pub entity_type: Option<String>,
+    pub entity_id: Option<Uuid>,
+    pub action_taken: Option<String>,
+    pub action_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Delegation dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DelegationDashboard {
+    pub total_active_rules: i64,
+    pub total_scheduled_rules: i64,
+    pub total_expired_rules: i64,
+    pub total_delegations_today: i64,
+    pub delegations_by_type: serde_json::Value,
+    pub recent_delegations: Vec<DelegationHistoryEntry>,
+}
+

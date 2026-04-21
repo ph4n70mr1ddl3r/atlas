@@ -50,6 +50,7 @@ pub mod credit_management;
 pub mod product_information;
 pub mod transfer_pricing;
 pub mod order_management;
+pub mod approval_delegation;
 
 pub use schema::*;
 pub use records::*;
@@ -2051,6 +2052,28 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Order Management Dashboard
         .route("/orders/dashboard", get(order_management::get_order_management_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Approval Delegation Rules (Oracle Fusion BPM Worklist > Delegation)
+        // ═══════════════════════════════════════════════════════
+
+        // Delegation Rules
+        .route("/approval-delegation/rules", post(approval_delegation::create_delegation_rule))
+        .route("/approval-delegation/rules", get(approval_delegation::list_delegation_rules))
+        .route("/approval-delegation/rules/my", get(approval_delegation::list_my_delegation_rules))
+        .route("/approval-delegation/rules/:id", get(approval_delegation::get_delegation_rule))
+        .route("/approval-delegation/rules/:id", delete(approval_delegation::delete_delegation_rule))
+        .route("/approval-delegation/rules/:id/activate", post(approval_delegation::activate_delegation_rule))
+        .route("/approval-delegation/rules/:id/cancel", post(approval_delegation::cancel_delegation_rule))
+
+        // Process Scheduled Rules (Admin/Cron)
+        .route("/approval-delegation/process-scheduled", post(approval_delegation::process_scheduled_delegations))
+
+        // Delegation History
+        .route("/approval-delegation/history", get(approval_delegation::list_delegation_history))
+
+        // Delegation Dashboard
+        .route("/approval-delegation/dashboard", get(approval_delegation::get_delegation_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

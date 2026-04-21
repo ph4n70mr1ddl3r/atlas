@@ -847,6 +847,12 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         transfer_pricing_engine: Arc::new(atlas_core::TransferPricingEngine::new(Arc::new(
             atlas_core::transfer_pricing::PostgresTransferPricingRepository::new(db_pool.clone()),
         ))),
+        approval_delegation_engine: Arc::new(atlas_core::ApprovalDelegationEngine::new(Arc::new(
+            atlas_core::approval_delegation::PostgresApprovalDelegationRepository::new(db_pool.clone()),
+        ))),
+        order_management_engine: Arc::new(atlas_core::OrderManagementEngine::new(Arc::new(
+            atlas_core::order_management::PostgresOrderManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

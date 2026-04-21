@@ -48,6 +48,7 @@ use atlas_core::{
     ProductInformationEngine,
     TransferPricingEngine,
     OrderManagementEngine,
+    ApprovalDelegationEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -94,6 +95,7 @@ use atlas_core::{
     product_information::PostgresProductInformationRepository,
     transfer_pricing::PostgresTransferPricingRepository,
     order_management::PostgresOrderManagementRepository,
+    approval_delegation::PostgresApprovalDelegationRepository,
 };
 use std::sync::Arc;
 use once_cell::sync::OnceCell;
@@ -154,6 +156,7 @@ pub struct AppState {
     pub product_information_engine: Arc<ProductInformationEngine>,
     pub transfer_pricing_engine: Arc<TransferPricingEngine>,
     pub order_management_engine: Arc<OrderManagementEngine>,
+    pub approval_delegation_engine: Arc<ApprovalDelegationEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -420,6 +423,11 @@ impl AppState {
             PostgresOrderManagementRepository::new(db_pool.clone())
         )));
 
+        // Initialize approval delegation engine
+        let approval_delegation_engine = Arc::new(ApprovalDelegationEngine::new(Arc::new(
+            PostgresApprovalDelegationRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -507,6 +515,7 @@ impl AppState {
             product_information_engine,
             transfer_pricing_engine,
             order_management_engine,
+            approval_delegation_engine,
             event_bus,
             jwt_secret,
         };

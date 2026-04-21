@@ -14,6 +14,7 @@ use atlas_core::{
     CreditManagementEngine,
     ProductInformationEngine,
     TransferPricingEngine,
+    ApprovalDelegationEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -277,6 +278,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         atlas_core::transfer_pricing::PostgresTransferPricingRepository::new(db_pool.clone()),
     )));
 
+    let approval_delegation_engine = Arc::new(ApprovalDelegationEngine::new(Arc::new(
+        atlas_core::approval_delegation::PostgresApprovalDelegationRepository::new(db_pool.clone()),
+    )));
+
     let state = atlas_gateway::AppState {
         db_pool: db_pool.clone(),
         schema_engine,
@@ -327,6 +332,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         credit_management_engine,
         product_information_engine,
         transfer_pricing_engine,
+        approval_delegation_engine,
+        order_management_engine: Arc::new(atlas_core::OrderManagementEngine::new(Arc::new(
+            atlas_core::order_management::PostgresOrderManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -595,4 +604,7 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.transfer_pricing_transactions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.transfer_pricing_benchmarks").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.transfer_pricing_policies").execute(pool).await.ok();
+    // Clean approval delegation test data
+    sqlx::query("DELETE FROM _atlas.approval_delegation_history").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.approval_delegation_rules").execute(pool).await.ok();
 }

@@ -72,6 +72,7 @@ pub mod product_information;
 pub mod quality_management;
 pub mod transfer_pricing;
 pub mod order_management;
+pub mod approval_delegation;
 
 pub use schema::*;
 pub use workflow::{
@@ -145,6 +146,7 @@ pub use product_information::{ProductInformationEngine, PostgresProductInformati
 pub use quality_management::{QualityManagementEngine, PostgresQualityManagementRepository as PostgresQualityManagementRepo};
 pub use transfer_pricing::{TransferPricingEngine, PostgresTransferPricingRepository as PostgresTransferPricingRepo};
 pub use order_management::{OrderManagementEngine, PostgresOrderManagementRepository as PostgresOrderManagementRepo};
+pub use approval_delegation::{ApprovalDelegationEngine, PostgresApprovalDelegationRepository as PostgresApprovalDelegationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -36,17 +36,6 @@ const VALID_SHIPMENT_STATUSES: &[&str] = &[
     "planned", "packed", "shipped", "in_transit", "delivered", "cancelled",
 ];
 
-/// Valid line statuses
-const VALID_LINE_STATUSES: &[&str] = &[
-    "open", "reserved", "staged", "shipped", "delivered", "cancelled", "backordered",
-    "partially_shipped",
-];
-
-/// Valid line fulfillment statuses
-const VALID_LINE_FULFILLMENT_STATUSES: &[&str] = &[
-    "not_started", "reserved", "staged", "released", "shipped", "delivered", "backordered",
-];
-
 /// Order Management Engine
 pub struct OrderManagementEngine {
     repository: Arc<dyn OrderManagementRepository>,
@@ -330,18 +319,6 @@ impl OrderManagementEngine {
         let line_status = if total_shipped >= ordered { "shipped" } else { "partially_shipped" };
         let fulfillment = if total_shipped >= ordered { "shipped" } else { "released" };
 
-        // Validate computed statuses are in the allowed set
-        if !VALID_LINE_STATUSES.contains(&line_status) {
-            return Err(AtlasError::ValidationFailed(format!(
-                "Invalid computed line status '{}'. Must be one of: {}", line_status, VALID_LINE_STATUSES.join(", ")
-            )));
-        }
-        if !VALID_LINE_FULFILLMENT_STATUSES.contains(&fulfillment) {
-            return Err(AtlasError::ValidationFailed(format!(
-                "Invalid computed fulfillment status '{}'. Must be one of: {}", fulfillment, VALID_LINE_FULFILLMENT_STATUSES.join(", ")
-            )));
-        }
-
         info!("Shipping {} units for order line {} (status: {})", shipped, line.line_number, line_status);
 
         self.repository.update_line_quantities(
@@ -381,9 +358,9 @@ impl OrderManagementEngine {
 
         let result = self.repository.update_line_status(id, "cancelled", "not_started").await?;
 
-        // Note: cancellation_reason is stored in the database via the cancellation_reason column,
-        // but the current repository trait does not expose a dedicated update method for it.
-        // A future enhancement should add update_line_cancellation_reason to the trait.
+        // Note: cancellation_reason is stored via the line's cancellation_reason column.
+        // A future enhancement should add update_line_cancellation_reason to the repository trait
+        // so the reason parameter can be persisted.
 
         Ok(result)
     }
@@ -452,6 +429,11 @@ impl OrderManagementEngine {
         info!("Releasing hold {} on order {}", hold.hold_type, hold.order_id);
 
         self.repository.release_hold(id, released_by, released_by_name).await
+    }
+
+    /// Get a single hold by ID
+    pub async fn get_hold(&self, id: Uuid) -> AtlasResult<Option<OrderHold>> {
+        self.repository.get_hold(id).await
     }
 
     /// List holds for an order
@@ -562,8 +544,15 @@ impl OrderManagementEngine {
 
         // Update order's actual ship date
         self.repository.update_order_dates(shipment.order_id, Some(ship_date), None).await?;
-        self.repository.update_order_status(shipment.order_id, "shipped").await?;
-        self.repository.update_order_fulfillment(shipment.order_id, "shipped").await?;
+
+        // Move order to processing (not shipped) — the order should only transition
+        // to "shipped" when ALL shipments are delivered, which is tracked at a higher level.
+        let order = self.repository.get_order_by_id(shipment.order_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", shipment.order_id)))?;
+        if order.status == "confirmed" || order.status == "submitted" {
+            self.repository.update_order_status(shipment.order_id, "processing").await?;
+        }
+        self.repository.update_order_fulfillment(shipment.order_id, "released").await?;
 
         Ok(updated)
     }
@@ -683,6 +672,7 @@ mod tests {
         order_status: HashMap<Uuid, String>,
         line_data: HashMap<Uuid, SalesOrderLine>,
         hold_active: HashMap<Uuid, bool>,
+        shipment_data: HashMap<Uuid, FulfillmentShipment>,
     }
 
     struct MockOrderRepo {
@@ -696,6 +686,7 @@ mod tests {
                     order_status: HashMap::new(),
                     line_data: HashMap::new(),
                     hold_active: HashMap::new(),
+                    shipment_data: HashMap::new(),
                 }),
             }
         }
@@ -956,7 +947,7 @@ mod tests {
             estimated_delivery_date: Option<chrono::NaiveDate>,
             shipped_by: Option<Uuid>, shipped_by_name: Option<&str>,
         ) -> AtlasResult<FulfillmentShipment> {
-            Ok(FulfillmentShipment {
+            let shipment = FulfillmentShipment {
                 id: Uuid::new_v4(), organization_id: org_id,
                 shipment_number: shipment_number.to_string(),
                 order_id, order_line_ids,
@@ -970,24 +961,15 @@ mod tests {
                 shipped_by, shipped_by_name: shipped_by_name.map(|s| s.to_string()),
                 metadata: serde_json::json!({}),
                 created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
-            })
+            };
+            let id = shipment.id;
+            self.state.lock().unwrap().shipment_data.insert(id, shipment.clone());
+            Ok(shipment)
         }
 
         async fn get_shipment(&self, id: Uuid) -> AtlasResult<Option<FulfillmentShipment>> {
-            Ok(Some(FulfillmentShipment {
-                id, organization_id: Uuid::new_v4(),
-                shipment_number: "SHP-MOCK".to_string(),
-                order_id: Uuid::new_v4(),
-                order_line_ids: serde_json::json!([]),
-                warehouse: None, carrier: None, tracking_number: None,
-                shipping_method: None, ship_date: None,
-                estimated_delivery_date: None, actual_delivery_date: None,
-                delivery_confirmation: None,
-                status: "planned".to_string(),
-                shipped_by: None, shipped_by_name: None,
-                metadata: serde_json::json!({}),
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
-            }))
+            Ok(self.state.lock().unwrap()
+                .shipment_data.get(&id).cloned())
         }
 
         async fn list_shipments(&self, _org_id: Uuid, _status: Option<&str>, _order_id: Option<Uuid>) -> AtlasResult<Vec<FulfillmentShipment>> { Ok(vec![]) }
@@ -995,6 +977,7 @@ mod tests {
         async fn update_shipment_status(&self, id: Uuid, status: &str) -> AtlasResult<FulfillmentShipment> {
             let mut ship = self.get_shipment(id).await?.unwrap();
             ship.status = status.to_string();
+            self.state.lock().unwrap().shipment_data.insert(id, ship.clone());
             Ok(ship)
         }
 
@@ -1007,6 +990,7 @@ mod tests {
             ship.tracking_number = tracking_number.map(|s| s.to_string());
             ship.actual_delivery_date = actual_delivery_date;
             ship.delivery_confirmation = delivery_confirmation.map(|s| s.to_string());
+            self.state.lock().unwrap().shipment_data.insert(id, ship.clone());
             Ok(ship)
         }
 
@@ -1014,6 +998,7 @@ mod tests {
             let mut ship = self.get_shipment(id).await?.unwrap();
             ship.status = "shipped".to_string();
             ship.ship_date = Some(ship_date);
+            self.state.lock().unwrap().shipment_data.insert(id, ship.clone());
             Ok(ship)
         }
 
@@ -1549,12 +1534,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_shipment_by_id() {
-        let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
-        let ship_id = Uuid::new_v4();
-        let result = engine.get_shipment(ship_id).await;
+        let repo = MockOrderRepo::new();
+        let order_id = Uuid::new_v4();
+        repo.state.lock().unwrap().order_status.insert(order_id, "confirmed".to_string());
+        let engine = OrderManagementEngine::new(Arc::new(repo));
+
+        // Create a shipment first, then retrieve it
+        let shipment = engine.create_shipment(
+            Uuid::new_v4(), order_id, vec![Uuid::new_v4()],
+            None, None, None, None, None, None,
+        ).await.unwrap();
+
+        let result = engine.get_shipment(shipment.id).await;
         assert!(result.is_ok());
-        let shipment = result.unwrap().unwrap();
-        assert_eq!(shipment.status, "planned");
+        let fetched = result.unwrap().unwrap();
+        assert_eq!(fetched.status, "planned");
+        assert_eq!(fetched.id, shipment.id);
     }
 
     #[tokio::test]
@@ -1574,5 +1569,43 @@ mod tests {
         let result = engine.list_holds(order_id, true).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_hold_by_id() {
+        let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
+        let hold_id = Uuid::new_v4();
+        let result = engine.get_hold(hold_id).await;
+        assert!(result.is_ok());
+        let hold = result.unwrap().unwrap();
+        assert_eq!(hold.hold_type, "credit_check");
+        assert!(hold.is_active);
+    }
+
+    #[tokio::test]
+    async fn test_confirm_shipment_moves_order_to_processing() {
+        let repo = MockOrderRepo::new();
+        let order_id = Uuid::new_v4();
+        // Seed order as "confirmed" so shipment can be created and confirmed
+        repo.state.lock().unwrap().order_status.insert(order_id, "confirmed".to_string());
+        let engine = OrderManagementEngine::new(Arc::new(repo));
+
+        // Create shipment first
+        let shipment = engine.create_shipment(
+            Uuid::new_v4(), order_id, vec![Uuid::new_v4()],
+            None, None, None, None, None, None,
+        ).await.unwrap();
+
+        // Confirm shipment
+        let result = engine.confirm_shipment(
+            shipment.id, chrono::Utc::now().date_naive(),
+        ).await;
+        assert!(result.is_ok());
+        let confirmed = result.unwrap();
+        assert_eq!(confirmed.status, "shipped");
+
+        // Verify order is in processing, not shipped
+        let order = engine.get_order_by_id(order_id).await.unwrap().unwrap();
+        assert_eq!(order.status, "processing");
     }
 }

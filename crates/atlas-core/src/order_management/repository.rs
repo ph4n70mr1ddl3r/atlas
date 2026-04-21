@@ -336,7 +336,9 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
             r#"UPDATE _atlas.sales_orders o SET
                 subtotal_amount = COALESCE((SELECT SUM(line_amount) FROM _atlas.sales_order_lines WHERE order_id=$1), 0),
                 tax_amount = COALESCE((SELECT SUM(tax_amount) FROM _atlas.sales_order_lines WHERE order_id=$1), 0),
-                total_amount = COALESCE((SELECT SUM(line_amount) + SUM(tax_amount) FROM _atlas.sales_order_lines WHERE order_id=$1), 0),
+                total_amount = COALESCE(o.shipping_charges, 0)
+                    + COALESCE((SELECT SUM(line_amount) FROM _atlas.sales_order_lines WHERE order_id=$1), 0)
+                    + COALESCE((SELECT SUM(tax_amount) FROM _atlas.sales_order_lines WHERE order_id=$1), 0),
                 updated_at = now()
             WHERE id=$1 RETURNING *"#,
         )

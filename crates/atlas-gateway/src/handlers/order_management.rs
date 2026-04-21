@@ -13,7 +13,7 @@ use axum::{
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::error;
 
 use crate::AppState;
 use crate::handlers::auth::Claims;
@@ -356,10 +356,11 @@ pub async fn get_hold(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.list_holds(id, false).await {
-        Ok(holds) => Ok(Json(serde_json::to_value(holds).unwrap())),
+    match state.order_management_engine.get_hold(id).await {
+        Ok(Some(hold)) => Ok(Json(serde_json::to_value(hold).unwrap())),
+        Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
-            error!("Failed to get holds: {}", e);
+            error!("Failed to get hold {}: {}", id, e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }

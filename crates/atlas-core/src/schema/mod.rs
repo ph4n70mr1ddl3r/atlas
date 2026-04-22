@@ -116,8 +116,8 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
     // Add standard indexes
     columns.push("UNIQUE(organization_id, id)".to_string());
     
-    // Sanitize table name: reject embedded quotes to prevent injection
-    if table_name.contains('"') {
+    // Sanitize table name: reject embedded quotes or semicolons to prevent injection
+    if table_name.contains('"') || table_name.contains(';') || table_name.contains("--") {
         return "-- ERROR: invalid table name".to_string();
     }
     

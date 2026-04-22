@@ -38,9 +38,14 @@ impl AuditEngine {
     }
     
     /// Check if auditing is enabled for an entity
+    ///
+    /// If the `enabled_entities` set is empty, auditing is enabled for **all**
+    /// entities (the default "opt-out" mode).  Once at least one entity is
+    /// explicitly enabled via `enable_audit()`, only those entities are
+    /// audited.
     pub fn is_enabled(&self, entity: &str) -> bool {
         let entities = self.enabled_entities.read();
-        entities.contains(entity) || entities.is_empty() // Empty means all enabled
+        entities.is_empty() || entities.contains(entity)
     }
     
     /// Log an audit entry

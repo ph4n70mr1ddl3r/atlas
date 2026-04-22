@@ -2,7 +2,8 @@
 //! 
 //! Trait and implementations for storing entity definitions.
 
-use atlas_shared::{EntityDefinition, AtlasError, AtlasResult};
+use atlas_shared::{EntityDefinition, AtlasError, AtlasResult, IndexDefinition, WorkflowDefinition};
+use atlas_shared::FieldDefinition;
 use async_trait::async_trait;
 use sqlx::PgPool;
 use sqlx::FromRow;
@@ -194,6 +195,31 @@ impl SchemaRepository for PostgresSchemaRepository {
 
 impl From<EntityRow> for EntityDefinition {
     fn from(row: EntityRow) -> Self {
+        let fields: Vec<FieldDefinition> = serde_json::from_value(row.fields)
+            .unwrap_or_else(|e| {
+                tracing::error!("Failed to deserialize entity fields: {}", e);
+                vec![]
+            });
+        let indexes: Vec<IndexDefinition> = serde_json::from_value(row.indexes)
+            .unwrap_or_else(|e| {
+                tracing::error!("Failed to deserialize entity indexes: {}", e);
+                vec![]
+            });
+        let workflow: Option<WorkflowDefinition> = row.workflow
+            .and_then(|w| {
+                serde_json::from_value(w).map_err(|e| {
+                    tracing::error!("Failed to deserialize workflow: {}", e);
+                    e
+                }).ok()
+            });
+        let security = row.security
+            .and_then(|s| {
+                serde_json::from_value(s).map_err(|e| {
+                    tracing::error!("Failed to deserialize security policy: {}", e);
+                    e
+                }).ok()
+            });
+
         EntityDefinition {
             id: row.id,
             name: row.name,
@@ -201,10 +227,10 @@ impl From<EntityRow> for EntityDefinition {
             plural_label: row.plural_label,
             table_name: row.table_name,
             description: row.description,
-            fields: serde_json::from_value(row.fields).unwrap_or_default(),
-            indexes: serde_json::from_value(row.indexes).unwrap_or_default(),
-            workflow: row.workflow.and_then(|w| serde_json::from_value(w).ok()),
-            security: row.security.and_then(|s| serde_json::from_value(s).ok()),
+            fields,
+            indexes,
+            workflow,
+            security,
             is_audit_enabled: row.is_audit_enabled,
             is_soft_delete: row.is_soft_delete,
             icon: row.icon,

@@ -11,10 +11,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
-    command: >
-      postgres
-      -c listen_addresses='*'
-      -c log_statement=all
+    # Uncomment the line below only for development debugging;
+    # logging every statement adds significant overhead.
+    # command: postgres -c listen_addresses='*' -c log_statement=all
+    command: postgres -c listen_addresses='*'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U atlas"]
       interval: 5s

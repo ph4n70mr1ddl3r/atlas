@@ -282,7 +282,7 @@ async fn test_budget_lines() {
         .header(&k, &v)
         .body(Body::empty()).unwrap()
     ).await.unwrap();
-    let _award = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let _award: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
 
     // Create budget lines
     let categories = vec![
@@ -341,7 +341,7 @@ async fn test_expenditure_lifecycle() {
         .header(&k, &v)
         .body(Body::empty()).unwrap()
     ).await.unwrap();
-    let _award = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let _award: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
 
     // Create expenditure
     let payload = json!({

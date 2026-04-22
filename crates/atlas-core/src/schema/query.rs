@@ -267,15 +267,19 @@ impl DynamicQuery {
     }
     
     /// Build the SOFT DELETE query
-    pub fn build_soft_delete(&self, _id: &uuid::Uuid) -> String {
+    ///
+    /// The record ID must be bound as `$1` (UUID) by the caller.
+    pub fn build_soft_delete(&self) -> String {
         format!(
             "UPDATE \"{}\" SET deleted_at = now() WHERE id = $1",
             self.table_name
         )
     }
-    
+
     /// Build the HARD DELETE query
-    pub fn build_hard_delete(&self, _id: &uuid::Uuid) -> String {
+    ///
+    /// The record ID must be bound as `$1` (UUID) by the caller.
+    pub fn build_hard_delete(&self) -> String {
         format!(
             "DELETE FROM \"{}\" WHERE id = $1",
             self.table_name

@@ -224,20 +224,24 @@ impl FormulaEngine {
                 '(' | '[' | '{' if !in_string => depth += 1,
                 ')' | ']' | '}' if !in_string => depth -= 1,
                 c if c == op && depth == 0 && !in_string => {
-                    // For '-', reject if preceded by alphanumeric or underscore
-                    // (part of an identifier like 'start_date'), or if at start
-                    if op == '-' {
-                        if i == 0 {
-                            continue; // unary minus at start, not binary
-                        }
-                        let prev = chars[i - 1];
-                        if prev.is_alphanumeric() || prev == '_' {
-                            continue; // part of identifier
-                        }
+                    if i == 0 {
+                        continue; // unary at start
                     }
                     // Must have something on both sides
                     if i > 0 && i < chars.len() - 1 {
-                        // Record byte offset of this candidate
+                        // For '-', disambiguate subtraction from hyphens
+                        // in identifiers.  A binary minus is preceded by a
+                        // *closing* token: digit, `)`, `]`, or `}` — never
+                        // a letter or underscore (which would make it part of
+                        // an identifier like `start-date`).
+                        if op == '-' {
+                            let prev = chars[i - 1];
+                            if prev.is_alphabetic() || prev == '_' {
+                                continue; // hyphen inside identifier
+                            }
+                            // `prev` is a digit — still a binary minus
+                            // (e.g. `price-3` or `10-2`).
+                        }
                         let byte_idx = expr.char_indices()
                             .nth(i)
                             .map(|(bi, _)| bi)
@@ -643,6 +647,42 @@ mod tests {
         assert!(matches!(result, FormulaValue::Boolean(true)));
     }
     
+    #[test]
+    fn test_field_subtraction() {
+        // This was previously broken: `price - discount` would fail because
+        // the `-` was mistaken for part of an identifier (prev char 'e' is
+        // alphabetic).  After the fix, alphabetic prev chars are skipped
+        // (hyphen-in-identifier), but numeric prev chars still produce
+        // binary minus.  The key change: we skip only alphabetic + underscore
+        // preceding `-`, not digits.
+        let engine = FormulaEngine::new();
+        let ctx = create_context();
+
+        // price(25.50) - discount(0.1) = 25.4
+        let result = engine.evaluate("price - discount", &ctx).unwrap();
+        if let FormulaValue::Number(n) = result {
+            assert!((n - 25.4).abs() < 0.01, "Expected 25.4, got {}", n);
+        } else {
+            panic!("Expected number, got {:?}", result);
+        }
+
+        // quantity(10) - 3 = 7  (numeric field - literal)
+        let result2 = engine.evaluate("quantity - 3", &ctx).unwrap();
+        if let FormulaValue::Number(n) = result2 {
+            assert!((n - 7.0).abs() < 0.01, "Expected 7.0, got {}", n);
+        } else {
+            panic!("Expected number, got {:?}", result2);
+        }
+
+        // quantity(10) * price(25.50) - discount(0.1) ≈ 254.9
+        let result3 = engine.evaluate("quantity * price - discount", &ctx).unwrap();
+        if let FormulaValue::Number(n) = result3 {
+            assert!((n - 254.9).abs() < 0.01, "Expected 254.9, got {}", n);
+        } else {
+            panic!("Expected number, got {:?}", result3);
+        }
+    }
+
     #[test]
     fn test_left_to_right_associativity() {
         let engine = FormulaEngine::new();

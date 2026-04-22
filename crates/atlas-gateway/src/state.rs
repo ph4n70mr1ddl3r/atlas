@@ -441,8 +441,11 @@ impl AppState {
         }
         
         // Warn if using weak secrets
-        if jwt_secret.contains("secret") || jwt_secret.contains("password") || jwt_secret.contains("change") {
+        if jwt_secret.contains("secret") || jwt_secret.contains("password") || jwt_secret.contains("change") || jwt_secret.contains("please-change") {
             tracing::warn!("JWT_SECRET appears to be a weak or placeholder value. Use a cryptographically random secret in production.");
+            if std::env::var("RUST_ENV").unwrap_or_default() == "production" {
+                anyhow::bail!("JWT_SECRET appears to be a placeholder — refusing to start in production mode");
+            }
         }
         
         // Load entity definitions from schema engine

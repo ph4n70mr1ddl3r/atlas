@@ -3,7 +3,6 @@
 //! SQL generation for dynamic row-level security filters.
 
 use super::SecurityContext;
-use std::collections::HashMap;
 
 /// Row-level security rule
 #[derive(Debug, Clone)]
@@ -22,20 +21,26 @@ pub struct RlsRule {
 
 /// RLS filter builder
 pub struct RlsFilterBuilder {
-    rules: HashMap<String, Vec<RlsRule>>,
+    /// Rules stored in insertion order so that parameter binding is
+    /// deterministic across runs (HashMap iteration order is not defined).
+    rules: Vec<(String, Vec<RlsRule>)>,
 }
 
 impl RlsFilterBuilder {
     pub fn new() -> Self {
-        Self { rules: HashMap::new() }
+        Self { rules: Vec::new() }
     }
 
-    /// Add an RLS rule for an entity
+    /// Add an RLS rule for an entity.
+    ///
+    /// Rules for the same entity are appended in the order they are added,
+    /// guaranteeing deterministic parameter-index assignment.
     pub fn add_rule(&mut self, entity: &str, rule: RlsRule) {
-        self.rules
-            .entry(entity.to_string())
-            .or_default()
-            .push(rule);
+        if let Some((_, rules)) = self.rules.iter_mut().find(|(e, _)| e == entity) {
+            rules.push(rule);
+        } else {
+            self.rules.push((entity.to_string(), vec![rule]));
+        }
     }
 
     /// Build the WHERE clause for an entity.
@@ -43,8 +48,12 @@ impl RlsFilterBuilder {
     /// Returns `Some(condition)` with `$N` placeholders.  The caller is
     /// responsible for binding the corresponding values via
     /// `bind_rls_values`.
+    ///
+    /// **Stability guarantee**: rules are applied in insertion order so that
+    /// `$N` placeholders produced here always line up with the values
+    /// returned by `bind_rls_values`.
     pub fn build_filter(&self, entity: &str, ctx: &SecurityContext) -> Option<String> {
-        let rules = self.rules.get(entity)?;
+        let (_, rules) = self.rules.iter().find(|(e, _)| e == entity)?;
 
         let mut conditions: Vec<String> = vec![];
         for rule in rules.iter()
@@ -88,7 +97,7 @@ impl RlsFilterBuilder {
     ///
     /// The caller is responsible for binding these values to the query.
     pub fn bind_rls_values(&self, entity: &str, ctx: &SecurityContext) -> Vec<uuid::Uuid> {
-        let Some(rules) = self.rules.get(entity) else {
+        let Some((_, rules)) = self.rules.iter().find(|(e, _)| e == entity) else {
             return vec![];
         };
 
@@ -116,7 +125,7 @@ impl RlsFilterBuilder {
     ///
     /// Same parameterized approach as `build_filter`.
     pub fn build_insert_check(&self, entity: &str, ctx: &SecurityContext) -> Option<String> {
-        let rules = self.rules.get(entity)?;
+        let (_, rules) = self.rules.iter().find(|(e, _)| e == entity)?;
 
         let mut conditions: Vec<String> = vec![];
         for rule in rules.iter()

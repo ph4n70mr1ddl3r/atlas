@@ -216,7 +216,7 @@ pub async fn create_sourcing_event(
         payload.are_bids_visible, payload.allow_supplier_rank_visibility,
         payload.terms_and_conditions.as_deref(), Some(user_id),
     ).await {
-        Ok(event) => Ok((StatusCode::CREATED, Json(serde_json::to_value(event).unwrap()))),
+        Ok(event) => Ok((StatusCode::CREATED, Json(serde_json::to_value(event).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create sourcing event: {}", e);
             Err(map_error(e))
@@ -230,7 +230,7 @@ pub async fn get_sourcing_event(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.get_event(id).await {
-        Ok(Some(event)) => Ok(Json(serde_json::to_value(event).unwrap())),
+        Ok(Some(event)) => Ok(Json(serde_json::to_value(event).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -244,7 +244,7 @@ pub async fn list_sourcing_events(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.sourcing_engine.list_events(org_id, query.status.as_deref(), query.event_type.as_deref()).await {
-        Ok(events) => Ok(Json(serde_json::to_value(events).unwrap())),
+        Ok(events) => Ok(Json(serde_json::to_value(events).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -257,7 +257,7 @@ pub async fn publish_sourcing_event(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.sourcing_engine.publish_event(id, Some(user_id)).await {
-        Ok(event) => Ok(Json(serde_json::to_value(event).unwrap())),
+        Ok(event) => Ok(Json(serde_json::to_value(event).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -270,7 +270,7 @@ pub async fn close_sourcing_event(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.sourcing_engine.close_event(id, Some(user_id)).await {
-        Ok(event) => Ok(Json(serde_json::to_value(event).unwrap())),
+        Ok(event) => Ok(Json(serde_json::to_value(event).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -284,7 +284,7 @@ pub async fn cancel_sourcing_event(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.sourcing_engine.cancel_event(id, Some(user_id), payload.reason.as_deref()).await {
-        Ok(event) => Ok(Json(serde_json::to_value(event).unwrap())),
+        Ok(event) => Ok(Json(serde_json::to_value(event).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -315,7 +315,7 @@ pub async fn add_event_line(
         payload.specifications, payload.allow_partial_quantity,
         payload.min_award_quantity.as_deref(),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to add event line: {}", e);
             Err(map_error(e))
@@ -329,7 +329,7 @@ pub async fn list_event_lines(
     Path(event_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.list_event_lines(event_id).await {
-        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap())),
+        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -351,7 +351,7 @@ pub async fn invite_supplier(
         org_id, event_id, payload.supplier_id,
         payload.supplier_name.as_deref(), payload.supplier_email.as_deref(),
     ).await {
-        Ok(invite) => Ok((StatusCode::CREATED, Json(serde_json::to_value(invite).unwrap()))),
+        Ok(invite) => Ok((StatusCode::CREATED, Json(serde_json::to_value(invite).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to invite supplier: {}", e);
             Err(map_error(e))
@@ -365,7 +365,7 @@ pub async fn list_invites(
     Path(event_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.list_invites(event_id).await {
-        Ok(invites) => Ok(Json(serde_json::to_value(invites).unwrap())),
+        Ok(invites) => Ok(Json(serde_json::to_value(invites).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -390,7 +390,7 @@ pub async fn submit_response(
         payload.payment_terms.as_deref(), payload.lead_time_days,
         payload.warranty_months, Some(user_id),
     ).await {
-        Ok(response) => Ok((StatusCode::CREATED, Json(serde_json::to_value(response).unwrap()))),
+        Ok(response) => Ok((StatusCode::CREATED, Json(serde_json::to_value(response).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to submit response: {}", e);
             Err(map_error(e))
@@ -405,7 +405,7 @@ pub async fn list_responses(
     Query(query): Query<ListResponsesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.list_responses(event_id, query.status.as_deref()).await {
-        Ok(responses) => Ok(Json(serde_json::to_value(responses).unwrap())),
+        Ok(responses) => Ok(Json(serde_json::to_value(responses).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -416,7 +416,7 @@ pub async fn get_response(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.get_response(id).await {
-        Ok(Some(response)) => Ok(Json(serde_json::to_value(response).unwrap())),
+        Ok(Some(response)) => Ok(Json(serde_json::to_value(response).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -437,7 +437,7 @@ pub async fn add_response_line(
         payload.promised_delivery_date, payload.lead_time_days,
         payload.supplier_notes.as_deref(),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to add response line: {}", e);
             Err(map_error(e))
@@ -451,7 +451,7 @@ pub async fn list_response_lines(
     Path(response_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.list_response_lines(response_id).await {
-        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap())),
+        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -475,7 +475,7 @@ pub async fn add_scoring_criterion(
         &payload.weight, &payload.max_score, &payload.criterion_type,
         payload.display_order, payload.is_mandatory, Some(user_id),
     ).await {
-        Ok(criterion) => Ok((StatusCode::CREATED, Json(serde_json::to_value(criterion).unwrap()))),
+        Ok(criterion) => Ok((StatusCode::CREATED, Json(serde_json::to_value(criterion).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to add scoring criterion: {}", e);
             Err(map_error(e))
@@ -489,7 +489,7 @@ pub async fn list_scoring_criteria(
     Path(event_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.list_scoring_criteria(event_id).await {
-        Ok(criteria) => Ok(Json(serde_json::to_value(criteria).unwrap())),
+        Ok(criteria) => Ok(Json(serde_json::to_value(criteria).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -508,7 +508,7 @@ pub async fn score_response(
         org_id, response_id, payload.criterion_id, &payload.score,
         payload.notes.as_deref(), Some(user_id),
     ).await {
-        Ok(score) => Ok(Json(serde_json::to_value(score).unwrap())),
+        Ok(score) => Ok(Json(serde_json::to_value(score).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -521,7 +521,7 @@ pub async fn evaluate_responses(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.sourcing_engine.evaluate_responses(event_id, Some(user_id)).await {
-        Ok(responses) => Ok(Json(serde_json::to_value(responses).unwrap())),
+        Ok(responses) => Ok(Json(serde_json::to_value(responses).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -556,7 +556,7 @@ pub async fn create_award(
         org_id, event_id, &payload.award_method, &award_lines,
         payload.award_rationale.as_deref(), Some(user_id),
     ).await {
-        Ok(award) => Ok((StatusCode::CREATED, Json(serde_json::to_value(award).unwrap()))),
+        Ok(award) => Ok((StatusCode::CREATED, Json(serde_json::to_value(award).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create award: {}", e);
             Err(map_error(e))
@@ -570,7 +570,7 @@ pub async fn get_award(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.get_award(id).await {
-        Ok(Some(award)) => Ok(Json(serde_json::to_value(award).unwrap())),
+        Ok(Some(award)) => Ok(Json(serde_json::to_value(award).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -582,7 +582,7 @@ pub async fn list_awards(
     Path(event_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.list_awards(event_id).await {
-        Ok(awards) => Ok(Json(serde_json::to_value(awards).unwrap())),
+        Ok(awards) => Ok(Json(serde_json::to_value(awards).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -595,7 +595,7 @@ pub async fn approve_award(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.sourcing_engine.approve_award(id, Some(user_id)).await {
-        Ok(award) => Ok(Json(serde_json::to_value(award).unwrap())),
+        Ok(award) => Ok(Json(serde_json::to_value(award).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -607,7 +607,7 @@ pub async fn reject_award(
     Json(payload): Json<RejectAwardRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.reject_award(id, payload.reason.as_deref()).await {
-        Ok(award) => Ok(Json(serde_json::to_value(award).unwrap())),
+        Ok(award) => Ok(Json(serde_json::to_value(award).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -623,7 +623,7 @@ pub async fn list_award_lines(
     Path(award_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sourcing_engine.list_award_lines(award_id).await {
-        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap())),
+        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -648,7 +648,7 @@ pub async fn create_sourcing_template(
         payload.default_bids_visible, payload.default_terms.as_deref(),
         payload.default_scoring_criteria, payload.default_lines, Some(user_id),
     ).await {
-        Ok(template) => Ok((StatusCode::CREATED, Json(serde_json::to_value(template).unwrap()))),
+        Ok(template) => Ok((StatusCode::CREATED, Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create sourcing template: {}", e);
             Err(map_error(e))
@@ -663,7 +663,7 @@ pub async fn list_sourcing_templates(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.sourcing_engine.list_templates(org_id).await {
-        Ok(templates) => Ok(Json(serde_json::to_value(templates).unwrap())),
+        Ok(templates) => Ok(Json(serde_json::to_value(templates).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -676,7 +676,7 @@ pub async fn get_sourcing_template(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.sourcing_engine.get_template(org_id, &code).await {
-        Ok(Some(template)) => Ok(Json(serde_json::to_value(template).unwrap())),
+        Ok(Some(template)) => Ok(Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -706,7 +706,7 @@ pub async fn get_sourcing_summary(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.sourcing_engine.get_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }

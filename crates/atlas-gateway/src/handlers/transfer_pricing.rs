@@ -87,7 +87,7 @@ pub async fn create_policy(
         arm_length_range_low, arm_length_range_mid, arm_length_range_high,
         margin_pct, cost_base, created_by,
     ).await {
-        Ok(policy) => Ok((StatusCode::CREATED, Json(serde_json::to_value(policy).unwrap()))),
+        Ok(policy) => Ok((StatusCode::CREATED, Json(serde_json::to_value(policy).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND }
@@ -108,7 +108,7 @@ pub async fn get_policy(
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
     match state.transfer_pricing_engine.get_policy(org_id, &code).await {
-        Ok(Some(policy)) => Ok(Json(serde_json::to_value(policy).unwrap())),
+        Ok(Some(policy)) => Ok(Json(serde_json::to_value(policy).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Policy not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
     }
@@ -136,7 +136,7 @@ pub async fn activate_policy(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.activate_policy(id).await {
-        Ok(policy) => Ok(Json(serde_json::to_value(policy).unwrap())),
+        Ok(policy) => Ok(Json(serde_json::to_value(policy).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -152,7 +152,7 @@ pub async fn deactivate_policy(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.deactivate_policy(id).await {
-        Ok(policy) => Ok(Json(serde_json::to_value(policy).unwrap())),
+        Ok(policy) => Ok(Json(serde_json::to_value(policy).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -219,7 +219,7 @@ pub async fn create_transaction(
         quantity, unit_cost, transfer_price, currency_code, transaction_date,
         source_type, source_id, source_number, created_by,
     ).await {
-        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap()))),
+        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND }
@@ -236,7 +236,7 @@ pub async fn get_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.get_transaction(id).await {
-        Ok(Some(txn)) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(Some(txn)) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Transaction not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
     }
@@ -265,7 +265,7 @@ pub async fn submit_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.submit_transaction(id).await {
-        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -282,7 +282,7 @@ pub async fn approve_transaction(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let approved_by = Uuid::parse_str(&claims.sub).ok();
     match state.transfer_pricing_engine.approve_transaction(id, approved_by).await {
-        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -298,7 +298,7 @@ pub async fn reject_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.reject_transaction(id).await {
-        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -340,7 +340,7 @@ pub async fn create_benchmark(
         from_entity_id, from_entity_name, to_entity_id, to_entity_name,
         product_category, tested_party, prepared_by, prepared_by_name, created_by,
     ).await {
-        Ok(bm) => Ok((StatusCode::CREATED, Json(serde_json::to_value(bm).unwrap()))),
+        Ok(bm) => Ok((StatusCode::CREATED, Json(serde_json::to_value(bm).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(json!({"error": format!("{}", e)})))),
     }
 }
@@ -352,7 +352,7 @@ pub async fn get_benchmark(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.get_benchmark(id).await {
-        Ok(Some(bm)) => Ok(Json(serde_json::to_value(bm).unwrap())),
+        Ok(Some(bm)) => Ok(Json(serde_json::to_value(bm).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Benchmark not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
     }
@@ -380,7 +380,7 @@ pub async fn submit_benchmark(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.submit_benchmark_for_review(id).await {
-        Ok(bm) => Ok(Json(serde_json::to_value(bm).unwrap())),
+        Ok(bm) => Ok(Json(serde_json::to_value(bm).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -397,7 +397,7 @@ pub async fn approve_benchmark(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let reviewed_by = Uuid::parse_str(&claims.sub).ok();
     match state.transfer_pricing_engine.approve_benchmark(id, reviewed_by, None).await {
-        Ok(bm) => Ok(Json(serde_json::to_value(bm).unwrap())),
+        Ok(bm) => Ok(Json(serde_json::to_value(bm).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -413,7 +413,7 @@ pub async fn reject_benchmark(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.reject_benchmark(id).await {
-        Ok(bm) => Ok(Json(serde_json::to_value(bm).unwrap())),
+        Ok(bm) => Ok(Json(serde_json::to_value(bm).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -472,7 +472,7 @@ pub async fn add_comparable(
         revenue, operating_income, operating_margin_pct,
         net_income, total_assets, employees, data_source,
     ).await {
-        Ok(comp) => Ok((StatusCode::CREATED, Json(serde_json::to_value(comp).unwrap()))),
+        Ok(comp) => Ok((StatusCode::CREATED, Json(serde_json::to_value(comp).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -523,7 +523,7 @@ pub async fn create_documentation(
         reporting_entity_id, reporting_entity_name, description,
         content_summary, filing_deadline, responsible_party, created_by,
     ).await {
-        Ok(doc) => Ok((StatusCode::CREATED, Json(serde_json::to_value(doc).unwrap()))),
+        Ok(doc) => Ok((StatusCode::CREATED, Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(json!({"error": format!("{}", e)})))),
     }
 }
@@ -535,7 +535,7 @@ pub async fn get_documentation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.get_documentation(id).await {
-        Ok(Some(doc)) => Ok(Json(serde_json::to_value(doc).unwrap())),
+        Ok(Some(doc)) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Documentation not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
     }
@@ -565,7 +565,7 @@ pub async fn submit_documentation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.submit_documentation_for_review(id).await {
-        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap())),
+        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -582,7 +582,7 @@ pub async fn approve_documentation(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let approved_by = Uuid::parse_str(&claims.sub).ok();
     match state.transfer_pricing_engine.approve_documentation(id, approved_by).await {
-        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap())),
+        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -598,7 +598,7 @@ pub async fn file_documentation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.transfer_pricing_engine.file_documentation(id).await {
-        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap())),
+        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{}", e);
             let status = if msg.contains("not found") { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -620,7 +620,7 @@ pub async fn get_tp_dashboard(
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
     match state.transfer_pricing_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
     }
 }

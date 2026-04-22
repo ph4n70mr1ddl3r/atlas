@@ -58,7 +58,7 @@ pub async fn create_batch(
         &currency_code, accounting_date, period_name, source,
         is_automatic_post, Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(batch) => Ok((StatusCode::CREATED, Json(serde_json::to_value(batch).unwrap()))),
+        Ok(batch) => Ok((StatusCode::CREATED, Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -76,7 +76,7 @@ pub async fn get_batch(
     };
 
     match state.manual_journal_engine.get_batch(org_id, &batch_number).await {
-        Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Batch not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -127,7 +127,7 @@ pub async fn submit_batch(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let submitted_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
     match state.manual_journal_engine.submit_batch(id, Some(submitted_by)).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -141,7 +141,7 @@ pub async fn approve_batch(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let approved_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
     match state.manual_journal_engine.approve_batch(id, Some(approved_by)).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -156,7 +156,7 @@ pub async fn reject_batch(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let reason = body["reason"].as_str();
     match state.manual_journal_engine.reject_batch(id, reason).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -170,7 +170,7 @@ pub async fn post_batch(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let posted_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
     match state.manual_journal_engine.post_batch(id, Some(posted_by)).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -184,7 +184,7 @@ pub async fn reverse_batch(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let reversed_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
     match state.manual_journal_engine.reverse_batch(id, Some(reversed_by)).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -225,7 +225,7 @@ pub async fn create_entry(
         journal_category, reference_number, external_reference,
         statistical_entry, Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(entry) => Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap()))),
+        Ok(entry) => Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -238,7 +238,7 @@ pub async fn get_entry(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.manual_journal_engine.get_entry(id).await {
-        Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Entry not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -326,7 +326,7 @@ pub async fn add_line(
         exchange_rate, tax_code, cost_center, department_id,
         project_id, intercompany_entity_id, statistical_amount,
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -360,7 +360,7 @@ pub async fn get_dashboard(
     };
 
     match state.manual_journal_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }

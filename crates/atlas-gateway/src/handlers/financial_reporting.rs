@@ -164,7 +164,7 @@ pub async fn create_financial_template(
         body.segment_filter,
         created_by,
     ).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -177,7 +177,7 @@ pub async fn get_financial_template(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_org_id(&claims);
     match state.financial_reporting_engine.get_template(org_id, &code).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Template not found"})))),
         Err(e) => Err(map_error(e)),
     }
@@ -237,7 +237,7 @@ pub async fn create_financial_row(
         body.scaling_factor.as_deref(),
         body.parent_row_id,
     ).await {
-        Ok(row) => Ok(Json(serde_json::to_value(row).unwrap())),
+        Ok(row) => Ok(Json(serde_json::to_value(row).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -289,7 +289,7 @@ pub async fn create_financial_column(
         body.column_width,
         body.format_override.as_deref(),
     ).await {
-        Ok(col) => Ok(Json(serde_json::to_value(col).unwrap())),
+        Ok(col) => Ok(Json(serde_json::to_value(col).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -341,7 +341,7 @@ pub async fn generate_financial_report(
         body.include_unposted,
         user_id,
     ).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -353,7 +353,7 @@ pub async fn get_financial_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.financial_reporting_engine.get_run(id).await {
-        Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Report run not found"})))),
         Err(e) => Err(map_error(e)),
     }
@@ -395,7 +395,7 @@ pub async fn approve_financial_report(
     })?;
 
     match state.financial_reporting_engine.approve_report(id, user_id).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -411,7 +411,7 @@ pub async fn publish_financial_report(
     })?;
 
     match state.financial_reporting_engine.publish_report(id, user_id).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -423,7 +423,7 @@ pub async fn archive_financial_report(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.financial_reporting_engine.archive_report(id).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -439,7 +439,7 @@ pub async fn create_financial_trial_balance(
     match state.financial_reporting_engine.create_trial_balance_template(
         org_id, &body.code, &body.name, &body.currency_code, created_by,
     ).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -455,7 +455,7 @@ pub async fn create_financial_income_statement(
     match state.financial_reporting_engine.create_income_statement_template(
         org_id, &body.code, &body.name, &body.currency_code, created_by,
     ).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -471,7 +471,7 @@ pub async fn create_financial_balance_sheet(
     match state.financial_reporting_engine.create_balance_sheet_template(
         org_id, &body.code, &body.name, &body.currency_code, created_by,
     ).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -488,7 +488,7 @@ pub async fn add_financial_favourite(
     })?;
 
     match state.financial_reporting_engine.add_favourite(org_id, user_id, template_id, None).await {
-        Ok(fav) => Ok(Json(serde_json::to_value(fav).unwrap())),
+        Ok(fav) => Ok(Json(serde_json::to_value(fav).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }
@@ -533,7 +533,7 @@ pub async fn get_financial_dashboard(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_org_id(&claims);
     match state.financial_reporting_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
     }
 }

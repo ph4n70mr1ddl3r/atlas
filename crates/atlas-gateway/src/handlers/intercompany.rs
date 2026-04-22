@@ -62,7 +62,7 @@ pub async fn create_intercompany_batch(
         payload.accounting_date,
         Some(user_id),
     ).await {
-        Ok(batch) => Ok((StatusCode::CREATED, Json(serde_json::to_value(batch).unwrap()))),
+        Ok(batch) => Ok((StatusCode::CREATED, Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create intercompany batch: {}", e);
             Err(match e {
@@ -106,7 +106,7 @@ pub async fn get_intercompany_batch(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.intercompany_engine.get_batch(org_id, &batch_number).await {
-        Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get intercompany batch: {}", e);
@@ -125,7 +125,7 @@ pub async fn submit_intercompany_batch(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.intercompany_engine.submit_batch(batch_id, Some(user_id)).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit intercompany batch: {}", e);
             Err(match e {
@@ -148,7 +148,7 @@ pub async fn approve_intercompany_batch(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.intercompany_engine.approve_batch(batch_id, user_id).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve intercompany batch: {}", e);
             Err(match e {
@@ -167,7 +167,7 @@ pub async fn post_intercompany_batch(
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.intercompany_engine.post_batch(batch_id).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to post intercompany batch: {}", e);
             Err(match e {
@@ -187,7 +187,7 @@ pub async fn reject_intercompany_batch(
     Json(payload): Json<RejectBatchRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.intercompany_engine.reject_batch(batch_id, &payload.reason).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reject intercompany batch: {}", e);
             Err(match e {
@@ -275,7 +275,7 @@ pub async fn create_intercompany_transaction(
         payload.source_entity_id,
         Some(user_id),
     ).await {
-        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap()))),
+        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create intercompany transaction: {}", e);
             Err(match e {
@@ -374,7 +374,7 @@ pub async fn create_intercompany_settlement(
         &txn_ids,
         Some(user_id),
     ).await {
-        Ok(settlement) => Ok((StatusCode::CREATED, Json(serde_json::to_value(settlement).unwrap()))),
+        Ok(settlement) => Ok((StatusCode::CREATED, Json(serde_json::to_value(settlement).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create intercompany settlement: {}", e);
             Err(match e {
@@ -423,7 +423,7 @@ pub async fn get_intercompany_balance_summary(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.intercompany_engine.get_balance_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to get intercompany balance summary: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -446,7 +446,7 @@ pub async fn get_intercompany_balance(
     match state.intercompany_engine.get_balance(
         org_id, from_entity_id, to_entity_id, &currency,
     ).await {
-        Ok(Some(balance)) => Ok(Json(serde_json::to_value(balance).unwrap())),
+        Ok(Some(balance)) => Ok(Json(serde_json::to_value(balance).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get intercompany balance: {}", e);

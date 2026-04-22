@@ -133,7 +133,7 @@ pub async fn create_cost_transaction(
         req.is_capitalizable.unwrap_or(false),
         created_by,
     ).await {
-        Ok(txn) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap()))),
+        Ok(txn) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create cost transaction: {}", e);
             Err(error_response(e))
@@ -164,7 +164,7 @@ pub async fn get_cost_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_costing_engine.get_cost_transaction(id).await {
-        Ok(Some(txn)) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(Some(txn)) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Cost transaction not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -178,7 +178,7 @@ pub async fn approve_cost_transaction(
     let approved_by = Uuid::parse_str(&claims.sub).ok();
 
     match state.project_costing_engine.approve_cost_transaction(id, approved_by).await {
-        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve cost transaction: {}", e);
             Err(error_response(e))
@@ -197,7 +197,7 @@ pub async fn reverse_cost_transaction(
 
     let reason = body.get("reason").and_then(|v| v.as_str());
     match state.project_costing_engine.reverse_cost_transaction(org_id, id, reason, created_by).await {
-        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reverse cost transaction: {}", e);
             Err(error_response(e))
@@ -222,7 +222,7 @@ pub async fn create_burden_schedule(
         req.effective_from, req.effective_to,
         req.is_default.unwrap_or(false), created_by,
     ).await {
-        Ok(schedule) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(schedule).unwrap()))),
+        Ok(schedule) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create burden schedule: {}", e);
             Err(error_response(e))
@@ -250,7 +250,7 @@ pub async fn get_burden_schedule(
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
 
     match state.project_costing_engine.get_burden_schedule(org_id, &code).await {
-        Ok(Some(schedule)) => Ok(Json(serde_json::to_value(schedule).unwrap())),
+        Ok(Some(schedule)) => Ok(Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Burden schedule not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -261,7 +261,7 @@ pub async fn activate_burden_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_costing_engine.activate_burden_schedule(id).await {
-        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap())),
+        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -279,7 +279,7 @@ pub async fn add_burden_schedule_line(
         req.expenditure_category.as_deref(), &req.burden_rate_percent,
         req.burden_account_code.as_deref(),
     ).await {
-        Ok(line) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to add burden line: {}", e);
             Err(error_response(e))
@@ -315,7 +315,7 @@ pub async fn create_cost_adjustment(
         req.effective_date, req.transfer_to_project_id, req.transfer_to_task_id,
         created_by,
     ).await {
-        Ok(adj) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(adj).unwrap()))),
+        Ok(adj) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(adj).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create cost adjustment: {}", e);
             Err(error_response(e))
@@ -345,7 +345,7 @@ pub async fn approve_cost_adjustment(
     let approved_by = Uuid::parse_str(&claims.sub).ok();
 
     match state.project_costing_engine.approve_cost_adjustment(id, approved_by).await {
-        Ok(adj) => Ok(Json(serde_json::to_value(adj).unwrap())),
+        Ok(adj) => Ok(Json(serde_json::to_value(adj).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve cost adjustment: {}", e);
             Err(error_response(e))
@@ -412,7 +412,7 @@ pub async fn get_costing_summary(
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
 
     match state.project_costing_engine.get_costing_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
     }
 }

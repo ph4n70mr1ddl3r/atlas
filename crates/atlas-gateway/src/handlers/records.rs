@@ -67,6 +67,41 @@ pub fn row_to_json(row: &sqlx::postgres::PgRow) -> serde_json::Value {
 }
 
 
+/// Serialize a value to `serde_json::Value`, mapping serialization errors
+/// to `StatusCode::INTERNAL_SERVER_ERROR`.
+///
+/// Use this instead of `serde_json::to_value(...).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })` to avoid panics
+/// in handler code.
+///
+/// Returns `Json(serde_json::Value)` on success, or `StatusCode` on failure.
+/// This type works with the `?` operator in handlers that return
+/// `Result<Json<Value>, StatusCode>`.
+pub fn to_json_value<T: serde::Serialize>(
+    val: T,
+) -> Result<serde_json::Value, StatusCode> {
+    serde_json::to_value(val).map_err(|e| {
+        tracing::error!("Serialization error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+/// Serialize a value to `serde_json::Value`, returning a JSON null on failure.
+///
+/// Use this in handlers that return tuple types like
+/// `Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)>` where the
+/// `?` operator cannot convert from `StatusCode`.
+///
+/// Logs the error but does not panic.
+pub fn to_json_or_null<T: serde::Serialize>(val: T) -> serde_json::Value {
+    match serde_json::to_value(val) {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::error!("Serialization error (returning null): {}", e);
+            serde_json::Value::Null
+        }
+    }
+}
+
 /// Convert a JSON value into an `Option<String>` suitable for binding as
 /// `::text` in a parameterised PostgreSQL query.
 pub fn json_to_text(value: &serde_json::Value) -> Option<String> {

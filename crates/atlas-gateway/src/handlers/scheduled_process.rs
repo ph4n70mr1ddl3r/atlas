@@ -89,7 +89,7 @@ pub async fn create_template(
         effective_from, effective_to,
         Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(template) => Ok((StatusCode::CREATED, Json(serde_json::to_value(template).unwrap()))),
+        Ok(template) => Ok((StatusCode::CREATED, Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -107,7 +107,7 @@ pub async fn get_template(
     };
 
     match state.scheduled_process_engine.get_template(org_id, &code).await {
-        Ok(Some(template)) => Ok(Json(serde_json::to_value(template).unwrap())),
+        Ok(Some(template)) => Ok(Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Template not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -143,7 +143,7 @@ pub async fn activate_template(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.scheduled_process_engine.activate_template(id).await {
-        Ok(template) => Ok(Json(serde_json::to_value(template).unwrap())),
+        Ok(template) => Ok(Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -156,7 +156,7 @@ pub async fn deactivate_template(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.scheduled_process_engine.deactivate_template(id).await {
-        Ok(template) => Ok(Json(serde_json::to_value(template).unwrap())),
+        Ok(template) => Ok(Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -212,7 +212,7 @@ pub async fn submit_process(
         &priority, scheduled_start_at,
         parameters, submitted_by,
     ).await {
-        Ok(process) => Ok((StatusCode::CREATED, Json(serde_json::to_value(process).unwrap()))),
+        Ok(process) => Ok((StatusCode::CREATED, Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -225,7 +225,7 @@ pub async fn get_process(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.scheduled_process_engine.get_process(id).await {
-        Ok(Some(process)) => Ok(Json(serde_json::to_value(process).unwrap())),
+        Ok(Some(process)) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Process not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -266,7 +266,7 @@ pub async fn start_process(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.scheduled_process_engine.start_process(id).await {
-        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap())),
+        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -286,7 +286,7 @@ pub async fn complete_process(
     match state.scheduled_process_engine.complete_process(
         id, result_summary, output_file_url, log_output,
     ).await {
-        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap())),
+        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -303,7 +303,7 @@ pub async fn cancel_process(
     let reason = body["reason"].as_str();
 
     match state.scheduled_process_engine.cancel_process(id, cancelled_by, reason).await {
-        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap())),
+        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -319,7 +319,7 @@ pub async fn update_progress(
     let progress_percent = body["progress_percent"].as_i64().unwrap_or(0) as i32;
 
     match state.scheduled_process_engine.update_progress(id, progress_percent).await {
-        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap())),
+        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -332,7 +332,7 @@ pub async fn approve_process(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.scheduled_process_engine.approve_process(id).await {
-        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap())),
+        Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -372,7 +372,7 @@ pub async fn create_recurrence(
         start_date, end_date, max_runs,
         Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(recurrence) => Ok((StatusCode::CREATED, Json(serde_json::to_value(recurrence).unwrap()))),
+        Ok(recurrence) => Ok((StatusCode::CREATED, Json(serde_json::to_value(recurrence).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -385,7 +385,7 @@ pub async fn get_recurrence(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.scheduled_process_engine.get_recurrence(id).await {
-        Ok(Some(recurrence)) => Ok(Json(serde_json::to_value(recurrence).unwrap())),
+        Ok(Some(recurrence)) => Ok(Json(serde_json::to_value(recurrence).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Recurrence not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -417,7 +417,7 @@ pub async fn deactivate_recurrence(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.scheduled_process_engine.deactivate_recurrence(id).await {
-        Ok(recurrence) => Ok(Json(serde_json::to_value(recurrence).unwrap())),
+        Ok(recurrence) => Ok(Json(serde_json::to_value(recurrence).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -493,7 +493,7 @@ pub async fn add_process_log(
         org_id, id, &log_level, &message,
         details, step_name, duration_ms,
     ).await {
-        Ok(log) => Ok((StatusCode::CREATED, Json(serde_json::to_value(log).unwrap()))),
+        Ok(log) => Ok((StatusCode::CREATED, Json(serde_json::to_value(log).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -514,7 +514,7 @@ pub async fn get_scheduled_process_dashboard(
     };
 
     match state.scheduled_process_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }

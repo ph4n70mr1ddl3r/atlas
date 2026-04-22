@@ -60,7 +60,7 @@ pub async fn create_sponsor(
         req.currency_code.as_deref().unwrap_or("USD"),
         req.credit_limit.as_deref(), None,
     ).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap()))),
+        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create sponsor: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -92,7 +92,7 @@ pub async fn get_sponsor(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
     match state.grant_management_engine.get_sponsor(org_id, &code).await {
-        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Sponsor not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
@@ -141,7 +141,7 @@ pub async fn create_indirect_cost_rate(
         req.base_type.as_deref().unwrap_or("modified_total_direct_costs"),
         req.effective_from, req.effective_to, req.negotiated_by.as_deref(), None,
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create indirect cost rate: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -235,7 +235,7 @@ pub async fn create_award(
         req.reporting_requirements.as_deref(), req.compliance_notes.as_deref(),
         None,
     ).await {
-        Ok(a) => Ok((StatusCode::CREATED, Json(serde_json::to_value(a).unwrap()))),
+        Ok(a) => Ok((StatusCode::CREATED, Json(serde_json::to_value(a).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create award: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -268,7 +268,7 @@ pub async fn get_award(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.grant_management_engine.get_award(id).await {
-        Ok(Some(a)) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(Some(a)) => Ok(Json(serde_json::to_value(a).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Award not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
@@ -280,7 +280,7 @@ pub async fn activate_award(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.grant_management_engine.activate_award(id).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -291,7 +291,7 @@ pub async fn suspend_award(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.grant_management_engine.suspend_award(id).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -302,7 +302,7 @@ pub async fn complete_award(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.grant_management_engine.complete_award(id, None).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -313,7 +313,7 @@ pub async fn terminate_award(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.grant_management_engine.terminate_award(id, None).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -348,7 +348,7 @@ pub async fn create_budget_line(
         req.account_code.as_deref(), &req.budget_amount,
         req.period_start, req.period_end, req.fiscal_year, req.notes.as_deref(), None,
     ).await {
-        Ok(bl) => Ok((StatusCode::CREATED, Json(serde_json::to_value(bl).unwrap()))),
+        Ok(bl) => Ok((StatusCode::CREATED, Json(serde_json::to_value(bl).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create budget line: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -408,7 +408,7 @@ pub async fn create_expenditure(
         req.gl_debit_account.as_deref(), req.gl_credit_account.as_deref(),
         req.notes.as_deref(), None,
     ).await {
-        Ok(exp) => Ok((StatusCode::CREATED, Json(serde_json::to_value(exp).unwrap()))),
+        Ok(exp) => Ok((StatusCode::CREATED, Json(serde_json::to_value(exp).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create expenditure: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -439,7 +439,7 @@ pub async fn approve_expenditure(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     match state.grant_management_engine.approve_expenditure(id, user_id).await {
-        Ok(exp) => Ok(Json(serde_json::to_value(exp).unwrap())),
+        Ok(exp) => Ok(Json(serde_json::to_value(exp).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -450,7 +450,7 @@ pub async fn reverse_expenditure(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.grant_management_engine.reverse_expenditure(id).await {
-        Ok(exp) => Ok(Json(serde_json::to_value(exp).unwrap())),
+        Ok(exp) => Ok(Json(serde_json::to_value(exp).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -478,7 +478,7 @@ pub async fn create_billing(
     match state.grant_management_engine.create_billing(
         org_id, award_id, req.period_start, req.period_end, req.notes.as_deref(), None,
     ).await {
-        Ok(b) => Ok((StatusCode::CREATED, Json(serde_json::to_value(b).unwrap()))),
+        Ok(b) => Ok((StatusCode::CREATED, Json(serde_json::to_value(b).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create billing: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -509,7 +509,7 @@ pub async fn submit_billing(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     match state.grant_management_engine.submit_billing(id, user_id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -522,7 +522,7 @@ pub async fn approve_billing(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     match state.grant_management_engine.approve_billing(id, user_id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -533,7 +533,7 @@ pub async fn mark_billing_paid(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.grant_management_engine.mark_billing_paid(id, None).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -566,7 +566,7 @@ pub async fn create_compliance_report(
         req.reporting_period_start, req.reporting_period_end, req.due_date,
         req.notes.as_deref(), None,
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create compliance report: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -597,7 +597,7 @@ pub async fn submit_compliance_report(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     match state.grant_management_engine.submit_compliance_report(id, user_id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -610,7 +610,7 @@ pub async fn approve_compliance_report(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     match state.grant_management_engine.approve_compliance_report(id, user_id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -626,7 +626,7 @@ pub async fn get_grant_dashboard(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
     match state.grant_management_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                        Json(serde_json::json!({"error": e.to_string()})))),
     }

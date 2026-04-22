@@ -73,7 +73,7 @@ pub async fn create_budget_definition(
     ).await {
         Ok(def) => {
             info!("Created budget definition '{}' for org {}", def.code, org_id);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(def).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create budget definition: {}", e);
@@ -95,7 +95,7 @@ pub async fn get_budget_definition(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.budget_engine.get_definition(org_id, &code).await {
-        Ok(Some(def)) => Ok(Json(serde_json::to_value(def).unwrap())),
+        Ok(Some(def)) => Ok(Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get budget definition: {}", e);
@@ -174,7 +174,7 @@ pub async fn create_budget_version(
     ).await {
         Ok(version) => {
             info!("Created budget version for '{}' (v{})", budget_code, version.version_number);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(version).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create budget version: {}", e);
@@ -216,7 +216,7 @@ pub async fn get_budget_version(
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.budget_engine.get_version(version_id).await {
-        Ok(Some(version)) => Ok(Json(serde_json::to_value(version).unwrap())),
+        Ok(Some(version)) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get budget version: {}", e);
@@ -239,7 +239,7 @@ pub async fn submit_budget_version(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.budget_engine.submit_version(version_id, user_id).await {
-        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap())),
+        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit budget version: {}", e);
             Err(match e {
@@ -262,7 +262,7 @@ pub async fn approve_budget_version(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.budget_engine.approve_version(version_id, user_id).await {
-        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap())),
+        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve budget version: {}", e);
             Err(match e {
@@ -281,7 +281,7 @@ pub async fn activate_budget_version(
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.budget_engine.activate_version(version_id).await {
-        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap())),
+        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to activate budget version: {}", e);
             Err(match e {
@@ -306,7 +306,7 @@ pub async fn reject_budget_version(
     Json(payload): Json<RejectBudgetRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.budget_engine.reject_version(version_id, payload.reason.as_deref()).await {
-        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap())),
+        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reject budget version: {}", e);
             Err(match e {
@@ -325,7 +325,7 @@ pub async fn close_budget_version(
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.budget_engine.close_version(version_id).await {
-        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap())),
+        Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to close budget version: {}", e);
             Err(match e {
@@ -392,7 +392,7 @@ pub async fn add_budget_line(
     ).await {
         Ok(line) => {
             info!("Added budget line to version {} for account {}", version_id, payload.account_code);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to add budget line: {}", e);
@@ -490,7 +490,7 @@ pub async fn create_budget_transfer(
     ).await {
         Ok(transfer) => {
             info!("Created budget transfer {} for version {}", transfer_number, version_id);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(transfer).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(transfer).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create budget transfer: {}", e);
@@ -514,7 +514,7 @@ pub async fn approve_budget_transfer(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.budget_engine.approve_transfer(transfer_id, user_id).await {
-        Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap())),
+        Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve budget transfer: {}", e);
             Err(match e {
@@ -534,7 +534,7 @@ pub async fn reject_budget_transfer(
     Json(payload): Json<RejectBudgetRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.budget_engine.reject_transfer(transfer_id, payload.reason.as_deref()).await {
-        Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap())),
+        Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reject budget transfer: {}", e);
             Err(match e {
@@ -572,7 +572,7 @@ pub async fn get_budget_variance(
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.budget_engine.get_variance_report(version_id).await {
-        Ok(report) => Ok(Json(serde_json::to_value(report).unwrap())),
+        Ok(report) => Ok(Json(serde_json::to_value(report).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to generate budget variance report: {}", e);
             Err(match e {
@@ -615,7 +615,7 @@ pub async fn check_budget_control(
         payload.cost_center.as_deref(),
         payload.proposed_amount,
     ).await {
-        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap())),
+        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to check budget control: {}", e);
             Err(match e {

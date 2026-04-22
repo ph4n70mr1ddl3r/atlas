@@ -143,7 +143,7 @@ pub async fn upsert_cash_position(
         &payload.projected_inflows, &payload.projected_outflows, &payload.projected_net,
         payload.is_reconciled, Some(user_id),
     ).await {
-        Ok(pos) => Ok((StatusCode::CREATED, Json(serde_json::to_value(pos).unwrap()))),
+        Ok(pos) => Ok((StatusCode::CREATED, Json(serde_json::to_value(pos).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to upsert cash position: {}", e);
             Err(map_error(e))
@@ -161,7 +161,7 @@ pub async fn get_cash_position(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let date = params.position_date.unwrap_or_else(|| chrono::Utc::now().date_naive());
     match state.cash_management_engine.get_cash_position(org_id, bank_account_id, date).await {
-        Ok(Some(pos)) => Ok(Json(serde_json::to_value(pos).unwrap())),
+        Ok(Some(pos)) => Ok(Json(serde_json::to_value(pos).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -175,7 +175,7 @@ pub async fn list_cash_positions(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_management_engine.list_cash_positions(org_id, query.position_date).await {
-        Ok(positions) => Ok(Json(serde_json::to_value(positions).unwrap())),
+        Ok(positions) => Ok(Json(serde_json::to_value(positions).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -189,7 +189,7 @@ pub async fn get_cash_position_summary(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let date = query.position_date.unwrap_or_else(|| chrono::Utc::now().date_naive());
     match state.cash_management_engine.get_cash_position_summary(org_id, date).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -212,7 +212,7 @@ pub async fn create_forecast_template(
         &payload.bucket_type, payload.number_of_periods, payload.start_offset_days,
         payload.is_default, payload.columns, Some(user_id),
     ).await {
-        Ok(t) => Ok((StatusCode::CREATED, Json(serde_json::to_value(t).unwrap()))),
+        Ok(t) => Ok((StatusCode::CREATED, Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create forecast template: {}", e);
             Err(map_error(e))
@@ -228,7 +228,7 @@ pub async fn get_forecast_template(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_management_engine.get_forecast_template(org_id, &code).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -241,7 +241,7 @@ pub async fn list_forecast_templates(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_management_engine.list_forecast_templates(org_id).await {
-        Ok(templates) => Ok(Json(serde_json::to_value(templates).unwrap())),
+        Ok(templates) => Ok(Json(serde_json::to_value(templates).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -284,7 +284,7 @@ pub async fn create_forecast_source(
         payload.payment_terms_reference.as_deref(), payload.account_code_filter.as_deref(),
         Some(user_id),
     ).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap()))),
+        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create forecast source: {}", e);
             Err(map_error(e))
@@ -304,7 +304,7 @@ pub async fn list_forecast_sources(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     match state.cash_management_engine.list_forecast_sources(template.id).await {
-        Ok(sources) => Ok(Json(serde_json::to_value(sources).unwrap())),
+        Ok(sources) => Ok(Json(serde_json::to_value(sources).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -343,7 +343,7 @@ pub async fn generate_forecast(
         org_id, &payload.template_code, &payload.name, payload.description.as_deref(),
         Some(user_id),
     ).await {
-        Ok(f) => Ok((StatusCode::CREATED, Json(serde_json::to_value(f).unwrap()))),
+        Ok(f) => Ok((StatusCode::CREATED, Json(serde_json::to_value(f).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to generate forecast: {}", e);
             Err(map_error(e))
@@ -357,7 +357,7 @@ pub async fn get_cash_forecast(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_management_engine.get_forecast(id).await {
-        Ok(Some(f)) => Ok(Json(serde_json::to_value(f).unwrap())),
+        Ok(Some(f)) => Ok(Json(serde_json::to_value(f).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -373,7 +373,7 @@ pub async fn list_cash_forecasts(
     match state.cash_management_engine.list_forecasts(
         org_id, query.template_id, query.status.as_deref(),
     ).await {
-        Ok(forecasts) => Ok(Json(serde_json::to_value(forecasts).unwrap())),
+        Ok(forecasts) => Ok(Json(serde_json::to_value(forecasts).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(map_error(e)) }
     }
 }
@@ -386,7 +386,7 @@ pub async fn approve_cash_forecast(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_management_engine.approve_forecast(id, user_id).await {
-        Ok(f) => Ok(Json(serde_json::to_value(f).unwrap())),
+        Ok(f) => Ok(Json(serde_json::to_value(f).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -397,7 +397,7 @@ pub async fn list_forecast_lines(
     Path(forecast_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_management_engine.list_forecast_lines(forecast_id).await {
-        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap())),
+        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -410,7 +410,7 @@ pub async fn get_forecast_summary(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_management_engine.get_forecast_summary(org_id, &query.template_code).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }

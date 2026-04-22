@@ -52,7 +52,7 @@ pub async fn create_rep(
         req.territory_name.as_deref(), req.manager_id,
         req.manager_name.as_deref(), req.hire_date, None,
     ).await {
-        Ok(rep) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rep).unwrap()))),
+        Ok(rep) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rep).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create rep: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -90,7 +90,7 @@ pub async fn get_rep(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
     match state.sales_commission_engine.get_rep(org_id, &code).await {
-        Ok(Some(rep)) => Ok(Json(serde_json::to_value(rep).unwrap())),
+        Ok(Some(rep)) => Ok(Json(serde_json::to_value(rep).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Rep not found"})))),
         Err(e) => {
             error!("Failed to get rep: {}", e);
@@ -147,7 +147,7 @@ pub async fn create_commission_plan(
         &req.plan_type, &req.basis, &req.calculation_method,
         &req.default_rate, req.effective_from, req.effective_to, None,
     ).await {
-        Ok(plan) => Ok((StatusCode::CREATED, Json(serde_json::to_value(plan).unwrap()))),
+        Ok(plan) => Ok((StatusCode::CREATED, Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create plan: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -180,7 +180,7 @@ pub async fn get_commission_plan(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
     match state.sales_commission_engine.get_plan(org_id, &code).await {
-        Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap())),
+        Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Plan not found"})))),
         Err(e) => {
             error!("Failed to get plan: {}", e);
@@ -195,7 +195,7 @@ pub async fn activate_commission_plan(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.sales_commission_engine.activate_plan(id).await {
-        Ok(plan) => Ok(Json(serde_json::to_value(plan).unwrap())),
+        Ok(plan) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to activate plan: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -209,7 +209,7 @@ pub async fn deactivate_commission_plan(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.sales_commission_engine.deactivate_plan(id).await {
-        Ok(plan) => Ok(Json(serde_json::to_value(plan).unwrap())),
+        Ok(plan) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to deactivate plan: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -258,7 +258,7 @@ pub async fn add_rate_tier(
         &req.from_amount, req.to_amount.as_deref(),
         &req.rate_percent, req.flat_amount.as_deref(),
     ).await {
-        Ok(tier) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tier).unwrap()))),
+        Ok(tier) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tier).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to add rate tier: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -303,7 +303,7 @@ pub async fn assign_plan(
         org_id, req.rep_id, req.plan_id,
         req.effective_from, req.effective_to, None,
     ).await {
-        Ok(assignment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(assignment).unwrap()))),
+        Ok(assignment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(assignment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to assign plan: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -361,7 +361,7 @@ pub async fn create_quota(
         &req.period_name, req.period_start_date, req.period_end_date,
         &req.quota_type, &req.target_amount, None,
     ).await {
-        Ok(quota) => Ok((StatusCode::CREATED, Json(serde_json::to_value(quota).unwrap()))),
+        Ok(quota) => Ok((StatusCode::CREATED, Json(serde_json::to_value(quota).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create quota: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -393,7 +393,7 @@ pub async fn get_quota(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.sales_commission_engine.get_quota(id).await {
-        Ok(Some(quota)) => Ok(Json(serde_json::to_value(quota).unwrap())),
+        Ok(Some(quota)) => Ok(Json(serde_json::to_value(quota).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Quota not found"})))),
         Err(e) => {
             error!("Failed to get quota: {}", e);
@@ -432,7 +432,7 @@ pub async fn credit_transaction(
         &req.source_type, req.source_id, req.source_number.as_deref(),
         req.transaction_date, &req.sale_amount, &req.currency_code, None,
     ).await {
-        Ok(tx) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tx).unwrap()))),
+        Ok(tx) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tx).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to credit transaction: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -464,7 +464,7 @@ pub async fn get_commission_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.sales_commission_engine.get_transaction(id).await {
-        Ok(Some(tx)) => Ok(Json(serde_json::to_value(tx).unwrap())),
+        Ok(Some(tx)) => Ok(Json(serde_json::to_value(tx).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Transaction not found"})))),
         Err(e) => {
             error!("Failed to get transaction: {}", e);
@@ -497,7 +497,7 @@ pub async fn process_payout(
         org_id, &req.period_name, req.period_start_date, req.period_end_date,
         &req.currency_code, None,
     ).await {
-        Ok(payout) => Ok((StatusCode::CREATED, Json(serde_json::to_value(payout).unwrap()))),
+        Ok(payout) => Ok((StatusCode::CREATED, Json(serde_json::to_value(payout).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to process payout: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -528,7 +528,7 @@ pub async fn get_payout(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.sales_commission_engine.get_payout(id).await {
-        Ok(Some(payout)) => Ok(Json(serde_json::to_value(payout).unwrap())),
+        Ok(Some(payout)) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Payout not found"})))),
         Err(e) => {
             error!("Failed to get payout: {}", e);
@@ -564,7 +564,7 @@ pub async fn approve_payout(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     match state.sales_commission_engine.approve_payout(id, user_id).await {
-        Ok(payout) => Ok(Json(serde_json::to_value(payout).unwrap())),
+        Ok(payout) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve payout: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -579,7 +579,7 @@ pub async fn reject_payout(
     Json(req): Json<ApprovePayoutRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.sales_commission_engine.reject_payout(id, req.rejected_reason.as_deref()).await {
-        Ok(payout) => Ok(Json(serde_json::to_value(payout).unwrap())),
+        Ok(payout) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reject payout: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -598,7 +598,7 @@ pub async fn get_commission_dashboard(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
     match state.sales_commission_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to get commission dashboard: {}", e);
             Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),

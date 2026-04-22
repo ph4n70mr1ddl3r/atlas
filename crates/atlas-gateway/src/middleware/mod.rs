@@ -58,7 +58,6 @@ impl RateLimiter {
     }
     
     /// Check if a request from this IP should be allowed
-    #[allow(dead_code)]
     pub fn check(&self, ip: &str) -> bool {
         let now = Instant::now();
         
@@ -86,7 +85,6 @@ impl RateLimiter {
     }
     
     /// Get remaining attempts for an IP
-    #[allow(dead_code)]
     pub fn remaining(&self, ip: &str) -> u32 {
         let attempts = self.attempts.read().unwrap();
         match attempts.get(ip) {
@@ -104,7 +102,6 @@ impl RateLimiter {
 }
 
 /// Extract client IP from request
-#[allow(dead_code)]
 pub fn get_client_ip(request: &Request) -> String {
     request
         .headers()
@@ -116,7 +113,6 @@ pub fn get_client_ip(request: &Request) -> String {
 }
 
 /// Rate limiting middleware for login endpoint
-#[allow(dead_code)]
 pub async fn rate_limit_middleware(
     State(rate_limiter): State<Arc<RateLimiter>>,
     request: Request,

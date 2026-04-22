@@ -99,7 +99,7 @@ pub async fn create_item(
         default_buyer, default_supplier, template_id,
         created_by,
     ).await {
-        Ok(item) => Ok((StatusCode::CREATED, Json(serde_json::to_value(item).unwrap()))),
+        Ok(item) => Ok((StatusCode::CREATED, Json(serde_json::to_value(item).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
@@ -119,7 +119,7 @@ pub async fn get_item(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.get_item(id).await {
-        Ok(Some(item)) => Ok(Json(serde_json::to_value(item).unwrap())),
+        Ok(Some(item)) => Ok(Json(serde_json::to_value(item).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Item not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -135,7 +135,7 @@ pub async fn get_item_by_number(
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
     match state.product_information_engine.get_item_by_number(org_id, &item_number).await {
-        Ok(Some(item)) => Ok(Json(serde_json::to_value(item).unwrap())),
+        Ok(Some(item)) => Ok(Json(serde_json::to_value(item).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Item not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -173,7 +173,7 @@ pub async fn update_item_status(
     let status = body["status"].as_str().unwrap_or("");
 
     match state.product_information_engine.update_item_status(id, status).await {
-        Ok(item) => Ok(Json(serde_json::to_value(item).unwrap())),
+        Ok(item) => Ok(Json(serde_json::to_value(item).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let status_code = match &e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
@@ -196,7 +196,7 @@ pub async fn update_item_lifecycle(
     let phase = body["lifecycle_phase"].as_str().unwrap_or("");
 
     match state.product_information_engine.update_lifecycle_phase(id, phase).await {
-        Ok(item) => Ok(Json(serde_json::to_value(item).unwrap())),
+        Ok(item) => Ok(Json(serde_json::to_value(item).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let status_code = match &e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
@@ -250,7 +250,7 @@ pub async fn create_category(
     match state.product_information_engine.create_category(
         org_id, code, name, description, parent_id, created_by,
     ).await {
-        Ok(cat) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cat).unwrap()))),
+        Ok(cat) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cat).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
@@ -269,7 +269,7 @@ pub async fn get_category(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.get_category(id).await {
-        Ok(Some(cat)) => Ok(Json(serde_json::to_value(cat).unwrap())),
+        Ok(Some(cat)) => Ok(Json(serde_json::to_value(cat).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Category not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -333,7 +333,7 @@ pub async fn assign_item_category(
     match state.product_information_engine.assign_item_category(
         org_id, item_id, category_id, is_primary, created_by,
     ).await {
-        Ok(assignment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(assignment).unwrap()))),
+        Ok(assignment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(assignment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
@@ -399,7 +399,7 @@ pub async fn create_cross_reference(
         description, source_system, effective_from, effective_to,
         created_by,
     ).await {
-        Ok(xref) => Ok((StatusCode::CREATED, Json(serde_json::to_value(xref).unwrap()))),
+        Ok(xref) => Ok((StatusCode::CREATED, Json(serde_json::to_value(xref).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
@@ -485,7 +485,7 @@ pub async fn create_template(
         inventory_flag, purchasable, sellable, stock_enabled,
         attribute_defaults, created_by,
     ).await {
-        Ok(tmpl) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tmpl).unwrap()))),
+        Ok(tmpl) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tmpl).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
@@ -557,7 +557,7 @@ pub async fn create_new_item_request(
         target_launch_date, estimated_cost, currency,
         created_by,
     ).await {
-        Ok(nir) => Ok((StatusCode::CREATED, Json(serde_json::to_value(nir).unwrap()))),
+        Ok(nir) => Ok((StatusCode::CREATED, Json(serde_json::to_value(nir).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
@@ -576,7 +576,7 @@ pub async fn get_new_item_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.get_new_item_request(id).await {
-        Ok(Some(nir)) => Ok(Json(serde_json::to_value(nir).unwrap())),
+        Ok(Some(nir)) => Ok(Json(serde_json::to_value(nir).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "New item request not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -606,7 +606,7 @@ pub async fn submit_new_item_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.submit_new_item_request(id).await {
-        Ok(nir) => Ok(Json(serde_json::to_value(nir).unwrap())),
+        Ok(nir) => Ok(Json(serde_json::to_value(nir).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
@@ -627,7 +627,7 @@ pub async fn approve_new_item_request(
     let approved_by = Uuid::parse_str(&claims.sub).ok();
 
     match state.product_information_engine.approve_new_item_request(id, approved_by).await {
-        Ok(nir) => Ok(Json(serde_json::to_value(nir).unwrap())),
+        Ok(nir) => Ok(Json(serde_json::to_value(nir).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
@@ -649,7 +649,7 @@ pub async fn reject_new_item_request(
     let reason = body["rejection_reason"].as_str();
 
     match state.product_information_engine.reject_new_item_request(id, reason).await {
-        Ok(nir) => Ok(Json(serde_json::to_value(nir).unwrap())),
+        Ok(nir) => Ok(Json(serde_json::to_value(nir).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
@@ -668,7 +668,7 @@ pub async fn implement_new_item_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.implement_new_item_request(id).await {
-        Ok(item) => Ok(Json(serde_json::to_value(item).unwrap())),
+        Ok(item) => Ok(Json(serde_json::to_value(item).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
@@ -689,7 +689,7 @@ pub async fn cancel_new_item_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.cancel_new_item_request(id).await {
-        Ok(nir) => Ok(Json(serde_json::to_value(nir).unwrap())),
+        Ok(nir) => Ok(Json(serde_json::to_value(nir).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
@@ -714,7 +714,7 @@ pub async fn get_pim_dashboard(
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
     match state.product_information_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
 }

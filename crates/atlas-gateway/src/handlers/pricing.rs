@@ -57,7 +57,7 @@ pub async fn create_price_list(
         &req.currency_code, &req.list_type, &req.pricing_basis,
         req.effective_from, req.effective_to, None,
     ).await {
-        Ok(pl) => Ok((StatusCode::CREATED, Json(serde_json::to_value(pl).unwrap()))),
+        Ok(pl) => Ok((StatusCode::CREATED, Json(serde_json::to_value(pl).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create price list: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -73,7 +73,7 @@ pub async fn get_price_list(
     match state.pricing_engine.get_price_list(
         Uuid::parse_str(&claims.org_id).unwrap_or_default(), &code,
     ).await {
-        Ok(Some(pl)) => Ok(Json(serde_json::to_value(pl).unwrap())),
+        Ok(Some(pl)) => Ok(Json(serde_json::to_value(pl).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -104,7 +104,7 @@ pub async fn activate_price_list(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.pricing_engine.activate_price_list(id).await {
-        Ok(pl) => Ok(Json(serde_json::to_value(pl).unwrap())),
+        Ok(pl) => Ok(Json(serde_json::to_value(pl).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -114,7 +114,7 @@ pub async fn deactivate_price_list(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.pricing_engine.deactivate_price_list(id).await {
-        Ok(pl) => Ok(Json(serde_json::to_value(pl).unwrap())),
+        Ok(pl) => Ok(Json(serde_json::to_value(pl).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -175,7 +175,7 @@ pub async fn add_price_list_line(
         &req.minimum_quantity, req.maximum_quantity.as_deref(),
         req.effective_from, req.effective_to, None,
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to add price list line: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -230,7 +230,7 @@ pub async fn add_price_tier(
         &req.from_quantity, req.to_quantity.as_deref(),
         &req.price, &req.discount_percent, &req.price_type,
     ).await {
-        Ok(tier) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tier).unwrap()))),
+        Ok(tier) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tier).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to add price tier: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -288,7 +288,7 @@ pub async fn create_discount_rule(
         req.priority, req.condition,
         req.effective_from, req.effective_to, req.max_usage, None,
     ).await {
-        Ok(rule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap()))),
+        Ok(rule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create discount rule: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -304,7 +304,7 @@ pub async fn get_discount_rule(
     match state.pricing_engine.get_discount_rule(
         Uuid::parse_str(&claims.org_id).unwrap_or_default(), &code,
     ).await {
-        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap())),
+        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -384,7 +384,7 @@ pub async fn create_charge_definition(
         req.maximum_charge.as_deref(), req.taxable,
         req.condition, req.effective_from, req.effective_to, None,
     ).await {
-        Ok(charge) => Ok((StatusCode::CREATED, Json(serde_json::to_value(charge).unwrap()))),
+        Ok(charge) => Ok((StatusCode::CREATED, Json(serde_json::to_value(charge).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create charge definition: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -400,7 +400,7 @@ pub async fn get_charge_definition(
     match state.pricing_engine.get_charge_definition(
         Uuid::parse_str(&claims.org_id).unwrap_or_default(), &code,
     ).await {
-        Ok(Some(charge)) => Ok(Json(serde_json::to_value(charge).unwrap())),
+        Ok(Some(charge)) => Ok(Json(serde_json::to_value(charge).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -473,7 +473,7 @@ pub async fn create_pricing_strategy(
         req.price_list_id, &req.markup_percent, &req.markdown_percent,
         req.effective_from, req.effective_to, None,
     ).await {
-        Ok(strategy) => Ok((StatusCode::CREATED, Json(serde_json::to_value(strategy).unwrap()))),
+        Ok(strategy) => Ok((StatusCode::CREATED, Json(serde_json::to_value(strategy).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create pricing strategy: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -520,7 +520,7 @@ pub async fn calculate_price(
         &req.entity_type, req.entity_id, req.line_id,
         req.customer_id, None,
     ).await {
-        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap())),
+        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to calculate price: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -563,7 +563,7 @@ pub async fn get_pricing_dashboard(
     match state.pricing_engine.get_dashboard_summary(
         Uuid::parse_str(&claims.org_id).unwrap_or_default(),
     ).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }

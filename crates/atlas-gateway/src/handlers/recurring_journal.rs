@@ -65,7 +65,7 @@ pub async fn create_schedule(
         incremental_percent, auto_post, reversal_method, ledger_id,
         journal_category, reference_template, Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(schedule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(schedule).unwrap()))),
+        Ok(schedule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -83,7 +83,7 @@ pub async fn get_schedule(
     };
 
     match state.recurring_journal_engine.get_schedule(org_id, &schedule_number).await {
-        Ok(Some(schedule)) => Ok(Json(serde_json::to_value(schedule).unwrap())),
+        Ok(Some(schedule)) => Ok(Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Schedule not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -116,7 +116,7 @@ pub async fn activate_schedule(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let approved_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
     match state.recurring_journal_engine.activate_schedule(id, Some(approved_by)).await {
-        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap())),
+        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -129,7 +129,7 @@ pub async fn deactivate_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.recurring_journal_engine.deactivate_schedule(id).await {
-        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap())),
+        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -185,7 +185,7 @@ pub async fn add_schedule_line(
         description, &amount, &currency_code, tax_code, cost_center,
         department_id, project_id,
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -247,7 +247,7 @@ pub async fn generate_journal(
     match state.recurring_journal_engine.generate_journal(
         schedule_id, generation_date, override_amounts, Some(generated_by),
     ).await {
-        Ok(gen) => Ok((StatusCode::CREATED, Json(serde_json::to_value(gen).unwrap()))),
+        Ok(gen) => Ok((StatusCode::CREATED, Json(serde_json::to_value(gen).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -260,7 +260,7 @@ pub async fn get_generation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.recurring_journal_engine.get_generation(id).await {
-        Ok(Some(gen)) => Ok(Json(serde_json::to_value(gen).unwrap())),
+        Ok(Some(gen)) => Ok(Json(serde_json::to_value(gen).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Generation not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -287,7 +287,7 @@ pub async fn post_generation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.recurring_journal_engine.post_generation(id).await {
-        Ok(gen) => Ok(Json(serde_json::to_value(gen).unwrap())),
+        Ok(gen) => Ok(Json(serde_json::to_value(gen).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -300,7 +300,7 @@ pub async fn reverse_generation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.recurring_journal_engine.reverse_generation(id).await {
-        Ok(gen) => Ok(Json(serde_json::to_value(gen).unwrap())),
+        Ok(gen) => Ok(Json(serde_json::to_value(gen).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -313,7 +313,7 @@ pub async fn cancel_generation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.recurring_journal_engine.cancel_generation(id).await {
-        Ok(gen) => Ok(Json(serde_json::to_value(gen).unwrap())),
+        Ok(gen) => Ok(Json(serde_json::to_value(gen).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -347,7 +347,7 @@ pub async fn get_dashboard(
     };
 
     match state.recurring_journal_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }

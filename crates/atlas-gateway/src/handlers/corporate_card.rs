@@ -93,7 +93,7 @@ pub async fn create_program(
         allow_cash, allow_intl, auto_deactivate, matching_method,
         billing_day, created_by,
     ).await {
-        Ok(program) => Ok((StatusCode::CREATED, Json(serde_json::to_value(program).unwrap()))),
+        Ok(program) => Ok((StatusCode::CREATED, Json(serde_json::to_value(program).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
@@ -115,7 +115,7 @@ pub async fn get_program(
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
     match state.corporate_card_engine.get_program(org_id, &code).await {
-        Ok(Some(p)) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(Some(p)) => Ok(Json(serde_json::to_value(p).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Program not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -178,7 +178,7 @@ pub async fn issue_card(
         issue_date, expiry_date, gl_liability, gl_expense,
         cost_center, created_by,
     ).await {
-        Ok(card) => Ok((StatusCode::CREATED, Json(serde_json::to_value(card).unwrap()))),
+        Ok(card) => Ok((StatusCode::CREATED, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -196,7 +196,7 @@ pub async fn get_card(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.get_card(id).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Card not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -227,7 +227,7 @@ pub async fn suspend_card(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.suspend_card(id).await {
-        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap()))),
+        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -245,7 +245,7 @@ pub async fn reactivate_card(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.reactivate_card(id).await {
-        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap()))),
+        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -263,7 +263,7 @@ pub async fn cancel_card(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.cancel_card(id).await {
-        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap()))),
+        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -281,7 +281,7 @@ pub async fn report_lost(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.report_lost(id).await {
-        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap()))),
+        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -299,7 +299,7 @@ pub async fn report_stolen(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.report_stolen(id).await {
-        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap()))),
+        Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -350,7 +350,7 @@ pub async fn import_transaction(
         currency_code, original_amount, original_currency, exchange_rate,
         transaction_type,
     ).await {
-        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap()))),
+        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -369,7 +369,7 @@ pub async fn get_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.get_transaction(id).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Transaction not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -412,7 +412,7 @@ pub async fn match_transaction(
     match state.corporate_card_engine.match_transaction(
         id, expense_report_id, expense_line_id, matched_by, match_confidence,
     ).await {
-        Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap()))),
+        Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -430,7 +430,7 @@ pub async fn unmatch_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.unmatch_transaction(id).await {
-        Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap()))),
+        Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -451,7 +451,7 @@ pub async fn dispute_transaction(
     let reason = body["reason"].as_str().unwrap_or("");
 
     match state.corporate_card_engine.dispute_transaction(id, reason).await {
-        Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap()))),
+        Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -474,7 +474,7 @@ pub async fn resolve_dispute(
     let resolved_status = body["resolved_status"].as_str().unwrap_or("approved");
 
     match state.corporate_card_engine.resolve_dispute(id, resolution, resolved_status).await {
-        Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap()))),
+        Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -531,7 +531,7 @@ pub async fn import_statement(
         total_charges, total_credits, total_payments, total_fees, total_interest,
         payment_due_date, minimum_payment, imported_by,
     ).await {
-        Ok(stmt) => Ok((StatusCode::CREATED, Json(serde_json::to_value(stmt).unwrap()))),
+        Ok(stmt) => Ok((StatusCode::CREATED, Json(serde_json::to_value(stmt).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -549,7 +549,7 @@ pub async fn get_statement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.get_statement(id).await {
-        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Statement not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -579,7 +579,7 @@ pub async fn reconcile_statement(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.corporate_card_engine.reconcile_statement(id).await {
-        Ok(stmt) => Ok((StatusCode::OK, Json(serde_json::to_value(stmt).unwrap()))),
+        Ok(stmt) => Ok((StatusCode::OK, Json(serde_json::to_value(stmt).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -600,7 +600,7 @@ pub async fn pay_statement(
     let payment_reference = body["payment_reference"].as_str().unwrap_or("");
 
     match state.corporate_card_engine.pay_statement(id, payment_reference).await {
-        Ok(stmt) => Ok((StatusCode::OK, Json(serde_json::to_value(stmt).unwrap()))),
+        Ok(stmt) => Ok((StatusCode::OK, Json(serde_json::to_value(stmt).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -643,7 +643,7 @@ pub async fn request_limit_override(
         org_id, card_id, override_type, new_value, reason,
         effective_from, effective_to, created_by,
     ).await {
-        Ok(ovr) => Ok((StatusCode::CREATED, Json(serde_json::to_value(ovr).unwrap()))),
+        Ok(ovr) => Ok((StatusCode::CREATED, Json(serde_json::to_value(ovr).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -665,7 +665,7 @@ pub async fn approve_limit_override(
     let approved_by = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| Uuid::nil());
 
     match state.corporate_card_engine.approve_limit_override(id, approved_by).await {
-        Ok(ovr) => Ok((StatusCode::OK, Json(serde_json::to_value(ovr).unwrap()))),
+        Ok(ovr) => Ok((StatusCode::OK, Json(serde_json::to_value(ovr).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -686,7 +686,7 @@ pub async fn reject_limit_override(
     let rejected_by = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| Uuid::nil());
 
     match state.corporate_card_engine.reject_limit_override(id, rejected_by).await {
-        Ok(ovr) => Ok((StatusCode::OK, Json(serde_json::to_value(ovr).unwrap()))),
+        Ok(ovr) => Ok((StatusCode::OK, Json(serde_json::to_value(ovr).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -726,7 +726,7 @@ pub async fn get_corporate_card_dashboard(
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
     match state.corporate_card_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
 }

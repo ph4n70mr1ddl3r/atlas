@@ -97,7 +97,7 @@ pub async fn create_requisition(
     let created_by = Uuid::parse_str(&claims.sub).ok();
 
     match state.purchase_requisition_engine.create_requisition(org_id, &request, created_by).await {
-        Ok(req) => Ok((StatusCode::CREATED, Json(serde_json::to_value(req).unwrap()))),
+        Ok(req) => Ok((StatusCode::CREATED, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
@@ -116,7 +116,7 @@ pub async fn get_requisition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.purchase_requisition_engine.get_requisition(id).await {
-        Ok(Some(req)) => Ok(Json(serde_json::to_value(req).unwrap())),
+        Ok(Some(req)) => Ok(Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Requisition not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -196,7 +196,7 @@ pub async fn update_requisition(
     let updated_by = Uuid::parse_str(&claims.sub).ok();
 
     match state.purchase_requisition_engine.update_requisition(id, org_id, &request, updated_by).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap()))),
+        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -276,7 +276,7 @@ pub async fn add_requisition_line(
     let created_by = Uuid::parse_str(&claims.sub).ok();
 
     match state.purchase_requisition_engine.add_line(org_id, requisition_id, &request, created_by).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -336,7 +336,7 @@ pub async fn add_requisition_distribution(
     };
 
     match state.purchase_requisition_engine.add_distribution(org_id, requisition_id, line_id, &request).await {
-        Ok(dist) => Ok((StatusCode::CREATED, Json(serde_json::to_value(dist).unwrap()))),
+        Ok(dist) => Ok((StatusCode::CREATED, Json(serde_json::to_value(dist).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -371,7 +371,7 @@ pub async fn submit_requisition(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
     match state.purchase_requisition_engine.submit_requisition(id, submitted_by).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap()))),
+        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -398,7 +398,7 @@ pub async fn approve_requisition(
     match state.purchase_requisition_engine.approve_requisition(
         id, approver_id, Some(&approver_name), comments.as_deref()
     ).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap()))),
+        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -424,7 +424,7 @@ pub async fn reject_requisition(
     match state.purchase_requisition_engine.reject_requisition(
         id, approver_id, Some(&approver_name), comments.as_deref()
     ).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap()))),
+        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -442,7 +442,7 @@ pub async fn cancel_requisition(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.purchase_requisition_engine.cancel_requisition(id).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap()))),
+        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -460,7 +460,7 @@ pub async fn close_requisition(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.purchase_requisition_engine.close_requisition(id).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap()))),
+        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -478,7 +478,7 @@ pub async fn return_requisition(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.purchase_requisition_engine.return_requisition(id).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap()))),
+        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -580,7 +580,7 @@ pub async fn get_requisition_dashboard(
     };
 
     match state.purchase_requisition_engine.get_dashboard(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
 }

@@ -69,7 +69,7 @@ pub async fn create_revaluation_definition(
     };
 
     match state.currency_revaluation_engine.create_definition(org_id, &request, None).await {
-        Ok(def) => Ok((StatusCode::CREATED, Json(serde_json::to_value(def).unwrap()))),
+        Ok(def) => Ok((StatusCode::CREATED, Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
@@ -93,7 +93,7 @@ pub async fn get_revaluation_definition(
     };
 
     match state.currency_revaluation_engine.get_definition(org_id, &code).await {
-        Ok(Some(def)) => Ok(Json(serde_json::to_value(def).unwrap())),
+        Ok(Some(def)) => Ok(Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Definition not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -125,7 +125,7 @@ pub async fn activate_revaluation_definition(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.currency_revaluation_engine.activate_definition(id).await {
-        Ok(def) => Ok((StatusCode::OK, Json(serde_json::to_value(def).unwrap()))),
+        Ok(def) => Ok((StatusCode::OK, Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -144,7 +144,7 @@ pub async fn deactivate_revaluation_definition(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.currency_revaluation_engine.deactivate_definition(id).await {
-        Ok(def) => Ok((StatusCode::OK, Json(serde_json::to_value(def).unwrap()))),
+        Ok(def) => Ok((StatusCode::OK, Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -197,7 +197,7 @@ pub async fn add_revaluation_account(
     };
 
     match state.currency_revaluation_engine.add_account(org_id, &code, &request).await {
-        Ok(acct) => Ok((StatusCode::CREATED, Json(serde_json::to_value(acct).unwrap()))),
+        Ok(acct) => Ok((StatusCode::CREATED, Json(serde_json::to_value(acct).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -283,7 +283,7 @@ pub async fn execute_revaluation(
     };
 
     match state.currency_revaluation_engine.execute_revaluation(org_id, &request, None).await {
-        Ok(run) => Ok((StatusCode::CREATED, Json(serde_json::to_value(run).unwrap()))),
+        Ok(run) => Ok((StatusCode::CREATED, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -302,7 +302,7 @@ pub async fn get_revaluation_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.currency_revaluation_engine.get_run(id).await {
-        Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Run not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -334,7 +334,7 @@ pub async fn post_revaluation_run(
     let posted_by = Uuid::parse_str(&claims.sub).ok();
 
     match state.currency_revaluation_engine.post_run(id, posted_by).await {
-        Ok(run) => Ok((StatusCode::OK, Json(serde_json::to_value(run).unwrap()))),
+        Ok(run) => Ok((StatusCode::OK, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -355,7 +355,7 @@ pub async fn reverse_revaluation_run(
     let reversed_by = Uuid::parse_str(&claims.sub).ok();
 
     match state.currency_revaluation_engine.reverse_run(id, reversed_by).await {
-        Ok(run) => Ok((StatusCode::OK, Json(serde_json::to_value(run).unwrap()))),
+        Ok(run) => Ok((StatusCode::OK, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -373,7 +373,7 @@ pub async fn cancel_revaluation_run(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.currency_revaluation_engine.cancel_run(id).await {
-        Ok(run) => Ok((StatusCode::OK, Json(serde_json::to_value(run).unwrap()))),
+        Ok(run) => Ok((StatusCode::OK, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -400,7 +400,7 @@ pub async fn get_revaluation_dashboard(
     };
 
     match state.currency_revaluation_engine.get_dashboard(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
 }

@@ -61,7 +61,7 @@ pub async fn create_value_set(
     ).await {
         Ok(vs) => {
             info!("Created value set '{}' for org {}", vs.code, org_id);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(vs).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(vs).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create value set: {}", e);
@@ -93,7 +93,7 @@ pub async fn get_value_set(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.dff_engine.get_value_set(org_id, &code).await {
-        Ok(Some(vs)) => Ok(Json(serde_json::to_value(vs).unwrap())),
+        Ok(Some(vs)) => Ok(Json(serde_json::to_value(vs).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -155,7 +155,7 @@ pub async fn create_value_set_entry(
     ).await {
         Ok(entry) => {
             info!("Created value set entry '{}' in '{}'", entry.value, code);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create value set entry: {}", e);
@@ -233,7 +233,7 @@ pub async fn create_flexfield(
     ).await {
         Ok(ff) => {
             info!("Created flexfield '{}' for entity '{}'", ff.code, ff.entity_name);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(ff).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(ff).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create flexfield: {}", e);
@@ -262,7 +262,7 @@ pub async fn get_flexfield(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.dff_engine.get_flexfield(org_id, &code).await {
-        Ok(Some(ff)) => Ok(Json(serde_json::to_value(ff).unwrap())),
+        Ok(Some(ff)) => Ok(Json(serde_json::to_value(ff).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -276,7 +276,7 @@ pub async fn activate_flexfield(
     match state.dff_engine.activate_flexfield(id).await {
         Ok(ff) => {
             info!("Activated flexfield '{}'", ff.code);
-            Ok(Json(serde_json::to_value(ff).unwrap()))
+            Ok(Json(serde_json::to_value(ff).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
         }
         Err(e) => Err(map_error_status(&e)),
     }
@@ -290,7 +290,7 @@ pub async fn deactivate_flexfield(
     match state.dff_engine.deactivate_flexfield(id).await {
         Ok(ff) => {
             info!("Deactivated flexfield '{}'", ff.code);
-            Ok(Json(serde_json::to_value(ff).unwrap()))
+            Ok(Json(serde_json::to_value(ff).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
         }
         Err(e) => Err(map_error_status(&e)),
     }
@@ -344,7 +344,7 @@ pub async fn create_context(
     ).await {
         Ok(ctx) => {
             info!("Created context '{}' in flexfield '{}'", ctx.code, flexfield_code);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(ctx).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(ctx).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create context: {}", e);
@@ -372,7 +372,7 @@ pub async fn disable_context(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, StatusCode> {
     match state.dff_engine.disable_context(id).await {
-        Ok(ctx) => Ok(Json(serde_json::to_value(ctx).unwrap())),
+        Ok(ctx) => Ok(Json(serde_json::to_value(ctx).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error_status(&e)),
     }
 }
@@ -383,7 +383,7 @@ pub async fn enable_context(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, StatusCode> {
     match state.dff_engine.enable_context(id).await {
-        Ok(ctx) => Ok(Json(serde_json::to_value(ctx).unwrap())),
+        Ok(ctx) => Ok(Json(serde_json::to_value(ctx).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error_status(&e)),
     }
 }
@@ -448,7 +448,7 @@ pub async fn create_segment(
     ).await {
         Ok(seg) => {
             info!("Created segment '{}' in '{}/{}'", seg.segment_code, flexfield_code, context_code);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(seg).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(seg).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create segment: {}", e);
@@ -523,7 +523,7 @@ pub async fn set_flexfield_data(
     ).await {
         Ok(data) => {
             info!("Set flexfield data for {}/{}", entity_name, entity_id);
-            Ok((StatusCode::OK, Json(serde_json::to_value(data).unwrap())))
+            Ok((StatusCode::OK, Json(serde_json::to_value(data).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to set flexfield data: {}", e);
@@ -575,7 +575,7 @@ pub async fn get_flexfield_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.dff_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error_status(&e)),
     }
 }

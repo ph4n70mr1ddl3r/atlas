@@ -141,7 +141,7 @@ pub async fn create_allocation_pool(
         req.source_department_id, req.source_cost_center.as_deref(),
         user_id,
     ).await {
-        Ok(pool) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(pool).unwrap()))),
+        Ok(pool) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(pool).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -164,7 +164,7 @@ pub async fn get_allocation_pool(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
     match state.cost_allocation_engine.get_pool(org_id, &code).await {
-        Ok(Some(pool)) => Ok(Json(serde_json::to_value(pool).unwrap())),
+        Ok(Some(pool)) => Ok(Json(serde_json::to_value(pool).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Pool not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -198,7 +198,7 @@ pub async fn create_allocation_base(
         &req.base_type, req.financial_account_code.as_deref(),
         req.unit_of_measure.as_deref(), user_id,
     ).await {
-        Ok(base) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(base).unwrap()))),
+        Ok(base) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(base).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -221,7 +221,7 @@ pub async fn get_allocation_base(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
     match state.cost_allocation_engine.get_base(org_id, &code).await {
-        Ok(Some(base)) => Ok(Json(serde_json::to_value(base).unwrap())),
+        Ok(Some(base)) => Ok(Json(serde_json::to_value(base).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Base not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -256,7 +256,7 @@ pub async fn set_base_value(
         req.cost_center.as_deref(), req.project_id,
         &req.value, req.effective_date, &req.source, user_id,
     ).await {
-        Ok(val) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(val).unwrap()))),
+        Ok(val) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(val).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -290,7 +290,7 @@ pub async fn create_allocation_rule(
         req.journal_description.as_deref(), req.offset_account_code.as_deref(),
         &req.currency_code, req.is_reversing, user_id,
     ).await {
-        Ok(rule) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap()))),
+        Ok(rule) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -313,7 +313,7 @@ pub async fn get_allocation_rule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.cost_allocation_engine.get_rule(id).await {
-        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap())),
+        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Rule not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -325,7 +325,7 @@ pub async fn activate_allocation_rule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.cost_allocation_engine.activate_rule(id).await {
-        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap())),
+        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -336,7 +336,7 @@ pub async fn deactivate_allocation_rule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.cost_allocation_engine.deactivate_rule(id).await {
-        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap())),
+        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -358,7 +358,7 @@ pub async fn add_rule_target(
         req.cost_center.as_deref(), req.project_id, req.project_name.as_deref(),
         &req.target_account_code, req.fixed_percent.as_deref(), req.fixed_amount.as_deref(),
     ).await {
-        Ok(target) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(target).unwrap()))),
+        Ok(target) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(target).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -390,7 +390,7 @@ pub async fn execute_allocation_rule(
         org_id, rule_id, &req.source_amount,
         req.period_start, req.period_end, user_id,
     ).await {
-        Ok(run) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(run).unwrap()))),
+        Ok(run) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -413,7 +413,7 @@ pub async fn get_allocation_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.cost_allocation_engine.get_run(id).await {
-        Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Run not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -426,7 +426,7 @@ pub async fn post_allocation_run(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
     match state.cost_allocation_engine.post_run(id, user_id).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -439,7 +439,7 @@ pub async fn reverse_allocation_run(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
     match state.cost_allocation_engine.reverse_run(id, user_id, &req.reason).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -465,7 +465,7 @@ pub async fn get_allocation_summary(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
     match state.cost_allocation_engine.get_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
     }
 }

@@ -69,7 +69,7 @@ pub async fn create_benefits_plan(
         payload.waiting_period_days, payload.max_dependents,
         Some(user_id),
     ).await {
-        Ok(plan) => Ok((StatusCode::CREATED, Json(serde_json::to_value(plan).unwrap()))),
+        Ok(plan) => Ok((StatusCode::CREATED, Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create benefits plan: {}", e);
             Err(match e.status_code() {
@@ -91,7 +91,7 @@ pub async fn get_benefits_plan(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.benefits_engine.get_plan(org_id, &code).await {
-        Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap())),
+        Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get benefits plan: {}", e);
@@ -190,7 +190,7 @@ pub async fn create_enrollment(
         payload.life_event_date,
         Some(user_id),
     ).await {
-        Ok(enrollment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(enrollment).unwrap()))),
+        Ok(enrollment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create enrollment: {}", e);
             Err(match e.status_code() {
@@ -213,7 +213,7 @@ pub async fn get_enrollment(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.benefits_engine.get_enrollment(id).await {
-        Ok(Some(enrollment)) => Ok(Json(serde_json::to_value(enrollment).unwrap())),
+        Ok(Some(enrollment)) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get enrollment: {}", e);
@@ -259,7 +259,7 @@ pub async fn activate_enrollment(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.benefits_engine.activate_enrollment(id, user_id).await {
-        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap())),
+        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to activate enrollment: {}", e);
             Err(match e.status_code() {
@@ -278,7 +278,7 @@ pub async fn waive_enrollment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.benefits_engine.waive_enrollment(id).await {
-        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap())),
+        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to waive enrollment: {}", e);
             Err(match e.status_code() {
@@ -303,7 +303,7 @@ pub async fn cancel_enrollment(
     Json(payload): Json<CancelEnrollmentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.benefits_engine.cancel_enrollment(id, payload.cancellation_reason.as_deref()).await {
-        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap())),
+        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to cancel enrollment: {}", e);
             Err(match e.status_code() {
@@ -322,7 +322,7 @@ pub async fn suspend_enrollment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.benefits_engine.suspend_enrollment(id).await {
-        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap())),
+        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to suspend enrollment: {}", e);
             Err(match e.status_code() {
@@ -341,7 +341,7 @@ pub async fn reactivate_enrollment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.benefits_engine.reactivate_enrollment(id).await {
-        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap())),
+        Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reactivate enrollment: {}", e);
             Err(match e.status_code() {
@@ -416,7 +416,7 @@ pub async fn get_benefits_dashboard(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.benefits_engine.get_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to get benefits summary: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

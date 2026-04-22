@@ -51,7 +51,7 @@ pub async fn create_return_reason(
         &req.return_type, req.default_disposition.as_deref(),
         req.requires_approval, req.credit_issued_automatically, None,
     ).await {
-        Ok(reason) => Ok((StatusCode::CREATED, Json(serde_json::to_value(reason).unwrap()))),
+        Ok(reason) => Ok((StatusCode::CREATED, Json(serde_json::to_value(reason).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create return reason: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -67,7 +67,7 @@ pub async fn get_return_reason(
     match state.customer_returns_engine.get_return_reason(
         Uuid::parse_str(&claims.org_id).unwrap_or_default(), &code,
     ).await {
-        Ok(Some(reason)) => Ok(Json(serde_json::to_value(reason).unwrap())),
+        Ok(Some(reason)) => Ok(Json(serde_json::to_value(reason).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -145,7 +145,7 @@ pub async fn create_rma(
         return_date, req.expected_receipt_date,
         &req.currency_code, req.notes.as_deref(), None,
     ).await {
-        Ok(rma) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rma).unwrap()))),
+        Ok(rma) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rma).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create RMA: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -158,7 +158,7 @@ pub async fn get_rma(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.get_rma(id).await {
-        Ok(Some(rma)) => Ok(Json(serde_json::to_value(rma).unwrap())),
+        Ok(Some(rma)) => Ok(Json(serde_json::to_value(rma).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -190,7 +190,7 @@ pub async fn submit_rma(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.submit_rma(id).await {
-        Ok(rma) => Ok(Json(serde_json::to_value(rma).unwrap())),
+        Ok(rma) => Ok(Json(serde_json::to_value(rma).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -207,7 +207,7 @@ pub async fn approve_rma(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = Uuid::parse_str(&claims.sub).unwrap_or_default();
     match state.customer_returns_engine.approve_rma(id, user_id).await {
-        Ok(rma) => Ok(Json(serde_json::to_value(rma).unwrap())),
+        Ok(rma) => Ok(Json(serde_json::to_value(rma).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -219,7 +219,7 @@ pub async fn reject_rma(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let reason = req.reason.as_deref().unwrap_or("");
     match state.customer_returns_engine.reject_rma(id, reason).await {
-        Ok(rma) => Ok(Json(serde_json::to_value(rma).unwrap())),
+        Ok(rma) => Ok(Json(serde_json::to_value(rma).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -229,7 +229,7 @@ pub async fn cancel_rma(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.cancel_rma(id).await {
-        Ok(rma) => Ok(Json(serde_json::to_value(rma).unwrap())),
+        Ok(rma) => Ok(Json(serde_json::to_value(rma).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -269,7 +269,7 @@ pub async fn add_return_line(
         req.lot_number.as_deref(), req.serial_number.as_deref(),
         req.condition.as_deref(), req.notes.as_deref(), None,
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to add return line: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -298,7 +298,7 @@ pub async fn receive_return_line(
     Json(req): Json<ReceiveReturnLineRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.receive_return_line(line_id, &req.received_quantity).await {
-        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap())),
+        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -318,7 +318,7 @@ pub async fn inspect_return_line(
     match state.customer_returns_engine.inspect_return_line(
         line_id, &req.inspection_status, req.inspection_notes.as_deref(), req.disposition.as_deref(),
     ).await {
-        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap())),
+        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -341,7 +341,7 @@ pub async fn generate_credit_memo(
     match state.customer_returns_engine.generate_credit_memo(
         rma_id, req.gl_account_code.as_deref(), None,
     ).await {
-        Ok(memo) => Ok((StatusCode::CREATED, Json(serde_json::to_value(memo).unwrap()))),
+        Ok(memo) => Ok((StatusCode::CREATED, Json(serde_json::to_value(memo).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to generate credit memo: {}", e);
             Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
@@ -354,7 +354,7 @@ pub async fn get_credit_memo(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.get_credit_memo(id).await {
-        Ok(Some(memo)) => Ok(Json(serde_json::to_value(memo).unwrap())),
+        Ok(Some(memo)) => Ok(Json(serde_json::to_value(memo).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -385,7 +385,7 @@ pub async fn issue_credit_memo(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.issue_credit_memo(id).await {
-        Ok(memo) => Ok(Json(serde_json::to_value(memo).unwrap())),
+        Ok(memo) => Ok(Json(serde_json::to_value(memo).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -395,7 +395,7 @@ pub async fn cancel_credit_memo(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.cancel_credit_memo(id).await {
-        Ok(memo) => Ok(Json(serde_json::to_value(memo).unwrap())),
+        Ok(memo) => Ok(Json(serde_json::to_value(memo).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }
@@ -411,7 +411,7 @@ pub async fn get_returns_dashboard(
     match state.customer_returns_engine.get_dashboard_summary(
         Uuid::parse_str(&claims.org_id).unwrap_or_default(),
     ).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
 }

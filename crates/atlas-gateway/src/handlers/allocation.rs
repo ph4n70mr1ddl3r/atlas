@@ -83,7 +83,7 @@ pub async fn create_allocation_pool(
         &currency_code, effective_from, effective_to,
         Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(pool) => Ok((StatusCode::CREATED, Json(serde_json::to_value(pool).unwrap()))),
+        Ok(pool) => Ok((StatusCode::CREATED, Json(serde_json::to_value(pool).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -97,7 +97,7 @@ pub async fn get_allocation_pool(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or(Uuid::nil());
     match state.allocation_engine.get_pool(org_id, &code).await {
-        Ok(Some(pool)) => Ok(Json(serde_json::to_value(pool).unwrap())),
+        Ok(Some(pool)) => Ok(Json(serde_json::to_value(pool).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Pool not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -124,7 +124,7 @@ pub async fn activate_allocation_pool(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.allocation_engine.activate_pool(id).await {
-        Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap())),
+        Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -137,7 +137,7 @@ pub async fn deactivate_allocation_pool(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.allocation_engine.deactivate_pool(id).await {
-        Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap())),
+        Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -188,7 +188,7 @@ pub async fn create_allocation_basis(
         effective_from, effective_to,
         Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(basis) => Ok((StatusCode::CREATED, Json(serde_json::to_value(basis).unwrap()))),
+        Ok(basis) => Ok((StatusCode::CREATED, Json(serde_json::to_value(basis).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -202,7 +202,7 @@ pub async fn get_allocation_basis(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or(Uuid::nil());
     match state.allocation_engine.get_basis(org_id, &code).await {
-        Ok(Some(basis)) => Ok(Json(serde_json::to_value(basis).unwrap())),
+        Ok(Some(basis)) => Ok(Json(serde_json::to_value(basis).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Basis not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -229,7 +229,7 @@ pub async fn activate_allocation_basis(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.allocation_engine.activate_basis(id).await {
-        Ok(basis) => Ok(Json(serde_json::to_value(basis).unwrap())),
+        Ok(basis) => Ok(Json(serde_json::to_value(basis).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -242,7 +242,7 @@ pub async fn deactivate_allocation_basis(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.allocation_engine.deactivate_basis(id).await {
-        Ok(basis) => Ok(Json(serde_json::to_value(basis).unwrap())),
+        Ok(basis) => Ok(Json(serde_json::to_value(basis).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -295,7 +295,7 @@ pub async fn add_allocation_basis_detail(
         org_id, &basis_code, &request,
         Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(detail) => Ok((StatusCode::CREATED, Json(serde_json::to_value(detail).unwrap()))),
+        Ok(detail) => Ok((StatusCode::CREATED, Json(serde_json::to_value(detail).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -387,7 +387,7 @@ pub async fn create_allocation_rule(
         org_id, &request,
         Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(rule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap()))),
+        Ok(rule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -401,7 +401,7 @@ pub async fn get_allocation_rule(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or(Uuid::nil());
     match state.allocation_engine.get_rule(org_id, &code).await {
-        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap())),
+        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Rule not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -428,7 +428,7 @@ pub async fn activate_allocation_rule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.allocation_engine.activate_rule(id).await {
-        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap())),
+        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -441,7 +441,7 @@ pub async fn deactivate_allocation_rule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.allocation_engine.deactivate_rule(id).await {
-        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap())),
+        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -493,7 +493,7 @@ pub async fn execute_allocation(
         org_id, &request,
         Some(claims.sub.parse().unwrap_or(Uuid::nil())),
     ).await {
-        Ok(run) => Ok((StatusCode::CREATED, Json(serde_json::to_value(run).unwrap()))),
+        Ok(run) => Ok((StatusCode::CREATED, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -506,7 +506,7 @@ pub async fn get_allocation_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.allocation_engine.get_run(id).await {
-        Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Run not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -533,7 +533,7 @@ pub async fn post_allocation_run(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let posted_by = claims.sub.parse().unwrap_or(Uuid::nil());
     match state.allocation_engine.post_run(id, Some(posted_by)).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -547,7 +547,7 @@ pub async fn reverse_allocation_run(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let reversed_by = claims.sub.parse().unwrap_or(Uuid::nil());
     match state.allocation_engine.reverse_run(id, Some(reversed_by)).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -560,7 +560,7 @@ pub async fn cancel_allocation_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.allocation_engine.cancel_run(id).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
     }
@@ -577,7 +577,7 @@ pub async fn get_allocation_dashboard(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = Uuid::parse_str(&claims.org_id).unwrap_or(Uuid::nil());
     match state.allocation_engine.get_dashboard(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
 }

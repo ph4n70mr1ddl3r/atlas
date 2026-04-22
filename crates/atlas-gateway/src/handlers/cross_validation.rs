@@ -63,7 +63,7 @@ pub async fn create_rule(
     ).await {
         Ok(rule) => {
             info!("Created cross-validation rule '{}' for org {}", rule.code, org_id);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create cross-validation rule: {}", e);
@@ -96,7 +96,7 @@ pub async fn get_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.cvr_engine.get_rule(org_id, &code).await {
-        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap())),
+        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -110,7 +110,7 @@ pub async fn enable_rule(
     match state.cvr_engine.enable_rule(id).await {
         Ok(rule) => {
             info!("Enabled cross-validation rule '{}'", rule.code);
-            Ok(Json(serde_json::to_value(rule).unwrap()))
+            Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
         }
         Err(e) => Err(map_error_status(&e)),
     }
@@ -124,7 +124,7 @@ pub async fn disable_rule(
     match state.cvr_engine.disable_rule(id).await {
         Ok(rule) => {
             info!("Disabled cross-validation rule '{}'", rule.code);
-            Ok(Json(serde_json::to_value(rule).unwrap()))
+            Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
         }
         Err(e) => Err(map_error_status(&e)),
     }
@@ -174,7 +174,7 @@ pub async fn create_rule_line(
     ).await {
         Ok(line) => {
             info!("Created {} line for rule {}", line.line_type, rule_code);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create rule line: {}", e);
@@ -230,7 +230,7 @@ pub async fn validate_combination(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.cvr_engine.validate_combination(org_id, &body.segment_values).await {
-        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap())),
+        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to validate combination: {}", e);
             Err(map_error_status(&e))
@@ -249,7 +249,7 @@ pub async fn get_cvr_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.cvr_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error_status(&e)),
     }
 }

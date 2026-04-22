@@ -140,7 +140,7 @@ pub async fn create_encumbrance_type(
         payload.default_encumbrance_account_code.as_deref(),
         payload.allow_carry_forward, payload.priority, Some(user_id),
     ).await {
-        Ok(t) => Ok((StatusCode::CREATED, Json(serde_json::to_value(t).unwrap()))),
+        Ok(t) => Ok((StatusCode::CREATED, Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create encumbrance type: {}", e);
             Err(map_error(e))
@@ -156,7 +156,7 @@ pub async fn get_encumbrance_type(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.encumbrance_engine.get_encumbrance_type(org_id, &code).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -169,7 +169,7 @@ pub async fn list_encumbrance_types(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.encumbrance_engine.list_encumbrance_types(org_id).await {
-        Ok(types) => Ok(Json(serde_json::to_value(types).unwrap())),
+        Ok(types) => Ok(Json(serde_json::to_value(types).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -209,7 +209,7 @@ pub async fn create_encumbrance_entry(
         payload.period_name.as_deref(), payload.expiry_date,
         payload.budget_line_id, Some(user_id),
     ).await {
-        Ok(entry) => Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap()))),
+        Ok(entry) => Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create encumbrance entry: {}", e);
             Err(map_error(e))
@@ -223,7 +223,7 @@ pub async fn get_encumbrance_entry(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.encumbrance_engine.get_entry(id).await {
-        Ok(Some(e)) => Ok(Json(serde_json::to_value(e).unwrap())),
+        Ok(Some(e)) => Ok(Json(serde_json::to_value(e).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -240,7 +240,7 @@ pub async fn list_encumbrance_entries(
         org_id, query.status.as_deref(), query.encumbrance_type_code.as_deref(),
         query.source_type.as_deref(), query.fiscal_year,
     ).await {
-        Ok(entries) => Ok(Json(serde_json::to_value(entries).unwrap())),
+        Ok(entries) => Ok(Json(serde_json::to_value(entries).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(map_error(e)) }
     }
 }
@@ -253,7 +253,7 @@ pub async fn activate_encumbrance_entry(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.encumbrance_engine.activate_entry(id, Some(user_id)).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -267,7 +267,7 @@ pub async fn cancel_encumbrance_entry(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.encumbrance_engine.cancel_entry(id, user_id, &payload.reason).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -294,7 +294,7 @@ pub async fn add_encumbrance_line(
         payload.encumbrance_account_code.as_deref(), payload.source_line_id,
         Some(user_id),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => { error!("Failed to add encumbrance line: {}", e); Err(map_error(e)) }
     }
 }
@@ -305,7 +305,7 @@ pub async fn list_encumbrance_lines(
     Path(entry_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.encumbrance_engine.list_lines(entry_id).await {
-        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap())),
+        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -341,7 +341,7 @@ pub async fn create_liquidation(
         payload.source_number.as_deref(), payload.description.as_deref(),
         payload.liquidation_date, Some(user_id),
     ).await {
-        Ok(liq) => Ok((StatusCode::CREATED, Json(serde_json::to_value(liq).unwrap()))),
+        Ok(liq) => Ok((StatusCode::CREATED, Json(serde_json::to_value(liq).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => { error!("Failed to create liquidation: {}", e); Err(map_error(e)) }
     }
 }
@@ -356,7 +356,7 @@ pub async fn list_liquidations(
     match state.encumbrance_engine.list_liquidations(
         org_id, query.entry_id, query.status.as_deref(),
     ).await {
-        Ok(liqs) => Ok(Json(serde_json::to_value(liqs).unwrap())),
+        Ok(liqs) => Ok(Json(serde_json::to_value(liqs).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(map_error(e)) }
     }
 }
@@ -368,7 +368,7 @@ pub async fn reverse_liquidation(
     Json(payload): Json<ReverseLiquidationRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.encumbrance_engine.reverse_liquidation(id, &payload.reason).await {
-        Ok(liq) => Ok(Json(serde_json::to_value(liq).unwrap())),
+        Ok(liq) => Ok(Json(serde_json::to_value(liq).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e))
     }
 }
@@ -390,7 +390,7 @@ pub async fn process_carry_forward(
         org_id, payload.from_fiscal_year, payload.to_fiscal_year,
         payload.description.as_deref(), Some(user_id),
     ).await {
-        Ok(cf) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cf).unwrap()))),
+        Ok(cf) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cf).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => { error!("Failed to process carry-forward: {}", e); Err(map_error(e)) }
     }
 }
@@ -402,7 +402,7 @@ pub async fn list_carry_forwards(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.encumbrance_engine.list_carry_forwards(org_id).await {
-        Ok(cfs) => Ok(Json(serde_json::to_value(cfs).unwrap())),
+        Ok(cfs) => Ok(Json(serde_json::to_value(cfs).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -414,7 +414,7 @@ pub async fn get_encumbrance_summary(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.encumbrance_engine.get_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

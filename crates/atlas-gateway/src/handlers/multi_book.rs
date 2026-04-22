@@ -139,7 +139,7 @@ pub async fn create_accounting_book(
     ).await {
         Ok(book) => {
             info!("Created accounting book '{}' for org {}", req.code, org_id);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(book).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(book).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create accounting book: {}", e);
@@ -158,7 +158,7 @@ pub async fn get_accounting_book(
             Json(serde_json::json!({"error": "Invalid org_id"}))))?;
 
     match state.multi_book_engine.get_book(org_id, &code).await {
-        Ok(Some(book)) => Ok(Json(serde_json::to_value(book).unwrap())),
+        Ok(Some(book)) => Ok(Json(serde_json::to_value(book).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND,
             Json(serde_json::json!({"error": format!("Accounting book '{}' not found", code)})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR,
@@ -198,7 +198,7 @@ pub async fn update_accounting_book_status(
             Json(serde_json::json!({"error": format!("Book '{}' not found", code)}))))?;
 
     match state.multi_book_engine.update_book_status(book.id, &req.status).await {
-        Ok(updated) => Ok(Json(serde_json::to_value(updated).unwrap())),
+        Ok(updated) => Ok(Json(serde_json::to_value(updated).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(err_response(e)),
     }
 }
@@ -243,7 +243,7 @@ pub async fn create_account_mapping(
     ).await {
         Ok(mapping) => {
             info!("Created account mapping for org {}", org_id);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(mapping).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(mapping).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create account mapping: {}", e);
@@ -313,7 +313,7 @@ pub async fn create_book_journal_entry(
     ).await {
         Ok(entry) => {
             info!("Created journal entry {} for org {}", entry.entry_number, org_id);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap())))
+            Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
         }
         Err(e) => {
             error!("Failed to create journal entry: {}", e);
@@ -328,7 +328,7 @@ pub async fn get_book_journal_entry(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.multi_book_engine.get_journal_entry(id).await {
-        Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND,
             Json(serde_json::json!({"error": "Journal entry not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR,
@@ -379,7 +379,7 @@ pub async fn post_book_journal_entry(
             Json(serde_json::json!({"error": "Invalid user_id"}))))?;
 
     match state.multi_book_engine.post_journal_entry(id, Some(user_id)).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(err_response(e)),
     }
 }
@@ -394,7 +394,7 @@ pub async fn reverse_book_journal_entry(
             Json(serde_json::json!({"error": "Invalid user_id"}))))?;
 
     match state.multi_book_engine.reverse_journal_entry(id, Some(user_id)).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(err_response(e)),
     }
 }
@@ -410,7 +410,7 @@ pub async fn propagate_entry(
     Json(req): Json<PropagateEntryRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.multi_book_engine.propagate_entry(id, req.target_book_id).await {
-        Ok(log) => Ok(Json(serde_json::to_value(log).unwrap())),
+        Ok(log) => Ok(Json(serde_json::to_value(log).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(err_response(e)),
     }
 }
@@ -448,7 +448,7 @@ pub async fn get_multi_book_summary(
             Json(serde_json::json!({"error": "Invalid org_id"}))))?;
 
     match state.multi_book_engine.get_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({"error": e.to_string()})))),
     }

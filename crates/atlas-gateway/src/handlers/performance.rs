@@ -42,7 +42,7 @@ pub async fn create_rating_model(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         payload.rating_scale, Some(user_id),
     ).await {
-        Ok(model) => Ok((StatusCode::CREATED, Json(serde_json::to_value(model).unwrap()))),
+        Ok(model) => Ok((StatusCode::CREATED, Json(serde_json::to_value(model).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create rating model: {}", e);
             Err(match e.status_code() {
@@ -60,7 +60,7 @@ pub async fn get_rating_model(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.performance_engine.get_rating_model(org_id, &code).await {
-        Ok(Some(m)) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(Some(m)) => Ok(Json(serde_json::to_value(m).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -145,7 +145,7 @@ pub async fn create_review_cycle(
         payload.min_goals, payload.max_goals, &payload.goal_weight_total,
         Some(user_id),
     ).await {
-        Ok(cycle) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cycle).unwrap()))),
+        Ok(cycle) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cycle).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create review cycle: {}", e);
             Err(match e.status_code() {
@@ -162,7 +162,7 @@ pub async fn get_review_cycle(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.performance_engine.get_review_cycle(id).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -197,7 +197,7 @@ pub async fn transition_cycle(
     Json(payload): Json<TransitionCycleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.performance_engine.transition_cycle(id, &payload.status).await {
-        Ok(cycle) => Ok(Json(serde_json::to_value(cycle).unwrap())),
+        Ok(cycle) => Ok(Json(serde_json::to_value(cycle).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to transition cycle: {}", e);
             Err(match e.status_code() {
@@ -243,7 +243,7 @@ pub async fn create_competency(
         payload.category.as_deref(), payload.rating_model_code.as_deref(),
         indicators, Some(user_id),
     ).await {
-        Ok(comp) => Ok((StatusCode::CREATED, Json(serde_json::to_value(comp).unwrap()))),
+        Ok(comp) => Ok((StatusCode::CREATED, Json(serde_json::to_value(comp).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create competency: {}", e);
             Err(match e.status_code() {
@@ -261,7 +261,7 @@ pub async fn get_competency(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.performance_engine.get_competency(org_id, &code).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -322,7 +322,7 @@ pub async fn create_document(
         payload.employee_name.as_deref(), payload.manager_id, payload.manager_name.as_deref(),
         Some(user_id),
     ).await {
-        Ok(doc) => Ok((StatusCode::CREATED, Json(serde_json::to_value(doc).unwrap()))),
+        Ok(doc) => Ok((StatusCode::CREATED, Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create document: {}", e);
             Err(match e.status_code() {
@@ -341,7 +341,7 @@ pub async fn get_document(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.performance_engine.get_document(id).await {
-        Ok(Some(d)) => Ok(Json(serde_json::to_value(d).unwrap())),
+        Ok(Some(d)) => Ok(Json(serde_json::to_value(d).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -380,7 +380,7 @@ pub async fn transition_document(
     Json(payload): Json<TransitionDocumentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.performance_engine.transition_document(id, &payload.status).await {
-        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap())),
+        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to transition document: {}", e);
             Err(match e.status_code() {
@@ -407,7 +407,7 @@ pub async fn submit_self_evaluation(
     match state.performance_engine.submit_self_evaluation(
         id, payload.overall_rating.as_deref(), payload.comments.as_deref(),
     ).await {
-        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap())),
+        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit self-evaluation: {}", e);
             Err(match e.status_code() {
@@ -428,7 +428,7 @@ pub async fn submit_manager_evaluation(
     match state.performance_engine.submit_manager_evaluation(
         id, payload.overall_rating.as_deref(), payload.comments.as_deref(),
     ).await {
-        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap())),
+        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit manager evaluation: {}", e);
             Err(match e.status_code() {
@@ -455,7 +455,7 @@ pub async fn finalize_document(
     match state.performance_engine.finalize_document(
         id, payload.final_rating.as_deref(), payload.final_comments.as_deref(),
     ).await {
-        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap())),
+        Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to finalize document: {}", e);
             Err(match e.status_code() {
@@ -499,7 +499,7 @@ pub async fn create_goal(
         payload.target_metric.as_deref(),
         payload.start_date, payload.due_date, Some(user_id),
     ).await {
-        Ok(goal) => Ok((StatusCode::CREATED, Json(serde_json::to_value(goal).unwrap()))),
+        Ok(goal) => Ok((StatusCode::CREATED, Json(serde_json::to_value(goal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create goal: {}", e);
             Err(match e.status_code() {
@@ -534,7 +534,7 @@ pub async fn complete_goal(
     Json(payload): Json<CompleteGoalRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.performance_engine.complete_goal(id, payload.actual_result.as_deref()).await {
-        Ok(goal) => Ok(Json(serde_json::to_value(goal).unwrap())),
+        Ok(goal) => Ok(Json(serde_json::to_value(goal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to complete goal: {}", e);
             Err(match e.status_code() {
@@ -562,7 +562,7 @@ pub async fn rate_goal(
     match state.performance_engine.rate_goal(
         id, &payload.rating_type, &payload.rating, payload.comments.as_deref(),
     ).await {
-        Ok(goal) => Ok(Json(serde_json::to_value(goal).unwrap())),
+        Ok(goal) => Ok(Json(serde_json::to_value(goal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to rate goal: {}", e);
             Err(match e.status_code() {
@@ -619,7 +619,7 @@ pub async fn upsert_competency_assessment(
         payload.competency_id, &payload.rating_type, &payload.rating,
         payload.comments.as_deref(), Some(user_id),
     ).await {
-        Ok(assessment) => Ok(Json(serde_json::to_value(assessment).unwrap())),
+        Ok(assessment) => Ok(Json(serde_json::to_value(assessment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to upsert assessment: {}", e);
             Err(match e.status_code() {
@@ -672,7 +672,7 @@ pub async fn create_feedback(
         &payload.feedback_type, payload.subject.as_deref(),
         &payload.content, visibility, Some(user_id),
     ).await {
-        Ok(fb) => Ok((StatusCode::CREATED, Json(serde_json::to_value(fb).unwrap()))),
+        Ok(fb) => Ok((StatusCode::CREATED, Json(serde_json::to_value(fb).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             error!("Failed to create feedback: {}", e);
             Err(match e.status_code() {
@@ -707,7 +707,7 @@ pub async fn submit_feedback(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.performance_engine.submit_feedback(id).await {
-        Ok(fb) => Ok(Json(serde_json::to_value(fb).unwrap())),
+        Ok(fb) => Ok(Json(serde_json::to_value(fb).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit feedback: {}", e);
             Err(match e.status_code() {
@@ -730,7 +730,7 @@ pub async fn get_performance_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.performance_engine.get_dashboard(org_id, review_cycle_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

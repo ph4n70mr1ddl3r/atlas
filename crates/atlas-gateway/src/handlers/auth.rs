@@ -15,7 +15,6 @@ use uuid::Uuid;
 use sqlx::FromRow;
 use argon2::password_hash::{PasswordHash, PasswordVerifier, PasswordHasher};
 use argon2::Argon2;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginRequest {
@@ -49,6 +48,10 @@ pub struct Claims {
 
 /// Token expiry duration in hours
 const TOKEN_EXPIRY_HOURS: i64 = 8;
+
+/// Dummy Argon2 hash used for timing-attack prevention when the user doesn't exist.
+/// This is a valid hash that will never match any real password.
+const DUMMY_ARGON2_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$d/ce2R9A0BCBBqiaYeGHUw$iGegymLltUV9IKxr7cixQqWUvamhHdjKhjEcH7qcGmI";
 
 /// Represents a user row from the database
 #[derive(Debug, FromRow)]
@@ -115,7 +118,7 @@ pub async fn login(
             // Use a valid Argon2 hash format (will never match real passwords)
             let _ = verify_password_internal(
                 &payload.password,
-                "$argon2id$v=19$m=19456,t=2,p=1$d/ce2R9A0BCBBqiaYeGHUw$iGegymLltUV9IKxr7cixQqWUvamhHdjKhjEcH7qcGmI"
+                DUMMY_ARGON2_HASH
             );
             warn!("Login failed for unknown email: {}", email);
             return Err(StatusCode::UNAUTHORIZED);
@@ -219,16 +222,6 @@ pub fn verify_token(token: &str) -> Result<Claims, StatusCode> {
         debug!("Token verification failed: {}", e);
         StatusCode::UNAUTHORIZED
     })?;
-
-    // Check expiration (belt-and-suspenders; `Validation::default()` already checks exp)
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(i64::MAX);
-
-    if token_data.claims.exp < now {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
 
     Ok(token_data.claims)
 }

@@ -45,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
     let _ = atlas_gateway::state::APP_STATE.set(state.clone());
     
     // Initialize rate limiter for login
-    let _rate_limiter = get_login_rate_limiter();
+    let rate_limiter = get_login_rate_limiter();
     
     // Build CORS layer with configurable origins
     let cors_layer = build_cors_layer();
@@ -59,6 +59,10 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/v1/auth/login",
             axum::routing::post(handlers::login)
+                .layer(axum::middleware::from_fn_with_state(
+                    rate_limiter.clone(),
+                    atlas_gateway::middleware::rate_limit_middleware,
+                ))
         )
         .layer(cors_layer)
         .layer(TraceLayer::new_for_http())

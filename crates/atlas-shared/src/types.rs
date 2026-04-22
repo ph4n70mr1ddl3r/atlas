@@ -12047,3 +12047,292 @@ pub struct DelegationDashboard {
     pub recent_delegations: Vec<DelegationHistoryEntry>,
 }
 
+// ============================================================================
+// Manufacturing Execution (Oracle Fusion SCM > Manufacturing)
+// ============================================================================
+
+/// Work Definition (BOM + Routing template)
+/// Oracle Fusion equivalent: Manufacturing > Work Definitions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkDefinition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub definition_number: String,
+    pub description: Option<String>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub version: i32,
+    pub status: String,
+    pub production_type: String,
+    pub planning_type: String,
+    pub standard_lot_size: String,
+    pub unit_of_measure: String,
+    pub lead_time_days: i32,
+    pub cost_type: String,
+    pub standard_cost: String,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Work Definition Component (BOM line)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkDefinitionComponent {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub work_definition_id: Uuid,
+    pub line_number: i32,
+    pub component_item_id: Option<Uuid>,
+    pub component_item_code: String,
+    pub component_item_description: Option<String>,
+    pub quantity_required: String,
+    pub unit_of_measure: String,
+    pub component_type: String,
+    pub scrap_percent: String,
+    pub yield_percent: String,
+    pub supply_type: String,
+    pub supply_subinventory: Option<String>,
+    pub wip_supply_type: String,
+    pub operation_sequence: Option<i32>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Work Definition Operation (Routing step)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkDefinitionOperation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub work_definition_id: Uuid,
+    pub operation_sequence: i32,
+    pub operation_name: String,
+    pub operation_description: Option<String>,
+    pub work_center_code: Option<String>,
+    pub work_center_name: Option<String>,
+    pub department_code: Option<String>,
+    pub setup_hours: String,
+    pub run_time_hours: String,
+    pub run_time_unit: String,
+    pub units_per_run: String,
+    pub resource_code: Option<String>,
+    pub resource_type: String,
+    pub resource_count: i32,
+    pub standard_labor_cost: String,
+    pub standard_overhead_cost: String,
+    pub standard_machine_cost: String,
+    pub operation_type: String,
+    pub backflush_enabled: bool,
+    pub count_point_type: String,
+    pub yield_percent: String,
+    pub scrap_percent: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Work Order (Production Order)
+/// Oracle Fusion equivalent: Manufacturing > Work Orders
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkOrder {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub work_order_number: String,
+    pub description: Option<String>,
+    pub work_definition_id: Option<Uuid>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub quantity_ordered: String,
+    pub quantity_completed: String,
+    pub quantity_scrapped: String,
+    pub quantity_in_queue: String,
+    pub quantity_running: String,
+    pub quantity_rejected: String,
+    pub unit_of_measure: String,
+    pub scheduled_start_date: Option<chrono::NaiveDate>,
+    pub scheduled_completion_date: Option<chrono::NaiveDate>,
+    pub actual_start_date: Option<chrono::NaiveDate>,
+    pub actual_completion_date: Option<chrono::NaiveDate>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub priority: String,
+    pub production_line: Option<String>,
+    pub work_center_code: Option<String>,
+    pub warehouse_code: Option<String>,
+    pub cost_type: String,
+    pub estimated_material_cost: String,
+    pub estimated_labor_cost: String,
+    pub estimated_overhead_cost: String,
+    pub estimated_total_cost: String,
+    pub actual_material_cost: String,
+    pub actual_labor_cost: String,
+    pub actual_overhead_cost: String,
+    pub actual_total_cost: String,
+    pub source_type: Option<String>,
+    pub source_document_number: Option<String>,
+    pub source_document_line_id: Option<Uuid>,
+    pub firm_planned: bool,
+    pub company_id: Option<Uuid>,
+    pub plant_code: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub released_at: Option<DateTime<Utc>>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub closed_at: Option<DateTime<Utc>>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub cancellation_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Work Order Operation (tracking per-operation progress)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkOrderOperation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub work_order_id: Uuid,
+    pub operation_sequence: i32,
+    pub operation_name: String,
+    pub work_center_code: Option<String>,
+    pub work_center_name: Option<String>,
+    pub department_code: Option<String>,
+    pub quantity_in_queue: String,
+    pub quantity_running: String,
+    pub quantity_completed: String,
+    pub quantity_rejected: String,
+    pub quantity_scrapped: String,
+    pub scheduled_start_date: Option<chrono::NaiveDate>,
+    pub scheduled_completion_date: Option<chrono::NaiveDate>,
+    pub actual_start_date: Option<chrono::NaiveDate>,
+    pub actual_completion_date: Option<chrono::NaiveDate>,
+    pub actual_setup_hours: String,
+    pub actual_run_hours: String,
+    pub resource_code: Option<String>,
+    pub resource_type: String,
+    pub status: String,
+    pub actual_labor_cost: String,
+    pub actual_overhead_cost: String,
+    pub actual_machine_cost: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Work Order Material Requirement
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkOrderMaterial {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub work_order_id: Uuid,
+    pub operation_sequence: Option<i32>,
+    pub component_item_id: Option<Uuid>,
+    pub component_item_code: String,
+    pub component_item_description: Option<String>,
+    pub quantity_required: String,
+    pub quantity_issued: String,
+    pub quantity_returned: String,
+    pub quantity_scrapped: String,
+    pub unit_of_measure: String,
+    pub supply_type: String,
+    pub supply_subinventory: Option<String>,
+    pub wip_supply_type: String,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Create Work Definition Request
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CreateWorkDefinitionRequest {
+    pub definition_number: Option<String>,
+    pub description: Option<String>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub production_type: Option<String>,
+    pub planning_type: Option<String>,
+    pub standard_lot_size: Option<String>,
+    pub unit_of_measure: Option<String>,
+    pub lead_time_days: Option<i32>,
+    pub cost_type: Option<String>,
+    pub standard_cost: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+}
+
+/// Create Work Order Request
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CreateWorkOrderRequest {
+    pub work_definition_id: Option<Uuid>,
+    pub description: Option<String>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub quantity_ordered: String,
+    pub unit_of_measure: Option<String>,
+    pub scheduled_start_date: Option<chrono::NaiveDate>,
+    pub scheduled_completion_date: Option<chrono::NaiveDate>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub priority: Option<String>,
+    pub production_line: Option<String>,
+    pub work_center_code: Option<String>,
+    pub warehouse_code: Option<String>,
+    pub cost_type: Option<String>,
+    pub source_type: Option<String>,
+    pub source_document_number: Option<String>,
+    pub firm_planned: Option<bool>,
+    pub company_id: Option<Uuid>,
+    pub plant_code: Option<String>,
+    pub created_by: Option<Uuid>,
+}
+
+/// Report Production Completion Request
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ReportCompletionRequest {
+    pub operation_sequence: Option<i32>,
+    pub quantity_completed: String,
+    pub quantity_scrapped: String,
+    pub actual_run_hours: Option<String>,
+    pub actual_labor_cost: Option<String>,
+    pub actual_overhead_cost: Option<String>,
+    pub completed_by: Option<Uuid>,
+}
+
+/// Issue Materials Request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IssueMaterialRequest {
+    pub material_id: Uuid,
+    pub quantity_issued: String,
+}
+
+/// Manufacturing Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ManufacturingDashboard {
+    pub total_work_orders: i32,
+    pub open_work_orders: i32,
+    pub in_progress_work_orders: i32,
+    pub completed_work_orders: i32,
+    pub cancelled_work_orders: i32,
+    pub total_definitions: i32,
+    pub active_definitions: i32,
+    pub overdue_orders: i32,
+    pub total_estimated_cost: String,
+    pub total_actual_cost: String,
+    pub cost_variance_pct: String,
+    pub orders_by_status: serde_json::Value,
+    pub orders_by_priority: serde_json::Value,
+    pub completion_rate_pct: String,
+    pub on_time_completion_pct: String,
+}
+

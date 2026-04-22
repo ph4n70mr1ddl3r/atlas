@@ -51,6 +51,7 @@ pub mod product_information;
 pub mod transfer_pricing;
 pub mod order_management;
 pub mod approval_delegation;
+pub mod manufacturing;
 
 pub use schema::*;
 pub use records::*;
@@ -2074,6 +2075,50 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Delegation Dashboard
         .route("/approval-delegation/dashboard", get(approval_delegation::get_delegation_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Manufacturing Execution (Oracle Fusion SCM > Manufacturing)
+        // ═══════════════════════════════════════════════════════
+
+        // Work Definitions
+        .route("/manufacturing/definitions", post(manufacturing::create_work_definition))
+        .route("/manufacturing/definitions", get(manufacturing::list_work_definitions))
+        .route("/manufacturing/definitions/:definition_number", get(manufacturing::get_work_definition))
+        .route("/manufacturing/definitions/:id/activate", post(manufacturing::activate_work_definition))
+        .route("/manufacturing/definitions/:id/deactivate", post(manufacturing::deactivate_work_definition))
+        .route("/manufacturing/definitions/:id", delete(manufacturing::delete_work_definition))
+
+        // Work Definition BOM Components
+        .route("/manufacturing/definitions/:id/components", post(manufacturing::add_work_definition_component))
+        .route("/manufacturing/definitions/:id/components", get(manufacturing::list_work_definition_components))
+        .route("/manufacturing/definitions/components/:id", delete(manufacturing::delete_work_definition_component))
+
+        // Work Definition Routing Operations
+        .route("/manufacturing/definitions/:id/operations", post(manufacturing::add_work_definition_operation))
+        .route("/manufacturing/definitions/:id/operations", get(manufacturing::list_work_definition_operations))
+        .route("/manufacturing/definitions/operations/:id", delete(manufacturing::delete_work_definition_operation))
+
+        // Work Orders
+        .route("/manufacturing/work-orders", post(manufacturing::create_work_order))
+        .route("/manufacturing/work-orders", get(manufacturing::list_work_orders))
+        .route("/manufacturing/work-orders/:work_order_number", get(manufacturing::get_work_order))
+        .route("/manufacturing/work-orders/:id/release", post(manufacturing::release_work_order))
+        .route("/manufacturing/work-orders/:id/start", post(manufacturing::start_work_order))
+        .route("/manufacturing/work-orders/:id/complete", post(manufacturing::complete_work_order))
+        .route("/manufacturing/work-orders/:id/close", post(manufacturing::close_work_order))
+        .route("/manufacturing/work-orders/:id/cancel", post(manufacturing::cancel_work_order))
+
+        // Production Reporting
+        .route("/manufacturing/work-orders/:id/report-completion", post(manufacturing::report_completion))
+        .route("/manufacturing/work-orders/:id/issue-materials", post(manufacturing::issue_materials))
+        .route("/manufacturing/materials/:id/return", post(manufacturing::return_material))
+
+        // Work Order Operations & Materials
+        .route("/manufacturing/work-orders/:id/operations", get(manufacturing::list_work_order_operations))
+        .route("/manufacturing/work-orders/:id/materials", get(manufacturing::list_work_order_materials))
+
+        // Manufacturing Dashboard
+        .route("/manufacturing/dashboard", get(manufacturing::get_manufacturing_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

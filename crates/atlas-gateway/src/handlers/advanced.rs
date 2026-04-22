@@ -174,7 +174,8 @@ impl FilterExpression {
                 if parts.is_empty() {
                     ("1=1".to_string(), vec![])
                 } else if parts.len() == 1 {
-                    (parts.into_iter().next().unwrap(), all_params)
+                    // SAFETY: len() == 1 guaranteed by the branch
+                    (parts.into_iter().next().unwrap_or_default(), all_params)
                 } else {
                     (format!("({})", parts.join(" AND ")), all_params)
                 }
@@ -192,7 +193,7 @@ impl FilterExpression {
                 if parts.is_empty() {
                     ("1=1".to_string(), vec![])
                 } else if parts.len() == 1 {
-                    (parts.into_iter().next().unwrap(), all_params)
+                    (parts.into_iter().next().unwrap_or_default(), all_params)
                 } else {
                     (format!("({})", parts.join(" OR ")), all_params)
                 }
@@ -202,13 +203,7 @@ impl FilterExpression {
 }
 
 fn json_val_to_text(v: &serde_json::Value) -> Option<String> {
-    match v {
-        serde_json::Value::Null => None,
-        serde_json::Value::Bool(b) => Some(if *b { "true".into() } else { "false".into() }),
-        serde_json::Value::Number(n) => Some(n.to_string()),
-        serde_json::Value::String(s) => Some(s.clone()),
-        other => Some(other.to_string()),
-    }
+    crate::handlers::records::json_to_text(v)
 }
 
 #[derive(Debug, Deserialize)]

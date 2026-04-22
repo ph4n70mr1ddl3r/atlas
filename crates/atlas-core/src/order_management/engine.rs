@@ -989,8 +989,9 @@ mod tests {
         async fn list_shipments(&self, _org_id: Uuid, _status: Option<&str>, _order_id: Option<Uuid>) -> AtlasResult<Vec<FulfillmentShipment>> {
             // Return shipments from state so all_delivered checks work
             let shipments: Vec<FulfillmentShipment> = self.state.lock().unwrap()
-                .shipment_data.values().cloned()
+                .shipment_data.values()
                 .filter(|s| _order_id.is_none_or(|oid| s.order_id == oid))
+                .cloned()
                 .collect();
             Ok(shipments)
         }

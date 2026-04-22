@@ -82,11 +82,22 @@ impl RateLimiter {
     }
     
     /// Check if a request from this IP should be allowed
+    ///
+    /// Returns `false` (rate-limited) if the lock is poisoned rather than
+    /// panicking.  Under extreme contention the caller still receives a
+    /// deny-by-default response, which is the safer choice.
     pub fn check(&self, ip: &str) -> bool {
         let now = Instant::now();
         
         // Clean old entries and check current state
-        let mut attempts = self.attempts.write().unwrap();
+        let mut attempts = match self.attempts.write() {
+            Ok(g) => g,
+            Err(e) => {
+                tracing::error!("Rate limiter lock poisoned: {e}");
+                // Deny-by-default when lock is poisoned
+                return false;
+            }
+        };
         attempts.retain(|_, (_, start)| now.duration_since(*start) < self.window);
         
         // Check current state and determine action
@@ -110,7 +121,13 @@ impl RateLimiter {
     
     /// Get remaining attempts for an IP
     pub fn remaining(&self, ip: &str) -> u32 {
-        let attempts = self.attempts.read().unwrap();
+        let attempts = match self.attempts.read() {
+            Ok(g) => g,
+            Err(e) => {
+                tracing::error!("Rate limiter lock poisoned: {e}");
+                return 0;
+            }
+        };
         match attempts.get(ip) {
             Some((count, start)) => {
                 let now = Instant::now();

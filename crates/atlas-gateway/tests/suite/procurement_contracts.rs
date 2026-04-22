@@ -773,8 +773,8 @@ async fn test_contract_line_deletion() {
     let (k, v) = auth_header(&admin_claims());
 
     // Add two lines
-    let line1 = add_test_contract_line(&app, &contract_id, "Item A", "5", "100.00").await;
-    let _line2 = add_test_contract_line(&app, &contract_id, "Item B", "10", "200.00").await;
+    let line1 = add_test_contract_line(&app, contract_id, "Item A", "5", "100.00").await;
+    let _line2 = add_test_contract_line(&app, contract_id, "Item B", "10", "200.00").await;
 
     let line1_id = line1["id"].as_str().unwrap();
 

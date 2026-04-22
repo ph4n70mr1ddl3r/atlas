@@ -65,3 +65,6 @@ http-body = "1"
 serde_json = { workspace = true }
 atlas-shared = { path = "../atlas-shared" }
 atlas-core = { path = "../atlas-core" }
+
+[lints]
+workspace = true

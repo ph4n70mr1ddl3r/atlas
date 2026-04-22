@@ -13,6 +13,17 @@ members = [
 ]
 exclude = ["frontend"]
 
+[workspace.lints.clippy]
+# Domain-driven engines legitimately need many parameters (org_id, user_id,
+# entity identifiers, etc.).  Suppress globally to reduce noise.
+too_many_arguments = "allow"
+# `vec![]` is used intentionally in many places for clarity.
+useless_vec = "allow"
+# Common in code that bridges sqlx dynamic queries.
+len_zero = "allow"
+# Extremely common in test code and assertions; not a real issue.
+needless_borrows_for_generic_args = "allow"
+
 [workspace.package]
 version = "0.1.0"
 edition = "2021"

@@ -10,10 +10,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
-    # Uncomment the line below only for development debugging;
-    # logging every statement adds significant overhead.
-    # command: postgres -c listen_addresses='*' -c log_statement=all
+      # NOTE: docker-entrypoint-initdb.d only runs on *first* database
+      # initialisation.  To apply new migrations to an existing container,
+      # use:  docker compose exec postgres psql -U atlas -f /migrations/NNN_file.sql
+      - ./migrations:/migrations:ro
+      - ./scripts:/docker-entrypoint-initdb.d:ro
     command: postgres -c listen_addresses='*'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U atlas"]

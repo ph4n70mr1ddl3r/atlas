@@ -294,8 +294,8 @@ async fn test_create_account_mapping() {
     let secondary = create_secondary_book(&app, "IFRS", "IFRS Secondary", "IFRS_COA", "CAL_IFRS", "EUR", true).await;
 
     let mapping = create_account_mapping(&app,
-        &primary["id"].as_str().unwrap(),
-        &secondary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
+        secondary["id"].as_str().unwrap(),
         "1000", "IFRS_1000"
     ).await;
 
@@ -331,8 +331,8 @@ async fn test_list_account_mappings() {
     let primary = create_primary_book(&app, "US_GAAP", "US GAAP Primary", "US_COA", "CAL_US", "USD").await;
     let secondary = create_secondary_book(&app, "IFRS", "IFRS Secondary", "IFRS_COA", "CAL_IFRS", "EUR", true).await;
 
-    create_account_mapping(&app, &primary["id"].as_str().unwrap(), &secondary["id"].as_str().unwrap(), "1000", "IFRS_1000").await;
-    create_account_mapping(&app, &primary["id"].as_str().unwrap(), &secondary["id"].as_str().unwrap(), "2000", "IFRS_2000").await;
+    create_account_mapping(&app, primary["id"].as_str().unwrap(), secondary["id"].as_str().unwrap(), "1000", "IFRS_1000").await;
+    create_account_mapping(&app, primary["id"].as_str().unwrap(), secondary["id"].as_str().unwrap(), "2000", "IFRS_2000").await;
 
     let (k, v) = auth_header(&admin_claims());
     let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/multi-book/mappings")
@@ -360,7 +360,7 @@ async fn test_create_journal_entry() {
     ).await.unwrap();
 
     let entry = create_journal_entry(&app,
-        &primary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
         "2025-01-15",
         vec![
             json!({"account_code": "1000", "account_name": "Cash", "debit_amount": "1000.00", "credit_amount": "0.00", "description": "Debit cash"}),
@@ -424,7 +424,7 @@ async fn test_post_journal_entry() {
     ).await.unwrap();
 
     let entry = create_journal_entry(&app,
-        &primary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
         "2025-01-15",
         vec![
             json!({"account_code": "1000", "debit_amount": "5000.00", "credit_amount": "0.00"}),
@@ -451,7 +451,7 @@ async fn test_reverse_journal_entry() {
     ).await.unwrap();
 
     let entry = create_journal_entry(&app,
-        &primary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
         "2025-01-15",
         vec![
             json!({"account_code": "1000", "debit_amount": "3000.00", "credit_amount": "0.00"}),
@@ -493,19 +493,19 @@ async fn test_auto_propagation_on_post() {
 
     // Create account mappings
     create_account_mapping(&app,
-        &primary["id"].as_str().unwrap(),
-        &secondary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
+        secondary["id"].as_str().unwrap(),
         "1000", "IFRS_1000"
     ).await;
     create_account_mapping(&app,
-        &primary["id"].as_str().unwrap(),
-        &secondary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
+        secondary["id"].as_str().unwrap(),
         "4000", "IFRS_4000"
     ).await;
 
     // Create and post a journal entry in the primary book
     let entry = create_journal_entry(&app,
-        &primary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
         "2025-01-15",
         vec![
             json!({"account_code": "1000", "debit_amount": "7500.00", "credit_amount": "0.00"}),
@@ -553,14 +553,14 @@ async fn test_propagation_logs() {
 
     // Create mapping for one account only
     create_account_mapping(&app,
-        &primary["id"].as_str().unwrap(),
-        &secondary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
+        secondary["id"].as_str().unwrap(),
         "1000", "IFRS_1000"
     ).await;
 
     // Create entry with two lines, only one mapped
     let entry = create_journal_entry(&app,
-        &primary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
         "2025-01-15",
         vec![
             json!({"account_code": "1000", "debit_amount": "2000.00", "credit_amount": "0.00"}),
@@ -604,19 +604,19 @@ async fn test_manual_propagation() {
 
     // Create mapping
     create_account_mapping(&app,
-        &primary["id"].as_str().unwrap(),
-        &secondary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
+        secondary["id"].as_str().unwrap(),
         "1000", "IFRS_1000"
     ).await;
     create_account_mapping(&app,
-        &primary["id"].as_str().unwrap(),
-        &secondary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
+        secondary["id"].as_str().unwrap(),
         "4000", "IFRS_4000"
     ).await;
 
     // Create and post entry (auto-propagation is disabled for this secondary book)
     let entry = create_journal_entry(&app,
-        &primary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
         "2025-01-15",
         vec![
             json!({"account_code": "1000", "debit_amount": "1500.00", "credit_amount": "0.00"}),
@@ -658,7 +658,7 @@ async fn test_journal_lines() {
     ).await.unwrap();
 
     let entry = create_journal_entry(&app,
-        &primary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
         "2025-01-15",
         vec![
             json!({"account_code": "1000", "account_name": "Cash", "debit_amount": "500.00", "credit_amount": "0.00", "description": "Debit"}),
@@ -744,7 +744,7 @@ async fn test_cannot_post_draft_entry_twice() {
     ).await.unwrap();
 
     let entry = create_journal_entry(&app,
-        &primary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
         "2025-01-15",
         vec![
             json!({"account_code": "1000", "debit_amount": "100.00", "credit_amount": "0.00"}),
@@ -773,8 +773,8 @@ async fn test_delete_account_mapping() {
     let secondary = create_secondary_book(&app, "IFRS", "IFRS Secondary", "IFRS_COA", "CAL_IFRS", "EUR", true).await;
 
     let mapping = create_account_mapping(&app,
-        &primary["id"].as_str().unwrap(),
-        &secondary["id"].as_str().unwrap(),
+        primary["id"].as_str().unwrap(),
+        secondary["id"].as_str().unwrap(),
         "1000", "IFRS_1000"
     ).await;
 

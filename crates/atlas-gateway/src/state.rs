@@ -173,6 +173,7 @@ impl AppState {
             .unwrap_or(20);
         
         let db_pool = sqlx::postgres::PgPoolOptions::new()
+            .min_connections(2)
             .max_connections(max_connections)
             .acquire_timeout(std::time::Duration::from_secs(10))
             .idle_timeout(std::time::Duration::from_secs(300))

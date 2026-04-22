@@ -109,6 +109,10 @@ impl SecurityEngine {
     fn evaluate_condition(&self, condition: &str, ctx: &SecurityContext, record_data: &serde_json::Value) -> bool {
         // Simple condition evaluation
         // Format: "field == value" or "field == user.field"
+        //
+        // IMPORTANT: Conditions that don't match any known pattern return `false`
+        // (fail-closed) so that misconfigured deny rules actually deny access
+        // rather than silently allowing it.
         
         if let Some(op_pos) = condition.find("==") {
             let field = condition[..op_pos].trim();
@@ -118,7 +122,7 @@ impl SecurityEngine {
             
             // Check for user field reference
             if let Some(user_field) = value.strip_prefix("user.") {
-            match user_field {
+                match user_field {
                     "organization_id" => {
                         if let (Some(rec_org), Some(ctx_org)) = (
                             record_value.and_then(|v| v.as_str()),
@@ -137,7 +141,10 @@ impl SecurityEngine {
                             }
                         }
                     }
-                    _ => {}
+                    _ => {
+                        tracing::warn!("Unknown user field reference in security condition: '{}'", user_field);
+                        return false;
+                    }
                 }
             } else {
                 // Direct value comparison
@@ -145,9 +152,21 @@ impl SecurityEngine {
                     return rec_val == value;
                 }
             }
+        } else if let Some(op_pos) = condition.find("!=") {
+            let field = condition[..op_pos].trim();
+            let value = condition[op_pos + 2..].trim();
+            let record_value = record_data.get(field);
+            if let Some(rec_val) = record_value {
+                // Compare as strings
+                return rec_val.as_str() != Some(value);
+            }
+        } else {
+            // Unrecognized condition format — fail closed
+            tracing::warn!("Unrecognized security condition format: '{condition}'");
+            return false;
         }
         
-        true
+        false
     }
     
     /// Check field-level security

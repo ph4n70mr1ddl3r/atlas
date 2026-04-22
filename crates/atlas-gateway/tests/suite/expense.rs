@@ -443,7 +443,7 @@ async fn test_list_expense_reports_by_status() {
     create_test_category(&app, "TRAVEL", "Travel", false, None).await;
 
     let report1 = create_test_report(&app, "EXP-010", "Report One").await;
-    let report2 = create_test_report(&app, "EXP-011", "Report Two").await;
+    let _report2 = create_test_report(&app, "EXP-011", "Report Two").await;
 
     // Submit report1
     let rid1 = report1["id"].as_str().unwrap();

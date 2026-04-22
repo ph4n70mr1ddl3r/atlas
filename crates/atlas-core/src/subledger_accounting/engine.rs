@@ -1020,12 +1020,12 @@ mod tests {
         };
 
         let result = engine.resolve_account_code(
-            &[rule.clone()], "debit", &serde_json::json!({"expense_category": "Travel"}),
+            std::slice::from_ref(&rule), "debit", &serde_json::json!({"expense_category": "Travel"}),
         );
         assert_eq!(result, Some("6100".to_string()));
 
         let result = engine.resolve_account_code(
-            &[rule.clone()], "debit", &serde_json::json!({"expense_category": "Meals"}),
+            std::slice::from_ref(&rule), "debit", &serde_json::json!({"expense_category": "Meals"}),
         );
         assert_eq!(result, Some("6200".to_string()));
 
@@ -1068,7 +1068,7 @@ mod tests {
 
         // Conditions match - should return account code
         let result = engine.resolve_account_code(
-            &[rule_matching.clone()], "debit", &serde_json::json!({"category": "Travel"}),
+            std::slice::from_ref(&rule_matching), "debit", &serde_json::json!({"category": "Travel"}),
         );
         assert_eq!(result, Some("6100".to_string()));
 

@@ -327,7 +327,7 @@ async fn test_execute_proportional_allocation() {
 
     // Setup pool and base
     create_test_pool(&app, "RENT_POOL", "Rent Pool").await;
-    let base = create_test_base(&app, "HEADCOUNT", "Headcount").await;
+    let _base = create_test_base(&app, "HEADCOUNT", "Headcount").await;
 
     let (k, v) = auth_header(&admin_claims());
 

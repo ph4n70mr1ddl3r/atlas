@@ -225,7 +225,7 @@ async fn test_create_tax_rate() {
     assert_eq!(rate["code"], "DE_STANDARD");
     assert_eq!(rate["name"], "Germany Standard VAT");
     // Rate percentage is a NUMERIC serialized as string/number
-    let rate_pct = rate["rate_percentage"].as_str().unwrap_or_else(|| "");
+    let rate_pct = rate["rate_percentage"].as_str().unwrap_or("");
     // Rate percentage might be serialized as a number, so also check to_string
     let rate_str = if rate_pct.is_empty() { rate["rate_percentage"].to_string() } else { rate_pct.to_string() };
     assert!(rate_str.contains("19"));

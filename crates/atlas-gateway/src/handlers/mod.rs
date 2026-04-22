@@ -419,7 +419,7 @@ use axum::{
 };
 use serde_json::Value;
 use crate::AppState;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, admin_auth_middleware};
 use std::sync::Arc;
 
 /// Health check endpoint
@@ -2097,5 +2097,6 @@ pub fn admin_routes() -> Router<Arc<AppState>> {
         
         .route("/cache/clear", post(clear_cache))
         .route("/cache/invalidate/:entity", post(invalidate_entity_cache))
+        .layer(middleware::from_fn(admin_auth_middleware))
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -17,7 +17,6 @@ use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
 use super::common::helpers::*;
-use uuid::Uuid;
 
 async fn setup_commission_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;

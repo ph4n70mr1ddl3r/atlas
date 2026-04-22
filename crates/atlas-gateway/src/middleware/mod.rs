@@ -37,6 +37,30 @@ pub async fn auth_middleware(
     Ok(next.run(request).await)
 }
 
+/// Admin authorization middleware – requires the JWT bearer to hold an
+/// `admin` or `system` role.  Must be layered **after** `auth_middleware`
+/// so that `Claims` are already present in request extensions.
+pub async fn admin_auth_middleware(
+    request: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    let claims = request
+        .extensions()
+        .get::<crate::handlers::auth::Claims>()
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    if !claims.roles.iter().any(|r| r == "admin" || r == "system") {
+        tracing::warn!(
+            "Admin access denied for user {} with roles {:?}",
+            claims.sub,
+            claims.roles
+        );
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    Ok(next.run(request).await)
+}
+
 /// Simple in-memory rate limiter for login attempts
 /// In production, use Redis or similar distributed store
 pub struct RateLimiter {

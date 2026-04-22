@@ -1139,7 +1139,7 @@ mod tests {
 
         // Find the cust1+USD+invoice group (should have 2 lines)
         let main_group = groups.iter()
-            .find(|(key, lines)| {
+            .find(|(key, _lines)| {
                 key.contains(&cust1.to_string()) &&
                 key.contains("USD") &&
                 key.contains("invoice") &&

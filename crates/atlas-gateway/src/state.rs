@@ -98,10 +98,10 @@ use atlas_core::{
     approval_delegation::PostgresApprovalDelegationRepository,
 };
 use std::sync::Arc;
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
 use tracing::info;
 
-pub static APP_STATE: OnceCell<Arc<AppState>> = OnceCell::new();
+pub static APP_STATE: OnceLock<Arc<AppState>> = OnceLock::new();
 
 /// Main application state
 #[derive(Clone)]

@@ -67,6 +67,8 @@ async fn main() -> anyhow::Result<()> {
         .layer(cors_layer)
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(REQUEST_TIMEOUT))
+        // Limit request body to 10 MB to prevent abuse on import/upload endpoints
+        .layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024))
         .with_state(state);
     
     // Start server with graceful shutdown

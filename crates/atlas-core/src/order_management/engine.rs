@@ -990,7 +990,7 @@ mod tests {
             // Return shipments from state so all_delivered checks work
             let shipments: Vec<FulfillmentShipment> = self.state.lock().unwrap()
                 .shipment_data.values().cloned()
-                .filter(|s| _order_id.map_or(true, |oid| s.order_id == oid))
+                .filter(|s| _order_id.is_none_or(|oid| s.order_id == oid))
                 .collect();
             Ok(shipments)
         }

@@ -6,7 +6,6 @@ use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use uuid::Uuid;
 
 use super::common::helpers::*;
 

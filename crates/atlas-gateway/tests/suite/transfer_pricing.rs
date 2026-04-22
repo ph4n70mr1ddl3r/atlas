@@ -12,7 +12,6 @@ use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use uuid::Uuid;
 use super::common::helpers::*;
 
 async fn setup_tp_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
@@ -185,7 +184,7 @@ async fn test_create_policy_duplicate_code() {
 #[tokio::test]
 async fn test_get_policy() {
     let (_state, app) = setup_tp_test().await;
-    let policy = create_test_policy(&app, "TP-GET").await;
+    let _policy = create_test_policy(&app, "TP-GET").await;
     // Get by code
     let (k, v) = auth_header(&admin_claims());
     let r = app.clone().oneshot(Request::builder().method("GET")

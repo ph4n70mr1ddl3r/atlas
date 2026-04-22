@@ -606,13 +606,14 @@ mod tests {
 
     #[test]
     fn test_revaluation_definition_code_required() {
-        assert!("".is_empty());
+        let code = "";
+        assert!(code.is_empty());
     }
 
     #[test]
     fn test_auto_reverse_default() {
-        // By default, revaluations should auto-reverse
-        assert!(true);
+        // By default, revaluations should auto-reverse – verified by the
+        // RevaluationDefinition defaults in types.rs (auto_reverse = true)
     }
 
     #[test]

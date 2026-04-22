@@ -735,7 +735,6 @@ impl PeriodCloseEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use atlas_shared::AtlasError;
 
     #[test]
     fn test_valid_statuses() {

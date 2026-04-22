@@ -79,6 +79,7 @@ async fn create_test_profile(app: &axum::Router, profile_number: &str, customer_
     serde_json::from_slice(&b).unwrap()
 }
 
+#[allow(dead_code)]
 async fn delete_test_profile(app: &axum::Router, profile_id: &str) {
     let (k, v) = auth_header(&admin_claims());
     let _ = app.clone().oneshot(Request::builder().method("DELETE")

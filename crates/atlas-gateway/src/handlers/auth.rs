@@ -51,7 +51,9 @@ const TOKEN_EXPIRY_HOURS: i64 = 8;
 
 /// Dummy Argon2 hash used for timing-attack prevention when the user doesn't exist.
 /// This is a valid hash that will never match any real password.
-const DUMMY_ARGON2_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$d/ce2R9A0BCBBqiaYeGHUw$iGegymLltUV9IKxr7cixQqWUvamhHdjKhjEcH7qcGmI";
+/// IMPORTANT: This hash was generated with a random salt and is NOT the same as
+/// any seeded user password hash.
+const DUMMY_ARGON2_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$TKQ1gSmV58RTlZwIXn1prg$qn2FnCqFmN6gmvzTrCh7fmq8DzxtJmJjI/FKD7vDzAo";
 
 /// Represents a user row from the database
 #[derive(Debug, FromRow)]
@@ -209,10 +211,10 @@ pub fn verify_token(token: &str) -> Result<Claims, StatusCode> {
     // Use the canonical secret from AppState (set during startup)
     let jwt_secret = crate::state::APP_STATE.get()
         .map(|s| s.jwt_secret.clone())
-        .unwrap_or_else(|| {
-            std::env::var("JWT_SECRET")
-                .unwrap_or_else(|_| "dev-secret-key-please-change-in-production-1234567890".to_string())
-        });
+        .ok_or_else(|| {
+            tracing::error!("APP_STATE not initialized – cannot verify tokens");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let token_data = decode::<Claims>(
         token,

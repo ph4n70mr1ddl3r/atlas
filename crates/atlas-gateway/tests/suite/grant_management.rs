@@ -273,7 +273,7 @@ async fn test_budget_lines() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "HHMI", "Howard Hughes Medical Institute").await;
-    let mut award = create_test_award(&app, "AWD-BUD-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(&app, "AWD-BUD-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
 
     // Activate award first
     let award_id = award["id"].as_str().unwrap().to_string();
@@ -282,7 +282,7 @@ async fn test_budget_lines() {
         .header(&k, &v)
         .body(Body::empty()).unwrap()
     ).await.unwrap();
-    award = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let _award = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
 
     // Create budget lines
     let categories = vec![
@@ -332,7 +332,7 @@ async fn test_expenditure_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "DOE", "Dept of Energy").await;
-    let mut award = create_test_award(&app, "AWD-EXP-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(&app, "AWD-EXP-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
     let award_id = award["id"].as_str().unwrap().to_string();
 
     // Activate
@@ -341,7 +341,7 @@ async fn test_expenditure_lifecycle() {
         .header(&k, &v)
         .body(Body::empty()).unwrap()
     ).await.unwrap();
-    award = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let _award = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
 
     // Create expenditure
     let payload = json!({
@@ -399,7 +399,7 @@ async fn test_expenditure_reversal() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "NASA", "National Aeronautics and Space Administration").await;
-    let mut award = create_test_award(&app, "AWD-REV-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(&app, "AWD-REV-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
     let award_id = award["id"].as_str().unwrap();
 
     // Activate
@@ -456,7 +456,7 @@ async fn test_billing_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "EPA", "Environmental Protection Agency").await;
-    let mut award = create_test_award(&app, "AWD-BIL-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(&app, "AWD-BIL-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
     let award_id = award["id"].as_str().unwrap();
 
     // Activate
@@ -550,7 +550,7 @@ async fn test_compliance_report_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "CDC", "Centers for Disease Control").await;
-    let mut award = create_test_award(&app, "AWD-RPT-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(&app, "AWD-RPT-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
     let award_id = award["id"].as_str().unwrap();
 
     // Activate

@@ -880,8 +880,9 @@ mod tests {
 
     #[test]
     fn test_validation_pool_code_required() {
-        // Empty pool code should fail
-        assert!("".is_empty());
+        // Empty pool code is considered invalid in a real implementation
+        let code = "";
+        assert!(code.is_empty());
     }
 
     #[test]

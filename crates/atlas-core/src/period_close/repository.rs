@@ -275,7 +275,7 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_calendar(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_calendar(r)).collect())
     }
 
     async fn delete_calendar(&self, id: Uuid) -> AtlasResult<()> {
@@ -382,7 +382,7 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_period(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_period(r)).collect())
     }
 
     async fn update_period_status(
@@ -510,7 +510,7 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_checklist_item(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_checklist_item(r)).collect())
     }
 
     async fn update_checklist_item_status(

@@ -464,7 +464,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_category(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_category(r)).collect())
     }
 
     async fn delete_category(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -544,7 +544,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_book(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_book(r)).collect())
     }
 
     async fn delete_book(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -692,7 +692,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_asset(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_asset(r)).collect())
     }
 
     async fn update_asset_status(
@@ -838,7 +838,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_depr_history(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_depr_history(r)).collect())
     }
 
     async fn get_depreciation_for_period(&self, asset_id: Uuid, fiscal_year: i32, period_number: i32) -> AtlasResult<Option<AssetDepreciationHistory>> {
@@ -922,7 +922,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_transfer(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_transfer(r)).collect())
     }
 
     async fn update_transfer_status(
@@ -1036,7 +1036,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_retirement(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_retirement(r)).collect())
     }
 
     async fn update_retirement_status(

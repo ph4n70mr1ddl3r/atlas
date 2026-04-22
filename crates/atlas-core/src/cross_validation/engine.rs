@@ -229,13 +229,13 @@ impl CrossValidationEngine {
         // Collect applicable rules (enabled and within effective dates)
         let mut applicable_rules: Vec<&CrossValidationRule> = rules.iter()
             .filter(|r| {
-                let in_date_range = match (r.effective_from, r.effective_to) {
+                
+                match (r.effective_from, r.effective_to) {
                     (Some(from), Some(to)) => today >= from && today <= to,
                     (Some(from), None) => today >= from,
                     (None, Some(to)) => today <= to,
                     (None, None) => true,
-                };
-                in_date_range
+                }
             })
             .collect();
 
@@ -244,17 +244,16 @@ impl CrossValidationEngine {
 
         // First pass: identify all matching "allow" rules
         for rule in &applicable_rules {
-            if rule.rule_type == "allow" {
-                if self.rule_matches(rule, segment_values).await? {
+            if rule.rule_type == "allow"
+                && self.rule_matches(rule, segment_values).await? {
                     allow_matches.push(rule.id);
                 }
-            }
         }
 
         // Second pass: check "deny" rules
         for rule in &applicable_rules {
-            if rule.rule_type == "deny" {
-                if self.rule_matches(rule, segment_values).await? {
+            if rule.rule_type == "deny"
+                && self.rule_matches(rule, segment_values).await? {
                     // Check if any allow rule overrides this deny
                     let is_overridden = allow_matches.iter().any(|_allow_id| {
                         // Simple override: allow rule with same or higher priority (lower number)
@@ -268,7 +267,6 @@ impl CrossValidationEngine {
                         error_messages.push(rule.error_message.clone());
                     }
                 }
-            }
         }
 
         let is_valid = violated_rules.is_empty();

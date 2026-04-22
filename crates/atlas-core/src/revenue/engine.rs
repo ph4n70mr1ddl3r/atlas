@@ -139,7 +139,7 @@ impl RevenueEngine {
                 allocation_basis, VALID_ALLOCATION_BASES.join(", ")
             )));
         }
-        if let Some(ref pct) = constraint_threshold_percent {
+        if let Some(pct) = constraint_threshold_percent {
             let val: f64 = pct.parse().map_err(|_| AtlasError::ValidationFailed(
                 "Constraint threshold must be a valid number".to_string(),
             ))?;

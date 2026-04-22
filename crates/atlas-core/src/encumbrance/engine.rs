@@ -478,7 +478,7 @@ impl EncumbranceEngine {
         // Restore entry amounts
         let entry = self.repository.get_entry(liquidation.encumbrance_entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Entry not found")
+                "Entry not found".to_string()
             ))?;
         let current: f64 = entry.current_amount.parse().unwrap_or(0.0);
         let prev_liquidated: f64 = entry.liquidated_amount.parse().unwrap_or(0.0);

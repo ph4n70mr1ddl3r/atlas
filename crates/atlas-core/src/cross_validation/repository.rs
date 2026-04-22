@@ -161,7 +161,7 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
-        Ok(rows.iter().map(|r| row_to_rule(r)).collect())
+        Ok(rows.iter().map(row_to_rule).collect())
     }
 
     async fn update_rule_enabled(&self, id: Uuid, is_enabled: bool) -> AtlasResult<CrossValidationRule> {
@@ -212,7 +212,7 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
         .bind(rule_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_rule_line(r)).collect())
+        Ok(rows.iter().map(row_to_rule_line).collect())
     }
 
     async fn delete_rule_line(&self, id: Uuid) -> AtlasResult<()> {

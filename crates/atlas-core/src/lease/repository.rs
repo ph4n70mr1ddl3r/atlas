@@ -447,7 +447,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_lease(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_lease(r)).collect())
     }
 
     async fn update_lease_status(
@@ -572,7 +572,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_payment(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_payment(r)).collect())
     }
 
     async fn update_payment_status(
@@ -673,7 +673,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_modification(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_modification(r)).collect())
     }
 
     async fn create_termination(
@@ -725,7 +725,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_termination(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_termination(r)).collect())
     }
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<LeaseDashboardSummary> {

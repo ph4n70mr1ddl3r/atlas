@@ -232,7 +232,7 @@ pub async fn create_competency(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let indicators = if payload.behavioral_indicators.is_null() || payload.behavioral_indicators.as_array().map_or(true, |a| a.is_empty()) {
+    let indicators = if payload.behavioral_indicators.is_null() || payload.behavioral_indicators.as_array().is_none_or(|a| a.is_empty()) {
         serde_json::json!([])
     } else {
         payload.behavioral_indicators

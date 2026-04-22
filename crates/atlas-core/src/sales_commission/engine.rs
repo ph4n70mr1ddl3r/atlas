@@ -405,7 +405,7 @@ impl SalesCommissionEngine {
             let active_assignment = assignments.into_iter()
                 .filter(|a| a.status == "active")
                 .filter(|a| a.effective_from <= today)
-                .filter(|a| a.effective_to.map_or(true, |t| t >= today))
+                .filter(|a| a.effective_to.is_none_or(|t| t >= today))
                 .find(|_| true);
 
             if let Some(assignment) = active_assignment {
@@ -446,7 +446,7 @@ impl SalesCommissionEngine {
                         let to_opt: Option<f64> = tier.to_amount.as_ref()
                             .and_then(|t| t.parse().ok());
 
-                        let in_range = sale >= from && to_opt.map_or(true, |t| sale <= t);
+                        let in_range = sale >= from && to_opt.is_none_or(|t| sale <= t);
                         if in_range {
                             applicable_rate = tier.rate_percent.parse().unwrap_or(0.0);
                             break;

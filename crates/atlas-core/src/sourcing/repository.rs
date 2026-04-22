@@ -423,7 +423,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_event(&r)).collect())
+        Ok(rows.iter().map(row_to_event).collect())
     }
 
     async fn update_event_status(&self, id: Uuid, status: &str, published_by: Option<Uuid>, closed_by: Option<Uuid>, cancelled_by: Option<Uuid>) -> AtlasResult<SourcingEvent> {
@@ -516,7 +516,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_event_line(&r)).collect())
+        Ok(rows.iter().map(row_to_event_line).collect())
     }
 
     async fn update_event_line_award(&self, line_id: Uuid, supplier_id: Uuid, supplier_name: Option<&str>, awarded_price: &str, awarded_quantity: &str) -> AtlasResult<()> {
@@ -574,7 +574,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_invite(&r)).collect())
+        Ok(rows.iter().map(row_to_invite).collect())
     }
 
     async fn update_invite_status(&self, id: Uuid, status: &str, viewed_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<()> {
@@ -647,7 +647,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_response(&r)).collect())
+        Ok(rows.iter().map(row_to_response).collect())
     }
 
     async fn update_response_total(&self, id: Uuid, total: &str) -> AtlasResult<()> {
@@ -728,7 +728,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_response_line(&r)).collect())
+        Ok(rows.iter().map(row_to_response_line).collect())
     }
 
     // ========================================================================
@@ -776,7 +776,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_criterion(&r)).collect())
+        Ok(rows.iter().map(row_to_criterion).collect())
     }
 
     async fn upsert_response_score(
@@ -811,7 +811,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_response_score(&r)).collect())
+        Ok(rows.iter().map(row_to_response_score).collect())
     }
 
     // ========================================================================
@@ -857,7 +857,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_award(&r)).collect())
+        Ok(rows.iter().map(row_to_award).collect())
     }
 
     async fn update_award_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, rejected_reason: Option<&str>) -> AtlasResult<SourcingAward> {
@@ -911,7 +911,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_award_line(&r)).collect())
+        Ok(rows.iter().map(row_to_award_line).collect())
     }
 
     // ========================================================================
@@ -974,7 +974,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_template(&r)).collect())
+        Ok(rows.iter().map(row_to_template).collect())
     }
 
     async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {

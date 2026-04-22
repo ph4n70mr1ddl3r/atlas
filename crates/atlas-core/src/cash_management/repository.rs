@@ -420,7 +420,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_cash_position(&r)).collect())
+        Ok(rows.iter().map(row_to_cash_position).collect())
     }
 
     // ========================================================================
@@ -491,7 +491,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_template(&r)).collect())
+        Ok(rows.iter().map(row_to_template).collect())
     }
 
     async fn delete_forecast_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -570,7 +570,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_source(&r)).collect())
+        Ok(rows.iter().map(row_to_source).collect())
     }
 
     async fn delete_forecast_source(&self, org_id: Uuid, template_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -675,7 +675,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_forecast(&r)).collect())
+        Ok(rows.iter().map(row_to_forecast).collect())
     }
 
     async fn update_forecast_status(
@@ -772,7 +772,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_forecast_line(&r)).collect())
+        Ok(rows.iter().map(row_to_forecast_line).collect())
     }
 
     async fn list_forecast_lines_by_period(
@@ -794,6 +794,6 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_forecast_line(&r)).collect())
+        Ok(rows.iter().map(row_to_forecast_line).collect())
     }
 }

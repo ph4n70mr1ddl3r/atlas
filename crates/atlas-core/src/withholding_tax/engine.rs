@@ -87,7 +87,7 @@ impl WithholdingTaxEngine {
         let rate: f64 = rate_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
             "rate_percentage must be a valid number".to_string(),
         ))?;
-        if rate < 0.0 || rate > 100.0 {
+        if !(0.0..=100.0).contains(&rate) {
             return Err(AtlasError::ValidationFailed(
                 "rate_percentage must be between 0 and 100".to_string(),
             ));

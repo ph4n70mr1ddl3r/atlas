@@ -117,7 +117,7 @@ impl RecurringJournalEngine {
                 let val: f64 = pct.parse().map_err(|_| AtlasError::ValidationFailed(
                     "Incremental percent must be a valid number".to_string(),
                 ))?;
-                if val < -100.0 || val > 1000.0 {
+                if !(-100.0..=1000.0).contains(&val) {
                     return Err(AtlasError::ValidationFailed(
                         "Incremental percent must be between -100 and 1000".to_string(),
                     ));

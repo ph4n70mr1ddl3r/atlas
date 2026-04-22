@@ -379,7 +379,7 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         }
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_ledger(&r)).collect())
+        Ok(rows.iter().map(row_to_ledger).collect())
     }
 
     // ── Consolidation Entities ──────────────────────────────────────
@@ -441,7 +441,7 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         }
         .bind(ledger_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_entity(&r)).collect())
+        Ok(rows.iter().map(row_to_entity).collect())
     }
 
     // ── Consolidation Scenarios ─────────────────────────────────────
@@ -504,7 +504,7 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         .bind(org_id).bind(ledger_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_scenario(&r)).collect())
+        Ok(rows.iter().map(row_to_scenario).collect())
     }
 
     async fn update_scenario_status(
@@ -611,7 +611,7 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         .bind(scenario_id).bind(entity_id).bind(line_type)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_tb_line(&r)).collect())
+        Ok(rows.iter().map(row_to_tb_line).collect())
     }
 
     async fn delete_trial_balance_by_scenario(&self, scenario_id: Uuid) -> AtlasResult<()> {
@@ -674,7 +674,7 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         }
         .bind(ledger_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_elimination_rule(&r)).collect())
+        Ok(rows.iter().map(row_to_elimination_rule).collect())
     }
 
     // ── Adjustments ─────────────────────────────────────────────────
@@ -722,7 +722,7 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         .bind(scenario_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_adjustment(&r)).collect())
+        Ok(rows.iter().map(row_to_adjustment).collect())
     }
 
     async fn update_adjustment_status(
@@ -785,7 +785,7 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         .bind(scenario_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_translation_rate(&r)).collect())
+        Ok(rows.iter().map(row_to_translation_rate).collect())
     }
 
     // ── Dashboard ───────────────────────────────────────────────────

@@ -841,7 +841,7 @@ impl InventoryEngine {
         count_quantity: &str,
         counted_by: Option<Uuid>,
     ) -> AtlasResult<CycleCountLine> {
-        if count_number < 1 || count_number > 3 {
+        if !(1..=3).contains(&count_number) {
             return Err(AtlasError::ValidationFailed(
                 "Count number must be 1, 2, or 3".to_string(),
             ));

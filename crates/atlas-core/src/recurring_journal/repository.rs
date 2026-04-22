@@ -248,7 +248,7 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_schedule(r)).collect())
+        Ok(rows.iter().map(row_to_schedule).collect())
     }
 
     async fn update_schedule_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<RecurringJournalSchedule> {
@@ -316,7 +316,7 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         .bind(schedule_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_schedule_line(r)).collect())
+        Ok(rows.iter().map(row_to_schedule_line).collect())
     }
 
     async fn delete_schedule_line(&self, id: Uuid) -> AtlasResult<()> {
@@ -362,7 +362,7 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         )
         .bind(schedule_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_generation(r)).collect())
+        Ok(rows.iter().map(row_to_generation).collect())
     }
 
     async fn update_generation_status(&self, id: Uuid, status: &str, posted_at: Option<chrono::DateTime<chrono::Utc>>, reversed_at: Option<chrono::DateTime<chrono::Utc>>, reversal_entry_id: Option<Uuid>) -> AtlasResult<RecurringJournalGeneration> {
@@ -419,7 +419,7 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         )
         .bind(generation_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_generation_line(r)).collect())
+        Ok(rows.iter().map(row_to_generation_line).collect())
     }
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RecurringJournalDashboardSummary> {

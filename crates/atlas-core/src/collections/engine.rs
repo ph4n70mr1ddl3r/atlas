@@ -445,10 +445,10 @@ impl CollectionsEngine {
         info!("Recording {} interaction for customer {}", interaction_type, customer_id);
 
         // If linked to a case, update the case's last_action_date
-        if case_id.is_some() {
+        if let Some(cid) = case_id {
             let today = chrono::Utc::now().date_naive();
             let _ = self.repository.update_case_status(
-                case_id.unwrap(),
+                cid,
                 "in_progress",
                 None, None, None,
                 Some(today), follow_up_date,

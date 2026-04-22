@@ -271,7 +271,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_counterparty(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_counterparty(r)).collect())
     }
 
     async fn delete_counterparty(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -379,7 +379,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_deal(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_deal(r)).collect())
     }
 
     async fn update_deal_status(
@@ -486,7 +486,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_settlement(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_settlement(r)).collect())
     }
 
     async fn update_settlement_status(&self, id: Uuid, status: &str) -> AtlasResult<TreasurySettlement> {

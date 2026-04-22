@@ -208,7 +208,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             sqlx::query("SELECT * FROM _atlas.subscription_products WHERE organization_id=$1 ORDER BY product_code")
                 .bind(org_id).fetch_all(&self.pool).await
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_product(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_product(r)).collect())
     }
 
     async fn delete_product(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -332,7 +332,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             ORDER BY subscription_number"#,
         ).bind(org_id).bind(status).bind(customer_id)
         .fetch_all(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_subscription(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_subscription(r)).collect())
     }
 
     async fn update_subscription_status(&self, id: Uuid, status: &str,
@@ -406,7 +406,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             "SELECT * FROM _atlas.subscription_amendments WHERE subscription_id=$1 ORDER BY created_at"
         ).bind(subscription_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_amendment(&r)).collect())
+        Ok(rows.iter().map(row_to_amendment).collect())
     }
 
     async fn update_amendment_status(&self, id: Uuid, status: &str, applied_by: Option<Uuid>) -> AtlasResult<SubscriptionAmendment> {
@@ -441,7 +441,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             "SELECT * FROM _atlas.subscription_billing_schedule WHERE subscription_id=$1 ORDER BY schedule_number"
         ).bind(subscription_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_billing_line(&r)).collect())
+        Ok(rows.iter().map(row_to_billing_line).collect())
     }
 
     async fn create_revenue_line(&self, org_id: Uuid, subscription_id: Uuid,
@@ -473,7 +473,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             "SELECT * FROM _atlas.subscription_revenue_schedule WHERE subscription_id=$1 ORDER BY period_start"
         ).bind(subscription_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_revenue_line(&r)).collect())
+        Ok(rows.iter().map(row_to_revenue_line).collect())
     }
 
     async fn update_revenue_line_status(&self, id: Uuid, status: &str) -> AtlasResult<SubscriptionRevenueLine> {

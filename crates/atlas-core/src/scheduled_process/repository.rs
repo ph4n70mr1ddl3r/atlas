@@ -296,7 +296,7 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
         .bind(org_id).bind(process_type).bind(is_active)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_template(r)).collect())
+        Ok(rows.iter().map(row_to_template).collect())
     }
 
     async fn update_template_status(&self, id: Uuid, is_active: bool) -> AtlasResult<ScheduledProcessTemplate> {
@@ -373,7 +373,7 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
         .bind(org_id).bind(status).bind(submitted_by).bind(process_type).bind(limit_val)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_process(r)).collect())
+        Ok(rows.iter().map(row_to_process).collect())
     }
 
     async fn update_process_status(
@@ -510,7 +510,7 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
         )
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_process(r)).collect())
+        Ok(rows.iter().map(row_to_process).collect())
     }
 
     // ---- Recurrences ----
@@ -561,7 +561,7 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
         .bind(org_id).bind(is_active)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_recurrence(r)).collect())
+        Ok(rows.iter().map(row_to_recurrence).collect())
     }
 
     async fn update_recurrence_status(&self, id: Uuid, is_active: bool) -> AtlasResult<ScheduledProcessRecurrence> {
@@ -610,7 +610,7 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
         .bind(now)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_recurrence(r)).collect())
+        Ok(rows.iter().map(row_to_recurrence).collect())
     }
 
     // ---- Logs ----
@@ -645,7 +645,7 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
         .bind(process_id).bind(log_level).bind(limit_val)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_log(r)).collect())
+        Ok(rows.iter().map(row_to_log).collect())
     }
 
     // ---- Dashboard ----
@@ -710,7 +710,7 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
             cancelled_processes: cancelled as i32,
             scheduled_processes: scheduled as i32,
             active_recurrences: active_recurrences as i32,
-            recent_processes: recent_rows.iter().map(|r| row_to_process(r)).collect(),
+            recent_processes: recent_rows.iter().map(row_to_process).collect(),
             processes_by_type: serde_json::Value::Object(by_type),
         })
     }

@@ -124,7 +124,7 @@ impl TransferPricingEngine {
             let pct: f64 = pct_str.parse().map_err(|_| AtlasError::ValidationFailed(
                 "Margin percent must be a valid number".to_string(),
             ))?;
-            if pct < 0.0 || pct > 100.0 {
+            if !(0.0..=100.0).contains(&pct) {
                 return Err(AtlasError::ValidationFailed(
                     "Margin percent must be between 0 and 100".to_string(),
                 ));
@@ -420,7 +420,7 @@ impl TransferPricingEngine {
             )));
         }
         if let Some(fy) = fiscal_year {
-            if fy < 1900 || fy > 2100 {
+            if !(1900..=2100).contains(&fy) {
                 return Err(AtlasError::ValidationFailed("Invalid fiscal year".to_string()));
             }
         }
@@ -612,7 +612,7 @@ impl TransferPricingEngine {
                 "Invalid doc type '{}'. Must be one of: {}", doc_type, VALID_DOC_TYPES.join(", ")
             )));
         }
-        if fiscal_year < 1900 || fiscal_year > 2100 {
+        if !(1900..=2100).contains(&fiscal_year) {
             return Err(AtlasError::ValidationFailed("Invalid fiscal year".to_string()));
         }
 

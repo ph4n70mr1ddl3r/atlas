@@ -369,7 +369,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_return_reason(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_return_reason(r)).collect())
     }
 
     async fn delete_return_reason(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -501,7 +501,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
 
         let rows = q.fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_rma(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_rma(r)).collect())
     }
 
     async fn update_rma_status(
@@ -637,7 +637,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_return_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_return_line(r)).collect())
     }
 
     async fn update_return_line_receipt(
@@ -793,7 +793,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_credit_memo(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_credit_memo(r)).collect())
     }
 
     async fn update_credit_memo_status(

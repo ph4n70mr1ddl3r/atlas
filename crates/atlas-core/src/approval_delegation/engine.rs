@@ -16,7 +16,7 @@ use tracing::info;
 fn array_is_empty(val: &Option<serde_json::Value>) -> bool {
     val.as_ref()
         .and_then(|v| v.as_array())
-        .map_or(true, |a| a.is_empty())
+        .is_none_or(|a| a.is_empty())
 }
 
 /// Engine for managing approval delegation rules

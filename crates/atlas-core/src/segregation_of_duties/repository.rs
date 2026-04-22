@@ -270,7 +270,7 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
-        Ok(rows.iter().map(|r| row_to_rule(r)).collect())
+        Ok(rows.iter().map(row_to_rule).collect())
     }
 
     async fn update_rule_status(&self, id: Uuid, is_active: bool) -> AtlasResult<SodRule> {
@@ -319,7 +319,7 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
         .bind(org_id).bind(user_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_assignment(r)).collect())
+        Ok(rows.iter().map(row_to_assignment).collect())
     }
 
     async fn list_role_assignments(&self, org_id: Uuid, user_id: Option<Uuid>) -> AtlasResult<Vec<SodRoleAssignment>> {
@@ -338,7 +338,7 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
-        Ok(rows.iter().map(|r| row_to_assignment(r)).collect())
+        Ok(rows.iter().map(row_to_assignment).collect())
     }
 
     async fn deactivate_role_assignment(&self, id: Uuid) -> AtlasResult<SodRoleAssignment> {
@@ -403,7 +403,7 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
         .bind(org_id).bind(user_id).bind(status).bind(risk_level)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_violation(r)).collect())
+        Ok(rows.iter().map(row_to_violation).collect())
     }
 
     async fn update_violation_status(
@@ -474,7 +474,7 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
         .bind(violation_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_mitigation(r)).collect())
+        Ok(rows.iter().map(row_to_mitigation).collect())
     }
 
     async fn list_mitigating_controls(&self, org_id: Uuid) -> AtlasResult<Vec<SodMitigatingControl>> {
@@ -484,7 +484,7 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
         .bind(org_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_mitigation(r)).collect())
+        Ok(rows.iter().map(row_to_mitigation).collect())
     }
 
     async fn approve_mitigating_control(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<SodMitigatingControl> {
@@ -569,7 +569,7 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
                 "medium": medium_risk,
                 "low": low_risk,
             }),
-            recent_violations: recent_rows.iter().map(|r| row_to_violation(r)).collect(),
+            recent_violations: recent_rows.iter().map(row_to_violation).collect(),
             rules_summary: serde_json::json!({}),
         })
     }

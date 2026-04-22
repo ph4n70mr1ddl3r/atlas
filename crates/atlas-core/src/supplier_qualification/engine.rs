@@ -111,7 +111,7 @@ impl SupplierQualificationEngine {
         let score: f64 = passing_score.parse().map_err(|_| AtlasError::ValidationFailed(
             "Passing score must be a valid number".to_string(),
         ))?;
-        if score < 0.0 || score > 100.0 {
+        if !(0.0..=100.0).contains(&score) {
             return Err(AtlasError::ValidationFailed(
                 "Passing score must be between 0 and 100".to_string(),
             ));

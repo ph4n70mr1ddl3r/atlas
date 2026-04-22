@@ -352,7 +352,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_batch(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_batch(r)).collect())
     }
 
     async fn update_batch_status(
@@ -495,7 +495,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_transaction(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_transaction(r)).collect())
     }
 
     async fn list_transactions_by_entity(
@@ -521,7 +521,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_transaction(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_transaction(r)).collect())
     }
 
     async fn update_transaction_status(
@@ -601,7 +601,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_settlement(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_settlement(r)).collect())
     }
 
     // ========================================================================
@@ -675,6 +675,6 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_balance(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_balance(r)).collect())
     }
 }

@@ -29,103 +29,86 @@ use uuid::Uuid;
 // Valid constants
 // ========================================================================
 
-#[allow(dead_code)]
 const VALID_PLAN_TYPES: &[&str] = &[
     "receiving", "in_process", "final", "audit", "supplier",
 ];
 
-#[allow(dead_code)]
 const VALID_INSPECTION_TRIGGERS: &[&str] = &[
     "every_receipt", "first_article", "percentage_sample",
     "periodic", "on_demand", "supplier_certified",
 ];
 
-#[allow(dead_code)]
 const VALID_SAMPLING_METHODS: &[&str] = &[
     "full", "random", "stratified", "aql", "custom",
 ];
 
-#[allow(dead_code)]
 const VALID_FREQUENCIES: &[&str] = &[
     "per_lot", "per_shipment", "per_order", "daily", "weekly", "monthly", "one_time",
 ];
 
-#[allow(dead_code)]
 const VALID_MEASUREMENT_TYPES: &[&str] = &[
     "pass_fail", "numeric", "text", "visual", "multi_choice",
 ];
 
-#[allow(dead_code)]
 const VALID_CRITICALITIES: &[&str] = &[
     "critical", "major", "minor", "informational",
 ];
 
-#[allow(dead_code)]
 const VALID_INSPECTION_STATUSES: &[&str] = &[
     "planned", "in_progress", "completed", "cancelled",
 ];
 
-#[allow(dead_code)]
 const VALID_VERDICTS: &[&str] = &[
     "pass", "fail", "conditional_pass", "pending",
 ];
 
-#[allow(dead_code)]
 const VALID_RESULT_STATUSES: &[&str] = &[
     "pass", "fail", "conditional", "not_evaluated",
 ];
 
-#[allow(dead_code)]
 const VALID_NCR_TYPES: &[&str] = &[
     "defect", "damage", "wrong_item", "quantity_variance",
     "documentation", "packaging", "labeling", "specification",
     "performance", "other",
 ];
 
-#[allow(dead_code)]
 const VALID_SEVERITIES: &[&str] = &[
     "critical", "major", "minor", "low",
 ];
 
-#[allow(dead_code)]
 const VALID_NCR_ORIGINS: &[&str] = &[
     "inspection", "customer_complaint", "internal_audit",
     "supplier_audit", "process_monitoring", "other",
 ];
 
-#[allow(dead_code)]
 const VALID_NCR_STATUSES: &[&str] = &[
     "open", "under_investigation", "corrective_action",
     "resolved", "closed",
 ];
 
-#[allow(dead_code)]
 const VALID_RESOLUTION_TYPES: &[&str] = &[
     "rework", "scrap", "return_to_supplier", "use_as_is",
     "sort", "repair", "concession",
 ];
 
-#[allow(dead_code)]
 const VALID_ACTION_TYPES: &[&str] = &[
     "corrective", "preventive", "both",
 ];
 
+// TODO: Use VALID_ACTION_STATUSES for status filtering in list_corrective_actions
 #[allow(dead_code)]
 const VALID_ACTION_STATUSES: &[&str] = &[
     "open", "in_progress", "completed", "verified", "cancelled",
 ];
 
-#[allow(dead_code)]
 const VALID_PRIORITIES: &[&str] = &[
     "critical", "high", "medium", "low",
 ];
 
-#[allow(dead_code)]
 const VALID_HOLD_TYPES: &[&str] = &[
     "item", "lot", "supplier", "purchase_order",
 ];
 
-#[allow(dead_code)]
 const VALID_HOLD_STATUSES: &[&str] = &[
     "active", "released", "expired",
 ];
@@ -874,7 +857,7 @@ impl QualityManagementEngine {
         }
 
         if let Some(rating) = effectiveness_rating {
-            if rating < 1 || rating > 5 {
+            if !(1..=5).contains(&rating) {
                 return Err(AtlasError::ValidationFailed(
                     "Effectiveness rating must be between 1 and 5".to_string(),
                 ));
@@ -1037,15 +1020,16 @@ impl QualityManagementEngine {
         // Check if within spec
         let within_lower = lower_limit
             .and_then(|l| l.parse::<f64>().ok())
-            .map_or(true, |l| obs >= l);
+            .is_none_or(|l| obs >= l);
         let within_upper = upper_limit
             .and_then(|u| u.parse::<f64>().ok())
-            .map_or(true, |u| obs <= u);
+            .is_none_or(|u| obs <= u);
 
         if within_lower && within_upper {
             Some(format!("{:.4}", deviation))
         } else {
-            Some(format!("{:.4}", deviation))
+            // Out of spec: include indicator for clarity
+            Some(format!("{:.4} (OUT_OF_SPEC)", deviation))
         }
     }
 }

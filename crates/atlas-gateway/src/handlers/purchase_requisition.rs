@@ -44,7 +44,7 @@ pub async fn create_requisition(
     };
 
     let lines = match body["lines"].as_array() {
-        Some(arr) => arr.iter().filter_map(|l| {
+        Some(arr) => arr.iter().map(|l| {
             let dists = l["distributions"].as_array().map(|da| {
                 da.iter().filter_map(|d| {
                     Some(atlas_shared::RequisitionDistributionRequest {
@@ -56,7 +56,7 @@ pub async fn create_requisition(
                     })
                 }).collect::<Vec<_>>()
             });
-            Some(atlas_shared::RequisitionLineRequest {
+            atlas_shared::RequisitionLineRequest {
                 item_code: l["item_code"].as_str().map(String::from),
                 item_description: l["item_description"].as_str().unwrap_or("").to_string(),
                 category: l["category"].as_str().map(String::from),
@@ -72,7 +72,7 @@ pub async fn create_requisition(
                 source_reference: l["source_reference"].as_str().map(String::from),
                 notes: l["notes"].as_str().map(String::from),
                 distributions: dists,
-            })
+            }
         }).collect(),
         None => Vec::new(),
     };
@@ -154,8 +154,8 @@ pub async fn update_requisition(
     };
 
     let lines = match body["lines"].as_array() {
-        Some(arr) => arr.iter().filter_map(|l| {
-            Some(atlas_shared::RequisitionLineRequest {
+        Some(arr) => arr.iter().map(|l| {
+            atlas_shared::RequisitionLineRequest {
                 item_code: l["item_code"].as_str().map(String::from),
                 item_description: l["item_description"].as_str().unwrap_or("").to_string(),
                 category: l["category"].as_str().map(String::from),
@@ -171,7 +171,7 @@ pub async fn update_requisition(
                 source_reference: l["source_reference"].as_str().map(String::from),
                 notes: l["notes"].as_str().map(String::from),
                 distributions: None,
-            })
+            }
         }).collect(),
         None => Vec::new(),
     };

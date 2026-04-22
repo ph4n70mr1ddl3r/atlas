@@ -107,7 +107,7 @@ impl PerformanceEngine {
                 "Rating model name is required".to_string(),
             ));
         }
-        if !rating_scale.is_array() || rating_scale.as_array().map_or(true, |a| a.is_empty()) {
+        if !rating_scale.is_array() || rating_scale.as_array().is_none_or(|a| a.is_empty()) {
             return Err(AtlasError::ValidationFailed(
                 "Rating scale must be a non-empty array".to_string(),
             ));

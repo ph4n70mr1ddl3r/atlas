@@ -221,14 +221,14 @@ impl ProductInformationEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {} not found", id)))?;
 
         // Validate status transition
-        let valid_transition = match (item.status.as_str(), new_status) {
-            ("draft", "active") | ("draft", "pending_approval") | ("draft", "inactive") => true,
-            ("pending_approval", "active") | ("pending_approval", "draft") => true,
-            ("active", "inactive") | ("active", "obsolete") => true,
-            ("inactive", "active") | ("inactive", "obsolete") => true,
-            ("obsolete", "inactive") => true,
-            _ => false,
-        };
+        let valid_transition = matches!(
+            (item.status.as_str(), new_status),
+            ("draft", "active") | ("draft", "pending_approval") | ("draft", "inactive")
+            | ("pending_approval", "active") | ("pending_approval", "draft")
+            | ("active", "inactive") | ("active", "obsolete")
+            | ("inactive", "active") | ("inactive", "obsolete")
+            | ("obsolete", "inactive")
+        );
 
         if !valid_transition {
             return Err(AtlasError::WorkflowError(format!(

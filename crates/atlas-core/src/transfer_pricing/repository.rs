@@ -355,7 +355,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
             ).bind(org_id).fetch_all(&self.pool).await
         }.map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_policy(&r)).collect())
+        Ok(rows.iter().map(row_to_policy).collect())
     }
 
     async fn update_policy_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<TransferPricingPolicy> {
@@ -451,7 +451,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_transaction(&r)).collect())
+        Ok(rows.iter().map(row_to_transaction).collect())
     }
 
     async fn update_transaction_status(&self, id: Uuid, status: &str, submitted_at: Option<DateTime<Utc>>, approved_by: Option<Uuid>) -> AtlasResult<TransferPriceTransaction> {
@@ -525,7 +525,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
             ).bind(org_id).fetch_all(&self.pool).await
         }.map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_benchmark(&r)).collect())
+        Ok(rows.iter().map(row_to_benchmark).collect())
     }
 
     async fn update_benchmark_status(&self, id: Uuid, status: &str, reviewed_by: Option<Uuid>, reviewed_by_name: Option<&str>) -> AtlasResult<BenchmarkStudy> {
@@ -590,7 +590,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_comparable(&r)).collect())
+        Ok(rows.iter().map(row_to_comparable).collect())
     }
 
     async fn update_comparable_inclusion(&self, id: Uuid, included: bool, reason: Option<&str>) -> AtlasResult<BenchmarkComparable> {
@@ -657,7 +657,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_documentation(&r)).collect())
+        Ok(rows.iter().map(row_to_documentation).collect())
     }
 
     async fn update_documentation_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, filed_at: Option<DateTime<Utc>>) -> AtlasResult<TransferPricingDocumentation> {

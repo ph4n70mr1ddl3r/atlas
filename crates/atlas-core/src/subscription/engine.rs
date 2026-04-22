@@ -1039,7 +1039,7 @@ impl SubscriptionEngine {
             let billing_date = self.calculate_billing_date(period_start, sub.billing_day_of_month);
 
             // Proration for last period if it's shorter than a full period
-            let full_period_days = months_per as i32 * 30;
+            let full_period_days = months_per * 30;
             let actual_days = (period_end - period_start).num_days() + 1;
             let proration_factor = if actual_days < full_period_days as i64 {
                 actual_days as f64 / full_period_days as f64

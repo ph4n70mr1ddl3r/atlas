@@ -67,7 +67,7 @@ impl PeriodCloseEngine {
         }
 
         // Validate periods_per_year
-        if periods_per_year < 1 || periods_per_year > 366 {
+        if !(1..=366).contains(&periods_per_year) {
             return Err(AtlasError::ValidationFailed(
                 "periods_per_year must be between 1 and 366".to_string(),
             ));
@@ -141,7 +141,7 @@ impl PeriodCloseEngine {
             let period_num = i + 1;
             let start_month =
                 ((calendar.fiscal_year_start_month - 1 + i * months_per_period) % 12) + 1;
-            let year = if (start_month as i32) < calendar.fiscal_year_start_month {
+            let year = if start_month < calendar.fiscal_year_start_month {
                 fiscal_year + 1
             } else {
                 fiscal_year

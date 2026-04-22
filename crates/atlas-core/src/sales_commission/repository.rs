@@ -463,7 +463,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             .fetch_all(&self.pool).await
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_rep(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_rep(r)).collect())
     }
 
     async fn delete_rep(&self, org_id: Uuid, rep_code: &str) -> AtlasResult<()> {
@@ -551,7 +551,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_plan(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_plan(r)).collect())
     }
 
     async fn update_plan_status(&self, id: Uuid, status: &str) -> AtlasResult<CommissionPlan> {
@@ -614,7 +614,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_tier(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_tier(r)).collect())
     }
 
     // ── Plan Assignments ──
@@ -658,7 +658,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_assignment(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_assignment(r)).collect())
     }
 
     // ── Sales Quotas ──
@@ -728,7 +728,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_quota(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_quota(r)).collect())
     }
 
     async fn update_quota_achievement(&self, id: Uuid, achieved: &str, percent: &str) -> AtlasResult<SalesQuota> {
@@ -828,7 +828,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_transaction(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_transaction(r)).collect())
     }
 
     async fn update_transaction_status(&self, id: Uuid, status: &str, payout_id: Option<Uuid>) -> AtlasResult<CommissionTransaction> {
@@ -895,7 +895,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_payout(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_payout(r)).collect())
     }
 
     async fn update_payout_totals(
@@ -985,6 +985,6 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_payout_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_payout_line(r)).collect())
     }
 }

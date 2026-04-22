@@ -354,7 +354,7 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         .bind(org_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_flexfield(r)).collect())
+        Ok(rows.iter().map(row_to_flexfield).collect())
     }
 
     async fn update_flexfield_active(&self, id: Uuid, is_active: bool) -> AtlasResult<DescriptiveFlexfield> {
@@ -413,7 +413,7 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         .bind(flexfield_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_context(r)).collect())
+        Ok(rows.iter().map(row_to_context).collect())
     }
 
     async fn get_context_by_code(&self, flexfield_id: Uuid, code: &str) -> AtlasResult<Option<FlexfieldContext>> {
@@ -490,7 +490,7 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         .bind(context_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_segment(r)).collect())
+        Ok(rows.iter().map(row_to_segment).collect())
     }
 
     async fn list_segments_by_flexfield(&self, flexfield_id: Uuid) -> AtlasResult<Vec<FlexfieldSegment>> {
@@ -500,7 +500,7 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         .bind(flexfield_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_segment(r)).collect())
+        Ok(rows.iter().map(row_to_segment).collect())
     }
 
     async fn get_segment_by_code(&self, context_id: Uuid, segment_code: &str) -> AtlasResult<Option<FlexfieldSegment>> {
@@ -614,7 +614,7 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         .bind(org_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_value_set(r)).collect())
+        Ok(rows.iter().map(row_to_value_set).collect())
     }
 
     async fn delete_value_set(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -667,7 +667,7 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         .bind(value_set_id).bind(parent_value)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_value_set_entry(r)).collect())
+        Ok(rows.iter().map(row_to_value_set_entry).collect())
     }
 
     async fn delete_value_set_entry(&self, id: Uuid) -> AtlasResult<()> {
@@ -762,7 +762,7 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
-        Ok(rows.iter().map(|r| row_to_flexfield_data(r)).collect())
+        Ok(rows.iter().map(row_to_flexfield_data).collect())
     }
 
     async fn delete_flexfield_data(

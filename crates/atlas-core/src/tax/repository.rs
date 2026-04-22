@@ -350,7 +350,7 @@ impl TaxRepository for PostgresTaxRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_regime(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_regime(r)).collect())
     }
 
     async fn delete_regime(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -429,7 +429,7 @@ impl TaxRepository for PostgresTaxRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_jurisdiction(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_jurisdiction(r)).collect())
     }
 
     async fn delete_jurisdiction(&self, org_id: Uuid, regime_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -531,7 +531,7 @@ impl TaxRepository for PostgresTaxRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_tax_rate(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_tax_rate(r)).collect())
     }
 
     async fn list_tax_rates(&self, org_id: Uuid, regime_id: Uuid) -> AtlasResult<Vec<TaxRate>> {
@@ -542,7 +542,7 @@ impl TaxRepository for PostgresTaxRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_tax_rate(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_tax_rate(r)).collect())
     }
 
     async fn delete_tax_rate(&self, org_id: Uuid, regime_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -600,7 +600,7 @@ impl TaxRepository for PostgresTaxRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_determination_rule(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_determination_rule(r)).collect())
     }
 
     // ========================================================================
@@ -661,7 +661,7 @@ impl TaxRepository for PostgresTaxRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_tax_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_tax_line(r)).collect())
     }
 
     // ========================================================================

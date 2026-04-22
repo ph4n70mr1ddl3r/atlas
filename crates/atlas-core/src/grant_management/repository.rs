@@ -245,7 +245,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
             sqlx::query("SELECT * FROM _atlas.grant_sponsors WHERE organization_id=$1 ORDER BY sponsor_code")
                 .bind(org_id).fetch_all(&self.pool).await
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_sponsor(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_sponsor(r)).collect())
     }
 
     async fn delete_sponsor(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -371,7 +371,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
             ORDER BY award_number"#,
         ).bind(org_id).bind(status).bind(sponsor_id)
         .fetch_all(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_award(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_award(r)).collect())
     }
 
     async fn update_award_status(&self, id: Uuid, status: &str, closeout_date: Option<chrono::NaiveDate>, closeout_notes: Option<&str>) -> AtlasResult<GrantAward> {
@@ -417,7 +417,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
             "SELECT * FROM _atlas.grant_budget_lines WHERE award_id=$1 ORDER BY line_number"
         ).bind(award_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_budget_line(&r)).collect())
+        Ok(rows.iter().map(row_to_budget_line).collect())
     }
 
     async fn get_budget_line(&self, id: Uuid) -> AtlasResult<Option<GrantBudgetLine>> {
@@ -482,7 +482,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
             WHERE award_id=$1 AND ($2::text IS NULL OR status=$2) ORDER BY expenditure_date"#,
         ).bind(award_id).bind(status).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_expenditure(&r)).collect())
+        Ok(rows.iter().map(row_to_expenditure).collect())
     }
 
     async fn update_expenditure_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<GrantExpenditure> {
@@ -532,7 +532,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
             WHERE award_id=$1 AND ($2::text IS NULL OR status=$2) ORDER BY invoice_date"#,
         ).bind(award_id).bind(status).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_billing(&r)).collect())
+        Ok(rows.iter().map(row_to_billing).collect())
     }
 
     async fn update_billing_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, payment_reference: Option<&str>) -> AtlasResult<GrantBilling> {
@@ -584,7 +584,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
             WHERE award_id=$1 AND ($2::text IS NULL OR report_type=$2) ORDER BY reporting_period_start"#,
         ).bind(award_id).bind(report_type).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_compliance_report(&r)).collect())
+        Ok(rows.iter().map(row_to_compliance_report).collect())
     }
 
     async fn update_compliance_report_status(&self, id: Uuid, status: &str, reviewed_by: Option<Uuid>, approved_by: Option<Uuid>) -> AtlasResult<GrantComplianceReport> {

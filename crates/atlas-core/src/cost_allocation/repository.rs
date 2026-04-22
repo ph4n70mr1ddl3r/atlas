@@ -656,7 +656,7 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_rule(r)).collect())
+        Ok(rows.iter().map(row_to_rule).collect())
     }
 
     async fn update_rule_status(&self, id: Uuid, status: &str) -> AtlasResult<AllocationRule> {
@@ -821,7 +821,7 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_run(r)).collect())
+        Ok(rows.iter().map(row_to_run).collect())
     }
 
     async fn update_run_status(

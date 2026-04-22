@@ -690,7 +690,7 @@ impl DescriptiveFlexfieldEngine {
                     )));
                 }
             }
-            "string" | _ => { /* any value is valid */ }
+            _ => { /* any value is valid */ }
         }
         Ok(())
     }

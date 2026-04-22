@@ -260,11 +260,10 @@ impl SubledgerAccountingEngine {
 
         for rule in matching {
             // Check conditions
-            if !rule.conditions.is_null() && !rule.conditions.as_object().map_or(true, |obj| obj.is_empty()) {
-                if !Self::evaluate_conditions(&rule.conditions, transaction_attributes) {
+            if !rule.conditions.is_null() && !rule.conditions.as_object().is_none_or(|obj| obj.is_empty())
+                && !Self::evaluate_conditions(&rule.conditions, transaction_attributes) {
                     continue;
                 }
-            }
 
             return match rule.derivation_type.as_str() {
                 "constant" => rule.fixed_account_code.clone(),
@@ -851,11 +850,10 @@ impl SubledgerAccountingEngine {
                 _ => {}
             }
 
-            if entry.status == "posted" || entry.status == "accounted" {
-                if entry.gl_transfer_status == "pending" {
+            if (entry.status == "posted" || entry.status == "accounted")
+                && entry.gl_transfer_status == "pending" {
                     pending_transfer_count += 1;
                 }
-            }
 
             if !entry.is_balanced {
                 unbalanced_count += 1;

@@ -714,7 +714,7 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
         )
         .bind(org_id).bind(profile_id).bind(hold_number).bind(hold_type)
         .bind(entity_type).bind(entity_id).bind(entity_number)
-        .bind(hold_amount.map(|v| v.parse::<f64>().ok()).flatten())
+        .bind(hold_amount.and_then(|v| v.parse::<f64>().ok()))
         .bind(reason).bind(created_by)
         .fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -827,9 +827,9 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
             "#
         )
         .bind(org_id).bind(profile_id).bind(review_number).bind(review_type)
-        .bind(previous_credit_limit.map(|v| v.parse::<f64>().ok()).flatten())
-        .bind(recommended_credit_limit.map(|v| v.parse::<f64>().ok()).flatten())
-        .bind(previous_score.map(|v| v.parse::<f64>().ok()).flatten())
+        .bind(previous_credit_limit.and_then(|v| v.parse::<f64>().ok()))
+        .bind(recommended_credit_limit.and_then(|v| v.parse::<f64>().ok()))
+        .bind(previous_score.and_then(|v| v.parse::<f64>().ok()))
         .bind(previous_rating)
         .bind(due_date).bind(created_by)
         .fetch_one(&self.pool).await
@@ -922,9 +922,9 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
             "#
         )
         .bind(id)
-        .bind(new_score.map(|v| v.parse::<f64>().ok()).flatten())
+        .bind(new_score.and_then(|v| v.parse::<f64>().ok()))
         .bind(new_rating)
-        .bind(approved_credit_limit.map(|v| v.parse::<f64>().ok()).flatten())
+        .bind(approved_credit_limit.and_then(|v| v.parse::<f64>().ok()))
         .bind(findings).bind(recommendations)
         .bind(reviewer_id).bind(reviewer_name)
         .fetch_one(&self.pool).await

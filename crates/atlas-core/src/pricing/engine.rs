@@ -607,8 +607,8 @@ impl PricingEngine {
 
         let strategy = strategies.into_iter()
             .filter(|s| s.is_active)
-            .filter(|s| s.effective_from.map_or(true, |f| f <= today))
-            .filter(|s| s.effective_to.map_or(true, |t| t >= today))
+            .filter(|s| s.effective_from.is_none_or(|f| f <= today))
+            .filter(|s| s.effective_to.is_none_or(|t| t >= today))
             .find(|s| {
                 // Simple condition matching: if condition has item_codes, check if our item matches
                 if let Some(codes) = s.condition.get("item_codes").and_then(|v| v.as_array()) {
@@ -687,14 +687,14 @@ impl PricingEngine {
                 let to_qty: Option<f64> = tier.to_quantity.as_ref()
                     .and_then(|t| t.parse().ok());
 
-                let in_range = qty >= from_qty && to_qty.map_or(true, |tq| qty <= tq);
+                let in_range = qty >= from_qty && to_qty.is_none_or(|tq| qty <= tq);
                 if in_range {
                     let before = unit_list_price;
                     if tier.price_type == "fixed" {
                         unit_list_price = tier.price.parse().unwrap_or(unit_list_price);
                     } else {
                         let disc_pct: f64 = tier.discount_percent.parse().unwrap_or(0.0);
-                        unit_list_price = unit_list_price * (1.0 - disc_pct / 100.0);
+                        unit_list_price *= 1.0 - disc_pct / 100.0;
                     }
                     tier_applied = Some(tier.tier_number);
                     steps.push(PriceCalculationStep {
@@ -727,9 +727,9 @@ impl PricingEngine {
 
         let applicable_discounts: Vec<&DiscountRule> = discount_rules.iter()
             .filter(|d| d.is_active)
-            .filter(|d| d.effective_from.map_or(true, |f| f <= today))
-            .filter(|d| d.effective_to.map_or(true, |t| t >= today))
-            .filter(|d| d.max_usage.map_or(true, |max| d.usage_count < max))
+            .filter(|d| d.effective_from.is_none_or(|f| f <= today))
+            .filter(|d| d.effective_to.is_none_or(|t| t >= today))
+            .filter(|d| d.max_usage.is_none_or(|max| d.usage_count < max))
             .filter(|d| {
                 // Check if discount applies to this item
                 if let Some(codes) = d.condition.get("item_codes").and_then(|v| v.as_array()) {
@@ -780,8 +780,8 @@ impl PricingEngine {
 
         for charge in &charges {
             if !charge.is_active { continue; }
-            if charge.effective_from.map_or(true, |f| f <= today) &&
-               charge.effective_to.map_or(true, |t| t >= today) {
+            if charge.effective_from.is_none_or(|f| f <= today) &&
+               charge.effective_to.is_none_or(|t| t >= today) {
                 let before_charge = charge_amount;
                 match charge.calculation_method.as_str() {
                     "fixed" => {

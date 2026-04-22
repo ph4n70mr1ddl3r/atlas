@@ -404,7 +404,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_contract_type(&r)).collect())
+        Ok(rows.iter().map(row_to_contract_type).collect())
     }
 
     async fn delete_contract_type(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -505,7 +505,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_contract(&r)).collect())
+        Ok(rows.iter().map(row_to_contract).collect())
     }
 
     async fn update_contract_status(
@@ -666,7 +666,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_contract_line(&r)).collect())
+        Ok(rows.iter().map(row_to_contract_line).collect())
     }
 
     async fn delete_contract_line(&self, id: Uuid) -> AtlasResult<()> {
@@ -732,7 +732,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_milestone(&r)).collect())
+        Ok(rows.iter().map(row_to_milestone).collect())
     }
 
     async fn update_milestone_status(
@@ -794,7 +794,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_renewal(&r)).collect())
+        Ok(rows.iter().map(row_to_renewal).collect())
     }
 
     // ========================================================================
@@ -839,6 +839,6 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_spend(&r)).collect())
+        Ok(rows.iter().map(row_to_spend).collect())
     }
 }

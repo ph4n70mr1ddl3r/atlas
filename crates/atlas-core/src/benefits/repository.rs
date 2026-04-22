@@ -305,7 +305,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_plan(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_plan(r)).collect())
     }
 
     async fn delete_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -438,7 +438,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_enrollment(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_enrollment(r)).collect())
     }
 
     async fn update_enrollment_status(
@@ -556,7 +556,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_deduction(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_deduction(r)).collect())
     }
 
     async fn mark_deduction_processed(&self, id: Uuid) -> AtlasResult<()> {

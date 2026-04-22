@@ -362,7 +362,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_category(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_category(r)).collect())
     }
 
     async fn delete_category(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -444,7 +444,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_policy(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_policy(r)).collect())
     }
 
     async fn delete_policy(&self, id: Uuid) -> AtlasResult<()> {
@@ -549,7 +549,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_report(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_report(r)).collect())
     }
 
     async fn update_report_status(
@@ -695,7 +695,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_line(r)).collect())
     }
 
     async fn delete_line(&self, id: Uuid) -> AtlasResult<()> {

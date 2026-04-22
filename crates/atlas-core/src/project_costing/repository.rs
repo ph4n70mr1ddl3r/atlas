@@ -393,7 +393,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_transaction(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_transaction(r)).collect())
     }
 
     async fn update_cost_transaction_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<ProjectCostTransaction> {
@@ -474,7 +474,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_schedule(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_schedule(r)).collect())
     }
 
     async fn get_default_burden_schedule(&self, org_id: Uuid) -> AtlasResult<Option<BurdenSchedule>> {
@@ -541,7 +541,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_schedule_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_schedule_line(r)).collect())
     }
 
     async fn get_applicable_burden_rate(&self, schedule_id: Uuid, cost_type: &str, expenditure_category: Option<&str>) -> AtlasResult<Option<BurdenScheduleLine>> {
@@ -648,7 +648,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_adjustment(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_adjustment(r)).collect())
     }
 
     async fn update_cost_adjustment_status(
@@ -718,7 +718,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_distribution(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_distribution(r)).collect())
     }
 
     async fn list_unposted_distributions(&self, org_id: Uuid) -> AtlasResult<Vec<ProjectCostDistribution>> {
@@ -729,7 +729,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_distribution(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_distribution(r)).collect())
     }
 
     async fn mark_distribution_posted(&self, id: Uuid, gl_batch_id: Option<Uuid>) -> AtlasResult<ProjectCostDistribution> {

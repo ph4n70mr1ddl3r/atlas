@@ -350,7 +350,7 @@ impl BudgetRepository for PostgresBudgetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_definition(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_definition(r)).collect())
     }
 
     async fn delete_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -427,7 +427,7 @@ impl BudgetRepository for PostgresBudgetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_version(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_version(r)).collect())
     }
 
     async fn get_next_version_number(&self, definition_id: Uuid) -> AtlasResult<i32> {
@@ -567,7 +567,7 @@ impl BudgetRepository for PostgresBudgetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_line(r)).collect())
     }
 
     async fn find_line(
@@ -689,7 +689,7 @@ impl BudgetRepository for PostgresBudgetRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_transfer(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_transfer(r)).collect())
     }
 
     async fn update_transfer_status(

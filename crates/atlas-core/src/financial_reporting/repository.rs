@@ -442,7 +442,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_template(&r)).collect())
+        Ok(rows.iter().map(row_to_template).collect())
     }
 
     async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -522,7 +522,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_report_row(&r)).collect())
+        Ok(rows.iter().map(row_to_report_row).collect())
     }
 
     async fn delete_row(&self, id: Uuid) -> AtlasResult<()> {
@@ -593,7 +593,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_column(&r)).collect())
+        Ok(rows.iter().map(row_to_column).collect())
     }
 
     async fn delete_column(&self, id: Uuid) -> AtlasResult<()> {
@@ -678,7 +678,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_run(&r)).collect())
+        Ok(rows.iter().map(row_to_run).collect())
     }
 
     async fn update_run_status(
@@ -795,7 +795,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_result(&r)).collect())
+        Ok(rows.iter().map(row_to_result).collect())
     }
 
     async fn delete_results_by_run(&self, run_id: Uuid) -> AtlasResult<()> {
@@ -924,7 +924,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             template_count: template_count as i32,
             active_template_count: active_count as i32,
             run_count: run_count as i32,
-            recent_runs: recent_rows.iter().map(|r| row_to_run(&r)).collect(),
+            recent_runs: recent_rows.iter().map(row_to_run).collect(),
             templates_by_type: serde_json::json!({}),
             total_amount_reported: total_reported.to_string(),
         })

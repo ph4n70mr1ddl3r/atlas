@@ -463,7 +463,7 @@ impl PricingRepository for PostgresPricingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_price_list(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_price_list(r)).collect())
     }
 
     async fn update_price_list_status(&self, id: Uuid, status: &str) -> AtlasResult<PriceList> {
@@ -556,7 +556,7 @@ impl PricingRepository for PostgresPricingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_price_list_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_price_list_line(r)).collect())
     }
 
     async fn find_price_list_line_by_item(&self, price_list_id: Uuid, item_code: &str) -> AtlasResult<Option<PriceListLine>> {
@@ -622,7 +622,7 @@ impl PricingRepository for PostgresPricingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_price_tier(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_price_tier(r)).collect())
     }
 
     async fn delete_price_tiers_by_line(&self, price_list_line_id: Uuid) -> AtlasResult<()> {
@@ -720,7 +720,7 @@ impl PricingRepository for PostgresPricingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_discount_rule(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_discount_rule(r)).collect())
     }
 
     async fn increment_discount_usage(&self, id: Uuid) -> AtlasResult<()> {
@@ -825,7 +825,7 @@ impl PricingRepository for PostgresPricingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_charge_definition(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_charge_definition(r)).collect())
     }
 
     async fn delete_charge_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -906,7 +906,7 @@ impl PricingRepository for PostgresPricingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_pricing_strategy(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_pricing_strategy(r)).collect())
     }
 
     // ========================================================================
@@ -981,6 +981,6 @@ impl PricingRepository for PostgresPricingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_calculation_log(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_calculation_log(r)).collect())
     }
 }

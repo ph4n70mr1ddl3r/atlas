@@ -475,7 +475,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_payment_term(&r)).collect())
+        Ok(rows.iter().map(row_to_payment_term).collect())
     }
 
     async fn delete_payment_term(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -558,7 +558,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_payment_batch(&r)).collect())
+        Ok(rows.iter().map(row_to_payment_batch).collect())
     }
 
     async fn update_payment_batch_status(
@@ -710,7 +710,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_payment(&r)).collect())
+        Ok(rows.iter().map(row_to_payment).collect())
     }
 
     async fn update_payment_status(
@@ -793,7 +793,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_payment_line(&r)).collect())
+        Ok(rows.iter().map(row_to_payment_line).collect())
     }
 
     // ========================================================================
@@ -850,7 +850,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_scheduled_payment(&r)).collect())
+        Ok(rows.iter().map(row_to_scheduled_payment).collect())
     }
 
     async fn update_scheduled_payment_status(
@@ -924,7 +924,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_payment_format(&r)).collect())
+        Ok(rows.iter().map(row_to_payment_format).collect())
     }
 
     async fn delete_payment_format(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -987,7 +987,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_remittance_advice(&r)).collect())
+        Ok(rows.iter().map(row_to_remittance_advice).collect())
     }
 
     async fn update_remittance_advice_status(&self, id: Uuid, status: &str, failure_reason: Option<&str>) -> AtlasResult<RemittanceAdvice> {

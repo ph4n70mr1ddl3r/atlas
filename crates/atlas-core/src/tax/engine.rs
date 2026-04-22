@@ -279,7 +279,7 @@ impl TaxEngine {
             let val: f64 = rp.parse().map_err(|_| AtlasError::ValidationFailed(
                 "recovery_percentage must be a valid number".to_string(),
             ))?;
-            if val < 0.0 || val > 100.0 {
+            if !(0.0..=100.0).contains(&val) {
                 return Err(AtlasError::ValidationFailed(
                     "recovery_percentage must be between 0 and 100".to_string(),
                 ));
@@ -496,7 +496,7 @@ impl TaxEngine {
                 codes.clone()
             } else {
                 // Use determination rules
-                self.determine_tax_rates(org_id, &request.context, &line, today).await?
+                self.determine_tax_rates(org_id, &request.context, line, today).await?
             };
 
             if tax_rate_codes.is_empty() {
@@ -517,7 +517,7 @@ impl TaxEngine {
                     ))?;
 
                 let is_inclusive = line.is_inclusive.unwrap_or(regime.default_inclusive);
-                let precision = regime.rounding_precision as i32;
+                let precision = regime.rounding_precision;
 
                 let (taxable_amount, tax_amount) = if is_inclusive {
                     // Tax is included in the amount: extract tax

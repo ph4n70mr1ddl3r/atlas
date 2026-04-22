@@ -378,7 +378,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_tax_code(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_tax_code(r)).collect())
     }
 
     async fn delete_tax_code(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -530,7 +530,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_group_member(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_group_member(r)).collect())
     }
 
     async fn remove_group_member(&self, id: Uuid) -> AtlasResult<()> {
@@ -615,7 +615,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_supplier_assignment(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_supplier_assignment(r)).collect())
     }
 
     async fn delete_supplier_assignment(&self, id: Uuid) -> AtlasResult<()> {
@@ -687,7 +687,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_withholding_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_withholding_line(r)).collect())
     }
 
     async fn get_withholding_lines_by_supplier(
@@ -720,7 +720,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_withholding_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_withholding_line(r)).collect())
     }
 
     async fn update_withholding_line_status(
@@ -830,7 +830,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_certificate(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_certificate(r)).collect())
     }
 
     async fn update_certificate_status(&self, id: Uuid, status: &str) -> AtlasResult<WithholdingCertificate> {

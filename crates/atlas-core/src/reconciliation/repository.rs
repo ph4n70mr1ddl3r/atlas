@@ -420,7 +420,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_bank_account(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_bank_account(r)).collect())
     }
 
     async fn delete_bank_account(&self, id: Uuid) -> AtlasResult<()> {
@@ -500,7 +500,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_bank_statement(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_bank_statement(r)).collect())
     }
 
     async fn update_statement_counts(
@@ -620,7 +620,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_statement_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_statement_line(r)).collect())
     }
 
     // ========================================================================
@@ -700,7 +700,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_system_transaction(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_system_transaction(r)).collect())
     }
 
     // ========================================================================
@@ -798,7 +798,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_reconciliation_match(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_reconciliation_match(r)).collect())
     }
 
     async fn unmatch(
@@ -917,7 +917,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_summary(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_summary(r)).collect())
     }
 
     // ========================================================================
@@ -968,7 +968,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_matching_rule(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_matching_rule(r)).collect())
     }
 
     async fn delete_matching_rule(&self, id: Uuid) -> AtlasResult<()> {

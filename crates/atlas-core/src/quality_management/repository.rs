@@ -265,7 +265,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
             ).bind(org_id).fetch_all(&self.pool).await
         }.map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_plan(&r)).collect())
+        Ok(rows.iter().map(row_to_plan).collect())
     }
 
     async fn delete_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -317,7 +317,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_criterion(&r)).collect())
+        Ok(rows.iter().map(row_to_criterion).collect())
     }
 
     async fn delete_criterion(&self, id: Uuid) -> AtlasResult<()> {
@@ -400,7 +400,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_inspection(&r)).collect())
+        Ok(rows.iter().map(row_to_inspection).collect())
     }
 
     async fn update_inspection_status(
@@ -478,7 +478,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_result(&r)).collect())
+        Ok(rows.iter().map(row_to_result).collect())
     }
 
     async fn update_result_status(
@@ -565,7 +565,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_ncr(&r)).collect())
+        Ok(rows.iter().map(row_to_ncr).collect())
     }
 
     async fn update_ncr_status(
@@ -651,7 +651,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_corrective_action(&r)).collect())
+        Ok(rows.iter().map(row_to_corrective_action).collect())
     }
 
     async fn update_corrective_action_status(
@@ -730,7 +730,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_hold(&r)).collect())
+        Ok(rows.iter().map(row_to_hold).collect())
     }
 
     async fn update_hold_status(

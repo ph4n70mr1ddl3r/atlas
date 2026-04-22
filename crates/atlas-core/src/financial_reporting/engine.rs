@@ -406,7 +406,7 @@ impl FinancialReportingEngine {
                 if !col.show_column { continue; }
 
                 let (debit, credit, begin_bal, end_bal, amount) = self.compute_cell(
-                    &row, &col, &template,
+                    row, col, &template,
                 );
 
                 total_debit += debit;
@@ -711,7 +711,7 @@ impl FinancialReportingEngine {
             };
 
             self.repository.create_row(
-                org_id, template.id, *row_num, *line_type, label,
+                org_id, template.id, *row_num, line_type, label,
                 if *line_type == "header" { 0 } else if *line_type == "data" { 1 } else { 0 },
                 account_from, account_to, serde_json::json!({}),
                 compute, serde_json::json!([]),
@@ -798,7 +798,7 @@ impl FinancialReportingEngine {
             };
 
             self.repository.create_row(
-                org_id, template.id, *row_num, *line_type, label,
+                org_id, template.id, *row_num, line_type, label,
                 indent,
                 account_from, account_to, serde_json::json!({}),
                 compute, serde_json::json!([]),

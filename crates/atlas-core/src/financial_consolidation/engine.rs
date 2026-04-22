@@ -238,7 +238,7 @@ impl FinancialConsolidationEngine {
                 "Period end date must be after start date".to_string(),
             ));
         }
-        if fiscal_year < 1900 || fiscal_year > 2100 {
+        if !(1900..=2100).contains(&fiscal_year) {
             return Err(AtlasError::ValidationFailed(
                 "Fiscal year must be between 1900 and 2100".to_string(),
             ));
@@ -818,7 +818,7 @@ impl FinancialConsolidationEngine {
         let v: f64 = value.parse().map_err(|_| AtlasError::ValidationFailed(format!(
             "{} must be a valid number", field
         )))?;
-        if v < 0.0 || v > 100.0 {
+        if !(0.0..=100.0).contains(&v) {
             return Err(AtlasError::ValidationFailed(format!(
                 "{} must be between 0 and 100", field
             )));

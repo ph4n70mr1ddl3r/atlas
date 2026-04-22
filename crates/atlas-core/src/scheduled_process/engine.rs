@@ -429,7 +429,7 @@ impl ScheduledProcessEngine {
         id: Uuid,
         progress_percent: i32,
     ) -> AtlasResult<ScheduledProcess> {
-        if progress_percent < 0 || progress_percent > 100 {
+        if !(0..=100).contains(&progress_percent) {
             return Err(AtlasError::ValidationFailed(
                 "Progress percent must be between 0 and 100".to_string(),
             ));
@@ -541,7 +541,7 @@ impl ScheduledProcessEngine {
         // Calculate the next run time
         let next_run_at = Self::calculate_next_run(
             start_date,
-            &recurrence_type,
+            recurrence_type,
             &recurrence_config,
         );
 
@@ -823,7 +823,7 @@ impl ScheduledProcessEngine {
                             } else {
                                 chrono::NaiveDate::from_ymd_opt(d.year(), d.month() + 1, 1)
                             };
-                            next_month.and_then(|nm| Some((nm - chrono::Duration::days(1)).day()))
+                            next_month.map(|nm| (nm - chrono::Duration::days(1)).day())
                         }).unwrap_or(28)
                     );
 

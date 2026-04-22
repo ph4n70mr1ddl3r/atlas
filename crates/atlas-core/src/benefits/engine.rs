@@ -88,7 +88,7 @@ impl BenefitsEngine {
         }
 
         // Validate coverage tiers structure
-        if !coverage_tiers.is_array() || coverage_tiers.as_array().map_or(true, |a| a.is_empty()) {
+        if !coverage_tiers.is_array() || coverage_tiers.as_array().is_none_or(|a| a.is_empty()) {
             return Err(AtlasError::ValidationFailed(
                 "Coverage tiers must be a non-empty array".to_string(),
             ));
@@ -226,7 +226,7 @@ impl BenefitsEngine {
         // Validate coverage tier exists in the plan
         let tier_found = plan.coverage_tiers.as_array()
             .map(|tiers| tiers.iter().any(|t| {
-                t.get("tierCode").and_then(|v| v.as_str()).map_or(false, |s| s == coverage_tier)
+                t.get("tierCode").and_then(|v| v.as_str()) == Some(coverage_tier)
             }))
             .unwrap_or(false);
 
@@ -423,7 +423,7 @@ impl BenefitsEngine {
         for enrollment in &enrollments {
             // Check if enrollment is effective during this pay period
             let effective = enrollment.effective_start_date <= pay_period_end
-                && enrollment.effective_end_date.map_or(true, |end| end >= pay_period_start);
+                && enrollment.effective_end_date.is_none_or(|end| end >= pay_period_start);
 
             if !effective {
                 continue;

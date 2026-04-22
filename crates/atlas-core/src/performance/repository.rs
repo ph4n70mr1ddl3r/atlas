@@ -264,7 +264,7 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_cycle(&r)).collect())
+        Ok(rows.iter().map(row_to_cycle).collect())
     }
 
     async fn update_cycle_status(&self, id: Uuid, status: &str) -> AtlasResult<PerformanceReviewCycle> {
@@ -413,7 +413,7 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         .bind(org_id).bind(review_cycle_id).bind(employee_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_doc(&r)).collect())
+        Ok(rows.iter().map(row_to_doc).collect())
     }
 
     async fn update_document_status(&self, id: Uuid, status: &str) -> AtlasResult<PerformanceDocument> {
@@ -503,7 +503,7 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         )
         .bind(document_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_goal(&r)).collect())
+        Ok(rows.iter().map(row_to_goal).collect())
     }
 
     async fn list_goals_by_cycle(&self, org_id: Uuid, cycle_id: Uuid) -> AtlasResult<Vec<PerformanceGoal>> {
@@ -516,7 +516,7 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         .bind(org_id).bind(cycle_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_goal(&r)).collect())
+        Ok(rows.iter().map(row_to_goal).collect())
     }
 
     async fn update_goal_status(
@@ -613,7 +613,7 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         )
         .bind(document_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_assessment(&r)).collect())
+        Ok(rows.iter().map(row_to_assessment).collect())
     }
 
     // ========================================================================
@@ -658,7 +658,7 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         .bind(org_id).bind(employee_id).bind(document_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_feedback(&r)).collect())
+        Ok(rows.iter().map(row_to_feedback).collect())
     }
 
     async fn update_feedback_status(&self, id: Uuid, status: &str) -> AtlasResult<PerformanceFeedback> {

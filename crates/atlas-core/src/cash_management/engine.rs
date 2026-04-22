@@ -238,7 +238,7 @@ impl CashManagementEngine {
                 bucket_type, VALID_BUCKET_TYPES.join(", ")
             )));
         }
-        if number_of_periods < 1 || number_of_periods > 365 {
+        if !(1..=365).contains(&number_of_periods) {
             return Err(AtlasError::ValidationFailed(
                 "Number of periods must be between 1 and 365".to_string(),
             ));
@@ -462,7 +462,7 @@ impl CashManagementEngine {
                 self.repository.create_forecast_line(
                     org_id, forecast.id, source.id,
                     &source.name, &source.source_type,
-                    &direction.to_string(),
+                    direction,
                     period.0, period.1, &period.2, period.3,
                     &format!("{:.2}", amount),
                     "0", // will be updated below
@@ -681,8 +681,8 @@ fn generate_periods(
                 let week_start = start_date + chrono::Duration::weeks(i as i64);
                 let week_end = week_start + chrono::Duration::days(6);
                 let label = format!("Week {} ({} - {})", i + 1,
-                    week_start.format("%m/%d").to_string(),
-                    week_end.format("%m/%d").to_string());
+                    week_start.format("%m/%d"),
+                    week_end.format("%m/%d"));
                 periods.push((week_start, week_end, label, i + 1));
             }
         }

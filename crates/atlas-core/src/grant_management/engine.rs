@@ -191,7 +191,7 @@ impl GrantManagementEngine {
         let pct: f64 = rate_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
             "Rate percentage must be a valid number".into(),
         ))?;
-        if pct < 0.0 || pct > 100.0 {
+        if !(0.0..=100.0).contains(&pct) {
             return Err(AtlasError::ValidationFailed(
                 "Rate percentage must be between 0 and 100".into(),
             ));
@@ -280,7 +280,7 @@ impl GrantManagementEngine {
 
         // Validate sponsor exists
         let sponsor = self.repository.get_sponsor(org_id, "").await.ok().flatten();
-        let sponsor_name = sponsor.as_ref().and_then(|s| Some(s.name.as_str()));
+        let sponsor_name = sponsor.as_ref().map(|s| s.name.as_str());
 
         let _available_balance = total_award_amount.to_string();
 

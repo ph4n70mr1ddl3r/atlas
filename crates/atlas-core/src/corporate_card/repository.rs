@@ -368,7 +368,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
             .bind(org_id).fetch_all(&self.pool).await
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_program(&r)).collect())
+        Ok(rows.iter().map(row_to_program).collect())
     }
 
     // ── Cards ───────────────────────────────────────────────────────────
@@ -442,7 +442,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         .bind(org_id).bind(program_id).bind(cardholder_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_card(&r)).collect())
+        Ok(rows.iter().map(row_to_card).collect())
     }
 
     async fn update_card_status(&self, id: Uuid, status: &str) -> AtlasResult<CorporateCard> {
@@ -556,7 +556,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         .bind(org_id).bind(card_id).bind(status).bind(date_from).bind(date_to)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_transaction(&r)).collect())
+        Ok(rows.iter().map(row_to_transaction).collect())
     }
 
     async fn update_transaction_match(
@@ -656,7 +656,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         .bind(org_id).bind(program_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_statement(&r)).collect())
+        Ok(rows.iter().map(row_to_statement).collect())
     }
 
     async fn update_statement_counts(
@@ -735,7 +735,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         .bind(card_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_limit_override(&r)).collect())
+        Ok(rows.iter().map(row_to_limit_override).collect())
     }
 
     async fn update_limit_override_status(

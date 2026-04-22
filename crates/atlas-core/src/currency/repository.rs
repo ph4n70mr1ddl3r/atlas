@@ -210,7 +210,7 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_currency(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_currency(r)).collect())
     }
 
     async fn get_base_currency(&self, org_id: Uuid) -> AtlasResult<Option<CurrencyDefinition>> {
@@ -368,7 +368,7 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         let rows = query.fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_rate(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_rate(r)).collect())
     }
 
     async fn delete_exchange_rate(&self, id: Uuid) -> AtlasResult<()> {

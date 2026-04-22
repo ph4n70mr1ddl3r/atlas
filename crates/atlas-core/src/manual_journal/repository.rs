@@ -237,7 +237,7 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_batch(r)).collect())
+        Ok(rows.iter().map(row_to_batch).collect())
     }
 
     async fn update_batch_status(
@@ -338,7 +338,7 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         .bind(batch_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_entry(r)).collect())
+        Ok(rows.iter().map(row_to_entry).collect())
     }
 
     async fn list_entries(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalEntry>> {
@@ -350,7 +350,7 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_entry(r)).collect())
+        Ok(rows.iter().map(row_to_entry).collect())
     }
 
     async fn update_entry_status(
@@ -442,7 +442,7 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         .bind(entry_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_line(r)).collect())
+        Ok(rows.iter().map(row_to_line).collect())
     }
 
     async fn delete_line(&self, id: Uuid) -> AtlasResult<()> {
@@ -501,7 +501,7 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
             batches_pending_approval: pending_approval as i32,
             entries_by_category: serde_json::json!({}),
             batches_by_status: serde_json::json!({}),
-            recent_batches: recent_rows.iter().map(|r| row_to_batch(r)).collect(),
+            recent_batches: recent_rows.iter().map(row_to_batch).collect(),
         })
     }
 }

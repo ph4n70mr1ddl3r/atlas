@@ -230,13 +230,7 @@ pub async fn validate_combination(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.cvr_engine.validate_combination(org_id, &body.segment_values).await {
-        Ok(result) => {
-            if result.is_valid {
-                Ok(Json(serde_json::to_value(result).unwrap()))
-            } else {
-                Ok(Json(serde_json::to_value(result).unwrap()))
-            }
-        }
+        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap())),
         Err(e) => {
             error!("Failed to validate combination: {}", e);
             Err(map_error_status(&e))

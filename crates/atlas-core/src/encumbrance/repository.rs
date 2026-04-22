@@ -402,7 +402,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_encumbrance_type(&r)).collect())
+        Ok(rows.iter().map(row_to_encumbrance_type).collect())
     }
 
     async fn delete_encumbrance_type(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -509,7 +509,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_entry(&r)).collect())
+        Ok(rows.iter().map(row_to_entry).collect())
     }
 
     async fn update_entry_amounts(
@@ -626,7 +626,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_line(&r)).collect())
+        Ok(rows.iter().map(row_to_line).collect())
     }
 
     async fn update_line_amounts(
@@ -729,7 +729,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_liquidation(&r)).collect())
+        Ok(rows.iter().map(row_to_liquidation).collect())
     }
 
     async fn update_liquidation_status(
@@ -803,7 +803,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_carry_forward(&r)).collect())
+        Ok(rows.iter().map(row_to_carry_forward).collect())
     }
 
     async fn update_carry_forward_status(

@@ -531,7 +531,7 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         .bind(initiative_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_invitation(&r)).collect())
+        Ok(rows.iter().map(row_to_invitation).collect())
     }
 
     async fn list_invitations_by_supplier(&self, org_id: Uuid, supplier_id: Uuid) -> AtlasResult<Vec<SupplierQualificationInvitation>> {
@@ -541,7 +541,7 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         .bind(org_id).bind(supplier_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_invitation(&r)).collect())
+        Ok(rows.iter().map(row_to_invitation).collect())
     }
 
     async fn update_invitation_status(
@@ -623,7 +623,7 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         .bind(invitation_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_response(&r)).collect())
+        Ok(rows.iter().map(row_to_response).collect())
     }
 
     async fn score_response(

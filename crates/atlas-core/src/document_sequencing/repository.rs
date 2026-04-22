@@ -217,7 +217,7 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
         .bind(org_id).bind(status).bind(document_type)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_sequence(r)).collect())
+        Ok(rows.iter().map(row_to_sequence).collect())
     }
 
     async fn update_sequence_status(&self, id: Uuid, status: &str) -> AtlasResult<DocumentSequence> {
@@ -335,7 +335,7 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
         .bind(org_id).bind(sequence_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_assignment(r)).collect())
+        Ok(rows.iter().map(row_to_assignment).collect())
     }
 
     async fn update_assignment_status(&self, id: Uuid, status: &str) -> AtlasResult<DocumentSequenceAssignment> {
@@ -403,7 +403,7 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
-        Ok(rows.iter().map(|r| row_to_audit(r)).collect())
+        Ok(rows.iter().map(row_to_audit).collect())
     }
 
     async fn get_audit_by_document(&self, document_id: Uuid) -> AtlasResult<Option<DocumentSequenceAudit>> {
@@ -456,7 +456,7 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
             gap_permitted_sequences: gap_permitted as i32,
             total_numbers_generated: total_generated,
             total_assignments: assignment_count as i32,
-            recent_audits: recent_rows.iter().map(|r| row_to_audit(r)).collect(),
+            recent_audits: recent_rows.iter().map(row_to_audit).collect(),
             sequences_by_type: serde_json::json!({}),
             sequences_by_document_type: serde_json::json!({}),
         })

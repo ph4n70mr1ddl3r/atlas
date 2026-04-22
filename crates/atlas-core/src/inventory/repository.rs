@@ -551,7 +551,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_inventory_org(&r)).collect())
+        Ok(rows.iter().map(row_to_inventory_org).collect())
     }
 
     async fn delete_inventory_org(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -610,7 +610,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_item_category(&r)).collect())
+        Ok(rows.iter().map(row_to_item_category).collect())
     }
 
     // ========================================================================
@@ -708,7 +708,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_item(&r)).collect())
+        Ok(rows.iter().map(row_to_item).collect())
     }
 
     async fn update_item_status(&self, id: Uuid, is_active: bool) -> AtlasResult<Item> {
@@ -771,7 +771,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_subinventory(&r)).collect())
+        Ok(rows.iter().map(row_to_subinventory).collect())
     }
 
     // ========================================================================
@@ -806,7 +806,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_locator(&r)).collect())
+        Ok(rows.iter().map(row_to_locator).collect())
     }
 
     // ========================================================================
@@ -883,7 +883,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_on_hand(&r)).collect())
+        Ok(rows.iter().map(row_to_on_hand).collect())
     }
 
     // ========================================================================
@@ -932,7 +932,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_txn_type(&r)).collect())
+        Ok(rows.iter().map(row_to_txn_type).collect())
     }
 
     // ========================================================================
@@ -1015,7 +1015,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_transaction(&r)).collect())
+        Ok(rows.iter().map(row_to_transaction).collect())
     }
 
     async fn update_transaction_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<InventoryTransaction> {
@@ -1071,7 +1071,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_txn_reason(&r)).collect())
+        Ok(rows.iter().map(row_to_txn_reason).collect())
     }
 
     // ========================================================================
@@ -1123,7 +1123,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_cycle_count(&r)).collect())
+        Ok(rows.iter().map(row_to_cycle_count).collect())
     }
 
     async fn update_cycle_count_status(&self, id: Uuid, status: &str) -> AtlasResult<CycleCountHeader> {
@@ -1196,7 +1196,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_cycle_count_line(&r)).collect())
+        Ok(rows.iter().map(row_to_cycle_count_line).collect())
     }
 
     async fn update_cycle_count_line_count(

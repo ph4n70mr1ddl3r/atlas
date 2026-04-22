@@ -419,7 +419,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_credit_profile(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_credit_profile(r)).collect())
     }
 
     async fn update_credit_profile(
@@ -701,7 +701,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_case(&r)).collect())
+        Ok(rows.iter().map(row_to_case).collect())
     }
 
     async fn update_case_status(
@@ -820,7 +820,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_interaction(&r)).collect())
+        Ok(rows.iter().map(row_to_interaction).collect())
     }
 
     // ========================================================================
@@ -892,7 +892,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_ptp(&r)).collect())
+        Ok(rows.iter().map(row_to_ptp).collect())
     }
 
     async fn update_promise_status(
@@ -993,7 +993,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_campaign(&r)).collect())
+        Ok(rows.iter().map(row_to_campaign).collect())
     }
 
     async fn update_dunning_campaign_status(&self, id: Uuid, status: &str, sent_date: Option<chrono::NaiveDate>) -> AtlasResult<DunningCampaign> {
@@ -1077,7 +1077,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_letter(&r)).collect())
+        Ok(rows.iter().map(row_to_letter).collect())
     }
 
     async fn update_dunning_letter_status(&self, id: Uuid, status: &str) -> AtlasResult<DunningLetter> {
@@ -1161,7 +1161,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_snapshot(&r)).collect())
+        Ok(rows.iter().map(row_to_snapshot).collect())
     }
 
     // ========================================================================
@@ -1224,7 +1224,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_write_off(&r)).collect())
+        Ok(rows.iter().map(row_to_write_off).collect())
     }
 
     async fn update_write_off_status(

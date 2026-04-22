@@ -422,7 +422,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_policy(&r)).collect())
+        Ok(rows.iter().map(row_to_policy).collect())
     }
 
     async fn delete_policy(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -521,7 +521,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_contract(&r)).collect())
+        Ok(rows.iter().map(row_to_contract).collect())
     }
 
     async fn update_contract_status(
@@ -642,7 +642,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_obligation(&r)).collect())
+        Ok(rows.iter().map(row_to_obligation).collect())
     }
 
     async fn update_obligation_allocation(
@@ -775,7 +775,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_schedule_line(&r)).collect())
+        Ok(rows.iter().map(row_to_schedule_line).collect())
     }
 
     async fn list_schedule_lines_by_contract(&self, contract_id: Uuid) -> AtlasResult<Vec<RevenueScheduleLine>> {
@@ -786,7 +786,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_schedule_line(&r)).collect())
+        Ok(rows.iter().map(row_to_schedule_line).collect())
     }
 
     async fn update_schedule_line_status(
@@ -865,6 +865,6 @@ impl RevenueRepository for PostgresRevenueRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_modification(&r)).collect())
+        Ok(rows.iter().map(row_to_modification).collect())
     }
 }

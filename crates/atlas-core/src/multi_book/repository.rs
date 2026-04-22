@@ -349,7 +349,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_book(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_book(r)).collect())
     }
 
     async fn update_book_status(&self, id: Uuid, status: &str) -> AtlasResult<AccountingBook> {
@@ -447,7 +447,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_mapping(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_mapping(r)).collect())
     }
 
     async fn find_account_mapping(
@@ -604,7 +604,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_entry(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_entry(r)).collect())
     }
 
     async fn update_journal_entry_status(
@@ -675,7 +675,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_line(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_line(r)).collect())
     }
 
     // ========================================================================
@@ -746,6 +746,6 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_propagation_log(&r)).collect())
+        Ok(rows.iter().map(|r| self.row_to_propagation_log(r)).collect())
     }
 }

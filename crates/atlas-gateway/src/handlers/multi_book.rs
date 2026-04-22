@@ -294,10 +294,15 @@ pub async fn create_book_journal_entry(
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let (org_id, user_id) = extract_ids(&claims)?;
 
-    let lines: Vec<(String, Option<String>, String, String, Option<String>, Option<String>)> = req.lines.iter()
-        .map(|l| (l.account_code.clone(), l.account_name.clone(),
-                  l.debit_amount.clone(), l.credit_amount.clone(),
-                  l.description.clone(), l.tax_code.clone()))
+    let lines: Vec<atlas_core::multi_book::engine::JournalLineData> = req.lines.iter()
+        .map(|l| atlas_core::multi_book::engine::JournalLineData {
+            account_code: l.account_code.clone(),
+            account_name: l.account_name.clone(),
+            debit_amount: l.debit_amount.clone(),
+            credit_amount: l.credit_amount.clone(),
+            description: l.description.clone(),
+            tax_code: l.tax_code.clone(),
+        })
         .collect();
 
     match state.multi_book_engine.create_journal_entry(

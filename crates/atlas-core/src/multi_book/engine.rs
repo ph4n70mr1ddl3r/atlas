@@ -13,6 +13,18 @@ use atlas_shared::{
 use super::MultiBookAccountingRepository;
 use std::sync::Arc;
 use tracing::info;
+
+/// Journal entry line data passed between gateway and engine.
+///
+/// Replaces a complex 6-tuple to keep clippy happy and improve readability.
+pub struct JournalLineData {
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub debit_amount: String,
+    pub credit_amount: String,
+    pub description: Option<String>,
+    pub tax_code: Option<String>,
+}
 use uuid::Uuid;
 
 /// Valid book types
@@ -269,7 +281,7 @@ impl MultiBookAccountingEngine {
         accounting_date: chrono::NaiveDate,
         period_name: Option<&str>,
         currency_code: &str,
-        lines: &[(String, Option<String>, String, String, Option<String>, Option<String>)],
+        lines: &[JournalLineData],
         created_by: Option<Uuid>,
     ) -> AtlasResult<BookJournalEntry> {
         // Validate book exists and is active
@@ -292,10 +304,10 @@ impl MultiBookAccountingEngine {
 
         // Validate balanced entry
         let total_debit: f64 = lines.iter()
-            .map(|(_, _, debit, _, _, _)| debit.parse::<f64>().unwrap_or(0.0))
+            .map(|l| l.debit_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
         let total_credit: f64 = lines.iter()
-            .map(|(_, _, _, credit, _, _)| credit.parse::<f64>().unwrap_or(0.0))
+            .map(|l| l.credit_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
         let diff = (total_debit - total_credit).abs();
@@ -323,12 +335,12 @@ impl MultiBookAccountingEngine {
         ).await?;
 
         // Create lines
-        for (i, (account_code, account_name, debit, credit, description, tax_code)) in lines.iter().enumerate() {
+        for (i, line) in lines.iter().enumerate() {
             self.repository.create_journal_line(
                 org_id, entry.id, (i + 1) as i32,
-                account_code, account_name.as_deref(),
-                debit, credit, description.as_deref(),
-                tax_code.as_deref(), None,
+                &line.account_code, line.account_name.as_deref(),
+                &line.debit_amount, &line.credit_amount, line.description.as_deref(),
+                line.tax_code.as_deref(), None,
                 serde_json::json!({}),
             ).await?;
         }
@@ -484,7 +496,7 @@ impl MultiBookAccountingEngine {
 
         let mut propagated_lines = 0;
         let mut unmapped_lines = 0;
-        let mut target_line_data: Vec<(String, Option<String>, String, String, Option<String>, Option<String>)> = Vec::new();
+        let mut target_line_data: Vec<JournalLineData> = Vec::new();
 
         for line in source_lines {
             // Look up account mapping
@@ -497,14 +509,14 @@ impl MultiBookAccountingEngine {
 
             match mapping {
                 Some(m) => {
-                    target_line_data.push((
-                        m.target_account_code.clone(),
-                        None,
-                        line.debit_amount.clone(),
-                        line.credit_amount.clone(),
-                        line.description.clone(),
-                        line.tax_code.clone(),
-                    ));
+                    target_line_data.push(JournalLineData {
+                        account_code: m.target_account_code.clone(),
+                        account_name: None,
+                        debit_amount: line.debit_amount.clone(),
+                        credit_amount: line.credit_amount.clone(),
+                        description: line.description.clone(),
+                        tax_code: line.tax_code.clone(),
+                    });
                     propagated_lines += 1;
                 }
                 None => {
@@ -535,10 +547,10 @@ impl MultiBookAccountingEngine {
 
         // Check if balanced after propagation
         let total_debit: f64 = target_line_data.iter()
-            .map(|(_, _, d, _, _, _)| d.parse::<f64>().unwrap_or(0.0))
+            .map(|l| l.debit_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
         let total_credit: f64 = target_line_data.iter()
-            .map(|(_, _, _, c, _, _)| c.parse::<f64>().unwrap_or(0.0))
+            .map(|l| l.credit_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
         // Create the propagated entry
@@ -572,19 +584,19 @@ impl MultiBookAccountingEngine {
         ).await?;
 
         // Create target lines
-        for (i, (account_code, account_name, debit, credit, description, tax_code)) in target_line_data.iter().enumerate() {
+        for (i, line) in target_line_data.iter().enumerate() {
             // Find the source line for cross-reference
             let source_line = source_lines.get(i);
             self.repository.create_journal_line(
                 source_entry.organization_id,
                 target_entry.id,
                 (i + 1) as i32,
-                account_code,
-                account_name.as_deref(),
-                debit,
-                credit,
-                description.as_deref(),
-                tax_code.as_deref(),
+                &line.account_code,
+                line.account_name.as_deref(),
+                &line.debit_amount,
+                &line.credit_amount,
+                line.description.as_deref(),
+                line.tax_code.as_deref(),
                 source_line.map(|l| l.id),
                 serde_json::json!({}),
             ).await?;

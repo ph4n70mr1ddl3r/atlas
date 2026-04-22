@@ -18,6 +18,16 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
+/// Intermediate result of allocating a single target.
+///
+/// Replaces a complex 4-tuple to keep clippy happy and improve readability.
+pub(crate) struct AllocationTargetResult {
+    pub target: AllocationRuleTarget,
+    pub amount: f64,
+    pub base_value: Option<String>,
+    pub percentage: Option<String>,
+}
+
 /// Valid pool types
 #[allow(dead_code)]
 const VALID_POOL_TYPES: &[&str] = &["cost_center", "project", "department", "custom"];
@@ -451,7 +461,7 @@ impl CostAllocationEngine {
             }
         };
 
-        let total_allocated: f64 = allocations.iter().map(|a| a.1).sum();
+        let total_allocated: f64 = allocations.iter().map(|a| a.amount).sum();
         let line_count = (allocations.len() as i32) + 1; // +1 for the offset credit line
 
         info!("Executing allocation rule {} for amount {:.2}: {} target lines",
@@ -467,15 +477,15 @@ impl CostAllocationEngine {
         ).await?;
 
         // Create debit lines for each target
-        for (idx, (target, amount, base_val, pct)) in allocations.iter().enumerate() {
+        for (idx, alloc) in allocations.iter().enumerate() {
             let desc = rule.journal_description.as_deref().unwrap_or(&rule.name);
             self.repository.create_run_line(
                 org_id, run.id, (idx as i32) + 1,
-                "debit", &target.target_account_code,
-                target.department_id, target.department_name.as_deref(),
-                target.cost_center.as_deref(), target.project_id,
-                &format!("{:.2}", amount),
-                base_val.as_deref(), pct.as_deref(),
+                "debit", &alloc.target.target_account_code,
+                alloc.target.department_id, alloc.target.department_name.as_deref(),
+                alloc.target.cost_center.as_deref(), alloc.target.project_id,
+                &format!("{:.2}", alloc.amount),
+                alloc.base_value.as_deref(), alloc.percentage.as_deref(),
                 Some(desc),
             ).await?;
         }
@@ -502,7 +512,7 @@ impl CostAllocationEngine {
         targets: &[AllocationRuleTarget],
         total_amount: f64,
         effective_date: chrono::NaiveDate,
-    ) -> AtlasResult<Vec<(AllocationRuleTarget, f64, Option<String>, Option<String>)>> {
+    ) -> AtlasResult<Vec<AllocationTargetResult>> {
         // Get base values
         let base_values = self.repository.get_base_values(
             org_id, rule.base_id, effective_date,
@@ -534,12 +544,12 @@ impl CostAllocationEngine {
             let base_val = value_map.get(&target.department_id).unwrap_or(&0.0);
             let pct = base_val / total_base * 100.0;
             let allocated = total_amount * (base_val / total_base);
-            allocations.push((
-                target.clone(),
-                allocated,
-                Some(format!("{:.2}", base_val)),
-                Some(format!("{:.4}", pct)),
-            ));
+            allocations.push(AllocationTargetResult {
+                target: target.clone(),
+                amount: allocated,
+                base_value: Some(format!("{:.2}", base_val)),
+                percentage: Some(format!("{:.4}", pct)),
+            });
         }
 
         Ok(allocations)
@@ -550,18 +560,18 @@ impl CostAllocationEngine {
         &self,
         targets: &[AllocationRuleTarget],
         total_amount: f64,
-    ) -> AtlasResult<Vec<(AllocationRuleTarget, f64, Option<String>, Option<String>)>> {
+    ) -> AtlasResult<Vec<AllocationTargetResult>> {
         let mut allocations = Vec::new();
         for target in targets {
             let pct_str = target.fixed_percent.as_deref().unwrap_or("0");
             let pct: f64 = pct_str.parse().unwrap_or(0.0);
             let allocated = total_amount * (pct / 100.0);
-            allocations.push((
-                target.clone(),
-                allocated,
-                None,
-                Some(format!("{:.4}", pct)),
-            ));
+            allocations.push(AllocationTargetResult {
+                target: target.clone(),
+                amount: allocated,
+                base_value: None,
+                percentage: Some(format!("{:.4}", pct)),
+            });
         }
         Ok(allocations)
     }
@@ -571,17 +581,17 @@ impl CostAllocationEngine {
         &self,
         targets: &[AllocationRuleTarget],
         _total_amount: f64,
-    ) -> AtlasResult<Vec<(AllocationRuleTarget, f64, Option<String>, Option<String>)>> {
+    ) -> AtlasResult<Vec<AllocationTargetResult>> {
         let mut allocations = Vec::new();
         for target in targets {
             let amt_str = target.fixed_amount.as_deref().unwrap_or("0");
             let amt: f64 = amt_str.parse().unwrap_or(0.0);
-            allocations.push((
-                target.clone(),
-                amt,
-                None,
-                None,
-            ));
+            allocations.push(AllocationTargetResult {
+                target: target.clone(),
+                amount: amt,
+                base_value: None,
+                percentage: None,
+            });
         }
         Ok(allocations)
     }

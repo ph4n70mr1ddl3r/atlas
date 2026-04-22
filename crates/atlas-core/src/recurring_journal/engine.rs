@@ -17,6 +17,24 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
+/// Intermediate line data produced during journal generation.
+///
+/// Replaces a complex 11-tuple to keep clippy happy and improve readability.
+pub(crate) struct GenerationLineData {
+    pub schedule_line_id: Uuid,
+    #[allow(dead_code)] // reserved for future use
+    pub line_number: i32,
+    pub line_type: String,
+    pub account_code: String,
+    pub account_name: String,
+    pub amount: String,
+    pub description: String,
+    pub tax_code: String,
+    pub cost_center: String,
+    pub department_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
+}
+
 /// Valid recurrence types
 const VALID_RECURRENCE_TYPES: &[&str] = &[
     "daily", "weekly", "monthly", "quarterly", "semi_annual", "annual",
@@ -426,12 +444,12 @@ impl RecurringJournalEngine {
 
         // Calculate totals
         let total_debit: f64 = gen_lines.iter()
-            .filter(|l| l.2 == "debit")
-            .map(|l| l.5.parse::<f64>().unwrap_or(0.0))
+            .filter(|l| l.line_type == "debit")
+            .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
             .sum();
         let total_credit: f64 = gen_lines.iter()
-            .filter(|l| l.2 == "credit")
-            .map(|l| l.5.parse::<f64>().unwrap_or(0.0))
+            .filter(|l| l.line_type == "credit")
+            .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
         let period_name = generation_date.format("%Y-%m").to_string();
@@ -450,22 +468,22 @@ impl RecurringJournalEngine {
         ).await?;
 
         // Create generation lines
-        for (idx, (schedule_line_id, _line_num, line_type, account_code, account_name, amount, description, tax_code, cost_center, dept_id, proj_id)) in gen_lines.iter().enumerate() {
+        for (idx, line) in gen_lines.iter().enumerate() {
             self.repository.create_generation_line(
                 schedule.organization_id,
                 generation.id,
-                if *schedule_line_id != Uuid::nil() { Some(*schedule_line_id) } else { None },
+                if line.schedule_line_id != Uuid::nil() { Some(line.schedule_line_id) } else { None },
                 idx as i32 + 1,
-                line_type,
-                account_code,
-                if account_name.is_empty() { None } else { Some(account_name) },
-                if description.is_empty() { None } else { Some(description) },
-                amount,
+                &line.line_type,
+                &line.account_code,
+                if line.account_name.is_empty() { None } else { Some(&line.account_name) },
+                if line.description.is_empty() { None } else { Some(&line.description) },
+                &line.amount,
                 &schedule.currency_code,
-                if tax_code.is_empty() { None } else { Some(tax_code) },
-                if cost_center.is_empty() { None } else { Some(cost_center) },
-                *dept_id,
-                *proj_id,
+                if line.tax_code.is_empty() { None } else { Some(&line.tax_code) },
+                if line.cost_center.is_empty() { None } else { Some(&line.cost_center) },
+                line.department_id,
+                line.project_id,
             ).await?;
         }
 
@@ -578,17 +596,16 @@ impl RecurringJournalEngine {
     // ========================================================================
 
     /// Calculate generation lines based on journal type
-    /// Returns Vec of (schedule_line_id, line_number, line_type, account_code, account_name, amount, description, tax_code, cost_center, dept_id, proj_id)
     fn calculate_generation_lines(
         &self,
         schedule: &RecurringJournalSchedule,
         lines: &[RecurringJournalScheduleLine],
         override_amounts: Option<Vec<(i32, String)>>,
         _generation_date: chrono::NaiveDate,
-    ) -> AtlasResult<Vec<(Uuid, i32, String, String, String, String, String, String, String, Option<Uuid>, Option<Uuid>)>> {
+    ) -> AtlasResult<Vec<GenerationLineData>> {
         let gen_number = schedule.total_generations + 1;
 
-        let result: Vec<(Uuid, i32, String, String, String, String, String, String, String, Option<Uuid>, Option<Uuid>)> = lines
+        let result: Vec<GenerationLineData> = lines
             .iter()
             .map(|line| {
                 let amount = match schedule.journal_type.as_str() {
@@ -618,31 +635,31 @@ impl RecurringJournalEngine {
                     _ => line.amount.clone(),
                 };
 
-                (
-                    line.id,
-                    line.line_number,
-                    line.line_type.clone(),
-                    line.account_code.clone(),
-                    line.account_name.clone().unwrap_or_default(),
+                GenerationLineData {
+                    schedule_line_id: line.id,
+                    line_number: line.line_number,
+                    line_type: line.line_type.clone(),
+                    account_code: line.account_code.clone(),
+                    account_name: line.account_name.clone().unwrap_or_default(),
                     amount,
-                    line.description.clone().unwrap_or_default(),
-                    line.tax_code.clone().unwrap_or_default(),
-                    line.cost_center.clone().unwrap_or_default(),
-                    line.department_id,
-                    line.project_id,
-                )
+                    description: line.description.clone().unwrap_or_default(),
+                    tax_code: line.tax_code.clone().unwrap_or_default(),
+                    cost_center: line.cost_center.clone().unwrap_or_default(),
+                    department_id: line.department_id,
+                    project_id: line.project_id,
+                }
             })
             .collect();
 
         // Validate balanced for non-skeleton types
         if schedule.journal_type != "skeleton" {
             let total_debits: f64 = result.iter()
-                .filter(|(_, _, lt, _, _, _, _, _, _, _, _)| lt == "debit")
-                .map(|(_, _, _, _, _, amt, _, _, _, _, _)| amt.parse::<f64>().unwrap_or(0.0))
+                .filter(|l| l.line_type == "debit")
+                .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
                 .sum();
             let total_credits: f64 = result.iter()
-                .filter(|(_, _, lt, _, _, _, _, _, _, _, _)| lt == "credit")
-                .map(|(_, _, _, _, _, amt, _, _, _, _, _)| amt.parse::<f64>().unwrap_or(0.0))
+                .filter(|l| l.line_type == "credit")
+                .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
                 .sum();
 
             if (total_debits - total_credits).abs() > f64::EPSILON {

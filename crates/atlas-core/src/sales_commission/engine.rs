@@ -13,6 +13,18 @@ use atlas_shared::{
 };
 use chrono::Datelike;
 use super::SalesCommissionRepository;
+
+/// Accumulated totals per sales representative during payout processing.
+///
+/// Replaces a complex 5-tuple to keep clippy happy and improve readability.
+pub(crate) struct RepPayoutTotals {
+    pub rep_name: String,
+    pub total_commission: f64,
+    pub transaction_count: i32,
+    pub plan_id: Option<uuid::Uuid>,
+    #[allow(dead_code)] // reserved for future use
+    pub plan_name: Option<String>,
+}
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -564,18 +576,18 @@ impl SalesCommissionEngine {
 
         // Group transactions by rep
         use std::collections::HashMap;
-        let mut rep_totals: HashMap<Uuid, (String, f64, i32, Option<Uuid>, Option<String>)> = HashMap::new();
+        let mut rep_totals: HashMap<uuid::Uuid, RepPayoutTotals> = HashMap::new();
 
         for tx in &eligible_txns {
             let rep = self.repository.get_rep_by_id(tx.rep_id).await?;
             let rep_name = rep.map(|r| format!("{} {}", r.first_name, r.last_name)).unwrap_or_default();
 
             let entry = rep_totals.entry(tx.rep_id).or_insert_with(|| {
-                (rep_name, 0.0, 0, tx.plan_id, None)
+                RepPayoutTotals { rep_name, total_commission: 0.0, transaction_count: 0, plan_id: tx.plan_id, plan_name: None }
             });
             let commission: f64 = tx.commission_amount.parse().unwrap_or(0.0);
-            entry.1 += commission;
-            entry.2 += 1;
+            entry.total_commission += commission;
+            entry.transaction_count += 1;
 
             // Move transaction to "included" status
             self.repository.update_transaction_status(tx.id, "included", Some(payout.id)).await?;
@@ -583,24 +595,24 @@ impl SalesCommissionEngine {
 
         // Create payout lines
         let mut total_payout: f64 = 0.0;
-        for (rep_id, (rep_name, gross, tx_count, plan_id, _)) in &rep_totals {
-            let net = *gross; // No adjustments for now
+        for (rep_id, totals) in &rep_totals {
+            let net = totals.total_commission; // No adjustments for now
             total_payout += net;
 
-            let plan_code = if let Some(pid) = plan_id {
-                self.repository.get_plan_by_id(*pid).await?.map(|p| p.code)
+            let plan_code = if let Some(pid) = totals.plan_id {
+                self.repository.get_plan_by_id(pid).await?.map(|p| p.code)
             } else {
                 None
             };
 
             self.repository.create_payout_line(
-                org_id, payout.id, *rep_id, rep_name,
-                *plan_id, plan_code.as_deref(),
-                &format!("{:.4}", gross),
+                org_id, payout.id, *rep_id, &totals.rep_name,
+                totals.plan_id, plan_code.as_deref(),
+                &format!("{:.4}", totals.total_commission),
                 "0.0000",
                 &format!("{:.4}", net),
                 currency_code,
-                *tx_count,
+                totals.transaction_count,
             ).await?;
         }
 

@@ -18,62 +18,74 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid risk classifications
+#[allow(dead_code)]
 const VALID_RISK_CLASSIFICATIONS: &[&str] = &[
     "low", "medium", "high", "very_high", "defaulted",
 ];
 
 /// Valid case types
+#[allow(dead_code)]
 const VALID_CASE_TYPES: &[&str] = &[
     "collection", "dispute", "bankruptcy", "skip_trace",
 ];
 
 /// Valid case statuses
+#[allow(dead_code)]
 const VALID_CASE_STATUSES: &[&str] = &[
     "open", "in_progress", "resolved", "closed", "escalated", "written_off",
 ];
 
 /// Valid case priorities
+#[allow(dead_code)]
 const VALID_PRIORITIES: &[&str] = &[
     "low", "medium", "high", "critical",
 ];
 
 /// Valid interaction types
+#[allow(dead_code)]
 const VALID_INTERACTION_TYPES: &[&str] = &[
     "phone_call", "email", "letter", "meeting", "note", "sms",
 ];
 
 /// Valid interaction outcomes
+#[allow(dead_code)]
 const VALID_OUTCOMES: &[&str] = &[
     "contacted", "left_message", "no_answer", "promised_to_pay",
     "disputed", "refused", "agreed_payment_plan", "escalated", "no_action",
 ];
 
 /// Valid promise types
+#[allow(dead_code)]
 const VALID_PROMISE_TYPES: &[&str] = &[
     "single_payment", "installment", "full_balance",
 ];
 
 /// Valid promise statuses
+#[allow(dead_code)]
 const VALID_PROMISE_STATUSES: &[&str] = &[
     "pending", "partially_kept", "kept", "broken", "cancelled",
 ];
 
 /// Valid dunning levels
+#[allow(dead_code)]
 const VALID_DUNNING_LEVELS: &[&str] = &[
     "reminder", "first_notice", "second_notice", "final_notice", "pre_legal", "legal",
 ];
 
 /// Valid communication methods
+#[allow(dead_code)]
 const VALID_COMMUNICATION_METHODS: &[&str] = &[
     "email", "letter", "sms", "phone",
 ];
 
 /// Valid write-off types
+#[allow(dead_code)]
 const VALID_WRITE_OFF_TYPES: &[&str] = &[
     "bad_debt", "small_balance", "dispute", "adjustment",
 ];
 
 /// Valid write-off statuses
+#[allow(dead_code)]
 const VALID_WRITE_OFF_STATUSES: &[&str] = &[
     "draft", "submitted", "approved", "rejected", "processed", "cancelled",
 ];

@@ -21,29 +21,36 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid product types
+#[allow(dead_code)]
 const VALID_PRODUCT_TYPES: &[&str] = &["service", "software", "physical", "bundle"];
 
 /// Valid billing frequencies
+#[allow(dead_code)]
 const VALID_BILLING_FREQUENCIES: &[&str] = &["monthly", "quarterly", "semi_annual", "annual", "one_time"];
 
 /// Valid subscription statuses
+#[allow(dead_code)]
 const VALID_SUBSCRIPTION_STATUSES: &[&str] = &[
     "draft", "active", "suspended", "cancelled", "expired", "renewed",
 ];
 
 /// Valid amendment types
+#[allow(dead_code)]
 const VALID_AMENDMENT_TYPES: &[&str] = &[
     "price_change", "quantity_change", "upgrade", "downgrade",
     "renewal", "cancellation", "suspension", "reactivation",
 ];
 
 /// Valid amendment statuses
+#[allow(dead_code)]
 const VALID_AMENDMENT_STATUSES: &[&str] = &["draft", "applied", "cancelled"];
 
 /// Valid tier types
+#[allow(dead_code)]
 const VALID_TIER_TYPES: &[&str] = &["flat", "volume", "tiered", "stairstep"];
 
 /// Valid billing alignments
+#[allow(dead_code)]
 const VALID_BILLING_ALIGNMENTS: &[&str] = &["start_date", "first_of_month", "anniversary"];
 
 /// Number of periods per year for each billing frequency
@@ -964,7 +971,7 @@ impl SubscriptionEngine {
         let mut lines = Vec::new();
         let recurring: f64 = sub.recurring_amount.parse().unwrap_or(0.0);
 
-        let periods = periods_per_year(&sub.billing_frequency);
+        let _periods = periods_per_year(&sub.billing_frequency);
         let months_per = months_per_period(&sub.billing_frequency);
         let total_periods = (sub.duration_months as f64 / months_per as f64).ceil() as i32;
 

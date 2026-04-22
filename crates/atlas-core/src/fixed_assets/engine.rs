@@ -18,32 +18,38 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid depreciation methods
+#[allow(dead_code)]
 const VALID_DEPRECIATION_METHODS: &[&str] = &[
     "straight_line", "declining_balance", "sum_of_years_digits",
 ];
 
 /// Valid asset types
+#[allow(dead_code)]
 const VALID_ASSET_TYPES: &[&str] = &[
     "tangible", "intangible", "leased", "cipc",
 ];
 
 /// Valid asset statuses
+#[allow(dead_code)]
 const VALID_STATUSES: &[&str] = &[
     "draft", "acquired", "in_service", "under_construction",
     "disposed", "retired", "transferred",
 ];
 
 /// Valid retirement types
+#[allow(dead_code)]
 const VALID_RETIREMENT_TYPES: &[&str] = &[
     "sale", "scrap", "donation", "write_off", "casualty",
 ];
 
 /// Valid transfer statuses
+#[allow(dead_code)]
 const VALID_TRANSFER_STATUSES: &[&str] = &[
     "pending", "approved", "rejected", "completed",
 ];
 
 /// Valid retirement statuses
+#[allow(dead_code)]
 const VALID_RETIREMENT_STATUSES: &[&str] = &[
     "pending", "approved", "completed", "cancelled",
 ];

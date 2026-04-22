@@ -628,7 +628,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
         let exp_f64: f64 = total_exp.to_string().parse().unwrap_or(0.0);
         let val_f64: f64 = total_value.to_string().parse().unwrap_or(0.0);
-        let utilization = if val_f64 > 0.0 { (exp_f64 / val_f64 * 100.0) } else { 0.0 };
+        let utilization = if val_f64 > 0.0 { exp_f64 / val_f64 * 100.0 } else { 0.0 };
 
         Ok(GrantDashboardSummary {
             total_active_awards: active as i32,

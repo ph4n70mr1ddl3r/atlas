@@ -16,7 +16,7 @@ use crate::AppState;
 use crate::handlers::auth::Claims;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::error;
 
 // ============================================================================
 // Rating Model Handlers
@@ -158,7 +158,7 @@ pub async fn create_review_cycle(
 
 pub async fn get_review_cycle(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.performance_engine.get_review_cycle(id).await {
@@ -192,7 +192,7 @@ pub struct TransitionCycleRequest {
 
 pub async fn transition_cycle(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<TransitionCycleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -337,7 +337,7 @@ pub async fn create_document(
 
 pub async fn get_document(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.performance_engine.get_document(id).await {
@@ -375,7 +375,7 @@ pub struct TransitionDocumentRequest {
 
 pub async fn transition_document(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<TransitionDocumentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -400,7 +400,7 @@ pub struct SubmitEvaluationRequest {
 
 pub async fn submit_self_evaluation(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<SubmitEvaluationRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -421,7 +421,7 @@ pub async fn submit_self_evaluation(
 
 pub async fn submit_manager_evaluation(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<SubmitEvaluationRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -448,7 +448,7 @@ pub struct FinalizeDocumentRequest {
 
 pub async fn finalize_document(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<FinalizeDocumentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -513,7 +513,7 @@ pub async fn create_goal(
 
 pub async fn list_goals(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(document_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.performance_engine.list_goals(document_id).await {
@@ -529,7 +529,7 @@ pub struct CompleteGoalRequest {
 
 pub async fn complete_goal(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteGoalRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -555,7 +555,7 @@ pub struct RateGoalRequest {
 
 pub async fn rate_goal(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<RateGoalRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {

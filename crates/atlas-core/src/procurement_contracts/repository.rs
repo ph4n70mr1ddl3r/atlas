@@ -6,7 +6,7 @@
 
 use atlas_shared::{
     ContractType, ProcurementContract, ContractLine, ContractMilestone,
-    ContractRenewal, ContractSpend, ContractDashboardSummary,
+    ContractRenewal, ContractSpend,
     AtlasResult,
 };
 use async_trait::async_trait;

@@ -19,18 +19,23 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid pool types
+#[allow(dead_code)]
 const VALID_POOL_TYPES: &[&str] = &["cost_center", "project", "department", "custom"];
 
 /// Valid base types
+#[allow(dead_code)]
 const VALID_BASE_TYPES: &[&str] = &["statistical", "financial"];
 
 /// Valid allocation methods
+#[allow(dead_code)]
 const VALID_ALLOCATION_METHODS: &[&str] = &["proportional", "fixed_percent", "fixed_amount"];
 
 /// Valid rule statuses
+#[allow(dead_code)]
 const VALID_RULE_STATUSES: &[&str] = &["draft", "active", "inactive"];
 
 /// Valid run statuses
+#[allow(dead_code)]
 const VALID_RUN_STATUSES: &[&str] = &["draft", "posted", "reversed"];
 
 /// Cost Allocation engine for distributing costs across cost centers

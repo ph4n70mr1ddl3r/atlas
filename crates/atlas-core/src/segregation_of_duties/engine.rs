@@ -16,18 +16,23 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid enforcement modes
+#[allow(dead_code)]
 const VALID_ENFORCEMENT_MODES: &[&str] = &["preventive", "detective"];
 
 /// Valid risk levels
+#[allow(dead_code)]
 const VALID_RISK_LEVELS: &[&str] = &["high", "medium", "low"];
 
 /// Valid violation statuses
+#[allow(dead_code)]
 const VALID_VIOLATION_STATUSES: &[&str] = &["open", "mitigated", "exception", "resolved"];
 
 /// Valid review frequencies for mitigating controls
+#[allow(dead_code)]
 const VALID_REVIEW_FREQUENCIES: &[&str] = &["daily", "weekly", "monthly", "quarterly"];
 
 /// Valid mitigating control statuses
+#[allow(dead_code)]
 const VALID_MC_STATUSES: &[&str] = &["pending_approval", "active", "expired", "revoked"];
 
 /// Segregation of Duties engine for managing SoD compliance
@@ -519,7 +524,7 @@ impl SegregationOfDutiesEngine {
         control_id: Uuid,
         approved_by: Uuid,
     ) -> AtlasResult<SodMitigatingControl> {
-        let control = self.repository.get_mitigating_controls_for_violation(Uuid::nil()).await?;
+        let _control = self.repository.get_mitigating_controls_for_violation(Uuid::nil()).await?;
         // We need to look up the control - but our repo only has list/get by violation
         // So let's approve directly and let the repo handle it
         let control = self.repository.approve_mitigating_control(control_id, approved_by).await?;

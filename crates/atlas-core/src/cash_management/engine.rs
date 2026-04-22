@@ -690,7 +690,7 @@ fn generate_periods(
             let mut current = start_date;
             for i in 0..number_of_periods {
                 let month_start = if i == 0 { current } else { next_month(current) };
-                if i > 0 { current = month_start; }
+                if i > 0 { current = month_start; } let _ = current;
                 let month_end = next_month(month_start) - chrono::Duration::days(1);
                 let label = month_start.format("%b %Y").to_string();
                 periods.push((month_start, month_end, label, i + 1));

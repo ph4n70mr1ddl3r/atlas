@@ -18,17 +18,20 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid tax types for withholding
+#[allow(dead_code)]
 const VALID_TAX_TYPES: &[&str] = &[
     "income_tax", "vat", "service_tax", "contract_tax",
     "royalty", "dividend", "interest", "other",
 ];
 
 /// Valid withholding line statuses
+#[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &[
     "pending", "withheld", "remitted", "refunded",
 ];
 
 /// Valid certificate statuses
+#[allow(dead_code)]
 const VALID_CERTIFICATE_STATUSES: &[&str] = &[
     "draft", "issued", "acknowledged", "cancelled",
 ];

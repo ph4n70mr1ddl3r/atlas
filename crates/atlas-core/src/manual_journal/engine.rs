@@ -319,7 +319,7 @@ impl ManualJournalEngine {
     /// Delete a line
     pub async fn delete_line(&self, line_id: Uuid) -> AtlasResult<()> {
         // Get the line to find its entry
-        let all_entries = self.repository.list_lines_by_entry(Uuid::nil()).await.ok();
+        let _all_entries = self.repository.list_lines_by_entry(Uuid::nil()).await.ok();
         // We need the entry_id; let's find the line another way
         // Since we don't have get_line_by_id, we'll require the entry_id context
         // For simplicity, the line knows its entry_id via the DB row

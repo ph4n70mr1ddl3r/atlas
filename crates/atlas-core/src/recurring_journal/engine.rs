@@ -32,6 +32,7 @@ const VALID_SCHEDULE_STATUSES: &[&str] = &["draft", "active", "inactive"];
 const VALID_LINE_TYPES: &[&str] = &["debit", "credit"];
 
 /// Number of months per recurrence period
+#[allow(dead_code)]
 fn months_per_recurrence(recurrence: &str) -> i32 {
     match recurrence {
         "daily" => 0,
@@ -449,7 +450,7 @@ impl RecurringJournalEngine {
         ).await?;
 
         // Create generation lines
-        for (idx, (schedule_line_id, line_num, line_type, account_code, account_name, amount, description, tax_code, cost_center, dept_id, proj_id)) in gen_lines.iter().enumerate() {
+        for (idx, (schedule_line_id, _line_num, line_type, account_code, account_name, amount, description, tax_code, cost_center, dept_id, proj_id)) in gen_lines.iter().enumerate() {
             self.repository.create_generation_line(
                 schedule.organization_id,
                 generation.id,

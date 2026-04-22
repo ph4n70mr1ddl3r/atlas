@@ -125,7 +125,7 @@ pub async fn activate_schedule(
 /// Deactivate a schedule
 pub async fn deactivate_schedule(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.recurring_journal_engine.deactivate_schedule(id).await {

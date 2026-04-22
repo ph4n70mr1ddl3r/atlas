@@ -4,13 +4,11 @@
 //! Supports proportional, fixed-percentage, and step-down allocation methods.
 
 use atlas_shared::{
-    GlAllocationPool, GlAllocationPoolRequest,
-    GlAllocationBasis, GlAllocationBasisRequest,
+    GlAllocationPool,
+    GlAllocationBasis,
     GlAllocationBasisDetail, GlAllocationBasisDetailRequest,
     GlAllocationRule, GlAllocationRuleRequest,
-    GlAllocationTargetLine, GlAllocationTargetLineRequest,
     GlAllocationRun, GlAllocationRunRequest,
-    GlAllocationRunLine,
     GlAllocationDashboardSummary,
     AtlasError, AtlasResult,
 };
@@ -19,10 +17,15 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
+#[allow(dead_code)]
 const VALID_POOL_TYPES: &[&str] = &["cost_center", "account_range", "manual"];
+#[allow(dead_code)]
 const VALID_BASIS_TYPES: &[&str] = &["statistical", "financial", "percentage"];
+#[allow(dead_code)]
 const VALID_ALLOCATION_METHODS: &[&str] = &["proportional", "fixed_percentage", "step_down"];
+#[allow(dead_code)]
 const VALID_OFFSET_METHODS: &[&str] = &["none", "same_account", "specified_account"];
+#[allow(dead_code)]
 const VALID_RUN_STATUSES: &[&str] = &["draft", "posted", "reversed", "cancelled"];
 
 /// GL Allocation engine
@@ -287,7 +290,7 @@ impl AllocationEngine {
         detail_id: Uuid,
         basis_amount: &str,
     ) -> AtlasResult<GlAllocationBasisDetail> {
-        let detail = self.repository.get_basis_detail_by_id(detail_id).await?
+        let _detail = self.repository.get_basis_detail_by_id(detail_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
                 "Basis detail {} not found", detail_id
             )))?;
@@ -541,10 +544,10 @@ impl AllocationEngine {
 
         info!("Executing allocation rule {} for period {}", request.rule_code, request.period_name);
 
-        let run_date = request.run_date.unwrap_or(chrono::Utc::now().date_naive());
+        let _run_date = request.run_date.unwrap_or(chrono::Utc::now().date_naive());
 
         // Create the run
-        let mut run = self.repository.create_run(
+        let run = self.repository.create_run(
             org_id, &run_number, rule.id, &rule.code, &rule.name,
             &request.period_name, request.period_start_date, request.period_end_date,
             &pool_amount, &rule.allocation_method,
@@ -688,7 +691,7 @@ impl AllocationEngine {
             };
 
             // Calculate rounding difference
-            let rounding_diff = pool_amount_f64 - total_allocated;
+            let _rounding_diff = pool_amount_f64 - total_allocated;
 
             self.repository.create_run_line(
                 org_id, run.id, (run_lines.len() + 1) as i32,

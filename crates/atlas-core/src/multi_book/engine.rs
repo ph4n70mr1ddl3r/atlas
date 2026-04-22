@@ -16,18 +16,23 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid book types
+#[allow(dead_code)]
 const VALID_BOOK_TYPES: &[&str] = &["primary", "secondary"];
 
 /// Valid mapping levels
+#[allow(dead_code)]
 const VALID_MAPPING_LEVELS: &[&str] = &["journal", "subledger"];
 
 /// Valid book statuses
+#[allow(dead_code)]
 const VALID_BOOK_STATUSES: &[&str] = &["draft", "active", "inactive", "suspended"];
 
 /// Valid journal entry statuses
+#[allow(dead_code)]
 const VALID_ENTRY_STATUSES: &[&str] = &["draft", "posted", "propagated", "reversed"];
 
 /// Valid propagation log statuses
+#[allow(dead_code)]
 const VALID_PROPAGATION_STATUSES: &[&str] = &["pending", "completed", "failed", "skipped"];
 
 /// Multi-Book Accounting Engine

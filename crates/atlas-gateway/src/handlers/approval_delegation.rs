@@ -134,6 +134,14 @@ pub async fn cancel_delegation_rule(
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    // Authorization: only the delegator or an admin can cancel
+    if let Ok(Some(rule)) = state.approval_delegation_engine.get_rule(id).await {
+        let is_admin = claims.roles.contains(&"admin".to_string());
+        if rule.delegator_id != user_id && !is_admin {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
+
     match state.approval_delegation_engine.cancel_rule(id, user_id, payload.reason.as_deref()).await {
         Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap())),
         Err(e) => {
@@ -149,10 +157,19 @@ pub async fn cancel_delegation_rule(
 
 pub async fn activate_delegation_rule(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Authorization: only the delegator or an admin can activate
+    if let Ok(Some(rule)) = state.approval_delegation_engine.get_rule(id).await {
+        let is_admin = claims.roles.contains(&"admin".to_string());
+        if rule.delegator_id != user_id && !is_admin {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
 
     match state.approval_delegation_engine.activate_rule(id).await {
         Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap())),
@@ -169,10 +186,19 @@ pub async fn activate_delegation_rule(
 
 pub async fn delete_delegation_rule(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Authorization: only the delegator or an admin can delete
+    if let Ok(Some(rule)) = state.approval_delegation_engine.get_rule(id).await {
+        let is_admin = claims.roles.contains(&"admin".to_string());
+        if rule.delegator_id != user_id && !is_admin {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
 
     match state.approval_delegation_engine.delete_rule(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),

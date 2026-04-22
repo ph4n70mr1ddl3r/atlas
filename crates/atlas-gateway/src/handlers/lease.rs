@@ -10,7 +10,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::info;
 
 use crate::AppState;
 use crate::handlers::auth::Claims;

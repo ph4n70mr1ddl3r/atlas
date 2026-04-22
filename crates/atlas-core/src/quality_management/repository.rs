@@ -187,6 +187,7 @@ impl PostgresQualityManagementRepository {
         Self { pool }
     }
 
+    #[allow(dead_code)]
     fn get_numeric(&self, row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
         v.to_string()
@@ -785,13 +786,13 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
 
         let total_completed = passed_inspections + failed_inspections;
         let pass_rate = if total_completed > 0 {
-            (passed_inspections as f64 / total_completed as f64 * 100.0)
+            passed_inspections as f64 / total_completed as f64 * 100.0
         } else {
             0.0
         };
 
         let cap_rate = if total_ncrs > 0 {
-            (completed_corrective_actions as f64 / (open_corrective_actions + completed_corrective_actions).max(1) as f64 * 100.0)
+            completed_corrective_actions as f64 / (open_corrective_actions + completed_corrective_actions).max(1) as f64 * 100.0
         } else {
             0.0
         };

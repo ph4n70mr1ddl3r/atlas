@@ -821,7 +821,7 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
 
         let total_evaluated = qualified_suppliers + disqualified_suppliers;
         let qual_rate = if total_evaluated > 0 {
-            (qualified_suppliers as f64 / total_evaluated as f64 * 100.0)
+            qualified_suppliers as f64 / total_evaluated as f64 * 100.0
         } else {
             0.0
         };

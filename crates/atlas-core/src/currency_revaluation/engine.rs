@@ -8,7 +8,6 @@ use atlas_shared::{
     CurrencyRevaluationDefinition, CurrencyRevaluationDefinitionRequest,
     CurrencyRevaluationAccount, CurrencyRevaluationAccountRequest,
     CurrencyRevaluationRun, CurrencyRevaluationRunRequest,
-    CurrencyRevaluationLine, CurrencyRevaluationBalanceRequest,
     CurrencyRevaluationDashboardSummary,
     AtlasError, AtlasResult,
 };
@@ -17,9 +16,13 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
+#[allow(dead_code)]
 const VALID_REVALUATION_TYPES: &[&str] = &["period_end", "balance_sheet", "income_statement"];
+#[allow(dead_code)]
 const VALID_RATE_TYPES: &[&str] = &["daily", "spot", "corporate", "period_average", "period_end", "user", "fixed"];
+#[allow(dead_code)]
 const VALID_ACCOUNT_TYPES: &[&str] = &["asset", "liability", "equity", "revenue", "expense"];
+#[allow(dead_code)]
 const VALID_RUN_STATUSES: &[&str] = &["draft", "posted", "reversed", "cancelled"];
 
 /// Currency Revaluation engine
@@ -265,7 +268,7 @@ impl CurrencyRevaluationEngine {
             run_number, request.definition_code, request.period_name);
 
         // Create the run
-        let mut run = self.repository.create_run(
+        let run = self.repository.create_run(
             org_id,
             &run_number,
             def.id,
@@ -415,7 +418,7 @@ impl CurrencyRevaluationEngine {
 
         // Create the reversal run
         let reversal_number = format!("REV-{}-{}", original_run.run_number, chrono::Utc::now().format("%Y%m%d%H%M%S"));
-        let mut reversal_run = self.repository.create_run(
+        let reversal_run = self.repository.create_run(
             original_run.organization_id,
             &reversal_number,
             original_run.definition_id,

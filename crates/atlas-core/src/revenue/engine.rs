@@ -28,47 +28,56 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid recognition methods
+#[allow(dead_code)]
 const VALID_RECOGNITION_METHODS: &[&str] = &[
     "over_time", "point_in_time",
 ];
 
 /// Valid over-time methods
+#[allow(dead_code)]
 const VALID_OVER_TIME_METHODS: &[&str] = &[
     "output", "input", "straight_line",
 ];
 
 /// Valid allocation bases
+#[allow(dead_code)]
 const VALID_ALLOCATION_BASES: &[&str] = &[
     "standalone_selling_price", "residual", "equal",
 ];
 
 /// Valid contract statuses
+#[allow(dead_code)]
 const VALID_CONTRACT_STATUSES: &[&str] = &[
     "draft", "active", "completed", "cancelled", "modified",
 ];
 
 /// Valid obligation statuses
+#[allow(dead_code)]
 const VALID_OBLIGATION_STATUSES: &[&str] = &[
     "pending", "in_progress", "satisfied", "partially_satisfied", "cancelled",
 ];
 
 /// Valid satisfaction methods
+#[allow(dead_code)]
 const VALID_SATISFACTION_METHODS: &[&str] = &[
     "over_time", "point_in_time",
 ];
 
 /// Valid schedule line statuses
+#[allow(dead_code)]
 const VALID_SCHEDULE_STATUSES: &[&str] = &[
     "planned", "recognized", "reversed", "cancelled",
 ];
 
 /// Valid modification types
+#[allow(dead_code)]
 const VALID_MODIFICATION_TYPES: &[&str] = &[
     "price_change", "scope_change", "term_extension",
     "termination", "add_obligation", "remove_obligation",
 ];
 
 /// Valid modification statuses
+#[allow(dead_code)]
 const VALID_MODIFICATION_STATUSES: &[&str] = &[
     "draft", "active", "cancelled",
 ];

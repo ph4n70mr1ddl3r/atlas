@@ -14,7 +14,7 @@
 use atlas_shared::{
     AutoInvoiceBatch, AutoInvoiceLine, AutoInvoiceGroupingRule,
     AutoInvoiceValidationRule, AutoInvoiceResult, AutoInvoiceResultLine,
-    AutoInvoiceImportRequest, AutoInvoiceLineRequest,
+    AutoInvoiceImportRequest,
     AutoInvoiceValidationError,
     AtlasError, AtlasResult,
 };
@@ -25,16 +25,19 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid transaction types for AutoInvoice
+#[allow(dead_code)]
 const VALID_TRANSACTION_TYPES: &[&str] = &[
     "invoice", "credit_memo", "debit_memo", "on_account_credit",
 ];
 
 /// Valid validation types
+#[allow(dead_code)]
 const VALID_VALIDATION_TYPES: &[&str] = &[
     "required", "format", "reference", "range", "custom",
 ];
 
 /// Valid batch statuses
+#[allow(dead_code)]
 const VALID_BATCH_STATUSES: &[&str] = &[
     "pending", "validating", "validated", "processing", "completed", "failed", "cancelled",
 ];

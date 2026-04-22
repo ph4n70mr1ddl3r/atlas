@@ -1779,7 +1779,7 @@ impl crate::encumbrance::EncumbranceRepository for MockEncumbranceRepository {
         account_description: Option<&str>, department_id: Option<Uuid>, department_name: Option<&str>,
         project_id: Option<Uuid>, project_name: Option<&str>, cost_center: Option<&str>,
         original_amount: &str, current_amount: &str, encumbrance_account_code: Option<&str>,
-        source_line_id: Option<Uuid>, created_by: Option<Uuid>,
+        source_line_id: Option<Uuid>, _created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::EncumbranceLine> {
         Ok(atlas_shared::EncumbranceLine {
             id: Uuid::new_v4(), organization_id: org_id, entry_id, line_number,
@@ -1992,7 +1992,7 @@ impl crate::lease::LeaseAccountingRepository for MockLeaseAccountingRepository {
         purchase_option_exists: bool, purchase_option_likely: bool,
         renewal_option_exists: bool, renewal_option_months: Option<i32>, renewal_option_likely: bool,
         discount_rate: &str, currency_code: &str, payment_frequency: &str,
-        annual_payment_amount: &str,
+        _annual_payment_amount: &str,
         escalation_rate: Option<&str>, escalation_frequency_months: Option<i32>,
         total_lease_payments: &str, initial_lease_liability: &str, initial_rou_asset_value: &str,
         residual_guarantee_amount: Option<&str>,
@@ -2116,7 +2116,7 @@ impl crate::lease::LeaseAccountingRepository for MockLeaseAccountingRepository {
     }
     async fn list_terminations(&self, _lease_id: Uuid) -> AtlasResult<Vec<atlas_shared::LeaseTermination>> { Ok(vec![]) }
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::LeaseDashboardSummary> {
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::LeaseDashboardSummary> {
         Ok(atlas_shared::LeaseDashboardSummary {
             total_active_leases: 0, total_lease_liability: "0".to_string(),
             total_rou_assets: "0".to_string(), total_rou_depreciation: "0".to_string(),
@@ -2278,7 +2278,7 @@ impl ProjectCostingRepository for MockProjectCostingRepository {
         Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
     }
 
-    async fn get_costing_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::ProjectCostingSummary> {
+    async fn get_costing_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::ProjectCostingSummary> {
         Ok(atlas_shared::ProjectCostingSummary {
             project_count: 0, total_raw_costs: "0".to_string(),
             total_burdened_costs: "0".to_string(), total_burden: "0".to_string(),
@@ -2740,7 +2740,7 @@ impl crate::treasury::TreasuryRepository for MockTreasuryRepository {
     async fn update_settlement_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::TreasurySettlement> {
         Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
     }
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::TreasuryDashboardSummary> {
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::TreasuryDashboardSummary> {
         Ok(atlas_shared::TreasuryDashboardSummary {
             total_active_deals: 0, total_investments: "0".to_string(),
             total_borrowings: "0".to_string(), total_fx_exposure: "0".to_string(),

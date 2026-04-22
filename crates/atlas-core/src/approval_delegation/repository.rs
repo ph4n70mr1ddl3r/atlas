@@ -240,7 +240,7 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
 
     async fn activate_rule(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query(
-            "UPDATE _atlas.approval_delegation_rules SET status = 'active', activated_at = now(), updated_at = now() WHERE id = $1"
+            "UPDATE _atlas.approval_delegation_rules SET status = 'active', is_active = true, activated_at = now(), updated_at = now() WHERE id = $1"
         )
         .bind(id)
         .execute(&self.pool).await
@@ -422,28 +422,28 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
-        .unwrap_or(0);
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let scheduled_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM _atlas.approval_delegation_rules WHERE organization_id = $1 AND status = 'scheduled'"
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
-        .unwrap_or(0);
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let expired_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM _atlas.approval_delegation_rules WHERE organization_id = $1 AND status = 'expired'"
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
-        .unwrap_or(0);
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let today_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM _atlas.approval_delegation_history WHERE organization_id = $1 AND created_at::date = CURRENT_DATE"
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
-        .unwrap_or(0);
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         // Delegations by type
         let type_rows = sqlx::query(
@@ -451,7 +451,7 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
         )
         .bind(org_id)
         .fetch_all(&self.pool).await
-        .unwrap_or_default();
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut by_type = serde_json::Map::new();
         for row in type_rows {
@@ -466,7 +466,7 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
         )
         .bind(org_id)
         .fetch_all(&self.pool).await
-        .unwrap_or_default();
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(DelegationDashboard {
             total_active_rules: active_count,

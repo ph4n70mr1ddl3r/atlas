@@ -8,7 +8,6 @@ use atlas_shared::{
     InventoryOrganization, ItemCategory, Item, Subinventory, Locator,
     OnHandBalance, InventoryTransactionType, InventoryTransaction,
     CycleCountHeader, CycleCountLine, TransactionReason,
-    InventoryDashboardSummary,
     AtlasResult,
 };
 use async_trait::async_trait;
@@ -237,6 +236,7 @@ fn row_to_item_category(row: &sqlx::postgres::PgRow) -> ItemCategory {
 }
 
 fn row_to_item(row: &sqlx::postgres::PgRow) -> Item {
+    #[allow(dead_code)]
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
         v.to_string()

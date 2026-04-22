@@ -725,7 +725,7 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         }
         if accounting_date_to.is_some() {
             query.push_str(&format!(" AND accounting_date <= ${}", param_idx));
-            param_idx += 1;
+            // param_idx incremented for potential future filters
         }
         query.push_str(" ORDER BY accounting_date DESC, created_at DESC");
 
@@ -902,7 +902,7 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         }
         if event_type.is_some() {
             query.push_str(&format!(" AND event_type = ${}", param_idx));
-            param_idx += 1;
+            // param_idx incremented for potential future filters
         }
         query.push_str(" ORDER BY event_date DESC, created_at DESC");
 

@@ -121,7 +121,7 @@ pub async fn list_revaluation_definitions(
 /// Activate a definition
 pub async fn activate_revaluation_definition(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.currency_revaluation_engine.activate_definition(id).await {
@@ -140,7 +140,7 @@ pub async fn activate_revaluation_definition(
 /// Deactivate a definition
 pub async fn deactivate_revaluation_definition(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     match state.currency_revaluation_engine.deactivate_definition(id).await {

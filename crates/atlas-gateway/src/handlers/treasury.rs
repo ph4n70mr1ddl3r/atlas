@@ -193,7 +193,7 @@ pub async fn list_deals(
 
 pub async fn get_deal(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.treasury_engine.get_deal(id).await {
@@ -256,7 +256,7 @@ pub async fn settle_deal(
 
 pub async fn mature_deal(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.treasury_engine.mature_deal(id).await {
@@ -271,7 +271,7 @@ pub async fn mature_deal(
 
 pub async fn cancel_deal(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.treasury_engine.cancel_deal(id).await {
@@ -290,7 +290,7 @@ pub async fn cancel_deal(
 
 pub async fn list_deal_settlements(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.treasury_engine.list_settlements(id).await {

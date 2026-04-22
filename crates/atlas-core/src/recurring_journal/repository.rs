@@ -82,7 +82,7 @@ impl PostgresRecurringJournalRepository {
 }
 
 fn row_to_schedule(row: &sqlx::postgres::PgRow) -> RecurringJournalSchedule {
-    use chrono::{DateTime, Utc};
+    
     use serde_json::Value;
     RecurringJournalSchedule {
         id: row.get("id"),

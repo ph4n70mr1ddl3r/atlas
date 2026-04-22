@@ -480,7 +480,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         }
         if return_type.is_some() {
             query.push_str(&format!(" AND return_type = ${}", bind_idx));
-            bind_idx += 1;
+            // bind_idx incremented for potential future filters
         }
         query.push_str(" ORDER BY created_at DESC");
 

@@ -19,11 +19,17 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
+#[allow(dead_code)]
 const VALID_PRIORITIES: &[&str] = &["low", "medium", "high", "urgent"];
+#[allow(dead_code)]
 const VALID_STATUSES: &[&str] = &["draft", "submitted", "approved", "rejected", "cancelled", "closed", "in_review"];
+#[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &["draft", "submitted", "approved", "rejected", "cancelled", "partially_ordered", "ordered", "closed"];
+#[allow(dead_code)]
 const VALID_LINE_SOURCE_TYPES: &[&str] = &["manual", "catalog", "punchout"];
+#[allow(dead_code)]
 const VALID_APPROVAL_ACTIONS: &[&str] = &["approved", "rejected", "delegated", "returned"];
+#[allow(dead_code)]
 const VALID_AUTOCREATE_STATUSES: &[&str] = &["pending", "ordered", "partial", "completed", "cancelled"];
 
 /// Purchase Requisition engine
@@ -189,7 +195,7 @@ impl PurchaseRequisitionEngine {
     pub async fn update_requisition(
         &self,
         id: Uuid,
-        org_id: Uuid,
+        _org_id: Uuid,
         request: &PurchaseRequisitionRequest,
         updated_by: Option<Uuid>,
     ) -> AtlasResult<PurchaseRequisition> {

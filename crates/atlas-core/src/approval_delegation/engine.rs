@@ -12,6 +12,13 @@ use uuid::Uuid;
 use chrono::Utc;
 use tracing::info;
 
+/// Helper: returns true if the Option<Value> is None or contains an empty JSON array.
+fn array_is_empty(val: &Option<serde_json::Value>) -> bool {
+    val.as_ref()
+        .and_then(|v| v.as_array())
+        .map_or(true, |a| a.is_empty())
+}
+
 /// Engine for managing approval delegation rules
 pub struct ApprovalDelegationEngine {
     repository: Arc<dyn ApprovalDelegationRepository>,
@@ -49,6 +56,13 @@ impl ApprovalDelegationEngine {
             ));
         }
 
+        // Reject rules that are already expired (end_date in the past)
+        if request.end_date < Utc::now().date_naive() {
+            return Err(AtlasError::ValidationFailed(
+                "End date must not be in the past".to_string(),
+            ));
+        }
+
         // Validate delegation_type
         let valid_types = ["all", "by_category", "by_role", "by_entity"];
         if !valid_types.contains(&request.delegation_type.as_str()) {
@@ -60,21 +74,21 @@ impl ApprovalDelegationEngine {
         // Validate that type-specific fields are populated
         match request.delegation_type.as_str() {
             "by_category" => {
-                if request.categories.is_none() || request.categories.as_ref().map(|c| c.as_array().map(|a| a.is_empty()).unwrap_or(true)).unwrap_or(true) {
+                if array_is_empty(&request.categories) {
                     return Err(AtlasError::ValidationFailed(
                         "categories must be a non-empty array for delegation_type 'by_category'".to_string(),
                     ));
                 }
             }
             "by_role" => {
-                if request.roles.is_none() || request.roles.as_ref().map(|r| r.as_array().map(|a| a.is_empty()).unwrap_or(true)).unwrap_or(true) {
+                if array_is_empty(&request.roles) {
                     return Err(AtlasError::ValidationFailed(
                         "roles must be a non-empty array for delegation_type 'by_role'".to_string(),
                     ));
                 }
             }
             "by_entity" => {
-                if request.entity_types.is_none() || request.entity_types.as_ref().map(|e| e.as_array().map(|a| a.is_empty()).unwrap_or(true)).unwrap_or(true) {
+                if array_is_empty(&request.entity_types) {
                     return Err(AtlasError::ValidationFailed(
                         "entity_types must be a non-empty array for delegation_type 'by_entity'".to_string(),
                     ));

@@ -11,7 +11,7 @@ use atlas_shared::{
     AtlasError, AtlasResult,
 };
 use super::ScheduledProcessRepository;
-use chrono::{Datelike, Timelike, Utc, DateTime};
+use chrono::{Datelike, Utc, DateTime};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -755,7 +755,7 @@ impl ScheduledProcessEngine {
     /// Calculate the first run time based on recurrence config and start date.
     pub fn calculate_next_run(
         start_date: chrono::NaiveDate,
-        recurrence_type: &str,
+        _recurrence_type: &str,
         recurrence_config: &serde_json::Value,
     ) -> Option<DateTime<Utc>> {
         let time_str = recurrence_config["time"].as_str().unwrap_or("00:00");

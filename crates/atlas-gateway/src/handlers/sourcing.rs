@@ -16,7 +16,7 @@ use crate::AppState;
 use crate::handlers::auth::Claims;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::error;
 
 // ============================================================================
 // Request Types
@@ -147,7 +147,7 @@ pub struct CreateAwardLineRequest {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CreateTemplateRequest {
+pub struct CreateSourcingTemplateRequest {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
@@ -636,7 +636,7 @@ pub async fn list_award_lines(
 pub async fn create_sourcing_template(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
-    Json(payload): Json<CreateTemplateRequest>,
+    Json(payload): Json<CreateSourcingTemplateRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

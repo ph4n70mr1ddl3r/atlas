@@ -542,7 +542,7 @@ impl CreditManagementEngine {
         let shipments: f64 = open_shipments.parse().unwrap_or(0.0);
         let invoices: f64 = open_invoices.parse().unwrap_or(0.0);
         let cash: f64 = unapplied_cash.parse().unwrap_or(0.0);
-        let holds: f64 = on_hold_amount.parse().unwrap_or(0.0);
+        let _holds: f64 = on_hold_amount.parse().unwrap_or(0.0);
 
         let total_exposure = receivables + orders + shipments + invoices - cash;
         let total_exposure = if total_exposure < 0.0 { 0.0 } else { total_exposure };
@@ -598,10 +598,10 @@ impl CreditManagementEngine {
     /// Returns Ok(exposure) if credit is available, Err if credit limit exceeded
     pub async fn perform_credit_check(
         &self,
-        org_id: Uuid,
+        _org_id: Uuid,
         profile_id: Uuid,
         requested_amount: &str,
-        check_point: &str,
+        _check_point: &str,
     ) -> AtlasResult<CreditCheckResult> {
         let profile = self.repository.get_profile(profile_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
@@ -950,7 +950,7 @@ impl CreditManagementEngine {
     }
 
     /// Reject a completed review
-    pub async fn reject_review(&self, id: Uuid, rejected_reason: Option<&str>) -> AtlasResult<CreditReview> {
+    pub async fn reject_review(&self, id: Uuid, _rejected_reason: Option<&str>) -> AtlasResult<CreditReview> {
         let review = self.repository.get_review(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Credit review {} not found", id)

@@ -23,56 +23,69 @@ use uuid::Uuid;
 
 // ── Validation constants ──
 
+#[allow(dead_code)]
 const VALID_SPONSOR_TYPES: &[&str] = &[
     "government", "foundation", "corporate", "internal", "university",
 ];
 
+#[allow(dead_code)]
 const VALID_AWARD_STATUSES: &[&str] = &[
     "draft", "active", "suspended", "completed", "terminated", "closed",
 ];
 
+#[allow(dead_code)]
 const VALID_AWARD_TYPES: &[&str] = &[
     "research", "training", "fellowship", "contract", "cooperative_agreement", "other",
 ];
 
+#[allow(dead_code)]
 const VALID_BILLING_FREQUENCIES: &[&str] = &[
     "monthly", "quarterly", "annual", "on_demand", "milestone",
 ];
 
+#[allow(dead_code)]
 const VALID_BILLING_BASES: &[&str] = &[
     "cost", "milestone", "fixed_price", "deliverable",
 ];
 
+#[allow(dead_code)]
 const VALID_BUDGET_CATEGORIES: &[&str] = &[
     "personnel", "fringe", "travel", "equipment", "supplies",
     "contractual", "other_direct", "indirect", "cost_sharing",
 ];
 
+#[allow(dead_code)]
 const VALID_EXPENDITURE_TYPES: &[&str] = &[
     "actual", "commitment", "encumbrance", "adjustment",
 ];
 
+#[allow(dead_code)]
 const VALID_EXPENDITURE_STATUSES: &[&str] = &[
     "pending", "approved", "billed", "reversed", "hold",
 ];
 
+#[allow(dead_code)]
 const VALID_BILLING_STATUSES: &[&str] = &[
     "draft", "submitted", "approved", "paid", "partial", "disputed", "cancelled",
 ];
 
+#[allow(dead_code)]
 const VALID_REPORT_TYPES: &[&str] = &[
     "federal_financial_report_sf425", "progress_report", "invention_report",
     "property_report", "closeout_report", "audit_report", "budget_modification",
 ];
 
+#[allow(dead_code)]
 const VALID_REPORT_STATUSES: &[&str] = &[
     "draft", "in_review", "approved", "submitted", "rejected",
 ];
 
+#[allow(dead_code)]
 const VALID_RATE_TYPES: &[&str] = &[
     "negotiated", "predetermined", "fixed", "provisional",
 ];
 
+#[allow(dead_code)]
 const VALID_BASE_TYPES: &[&str] = &[
     "modified_total_direct_costs", "total_direct_costs", "salaries_and_wages",
 ];
@@ -269,7 +282,7 @@ impl GrantManagementEngine {
         let sponsor = self.repository.get_sponsor(org_id, "").await.ok().flatten();
         let sponsor_name = sponsor.as_ref().and_then(|s| Some(s.name.as_str()));
 
-        let available_balance = total_award_amount.to_string();
+        let _available_balance = total_award_amount.to_string();
 
         info!("Creating grant award {} ({}) for org {}", award_number, award_title, org_id);
 

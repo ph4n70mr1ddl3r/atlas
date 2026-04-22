@@ -4,8 +4,7 @@
 //! and role assignments.
 
 use atlas_shared::{
-    SodRule, SodViolation, SodMitigatingControl, SodRoleAssignment,
-    SodConflictCheckResult, SodConflictDetail, SodDashboardSummary,
+    SodRule, SodViolation, SodMitigatingControl, SodRoleAssignment, SodDashboardSummary,
     AtlasError, AtlasResult,
 };
 use async_trait::async_trait;

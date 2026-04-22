@@ -16,37 +16,44 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid return types for RMAs
+#[allow(dead_code)]
 const VALID_RETURN_TYPES: &[&str] = &[
     "standard_return", "exchange", "repair", "warranty",
 ];
 
 /// Valid RMA statuses
+#[allow(dead_code)]
 const VALID_RMA_STATUSES: &[&str] = &[
     "draft", "submitted", "approved", "rejected",
     "partially_received", "received", "closed", "cancelled",
 ];
 
 /// Valid disposition options
+#[allow(dead_code)]
 const VALID_DISPOSITIONS: &[&str] = &[
     "return_to_stock", "scrap", "inspect", "repair", "exchange",
 ];
 
 /// Valid item conditions
+#[allow(dead_code)]
 const VALID_CONDITIONS: &[&str] = &[
     "good", "damaged", "defective", "wrong_item",
 ];
 
 /// Valid inspection statuses
+#[allow(dead_code)]
 const VALID_INSPECTION_STATUSES: &[&str] = &[
     "pending", "passed", "failed", "pending_review",
 ];
 
 /// Valid credit statuses for return lines
+#[allow(dead_code)]
 const VALID_CREDIT_STATUSES: &[&str] = &[
     "pending", "issued", "reversed",
 ];
 
 /// Valid credit memo statuses
+#[allow(dead_code)]
 const VALID_CREDIT_MEMO_STATUSES: &[&str] = &[
     "draft", "issued", "applied", "partially_applied", "reversed", "cancelled",
 ];

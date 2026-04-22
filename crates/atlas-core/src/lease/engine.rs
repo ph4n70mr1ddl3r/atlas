@@ -267,7 +267,7 @@ impl LeaseAccountingEngine {
     // ========================================================================
 
     /// Activate a draft lease and generate amortization schedule
-    pub async fn activate_lease(&self, lease_id: Uuid, activated_by: Option<Uuid>) -> AtlasResult<LeaseContract> {
+    pub async fn activate_lease(&self, lease_id: Uuid, _activated_by: Option<Uuid>) -> AtlasResult<LeaseContract> {
         let lease = self.repository.get_lease(lease_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Lease {} not found", lease_id)

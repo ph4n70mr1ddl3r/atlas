@@ -19,41 +19,49 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid event types
+#[allow(dead_code)]
 const VALID_EVENT_TYPES: &[&str] = &[
     "rfq", "rfp", "rfi", "auction",
 ];
 
 /// Valid event statuses
+#[allow(dead_code)]
 const VALID_EVENT_STATUSES: &[&str] = &[
     "draft", "published", "response_open", "evaluation", "awarded", "cancelled", "closed",
 ];
 
 /// Valid event styles
+#[allow(dead_code)]
 const VALID_EVENT_STYLES: &[&str] = &[
     "sealed", "open", "reverse_auction",
 ];
 
 /// Valid scoring methods
+#[allow(dead_code)]
 const VALID_SCORING_METHODS: &[&str] = &[
     "weighted", "pass_fail", "manual", "lowest_price",
 ];
 
 /// Valid response statuses
+#[allow(dead_code)]
 const VALID_RESPONSE_STATUSES: &[&str] = &[
     "draft", "submitted", "under_review", "shortlisted", "rejected", "awarded", "disqualified",
 ];
 
 /// Valid award statuses
+#[allow(dead_code)]
 const VALID_AWARD_STATUSES: &[&str] = &[
     "pending", "approved", "rejected", "cancelled",
 ];
 
 /// Valid award methods
+#[allow(dead_code)]
 const VALID_AWARD_METHODS: &[&str] = &[
     "single", "split", "best_value", "lowest_price",
 ];
 
 /// Valid criterion types
+#[allow(dead_code)]
 const VALID_CRITERION_TYPES: &[&str] = &[
     "price", "quality", "delivery", "technical", "compliance", "custom",
 ];
@@ -221,7 +229,7 @@ impl SourcingEngine {
         &self,
         event_id: Uuid,
         cancelled_by: Option<Uuid>,
-        reason: Option<&str>,
+        _reason: Option<&str>,
     ) -> AtlasResult<SourcingEvent> {
         let event = self.repository.get_event(event_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(

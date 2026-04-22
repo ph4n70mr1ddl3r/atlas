@@ -17,36 +17,43 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid applications for accounting methods
+#[allow(dead_code)]
 const VALID_APPLICATIONS: &[&str] = &[
     "payables", "receivables", "expenses", "assets", "projects", "general",
 ];
 
 /// Valid event classes
+#[allow(dead_code)]
 const VALID_EVENT_CLASSES: &[&str] = &[
     "create", "update", "cancel", "reverse",
 ];
 
 /// Valid entry statuses
+#[allow(dead_code)]
 const VALID_ENTRY_STATUSES: &[&str] = &[
     "draft", "accounted", "posted", "transferred", "reversed", "error",
 ];
 
 /// Valid line types
+#[allow(dead_code)]
 const VALID_LINE_TYPES: &[&str] = &[
     "debit", "credit", "tax", "discount", "rounding",
 ];
 
 /// Valid derivation types
+#[allow(dead_code)]
 const VALID_DERIVATION_TYPES: &[&str] = &[
     "constant", "lookup", "formula",
 ];
 
 /// Valid transfer statuses
+#[allow(dead_code)]
 const VALID_TRANSFER_STATUSES: &[&str] = &[
     "pending", "in_progress", "completed", "failed", "reversed",
 ];
 
 /// Valid GL transfer statuses
+#[allow(dead_code)]
 const VALID_GL_TRANSFER_STATUSES: &[&str] = &[
     "pending", "transferred", "failed",
 ];

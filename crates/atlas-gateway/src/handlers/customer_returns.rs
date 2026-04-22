@@ -17,6 +17,7 @@ use uuid::Uuid;
 use tracing::error;
 
 fn default_standard_return() -> String { "standard_return".to_string() }
+#[allow(dead_code)]
 fn default_return_to_stock() -> String { "return_to_stock".to_string() }
 
 // ============================================================================
@@ -333,7 +334,7 @@ pub struct GenerateCreditMemoRequest {
 
 pub async fn generate_credit_memo(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(rma_id): Path<Uuid>,
     Json(req): Json<GenerateCreditMemoRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {

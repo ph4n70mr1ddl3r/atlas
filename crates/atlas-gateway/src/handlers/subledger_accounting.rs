@@ -12,7 +12,7 @@ use axum::{
     http::StatusCode,
     Extension,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use crate::AppState;
 use crate::handlers::auth::Claims;
 use std::sync::Arc;
@@ -266,7 +266,7 @@ pub async fn create_journal_entry(
 /// Get a journal entry
 pub async fn get_journal_entry(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sla_engine.get_journal_entry(id).await {
@@ -306,7 +306,7 @@ pub async fn list_journal_entries(
 /// Get journal lines for an entry
 pub async fn list_journal_lines(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(entry_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sla_engine.list_journal_lines(entry_id).await {
@@ -480,7 +480,7 @@ pub async fn transfer_to_gl(
 /// Get a transfer log
 pub async fn get_transfer_log(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sla_engine.get_transfer_log(id).await {

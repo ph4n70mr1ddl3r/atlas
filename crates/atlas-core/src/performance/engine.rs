@@ -17,48 +17,57 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid cycle types
+#[allow(dead_code)]
 const VALID_CYCLE_TYPES: &[&str] = &[
     "annual", "mid_year", "quarterly", "project_end", "probation",
 ];
 
 /// Valid cycle statuses
+#[allow(dead_code)]
 const VALID_CYCLE_STATUSES: &[&str] = &[
     "draft", "planning", "goal_setting", "self_evaluation",
     "manager_evaluation", "calibration", "completed", "cancelled",
 ];
 
 /// Valid document statuses
+#[allow(dead_code)]
 const VALID_DOCUMENT_STATUSES: &[&str] = &[
     "not_started", "goal_setting", "self_evaluation",
     "manager_evaluation", "calibration", "completed", "cancelled",
 ];
 
 /// Valid goal statuses
+#[allow(dead_code)]
 const VALID_GOAL_STATUSES: &[&str] = &[
     "draft", "active", "completed", "cancelled",
 ];
 
 /// Valid goal categories
+#[allow(dead_code)]
 const VALID_GOAL_CATEGORIES: &[&str] = &[
     "performance", "development", "project", "behavioral",
 ];
 
 /// Valid competency categories
+#[allow(dead_code)]
 const VALID_COMPETENCY_CATEGORIES: &[&str] = &[
     "core", "leadership", "technical", "functional",
 ];
 
 /// Valid feedback types
+#[allow(dead_code)]
 const VALID_FEEDBACK_TYPES: &[&str] = &[
     "peer", "manager", "direct_report", "external", "self",
 ];
 
 /// Valid feedback visibilities
+#[allow(dead_code)]
 const VALID_FEEDBACK_VISIBILITIES: &[&str] = &[
     "private", "manager_only", "manager_and_employee", "everyone",
 ];
 
 /// Valid feedback statuses
+#[allow(dead_code)]
 const VALID_FEEDBACK_STATUSES: &[&str] = &[
     "draft", "submitted", "acknowledged", "withdrawn",
 ];

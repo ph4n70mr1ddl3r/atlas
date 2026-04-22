@@ -5,7 +5,6 @@
 use atlas_shared::{
     AutoInvoiceBatch, AutoInvoiceLine, AutoInvoiceGroupingRule,
     AutoInvoiceValidationRule, AutoInvoiceResult, AutoInvoiceResultLine,
-    AutoInvoiceValidationError,
     AtlasError, AtlasResult,
 };
 use async_trait::async_trait;

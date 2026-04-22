@@ -1002,7 +1002,7 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let avg_util = if total_limit > 0.0 {
-            (total_exposure / total_limit * 100.0)
+            total_exposure / total_limit * 100.0
         } else {
             0.0
         };

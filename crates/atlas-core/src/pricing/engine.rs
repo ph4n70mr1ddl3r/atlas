@@ -620,7 +620,7 @@ impl PricingEngine {
             });
 
         // Step 2: Determine the base price from price list
-        let mut unit_list_price: f64 = 0.0;
+        #[allow(unused_assignments)] let mut unit_list_price: f64 = 0.0;
 
         // First try strategy's price list
         let pl_id = if let Some(ref strat) = strategy {

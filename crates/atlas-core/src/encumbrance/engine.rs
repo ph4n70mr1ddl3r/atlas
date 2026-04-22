@@ -17,27 +17,32 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid encumbrance categories
+#[allow(dead_code)]
 const VALID_CATEGORIES: &[&str] = &[
     "commitment", "obligation", "preliminary",
 ];
 
 /// Valid entry statuses
+#[allow(dead_code)]
 const VALID_ENTRY_STATUSES: &[&str] = &[
     "draft", "active", "partially_liquidated",
     "fully_liquidated", "cancelled", "expired",
 ];
 
 /// Valid liquidation types
+#[allow(dead_code)]
 const VALID_LIQUIDATION_TYPES: &[&str] = &[
     "full", "partial", "final",
 ];
 
 /// Valid liquidation statuses
+#[allow(dead_code)]
 const VALID_LIQUIDATION_STATUSES: &[&str] = &[
     "draft", "processed", "reversed",
 ];
 
 /// Valid carry-forward statuses
+#[allow(dead_code)]
 const VALID_CARRY_FORWARD_STATUSES: &[&str] = &[
     "draft", "processing", "completed", "reversed",
 ];

@@ -20,35 +20,42 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid area types
+#[allow(dead_code)]
 const VALID_AREA_TYPES: &[&str] = &[
     "questionnaire", "certificate", "financial", "site_visit", "reference", "other",
 ];
 
 /// Valid scoring models
+#[allow(dead_code)]
 const VALID_SCORING_MODELS: &[&str] = &["manual", "weighted", "pass_fail"];
 
 /// Valid question response types
+#[allow(dead_code)]
 const VALID_RESPONSE_TYPES: &[&str] = &[
     "text", "yes_no", "numeric", "date", "multi_choice", "file_upload",
 ];
 
 /// Valid initiative statuses
+#[allow(dead_code)]
 const VALID_INITIATIVE_STATUSES: &[&str] = &[
     "draft", "active", "pending_evaluations", "completed", "cancelled",
 ];
 
 /// Valid qualification purposes
+#[allow(dead_code)]
 const VALID_QUALIFICATION_PURPOSES: &[&str] = &[
     "new_supplier", "requalification", "compliance", "ad_hoc",
 ];
 
 /// Valid invitation statuses
+#[allow(dead_code)]
 const VALID_INVITATION_STATUSES: &[&str] = &[
     "initiated", "pending_response", "under_evaluation",
     "qualified", "disqualified", "expired", "withdrawn",
 ];
 
 /// Valid certification statuses
+#[allow(dead_code)]
 const VALID_CERTIFICATION_STATUSES: &[&str] = &[
     "active", "expired", "revoked", "pending_renewal",
 ];
@@ -502,7 +509,7 @@ impl SupplierQualificationEngine {
             invitation.supplier_name, percentage
         );
 
-        let updated = self
+        let _updated = self
             .repository
             .update_invitation_scores(
                 invitation_id,
@@ -731,8 +738,8 @@ impl SupplierQualificationEngine {
     pub async fn renew_certification(
         &self,
         id: Uuid,
-        new_expiry_date: chrono::NaiveDate,
-        new_certificate_number: Option<&str>,
+        _new_expiry_date: chrono::NaiveDate,
+        _new_certificate_number: Option<&str>,
     ) -> AtlasResult<SupplierCertification> {
         let cert = self
             .repository

@@ -25,8 +25,10 @@ fn default_ea() -> String { "EA".to_string() }
 fn default_storage() -> String { "storage".to_string() }
 fn default_manual() -> String { "manual".to_string() }
 fn default_usd() -> String { "USD".to_string() }
+#[allow(dead_code)]
 fn default_full() -> String { "full".to_string() }
 fn default_zero() -> String { "0".to_string() }
+#[allow(dead_code)]
 fn default_zero_tolerance() -> String { "0.0".to_string() }
 
 // ============================================================================

@@ -382,7 +382,7 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
     }
 
     async fn update_requisition_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>, approver_name: Option<&str>,
+        &self, id: Uuid, status: &str, approved_by: Option<Uuid>, _approver_name: Option<&str>,
     ) -> AtlasResult<PurchaseRequisition> {
         let row = if status == "approved" {
             sqlx::query(

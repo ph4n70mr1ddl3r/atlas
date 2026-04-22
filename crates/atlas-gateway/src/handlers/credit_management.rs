@@ -17,7 +17,7 @@ use crate::AppState;
 use crate::handlers::auth::Claims;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::error;
 
 // ============================================================================
 // Scoring Model Handlers
@@ -146,7 +146,7 @@ pub async fn create_profile(
 
 pub async fn get_profile(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.credit_management_engine.get_profile(id).await {
@@ -180,7 +180,7 @@ pub struct UpdateProfileStatusRequest {
 
 pub async fn update_profile_status(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateProfileStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -206,7 +206,7 @@ pub struct UpdateProfileScoreRequest {
 
 pub async fn update_profile_score(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateProfileScoreRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -285,7 +285,7 @@ pub async fn create_credit_limit(
 
 pub async fn list_credit_limits(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(profile_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.credit_management_engine.list_credit_limits(profile_id).await {
@@ -301,7 +301,7 @@ pub struct UpdateCreditLimitRequest {
 
 pub async fn update_credit_limit(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateCreditLimitRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -326,7 +326,7 @@ pub struct SetTempLimitRequest {
 
 pub async fn set_temp_limit(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<SetTempLimitRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {

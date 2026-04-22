@@ -4,7 +4,7 @@
 //! cash forecasts, and forecast lines.
 
 use atlas_shared::{
-    CashPosition, CashPositionSummary,
+    CashPosition,
     CashForecastTemplate, CashForecastSource,
     CashForecast, CashForecastLine,
     AtlasResult,

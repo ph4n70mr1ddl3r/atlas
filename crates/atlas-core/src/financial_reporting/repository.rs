@@ -200,6 +200,7 @@ impl PostgresFinancialReportingRepository {
 }
 
 fn row_to_template(row: &sqlx::postgres::PgRow) -> FinancialReportTemplate {
+    #[allow(dead_code)]
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
         v.to_string()

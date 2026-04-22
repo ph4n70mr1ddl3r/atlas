@@ -115,7 +115,7 @@ pub async fn create_item(
 /// Get an item by ID
 pub async fn get_item(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.get_item(id).await {
@@ -166,7 +166,7 @@ pub async fn list_items(
 /// Update item status
 pub async fn update_item_status(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -189,7 +189,7 @@ pub async fn update_item_status(
 /// Update item lifecycle phase
 pub async fn update_item_lifecycle(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -212,7 +212,7 @@ pub async fn update_item_lifecycle(
 /// Delete an item
 pub async fn delete_item(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
     match state.product_information_engine.delete_item(id).await {
@@ -265,7 +265,7 @@ pub async fn create_category(
 /// Get a category by ID
 pub async fn get_category(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.get_category(id).await {
@@ -294,7 +294,7 @@ pub async fn list_categories(
 /// Delete a category
 pub async fn delete_category(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
     match state.product_information_engine.delete_category(id).await {
@@ -349,7 +349,7 @@ pub async fn assign_item_category(
 /// List categories for an item
 pub async fn list_item_categories(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(item_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.list_item_categories(item_id).await {
@@ -361,7 +361,7 @@ pub async fn list_item_categories(
 /// Remove item from category
 pub async fn remove_item_category(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(assignment_id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
     match state.product_information_engine.remove_item_category(assignment_id).await {
@@ -415,7 +415,7 @@ pub async fn create_cross_reference(
 /// List cross-references for an item
 pub async fn list_cross_references(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(item_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.list_cross_references(item_id).await {
@@ -444,7 +444,7 @@ pub async fn list_all_cross_references(
 /// Delete a cross-reference
 pub async fn delete_cross_reference(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
     match state.product_information_engine.delete_cross_reference(id).await {
@@ -514,7 +514,7 @@ pub async fn list_templates(
 /// Delete a template
 pub async fn delete_template(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
     match state.product_information_engine.delete_template(id).await {
@@ -572,7 +572,7 @@ pub async fn create_new_item_request(
 /// Get a NIR by ID
 pub async fn get_new_item_request(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.get_new_item_request(id).await {
@@ -602,7 +602,7 @@ pub async fn list_new_item_requests(
 /// Submit a NIR for approval
 pub async fn submit_new_item_request(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.submit_new_item_request(id).await {
@@ -642,7 +642,7 @@ pub async fn approve_new_item_request(
 /// Reject a NIR
 pub async fn reject_new_item_request(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -664,7 +664,7 @@ pub async fn reject_new_item_request(
 /// Implement an approved NIR
 pub async fn implement_new_item_request(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.implement_new_item_request(id).await {
@@ -685,7 +685,7 @@ pub async fn implement_new_item_request(
 /// Cancel a NIR
 pub async fn cancel_new_item_request(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match state.product_information_engine.cancel_new_item_request(id).await {

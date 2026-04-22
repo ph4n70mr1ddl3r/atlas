@@ -274,7 +274,7 @@ pub async fn activate_enrollment(
 /// Waive a pending enrollment
 pub async fn waive_enrollment(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.benefits_engine.waive_enrollment(id).await {
@@ -298,7 +298,7 @@ pub struct CancelEnrollmentRequest {
 /// Cancel an enrollment
 pub async fn cancel_enrollment(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelEnrollmentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -318,7 +318,7 @@ pub async fn cancel_enrollment(
 /// Suspend an active enrollment
 pub async fn suspend_enrollment(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.benefits_engine.suspend_enrollment(id).await {
@@ -337,7 +337,7 @@ pub async fn suspend_enrollment(
 /// Reactivate a suspended enrollment
 pub async fn reactivate_enrollment(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.benefits_engine.reactivate_enrollment(id).await {

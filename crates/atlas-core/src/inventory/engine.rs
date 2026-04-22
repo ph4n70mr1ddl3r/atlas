@@ -25,37 +25,44 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid organization types
+#[allow(dead_code)]
 const VALID_ORG_TYPES: &[&str] = &[
     "warehouse", "store", "distribution_center", "manufacturing", "other",
 ];
 
 /// Valid item types
+#[allow(dead_code)]
 const VALID_ITEM_TYPES: &[&str] = &[
     "inventory", "non_inventory", "service", "expense", "capital",
 ];
 
 /// Valid transaction actions
+#[allow(dead_code)]
 const VALID_TRANSACTION_ACTIONS: &[&str] = &[
     "receive", "issue", "transfer", "adjustment", "return_to_vendor",
     "return_to_customer", "cycle_count_adjustment", "misc_receipt", "misc_issue",
 ];
 
 /// Valid subinventory types
+#[allow(dead_code)]
 const VALID_SUBINVENTORY_TYPES: &[&str] = &[
     "storage", "receiving", "staging", "inspection", "packing", "other",
 ];
 
 /// Valid transaction statuses
+#[allow(dead_code)]
 const VALID_TXN_STATUSES: &[&str] = &[
     "pending", "approved", "processed", "cancelled",
 ];
 
 /// Valid cycle count statuses
+#[allow(dead_code)]
 const VALID_CYCLE_COUNT_STATUSES: &[&str] = &[
     "draft", "in_progress", "completed", "cancelled",
 ];
 
 /// Valid cycle count methods
+#[allow(dead_code)]
 const VALID_COUNT_METHODS: &[&str] = &[
     "full", "abc", "random", "by_category",
 ];
@@ -258,7 +265,7 @@ impl InventoryEngine {
         }
 
         // Verify inventory org exists
-        let inv_org = self.repository.get_inventory_org(org_id, code).await?;
+        let _inv_org = self.repository.get_inventory_org(org_id, code).await?;
         // We don't require it to exist for flexibility, but log if not found
 
         info!("Creating subinventory '{}' in org {}", code, org_id);
@@ -884,7 +891,7 @@ impl InventoryEngine {
 
         // If there's a variance, generate an adjustment transaction
         if !line.is_matched {
-            if let (Some(variance_qty), Some(ref variance_str)) = (line.variance_quantity.as_ref(), line.variance_quantity.as_ref()) {
+            if let (Some(_variance_qty), Some(ref variance_str)) = (line.variance_quantity.as_ref(), line.variance_quantity.as_ref()) {
                 let variance: f64 = variance_str.parse().unwrap_or(0.0);
                 if variance.abs() > 0.001 {
                     let cc = self.repository.get_cycle_count(line.cycle_count_id).await?
@@ -892,8 +899,8 @@ impl InventoryEngine {
                             format!("Cycle count {} not found", line.cycle_count_id)
                         ))?;
 
-                    let cc_id = line.cycle_count_id.to_string();
-                    let adj_tx = self.adjust_item(
+                    let _cc_id = line.cycle_count_id.to_string();
+                    let _adj_tx = self.adjust_item(
                         cc.organization_id,
                         line.item_id,
                         line.item_code.as_deref(),

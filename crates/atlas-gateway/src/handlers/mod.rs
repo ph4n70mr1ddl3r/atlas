@@ -2115,6 +2115,7 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Work Order Operations & Materials
         .route("/manufacturing/work-orders/:id/operations", get(manufacturing::list_work_order_operations))
+        .route("/manufacturing/work-orders/operations/:id/status", post(manufacturing::update_operation_status))
         .route("/manufacturing/work-orders/:id/materials", get(manufacturing::list_work_order_materials))
 
         // Manufacturing Dashboard

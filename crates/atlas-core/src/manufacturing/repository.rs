@@ -1033,9 +1033,15 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
             0.0
         };
 
-        let on_time = completed_work_orders - overdue_orders.max(0);
-        let on_time_pct = if total_work_orders > 0 {
-            (on_time as f64 / total_work_orders as f64) * 100.0
+        // on_time % = completed orders that were not overdue at completion time.
+        // overdue_orders counts non-completed orders past their due_date, so they are disjoint.
+        // A proper metric would need a separate query tracking completed-before-due vs completed-after-due.
+        // For now, compute as completed / max(completed, 1) as a baseline.
+        let on_time_pct = if completed_work_orders > 0 {
+            // If no overdue orders exist, assume all completions were on time
+            // Otherwise, we can only say the non-overdue fraction
+            let assumed_on_time = (completed_work_orders - overdue_orders.min(completed_work_orders).max(0)) as f64;
+            (assumed_on_time / completed_work_orders as f64) * 100.0
         } else {
             100.0
         };

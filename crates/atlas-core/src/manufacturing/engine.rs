@@ -37,6 +37,9 @@ const VALID_OPERATION_STATUSES: &[&str] = &[
 ];
 
 /// Valid material statuses
+///
+/// Included for documentation and future validation use.
+#[allow(dead_code)]
 const VALID_MATERIAL_STATUSES: &[&str] = &[
     "pending", "partially_issued", "fully_issued", "returned", "short",
 ];
@@ -114,9 +117,13 @@ impl ManufacturingEngine {
     }
 
     /// Activate a work definition (makes it available for creating work orders)
-    pub async fn activate_work_definition(&self, id: Uuid) -> AtlasResult<WorkDefinition> {
+    pub async fn activate_work_definition(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkDefinition> {
         let def = self.repository.get_work_definition_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {} not found", id)))?;
+
+        if def.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work definition does not belong to your organization".to_string()));
+        }
 
         if def.status != "draft" && def.status != "inactive" {
             return Err(AtlasError::WorkflowError(format!(
@@ -145,9 +152,13 @@ impl ManufacturingEngine {
     }
 
     /// Deactivate a work definition
-    pub async fn deactivate_work_definition(&self, id: Uuid) -> AtlasResult<WorkDefinition> {
+    pub async fn deactivate_work_definition(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkDefinition> {
         let def = self.repository.get_work_definition_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {} not found", id)))?;
+
+        if def.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work definition does not belong to your organization".to_string()));
+        }
 
         if def.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -161,9 +172,13 @@ impl ManufacturingEngine {
     }
 
     /// Delete a work definition (only draft)
-    pub async fn delete_work_definition(&self, id: Uuid) -> AtlasResult<()> {
+    pub async fn delete_work_definition(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let def = self.repository.get_work_definition_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {} not found", id)))?;
+
+        if def.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work definition does not belong to your organization".to_string()));
+        }
 
         if def.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -425,9 +440,13 @@ impl ManufacturingEngine {
     }
 
     /// Release a draft work order (moves to released, ready for production)
-    pub async fn release_work_order(&self, id: Uuid) -> AtlasResult<WorkOrder> {
+    pub async fn release_work_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+
+        if wo.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
+        }
 
         if wo.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -441,9 +460,13 @@ impl ManufacturingEngine {
     }
 
     /// Start a released work order (production begins)
-    pub async fn start_work_order(&self, id: Uuid) -> AtlasResult<WorkOrder> {
+    pub async fn start_work_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+
+        if wo.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
+        }
 
         if wo.status != "released" {
             return Err(AtlasError::WorkflowError(format!(
@@ -460,14 +483,18 @@ impl ManufacturingEngine {
             self.repository.update_work_order_operation_status(first_op.id, "running").await?;
         }
 
-        let updated = self.repository.update_work_order_status(id, "started").await?;
+        self.repository.update_work_order_status(id, "started").await?;
         self.repository.update_work_order_dates(id, Some(chrono::Utc::now().date_naive()), None).await
     }
 
     /// Complete a work order (production finished)
-    pub async fn complete_work_order(&self, id: Uuid) -> AtlasResult<WorkOrder> {
+    pub async fn complete_work_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+
+        if wo.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
+        }
 
         if wo.status != "started" {
             return Err(AtlasError::WorkflowError(format!(
@@ -491,9 +518,13 @@ impl ManufacturingEngine {
     }
 
     /// Close a completed work order
-    pub async fn close_work_order(&self, id: Uuid) -> AtlasResult<WorkOrder> {
+    pub async fn close_work_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+
+        if wo.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
+        }
 
         if wo.status != "completed" {
             return Err(AtlasError::WorkflowError(format!(
@@ -507,9 +538,13 @@ impl ManufacturingEngine {
     }
 
     /// Cancel a work order
-    pub async fn cancel_work_order(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<WorkOrder> {
+    pub async fn cancel_work_order(&self, org_id: Uuid, id: Uuid, reason: Option<&str>) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+
+        if wo.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
+        }
 
         if wo.status == "closed" || wo.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
@@ -530,11 +565,16 @@ impl ManufacturingEngine {
     /// Report production completion (against a specific operation or the order)
     pub async fn report_completion(
         &self,
+        org_id: Uuid,
         work_order_id: Uuid,
         req: ReportCompletionRequest,
     ) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(work_order_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", work_order_id)))?;
+
+        if wo.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
+        }
 
         if wo.status != "started" {
             return Err(AtlasError::WorkflowError(format!(
@@ -652,11 +692,16 @@ impl ManufacturingEngine {
     /// Issue materials to a work order
     pub async fn issue_materials(
         &self,
+        org_id: Uuid,
         work_order_id: Uuid,
         issues: Vec<IssueMaterialRequest>,
     ) -> AtlasResult<Vec<WorkOrderMaterial>> {
         let wo = self.repository.get_work_order_by_id(work_order_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", work_order_id)))?;
+
+        if wo.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
+        }
 
         if wo.status != "released" && wo.status != "started" {
             return Err(AtlasError::WorkflowError(format!(
@@ -705,11 +750,16 @@ impl ManufacturingEngine {
     /// Return excess materials from a work order
     pub async fn return_material(
         &self,
+        org_id: Uuid,
         material_id: Uuid,
         quantity_returned: &str,
     ) -> AtlasResult<WorkOrderMaterial> {
         let mat = self.repository.get_work_order_material(material_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Material {} not found", material_id)))?;
+
+        if mat.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Material does not belong to your organization".to_string()));
+        }
 
         let qty: f64 = quantity_returned.parse().map_err(|_| AtlasError::ValidationFailed(
             "Quantity returned must be a valid number".to_string(),
@@ -728,7 +778,21 @@ impl ManufacturingEngine {
         }
 
         info!("Returning {} units of {} from work order", qty, mat.component_item_code);
-        self.repository.update_work_order_material_return(material_id, quantity_returned).await
+        let updated = self.repository.update_work_order_material_return(material_id, quantity_returned).await?;
+
+        // Update status based on net issued quantity after return
+        let new_issued: f64 = updated.quantity_issued.parse().unwrap_or(0.0);
+        let new_returned: f64 = updated.quantity_returned.parse().unwrap_or(0.0);
+        let required: f64 = updated.quantity_required.parse().unwrap_or(0.0);
+        let net_issued = new_issued - new_returned;
+        let new_status = if net_issued <= 0.0 {
+            "returned"
+        } else if net_issued < required {
+            "partially_issued"
+        } else {
+            "fully_issued"
+        };
+        self.repository.update_work_order_material_status(material_id, new_status).await
     }
 
     // ========================================================================
@@ -741,7 +805,7 @@ impl ManufacturingEngine {
     }
 
     /// Move an operation to a specific status
-    pub async fn update_operation_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkOrderOperation> {
+    pub async fn update_operation_status(&self, org_id: Uuid, id: Uuid, status: &str) -> AtlasResult<WorkOrderOperation> {
         if !VALID_OPERATION_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid operation status '{}'. Must be one of: {}", status, VALID_OPERATION_STATUSES.join(", ")
@@ -750,6 +814,10 @@ impl ManufacturingEngine {
 
         let op = self.repository.get_work_order_operation(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Operation {} not found", id)))?;
+
+        if op.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Operation does not belong to your organization".to_string()));
+        }
 
         info!("Updating operation {} (seq {}) to status {}", op.operation_name, op.operation_sequence, status);
         self.repository.update_work_order_operation_status(id, status).await
@@ -1515,7 +1583,7 @@ mod tests {
         }).await.unwrap();
 
         // Should fail to activate without BOM + routing
-        let result = engine.activate_work_definition(def.id).await;
+        let result = engine.activate_work_definition(org_id, def.id).await;
         assert!(result.is_err());
         let msg = format!("{:?}", result.unwrap_err());
         assert!(msg.contains("without any components") || msg.contains("without any operations"));
@@ -1544,7 +1612,7 @@ mod tests {
         ).await.unwrap();
 
         // Should now activate
-        let result = engine.activate_work_definition(def.id).await;
+        let result = engine.activate_work_definition(org_id, def.id).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, "active");
     }
@@ -1563,7 +1631,7 @@ mod tests {
         // Add component + operation then activate
         engine.add_work_definition_component(org_id, def.id, "COMP-01", "1", "EA").await.unwrap();
         engine.add_work_definition_operation(org_id, def.id, 10, "Cut", None).await.unwrap();
-        engine.activate_work_definition(def.id).await.unwrap();
+        engine.activate_work_definition(org_id, def.id).await.unwrap();
 
         // Should fail to add component to active definition
         let result = engine.add_work_definition_component(
@@ -1643,21 +1711,21 @@ mod tests {
         }).await.unwrap();
 
         // Release
-        let wo = engine.release_work_order(wo.id).await.unwrap();
+        let wo = engine.release_work_order(org_id, wo.id).await.unwrap();
         assert_eq!(wo.status, "released");
 
         // Start
-        let wo = engine.start_work_order(wo.id).await.unwrap();
+        let wo = engine.start_work_order(org_id, wo.id).await.unwrap();
         assert_eq!(wo.status, "started");
         assert!(wo.actual_start_date.is_some());
 
         // Complete
-        let wo = engine.complete_work_order(wo.id).await.unwrap();
+        let wo = engine.complete_work_order(org_id, wo.id).await.unwrap();
         assert_eq!(wo.status, "completed");
         assert!(wo.actual_completion_date.is_some());
 
         // Close
-        let wo = engine.close_work_order(wo.id).await.unwrap();
+        let wo = engine.close_work_order(org_id, wo.id).await.unwrap();
         assert_eq!(wo.status, "closed");
     }
 
@@ -1673,10 +1741,10 @@ mod tests {
         }).await.unwrap();
 
         // Release first
-        engine.release_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
 
         // Try to release again
-        let result = engine.release_work_order(wo.id).await;
+        let result = engine.release_work_order(org_id, wo.id).await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Must be 'draft'"));
     }
@@ -1692,7 +1760,7 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        let result = engine.cancel_work_order(wo.id, Some("Customer cancelled")).await;
+        let result = engine.cancel_work_order(org_id, wo.id, Some("Customer cancelled")).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, "cancelled");
     }
@@ -1708,12 +1776,12 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        engine.release_work_order(wo.id).await.unwrap();
-        engine.start_work_order(wo.id).await.unwrap();
-        engine.complete_work_order(wo.id).await.unwrap();
-        engine.close_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
+        engine.start_work_order(org_id, wo.id).await.unwrap();
+        engine.complete_work_order(org_id, wo.id).await.unwrap();
+        engine.close_work_order(org_id, wo.id).await.unwrap();
 
-        let result = engine.cancel_work_order(wo.id, None).await;
+        let result = engine.cancel_work_order(org_id, wo.id, None).await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Cannot cancel"));
     }
@@ -1733,11 +1801,11 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        engine.release_work_order(wo.id).await.unwrap();
-        engine.start_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
+        engine.start_work_order(org_id, wo.id).await.unwrap();
 
         // Report partial completion of 40 units
-        let result = engine.report_completion(wo.id, ReportCompletionRequest {
+        let result = engine.report_completion(org_id, wo.id, ReportCompletionRequest {
             operation_sequence: None,
             quantity_completed: "40".to_string(),
             quantity_scrapped: "5".to_string(),
@@ -1766,11 +1834,11 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        engine.release_work_order(wo.id).await.unwrap();
-        engine.start_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
+        engine.start_work_order(org_id, wo.id).await.unwrap();
 
         // Report full completion
-        let result = engine.report_completion(wo.id, ReportCompletionRequest {
+        let result = engine.report_completion(org_id, wo.id, ReportCompletionRequest {
             operation_sequence: None,
             quantity_completed: "95".to_string(),
             quantity_scrapped: "5".to_string(),
@@ -1795,10 +1863,10 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        engine.release_work_order(wo.id).await.unwrap();
-        engine.start_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
+        engine.start_work_order(org_id, wo.id).await.unwrap();
 
-        let result = engine.report_completion(wo.id, ReportCompletionRequest {
+        let result = engine.report_completion(org_id, wo.id, ReportCompletionRequest {
             operation_sequence: None,
             quantity_completed: "101".to_string(),
             quantity_scrapped: "0".to_string(),
@@ -1821,7 +1889,7 @@ mod tests {
         }).await.unwrap();
 
         // Try to report on a draft order
-        let result = engine.report_completion(wo.id, ReportCompletionRequest {
+        let result = engine.report_completion(org_id, wo.id, ReportCompletionRequest {
             operation_sequence: None,
             quantity_completed: "50".to_string(),
             quantity_scrapped: "0".to_string(),
@@ -1848,7 +1916,7 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        engine.release_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
 
         // Create a material requirement manually
         let mat = repo_clone.create_work_order_material(
@@ -1857,7 +1925,7 @@ mod tests {
         ).await.unwrap();
 
         // Issue 150 units
-        let result = engine.issue_materials(wo.id, vec![
+        let result = engine.issue_materials(org_id, wo.id, vec![
             IssueMaterialRequest {
                 material_id: mat.id,
                 quantity_issued: "150".to_string(),
@@ -1882,7 +1950,7 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        engine.release_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
 
         let mat = repo_clone.create_work_order_material(
             org_id, wo.id, None, None, "RAW-01", Some("Raw Material"),
@@ -1890,7 +1958,7 @@ mod tests {
         ).await.unwrap();
 
         // Issue full 200 units
-        let result = engine.issue_materials(wo.id, vec![
+        let result = engine.issue_materials(org_id, wo.id, vec![
             IssueMaterialRequest {
                 material_id: mat.id,
                 quantity_issued: "200".to_string(),
@@ -1913,7 +1981,7 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        engine.release_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
 
         let mat = repo_clone.create_work_order_material(
             org_id, wo.id, None, None, "RAW-01", Some("Raw Material"),
@@ -1921,7 +1989,7 @@ mod tests {
         ).await.unwrap();
 
         // Try to issue more than required
-        let result = engine.issue_materials(wo.id, vec![
+        let result = engine.issue_materials(org_id, wo.id, vec![
             IssueMaterialRequest {
                 material_id: mat.id,
                 quantity_issued: "250".to_string(),
@@ -1944,7 +2012,7 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        engine.release_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
 
         let mat = repo_clone.create_work_order_material(
             org_id, wo.id, None, None, "RAW-01", Some("Raw Material"),
@@ -1952,12 +2020,12 @@ mod tests {
         ).await.unwrap();
 
         // Issue 200
-        engine.issue_materials(wo.id, vec![
+        engine.issue_materials(org_id, wo.id, vec![
             IssueMaterialRequest { material_id: mat.id, quantity_issued: "200".to_string() },
         ]).await.unwrap();
 
         // Return 50
-        let result = engine.return_material(mat.id, "50").await;
+        let result = engine.return_material(org_id, mat.id, "50").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().quantity_returned, "50.0000");
     }
@@ -1974,7 +2042,7 @@ mod tests {
             ..Default::default()
         }).await.unwrap();
 
-        engine.release_work_order(wo.id).await.unwrap();
+        engine.release_work_order(org_id, wo.id).await.unwrap();
 
         let mat = repo_clone.create_work_order_material(
             org_id, wo.id, None, None, "RAW-01", Some("Raw Material"),
@@ -1982,12 +2050,12 @@ mod tests {
         ).await.unwrap();
 
         // Issue only 100
-        engine.issue_materials(wo.id, vec![
+        engine.issue_materials(org_id, wo.id, vec![
             IssueMaterialRequest { material_id: mat.id, quantity_issued: "100".to_string() },
         ]).await.unwrap();
 
         // Try to return 150 (more than issued)
-        let result = engine.return_material(mat.id, "150").await;
+        let result = engine.return_material(org_id, mat.id, "150").await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Cannot return"));
     }
@@ -2014,7 +2082,7 @@ mod tests {
         engine.add_work_definition_component(org_id, def.id, "COMP-B", "3", "EA").await.unwrap();
         engine.add_work_definition_operation(org_id, def.id, 10, "Cut", Some("WC-01")).await.unwrap();
         engine.add_work_definition_operation(org_id, def.id, 20, "Assemble", Some("WC-02")).await.unwrap();
-        engine.activate_work_definition(def.id).await.unwrap();
+        engine.activate_work_definition(org_id, def.id).await.unwrap();
 
         // Create a work order from the definition
         let wo = engine.create_work_order(org_id, CreateWorkOrderRequest {

@@ -50,6 +50,7 @@ use atlas_core::{
     OrderManagementEngine,
     ApprovalDelegationEngine,
     ManufacturingEngine,
+    WarehouseManagementEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -98,6 +99,7 @@ use atlas_core::{
     order_management::PostgresOrderManagementRepository,
     approval_delegation::PostgresApprovalDelegationRepository,
     manufacturing::PostgresManufacturingRepository,
+    warehouse_management::PostgresWarehouseManagementRepository,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -160,6 +162,7 @@ pub struct AppState {
     pub order_management_engine: Arc<OrderManagementEngine>,
     pub approval_delegation_engine: Arc<ApprovalDelegationEngine>,
     pub manufacturing_engine: Arc<ManufacturingEngine>,
+    pub warehouse_management_engine: Arc<WarehouseManagementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -437,6 +440,10 @@ impl AppState {
             PostgresManufacturingRepository::new(db_pool.clone())
         )));
 
+        let warehouse_management_engine = Arc::new(WarehouseManagementEngine::new(Arc::new(
+            PostgresWarehouseManagementRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -529,6 +536,7 @@ impl AppState {
             order_management_engine,
             approval_delegation_engine,
             manufacturing_engine,
+            warehouse_management_engine,
             event_bus,
             jwt_secret,
         };

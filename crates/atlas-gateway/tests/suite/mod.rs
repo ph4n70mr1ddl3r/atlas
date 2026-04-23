@@ -49,3 +49,4 @@ mod credit_management;
 mod product_information;
 mod transfer_pricing;
 mod approval_delegation;
+mod warehouse_management;

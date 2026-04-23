@@ -12336,3 +12336,135 @@ pub struct ManufacturingDashboard {
     pub on_time_completion_pct: String,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Warehouse Management (Oracle Fusion Cloud Warehouse Management)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Warehouse definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Warehouse {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub location_code: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Warehouse zone (e.g., receiving, bulk storage, picking, packing, staging)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WarehouseZone {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub warehouse_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub zone_type: String, // receiving, storage, picking, packing, staging, shipping
+    pub description: Option<String>,
+    pub aisle_count: Option<i32>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Put-away rule configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PutAwayRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub warehouse_id: Uuid,
+    pub rule_name: String,
+    pub description: Option<String>,
+    pub priority: i32,
+    /// Item category filter (optional – null means all categories)
+    pub item_category: Option<String>,
+    /// Zone type to route to
+    pub target_zone_type: String,
+    /// Strategy: closest, zone_rotation, fixed_location
+    pub strategy: String,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Warehouse task types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WarehouseTask {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub warehouse_id: Uuid,
+    pub task_number: String,
+    pub task_type: String, // pick, pack, put_away, load, receive
+    pub status: String,   // pending, in_progress, completed, cancelled
+    pub priority: String, // low, medium, high, urgent
+    pub source_document: Option<String>,
+    pub source_document_id: Option<Uuid>,
+    pub source_line_id: Option<Uuid>,
+    pub item_id: Option<Uuid>,
+    pub item_description: Option<String>,
+    pub from_zone_id: Option<Uuid>,
+    pub to_zone_id: Option<Uuid>,
+    pub from_location: Option<String>,
+    pub to_location: Option<String>,
+    pub quantity: Option<String>,
+    pub uom: Option<String>,
+    pub assigned_to: Option<Uuid>,
+    pub wave_id: Option<Uuid>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Pick wave for grouping picking tasks
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PickWave {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub warehouse_id: Uuid,
+    pub wave_number: String,
+    pub status: String, // draft, released, in_progress, completed, cancelled
+    pub priority: String,
+    pub cut_off_date: Option<chrono::NaiveDate>,
+    pub shipping_method: Option<String>,
+    pub total_tasks: i32,
+    pub completed_tasks: i32,
+    pub released_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Warehouse dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WarehouseDashboard {
+    pub total_warehouses: i64,
+    pub active_warehouses: i64,
+    pub total_zones: i64,
+    pub total_pending_tasks: i64,
+    pub total_in_progress_tasks: i64,
+    pub total_completed_tasks_today: i64,
+    pub total_active_waves: i64,
+    pub tasks_by_type: serde_json::Value,
+    pub tasks_by_priority: serde_json::Value,
+    pub wave_completion_pct: String,
+    pub recent_tasks: Vec<WarehouseTask>,
+}
+

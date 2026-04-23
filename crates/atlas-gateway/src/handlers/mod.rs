@@ -52,6 +52,7 @@ pub mod transfer_pricing;
 pub mod order_management;
 pub mod approval_delegation;
 pub mod manufacturing;
+pub mod warehouse_management;
 
 pub use schema::*;
 pub use records::*;
@@ -2086,7 +2087,7 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/manufacturing/definitions/:definition_number", get(manufacturing::get_work_definition))
         .route("/manufacturing/definitions/:id/activate", post(manufacturing::activate_work_definition))
         .route("/manufacturing/definitions/:id/deactivate", post(manufacturing::deactivate_work_definition))
-        .route("/manufacturing/definitions/:id", delete(manufacturing::delete_work_definition))
+        .route("/manufacturing/definitions/delete/:id", delete(manufacturing::delete_work_definition))
 
         // Work Definition BOM Components
         .route("/manufacturing/definitions/:id/components", post(manufacturing::add_work_definition_component))
@@ -2120,6 +2121,48 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Manufacturing Dashboard
         .route("/manufacturing/dashboard", get(manufacturing::get_manufacturing_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Warehouse Management (Oracle Fusion Cloud Warehouse Management)
+        // ═══════════════════════════════════════════════════════
+
+        // Warehouses
+        .route("/warehouse/warehouses", post(warehouse_management::create_warehouse))
+        .route("/warehouse/warehouses", get(warehouse_management::list_warehouses))
+        .route("/warehouse/warehouses/:id", get(warehouse_management::get_warehouse))
+        .route("/warehouse/warehouses/:id/delete", delete(warehouse_management::delete_warehouse))
+
+        // Warehouse Zones
+        .route("/warehouse/warehouses/:id/zones", post(warehouse_management::create_zone))
+        .route("/warehouse/warehouses/:id/zones", get(warehouse_management::list_zones))
+        .route("/warehouse/zones/:id", delete(warehouse_management::delete_zone))
+
+        // Put-Away Rules
+        .route("/warehouse/warehouses/:id/put-away-rules", post(warehouse_management::create_put_away_rule))
+        .route("/warehouse/warehouses/:id/put-away-rules", get(warehouse_management::list_put_away_rules))
+        .route("/warehouse/put-away-rules/:id", delete(warehouse_management::delete_put_away_rule))
+
+        // Warehouse Tasks
+        .route("/warehouse/tasks", post(warehouse_management::create_task))
+        .route("/warehouse/warehouses/:id/tasks", post(warehouse_management::create_task_for_warehouse))
+        .route("/warehouse/tasks", get(warehouse_management::list_tasks))
+        .route("/warehouse/tasks/:id", get(warehouse_management::get_task))
+        .route("/warehouse/tasks/:id/start", post(warehouse_management::start_task))
+        .route("/warehouse/tasks/:id/complete", post(warehouse_management::complete_task))
+        .route("/warehouse/tasks/:id/cancel", post(warehouse_management::cancel_task))
+        .route("/warehouse/tasks/:id", delete(warehouse_management::delete_task))
+
+        // Pick Waves
+        .route("/warehouse/warehouses/:id/waves", post(warehouse_management::create_wave))
+        .route("/warehouse/waves", get(warehouse_management::list_waves))
+        .route("/warehouse/waves/:id", get(warehouse_management::get_wave))
+        .route("/warehouse/waves/:id/release", post(warehouse_management::release_wave))
+        .route("/warehouse/waves/:id/complete", post(warehouse_management::complete_wave))
+        .route("/warehouse/waves/:id/cancel", post(warehouse_management::cancel_wave))
+        .route("/warehouse/waves/:id", delete(warehouse_management::delete_wave))
+
+        // Warehouse Dashboard
+        .route("/warehouse/dashboard", get(warehouse_management::get_warehouse_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

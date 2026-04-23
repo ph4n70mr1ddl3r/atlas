@@ -74,6 +74,7 @@ pub mod transfer_pricing;
 pub mod order_management;
 pub mod approval_delegation;
 pub mod manufacturing;
+pub mod warehouse_management;
 
 pub use schema::*;
 pub use workflow::{
@@ -149,6 +150,7 @@ pub use transfer_pricing::{TransferPricingEngine, PostgresTransferPricingReposit
 pub use order_management::{OrderManagementEngine, PostgresOrderManagementRepository as PostgresOrderManagementRepo};
 pub use approval_delegation::{ApprovalDelegationEngine, PostgresApprovalDelegationRepository as PostgresApprovalDelegationRepo};
 pub use manufacturing::{ManufacturingEngine, PostgresManufacturingRepository as PostgresManufacturingRepo};
+pub use warehouse_management::{WarehouseManagementEngine, PostgresWarehouseManagementRepository as PostgresWarehouseManagementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

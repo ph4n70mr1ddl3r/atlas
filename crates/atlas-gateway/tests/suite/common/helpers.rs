@@ -12,6 +12,7 @@ use atlas_core::{
     ManualJournalEngine,
     ScheduledProcessEngine,
     ApprovalDelegationEngine,
+    WarehouseManagementEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -336,6 +337,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         manufacturing_engine: Arc::new(atlas_core::ManufacturingEngine::new(Arc::new(
             atlas_core::manufacturing::PostgresManufacturingRepository::new(db_pool.clone()),
         ))),
+        warehouse_management_engine: Arc::new(WarehouseManagementEngine::new(Arc::new(
+            atlas_core::warehouse_management::PostgresWarehouseManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -607,4 +611,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     // Clean approval delegation test data
     sqlx::query("DELETE FROM _atlas.approval_delegation_history").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.approval_delegation_rules").execute(pool).await.ok();
+    // Clean warehouse management test data
+    sqlx::query("DELETE FROM _atlas.warehouse_tasks").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.pick_waves").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.put_away_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.warehouse_zones").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.warehouses").execute(pool).await.ok();
 }

@@ -53,6 +53,7 @@ pub mod order_management;
 pub mod approval_delegation;
 pub mod manufacturing;
 pub mod warehouse_management;
+pub mod absence;
 
 pub use schema::*;
 pub use records::*;
@@ -2163,6 +2164,41 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Warehouse Dashboard
         .route("/warehouse/dashboard", get(warehouse_management::get_warehouse_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════
+        // Absence Management (Oracle Fusion Cloud HCM)
+        // ═══════════════════════════════════════════════════════════════
+
+        // Absence Types
+        .route("/absence/types", post(absence::create_absence_type))
+        .route("/absence/types", get(absence::list_absence_types))
+        .route("/absence/types/:code", get(absence::get_absence_type))
+        .route("/absence/types/:code", delete(absence::delete_absence_type))
+
+        // Absence Plans
+        .route("/absence/plans", post(absence::create_absence_plan))
+        .route("/absence/plans", get(absence::list_absence_plans))
+        .route("/absence/plans/:code", get(absence::get_absence_plan))
+        .route("/absence/plans/:code", delete(absence::delete_absence_plan))
+
+        // Absence Entries
+        .route("/absence/entries", post(absence::create_entry))
+        .route("/absence/entries", get(absence::list_entries))
+        .route("/absence/entries/:id", get(absence::get_entry))
+        .route("/absence/entries/:id/submit", post(absence::submit_entry))
+        .route("/absence/entries/:id/approve", post(absence::approve_entry))
+        .route("/absence/entries/:id/reject", post(absence::reject_entry))
+        .route("/absence/entries/:id/cancel", post(absence::cancel_entry))
+
+        // Absence Entry History
+        .route("/absence/entries/:id/history", get(absence::get_entry_history))
+
+        // Absence Balances
+        .route("/absence/balances", get(absence::get_balance))
+        .route("/absence/balances/list", get(absence::list_balances))
+
+        // Absence Dashboard
+        .route("/absence/dashboard", get(absence::get_absence_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

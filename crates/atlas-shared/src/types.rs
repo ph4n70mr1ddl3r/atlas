@@ -12468,3 +12468,136 @@ pub struct WarehouseDashboard {
     pub recent_tasks: Vec<WarehouseTask>,
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// Absence Management (Oracle Fusion Cloud HCM Absence Management)
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Absence type definition (e.g., vacation, sick, parental)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbsenceType {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub category: String,
+    pub plan_type: String,
+    pub requires_approval: bool,
+    pub requires_documentation: bool,
+    pub auto_approve_below_days: String,
+    pub allow_negative_balance: bool,
+    pub allow_half_day: bool,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Absence plan with accrual rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbsencePlan {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub absence_type_id: Uuid,
+    pub accrual_frequency: String,
+    pub accrual_rate: String,
+    pub accrual_unit: String,
+    pub carry_over_max: Option<String>,
+    pub carry_over_expiry_months: Option<i32>,
+    pub max_balance: Option<String>,
+    pub probation_period_days: i32,
+    pub prorate_first_year: bool,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Employee absence balance for a given period
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbsenceBalance {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub employee_id: Uuid,
+    pub plan_id: Uuid,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub accrued: String,
+    pub taken: String,
+    pub adjusted: String,
+    pub carried_over: String,
+    pub remaining: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Individual absence entry (leave request/record)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbsenceEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub employee_id: Uuid,
+    pub employee_name: Option<String>,
+    pub absence_type_id: Uuid,
+    pub plan_id: Option<Uuid>,
+    pub entry_number: String,
+    pub status: String,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub duration_days: String,
+    pub duration_hours: Option<String>,
+    pub is_half_day: bool,
+    pub half_day_period: Option<String>,
+    pub reason: Option<String>,
+    pub comments: Option<String>,
+    pub documentation_provided: bool,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    pub cancelled_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Absence entry history (audit trail)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbsenceEntryHistory {
+    pub id: Uuid,
+    pub entry_id: Uuid,
+    pub action: String,
+    pub from_status: Option<String>,
+    pub to_status: Option<String>,
+    pub performed_by: Option<Uuid>,
+    pub comment: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Absence management dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbsenceDashboard {
+    pub total_types: i64,
+    pub active_types: i64,
+    pub total_plans: i64,
+    pub active_plans: i64,
+    pub pending_entries: i64,
+    pub approved_entries_today: i64,
+    pub entries_by_status: serde_json::Value,
+    pub entries_by_type: serde_json::Value,
+    pub recent_entries: Vec<AbsenceEntry>,
+}
+

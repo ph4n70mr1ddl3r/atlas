@@ -340,6 +340,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         warehouse_management_engine: Arc::new(WarehouseManagementEngine::new(Arc::new(
             atlas_core::warehouse_management::PostgresWarehouseManagementRepository::new(db_pool.clone()),
         ))),
+        absence_engine: Arc::new(atlas_core::AbsenceEngine::new(Arc::new(
+            atlas_core::absence::PostgresAbsenceRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -617,4 +620,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.put_away_rules").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.warehouse_zones").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.warehouses").execute(pool).await.ok();
+    // Clean absence management test data
+    sqlx::query("DELETE FROM _atlas.absence_entry_history").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.absence_balances").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.absence_entries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.absence_plans").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.absence_types").execute(pool).await.ok();
 }

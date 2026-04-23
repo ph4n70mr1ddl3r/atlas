@@ -859,6 +859,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         warehouse_management_engine: Arc::new(atlas_core::WarehouseManagementEngine::new(Arc::new(
             atlas_core::warehouse_management::PostgresWarehouseManagementRepository::new(db_pool.clone()),
         ))),
+        absence_engine: Arc::new(atlas_core::AbsenceEngine::new(Arc::new(
+            atlas_core::absence::PostgresAbsenceRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

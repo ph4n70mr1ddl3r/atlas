@@ -4058,3 +4058,76 @@ impl ProductInformationRepository for MockProductInformationRepository {
         })
     }
 }
+
+/// Mock absence repository for testing
+pub struct MockAbsenceRepository;
+
+#[async_trait]
+impl crate::absence::AbsenceRepository for MockAbsenceRepository {
+    async fn create_absence_type(
+        &self, _org_id: Uuid, _code: &str, _name: &str, _description: Option<&str>,
+        _category: &str, _plan_type: &str, _requires_approval: bool,
+        _requires_documentation: bool, _auto_approve_below_days: &str,
+        _allow_negative_balance: bool, _allow_half_day: bool, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AbsenceType> {
+        Ok(atlas_shared::AbsenceType {
+            id: Uuid::new_v4(), organization_id: _org_id, code: _code.to_string(),
+            name: _name.to_string(), description: _description.map(|s| s.to_string()),
+            category: _category.to_string(), plan_type: _plan_type.to_string(),
+            requires_approval: _requires_approval, requires_documentation: _requires_documentation,
+            auto_approve_below_days: _auto_approve_below_days.to_string(),
+            allow_negative_balance: _allow_negative_balance, allow_half_day: _allow_half_day,
+            is_active: true, metadata: serde_json::json!({}),
+            created_by: _created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_absence_type(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::AbsenceType>> { Ok(None) }
+    async fn list_absence_types(&self, _org_id: Uuid, _category: Option<&str>) -> AtlasResult<Vec<atlas_shared::AbsenceType>> { Ok(vec![]) }
+    async fn delete_absence_type(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+    async fn create_absence_plan(
+        &self, _org_id: Uuid, _code: &str, _name: &str, _description: Option<&str>,
+        _absence_type_id: Uuid, _accrual_frequency: &str, _accrual_rate: &str,
+        _accrual_unit: &str, _carry_over_max: Option<String>, _carry_over_expiry_months: Option<i32>,
+        _max_balance: Option<String>, _probation_period_days: i32, _prorate_first_year: bool,
+        _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AbsencePlan> {
+        Ok(atlas_shared::AbsencePlan {
+            id: Uuid::new_v4(), organization_id: _org_id, code: _code.to_string(),
+            name: _name.to_string(), description: _description.map(|s| s.to_string()),
+            absence_type_id: _absence_type_id, accrual_frequency: _accrual_frequency.to_string(),
+            accrual_rate: _accrual_rate.to_string(), accrual_unit: _accrual_unit.to_string(),
+            carry_over_max: _carry_over_max, carry_over_expiry_months: _carry_over_expiry_months,
+            max_balance: _max_balance, probation_period_days: _probation_period_days,
+            prorate_first_year: _prorate_first_year, is_active: true,
+            metadata: serde_json::json!({}), created_by: _created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_absence_plan(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::AbsencePlan>> { Ok(None) }
+    async fn get_plan_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AbsencePlan>> { Ok(None) }
+    async fn list_absence_plans(&self, _org_id: Uuid, _absence_type_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::AbsencePlan>> { Ok(vec![]) }
+    async fn delete_absence_plan(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+    async fn create_entry(
+        &self, _org_id: Uuid, _employee_id: Uuid, _employee_name: Option<&str>,
+        _absence_type_id: Uuid, _plan_id: Option<Uuid>, _entry_number: &str, _status: &str,
+        _start_date: chrono::NaiveDate, _end_date: chrono::NaiveDate, _duration_days: &str,
+        _duration_hours: Option<String>, _is_half_day: bool, _half_day_period: Option<&str>,
+        _reason: Option<&str>, _comments: Option<&str>, _documentation_provided: bool,
+        _approved_by: Option<&str>, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AbsenceEntry> { todo!() }
+    async fn get_entry(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AbsenceEntry>> { Ok(None) }
+    async fn list_entries(&self, _org_id: Uuid, _employee_id: Option<Uuid>, _absence_type_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::AbsenceEntry>> { Ok(vec![]) }
+    async fn update_entry_status(&self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _rejected_reason: Option<&str>, _cancelled_reason: Option<&str>) -> AtlasResult<atlas_shared::AbsenceEntry> { todo!() }
+    async fn find_overlapping_entries(&self, _org_id: Uuid, _employee_id: Uuid, _start_date: chrono::NaiveDate, _end_date: chrono::NaiveDate) -> AtlasResult<Vec<atlas_shared::AbsenceEntry>> { Ok(vec![]) }
+    async fn create_balance(
+        &self, _org_id: Uuid, _employee_id: Uuid, _plan_id: Uuid,
+        _period_start: chrono::NaiveDate, _period_end: chrono::NaiveDate,
+        _accrued: &str, _taken: &str, _adjusted: &str, _carried_over: &str, _remaining: &str,
+    ) -> AtlasResult<atlas_shared::AbsenceBalance> { todo!() }
+    async fn get_balance(&self, _employee_id: Uuid, _plan_id: Uuid, _period_start: chrono::NaiveDate, _period_end: chrono::NaiveDate) -> AtlasResult<Option<atlas_shared::AbsenceBalance>> { Ok(None) }
+    async fn get_balance_for_previous_period(&self, _employee_id: Uuid, _plan_id: Uuid, _current_period_start: chrono::NaiveDate) -> AtlasResult<Option<atlas_shared::AbsenceBalance>> { Ok(None) }
+    async fn list_balances(&self, _org_id: Uuid, _employee_id: Uuid) -> AtlasResult<Vec<atlas_shared::AbsenceBalance>> { Ok(vec![]) }
+    async fn update_balance(&self, _id: Uuid, _taken: &str, _adjusted: &str, _remaining: &str) -> AtlasResult<()> { Ok(()) }
+    async fn add_history(&self, _entry_id: Uuid, _action: &str, _from_status: Option<&str>, _to_status: Option<&str>, _performed_by: Option<Uuid>, _comment: Option<&str>) -> AtlasResult<()> { Ok(()) }
+    async fn get_entry_history(&self, _entry_id: Uuid) -> AtlasResult<Vec<atlas_shared::AbsenceEntryHistory>> { Ok(vec![]) }
+}

@@ -97,6 +97,13 @@ impl OrderManagementEngine {
         self.repository.get_order_by_id(id).await
     }
 
+    /// Get an order by ID, scoped to a specific organization.
+    /// Returns `Ok(None)` if the order doesn't exist **or** belongs to a different org.
+    pub async fn get_order_by_id_scoped(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<SalesOrder>> {
+        let order = self.repository.get_order_by_id(id).await?;
+        Ok(order.filter(|o| o.organization_id == org_id))
+    }
+
     /// List orders with optional filtering
     pub async fn list_orders(
         &self,
@@ -292,9 +299,26 @@ impl OrderManagementEngine {
         self.repository.get_order_line(id).await
     }
 
+    /// Get an order line by ID, scoped to a specific organization.
+    /// Returns `Ok(None)` if the line doesn't exist **or** belongs to a different org.
+    pub async fn get_order_line_scoped(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<SalesOrderLine>> {
+        let line = self.repository.get_order_line(id).await?;
+        Ok(line.filter(|l| l.organization_id == org_id))
+    }
+
     /// List all lines for an order
     pub async fn list_order_lines(&self, order_id: Uuid) -> AtlasResult<Vec<SalesOrderLine>> {
         self.repository.list_order_lines(order_id).await
+    }
+
+    /// List all lines for an order, scoped to a specific organization.
+    /// First verifies the order belongs to `org_id`, then returns its lines.
+    pub async fn list_order_lines_scoped(&self, org_id: Uuid, order_id: Uuid) -> AtlasResult<Vec<SalesOrderLine>> {
+        let order = self.repository.get_order_by_id(order_id).await?;
+        match order {
+            Some(o) if o.organization_id == org_id => self.repository.list_order_lines(order_id).await,
+            _ => Ok(vec![]),
+        }
     }
 
     /// Ship an order line (update quantities)
@@ -470,6 +494,16 @@ impl OrderManagementEngine {
     /// List holds for an order
     pub async fn list_holds(&self, order_id: Uuid, active_only: bool) -> AtlasResult<Vec<OrderHold>> {
         self.repository.list_holds(order_id, active_only).await
+    }
+
+    /// List holds for an order, scoped to a specific organization.
+    /// First verifies the order belongs to `org_id`, then returns its holds.
+    pub async fn list_holds_scoped(&self, org_id: Uuid, order_id: Uuid, active_only: bool) -> AtlasResult<Vec<OrderHold>> {
+        let order = self.repository.get_order_by_id(order_id).await?;
+        match order {
+            Some(o) if o.organization_id == org_id => self.repository.list_holds(order_id, active_only).await,
+            _ => Ok(vec![]),
+        }
     }
 
     /// Check if an order has any active holds

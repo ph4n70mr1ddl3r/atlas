@@ -81,10 +81,9 @@ pub async fn get_order_by_id(
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let _ = org_id; // TODO: add org-scoped get_order_by_id to repository
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.get_order_by_id(id).await {
+    match state.order_management_engine.get_order_by_id_scoped(org_id, id).await {
         Ok(Some(order)) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -243,10 +242,9 @@ pub async fn get_order_line(
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let _ = org_id; // TODO: add org-scoped get_order_line to repository
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.get_order_line(id).await {
+    match state.order_management_engine.get_order_line_scoped(org_id, id).await {
         Ok(Some(line)) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -262,10 +260,9 @@ pub async fn list_order_lines(
     Path(order_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let _ = org_id; // TODO: add org-scoped list_order_lines to repository
     let order_id = Uuid::parse_str(&order_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.list_order_lines(order_id).await {
+    match state.order_management_engine.list_order_lines_scoped(org_id, order_id).await {
         Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to list order lines for order {}: {}", order_id, e);
@@ -400,11 +397,11 @@ pub async fn list_holds(
     Path(order_id): Path<String>,
     Query(params): Query<ListHoldsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let order_id = Uuid::parse_str(&order_id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let active_only = params.active_only.unwrap_or(true);
 
-    match state.order_management_engine.list_holds(order_id, active_only).await {
+    match state.order_management_engine.list_holds_scoped(org_id, order_id, active_only).await {
         Ok(holds) => Ok(Json(serde_json::to_value(holds).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to list holds for order {}: {}", order_id, e);

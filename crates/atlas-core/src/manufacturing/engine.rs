@@ -856,6 +856,7 @@ mod tests {
     // Stateful Mock Repository
     // ========================================================================
 
+    #[allow(dead_code)]
     struct MockState {
         definitions: HashMap<Uuid, (String, WorkDefinition)>, // (status, def)
         components: HashMap<Uuid, WorkDefinitionComponent>,
@@ -894,6 +895,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn make_definition(id: Uuid, org_id: Uuid, def_number: &str, status: &str) -> WorkDefinition {
         WorkDefinition {
             id, organization_id: org_id,
@@ -916,6 +918,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn make_order(id: Uuid, org_id: Uuid, wo_number: &str, status: &str, qty: &str) -> WorkOrder {
         WorkOrder {
             id, organization_id: org_id,

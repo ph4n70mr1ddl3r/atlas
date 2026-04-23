@@ -333,6 +333,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         order_management_engine: Arc::new(atlas_core::OrderManagementEngine::new(Arc::new(
             atlas_core::order_management::PostgresOrderManagementRepository::new(db_pool.clone()),
         ))),
+        manufacturing_engine: Arc::new(atlas_core::ManufacturingEngine::new(Arc::new(
+            atlas_core::manufacturing::PostgresManufacturingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

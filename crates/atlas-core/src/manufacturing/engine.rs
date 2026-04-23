@@ -247,9 +247,17 @@ impl ManufacturingEngine {
         self.repository.list_work_definition_components(work_definition_id).await
     }
 
-    /// Remove a component from a work definition
-    pub async fn delete_work_definition_component(&self, id: Uuid) -> AtlasResult<()> {
-        self.repository.delete_work_definition_component(id).await
+    /// Remove a component from a work definition (org-scoped)
+    pub async fn delete_work_definition_component(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+        // Verify the component belongs to a definition in this org by checking all components
+        let all_defs = self.repository.list_work_definitions(org_id, None).await?;
+        for def in &all_defs {
+            let comps = self.repository.list_work_definition_components(def.id).await?;
+            if comps.iter().any(|c| c.id == id) {
+                return self.repository.delete_work_definition_component(id).await;
+            }
+        }
+        Err(AtlasError::EntityNotFound(format!("Component {} not found in your organization", id)))
     }
 
     // ========================================================================
@@ -300,9 +308,16 @@ impl ManufacturingEngine {
         self.repository.list_work_definition_operations(work_definition_id).await
     }
 
-    /// Remove an operation from a work definition
-    pub async fn delete_work_definition_operation(&self, id: Uuid) -> AtlasResult<()> {
-        self.repository.delete_work_definition_operation(id).await
+    /// Remove an operation from a work definition (org-scoped)
+    pub async fn delete_work_definition_operation(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+        let all_defs = self.repository.list_work_definitions(org_id, None).await?;
+        for def in &all_defs {
+            let ops = self.repository.list_work_definition_operations(def.id).await?;
+            if ops.iter().any(|o| o.id == id) {
+                return self.repository.delete_work_definition_operation(id).await;
+            }
+        }
+        Err(AtlasError::EntityNotFound(format!("Operation {} not found in your organization", id)))
     }
 
     // ========================================================================
@@ -890,7 +905,7 @@ mod tests {
             Self { state: self.state.clone() }
         }
 
-        fn as_repo(self) -> Arc<dyn ManufacturingRepository> {
+        fn into_repo(self) -> Arc<dyn ManufacturingRepository> {
             Arc::new(self)
         }
     }
@@ -1911,7 +1926,7 @@ mod tests {
     async fn test_issue_materials_success() {
         let repo = MockMfgRepo::new();
         let repo_clone = repo.cloned();
-        let engine = ManufacturingEngine::new(repo.as_repo());
+        let engine = ManufacturingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
         let wo = engine.create_work_order(org_id, CreateWorkOrderRequest {
@@ -1945,7 +1960,7 @@ mod tests {
     async fn test_issue_materials_fully_issued() {
         let repo = MockMfgRepo::new();
         let repo_clone = repo.cloned();
-        let engine = ManufacturingEngine::new(repo.as_repo());
+        let engine = ManufacturingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
         let wo = engine.create_work_order(org_id, CreateWorkOrderRequest {
@@ -1976,7 +1991,7 @@ mod tests {
     async fn test_issue_materials_exceeds_required() {
         let repo = MockMfgRepo::new();
         let repo_clone = repo.cloned();
-        let engine = ManufacturingEngine::new(repo.as_repo());
+        let engine = ManufacturingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
         let wo = engine.create_work_order(org_id, CreateWorkOrderRequest {
@@ -2007,7 +2022,7 @@ mod tests {
     async fn test_return_material_success() {
         let repo = MockMfgRepo::new();
         let repo_clone = repo.cloned();
-        let engine = ManufacturingEngine::new(repo.as_repo());
+        let engine = ManufacturingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
         let wo = engine.create_work_order(org_id, CreateWorkOrderRequest {
@@ -2037,7 +2052,7 @@ mod tests {
     async fn test_return_material_exceeds_issued() {
         let repo = MockMfgRepo::new();
         let repo_clone = repo.cloned();
-        let engine = ManufacturingEngine::new(repo.as_repo());
+        let engine = ManufacturingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
         let wo = engine.create_work_order(org_id, CreateWorkOrderRequest {

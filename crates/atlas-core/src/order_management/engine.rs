@@ -238,6 +238,10 @@ impl OrderManagementEngine {
         let order = self.repository.get_order_by_id(req.order_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", req.order_id)))?;
 
+        if order.organization_id != req.org_id {
+            return Err(AtlasError::Forbidden("Order does not belong to your organization".to_string()));
+        }
+
         if order.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot add lines to order in '{}' status. Must be 'draft'.",
@@ -1270,7 +1274,7 @@ mod tests {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let result = engine.add_order_line(
             AddOrderLineRequest {
-                org_id: Uuid::new_v4(),
+                org_id: test_org_id(),
                 order_id: Uuid::new_v4(),
                 item_code: Some("ITEM-01".to_string()),
                 item_description: Some("Widget".to_string()),
@@ -1289,7 +1293,7 @@ mod tests {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let result = engine.add_order_line(
             AddOrderLineRequest {
-                org_id: Uuid::new_v4(),
+                org_id: test_org_id(),
                 order_id: Uuid::new_v4(),
                 item_code: Some("ITEM-01".to_string()),
                 item_description: Some("Widget".to_string()),
@@ -1308,7 +1312,7 @@ mod tests {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let result = engine.add_order_line(
             AddOrderLineRequest {
-                org_id: Uuid::new_v4(),
+                org_id: test_org_id(),
                 order_id: Uuid::new_v4(),
                 item_code: Some("ITEM-01".to_string()),
                 item_description: Some("Widget".to_string()),
@@ -1326,7 +1330,7 @@ mod tests {
     #[tokio::test]
     async fn test_add_order_line_success() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
-        let org_id = Uuid::new_v4();
+        let org_id = test_org_id();
         let order_id = Uuid::new_v4();
         let result = engine.add_order_line(
             AddOrderLineRequest {

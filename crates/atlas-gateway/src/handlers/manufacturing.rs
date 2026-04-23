@@ -190,16 +190,7 @@ pub async fn delete_work_definition_component(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    // Verify the component's parent definition belongs to the user's org
-    let components = state.manufacturing_engine.list_work_definition_components(id).await.map_err(|e| {
-        error!("Failed to verify component: {}", e); StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    // The component ID itself won't have subcomponents; we need the parent work definition.
-    // Fetch the component by listing definition components – if the component's definition
-    // doesn't belong to this org the engine's own validation would catch it, but we
-    // add an explicit check here for defense-in-depth.
-    let _ = (org_id, components);
-    match state.manufacturing_engine.delete_work_definition_component(id).await {
+    match state.manufacturing_engine.delete_work_definition_component(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete component: {}", e);
@@ -261,14 +252,7 @@ pub async fn delete_work_definition_operation(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    // Verify the operation's parent definition belongs to the user's org.
-    // list_work_definition_operations takes a *work_definition_id*, not an operation id,
-    // so we can't use it here directly.  Instead, we rely on the engine to reject
-    // operations that belong to non-draft definitions (which already includes an org check
-    // via the definition lookup).  For defense-in-depth, we still parse org_id so the
-    // claim is validated.
-    let _ = org_id;
-    match state.manufacturing_engine.delete_work_definition_operation(id).await {
+    match state.manufacturing_engine.delete_work_definition_operation(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete operation: {}", e);

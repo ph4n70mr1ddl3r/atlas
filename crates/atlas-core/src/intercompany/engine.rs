@@ -600,11 +600,11 @@ mod tests {
 
         // Zero should fail validation
         let zero: f64 = "0".parse().unwrap();
-        assert!(!(zero > 0.0));
+        assert!(zero <= 0.0);
 
         // Negative should fail validation
         let neg: f64 = "-10".parse().unwrap();
-        assert!(!(neg > 0.0));
+        assert!(neg <= 0.0);
     }
 
     #[test]

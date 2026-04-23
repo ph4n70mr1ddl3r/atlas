@@ -77,9 +77,11 @@ pub async fn get_order(
 
 pub async fn get_order_by_id(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _ = org_id; // TODO: add org-scoped get_order_by_id to repository
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     match state.order_management_engine.get_order_by_id(id).await {
@@ -117,11 +119,13 @@ pub async fn list_orders(
 
 pub async fn submit_order(
     State(state): State<Arc<AppState>>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.submit_order(id).await {
+    match state.order_management_engine.submit_order(org_id, id).await {
         Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit order {}: {}", id, e);
@@ -137,11 +141,13 @@ pub async fn submit_order(
 
 pub async fn confirm_order(
     State(state): State<Arc<AppState>>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.confirm_order(id).await {
+    match state.order_management_engine.confirm_order(org_id, id).await {
         Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to confirm order {}: {}", id, e);
@@ -157,11 +163,13 @@ pub async fn confirm_order(
 
 pub async fn close_order(
     State(state): State<Arc<AppState>>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.close_order(id).await {
+    match state.order_management_engine.close_order(org_id, id).await {
         Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to close order {}: {}", id, e);
@@ -182,12 +190,14 @@ pub struct CancelOrderRequest {
 
 pub async fn cancel_order(
     State(state): State<Arc<AppState>>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
     Json(payload): Json<CancelOrderRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.cancel_order(id, payload.reason.as_deref()).await {
+    match state.order_management_engine.cancel_order(org_id, id, payload.reason.as_deref()).await {
         Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to cancel order {}: {}", id, e);
@@ -229,9 +239,11 @@ pub async fn add_order_line(
 
 pub async fn get_order_line(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _ = org_id; // TODO: add org-scoped get_order_line to repository
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     match state.order_management_engine.get_order_line(id).await {
@@ -246,9 +258,11 @@ pub async fn get_order_line(
 
 pub async fn list_order_lines(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(order_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _ = org_id; // TODO: add org-scoped list_order_lines to repository
     let order_id = Uuid::parse_str(&order_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     match state.order_management_engine.list_order_lines(order_id).await {
@@ -267,12 +281,14 @@ pub struct ShipLineRequest {
 
 pub async fn ship_order_line(
     State(state): State<Arc<AppState>>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
     Json(payload): Json<ShipLineRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.ship_order_line(id, &payload.quantity_shipped).await {
+    match state.order_management_engine.ship_order_line(org_id, id, &payload.quantity_shipped).await {
         Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to ship order line {}: {}", id, e);
@@ -293,12 +309,14 @@ pub struct CancelLineRequest {
 
 pub async fn cancel_order_line(
     State(state): State<Arc<AppState>>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
     Json(payload): Json<CancelLineRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.cancel_order_line(id, payload.reason.as_deref()).await {
+    match state.order_management_engine.cancel_order_line(org_id, id, payload.reason.as_deref()).await {
         Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to cancel order line {}: {}", id, e);
@@ -355,12 +373,13 @@ pub async fn apply_hold(
 
 pub async fn get_hold(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.get_hold(id).await {
+    match state.order_management_engine.get_hold(org_id, id).await {
         Ok(Some(hold)) => Ok(Json(serde_json::to_value(hold).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -377,10 +396,11 @@ pub struct ListHoldsQuery {
 
 pub async fn list_holds(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(order_id): Path<String>,
     Query(params): Query<ListHoldsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let order_id = Uuid::parse_str(&order_id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let active_only = params.active_only.unwrap_or(true);
 
@@ -404,10 +424,11 @@ pub async fn release_hold(
     Path(id): Path<String>,
     Json(payload): Json<ReleaseHoldRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.order_management_engine.release_hold(id, user_id, payload.released_by_name.as_deref()).await {
+    match state.order_management_engine.release_hold(org_id, id, user_id, payload.released_by_name.as_deref()).await {
         Ok(hold) => Ok(Json(serde_json::to_value(hold).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to release hold {}: {}", id, e);
@@ -472,12 +493,13 @@ pub async fn create_shipment(
 
 pub async fn get_shipment(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.get_shipment(id).await {
+    match state.order_management_engine.get_shipment(org_id, id).await {
         Ok(Some(shipment)) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -517,12 +539,14 @@ pub struct ConfirmShipmentRequest {
 
 pub async fn confirm_shipment(
     State(state): State<Arc<AppState>>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
     Json(payload): Json<ConfirmShipmentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.order_management_engine.confirm_shipment(id, payload.ship_date).await {
+    match state.order_management_engine.confirm_shipment(org_id, id, payload.ship_date).await {
         Ok(shipment) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to confirm shipment {}: {}", id, e);
@@ -544,13 +568,15 @@ pub struct UpdateTrackingRequest {
 
 pub async fn update_tracking(
     State(state): State<Arc<AppState>>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
     Json(payload): Json<UpdateTrackingRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     match state.order_management_engine.update_tracking(
-        id, payload.tracking_number.as_deref(), payload.estimated_delivery,
+        org_id, id, payload.tracking_number.as_deref(), payload.estimated_delivery,
     ).await {
         Ok(shipment) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
@@ -572,13 +598,15 @@ pub struct ConfirmDeliveryRequest {
 
 pub async fn confirm_delivery(
     State(state): State<Arc<AppState>>,
+    claims: Extension<Claims>,
     Path(id): Path<String>,
     Json(payload): Json<ConfirmDeliveryRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     match state.order_management_engine.confirm_delivery(
-        id, payload.delivery_date, payload.delivery_confirmation.as_deref(),
+        org_id, id, payload.delivery_date, payload.delivery_confirmation.as_deref(),
     ).await {
         Ok(shipment) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {

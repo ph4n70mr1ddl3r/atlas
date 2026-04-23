@@ -123,9 +123,13 @@ impl OrderManagementEngine {
     }
 
     /// Submit a draft order
-    pub async fn submit_order(&self, id: Uuid) -> AtlasResult<SalesOrder> {
+    pub async fn submit_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<SalesOrder> {
         let order = self.repository.get_order_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", id)))?;
+
+        if order.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Order does not belong to your organization".to_string()));
+        }
 
         if order.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -155,9 +159,13 @@ impl OrderManagementEngine {
     }
 
     /// Confirm a submitted order (begins fulfillment)
-    pub async fn confirm_order(&self, id: Uuid) -> AtlasResult<SalesOrder> {
+    pub async fn confirm_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<SalesOrder> {
         let order = self.repository.get_order_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", id)))?;
+
+        if order.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Order does not belong to your organization".to_string()));
+        }
 
         if order.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -172,9 +180,13 @@ impl OrderManagementEngine {
     }
 
     /// Close a completed order
-    pub async fn close_order(&self, id: Uuid) -> AtlasResult<SalesOrder> {
+    pub async fn close_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<SalesOrder> {
         let order = self.repository.get_order_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", id)))?;
+
+        if order.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Order does not belong to your organization".to_string()));
+        }
 
         if order.status != "delivered" && order.status != "shipped" {
             return Err(AtlasError::WorkflowError(format!(
@@ -188,9 +200,13 @@ impl OrderManagementEngine {
     }
 
     /// Cancel an order
-    pub async fn cancel_order(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<SalesOrder> {
+    pub async fn cancel_order(&self, org_id: Uuid, id: Uuid, reason: Option<&str>) -> AtlasResult<SalesOrder> {
         let order = self.repository.get_order_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", id)))?;
+
+        if order.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Order does not belong to your organization".to_string()));
+        }
 
         if order.status == "closed" || order.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
@@ -284,11 +300,16 @@ impl OrderManagementEngine {
     /// Ship an order line (update quantities)
     pub async fn ship_order_line(
         &self,
+        org_id: Uuid,
         id: Uuid,
         quantity_shipped: &str,
     ) -> AtlasResult<SalesOrderLine> {
         let line = self.repository.get_order_line(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {} not found", id)))?;
+
+        if line.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Order line does not belong to your organization".to_string()));
+        }
 
         if line.status == "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -335,9 +356,13 @@ impl OrderManagementEngine {
     }
 
     /// Cancel an order line
-    pub async fn cancel_order_line(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<SalesOrderLine> {
+    pub async fn cancel_order_line(&self, org_id: Uuid, id: Uuid, reason: Option<&str>) -> AtlasResult<SalesOrderLine> {
         let line = self.repository.get_order_line(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {} not found", id)))?;
+
+        if line.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Order line does not belong to your organization".to_string()));
+        }
 
         if line.status == "cancelled" {
             return Err(AtlasError::WorkflowError("Line is already cancelled".to_string()));
@@ -412,12 +437,17 @@ impl OrderManagementEngine {
     /// Release a hold
     pub async fn release_hold(
         &self,
+        org_id: Uuid,
         id: Uuid,
         released_by: Option<Uuid>,
         released_by_name: Option<&str>,
     ) -> AtlasResult<OrderHold> {
         let hold = self.repository.get_hold(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Hold {} not found", id)))?;
+
+        if hold.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Hold does not belong to your organization".to_string()));
+        }
 
         if !hold.is_active {
             return Err(AtlasError::WorkflowError("Hold is already released".to_string()));
@@ -429,8 +459,12 @@ impl OrderManagementEngine {
     }
 
     /// Get a single hold by ID
-    pub async fn get_hold(&self, id: Uuid) -> AtlasResult<Option<OrderHold>> {
-        self.repository.get_hold(id).await
+    pub async fn get_hold(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<OrderHold>> {
+        let hold = self.repository.get_hold(id).await?;
+        match hold {
+            Some(h) if h.organization_id != org_id => Ok(None),
+            other => Ok(other),
+        }
     }
 
     /// List holds for an order
@@ -439,6 +473,7 @@ impl OrderManagementEngine {
     }
 
     /// Check if an order has any active holds
+    #[allow(dead_code)]
     pub async fn has_active_holds(&self, order_id: Uuid) -> AtlasResult<bool> {
         let holds = self.repository.list_holds(order_id, true).await?;
         Ok(!holds.is_empty())
@@ -498,8 +533,12 @@ impl OrderManagementEngine {
     }
 
     /// Get a shipment by ID
-    pub async fn get_shipment(&self, id: Uuid) -> AtlasResult<Option<FulfillmentShipment>> {
-        self.repository.get_shipment(id).await
+    pub async fn get_shipment(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<FulfillmentShipment>> {
+        let shipment = self.repository.get_shipment(id).await?;
+        match shipment {
+            Some(s) if s.organization_id != org_id => Ok(None),
+            other => Ok(other),
+        }
     }
 
     /// List shipments
@@ -522,11 +561,16 @@ impl OrderManagementEngine {
     /// Confirm shipment (mark as shipped)
     pub async fn confirm_shipment(
         &self,
+        org_id: Uuid,
         id: Uuid,
         ship_date: chrono::NaiveDate,
     ) -> AtlasResult<FulfillmentShipment> {
         let shipment = self.repository.get_shipment(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {} not found", id)))?;
+
+        if shipment.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Shipment does not belong to your organization".to_string()));
+        }
 
         if shipment.status != "planned" && shipment.status != "packed" {
             return Err(AtlasError::WorkflowError(format!(
@@ -557,12 +601,17 @@ impl OrderManagementEngine {
     /// Update shipment tracking info
     pub async fn update_tracking(
         &self,
+        org_id: Uuid,
         id: Uuid,
         tracking_number: Option<&str>,
         estimated_delivery: Option<chrono::NaiveDate>,
     ) -> AtlasResult<FulfillmentShipment> {
         let shipment = self.repository.get_shipment(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {} not found", id)))?;
+
+        if shipment.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Shipment does not belong to your organization".to_string()));
+        }
 
         info!("Updating tracking for shipment {}", shipment.shipment_number);
 
@@ -577,12 +626,17 @@ impl OrderManagementEngine {
     /// to "delivered" when **all** shipments for the order have been delivered.
     pub async fn confirm_delivery(
         &self,
+        org_id: Uuid,
         id: Uuid,
         delivery_date: chrono::NaiveDate,
         delivery_confirmation: Option<&str>,
     ) -> AtlasResult<FulfillmentShipment> {
         let shipment = self.repository.get_shipment(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {} not found", id)))?;
+
+        if shipment.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Shipment does not belong to your organization".to_string()));
+        }
 
         if shipment.status != "shipped" && shipment.status != "in_transit" {
             return Err(AtlasError::WorkflowError(format!(
@@ -676,6 +730,11 @@ mod tests {
         }
     }
 
+    /// Fixed test org ID used by the mock for all generated entities.
+    /// Tests must pass this value when calling engine methods that take `org_id`.
+    const TEST_ORG: &str = "00000000-0000-0000-0000-000000000042";
+    fn test_org_id() -> Uuid { Uuid::parse_str(TEST_ORG).unwrap() }
+
     /// Stateful mock that simulates a real repository's persistence
     struct MockState {
         order_status: HashMap<Uuid, String>,
@@ -704,7 +763,7 @@ mod tests {
             let status = self.state.lock().unwrap()
                 .order_status.get(&id).cloned().unwrap_or_else(|| "draft".to_string());
             SalesOrder {
-                id, organization_id: Uuid::new_v4(),
+                id, organization_id: test_org_id(),
                 order_number: "SO-MOCK".to_string(),
                 customer_id: None, customer_name: Some("Test Customer".to_string()),
                 customer_po_number: None,
@@ -729,7 +788,7 @@ mod tests {
         fn make_line(&self, id: Uuid) -> SalesOrderLine {
             self.state.lock().unwrap()
                 .line_data.get(&id).cloned().unwrap_or_else(|| SalesOrderLine {
-                    id, organization_id: Uuid::new_v4(),
+                    id, organization_id: test_org_id(),
                     order_id: Uuid::new_v4(), line_number: 1,
                     item_id: None, item_code: Some("ITEM-01".to_string()),
                     item_description: Some("Widget".to_string()),
@@ -857,7 +916,7 @@ mod tests {
 
         async fn list_order_lines(&self, _order_id: Uuid) -> AtlasResult<Vec<SalesOrderLine>> {
             Ok(vec![SalesOrderLine {
-                id: Uuid::new_v4(), organization_id: Uuid::new_v4(),
+                id: Uuid::new_v4(), organization_id: test_org_id(),
                 order_id: _order_id, line_number: 1,
                 item_id: None, item_code: Some("ITEM-01".to_string()),
                 item_description: Some("Widget".to_string()),
@@ -927,7 +986,7 @@ mod tests {
             let is_active = self.state.lock().unwrap()
                 .hold_active.get(&id).cloned().unwrap_or(true);
             Ok(Some(OrderHold {
-                id, organization_id: Uuid::new_v4(),
+                id, organization_id: test_org_id(),
                 order_id: Uuid::new_v4(), order_line_id: None,
                 hold_type: "credit_check".to_string(),
                 hold_reason: "Credit limit exceeded".to_string(),
@@ -1111,7 +1170,7 @@ mod tests {
     async fn test_submit_order_success() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let order_id = Uuid::new_v4();
-        let result = engine.submit_order(order_id).await;
+        let result = engine.submit_order(test_org_id(), order_id).await;
         assert!(result.is_ok());
         let order = result.unwrap();
         assert_eq!(order.status, "submitted");
@@ -1122,7 +1181,7 @@ mod tests {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let order_id = Uuid::new_v4();
         // Mock returns "draft" status, so confirm should fail
-        let result = engine.confirm_order(order_id).await;
+        let result = engine.confirm_order(test_org_id(), order_id).await;
         assert!(result.is_err());
         let msg = format!("{:?}", result.unwrap_err());
         assert!(msg.contains("Cannot confirm order") || msg.contains("Must be 'submitted'"));
@@ -1135,7 +1194,7 @@ mod tests {
         // Pre-seed order as "submitted" so confirm can proceed
         repo.state.lock().unwrap().order_status.insert(order_id, "submitted".to_string());
         let engine = OrderManagementEngine::new(Arc::new(repo));
-        let result = engine.confirm_order(order_id).await;
+        let result = engine.confirm_order(test_org_id(), order_id).await;
         assert!(result.is_ok());
     }
 
@@ -1144,7 +1203,7 @@ mod tests {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         // The mock's list_holds returns empty, so submit should succeed
         let order_id = Uuid::new_v4();
-        let result = engine.submit_order(order_id).await;
+        let result = engine.submit_order(test_org_id(), order_id).await;
         assert!(result.is_ok());
     }
 
@@ -1153,7 +1212,7 @@ mod tests {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let order_id = Uuid::new_v4();
         // Mock returns "draft" status, so close should fail
-        let result = engine.close_order(order_id).await;
+        let result = engine.close_order(test_org_id(), order_id).await;
         assert!(result.is_err());
         let msg = format!("{:?}", result.unwrap_err());
         assert!(msg.contains("Cannot close order") || msg.contains("Must be 'shipped' or 'delivered'"));
@@ -1163,7 +1222,7 @@ mod tests {
     async fn test_cancel_order_success() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let order_id = Uuid::new_v4();
-        let result = engine.cancel_order(order_id, Some("Customer request")).await;
+        let result = engine.cancel_order(test_org_id(), order_id, Some("Customer request")).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, "cancelled");
     }
@@ -1270,7 +1329,7 @@ mod tests {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let line_id = Uuid::new_v4();
         // Mock returns quantity_ordered=10, so shipping 15 should fail
-        let result = engine.ship_order_line(line_id, "15").await;
+        let result = engine.ship_order_line(test_org_id(), line_id, "15").await;
         assert!(result.is_err());
         let msg = format!("{:?}", result.unwrap_err());
         assert!(msg.contains("Cannot ship") || msg.contains("remaining"));
@@ -1279,7 +1338,7 @@ mod tests {
     #[tokio::test]
     async fn test_ship_line_validates_zero() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
-        let result = engine.ship_order_line(Uuid::new_v4(), "0").await;
+        let result = engine.ship_order_line(test_org_id(), Uuid::new_v4(), "0").await;
         assert!(result.is_err());
         let msg = format!("{:?}", result.unwrap_err());
         assert!(msg.contains("Shipped quantity must be positive"));
@@ -1291,7 +1350,7 @@ mod tests {
         let line_id = Uuid::new_v4();
         // Pre-seed the line data so update_line_quantities reads correct state
         repo.state.lock().unwrap().line_data.insert(line_id, SalesOrderLine {
-            id: line_id, organization_id: Uuid::new_v4(),
+            id: line_id, organization_id: test_org_id(),
             order_id: Uuid::new_v4(), line_number: 1,
             item_id: None, item_code: Some("ITEM-01".to_string()),
             item_description: Some("Widget".to_string()),
@@ -1313,7 +1372,7 @@ mod tests {
         });
         let engine = OrderManagementEngine::new(Arc::new(repo));
         // Mock returns quantity_ordered=10, ship 6 should succeed
-        let result = engine.ship_order_line(line_id, "6").await;
+        let result = engine.ship_order_line(test_org_id(), line_id, "6").await;
         assert!(result.is_ok());
         let line = result.unwrap();
         assert_eq!(line.quantity_shipped, "6.0000");
@@ -1325,7 +1384,7 @@ mod tests {
         let repo = MockOrderRepo::new();
         let line_id = Uuid::new_v4();
         repo.state.lock().unwrap().line_data.insert(line_id, SalesOrderLine {
-            id: line_id, organization_id: Uuid::new_v4(),
+            id: line_id, organization_id: test_org_id(),
             order_id: Uuid::new_v4(), line_number: 1,
             item_id: None, item_code: Some("ITEM-01".to_string()),
             item_description: Some("Widget".to_string()),
@@ -1346,7 +1405,7 @@ mod tests {
             created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
         });
         let engine = OrderManagementEngine::new(Arc::new(repo));
-        let result = engine.ship_order_line(line_id, "10").await;
+        let result = engine.ship_order_line(test_org_id(), line_id, "10").await;
         assert!(result.is_ok());
         let line = result.unwrap();
         assert_eq!(line.quantity_shipped, "10.0000");
@@ -1359,7 +1418,7 @@ mod tests {
         let repo = MockOrderRepo::new();
         let line_id = Uuid::new_v4();
         repo.state.lock().unwrap().line_data.insert(line_id, SalesOrderLine {
-            id: line_id, organization_id: Uuid::new_v4(),
+            id: line_id, organization_id: test_org_id(),
             order_id: Uuid::new_v4(), line_number: 1,
             item_id: None, item_code: Some("ITEM-01".to_string()),
             item_description: Some("Widget".to_string()),
@@ -1380,7 +1439,7 @@ mod tests {
             created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
         });
         let engine = OrderManagementEngine::new(Arc::new(repo));
-        let result = engine.cancel_order_line(line_id, Some("No longer needed")).await;
+        let result = engine.cancel_order_line(test_org_id(), line_id, Some("No longer needed")).await;
         assert!(result.is_ok());
         let line = result.unwrap();
         assert_eq!(line.status, "cancelled");
@@ -1436,7 +1495,7 @@ mod tests {
     async fn test_release_hold_success() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let hold_id = Uuid::new_v4();
-        let result = engine.release_hold(hold_id, Some(Uuid::new_v4()), Some("Manager")).await;
+        let result = engine.release_hold(test_org_id(), hold_id, Some(Uuid::new_v4()), Some("Manager")).await;
         assert!(result.is_ok());
         let hold = result.unwrap();
         assert!(!hold.is_active);
@@ -1563,11 +1622,11 @@ mod tests {
 
         // Create a shipment first, then retrieve it
         let shipment = engine.create_shipment(
-            Uuid::new_v4(), order_id, vec![Uuid::new_v4()],
+            test_org_id(), order_id, vec![Uuid::new_v4()],
             None, None, None, None, None, None,
         ).await.unwrap();
 
-        let result = engine.get_shipment(shipment.id).await;
+        let result = engine.get_shipment(test_org_id(), shipment.id).await;
         assert!(result.is_ok());
         let fetched = result.unwrap().unwrap();
         assert_eq!(fetched.status, "planned");
@@ -1597,7 +1656,7 @@ mod tests {
     async fn test_get_hold_by_id() {
         let engine = OrderManagementEngine::new(Arc::new(MockOrderRepo::new()));
         let hold_id = Uuid::new_v4();
-        let result = engine.get_hold(hold_id).await;
+        let result = engine.get_hold(test_org_id(), hold_id).await;
         assert!(result.is_ok());
         let hold = result.unwrap().unwrap();
         assert_eq!(hold.hold_type, "credit_check");
@@ -1614,13 +1673,13 @@ mod tests {
 
         // Create shipment first
         let shipment = engine.create_shipment(
-            Uuid::new_v4(), order_id, vec![Uuid::new_v4()],
+            test_org_id(), order_id, vec![Uuid::new_v4()],
             None, None, None, None, None, None,
         ).await.unwrap();
 
         // Confirm shipment
         let result = engine.confirm_shipment(
-            shipment.id, chrono::Utc::now().date_naive(),
+            test_org_id(), shipment.id, chrono::Utc::now().date_naive(),
         ).await;
         assert!(result.is_ok());
         let confirmed = result.unwrap();
@@ -1641,7 +1700,7 @@ mod tests {
 
         // Create a shipment
         let shipment = engine.create_shipment(
-            Uuid::new_v4(), order_id, vec![Uuid::new_v4()],
+            test_org_id(), order_id, vec![Uuid::new_v4()],
             None, None, None, None, None, None,
         ).await.unwrap();
 
@@ -1650,7 +1709,7 @@ mod tests {
 
         // Confirm delivery — should transition order to "delivered" since it's the only shipment
         let result = engine.confirm_delivery(
-            shipment.id, chrono::Utc::now().date_naive(), Some("Signed by customer"),
+            test_org_id(), shipment.id, chrono::Utc::now().date_naive(), Some("Signed by customer"),
         ).await;
         assert!(result.is_ok());
         let delivered = result.unwrap();
@@ -1668,7 +1727,7 @@ mod tests {
         let repo = MockOrderRepo::new();
         let line_id = Uuid::new_v4();
         repo.state.lock().unwrap().line_data.insert(line_id, SalesOrderLine {
-            id: line_id, organization_id: Uuid::new_v4(),
+            id: line_id, organization_id: test_org_id(),
             order_id: Uuid::new_v4(), line_number: 1,
             item_id: None, item_code: Some("ITEM-01".to_string()),
             item_description: Some("Widget".to_string()),
@@ -1689,7 +1748,7 @@ mod tests {
             created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
         });
         let engine = OrderManagementEngine::new(Arc::new(repo));
-        let result = engine.cancel_order_line(line_id, Some("No longer needed")).await;
+        let result = engine.cancel_order_line(test_org_id(), line_id, Some("No longer needed")).await;
         assert!(result.is_ok());
         let line = result.unwrap();
         assert_eq!(line.status, "cancelled");

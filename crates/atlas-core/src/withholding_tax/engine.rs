@@ -244,7 +244,7 @@ impl WithholdingTaxEngine {
 
         // Validate exemption
         if is_exempt {
-            if exemption_reason.is_none() || exemption_reason.unwrap().is_empty() {
+            if exemption_reason.as_ref().is_none_or(|r| r.is_empty()) {
                 return Err(AtlasError::ValidationFailed(
                     "Exemption reason is required when supplier is exempt".to_string(),
                 ));

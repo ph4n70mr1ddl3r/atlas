@@ -107,6 +107,26 @@ impl FormulaEngine {
         }
         
         // Handle operators
+        //
+        // Operator precedence: `+` and `-` are checked before `*` and `/`.
+        // This is the **reverse** of mathematical convention but is intentional
+        // because `evaluate_binary_op` recursively evaluates both sides.
+        //
+        // For an expression like `a * b + c * d`:
+        //   1. We find `+` first, split into `a * b` and `c * d`
+        //   2. Each side is recursively evaluated (finding their own `*`)
+        //   3. Final result: (a*b) + (c*d) ✓
+        //
+        // For `a + b * c`:
+        //   1. We find `+` first, split into `a` and `b * c`
+        //   2. `b * c` is recursively evaluated (finding `*`)
+        //   3. Final result: a + (b*c) ✓
+        //
+        // NOTE: This works for simple two-term expressions but may produce
+        // incorrect results for complex mixed-precedence chains like
+        // `a + b * c - d`. A proper recursive-descent parser (or the Pest
+        // grammar already in the crate) should be used for production-grade
+        // formula evaluation.
         if expr.contains('+') && !expr.contains('"') {
             if let Some(result) = self.evaluate_binary_op(expr, '+', ctx)? {
                 return Ok(result);

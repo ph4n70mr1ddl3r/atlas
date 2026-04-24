@@ -18,12 +18,15 @@ use tracing::info;
 const VALID_ACTION_TYPES: &[&str] = &["archive", "purge", "archive_then_purge"];
 
 /// Valid statuses for retention policies
+#[allow(dead_code)] // Used for future validation endpoints
 const VALID_POLICY_STATUSES: &[&str] = &["active", "inactive"];
 
 /// Valid statuses for legal holds
+#[allow(dead_code)] // Used for future validation endpoints
 const VALID_HOLD_STATUSES: &[&str] = &["active", "released", "expired"];
 
 /// Valid statuses for archived records
+#[allow(dead_code)] // Used for future validation endpoints
 const VALID_ARCHIVE_STATUSES: &[&str] = &["archived", "restored", "purged"];
 
 /// Data Archiving Engine

@@ -700,7 +700,10 @@ impl ManufacturingEngine {
             self.repository.update_work_order_status(work_order_id, "completed").await?;
             self.repository.update_work_order_dates(work_order_id, None, Some(chrono::Utc::now().date_naive())).await
         } else {
-            self.repository.get_work_order_by_id(work_order_id).await.map(|o| o.unwrap())
+            self.repository.get_work_order_by_id(work_order_id).await?.
+                ok_or_else(|| AtlasError::EntityNotFound(
+                    format!("Work order {} not found after progress update", work_order_id)
+                ))
         }
     }
 

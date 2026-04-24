@@ -54,6 +54,7 @@ pub mod approval_delegation;
 pub mod manufacturing;
 pub mod warehouse_management;
 pub mod absence;
+pub mod time_and_labor;
 
 pub use schema::*;
 pub use records::*;
@@ -2199,6 +2200,47 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Absence Dashboard
         .route("/absence/dashboard", get(absence::get_absence_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════
+        // Time and Labor Management (Oracle Fusion Cloud HCM Time and Labor)
+        // ═══════════════════════════════════════════════════════════════
+
+        // Work Schedules
+        .route("/time-and-labor/schedules", post(time_and_labor::create_work_schedule))
+        .route("/time-and-labor/schedules", get(time_and_labor::list_work_schedules))
+        .route("/time-and-labor/schedules/:code", get(time_and_labor::get_work_schedule))
+        .route("/time-and-labor/schedules/:code", delete(time_and_labor::delete_work_schedule))
+
+        // Overtime Rules
+        .route("/time-and-labor/overtime-rules", post(time_and_labor::create_overtime_rule))
+        .route("/time-and-labor/overtime-rules", get(time_and_labor::list_overtime_rules))
+        .route("/time-and-labor/overtime-rules/:code", get(time_and_labor::get_overtime_rule))
+        .route("/time-and-labor/overtime-rules/:code", delete(time_and_labor::delete_overtime_rule))
+
+        // Time Cards
+        .route("/time-and-labor/time-cards", post(time_and_labor::create_time_card))
+        .route("/time-and-labor/time-cards", get(time_and_labor::list_time_cards))
+        .route("/time-and-labor/time-cards/:id", get(time_and_labor::get_time_card))
+        .route("/time-and-labor/time-cards/:id/submit", post(time_and_labor::submit_time_card))
+        .route("/time-and-labor/time-cards/:id/approve", post(time_and_labor::approve_time_card))
+        .route("/time-and-labor/time-cards/:id/reject", post(time_and_labor::reject_time_card))
+        .route("/time-and-labor/time-cards/:id/cancel", post(time_and_labor::cancel_time_card))
+
+        // Time Entries
+        .route("/time-and-labor/entries", post(time_and_labor::create_time_entry))
+        .route("/time-and-labor/entries/time-card/:time_card_id", get(time_and_labor::list_time_entries))
+        .route("/time-and-labor/entries/:id", delete(time_and_labor::delete_time_entry))
+
+        // Time Card History
+        .route("/time-and-labor/time-cards/:time_card_id/history", get(time_and_labor::get_time_card_history))
+
+        // Labor Distributions
+        .route("/time-and-labor/distributions", post(time_and_labor::create_labor_distribution))
+        .route("/time-and-labor/distributions/entry/:time_entry_id", get(time_and_labor::list_labor_distributions))
+        .route("/time-and-labor/distributions/:id", delete(time_and_labor::delete_labor_distribution))
+
+        // Time and Labor Dashboard
+        .route("/time-and-labor/dashboard", get(time_and_labor::get_time_and_labor_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

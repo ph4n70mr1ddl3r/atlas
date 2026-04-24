@@ -343,6 +343,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         absence_engine: Arc::new(atlas_core::AbsenceEngine::new(Arc::new(
             atlas_core::absence::PostgresAbsenceRepository::new(db_pool.clone()),
         ))),
+        time_and_labor_engine: Arc::new(atlas_core::TimeAndLaborEngine::new(Arc::new(
+            atlas_core::time_and_labor::PostgresTimeAndLaborRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

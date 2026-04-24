@@ -51,3 +51,4 @@ mod transfer_pricing;
 mod approval_delegation;
 mod warehouse_management;
 mod absence;
+mod time_and_labor;

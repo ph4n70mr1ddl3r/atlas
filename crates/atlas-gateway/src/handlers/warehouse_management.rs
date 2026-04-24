@@ -85,10 +85,12 @@ pub async fn create_warehouse(
 
 pub async fn get_warehouse(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.get_warehouse(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.get_warehouse(org_id, id).await {
         Ok(Some(wh)) => Ok(Json(serde_json::to_value(wh).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get warehouse: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -110,10 +112,12 @@ pub async fn list_warehouses(
 
 pub async fn delete_warehouse(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.warehouse_management_engine.delete_warehouse(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.delete_warehouse(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete warehouse: {}", e);
@@ -166,10 +170,15 @@ pub async fn create_zone(
 
 pub async fn list_zones(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(warehouse_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.list_zones(warehouse_id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // Verify the warehouse belongs to the org
+    let wh = state.warehouse_management_engine.get_warehouse(org_id, warehouse_id).await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+    match state.warehouse_management_engine.list_zones(wh.id).await {
         Ok(zones) => Ok(Json(serde_json::to_value(zones).unwrap_or_default())),
         Err(e) => { error!("Failed to list zones: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -177,10 +186,12 @@ pub async fn list_zones(
 
 pub async fn delete_zone(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.warehouse_management_engine.delete_zone(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.delete_zone(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete zone: {}", e);
@@ -234,10 +245,15 @@ pub async fn create_put_away_rule(
 
 pub async fn list_put_away_rules(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(warehouse_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.list_put_away_rules(warehouse_id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // Verify the warehouse belongs to the org
+    let wh = state.warehouse_management_engine.get_warehouse(org_id, warehouse_id).await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+    match state.warehouse_management_engine.list_put_away_rules(wh.id).await {
         Ok(rules) => Ok(Json(serde_json::to_value(rules).unwrap_or_default())),
         Err(e) => { error!("Failed to list put-away rules: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -245,10 +261,12 @@ pub async fn list_put_away_rules(
 
 pub async fn delete_put_away_rule(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.warehouse_management_engine.delete_put_away_rule(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.delete_put_away_rule(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete put-away rule: {}", e);
@@ -301,13 +319,13 @@ pub async fn create_task(
 
     // Try to resolve warehouse_id from wave or zone
     let warehouse_id = if let Some(wave_id) = payload.wave_id {
-        if let Ok(Some(wave)) = state.warehouse_management_engine.get_wave(wave_id).await {
+        if let Ok(Some(wave)) = state.warehouse_management_engine.get_wave(org_id, wave_id).await {
             wave.warehouse_id
         } else {
             return Err(StatusCode::BAD_REQUEST);
         }
     } else if let Some(zone_id) = payload.to_zone_id.or(payload.from_zone_id) {
-        if let Ok(Some(zone)) = state.warehouse_management_engine.get_zone(zone_id).await {
+        if let Ok(Some(zone)) = state.warehouse_management_engine.get_zone(org_id, zone_id).await {
             zone.warehouse_id
         } else {
             return Err(StatusCode::BAD_REQUEST);
@@ -393,10 +411,12 @@ pub async fn create_task_for_warehouse(
 
 pub async fn get_task(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.get_task(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.get_task(org_id, id).await {
         Ok(Some(task)) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get task: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -426,10 +446,12 @@ pub struct StartTaskRequest {
 
 pub async fn start_task(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.start_task(id, None).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.start_task(org_id, id, None).await {
         Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
         Err(e) => {
             error!("Failed to start task: {}", e);
@@ -444,10 +466,12 @@ pub async fn start_task(
 
 pub async fn complete_task(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.complete_task(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.complete_task(org_id, id).await {
         Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
         Err(e) => {
             error!("Failed to complete task: {}", e);
@@ -462,10 +486,12 @@ pub async fn complete_task(
 
 pub async fn cancel_task(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.cancel_task(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.cancel_task(org_id, id).await {
         Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
         Err(e) => {
             error!("Failed to cancel task: {}", e);
@@ -480,10 +506,12 @@ pub async fn cancel_task(
 
 pub async fn delete_task(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.warehouse_management_engine.delete_task(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.delete_task(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete task: {}", e);
@@ -537,10 +565,12 @@ pub async fn create_wave(
 
 pub async fn get_wave(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.get_wave(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.get_wave(org_id, id).await {
         Ok(Some(wave)) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get wave: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -564,10 +594,12 @@ pub async fn list_waves(
 
 pub async fn release_wave(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.release_wave(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.release_wave(org_id, id).await {
         Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
         Err(e) => {
             error!("Failed to release wave: {}", e);
@@ -582,10 +614,12 @@ pub async fn release_wave(
 
 pub async fn complete_wave(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.complete_wave(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.complete_wave(org_id, id).await {
         Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
         Err(e) => {
             error!("Failed to complete wave: {}", e);
@@ -600,10 +634,12 @@ pub async fn complete_wave(
 
 pub async fn cancel_wave(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.warehouse_management_engine.cancel_wave(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.cancel_wave(org_id, id).await {
         Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
         Err(e) => {
             error!("Failed to cancel wave: {}", e);
@@ -618,10 +654,12 @@ pub async fn cancel_wave(
 
 pub async fn delete_wave(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.warehouse_management_engine.delete_wave(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.warehouse_management_engine.delete_wave(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete wave: {}", e);

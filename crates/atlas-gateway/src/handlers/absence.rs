@@ -333,10 +333,13 @@ pub async fn create_entry(
 /// Get an absence entry by ID
 pub async fn get_entry(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.absence_engine.get_entry(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.absence_engine.get_entry(org_id, id).await {
         Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -375,7 +378,10 @@ pub async fn submit_entry(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.submit_entry(id, Some(user_id)).await {
+    let org_id = Uuid::parse_str(&claims.org_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.absence_engine.submit_entry(org_id, id, Some(user_id)).await {
         Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
         Err(e) => {
             error!("Failed to submit absence entry: {}", e);
@@ -393,7 +399,10 @@ pub async fn approve_entry(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.approve_entry(id, user_id).await {
+    let org_id = Uuid::parse_str(&claims.org_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.absence_engine.approve_entry(org_id, id, user_id).await {
         Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
         Err(e) => {
             error!("Failed to approve absence entry: {}", e);
@@ -418,7 +427,10 @@ pub async fn reject_entry(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.reject_entry(id, user_id, payload.reason.as_deref()).await {
+    let org_id = Uuid::parse_str(&claims.org_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.absence_engine.reject_entry(org_id, id, user_id, payload.reason.as_deref()).await {
         Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
         Err(e) => {
             error!("Failed to reject absence entry: {}", e);
@@ -436,11 +448,14 @@ pub struct CancelEntryRequest {
 
 pub async fn cancel_entry(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelEntryRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.absence_engine.cancel_entry(id, payload.reason.as_deref()).await {
+    let org_id = Uuid::parse_str(&claims.org_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.absence_engine.cancel_entry(org_id, id, payload.reason.as_deref()).await {
         Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
         Err(e) => {
             error!("Failed to cancel absence entry: {}", e);
@@ -520,10 +535,13 @@ pub async fn list_balances(
 /// Get history for an absence entry
 pub async fn get_entry_history(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<Claims>,
+    claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.absence_engine.get_entry_history(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match state.absence_engine.get_entry_history(org_id, id).await {
         Ok(history) => Ok(Json(serde_json::json!({ "data": history }))),
         Err(e) => {
             error!("Failed to get entry history: {}", e);

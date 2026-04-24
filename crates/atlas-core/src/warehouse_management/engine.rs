@@ -9,7 +9,6 @@ use atlas_shared::{
 use super::WarehouseManagementRepository;
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::Utc;
 use tracing::info;
 
 /// Engine for managing warehouse operations
@@ -46,9 +45,13 @@ impl WarehouseManagementEngine {
         self.repository.create_warehouse(org_id, code, name, description, location_code, created_by).await
     }
 
-    /// Get a warehouse by ID
-    pub async fn get_warehouse(&self, id: Uuid) -> AtlasResult<Option<Warehouse>> {
-        self.repository.get_warehouse(id).await
+    /// Get a warehouse by ID (with org-scoping)
+    pub async fn get_warehouse(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<Warehouse>> {
+        let wh = self.repository.get_warehouse(id).await?;
+        match wh {
+            Some(w) if w.organization_id != org_id => Ok(None),
+            other => Ok(other),
+        }
     }
 
     /// Get a warehouse by code
@@ -61,8 +64,13 @@ impl WarehouseManagementEngine {
         self.repository.list_warehouses(org_id, active_only).await
     }
 
-    /// Delete a warehouse
-    pub async fn delete_warehouse(&self, id: Uuid) -> AtlasResult<()> {
+    /// Delete a warehouse (org-scoped)
+    pub async fn delete_warehouse(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+        let wh = self.repository.get_warehouse(id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", id)))?;
+        if wh.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", id)));
+        }
         info!("Deleting warehouse {}", id);
         self.repository.delete_warehouse(id).await
     }
@@ -100,9 +108,13 @@ impl WarehouseManagementEngine {
         self.repository.create_zone(org_id, warehouse_id, code, name, zone_type, description, aisle_count).await
     }
 
-    /// Get a zone by ID
-    pub async fn get_zone(&self, id: Uuid) -> AtlasResult<Option<WarehouseZone>> {
-        self.repository.get_zone(id).await
+    /// Get a zone by ID (with org-scoping)
+    pub async fn get_zone(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<WarehouseZone>> {
+        let zone = self.repository.get_zone(id).await?;
+        match zone {
+            Some(z) if z.organization_id != org_id => Ok(None),
+            other => Ok(other),
+        }
     }
 
     /// List zones for a warehouse
@@ -110,8 +122,13 @@ impl WarehouseManagementEngine {
         self.repository.list_zones(warehouse_id).await
     }
 
-    /// Delete a zone
-    pub async fn delete_zone(&self, id: Uuid) -> AtlasResult<()> {
+    /// Delete a zone (org-scoped)
+    pub async fn delete_zone(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+        let zone = self.repository.get_zone(id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Zone {}", id)))?;
+        if zone.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Zone {}", id)));
+        }
         self.repository.delete_zone(id).await
     }
 
@@ -156,9 +173,13 @@ impl WarehouseManagementEngine {
         self.repository.create_put_away_rule(org_id, warehouse_id, rule_name, description, priority, item_category, target_zone_type, strategy).await
     }
 
-    /// Get a put-away rule by ID
-    pub async fn get_put_away_rule(&self, id: Uuid) -> AtlasResult<Option<PutAwayRule>> {
-        self.repository.get_put_away_rule(id).await
+    /// Get a put-away rule by ID (with org-scoping)
+    pub async fn get_put_away_rule(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<PutAwayRule>> {
+        let rule = self.repository.get_put_away_rule(id).await?;
+        match rule {
+            Some(r) if r.organization_id != org_id => Ok(None),
+            other => Ok(other),
+        }
     }
 
     /// List put-away rules for a warehouse
@@ -166,8 +187,13 @@ impl WarehouseManagementEngine {
         self.repository.list_put_away_rules(warehouse_id).await
     }
 
-    /// Delete a put-away rule
-    pub async fn delete_put_away_rule(&self, id: Uuid) -> AtlasResult<()> {
+    /// Delete a put-away rule (org-scoped)
+    pub async fn delete_put_away_rule(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+        let rule = self.repository.get_put_away_rule(id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Put-away rule {}", id)))?;
+        if rule.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Put-away rule {}", id)));
+        }
         self.repository.delete_put_away_rule(id).await
     }
 
@@ -240,9 +266,13 @@ impl WarehouseManagementEngine {
         ).await
     }
 
-    /// Get a task by ID
-    pub async fn get_task(&self, id: Uuid) -> AtlasResult<Option<WarehouseTask>> {
-        self.repository.get_task(id).await
+    /// Get a task by ID (with org-scoping)
+    pub async fn get_task(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<WarehouseTask>> {
+        let task = self.repository.get_task(id).await?;
+        match task {
+            Some(t) if t.organization_id != org_id => Ok(None),
+            other => Ok(other),
+        }
     }
 
     /// Get a task by task number
@@ -261,12 +291,16 @@ impl WarehouseManagementEngine {
         self.repository.list_tasks(org_id, warehouse_id, status, task_type).await
     }
 
-    /// Start a task (transition from pending to in_progress)
-    pub async fn start_task(&self, id: Uuid, assigned_to: Option<Uuid>) -> AtlasResult<WarehouseTask> {
+    /// Start a task (transition from pending to in_progress) — org-scoped
+    pub async fn start_task(&self, org_id: Uuid, id: Uuid, assigned_to: Option<Uuid>) -> AtlasResult<WarehouseTask> {
         info!("Starting warehouse task {}", id);
 
         let task = self.repository.get_task(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))?;
+
+        if task.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+        }
 
         if task.status != "pending" {
             return Err(AtlasError::WorkflowError(
@@ -279,12 +313,16 @@ impl WarehouseManagementEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))
     }
 
-    /// Complete a task
-    pub async fn complete_task(&self, id: Uuid) -> AtlasResult<WarehouseTask> {
+    /// Complete a task — org-scoped
+    pub async fn complete_task(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WarehouseTask> {
         info!("Completing warehouse task {}", id);
 
         let task = self.repository.get_task(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))?;
+
+        if task.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+        }
 
         if task.status != "in_progress" {
             return Err(AtlasError::WorkflowError(
@@ -297,12 +335,16 @@ impl WarehouseManagementEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))
     }
 
-    /// Cancel a task
-    pub async fn cancel_task(&self, id: Uuid) -> AtlasResult<WarehouseTask> {
+    /// Cancel a task — org-scoped
+    pub async fn cancel_task(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WarehouseTask> {
         info!("Cancelling warehouse task {}", id);
 
         let task = self.repository.get_task(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))?;
+
+        if task.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+        }
 
         if task.status == "completed" || task.status == "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -315,8 +357,13 @@ impl WarehouseManagementEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))
     }
 
-    /// Delete a task
-    pub async fn delete_task(&self, id: Uuid) -> AtlasResult<()> {
+    /// Delete a task — org-scoped
+    pub async fn delete_task(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+        let task = self.repository.get_task(id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))?;
+        if task.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+        }
         self.repository.delete_task(id).await
     }
 
@@ -353,9 +400,13 @@ impl WarehouseManagementEngine {
         self.repository.create_wave(org_id, warehouse_id, wave_number, priority, cut_off_date, shipping_method, created_by).await
     }
 
-    /// Get a wave by ID
-    pub async fn get_wave(&self, id: Uuid) -> AtlasResult<Option<PickWave>> {
-        self.repository.get_wave(id).await
+    /// Get a wave by ID (with org-scoping)
+    pub async fn get_wave(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<PickWave>> {
+        let wave = self.repository.get_wave(id).await?;
+        match wave {
+            Some(w) if w.organization_id != org_id => Ok(None),
+            other => Ok(other),
+        }
     }
 
     /// Get a wave by number
@@ -373,12 +424,16 @@ impl WarehouseManagementEngine {
         self.repository.list_waves(org_id, warehouse_id, status).await
     }
 
-    /// Release a pick wave (draft -> released)
-    pub async fn release_wave(&self, id: Uuid) -> AtlasResult<PickWave> {
+    /// Release a pick wave (draft -> released) — org-scoped
+    pub async fn release_wave(&self, org_id: Uuid, id: Uuid) -> AtlasResult<PickWave> {
         info!("Releasing pick wave {}", id);
 
         let wave = self.repository.get_wave(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))?;
+
+        if wave.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+        }
 
         if wave.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -391,12 +446,16 @@ impl WarehouseManagementEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))
     }
 
-    /// Close a pick wave (mark as completed)
-    pub async fn complete_wave(&self, id: Uuid) -> AtlasResult<PickWave> {
+    /// Close a pick wave (mark as completed) — org-scoped
+    pub async fn complete_wave(&self, org_id: Uuid, id: Uuid) -> AtlasResult<PickWave> {
         info!("Completing pick wave {}", id);
 
         let wave = self.repository.get_wave(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))?;
+
+        if wave.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+        }
 
         if wave.status != "released" && wave.status != "in_progress" {
             return Err(AtlasError::WorkflowError(
@@ -409,12 +468,16 @@ impl WarehouseManagementEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))
     }
 
-    /// Cancel a pick wave
-    pub async fn cancel_wave(&self, id: Uuid) -> AtlasResult<PickWave> {
+    /// Cancel a pick wave — org-scoped
+    pub async fn cancel_wave(&self, org_id: Uuid, id: Uuid) -> AtlasResult<PickWave> {
         info!("Cancelling pick wave {}", id);
 
         let wave = self.repository.get_wave(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))?;
+
+        if wave.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+        }
 
         if wave.status == "completed" || wave.status == "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -427,8 +490,13 @@ impl WarehouseManagementEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))
     }
 
-    /// Delete a wave
-    pub async fn delete_wave(&self, id: Uuid) -> AtlasResult<()> {
+    /// Delete a wave — org-scoped
+    pub async fn delete_wave(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+        let wave = self.repository.get_wave(id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))?;
+        if wave.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+        }
         self.repository.delete_wave(id).await
     }
 

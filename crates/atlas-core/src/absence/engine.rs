@@ -11,7 +11,7 @@ use atlas_shared::{
 };
 use super::AbsenceRepository;
 use std::sync::Arc;
-use tracing::info;
+use tracing::{info, warn};
 use uuid::Uuid;
 use chrono::Datelike;
 
@@ -319,9 +319,9 @@ impl AbsenceEngine {
         }
 
         // Auto-approve if below threshold and type allows
+        let auto_approve_threshold: f64 = absence_type.auto_approve_below_days.parse().unwrap_or(0.0);
         let status = if !absence_type.requires_approval
-            || (absence_type.auto_approve_below_days.parse::<f64>().unwrap_or(0.0) > 0.0
-                && duration_days <= absence_type.auto_approve_below_days.parse::<f64>().unwrap_or(0.0))
+            || (auto_approve_threshold > 0.0 && duration_days <= auto_approve_threshold)
         {
             "approved"
         } else {
@@ -361,9 +361,13 @@ impl AbsenceEngine {
         Ok(entry)
     }
 
-    /// Get an absence entry by ID
-    pub async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<AbsenceEntry>> {
-        self.repository.get_entry(id).await
+    /// Get an absence entry by ID (with org-scoping check)
+    pub async fn get_entry(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<AbsenceEntry>> {
+        let entry = self.repository.get_entry(id).await?;
+        match entry {
+            Some(e) if e.organization_id != org_id => Ok(None),
+            other => Ok(other),
+        }
     }
 
     /// List entries with optional filters
@@ -385,11 +389,15 @@ impl AbsenceEngine {
     }
 
     /// Submit a draft entry for approval
-    pub async fn submit_entry(&self, entry_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<AbsenceEntry> {
+    pub async fn submit_entry(&self, org_id: Uuid, entry_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<AbsenceEntry> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Absence entry {} not found", entry_id)
             ))?;
+
+        if entry.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+        }
 
         if entry.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -408,11 +416,15 @@ impl AbsenceEngine {
     }
 
     /// Approve a submitted entry
-    pub async fn approve_entry(&self, entry_id: Uuid, approved_by: Uuid) -> AtlasResult<AbsenceEntry> {
+    pub async fn approve_entry(&self, org_id: Uuid, entry_id: Uuid, approved_by: Uuid) -> AtlasResult<AbsenceEntry> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Absence entry {} not found", entry_id)
             ))?;
+
+        if entry.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+        }
 
         if entry.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -427,10 +439,12 @@ impl AbsenceEngine {
 
         // Update balance if plan exists
         if let Some(plan_id) = entry.plan_id {
-            let _ = self.update_balance_on_approval(
+            if let Err(e) = self.update_balance_on_approval(
                 entry.organization_id, entry.employee_id, plan_id,
                 entry.duration_days.parse::<f64>().unwrap_or(0.0),
-            ).await;
+            ).await {
+                warn!("Failed to update balance for entry {}: {}", entry_id, e);
+            }
         }
 
         self.repository.add_history(
@@ -444,6 +458,7 @@ impl AbsenceEngine {
     /// Reject a submitted entry
     pub async fn reject_entry(
         &self,
+        org_id: Uuid,
         entry_id: Uuid,
         rejected_by: Uuid,
         reason: Option<&str>,
@@ -452,6 +467,10 @@ impl AbsenceEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Absence entry {} not found", entry_id)
             ))?;
+
+        if entry.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+        }
 
         if entry.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -475,6 +494,7 @@ impl AbsenceEngine {
     /// Cancel an entry (draft or submitted)
     pub async fn cancel_entry(
         &self,
+        org_id: Uuid,
         entry_id: Uuid,
         reason: Option<&str>,
     ) -> AtlasResult<AbsenceEntry> {
@@ -482,6 +502,10 @@ impl AbsenceEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Absence entry {} not found", entry_id)
             ))?;
+
+        if entry.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+        }
 
         if entry.status != "draft" && entry.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -588,8 +612,14 @@ impl AbsenceEngine {
     // Entry History
     // ========================================================================
 
-    /// Get history for an entry
-    pub async fn get_entry_history(&self, entry_id: Uuid) -> AtlasResult<Vec<AbsenceEntryHistory>> {
+    /// Get history for an entry (org-scoped)
+    pub async fn get_entry_history(&self, org_id: Uuid, entry_id: Uuid) -> AtlasResult<Vec<AbsenceEntryHistory>> {
+        // Verify the entry belongs to the org before returning history
+        let entry = self.repository.get_entry(entry_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)))?;
+        if entry.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+        }
         self.repository.get_entry_history(entry_id).await
     }
 

@@ -12601,3 +12601,168 @@ pub struct AbsenceDashboard {
     pub recent_entries: Vec<AbsenceEntry>,
 }
 
+// ============================================================================
+// Time and Labor Management (Oracle Fusion Cloud HCM Time and Labor)
+// ============================================================================
+
+/// Work schedule definition
+/// Oracle Fusion: HCM > Time and Labor > Work Schedules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkSchedule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub schedule_type: String,
+    pub standard_hours_per_day: String,
+    pub standard_hours_per_week: String,
+    pub work_days_per_week: i32,
+    pub start_time: Option<chrono::NaiveTime>,
+    pub end_time: Option<chrono::NaiveTime>,
+    pub break_duration_minutes: i32,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Overtime rule definition
+/// Oracle Fusion: HCM > Time and Labor > Overtime Rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OvertimeRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub threshold_type: String,
+    pub daily_threshold_hours: String,
+    pub weekly_threshold_hours: String,
+    pub overtime_multiplier: String,
+    pub double_time_threshold_hours: Option<String>,
+    pub double_time_multiplier: String,
+    pub include_holidays: bool,
+    pub include_weekends: bool,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Time card (one per employee per period)
+/// Oracle Fusion: HCM > Time and Labor > Time Cards
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimeCard {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub employee_id: Uuid,
+    pub employee_name: Option<String>,
+    pub card_number: String,
+    pub status: String,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub total_regular_hours: String,
+    pub total_overtime_hours: String,
+    pub total_double_time_hours: String,
+    pub total_hours: String,
+    pub schedule_id: Option<Uuid>,
+    pub overtime_rule_id: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    pub comments: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Time entry (individual time punch within a time card)
+/// Oracle Fusion: HCM > Time and Labor > Time Entries
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimeEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub time_card_id: Uuid,
+    pub entry_date: chrono::NaiveDate,
+    pub entry_type: String,
+    pub start_time: Option<chrono::NaiveTime>,
+    pub end_time: Option<chrono::NaiveTime>,
+    pub duration_hours: String,
+    pub project_id: Option<Uuid>,
+    pub project_name: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    pub task_name: Option<String>,
+    pub location: Option<String>,
+    pub cost_center: Option<String>,
+    pub labor_category: Option<String>,
+    pub comments: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Time card history entry (audit trail)
+/// Oracle Fusion: HCM > Time and Labor > Time Card History
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimeCardHistory {
+    pub id: Uuid,
+    pub time_card_id: Uuid,
+    pub action: String,
+    pub from_status: Option<String>,
+    pub to_status: Option<String>,
+    pub performed_by: Option<Uuid>,
+    pub comment: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Labor distribution (cost allocation for time entries)
+/// Oracle Fusion: HCM > Time and Labor > Labor Distribution
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaborDistribution {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub time_entry_id: Uuid,
+    pub distribution_percent: String,
+    pub cost_center: Option<String>,
+    pub project_id: Option<Uuid>,
+    pub project_name: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    pub gl_account_code: Option<String>,
+    pub allocated_hours: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Time and Labor dashboard summary
+/// Oracle Fusion: HCM > Time and Labor > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimeAndLaborDashboard {
+    pub total_schedules: i64,
+    pub active_schedules: i64,
+    pub total_overtime_rules: i64,
+    pub total_time_cards: i64,
+    pub pending_approval_count: i64,
+    pub submitted_today_count: i64,
+    pub cards_by_status: serde_json::Value,
+    pub hours_by_type: serde_json::Value,
+    pub recent_time_cards: Vec<TimeCard>,
+}
+

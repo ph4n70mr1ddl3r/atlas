@@ -200,7 +200,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_warehouse(r)).collect())
+        Ok(rows.iter().map(row_to_warehouse).collect())
     }
 
     async fn delete_warehouse(&self, id: Uuid) -> AtlasResult<()> {
@@ -274,7 +274,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_zone(r)).collect())
+        Ok(rows.iter().map(row_to_zone).collect())
     }
 
     async fn delete_zone(&self, id: Uuid) -> AtlasResult<()> {
@@ -344,7 +344,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_put_away_rule(r)).collect())
+        Ok(rows.iter().map(row_to_put_away_rule).collect())
     }
 
     async fn delete_put_away_rule(&self, id: Uuid) -> AtlasResult<()> {
@@ -486,7 +486,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
             ).bind(org_id).fetch_all(&self.pool).await,
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_task(r)).collect())
+        Ok(rows.iter().map(row_to_task).collect())
     }
 
     async fn update_task_status(&self, id: Uuid, status: &str, assigned_to: Option<Uuid>) -> AtlasResult<()> {
@@ -627,7 +627,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
             ).bind(org_id).fetch_all(&self.pool).await,
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| row_to_wave(r)).collect())
+        Ok(rows.iter().map(row_to_wave).collect())
     }
 
     async fn update_wave_status(&self, id: Uuid, status: &str) -> AtlasResult<()> {
@@ -813,7 +813,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
             tasks_by_type: serde_json::Value::Object(tasks_by_type),
             tasks_by_priority: serde_json::Value::Object(tasks_by_priority),
             wave_completion_pct,
-            recent_tasks: recent_rows.iter().map(|r| row_to_task(r)).collect(),
+            recent_tasks: recent_rows.iter().map(row_to_task).collect(),
         })
     }
 }

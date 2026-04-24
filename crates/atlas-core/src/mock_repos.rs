@@ -4131,3 +4131,130 @@ impl crate::absence::AbsenceRepository for MockAbsenceRepository {
     async fn add_history(&self, _entry_id: Uuid, _action: &str, _from_status: Option<&str>, _to_status: Option<&str>, _performed_by: Option<Uuid>, _comment: Option<&str>) -> AtlasResult<()> { Ok(()) }
     async fn get_entry_history(&self, _entry_id: Uuid) -> AtlasResult<Vec<atlas_shared::AbsenceEntryHistory>> { Ok(vec![]) }
 }
+
+/// Mock Time and Labor repository for testing
+pub struct MockTimeAndLaborRepository;
+
+#[async_trait]
+impl crate::time_and_labor::TimeAndLaborRepository for MockTimeAndLaborRepository {
+    async fn create_work_schedule(
+        &self, _org_id: Uuid, _code: &str, _name: &str, _description: Option<&str>,
+        _schedule_type: &str, _standard_hours_per_day: &str, _standard_hours_per_week: &str,
+        _work_days_per_week: i32, _start_time: Option<chrono::NaiveTime>,
+        _end_time: Option<chrono::NaiveTime>, _break_duration_minutes: i32,
+        _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::WorkSchedule> {
+        Ok(atlas_shared::WorkSchedule {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            code: _code.to_string(), name: _name.to_string(), description: None,
+            schedule_type: _schedule_type.to_string(),
+            standard_hours_per_day: _standard_hours_per_day.to_string(),
+            standard_hours_per_week: _standard_hours_per_week.to_string(),
+            work_days_per_week: _work_days_per_week,
+            start_time: None, end_time: None, break_duration_minutes: _break_duration_minutes,
+            is_active: true, metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_work_schedule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::WorkSchedule>> { Ok(None) }
+    async fn get_schedule_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::WorkSchedule>> { Ok(None) }
+    async fn list_work_schedules(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::WorkSchedule>> { Ok(vec![]) }
+    async fn delete_work_schedule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_overtime_rule(
+        &self, _org_id: Uuid, _code: &str, _name: &str, _description: Option<&str>,
+        _threshold_type: &str, _daily_threshold_hours: &str, _weekly_threshold_hours: &str,
+        _overtime_multiplier: &str, _double_time_threshold_hours: Option<&str>,
+        _double_time_multiplier: &str, _include_holidays: bool, _include_weekends: bool,
+        _effective_from: Option<chrono::NaiveDate>, _effective_to: Option<chrono::NaiveDate>,
+        _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::OvertimeRule> {
+        Ok(atlas_shared::OvertimeRule {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            code: _code.to_string(), name: _name.to_string(), description: None,
+            threshold_type: _threshold_type.to_string(),
+            daily_threshold_hours: _daily_threshold_hours.to_string(),
+            weekly_threshold_hours: _weekly_threshold_hours.to_string(),
+            overtime_multiplier: _overtime_multiplier.to_string(),
+            double_time_threshold_hours: None,
+            double_time_multiplier: _double_time_multiplier.to_string(),
+            include_holidays: false, include_weekends: false,
+            is_active: true, effective_from: None, effective_to: None,
+            metadata: serde_json::json!({}),
+            created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_overtime_rule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::OvertimeRule>> { Ok(None) }
+    async fn get_overtime_rule_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::OvertimeRule>> { Ok(None) }
+    async fn list_overtime_rules(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::OvertimeRule>> { Ok(vec![]) }
+    async fn delete_overtime_rule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_time_card(
+        &self, _org_id: Uuid, _employee_id: Uuid, _employee_name: Option<&str>,
+        _card_number: &str, _period_start: chrono::NaiveDate, _period_end: chrono::NaiveDate,
+        _schedule_id: Option<Uuid>, _overtime_rule_id: Option<Uuid>, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TimeCard> {
+        Ok(atlas_shared::TimeCard {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            employee_id: _employee_id, employee_name: _employee_name.map(String::from),
+            card_number: _card_number.to_string(), status: "draft".to_string(),
+            period_start: _period_start, period_end: _period_end,
+            total_regular_hours: "0.0000".to_string(), total_overtime_hours: "0.0000".to_string(),
+            total_double_time_hours: "0.0000".to_string(), total_hours: "0.0000".to_string(),
+            schedule_id: None, overtime_rule_id: None,
+            submitted_at: None, approved_by: None, approved_at: None,
+            rejected_reason: None, comments: None,
+            metadata: serde_json::json!({}), created_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_time_card(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TimeCard>> { Ok(None) }
+    async fn get_time_card_by_number(&self, _org_id: Uuid, _card_number: &str) -> AtlasResult<Option<atlas_shared::TimeCard>> { Ok(None) }
+    async fn list_time_cards(&self, _org_id: Uuid, _employee_id: Option<Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::TimeCard>> { Ok(vec![]) }
+    async fn update_time_card_status(&self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _rejected_reason: Option<&str>) -> AtlasResult<atlas_shared::TimeCard> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_time_card_totals(&self, _id: Uuid, _regular: &str, _overtime: &str, _double_time: &str, _total: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_time_entry(
+        &self, _org_id: Uuid, _time_card_id: Uuid, _entry_date: chrono::NaiveDate,
+        _entry_type: &str, _start_time: Option<chrono::NaiveTime>, _end_time: Option<chrono::NaiveTime>,
+        _duration_hours: &str, _project_id: Option<Uuid>, _project_name: Option<&str>,
+        _department_id: Option<Uuid>, _department_name: Option<&str>, _task_name: Option<&str>,
+        _location: Option<&str>, _cost_center: Option<&str>, _labor_category: Option<&str>,
+        _comments: Option<&str>, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TimeEntry> {
+        Ok(atlas_shared::TimeEntry {
+            id: Uuid::new_v4(), organization_id: _org_id, time_card_id: _time_card_id,
+            entry_date: _entry_date, entry_type: _entry_type.to_string(),
+            start_time: None, end_time: None, duration_hours: _duration_hours.to_string(),
+            project_id: None, project_name: None, department_id: None, department_name: None,
+            task_name: None, location: None, cost_center: None, labor_category: None,
+            comments: None, metadata: serde_json::json!({}), created_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_time_entry(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TimeEntry>> { Ok(None) }
+    async fn list_time_entries_by_card(&self, _time_card_id: Uuid) -> AtlasResult<Vec<atlas_shared::TimeEntry>> { Ok(vec![]) }
+    async fn delete_time_entry(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+    async fn add_history(&self, _time_card_id: Uuid, _action: &str, _from_status: Option<&str>, _to_status: Option<&str>, _performed_by: Option<Uuid>, _comment: Option<&str>) -> AtlasResult<()> { Ok(()) }
+    async fn get_time_card_history(&self, _time_card_id: Uuid) -> AtlasResult<Vec<atlas_shared::TimeCardHistory>> { Ok(vec![]) }
+    async fn create_labor_distribution(
+        &self, _org_id: Uuid, _time_entry_id: Uuid, _distribution_percent: &str,
+        _cost_center: Option<&str>, _project_id: Option<Uuid>, _project_name: Option<&str>,
+        _department_id: Option<Uuid>, _department_name: Option<&str>, _gl_account_code: Option<&str>,
+        _allocated_hours: &str,
+    ) -> AtlasResult<atlas_shared::LaborDistribution> {
+        Ok(atlas_shared::LaborDistribution {
+            id: Uuid::new_v4(), organization_id: _org_id, time_entry_id: _time_entry_id,
+            distribution_percent: _distribution_percent.to_string(),
+            cost_center: None, project_id: None, project_name: None,
+            department_id: None, department_name: None, gl_account_code: None,
+            allocated_hours: _allocated_hours.to_string(),
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_labor_distributions_by_entry(&self, _time_entry_id: Uuid) -> AtlasResult<Vec<atlas_shared::LaborDistribution>> { Ok(vec![]) }
+    async fn delete_labor_distribution(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+}

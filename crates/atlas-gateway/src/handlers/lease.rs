@@ -15,6 +15,16 @@ use tracing::info;
 use crate::AppState;
 use crate::handlers::auth::Claims;
 
+
+/// Parse a UUID from a claim string, returning a JSON error on failure.
+///
+/// Unlike `unwrap_or_default()`, this does NOT silently fall back to the nil
+/// UUID — which would be an auth-scoping bypass.
+fn parse_uuid(s: &str) -> Result<Uuid, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    Uuid::parse_str(s).map_err(|_| {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Invalid auth token"})))
+    })
+}
 // ============================================================================
 // Request Types
 // ============================================================================
@@ -107,8 +117,8 @@ pub async fn create_lease(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateLeaseRequest>,
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
-    let created_by = Uuid::parse_str(&claims.sub).ok();
+    let org_id = parse_uuid(&claims.org_id)?;
+    let created_by = parse_uuid(&claims.sub).ok();
 
     let lease = state.lease_accounting_engine.create_lease(
         org_id,
@@ -167,7 +177,7 @@ pub async fn list_leases(
     Extension(claims): Extension<Claims>,
     Query(filters): Query<LeaseFilters>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
 
     let leases = state.lease_accounting_engine.list_leases(
         org_id,
@@ -184,7 +194,7 @@ pub async fn activate_lease(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let activated_by = Uuid::parse_str(&claims.sub).ok();
+    let activated_by = parse_uuid(&claims.sub).ok();
     let lease = state.lease_accounting_engine.activate_lease(id, activated_by).await.map_err(error_response)?;
 
     Ok(Json(serde_json::to_value(lease).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
@@ -220,8 +230,8 @@ pub async fn create_lease_modification(
     Path(id): Path<Uuid>,
     Json(req): Json<CreateModificationRequest>,
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
-    let created_by = Uuid::parse_str(&claims.sub).ok();
+    let org_id = parse_uuid(&claims.org_id)?;
+    let created_by = parse_uuid(&claims.sub).ok();
 
     let modification = state.lease_accounting_engine.create_modification(
         org_id, id,
@@ -267,8 +277,8 @@ pub async fn terminate_lease(
     Path(id): Path<Uuid>,
     Json(req): Json<TerminateLeaseRequest>,
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
-    let created_by = Uuid::parse_str(&claims.sub).ok();
+    let org_id = parse_uuid(&claims.org_id)?;
+    let created_by = parse_uuid(&claims.sub).ok();
 
     let termination = state.lease_accounting_engine.terminate_lease(
         org_id, id,
@@ -297,7 +307,7 @@ pub async fn get_lease_dashboard(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
 
     let summary = state.lease_accounting_engine.get_dashboard_summary(org_id).await.map_err(error_response)?;
 

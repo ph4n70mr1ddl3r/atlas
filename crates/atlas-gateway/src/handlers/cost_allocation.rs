@@ -14,6 +14,16 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::handlers::auth::Claims;
 
+
+/// Parse a UUID from a claim string, returning a JSON error on failure.
+///
+/// Unlike `unwrap_or_default()`, this does NOT silently fall back to the nil
+/// UUID — which would be an auth-scoping bypass.
+fn parse_uuid(s: &str) -> Result<Uuid, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    Uuid::parse_str(s).map_err(|_| {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Invalid auth token"})))
+    })
+}
 // ============================================================================
 // Request Types
 // ============================================================================
@@ -133,8 +143,8 @@ pub async fn create_allocation_pool(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreatePoolRequest>,
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let user_id = parse_uuid(&claims.sub).ok();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.create_pool(
         org_id, &req.code, &req.name, req.description.as_deref(),
         &req.pool_type, req.source_account_codes,
@@ -150,7 +160,7 @@ pub async fn list_allocation_pools(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.list_pools(org_id).await {
         Ok(pools) => Ok(Json(json!({"data": pools}))),
         Err(e) => Err(error_response(e)),
@@ -162,7 +172,7 @@ pub async fn get_allocation_pool(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.get_pool(org_id, &code).await {
         Ok(Some(pool)) => Ok(Json(serde_json::to_value(pool).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Pool not found"})))),
@@ -175,7 +185,7 @@ pub async fn delete_allocation_pool(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.delete_pool(org_id, &code).await {
         Ok(()) => Ok(Json(json!({"message": "Pool deleted"}))),
         Err(e) => Err(error_response(e)),
@@ -191,8 +201,8 @@ pub async fn create_allocation_base(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateBaseRequest>,
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let user_id = parse_uuid(&claims.sub).ok();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.create_base(
         org_id, &req.code, &req.name, req.description.as_deref(),
         &req.base_type, req.financial_account_code.as_deref(),
@@ -207,7 +217,7 @@ pub async fn list_allocation_bases(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.list_bases(org_id).await {
         Ok(bases) => Ok(Json(json!({"data": bases}))),
         Err(e) => Err(error_response(e)),
@@ -219,7 +229,7 @@ pub async fn get_allocation_base(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.get_base(org_id, &code).await {
         Ok(Some(base)) => Ok(Json(serde_json::to_value(base).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Base not found"})))),
@@ -232,7 +242,7 @@ pub async fn delete_allocation_base(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.delete_base(org_id, &code).await {
         Ok(()) => Ok(Json(json!({"message": "Base deleted"}))),
         Err(e) => Err(error_response(e)),
@@ -248,8 +258,8 @@ pub async fn set_base_value(
     Extension(claims): Extension<Claims>,
     Json(req): Json<SetBaseValueRequest>,
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let user_id = parse_uuid(&claims.sub).ok();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.set_base_value(
         org_id, &req.base_code,
         req.department_id, req.department_name.as_deref(),
@@ -266,7 +276,7 @@ pub async fn list_base_values(
     Extension(claims): Extension<Claims>,
     Query(filters): Query<BaseValueFilters>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.list_base_values(org_id, filters.base_id).await {
         Ok(values) => Ok(Json(json!({"data": values}))),
         Err(e) => Err(error_response(e)),
@@ -282,8 +292,8 @@ pub async fn create_allocation_rule(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateRuleRequest>,
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let user_id = parse_uuid(&claims.sub).ok();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.create_rule(
         org_id, &req.name, req.description.as_deref(),
         &req.pool_code, &req.base_code, &req.allocation_method,
@@ -300,7 +310,7 @@ pub async fn list_allocation_rules(
     Extension(claims): Extension<Claims>,
     Query(filters): Query<RuleFilters>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.list_rules(org_id, filters.status.as_deref()).await {
         Ok(rules) => Ok(Json(json!({"data": rules}))),
         Err(e) => Err(error_response(e)),
@@ -351,7 +361,7 @@ pub async fn add_rule_target(
     Path(rule_id): Path<Uuid>,
     Json(req): Json<AddRuleTargetRequest>,
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.add_rule_target(
         org_id, rule_id,
         req.department_id, req.department_name.as_deref(),
@@ -384,8 +394,8 @@ pub async fn execute_allocation_rule(
     Path(rule_id): Path<Uuid>,
     Json(req): Json<ExecuteRuleRequest>,
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let user_id = parse_uuid(&claims.sub).ok();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.execute_rule(
         org_id, rule_id, &req.source_amount,
         req.period_start, req.period_end, user_id,
@@ -400,7 +410,7 @@ pub async fn list_allocation_runs(
     Extension(claims): Extension<Claims>,
     Query(filters): Query<RunFilters>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.list_runs(org_id, filters.rule_id).await {
         Ok(runs) => Ok(Json(json!({"data": runs}))),
         Err(e) => Err(error_response(e)),
@@ -424,7 +434,7 @@ pub async fn post_allocation_run(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     match state.cost_allocation_engine.post_run(id, user_id).await {
         Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
@@ -437,7 +447,7 @@ pub async fn reverse_allocation_run(
     Path(id): Path<Uuid>,
     Json(req): Json<ReverseRunRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     match state.cost_allocation_engine.reverse_run(id, user_id, &req.reason).await {
         Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
@@ -463,7 +473,7 @@ pub async fn get_allocation_summary(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = uuid::Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.cost_allocation_engine.get_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),

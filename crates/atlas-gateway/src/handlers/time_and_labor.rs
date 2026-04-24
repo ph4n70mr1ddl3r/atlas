@@ -63,8 +63,8 @@ pub async fn create_work_schedule(
     claims: Extension<crate::handlers::auth::Claims>,
     Json(payload): Json<CreateWorkScheduleRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
 
     match state.time_and_labor_engine.create_work_schedule(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
@@ -72,7 +72,7 @@ pub async fn create_work_schedule(
         payload.work_days_per_week, payload.start_time, payload.end_time,
         payload.break_duration_minutes, Some(user_id),
     ).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap()))),
+        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap_or_default()))),
         Err(e) => { error!("Failed to create work schedule: {}", e); Err(map_error(e)) }
     }
 }
@@ -83,9 +83,9 @@ pub async fn get_work_schedule(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.get_work_schedule(org_id, &code).await {
-        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get work schedule: {}", e); Err(map_error(e)) }
     }
@@ -96,7 +96,7 @@ pub async fn list_work_schedules(
     State(state): State<Arc<AppState>>,
     claims: Extension<crate::handlers::auth::Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.list_work_schedules(org_id).await {
         Ok(schedules) => Ok(Json(serde_json::json!({ "data": schedules }))),
         Err(e) => { error!("Failed to list work schedules: {}", e); Err(map_error(e)) }
@@ -109,7 +109,7 @@ pub async fn delete_work_schedule(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.delete_work_schedule(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Failed to delete work schedule: {}", e); Err(map_error(e)) }
@@ -155,8 +155,8 @@ pub async fn create_overtime_rule(
     claims: Extension<crate::handlers::auth::Claims>,
     Json(payload): Json<CreateOvertimeRuleRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
 
     match state.time_and_labor_engine.create_overtime_rule(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
@@ -165,7 +165,7 @@ pub async fn create_overtime_rule(
         payload.double_time_multiplier, payload.include_holidays, payload.include_weekends,
         payload.effective_from, payload.effective_to, Some(user_id),
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap_or_default()))),
         Err(e) => { error!("Failed to create overtime rule: {}", e); Err(map_error(e)) }
     }
 }
@@ -176,9 +176,9 @@ pub async fn get_overtime_rule(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.get_overtime_rule(org_id, &code).await {
-        Ok(Some(r)) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(Some(r)) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get overtime rule: {}", e); Err(map_error(e)) }
     }
@@ -189,7 +189,7 @@ pub async fn list_overtime_rules(
     State(state): State<Arc<AppState>>,
     claims: Extension<crate::handlers::auth::Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.list_overtime_rules(org_id).await {
         Ok(rules) => Ok(Json(serde_json::json!({ "data": rules }))),
         Err(e) => { error!("Failed to list overtime rules: {}", e); Err(map_error(e)) }
@@ -202,7 +202,7 @@ pub async fn delete_overtime_rule(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.delete_overtime_rule(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Failed to delete overtime rule: {}", e); Err(map_error(e)) }
@@ -230,8 +230,8 @@ pub async fn create_time_card(
     claims: Extension<crate::handlers::auth::Claims>,
     Json(payload): Json<CreateTimeCardRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
 
     match state.time_and_labor_engine.create_time_card(
         org_id, payload.employee_id, payload.employee_name.as_deref(),
@@ -239,7 +239,7 @@ pub async fn create_time_card(
         payload.schedule_code.as_deref(), payload.overtime_rule_code.as_deref(),
         Some(user_id),
     ).await {
-        Ok(c) => Ok((StatusCode::CREATED, Json(serde_json::to_value(c).unwrap()))),
+        Ok(c) => Ok((StatusCode::CREATED, Json(serde_json::to_value(c).unwrap_or_default()))),
         Err(e) => { error!("Failed to create time card: {}", e); Err(map_error(e)) }
     }
 }
@@ -250,9 +250,9 @@ pub async fn get_time_card(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.get_time_card(org_id, id).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get time card: {}", e); Err(map_error(e)) }
     }
@@ -264,7 +264,7 @@ pub async fn list_time_cards(
     claims: Extension<crate::handlers::auth::Claims>,
     Query(params): Query<ListTimeCardsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.list_time_cards(
         org_id, params.employee_id, params.status.as_deref(),
     ).await {
@@ -279,10 +279,10 @@ pub async fn submit_time_card(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
     match state.time_and_labor_engine.submit_time_card(org_id, id, Some(user_id)).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
         Err(e) => { error!("Failed to submit time card: {}", e); Err(map_error(e)) }
     }
 }
@@ -293,10 +293,10 @@ pub async fn approve_time_card(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
     match state.time_and_labor_engine.approve_time_card(org_id, id, user_id).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
         Err(e) => { error!("Failed to approve time card: {}", e); Err(map_error(e)) }
     }
 }
@@ -314,10 +314,10 @@ pub async fn reject_time_card(
     Path(id): Path<Uuid>,
     Json(payload): Json<RejectTimeCardRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
     match state.time_and_labor_engine.reject_time_card(org_id, id, user_id, payload.reason.as_deref()).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
         Err(e) => { error!("Failed to reject time card: {}", e); Err(map_error(e)) }
     }
 }
@@ -335,9 +335,9 @@ pub async fn cancel_time_card(
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelTimeCardRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.cancel_time_card(org_id, id, payload.reason.as_deref()).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
         Err(e) => { error!("Failed to cancel time card: {}", e); Err(map_error(e)) }
     }
 }
@@ -375,8 +375,8 @@ pub async fn create_time_entry(
     claims: Extension<crate::handlers::auth::Claims>,
     Json(payload): Json<CreateTimeEntryRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
 
     match state.time_and_labor_engine.create_time_entry(
         org_id, payload.time_card_id, payload.entry_date,
@@ -387,7 +387,7 @@ pub async fn create_time_entry(
         payload.cost_center.as_deref(), payload.labor_category.as_deref(),
         payload.comments.as_deref(), Some(user_id),
     ).await {
-        Ok(e) => Ok((StatusCode::CREATED, Json(serde_json::to_value(e).unwrap()))),
+        Ok(e) => Ok((StatusCode::CREATED, Json(serde_json::to_value(e).unwrap_or_default()))),
         Err(e2) => { error!("Failed to create time entry: {}", e2); Err(map_error(e2)) }
     }
 }
@@ -398,7 +398,7 @@ pub async fn list_time_entries(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(time_card_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.list_time_entries(org_id, time_card_id).await {
         Ok(entries) => Ok(Json(serde_json::json!({ "data": entries }))),
         Err(e) => { error!("Failed to list time entries: {}", e); Err(map_error(e)) }
@@ -411,7 +411,7 @@ pub async fn delete_time_entry(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.delete_time_entry(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Failed to delete time entry: {}", e); Err(map_error(e)) }
@@ -428,7 +428,7 @@ pub async fn get_time_card_history(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(time_card_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.get_time_card_history(org_id, time_card_id).await {
         Ok(history) => Ok(Json(serde_json::json!({ "data": history }))),
         Err(e) => { error!("Failed to get time card history: {}", e); Err(map_error(e)) }
@@ -458,14 +458,14 @@ pub async fn create_labor_distribution(
     claims: Extension<crate::handlers::auth::Claims>,
     Json(payload): Json<CreateLaborDistributionRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.time_and_labor_engine.create_labor_distribution(
         org_id, payload.time_entry_id, payload.distribution_percent,
         payload.cost_center.as_deref(), payload.project_id, payload.project_name.as_deref(),
         payload.department_id, payload.department_name.as_deref(), payload.gl_account_code.as_deref(),
     ).await {
-        Ok(d) => Ok((StatusCode::CREATED, Json(serde_json::to_value(d).unwrap()))),
+        Ok(d) => Ok((StatusCode::CREATED, Json(serde_json::to_value(d).unwrap_or_default()))),
         Err(e) => { error!("Failed to create labor distribution: {}", e); Err(map_error(e)) }
     }
 }
@@ -476,7 +476,7 @@ pub async fn list_labor_distributions(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(time_entry_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.list_labor_distributions(org_id, time_entry_id).await {
         Ok(dists) => Ok(Json(serde_json::json!({ "data": dists }))),
         Err(e) => { error!("Failed to list labor distributions: {}", e); Err(map_error(e)) }
@@ -489,7 +489,7 @@ pub async fn delete_labor_distribution(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.delete_labor_distribution(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Failed to delete labor distribution: {}", e); Err(map_error(e)) }
@@ -505,9 +505,9 @@ pub async fn get_time_and_labor_dashboard(
     State(state): State<Arc<AppState>>,
     claims: Extension<crate::handlers::auth::Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
     match state.time_and_labor_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),
         Err(e) => { error!("Failed to get time and labor dashboard: {}", e); Err(map_error(e)) }
     }
 }

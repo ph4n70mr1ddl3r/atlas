@@ -16,6 +16,16 @@ use tracing::error;
 use crate::AppState;
 use crate::handlers::auth::Claims;
 
+
+/// Parse a UUID from a claim string, returning a JSON error on failure.
+///
+/// Unlike `unwrap_or_default()`, this does NOT silently fall back to the nil
+/// UUID — which would be an auth-scoping bypass.
+fn parse_uuid(s: &str) -> Result<Uuid, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    Uuid::parse_str(s).map_err(|_| {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Invalid auth token"})))
+    })
+}
 // ============================================================================
 // Sponsor Handlers
 // ============================================================================
@@ -47,7 +57,7 @@ pub async fn create_sponsor(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateSponsorRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.create_sponsor(
         org_id, &req.sponsor_code, &req.name,
         req.sponsor_type.as_deref().unwrap_or("government"),
@@ -77,7 +87,7 @@ pub async fn list_sponsors(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListSponsorsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.list_sponsors(org_id, query.active_only.unwrap_or(true)).await {
         Ok(data) => Ok(Json(serde_json::json!({"data": data}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -90,7 +100,7 @@ pub async fn get_sponsor(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.get_sponsor(org_id, &code).await {
         Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Sponsor not found"})))),
@@ -104,7 +114,7 @@ pub async fn delete_sponsor(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.delete_sponsor(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -133,7 +143,7 @@ pub async fn create_indirect_cost_rate(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateIndirectCostRateRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.create_indirect_cost_rate(
         org_id, &req.rate_name,
         req.rate_type.as_deref().unwrap_or("negotiated"),
@@ -158,7 +168,7 @@ pub async fn list_indirect_cost_rates(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListRatesQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.list_indirect_cost_rates(org_id, query.active_only.unwrap_or(true)).await {
         Ok(data) => Ok(Json(serde_json::json!({"data": data}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -209,7 +219,7 @@ pub async fn create_award(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateAwardRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.create_award(
         org_id, &req.award_number, &req.award_title, req.sponsor_id,
         req.sponsor_award_number.as_deref(),
@@ -255,7 +265,7 @@ pub async fn list_awards(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListAwardsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.list_awards(org_id, query.status.as_deref(), query.sponsor_id).await {
         Ok(data) => Ok(Json(serde_json::json!({"data": data}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -342,7 +352,7 @@ pub async fn create_budget_line(
     Path(award_id): Path<Uuid>,
     Json(req): Json<CreateBudgetLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.create_budget_line(
         org_id, award_id, &req.budget_category, req.description.as_deref(),
         req.account_code.as_deref(), &req.budget_amount,
@@ -396,7 +406,7 @@ pub async fn create_expenditure(
     Path(award_id): Path<Uuid>,
     Json(req): Json<CreateExpenditureRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.create_expenditure(
         org_id, award_id,
         req.expenditure_type.as_deref().unwrap_or("actual"),
@@ -437,7 +447,7 @@ pub async fn approve_expenditure(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     match state.grant_management_engine.approve_expenditure(id, user_id).await {
         Ok(exp) => Ok(Json(serde_json::to_value(exp).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -474,7 +484,7 @@ pub async fn create_billing(
     Path(award_id): Path<Uuid>,
     Json(req): Json<CreateBillingRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.create_billing(
         org_id, award_id, req.period_start, req.period_end, req.notes.as_deref(), None,
     ).await {
@@ -507,7 +517,7 @@ pub async fn submit_billing(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     match state.grant_management_engine.submit_billing(id, user_id).await {
         Ok(b) => Ok(Json(serde_json::to_value(b).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -520,7 +530,7 @@ pub async fn approve_billing(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     match state.grant_management_engine.approve_billing(id, user_id).await {
         Ok(b) => Ok(Json(serde_json::to_value(b).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -560,7 +570,7 @@ pub async fn create_compliance_report(
     Path(award_id): Path<Uuid>,
     Json(req): Json<CreateComplianceReportRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.create_compliance_report(
         org_id, award_id, &req.report_type, req.report_title.as_deref(),
         req.reporting_period_start, req.reporting_period_end, req.due_date,
@@ -595,7 +605,7 @@ pub async fn submit_compliance_report(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     match state.grant_management_engine.submit_compliance_report(id, user_id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -608,7 +618,7 @@ pub async fn approve_compliance_report(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     match state.grant_management_engine.approve_compliance_report(id, user_id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -624,7 +634,7 @@ pub async fn get_grant_dashboard(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.grant_management_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),

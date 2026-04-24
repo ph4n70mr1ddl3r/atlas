@@ -20,6 +20,16 @@ fn default_standard_return() -> String { "standard_return".to_string() }
 #[allow(dead_code)]
 fn default_return_to_stock() -> String { "return_to_stock".to_string() }
 
+
+/// Parse a UUID from a claim string, returning a JSON error on failure.
+///
+/// Unlike `unwrap_or_default()`, this does NOT silently fall back to the nil
+/// UUID — which would be an auth-scoping bypass.
+fn parse_uuid(s: &str) -> Result<Uuid, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    Uuid::parse_str(s).map_err(|_| {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Invalid auth token"})))
+    })
+}
 // ============================================================================
 // Return Reasons
 // ============================================================================
@@ -46,7 +56,7 @@ pub async fn create_return_reason(
     Json(req): Json<CreateReturnReasonRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.create_return_reason(
-        Uuid::parse_str(&claims.org_id).unwrap_or_default(),
+        parse_uuid(&claims.org_id)?,
         &req.code, &req.name, req.description.as_deref(),
         &req.return_type, req.default_disposition.as_deref(),
         req.requires_approval, req.credit_issued_automatically, None,
@@ -65,7 +75,7 @@ pub async fn get_return_reason(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.get_return_reason(
-        Uuid::parse_str(&claims.org_id).unwrap_or_default(), &code,
+        parse_uuid(&claims.org_id)?, &code,
     ).await {
         Ok(Some(reason)) => Ok(Json(serde_json::to_value(reason).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Not found"})))),
@@ -84,7 +94,7 @@ pub async fn list_return_reasons(
     Query(query): Query<ListReturnReasonsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.list_return_reasons(
-        Uuid::parse_str(&claims.org_id).unwrap_or_default(), query.return_type.as_deref(),
+        parse_uuid(&claims.org_id)?, query.return_type.as_deref(),
     ).await {
         Ok(reasons) => Ok(Json(serde_json::json!({"data": reasons}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
@@ -97,7 +107,7 @@ pub async fn delete_return_reason(
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.delete_return_reason(
-        Uuid::parse_str(&claims.org_id).unwrap_or_default(), &code,
+        parse_uuid(&claims.org_id)?, &code,
     ).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
@@ -137,7 +147,7 @@ pub async fn create_rma(
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let return_date = req.return_date.unwrap_or_else(|| chrono::Utc::now().date_naive());
     match state.customer_returns_engine.create_rma(
-        Uuid::parse_str(&claims.org_id).unwrap_or_default(),
+        parse_uuid(&claims.org_id)?,
         req.customer_id, req.customer_number.as_deref(), req.customer_name.as_deref(),
         &req.return_type, req.reason_code.as_deref(),
         req.original_order_number.as_deref(), req.original_order_id,
@@ -177,7 +187,7 @@ pub async fn list_rmas(
     Query(query): Query<ListRmasQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.list_rmas(
-        Uuid::parse_str(&claims.org_id).unwrap_or_default(),
+        parse_uuid(&claims.org_id)?,
         query.status.as_deref(), query.customer_id, query.return_type.as_deref(),
     ).await {
         Ok(rmas) => Ok(Json(serde_json::json!({"data": rmas}))),
@@ -205,7 +215,7 @@ pub async fn approve_rma(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = Uuid::parse_str(&claims.sub).unwrap_or_default();
+    let user_id = parse_uuid(&claims.sub)?;
     match state.customer_returns_engine.approve_rma(id, user_id).await {
         Ok(rma) => Ok(Json(serde_json::to_value(rma).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
@@ -262,7 +272,7 @@ pub async fn add_return_line(
     Json(req): Json<AddReturnLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.add_return_line(
-        Uuid::parse_str(&claims.org_id).unwrap_or_default(), rma_id,
+        parse_uuid(&claims.org_id)?, rma_id,
         req.item_id, req.item_code.as_deref(), req.item_description.as_deref(),
         req.original_line_id, &req.original_quantity, &req.return_quantity,
         &req.unit_price, req.reason_code.as_deref(), req.disposition.as_deref(),
@@ -372,7 +382,7 @@ pub async fn list_credit_memos(
     Query(query): Query<ListCreditMemosQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.list_credit_memos(
-        Uuid::parse_str(&claims.org_id).unwrap_or_default(),
+        parse_uuid(&claims.org_id)?,
         query.customer_id, query.status.as_deref(),
     ).await {
         Ok(memos) => Ok(Json(serde_json::json!({"data": memos}))),
@@ -409,7 +419,7 @@ pub async fn get_returns_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.customer_returns_engine.get_dashboard_summary(
-        Uuid::parse_str(&claims.org_id).unwrap_or_default(),
+        parse_uuid(&claims.org_id)?,
     ).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),

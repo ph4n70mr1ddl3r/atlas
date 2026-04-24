@@ -21,6 +21,16 @@ fn default_usd() -> String { "USD".to_string() }
 fn default_revenue() -> String { "revenue".to_string() }
 fn default_percentage() -> String { "percentage".to_string() }
 
+
+/// Parse a UUID from a claim string, returning a JSON error on failure.
+///
+/// Unlike `unwrap_or_default()`, this does NOT silently fall back to the nil
+/// UUID — which would be an auth-scoping bypass.
+fn parse_uuid(s: &str) -> Result<Uuid, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    Uuid::parse_str(s).map_err(|_| {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Invalid auth token"})))
+    })
+}
 // ============================================================================
 // Sales Representatives
 // ============================================================================
@@ -44,7 +54,7 @@ pub async fn create_rep(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateRepRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.create_rep(
         org_id, &req.rep_code, req.employee_id,
         &req.first_name, &req.last_name,
@@ -71,7 +81,7 @@ pub async fn list_reps(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListRepsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     let active_only = query.active_only.unwrap_or(true);
     match state.sales_commission_engine.list_reps(org_id, active_only).await {
         Ok(reps) => Ok(Json(serde_json::json!({"data": reps}))),
@@ -88,7 +98,7 @@ pub async fn get_rep(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.get_rep(org_id, &code).await {
         Ok(Some(rep)) => Ok(Json(serde_json::to_value(rep).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Rep not found"})))),
@@ -105,7 +115,7 @@ pub async fn delete_rep(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.delete_rep(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
@@ -141,7 +151,7 @@ pub async fn create_commission_plan(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreatePlanRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.create_plan(
         org_id, &req.code, &req.name, req.description.as_deref(),
         &req.plan_type, &req.basis, &req.calculation_method,
@@ -161,7 +171,7 @@ pub async fn list_commission_plans(
     Extension(claims): Extension<Claims>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     let status = params.get("status").map(|s| s.as_str());
     match state.sales_commission_engine.list_plans(org_id, status).await {
         Ok(plans) => Ok(Json(serde_json::json!({"data": plans}))),
@@ -178,7 +188,7 @@ pub async fn get_commission_plan(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.get_plan(org_id, &code).await {
         Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Plan not found"})))),
@@ -223,7 +233,7 @@ pub async fn delete_commission_plan(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.delete_plan(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
@@ -252,7 +262,7 @@ pub async fn add_rate_tier(
     Path(plan_id): Path<Uuid>,
     Json(req): Json<AddRateTierRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.add_rate_tier(
         org_id, plan_id,
         &req.from_amount, req.to_amount.as_deref(),
@@ -298,7 +308,7 @@ pub async fn assign_plan(
     Extension(claims): Extension<Claims>,
     Json(req): Json<AssignPlanRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.assign_plan(
         org_id, req.rep_id, req.plan_id,
         req.effective_from, req.effective_to, None,
@@ -322,7 +332,7 @@ pub async fn list_assignments(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListAssignmentsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.list_assignments(org_id, query.rep_id).await {
         Ok(assignments) => Ok(Json(serde_json::json!({"data": assignments}))),
         Err(e) => {
@@ -354,7 +364,7 @@ pub async fn create_quota(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateQuotaRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     let quota_number = format!("Q-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
     match state.sales_commission_engine.create_quota(
         org_id, req.rep_id, req.plan_id, &quota_number,
@@ -375,7 +385,7 @@ pub async fn list_quotas(
     Extension(claims): Extension<Claims>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     let rep_id = params.get("rep_id").and_then(|s| Uuid::parse_str(s).ok());
     let status = params.get("status").map(|s| s.as_str());
     match state.sales_commission_engine.list_quotas(org_id, rep_id, status).await {
@@ -426,7 +436,7 @@ pub async fn credit_transaction(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreditTransactionRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.credit_transaction(
         org_id, req.rep_id, req.plan_id, req.quota_id,
         &req.source_type, req.source_id, req.source_number.as_deref(),
@@ -446,7 +456,7 @@ pub async fn list_commission_transactions(
     Extension(claims): Extension<Claims>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     let rep_id = params.get("rep_id").and_then(|s| Uuid::parse_str(s).ok());
     let status = params.get("status").map(|s| s.as_str());
     match state.sales_commission_engine.list_transactions(org_id, rep_id, status).await {
@@ -492,7 +502,7 @@ pub async fn process_payout(
     Extension(claims): Extension<Claims>,
     Json(req): Json<ProcessPayoutRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.process_payout(
         org_id, &req.period_name, req.period_start_date, req.period_end_date,
         &req.currency_code, None,
@@ -511,7 +521,7 @@ pub async fn list_payouts(
     Extension(claims): Extension<Claims>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     let status = params.get("status").map(|s| s.as_str());
     match state.sales_commission_engine.list_payouts(org_id, status).await {
         Ok(payouts) => Ok(Json(serde_json::json!({"data": payouts}))),
@@ -562,7 +572,7 @@ pub async fn approve_payout(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     match state.sales_commission_engine.approve_payout(id, user_id).await {
         Ok(payout) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
@@ -596,7 +606,7 @@ pub async fn get_commission_dashboard(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.sales_commission_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {

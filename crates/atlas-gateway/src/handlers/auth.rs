@@ -46,6 +46,23 @@ pub struct Claims {
     pub exp: i64,
 }
 
+impl Claims {
+    /// Parse the `org_id` claim into a `Uuid`, returning 500 on failure.
+    ///
+    /// Using this instead of `Uuid::parse_str(&claims.org_id).unwrap_or_default()`
+    /// avoids silently falling back to the nil UUID on a malformed token.
+    pub fn org_uuid(&self) -> Result<Uuid, axum::http::StatusCode> {
+        Uuid::parse_str(&self.org_id)
+            .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    /// Parse the `sub` claim into a `Uuid`, returning 500 on failure.
+    pub fn user_uuid(&self) -> Result<Uuid, axum::http::StatusCode> {
+        Uuid::parse_str(&self.sub)
+            .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+    }
+}
+
 /// Token expiry duration in hours
 const TOKEN_EXPIRY_HOURS: i64 = 8;
 

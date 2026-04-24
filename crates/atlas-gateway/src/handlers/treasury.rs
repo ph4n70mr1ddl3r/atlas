@@ -17,6 +17,16 @@ use tracing::error;
 use crate::AppState;
 use crate::handlers::auth::Claims;
 
+
+/// Parse a UUID from a claim string, returning a JSON error on failure.
+///
+/// Unlike `unwrap_or_default()`, this does NOT silently fall back to the nil
+/// UUID — which would be an auth-scoping bypass.
+fn parse_uuid(s: &str) -> Result<Uuid, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    Uuid::parse_str(s).map_err(|_| {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Invalid auth token"})))
+    })
+}
 // ============================================================================
 // Counterparty Handlers
 // ============================================================================
@@ -41,7 +51,7 @@ pub async fn create_counterparty(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateCounterpartyRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     let cp_type = req.counterparty_type.as_deref().unwrap_or("bank");
     match state.treasury_engine.create_counterparty(
         org_id, &req.counterparty_code, &req.name, cp_type,
@@ -69,7 +79,7 @@ pub async fn list_counterparties(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListCounterpartiesQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     let active_only = query.active_only.unwrap_or(true);
     match state.treasury_engine.list_counterparties(org_id, active_only).await {
         Ok(cps) => Ok(Json(serde_json::json!({"data": cps}))),
@@ -86,7 +96,7 @@ pub async fn get_counterparty(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.treasury_engine.get_counterparty(org_id, &code).await {
         Ok(Some(cp)) => Ok(Json(serde_json::to_value(cp).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Counterparty not found"})))),
@@ -103,7 +113,7 @@ pub async fn delete_counterparty(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.treasury_engine.delete_counterparty(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
@@ -145,7 +155,7 @@ pub async fn create_deal(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateDealRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     let currency = req.currency_code.as_deref().unwrap_or("USD");
     match state.treasury_engine.create_deal(
         org_id, &req.deal_type, req.description.as_deref(),
@@ -178,7 +188,7 @@ pub async fn list_deals(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListDealsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.treasury_engine.list_deals(
         org_id, query.deal_type.as_deref(), query.status.as_deref(),
     ).await {
@@ -216,7 +226,7 @@ pub async fn authorize_deal(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     match state.treasury_engine.authorize_deal(id, user_id).await {
         Ok(deal) => Ok(Json(serde_json::to_value(deal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
@@ -240,7 +250,7 @@ pub async fn settle_deal(
     Path(id): Path<Uuid>,
     Json(req): Json<SettleDealRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    let user_id = Uuid::parse_str(&claims.sub).ok();
+    let user_id = parse_uuid(&claims.sub).ok();
     let settlement_type = req.settlement_type.as_deref().unwrap_or("full");
     match state.treasury_engine.settle_deal(
         id, settlement_type, req.payment_reference.as_deref(), user_id,
@@ -311,7 +321,7 @@ pub async fn get_treasury_dashboard(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let org_id = Uuid::parse_str(&claims.org_id).unwrap_or_default();
+    let org_id = parse_uuid(&claims.org_id)?;
     match state.treasury_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {

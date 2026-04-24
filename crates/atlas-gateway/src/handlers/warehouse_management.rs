@@ -24,6 +24,10 @@ use atlas_shared::AtlasError;
 use crate::AppState;
 use crate::handlers::auth::Claims;
 
+// Common task-creation payload shared by both `create_task` (resolve warehouse
+// from wave/zone) and `create_task_for_warehouse` (warehouse in URL) endpoints.
+type TaskPayload = CreateTaskRequest;
+
 // ============================================================================
 // Query Parameters
 // ============================================================================
@@ -64,8 +68,8 @@ pub async fn create_warehouse(
     claims: Extension<Claims>,
     Json(payload): Json<CreateWarehouseRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
 
     match state.warehouse_management_engine.create_warehouse(
         org_id, &payload.code, &payload.name,
@@ -82,7 +86,7 @@ pub async fn get_warehouse(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.get_warehouse(org_id, id).await {
         Ok(Some(wh)) => Ok(Json(serde_json::to_value(wh).unwrap_or_default())),
@@ -96,7 +100,7 @@ pub async fn list_warehouses(
     claims: Extension<Claims>,
     Query(params): Query<ListWarehousesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.list_warehouses(org_id, params.active_only.unwrap_or(false)).await {
         Ok(warehouses) => Ok(Json(serde_json::json!({ "data": warehouses }))),
@@ -109,7 +113,7 @@ pub async fn delete_warehouse(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.delete_warehouse(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -137,7 +141,7 @@ pub async fn create_zone(
     Path(warehouse_id): Path<Uuid>,
     Json(payload): Json<CreateZoneRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.create_zone(
         org_id, warehouse_id, &payload.code, &payload.name, &payload.zone_type,
@@ -153,7 +157,7 @@ pub async fn list_zones(
     claims: Extension<Claims>,
     Path(warehouse_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.list_zones(org_id, warehouse_id).await {
         Ok(zones) => Ok(Json(serde_json::json!({ "data": zones }))),
@@ -166,7 +170,7 @@ pub async fn delete_zone(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.delete_zone(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -195,7 +199,7 @@ pub async fn create_put_away_rule(
     Path(warehouse_id): Path<Uuid>,
     Json(payload): Json<CreatePutAwayRuleRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.create_put_away_rule(
         org_id, warehouse_id, &payload.rule_name, payload.description.as_deref(),
@@ -212,7 +216,7 @@ pub async fn list_put_away_rules(
     claims: Extension<Claims>,
     Path(warehouse_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.list_put_away_rules(org_id, warehouse_id).await {
         Ok(rules) => Ok(Json(serde_json::json!({ "data": rules }))),
@@ -225,7 +229,7 @@ pub async fn delete_put_away_rule(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.delete_put_away_rule(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -262,8 +266,8 @@ pub async fn create_task(
     claims: Extension<Claims>,
     Json(payload): Json<CreateTaskRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
 
     // Resolve warehouse_id from wave or zone
     let warehouse_id = if let Some(wave_id) = payload.wave_id {
@@ -297,34 +301,14 @@ pub async fn create_task(
     }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateTaskForWarehouseRequest {
-    pub task_number: String,
-    pub task_type: String,
-    pub priority: Option<String>,
-    pub item_id: Option<Uuid>,
-    pub item_description: Option<String>,
-    pub from_zone_id: Option<Uuid>,
-    pub to_zone_id: Option<Uuid>,
-    pub from_location: Option<String>,
-    pub to_location: Option<String>,
-    pub quantity: Option<String>,
-    pub uom: Option<String>,
-    pub source_document: Option<String>,
-    pub source_document_id: Option<Uuid>,
-    pub source_line_id: Option<Uuid>,
-    pub wave_id: Option<Uuid>,
-}
-
 pub async fn create_task_for_warehouse(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
     Path(warehouse_id): Path<Uuid>,
-    Json(payload): Json<CreateTaskForWarehouseRequest>,
+    Json(payload): Json<TaskPayload>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
 
     match state.warehouse_management_engine.create_task(
         org_id, warehouse_id, &payload.task_number, &payload.task_type,
@@ -346,7 +330,7 @@ pub async fn get_task(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.get_task(org_id, id).await {
         Ok(Some(task)) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
@@ -360,7 +344,7 @@ pub async fn list_tasks(
     claims: Extension<Claims>,
     Query(params): Query<ListTasksQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.list_tasks(
         org_id, params.warehouse_id, params.status.as_deref(), params.task_type.as_deref(),
@@ -375,7 +359,7 @@ pub async fn start_task(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.start_task(org_id, id, None).await {
         Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
@@ -388,7 +372,7 @@ pub async fn complete_task(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.complete_task(org_id, id).await {
         Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
@@ -401,7 +385,7 @@ pub async fn cancel_task(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.cancel_task(org_id, id).await {
         Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
@@ -414,7 +398,7 @@ pub async fn delete_task(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.delete_task(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -441,8 +425,8 @@ pub async fn create_wave(
     Path(warehouse_id): Path<Uuid>,
     Json(payload): Json<CreateWaveRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
+    let user_id = claims.user_uuid()?;
 
     match state.warehouse_management_engine.create_wave(
         org_id, warehouse_id, &payload.wave_number,
@@ -459,7 +443,7 @@ pub async fn get_wave(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.get_wave(org_id, id).await {
         Ok(Some(wave)) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
@@ -473,7 +457,7 @@ pub async fn list_waves(
     claims: Extension<Claims>,
     Query(params): Query<ListWavesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.list_waves(
         org_id, params.warehouse_id, params.status.as_deref(),
@@ -488,7 +472,7 @@ pub async fn release_wave(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.release_wave(org_id, id).await {
         Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
@@ -501,7 +485,7 @@ pub async fn complete_wave(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.complete_wave(org_id, id).await {
         Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
@@ -514,7 +498,7 @@ pub async fn cancel_wave(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.cancel_wave(org_id, id).await {
         Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
@@ -527,7 +511,7 @@ pub async fn delete_wave(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.delete_wave(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -543,7 +527,7 @@ pub async fn get_warehouse_dashboard(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),

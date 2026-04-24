@@ -90,7 +90,7 @@ pub async fn create_absence_type(
         payload.allow_half_day,
         Some(user_id),
     ).await {
-        Ok(at) => Ok((StatusCode::CREATED, Json(serde_json::to_value(at).unwrap()))),
+        Ok(at) => Ok((StatusCode::CREATED, Json(serde_json::to_value(at).unwrap_or_default()))),
         Err(e) => {
             error!("Failed to create absence type: {}", e);
             Err(map_error(e))
@@ -108,7 +108,7 @@ pub async fn get_absence_type(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.absence_engine.get_absence_type(org_id, &code).await {
-        Ok(Some(at)) => Ok(Json(serde_json::to_value(at).unwrap())),
+        Ok(Some(at)) => Ok(Json(serde_json::to_value(at).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get absence type: {}", e);
@@ -206,7 +206,7 @@ pub async fn create_absence_plan(
         payload.prorate_first_year,
         Some(user_id),
     ).await {
-        Ok(plan) => Ok((StatusCode::CREATED, Json(serde_json::to_value(plan).unwrap()))),
+        Ok(plan) => Ok((StatusCode::CREATED, Json(serde_json::to_value(plan).unwrap_or_default()))),
         Err(e) => {
             error!("Failed to create absence plan: {}", e);
             Err(map_error(e))
@@ -224,7 +224,7 @@ pub async fn get_absence_plan(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.absence_engine.get_absence_plan(org_id, &code).await {
-        Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap())),
+        Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get absence plan: {}", e);
@@ -321,7 +321,7 @@ pub async fn create_entry(
         payload.documentation_provided,
         Some(user_id),
     ).await {
-        Ok(entry) => Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap()))),
+        Ok(entry) => Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap_or_default()))),
         Err(e) => {
             error!("Failed to create absence entry: {}", e);
             Err(map_error(e))
@@ -339,7 +339,7 @@ pub async fn get_entry(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.absence_engine.get_entry(org_id, id).await {
-        Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get absence entry: {}", e);
@@ -381,7 +381,7 @@ pub async fn submit_entry(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.absence_engine.submit_entry(org_id, id, Some(user_id)).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
         Err(e) => {
             error!("Failed to submit absence entry: {}", e);
             Err(map_error(e))
@@ -402,7 +402,7 @@ pub async fn approve_entry(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.absence_engine.approve_entry(org_id, id, user_id).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
         Err(e) => {
             error!("Failed to approve absence entry: {}", e);
             Err(map_error(e))
@@ -430,7 +430,7 @@ pub async fn reject_entry(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.absence_engine.reject_entry(org_id, id, user_id, payload.reason.as_deref()).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
         Err(e) => {
             error!("Failed to reject absence entry: {}", e);
             Err(map_error(e))
@@ -455,7 +455,7 @@ pub async fn cancel_entry(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.absence_engine.cancel_entry(org_id, id, payload.reason.as_deref()).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
         Err(e) => {
             error!("Failed to cancel absence entry: {}", e);
             Err(map_error(e))
@@ -496,7 +496,7 @@ pub async fn get_balance(
     match state.absence_engine.get_or_create_balance(
         org_id, params.employee_id, plan.id, period_start, period_end,
     ).await {
-        Ok(balance) => Ok(Json(serde_json::to_value(balance).unwrap())),
+        Ok(balance) => Ok(Json(serde_json::to_value(balance).unwrap_or_default())),
         Err(e) => {
             error!("Failed to get balance: {}", e);
             Err(map_error(e))
@@ -562,7 +562,7 @@ pub async fn get_absence_dashboard(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.absence_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),
         Err(e) => {
             error!("Failed to get absence dashboard: {}", e);
             Err(map_error(e))

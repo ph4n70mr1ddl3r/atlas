@@ -755,7 +755,7 @@ pub async fn execute_action(
     // Build a workflow-level User from the JWT claims so that role-based
     // transition guards are actually enforced.
     let wf_user = atlas_core::WorkflowUser {
-        id: Uuid::parse_str(&claims.sub).unwrap_or_default(),
+        id: claims.user_uuid()?,
         roles: claims.roles.clone(),
     };
 

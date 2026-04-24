@@ -55,6 +55,7 @@ pub mod manufacturing;
 pub mod warehouse_management;
 pub mod absence;
 pub mod time_and_labor;
+pub mod approval_authority;
 
 pub use schema::*;
 pub use records::*;
@@ -2078,6 +2079,27 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Delegation Dashboard
         .route("/approval-delegation/dashboard", get(approval_delegation::get_delegation_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Approval Authority Limits (Oracle Fusion BPM > Document Approval Limits)
+        // ═══════════════════════════════════════════════════════
+
+        // Limit CRUD
+        .route("/approval-authority/limits", post(approval_authority::create_authority_limit))
+        .route("/approval-authority/limits", get(approval_authority::list_authority_limits))
+        .route("/approval-authority/limits/:id", get(approval_authority::get_authority_limit))
+        .route("/approval-authority/limits/:id", delete(approval_authority::delete_authority_limit))
+        .route("/approval-authority/limits/:id/activate", post(approval_authority::activate_authority_limit))
+        .route("/approval-authority/limits/:id/deactivate", post(approval_authority::deactivate_authority_limit))
+
+        // Authority Check
+        .route("/approval-authority/check", post(approval_authority::check_authority))
+
+        // Check Audit Trail
+        .route("/approval-authority/audits", get(approval_authority::list_check_audits))
+
+        // Authority Dashboard
+        .route("/approval-authority/dashboard", get(approval_authority::get_authority_dashboard))
 
         // ═══════════════════════════════════════════════════════
         // Manufacturing Execution (Oracle Fusion SCM > Manufacturing)

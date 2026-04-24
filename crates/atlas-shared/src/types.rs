@@ -12766,3 +12766,110 @@ pub struct TimeAndLaborDashboard {
     pub recent_time_cards: Vec<TimeCard>,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Approval Authority Limits
+// Oracle Fusion: BPM > Approval Configuration > Document Approval Limits
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Approval authority limit – defines the maximum monetary amount a user
+/// or role is authorised to approve for a given document type.
+///
+/// Oracle Fusion Cloud calls these "Document Approval Limits" or
+/// "Signing Limits". They restrict who can approve what, up to how much,
+/// for which business unit / cost center.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalAuthorityLimit {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub limit_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// "user" or "role"
+    pub owner_type: String,
+    /// User ID when owner_type = "user"
+    pub user_id: Option<Uuid>,
+    /// Role name when owner_type = "role"
+    pub role_name: Option<String>,
+    /// Document type this limit applies to
+    pub document_type: String,
+    /// Maximum amount the owner can approve in a single transaction
+    pub approval_limit_amount: String,
+    /// Currency code (e.g. "USD")
+    pub currency_code: String,
+    /// Optional business unit scope
+    pub business_unit_id: Option<Uuid>,
+    /// Optional cost center scope
+    pub cost_center: Option<String>,
+    /// "active" or "inactive"
+    pub status: String,
+    /// Effective date range
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Audit trail entry for authority-limit checks
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthorityCheckAudit {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub limit_id: Option<Uuid>,
+    /// The user attempting the approval
+    pub checked_user_id: Uuid,
+    /// The role being checked (if role-based)
+    pub checked_role: Option<String>,
+    /// Document type
+    pub document_type: String,
+    /// The document being approved
+    pub document_id: Option<Uuid>,
+    /// The amount being approved
+    pub requested_amount: String,
+    /// The limit that was found (or 0 if none)
+    pub applicable_limit: String,
+    /// "approved", "denied"
+    pub result: String,
+    /// Reason for the result
+    pub reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Request to create an approval authority limit
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateApprovalAuthorityLimitRequest {
+    pub limit_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// "user" or "role"
+    pub owner_type: String,
+    pub user_id: Option<String>,
+    pub role_name: Option<String>,
+    pub document_type: String,
+    pub approval_limit_amount: String,
+    pub currency_code: String,
+    pub business_unit_id: Option<String>,
+    pub cost_center: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+/// Dashboard summary for approval authority limits
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalAuthorityDashboard {
+    pub total_limits: i64,
+    pub active_limits: i64,
+    pub limits_by_document_type: serde_json::Value,
+    pub limits_by_owner_type: serde_json::Value,
+    pub recent_checks: Vec<AuthorityCheckAudit>,
+    pub total_checks: i64,
+    pub approved_checks: i64,
+    pub denied_checks: i64,
+}
+

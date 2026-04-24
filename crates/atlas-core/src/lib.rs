@@ -77,6 +77,7 @@ pub mod manufacturing;
 pub mod warehouse_management;
 pub mod absence;
 pub mod time_and_labor;
+pub mod approval_authority;
 
 pub use schema::*;
 pub use workflow::{
@@ -155,6 +156,7 @@ pub use manufacturing::{ManufacturingEngine, PostgresManufacturingRepository as 
 pub use warehouse_management::{WarehouseManagementEngine, PostgresWarehouseManagementRepository as PostgresWarehouseManagementRepo};
 pub use absence::{AbsenceEngine, PostgresAbsenceRepository as PostgresAbsenceRepo};
 pub use time_and_labor::{TimeAndLaborEngine, PostgresTimeAndLaborRepository as PostgresTimeAndLaborRepo};
+pub use approval_authority::{ApprovalAuthorityEngine, PostgresApprovalAuthorityRepository as PostgresApprovalAuthorityRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -865,6 +865,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         time_and_labor_engine: Arc::new(atlas_core::TimeAndLaborEngine::new(Arc::new(
             atlas_core::time_and_labor::PostgresTimeAndLaborRepository::new(db_pool.clone()),
         ))),
+        approval_authority_engine: Arc::new(atlas_core::ApprovalAuthorityEngine::new(Arc::new(
+            atlas_core::approval_authority::PostgresApprovalAuthorityRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

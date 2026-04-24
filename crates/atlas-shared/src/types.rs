@@ -13053,3 +13053,191 @@ pub struct DataArchivingDashboard {
     pub recent_audit_entries: Vec<ArchiveAudit>,
 }
 
+// ============================================================================
+// Payroll Management (Oracle Fusion Global Payroll)
+// ============================================================================
+
+/// Payroll definition — represents a pay group.
+/// Oracle Fusion: Payroll > Payroll Definitions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PayrollDefinition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    /// How often this payroll runs: "weekly", "biweekly", "semimonthly", "monthly"
+    pub pay_frequency: String,
+    /// Default currency code for payroll runs
+    pub currency_code: String,
+    /// GL account code for salary expense posting
+    pub salary_expense_account: Option<String>,
+    /// GL account code for employer liabilities
+    pub liability_account: Option<String>,
+    /// GL account code for employer tax expense
+    pub employer_tax_account: Option<String>,
+    /// GL account code for bank / cash disbursement
+    pub payment_account: Option<String>,
+    /// Whether this payroll definition is active
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Payroll element — an earning or deduction component.
+/// Oracle Fusion: Payroll > Element Definitions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PayrollElement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// "earning" or "deduction"
+    pub element_type: String,
+    /// "salary", "hourly", "overtime", "bonus", "commission", "benefit", "tax", "retirement", "garnishment", "other"
+    pub category: String,
+    /// How the value is determined: "flat", "percentage", "hourly_rate", "formula"
+    pub calculation_method: String,
+    /// Default rate / value depending on calculation_method
+    pub default_value: Option<String>,
+    /// Whether this element is recurring every pay period
+    pub is_recurring: bool,
+    /// Whether employer also contributes (e.g. employer match on 401k)
+    pub has_employer_contribution: bool,
+    /// Percentage for employer contribution (if applicable)
+    pub employer_contribution_rate: Option<String>,
+    /// GL account override for this element
+    pub gl_account_code: Option<String>,
+    /// Whether this element is pretax (deducted before tax calc)
+    pub is_pretax: bool,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Employee element assignment — links an element to an employee with a value.
+/// Oracle Fusion: Payroll > Element Entries
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PayrollElementEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub employee_id: Uuid,
+    pub element_id: Uuid,
+    pub element_code: String,
+    pub element_name: String,
+    pub element_type: String,
+    pub entry_value: String,
+    /// How many periods this entry spans (None = indefinite)
+    pub remaining_periods: Option<i32>,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Payroll run — a single execution of payroll for a period.
+/// Oracle Fusion: Payroll > Payroll Runs / Quick Pay
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PayrollRun {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub payroll_id: Uuid,
+    pub run_number: String,
+    /// "open", "calculated", "confirmed", "paid", "reversed"
+    pub status: String,
+    /// Period being paid
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    /// When payroll should be deposited
+    pub pay_date: chrono::NaiveDate,
+    pub total_gross: String,
+    pub total_deductions: String,
+    pub total_net: String,
+    pub total_employer_cost: String,
+    pub employee_count: i32,
+    pub confirmed_by: Option<Uuid>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub paid_by: Option<Uuid>,
+    pub paid_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Pay slip — per-employee payroll result within a run.
+/// Oracle Fusion: Payroll > Pay Slips / Payment History
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaySlip {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub payroll_run_id: Uuid,
+    pub employee_id: Uuid,
+    pub employee_name: Option<String>,
+    pub gross_earnings: String,
+    pub total_deductions: String,
+    pub net_pay: String,
+    pub employer_cost: String,
+    pub currency_code: String,
+    pub payment_method: Option<String>,
+    pub bank_account_last4: Option<String>,
+    pub lines: Vec<PaySlipLine>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Individual line on a pay slip (one earning or deduction).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaySlipLine {
+    pub id: Uuid,
+    pub pay_slip_id: Uuid,
+    pub element_code: String,
+    pub element_name: String,
+    pub element_type: String,
+    pub category: String,
+    /// Number of hours (for hourly earnings), units, or quantity
+    pub hours_or_units: Option<String>,
+    /// Rate per unit / hour
+    pub rate: Option<String>,
+    /// Computed amount for this line
+    pub amount: String,
+    /// Whether this is pretax
+    pub is_pretax: bool,
+    /// Whether this is an employer-paid portion
+    pub is_employer: bool,
+    pub gl_account_code: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Payroll summary for dashboard.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PayrollDashboard {
+    pub total_gross: String,
+    pub total_deductions: String,
+    pub total_net: String,
+    pub total_employer_cost: String,
+    pub employee_count: i32,
+    pub payroll_runs_this_period: i32,
+    pub recent_runs: Vec<PayrollRun>,
+    pub top_earnings_by_category: serde_json::Value,
+    pub top_deductions_by_category: serde_json::Value,
+}
+
+

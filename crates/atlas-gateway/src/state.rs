@@ -55,6 +55,7 @@ use atlas_core::{
     TimeAndLaborEngine,
     ApprovalAuthorityEngine,
     DataArchivingEngine,
+    PayrollEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -108,6 +109,7 @@ use atlas_core::{
     time_and_labor::PostgresTimeAndLaborRepository,
     approval_authority::PostgresApprovalAuthorityRepository,
     data_archiving::PostgresDataArchivingRepository,
+    payroll::PostgresPayrollRepository,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -175,6 +177,7 @@ pub struct AppState {
     pub time_and_labor_engine: Arc<TimeAndLaborEngine>,
     pub approval_authority_engine: Arc<ApprovalAuthorityEngine>,
     pub data_archiving_engine: Arc<DataArchivingEngine>,
+    pub payroll_engine: Arc<PayrollEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -474,6 +477,11 @@ impl AppState {
             PostgresDataArchivingRepository::new(db_pool.clone())
         )));
 
+        // Initialize payroll engine
+        let payroll_engine = Arc::new(PayrollEngine::new(Arc::new(
+            PostgresPayrollRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -571,6 +579,7 @@ impl AppState {
             time_and_labor_engine,
             approval_authority_engine,
             data_archiving_engine,
+            payroll_engine,
             event_bus,
             jwt_secret,
         };

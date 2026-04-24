@@ -4260,3 +4260,160 @@ impl crate::time_and_labor::TimeAndLaborRepository for MockTimeAndLaborRepositor
     async fn delete_labor_distribution_org_scoped(&self, _org_id: Uuid, _id: Uuid) -> AtlasResult<()> { Ok(()) }
     async fn get_labor_distribution(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::LaborDistribution>> { Ok(None) }
 }
+
+/// Mock payroll repository for testing
+pub struct MockPayrollRepository;
+
+#[async_trait]
+impl crate::payroll::PayrollRepository for MockPayrollRepository {
+    async fn create_payroll(
+        &self, _org_id: Uuid, _name: &str, _description: Option<&str>,
+        _pay_frequency: &str, _currency_code: &str,
+        _salary_expense_account: Option<&str>, _liability_account: Option<&str>,
+        _employer_tax_account: Option<&str>, _payment_account: Option<&str>,
+        _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PayrollDefinition> {
+        Ok(atlas_shared::PayrollDefinition {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            name: _name.to_string(), description: None,
+            pay_frequency: _pay_frequency.to_string(),
+            currency_code: _currency_code.to_string(),
+            salary_expense_account: None, liability_account: None,
+            employer_tax_account: None, payment_account: None,
+            is_active: true, created_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn get_payroll(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PayrollDefinition>> { Ok(None) }
+    async fn get_payroll_by_name(&self, _org_id: Uuid, _name: &str) -> AtlasResult<Option<atlas_shared::PayrollDefinition>> { Ok(None) }
+    async fn list_payrolls(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::PayrollDefinition>> { Ok(vec![]) }
+    async fn delete_payroll(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+    async fn create_element(
+        &self, _org_id: Uuid, _code: &str, _name: &str, _description: Option<&str>,
+        _element_type: &str, _category: &str, _calculation_method: &str,
+        _default_value: Option<&str>, _is_recurring: bool,
+        _has_employer_contribution: bool, _employer_contribution_rate: Option<&str>,
+        _gl_account_code: Option<&str>, _is_pretax: bool,
+        _effective_from: Option<chrono::NaiveDate>, _effective_to: Option<chrono::NaiveDate>,
+        _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PayrollElement> {
+        Ok(atlas_shared::PayrollElement {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            code: _code.to_string(), name: _name.to_string(), description: None,
+            element_type: _element_type.to_string(), category: _category.to_string(),
+            calculation_method: _calculation_method.to_string(),
+            default_value: _default_value.map(|v| v.to_string()),
+            is_recurring: _is_recurring,
+            has_employer_contribution: _has_employer_contribution,
+            employer_contribution_rate: _employer_contribution_rate.map(|v| v.to_string()),
+            gl_account_code: None, is_pretax: _is_pretax, is_active: true,
+            effective_from: None, effective_to: None, created_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn get_element(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PayrollElement>> { Ok(None) }
+    async fn get_element_by_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::PayrollElement>> { Ok(None) }
+    async fn list_elements(&self, _org_id: Uuid, _element_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::PayrollElement>> { Ok(vec![]) }
+    async fn delete_element(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+    async fn create_entry(
+        &self, _org_id: Uuid, _employee_id: Uuid, _element_id: Uuid,
+        _element_code: &str, _element_name: &str, _element_type: &str,
+        _entry_value: &str, _remaining_periods: Option<i32>,
+        _effective_from: Option<chrono::NaiveDate>, _effective_to: Option<chrono::NaiveDate>,
+        _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PayrollElementEntry> {
+        Ok(atlas_shared::PayrollElementEntry {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            employee_id: _employee_id, element_id: _element_id,
+            element_code: _element_code.to_string(), element_name: _element_name.to_string(),
+            element_type: _element_type.to_string(),
+            entry_value: _entry_value.to_string(),
+            remaining_periods: _remaining_periods, is_active: true,
+            effective_from: None, effective_to: None, created_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn get_entries_by_employee(&self, _employee_id: Uuid) -> AtlasResult<Vec<atlas_shared::PayrollElementEntry>> { Ok(vec![]) }
+    async fn delete_entry(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+    async fn create_run(
+        &self, _org_id: Uuid, _payroll_id: Uuid, _run_number: &str,
+        _period_start: chrono::NaiveDate, _period_end: chrono::NaiveDate,
+        _pay_date: chrono::NaiveDate, _created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PayrollRun> {
+        Ok(atlas_shared::PayrollRun {
+            id: Uuid::new_v4(), organization_id: _org_id, payroll_id: _payroll_id,
+            run_number: _run_number.to_string(), status: "open".to_string(),
+            period_start: _period_start, period_end: _period_end, pay_date: _pay_date,
+            total_gross: "0".to_string(), total_deductions: "0".to_string(),
+            total_net: "0".to_string(), total_employer_cost: "0".to_string(),
+            employee_count: 0, confirmed_by: None, confirmed_at: None,
+            paid_by: None, paid_at: None, created_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn get_run(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PayrollRun>> { Ok(None) }
+    async fn get_run_by_number(&self, _org_id: Uuid, _run_number: &str) -> AtlasResult<Option<atlas_shared::PayrollRun>> { Ok(None) }
+    async fn list_runs(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::PayrollRun>> { Ok(vec![]) }
+    async fn update_run_status(&self, _id: Uuid, _status: &str, _action_by: Option<Uuid>) -> AtlasResult<atlas_shared::PayrollRun> {
+        Err(atlas_shared::AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_run_totals(&self, _id: Uuid, _total_gross: &str, _total_deductions: &str, _total_net: &str, _total_employer_cost: &str, _employee_count: i32) -> AtlasResult<()> { Ok(()) }
+    async fn create_pay_slip(
+        &self, _org_id: Uuid, _payroll_run_id: Uuid, _employee_id: Uuid,
+        _employee_name: Option<&str>, _gross_earnings: &str, _total_deductions: &str,
+        _net_pay: &str, _employer_cost: &str, _currency_code: &str,
+        _payment_method: Option<&str>, _bank_account_last4: Option<&str>,
+    ) -> AtlasResult<atlas_shared::PaySlip> {
+        Ok(atlas_shared::PaySlip {
+            id: Uuid::new_v4(), organization_id: _org_id,
+            payroll_run_id: _payroll_run_id, employee_id: _employee_id,
+            employee_name: _employee_name.map(|s| s.to_string()),
+            gross_earnings: _gross_earnings.to_string(),
+            total_deductions: _total_deductions.to_string(),
+            net_pay: _net_pay.to_string(),
+            employer_cost: _employer_cost.to_string(),
+            currency_code: _currency_code.to_string(),
+            payment_method: None, bank_account_last4: None,
+            lines: vec![],
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            metadata: serde_json::json!({}),
+        })
+    }
+    async fn get_pay_slip(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PaySlip>> { Ok(None) }
+    async fn list_pay_slips_by_run(&self, _payroll_run_id: Uuid) -> AtlasResult<Vec<atlas_shared::PaySlip>> { Ok(vec![]) }
+    async fn list_pay_slips_by_employee(&self, _employee_id: Uuid) -> AtlasResult<Vec<atlas_shared::PaySlip>> { Ok(vec![]) }
+    async fn create_pay_slip_line(
+        &self, _pay_slip_id: Uuid, _element_code: &str, _element_name: &str,
+        _element_type: &str, _category: &str, _hours_or_units: Option<&str>,
+        _rate: Option<&str>, _amount: &str, _is_pretax: bool, _is_employer: bool,
+        _gl_account_code: Option<&str>,
+    ) -> AtlasResult<atlas_shared::PaySlipLine> {
+        Ok(atlas_shared::PaySlipLine {
+            id: Uuid::new_v4(), pay_slip_id: _pay_slip_id,
+            element_code: _element_code.to_string(),
+            element_name: _element_name.to_string(),
+            element_type: _element_type.to_string(),
+            category: _category.to_string(),
+            hours_or_units: None, rate: None,
+            amount: _amount.to_string(),
+            is_pretax: _is_pretax, is_employer: _is_employer,
+            gl_account_code: None,
+            created_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_pay_slip_lines(&self, _pay_slip_id: Uuid) -> AtlasResult<Vec<atlas_shared::PaySlipLine>> { Ok(vec![]) }
+    async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::PayrollDashboard> {
+        Ok(atlas_shared::PayrollDashboard {
+            total_gross: "0".to_string(), total_deductions: "0".to_string(),
+            total_net: "0".to_string(), total_employer_cost: "0".to_string(),
+            employee_count: 0, payroll_runs_this_period: 0,
+            recent_runs: vec![],
+            top_earnings_by_category: serde_json::json!({}),
+            top_deductions_by_category: serde_json::json!({}),
+        })
+    }
+}

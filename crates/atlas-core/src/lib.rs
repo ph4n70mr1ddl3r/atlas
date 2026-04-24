@@ -79,6 +79,7 @@ pub mod absence;
 pub mod time_and_labor;
 pub mod approval_authority;
 pub mod data_archiving;
+pub mod payroll;
 
 pub use schema::*;
 pub use workflow::{
@@ -159,6 +160,7 @@ pub use absence::{AbsenceEngine, PostgresAbsenceRepository as PostgresAbsenceRep
 pub use time_and_labor::{TimeAndLaborEngine, PostgresTimeAndLaborRepository as PostgresTimeAndLaborRepo};
 pub use approval_authority::{ApprovalAuthorityEngine, PostgresApprovalAuthorityRepository as PostgresApprovalAuthorityRepo};
 pub use data_archiving::{DataArchivingEngine, PostgresDataArchivingRepository as PostgresDataArchivingRepo};
+pub use payroll::{PayrollEngine, PostgresPayrollRepository as PostgresPayrollRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

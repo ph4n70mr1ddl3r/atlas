@@ -17,7 +17,6 @@ use tracing::error;
 
 use crate::AppState;
 use crate::handlers::auth::Claims;
-use chrono::Datelike;
 
 // ============================================================================
 // Query Parameters
@@ -492,7 +491,7 @@ pub async fn get_balance(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     // Calculate current period based on frequency
-    let (period_start, period_end) = calculate_current_period(&plan.accrual_frequency);
+    let (period_start, period_end) = state.absence_engine.calculate_current_period(&plan.accrual_frequency);
 
     match state.absence_engine.get_or_create_balance(
         org_id, params.employee_id, plan.id, period_start, period_end,
@@ -582,34 +581,4 @@ fn map_error(e: atlas_shared::AtlasError) -> StatusCode {
     }
 }
 
-fn calculate_current_period(frequency: &str) -> (chrono::NaiveDate, chrono::NaiveDate) {
-    let today = chrono::Utc::now().date_naive();
-    let year = today.year();
 
-    match frequency {
-        "yearly" => {
-            let start = chrono::NaiveDate::from_ymd_opt(year, 1, 1).unwrap_or(today);
-            let end = chrono::NaiveDate::from_ymd_opt(year, 12, 31).unwrap_or(today);
-            (start, end)
-        }
-        "monthly" => {
-            let month = today.month();
-            let start = chrono::NaiveDate::from_ymd_opt(year, month, 1).unwrap_or(today);
-            let end = {
-                let next_month = if month == 12 { 1 } else { month + 1 };
-                let next_year = if month == 12 { year + 1 } else { year };
-                chrono::NaiveDate::from_ymd_opt(next_year, next_month, 1)
-                    .unwrap_or(today)
-                    .pred_opt()
-                    .unwrap_or(today)
-            };
-            (start, end)
-        }
-        _ => {
-            // Default to yearly
-            let start = chrono::NaiveDate::from_ymd_opt(year, 1, 1).unwrap_or(today);
-            let end = chrono::NaiveDate::from_ymd_opt(year, 12, 31).unwrap_or(today);
-            (start, end)
-        }
-    }
-}

@@ -732,7 +732,7 @@ impl AbsenceEngine {
     }
 
     /// Calculate current period dates based on accrual frequency
-    fn calculate_current_period(&self, frequency: &str) -> (chrono::NaiveDate, chrono::NaiveDate) {
+    pub fn calculate_current_period(&self, frequency: &str) -> (chrono::NaiveDate, chrono::NaiveDate) {
         let today = chrono::Utc::now().date_naive();
         let year = today.year();
 

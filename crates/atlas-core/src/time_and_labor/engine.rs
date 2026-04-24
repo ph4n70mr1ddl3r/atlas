@@ -454,6 +454,12 @@ impl TimeAndLaborEngine {
                 format!("Time card {} not found", time_card_id)
             ))?;
 
+        if card.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time card {} not found", time_card_id)
+            ));
+        }
+
         if card.status != "draft" {
             return Err(AtlasError::WorkflowError(
                 "Can only add entries to a draft time card".to_string(),
@@ -600,6 +606,12 @@ impl TimeAndLaborEngine {
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Time entry {} not found", time_entry_id)
             ))?;
+
+        if entry.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time entry {} not found", time_entry_id)
+            ));
+        }
 
         if distribution_percent <= 0.0 || distribution_percent > 100.0 {
             return Err(AtlasError::ValidationFailed(

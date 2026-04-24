@@ -117,8 +117,14 @@ impl WarehouseManagementEngine {
         }
     }
 
-    /// List zones for a warehouse
-    pub async fn list_zones(&self, warehouse_id: Uuid) -> AtlasResult<Vec<WarehouseZone>> {
+    /// List zones for a warehouse (org-scoped)
+    pub async fn list_zones(&self, org_id: Uuid, warehouse_id: Uuid) -> AtlasResult<Vec<WarehouseZone>> {
+        // Verify warehouse belongs to org before listing
+        let warehouse = self.repository.get_warehouse(warehouse_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)))?;
+        if warehouse.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)));
+        }
         self.repository.list_zones(warehouse_id).await
     }
 
@@ -182,8 +188,14 @@ impl WarehouseManagementEngine {
         }
     }
 
-    /// List put-away rules for a warehouse
-    pub async fn list_put_away_rules(&self, warehouse_id: Uuid) -> AtlasResult<Vec<PutAwayRule>> {
+    /// List put-away rules for a warehouse (org-scoped)
+    pub async fn list_put_away_rules(&self, org_id: Uuid, warehouse_id: Uuid) -> AtlasResult<Vec<PutAwayRule>> {
+        // Verify warehouse belongs to org before listing
+        let warehouse = self.repository.get_warehouse(warehouse_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)))?;
+        if warehouse.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)));
+        }
         self.repository.list_put_away_rules(warehouse_id).await
     }
 

@@ -20,6 +20,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 use tracing::error;
 
+use atlas_shared::AtlasError;
 use crate::AppState;
 use crate::handlers::auth::Claims;
 
@@ -72,14 +73,7 @@ pub async fn create_warehouse(
         Some(user_id),
     ).await {
         Ok(wh) => Ok((StatusCode::CREATED, Json(serde_json::to_value(wh).unwrap_or_default()))),
-        Err(e) => {
-            error!("Failed to create warehouse: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                409 => StatusCode::CONFLICT,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to create warehouse: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -93,7 +87,7 @@ pub async fn get_warehouse(
     match state.warehouse_management_engine.get_warehouse(org_id, id).await {
         Ok(Some(wh)) => Ok(Json(serde_json::to_value(wh).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get warehouse: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => { error!("Failed to get warehouse: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -105,8 +99,8 @@ pub async fn list_warehouses(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.warehouse_management_engine.list_warehouses(org_id, params.active_only.unwrap_or(false)).await {
-        Ok(warehouses) => Ok(Json(serde_json::to_value(warehouses).unwrap_or_default())),
-        Err(e) => { error!("Failed to list warehouses: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Ok(warehouses) => Ok(Json(serde_json::json!({ "data": warehouses }))),
+        Err(e) => { error!("Failed to list warehouses: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -119,13 +113,7 @@ pub async fn delete_warehouse(
 
     match state.warehouse_management_engine.delete_warehouse(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => {
-            error!("Failed to delete warehouse: {}", e);
-            Err(match e.status_code() {
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to delete warehouse: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -156,15 +144,7 @@ pub async fn create_zone(
         payload.description.as_deref(), payload.aisle_count,
     ).await {
         Ok(zone) => Ok((StatusCode::CREATED, Json(serde_json::to_value(zone).unwrap_or_default()))),
-        Err(e) => {
-            error!("Failed to create zone: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                409 => StatusCode::CONFLICT,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to create zone: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -174,13 +154,10 @@ pub async fn list_zones(
     Path(warehouse_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    // Verify the warehouse belongs to the org
-    let wh = state.warehouse_management_engine.get_warehouse(org_id, warehouse_id).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::NOT_FOUND)?;
-    match state.warehouse_management_engine.list_zones(wh.id).await {
-        Ok(zones) => Ok(Json(serde_json::to_value(zones).unwrap_or_default())),
-        Err(e) => { error!("Failed to list zones: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+
+    match state.warehouse_management_engine.list_zones(org_id, warehouse_id).await {
+        Ok(zones) => Ok(Json(serde_json::json!({ "data": zones }))),
+        Err(e) => { error!("Failed to list zones: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -193,13 +170,7 @@ pub async fn delete_zone(
 
     match state.warehouse_management_engine.delete_zone(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => {
-            error!("Failed to delete zone: {}", e);
-            Err(match e.status_code() {
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to delete zone: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -232,14 +203,7 @@ pub async fn create_put_away_rule(
         &payload.target_zone_type, &payload.strategy,
     ).await {
         Ok(rule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_default()))),
-        Err(e) => {
-            error!("Failed to create put-away rule: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to create put-away rule: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -249,13 +213,10 @@ pub async fn list_put_away_rules(
     Path(warehouse_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    // Verify the warehouse belongs to the org
-    let wh = state.warehouse_management_engine.get_warehouse(org_id, warehouse_id).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::NOT_FOUND)?;
-    match state.warehouse_management_engine.list_put_away_rules(wh.id).await {
-        Ok(rules) => Ok(Json(serde_json::to_value(rules).unwrap_or_default())),
-        Err(e) => { error!("Failed to list put-away rules: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+
+    match state.warehouse_management_engine.list_put_away_rules(org_id, warehouse_id).await {
+        Ok(rules) => Ok(Json(serde_json::json!({ "data": rules }))),
+        Err(e) => { error!("Failed to list put-away rules: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -268,13 +229,7 @@ pub async fn delete_put_away_rule(
 
     match state.warehouse_management_engine.delete_put_away_rule(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => {
-            error!("Failed to delete put-away rule: {}", e);
-            Err(match e.status_code() {
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to delete put-away rule: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -310,14 +265,7 @@ pub async fn create_task(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // Extract warehouse_id from payload or source
-    // For standalone tasks, warehouse_id comes from the zone or wave
-    let _warehouse_id = payload.wave_id
-        .or(payload.to_zone_id)
-        .or(payload.from_zone_id)
-        .ok_or(StatusCode::BAD_REQUEST)?;
-
-    // Try to resolve warehouse_id from wave or zone
+    // Resolve warehouse_id from wave or zone
     let warehouse_id = if let Some(wave_id) = payload.wave_id {
         if let Ok(Some(wave)) = state.warehouse_management_engine.get_wave(org_id, wave_id).await {
             wave.warehouse_id
@@ -345,15 +293,7 @@ pub async fn create_task(
         payload.source_line_id, payload.wave_id, Some(user_id),
     ).await {
         Ok(task) => Ok((StatusCode::CREATED, Json(serde_json::to_value(task).unwrap_or_default()))),
-        Err(e) => {
-            error!("Failed to create task: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                409 => StatusCode::CONFLICT,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to create task: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -397,15 +337,7 @@ pub async fn create_task_for_warehouse(
         payload.source_line_id, payload.wave_id, Some(user_id),
     ).await {
         Ok(task) => Ok((StatusCode::CREATED, Json(serde_json::to_value(task).unwrap_or_default()))),
-        Err(e) => {
-            error!("Failed to create task: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                409 => StatusCode::CONFLICT,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to create task: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -419,7 +351,7 @@ pub async fn get_task(
     match state.warehouse_management_engine.get_task(org_id, id).await {
         Ok(Some(task)) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get task: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => { error!("Failed to get task: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -433,8 +365,8 @@ pub async fn list_tasks(
     match state.warehouse_management_engine.list_tasks(
         org_id, params.warehouse_id, params.status.as_deref(), params.task_type.as_deref(),
     ).await {
-        Ok(tasks) => Ok(Json(serde_json::to_value(tasks).unwrap_or_default())),
-        Err(e) => { error!("Failed to list tasks: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Ok(tasks) => Ok(Json(serde_json::json!({ "data": tasks }))),
+        Err(e) => { error!("Failed to list tasks: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -447,14 +379,7 @@ pub async fn start_task(
 
     match state.warehouse_management_engine.start_task(org_id, id, None).await {
         Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
-        Err(e) => {
-            error!("Failed to start task: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to start task: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -467,14 +392,7 @@ pub async fn complete_task(
 
     match state.warehouse_management_engine.complete_task(org_id, id).await {
         Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
-        Err(e) => {
-            error!("Failed to complete task: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to complete task: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -487,14 +405,7 @@ pub async fn cancel_task(
 
     match state.warehouse_management_engine.cancel_task(org_id, id).await {
         Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
-        Err(e) => {
-            error!("Failed to cancel task: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to cancel task: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -507,13 +418,7 @@ pub async fn delete_task(
 
     match state.warehouse_management_engine.delete_task(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => {
-            error!("Failed to delete task: {}", e);
-            Err(match e.status_code() {
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to delete task: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -545,15 +450,7 @@ pub async fn create_wave(
         payload.cut_off_date, payload.shipping_method.as_deref(), Some(user_id),
     ).await {
         Ok(wave) => Ok((StatusCode::CREATED, Json(serde_json::to_value(wave).unwrap_or_default()))),
-        Err(e) => {
-            error!("Failed to create wave: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                409 => StatusCode::CONFLICT,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to create wave: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -567,7 +464,7 @@ pub async fn get_wave(
     match state.warehouse_management_engine.get_wave(org_id, id).await {
         Ok(Some(wave)) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get wave: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => { error!("Failed to get wave: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -581,8 +478,8 @@ pub async fn list_waves(
     match state.warehouse_management_engine.list_waves(
         org_id, params.warehouse_id, params.status.as_deref(),
     ).await {
-        Ok(waves) => Ok(Json(serde_json::to_value(waves).unwrap_or_default())),
-        Err(e) => { error!("Failed to list waves: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Ok(waves) => Ok(Json(serde_json::json!({ "data": waves }))),
+        Err(e) => { error!("Failed to list waves: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -595,14 +492,7 @@ pub async fn release_wave(
 
     match state.warehouse_management_engine.release_wave(org_id, id).await {
         Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
-        Err(e) => {
-            error!("Failed to release wave: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to release wave: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -615,14 +505,7 @@ pub async fn complete_wave(
 
     match state.warehouse_management_engine.complete_wave(org_id, id).await {
         Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
-        Err(e) => {
-            error!("Failed to complete wave: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to complete wave: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -635,14 +518,7 @@ pub async fn cancel_wave(
 
     match state.warehouse_management_engine.cancel_wave(org_id, id).await {
         Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
-        Err(e) => {
-            error!("Failed to cancel wave: {}", e);
-            Err(match e.status_code() {
-                400 => StatusCode::BAD_REQUEST,
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to cancel wave: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -655,13 +531,7 @@ pub async fn delete_wave(
 
     match state.warehouse_management_engine.delete_wave(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => {
-            error!("Failed to delete wave: {}", e);
-            Err(match e.status_code() {
-                404 => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
+        Err(e) => { error!("Failed to delete wave: {}", e); Err(map_error(e)) }
     }
 }
 
@@ -677,9 +547,17 @@ pub async fn get_warehouse_dashboard(
 
     match state.warehouse_management_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),
-        Err(e) => {
-            error!("Failed to get warehouse dashboard: {}", e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
-        }
+        Err(e) => { error!("Failed to get warehouse dashboard: {}", e); Err(map_error(e)) }
+    }
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+fn map_error(e: AtlasError) -> StatusCode {
+    match e.status_code().try_into() {
+        Ok(code) => code,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }

@@ -438,12 +438,6 @@ pub async fn list_tasks(
     }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct StartTaskRequest {
-    pub assigned_to: Option<Uuid>,
-}
-
 pub async fn start_task(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,

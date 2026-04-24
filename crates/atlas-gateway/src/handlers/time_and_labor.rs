@@ -247,10 +247,11 @@ pub async fn create_time_card(
 /// Get a time card by ID
 pub async fn get_time_card(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<crate::handlers::auth::Claims>,
+    claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.time_and_labor_engine.get_time_card(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match state.time_and_labor_engine.get_time_card(org_id, id).await {
         Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap())),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get time card: {}", e); Err(map_error(e)) }
@@ -278,8 +279,9 @@ pub async fn submit_time_card(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.time_and_labor_engine.submit_time_card(id, Some(user_id)).await {
+    match state.time_and_labor_engine.submit_time_card(org_id, id, Some(user_id)).await {
         Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
         Err(e) => { error!("Failed to submit time card: {}", e); Err(map_error(e)) }
     }
@@ -291,8 +293,9 @@ pub async fn approve_time_card(
     claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.time_and_labor_engine.approve_time_card(id, user_id).await {
+    match state.time_and_labor_engine.approve_time_card(org_id, id, user_id).await {
         Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
         Err(e) => { error!("Failed to approve time card: {}", e); Err(map_error(e)) }
     }
@@ -311,8 +314,9 @@ pub async fn reject_time_card(
     Path(id): Path<Uuid>,
     Json(payload): Json<RejectTimeCardRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.time_and_labor_engine.reject_time_card(id, user_id, payload.reason.as_deref()).await {
+    match state.time_and_labor_engine.reject_time_card(org_id, id, user_id, payload.reason.as_deref()).await {
         Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
         Err(e) => { error!("Failed to reject time card: {}", e); Err(map_error(e)) }
     }
@@ -327,11 +331,12 @@ pub struct CancelTimeCardRequest {
 
 pub async fn cancel_time_card(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<crate::handlers::auth::Claims>,
+    claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelTimeCardRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.time_and_labor_engine.cancel_time_card(id, payload.reason.as_deref()).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match state.time_and_labor_engine.cancel_time_card(org_id, id, payload.reason.as_deref()).await {
         Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
         Err(e) => { error!("Failed to cancel time card: {}", e); Err(map_error(e)) }
     }
@@ -390,10 +395,11 @@ pub async fn create_time_entry(
 /// List time entries for a time card
 pub async fn list_time_entries(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<crate::handlers::auth::Claims>,
+    claims: Extension<crate::handlers::auth::Claims>,
     Path(time_card_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.time_and_labor_engine.list_time_entries(time_card_id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match state.time_and_labor_engine.list_time_entries(org_id, time_card_id).await {
         Ok(entries) => Ok(Json(serde_json::json!({ "data": entries }))),
         Err(e) => { error!("Failed to list time entries: {}", e); Err(map_error(e)) }
     }
@@ -402,10 +408,11 @@ pub async fn list_time_entries(
 /// Delete a time entry
 pub async fn delete_time_entry(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<crate::handlers::auth::Claims>,
+    claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.time_and_labor_engine.delete_time_entry(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match state.time_and_labor_engine.delete_time_entry(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Failed to delete time entry: {}", e); Err(map_error(e)) }
     }
@@ -418,10 +425,11 @@ pub async fn delete_time_entry(
 /// Get history for a time card
 pub async fn get_time_card_history(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<crate::handlers::auth::Claims>,
+    claims: Extension<crate::handlers::auth::Claims>,
     Path(time_card_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.time_and_labor_engine.get_time_card_history(time_card_id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match state.time_and_labor_engine.get_time_card_history(org_id, time_card_id).await {
         Ok(history) => Ok(Json(serde_json::json!({ "data": history }))),
         Err(e) => { error!("Failed to get time card history: {}", e); Err(map_error(e)) }
     }
@@ -465,10 +473,11 @@ pub async fn create_labor_distribution(
 /// List labor distributions for a time entry
 pub async fn list_labor_distributions(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<crate::handlers::auth::Claims>,
+    claims: Extension<crate::handlers::auth::Claims>,
     Path(time_entry_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.time_and_labor_engine.list_labor_distributions(time_entry_id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match state.time_and_labor_engine.list_labor_distributions(org_id, time_entry_id).await {
         Ok(dists) => Ok(Json(serde_json::json!({ "data": dists }))),
         Err(e) => { error!("Failed to list labor distributions: {}", e); Err(map_error(e)) }
     }
@@ -477,10 +486,11 @@ pub async fn list_labor_distributions(
 /// Delete a labor distribution
 pub async fn delete_labor_distribution(
     State(state): State<Arc<AppState>>,
-    _claims: Extension<crate::handlers::auth::Claims>,
+    claims: Extension<crate::handlers::auth::Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.time_and_labor_engine.delete_labor_distribution(id).await {
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match state.time_and_labor_engine.delete_labor_distribution(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Failed to delete labor distribution: {}", e); Err(map_error(e)) }
     }

@@ -4257,4 +4257,6 @@ impl crate::time_and_labor::TimeAndLaborRepository for MockTimeAndLaborRepositor
     }
     async fn list_labor_distributions_by_entry(&self, _time_entry_id: Uuid) -> AtlasResult<Vec<atlas_shared::LaborDistribution>> { Ok(vec![]) }
     async fn delete_labor_distribution(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+    async fn delete_labor_distribution_org_scoped(&self, _org_id: Uuid, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+    async fn get_labor_distribution(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::LaborDistribution>> { Ok(None) }
 }

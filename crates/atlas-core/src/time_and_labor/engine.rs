@@ -274,9 +274,15 @@ impl TimeAndLaborEngine {
         Ok(card)
     }
 
-    /// Get a time card by ID
-    pub async fn get_time_card(&self, id: Uuid) -> AtlasResult<Option<TimeCard>> {
-        self.repository.get_time_card(id).await
+    /// Get a time card by ID (scoped to org)
+    pub async fn get_time_card(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<TimeCard>> {
+        let card = self.repository.get_time_card(id).await?;
+        if let Some(ref c) = card {
+            if c.organization_id != org_id {
+                return Ok(None);
+            }
+        }
+        Ok(card)
     }
 
     /// Get a time card by number
@@ -301,12 +307,18 @@ impl TimeAndLaborEngine {
         self.repository.list_time_cards(org_id, employee_id, status).await
     }
 
-    /// Submit a time card for approval
-    pub async fn submit_time_card(&self, card_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<TimeCard> {
+    /// Submit a time card for approval (scoped to org)
+    pub async fn submit_time_card(&self, org_id: Uuid, card_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<TimeCard> {
         let card = self.repository.get_time_card(card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Time card {} not found", card_id)
             ))?;
+
+        if card.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time card {} not found", card_id)
+            ));
+        }
 
         if card.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -324,12 +336,18 @@ impl TimeAndLaborEngine {
         Ok(updated)
     }
 
-    /// Approve a submitted time card
-    pub async fn approve_time_card(&self, card_id: Uuid, approved_by: Uuid) -> AtlasResult<TimeCard> {
+    /// Approve a submitted time card (scoped to org)
+    pub async fn approve_time_card(&self, org_id: Uuid, card_id: Uuid, approved_by: Uuid) -> AtlasResult<TimeCard> {
         let card = self.repository.get_time_card(card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Time card {} not found", card_id)
             ))?;
+
+        if card.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time card {} not found", card_id)
+            ));
+        }
 
         if card.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -347,12 +365,18 @@ impl TimeAndLaborEngine {
         Ok(updated)
     }
 
-    /// Reject a submitted time card
-    pub async fn reject_time_card(&self, card_id: Uuid, rejected_by: Uuid, reason: Option<&str>) -> AtlasResult<TimeCard> {
+    /// Reject a submitted time card (scoped to org)
+    pub async fn reject_time_card(&self, org_id: Uuid, card_id: Uuid, rejected_by: Uuid, reason: Option<&str>) -> AtlasResult<TimeCard> {
         let card = self.repository.get_time_card(card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Time card {} not found", card_id)
             ))?;
+
+        if card.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time card {} not found", card_id)
+            ));
+        }
 
         if card.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -370,12 +394,18 @@ impl TimeAndLaborEngine {
         Ok(updated)
     }
 
-    /// Cancel a time card (draft or submitted)
-    pub async fn cancel_time_card(&self, card_id: Uuid, reason: Option<&str>) -> AtlasResult<TimeCard> {
+    /// Cancel a time card (draft or submitted, scoped to org)
+    pub async fn cancel_time_card(&self, org_id: Uuid, card_id: Uuid, reason: Option<&str>) -> AtlasResult<TimeCard> {
         let card = self.repository.get_time_card(card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Time card {} not found", card_id)
             ))?;
+
+        if card.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time card {} not found", card_id)
+            ));
+        }
 
         if card.status != "draft" && card.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -475,22 +505,44 @@ impl TimeAndLaborEngine {
         Ok(entry)
     }
 
-    /// Get a time entry by ID
-    pub async fn get_time_entry(&self, id: Uuid) -> AtlasResult<Option<TimeEntry>> {
-        self.repository.get_time_entry(id).await
+    /// Get a time entry by ID (scoped to org)
+    pub async fn get_time_entry(&self, org_id: Uuid, id: Uuid) -> AtlasResult<Option<TimeEntry>> {
+        let entry = self.repository.get_time_entry(id).await?;
+        if let Some(ref e) = entry {
+            if e.organization_id != org_id {
+                return Ok(None);
+            }
+        }
+        Ok(entry)
     }
 
-    /// List time entries for a time card
-    pub async fn list_time_entries(&self, time_card_id: Uuid) -> AtlasResult<Vec<TimeEntry>> {
+    /// List time entries for a time card (scoped to org)
+    pub async fn list_time_entries(&self, org_id: Uuid, time_card_id: Uuid) -> AtlasResult<Vec<TimeEntry>> {
+        // Verify the time card belongs to org
+        let card = self.repository.get_time_card(time_card_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(
+                format!("Time card {} not found", time_card_id)
+            ))?;
+        if card.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time card {} not found", time_card_id)
+            ));
+        }
         self.repository.list_time_entries_by_card(time_card_id).await
     }
 
-    /// Delete a time entry
-    pub async fn delete_time_entry(&self, id: Uuid) -> AtlasResult<()> {
+    /// Delete a time entry (scoped to org)
+    pub async fn delete_time_entry(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let entry = self.repository.get_time_entry(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
                 format!("Time entry {} not found", id)
             ))?;
+
+        if entry.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time entry {} not found", id)
+            ));
+        }
 
         let card = self.repository.get_time_card(entry.time_card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
@@ -512,8 +564,18 @@ impl TimeAndLaborEngine {
     // Time Card History
     // ========================================================================
 
-    /// Get history for a time card
-    pub async fn get_time_card_history(&self, time_card_id: Uuid) -> AtlasResult<Vec<TimeCardHistory>> {
+    /// Get history for a time card (scoped to org)
+    pub async fn get_time_card_history(&self, org_id: Uuid, time_card_id: Uuid) -> AtlasResult<Vec<TimeCardHistory>> {
+        // Verify the time card belongs to org
+        let card = self.repository.get_time_card(time_card_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(
+                format!("Time card {} not found", time_card_id)
+            ))?;
+        if card.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time card {} not found", time_card_id)
+            ));
+        }
         self.repository.get_time_card_history(time_card_id).await
     }
 
@@ -559,14 +621,25 @@ impl TimeAndLaborEngine {
         ).await
     }
 
-    /// List labor distributions for a time entry
-    pub async fn list_labor_distributions(&self, time_entry_id: Uuid) -> AtlasResult<Vec<LaborDistribution>> {
+    /// List labor distributions for a time entry (scoped to org)
+    pub async fn list_labor_distributions(&self, org_id: Uuid, time_entry_id: Uuid) -> AtlasResult<Vec<LaborDistribution>> {
+        // Verify the entry belongs to org
+        let entry = self.repository.get_time_entry(time_entry_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(
+                format!("Time entry {} not found", time_entry_id)
+            ))?;
+        if entry.organization_id != org_id {
+            return Err(AtlasError::EntityNotFound(
+                format!("Time entry {} not found", time_entry_id)
+            ));
+        }
         self.repository.list_labor_distributions_by_entry(time_entry_id).await
     }
 
-    /// Delete a labor distribution
-    pub async fn delete_labor_distribution(&self, id: Uuid) -> AtlasResult<()> {
-        self.repository.delete_labor_distribution(id).await
+    /// Delete a labor distribution (scoped to org)
+    pub async fn delete_labor_distribution(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+        // Verify the distribution belongs to org via the org-scoped repository delete
+        self.repository.delete_labor_distribution_org_scoped(org_id, id).await
     }
 
     // ========================================================================

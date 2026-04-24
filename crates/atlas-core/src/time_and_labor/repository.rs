@@ -156,6 +156,8 @@ pub trait TimeAndLaborRepository: Send + Sync {
 
     async fn list_labor_distributions_by_entry(&self, time_entry_id: Uuid) -> AtlasResult<Vec<LaborDistribution>>;
     async fn delete_labor_distribution(&self, id: Uuid) -> AtlasResult<()>;
+    async fn delete_labor_distribution_org_scoped(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()>;
+    async fn get_labor_distribution(&self, id: Uuid) -> AtlasResult<Option<LaborDistribution>>;
 }
 
 /// PostgreSQL implementation
@@ -796,6 +798,35 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
             .execute(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn get_labor_distribution(&self, id: Uuid) -> AtlasResult<Option<LaborDistribution>> {
+        let row = sqlx::query("SELECT * FROM _atlas.labor_distributions WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row.map(|r| self.row_to_distribution(&r)))
+    }
+
+    async fn delete_labor_distribution_org_scoped(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+        let result = sqlx::query(
+            r#"
+            DELETE FROM _atlas.labor_distributions
+            WHERE id = $1 AND organization_id = $2
+            "#,
+        )
+        .bind(id).bind(org_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+
+        if result.rows_affected() == 0 {
+            return Err(AtlasError::EntityNotFound(
+                format!("Labor distribution {} not found", id)
+            ));
+        }
         Ok(())
     }
 }

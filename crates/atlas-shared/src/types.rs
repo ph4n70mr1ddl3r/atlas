@@ -12873,3 +12873,183 @@ pub struct ApprovalAuthorityDashboard {
     pub denied_checks: i64,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Data Archiving and Retention Management
+// Oracle Fusion: Information Lifecycle Management (ILM)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Retention policy – defines how long data of a given entity type
+/// must be retained before it can be archived or purged.
+///
+/// Oracle Fusion Cloud: Tools > Information Lifecycle Management > Retention Policies
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RetentionPolicy {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub policy_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub entity_type: String,
+    pub retention_days: i32,
+    /// "archive", "purge", "archive_then_purge"
+    pub action_type: String,
+    pub purge_after_days: Option<i32>,
+    pub condition_expression: Option<String>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Request to create/update a retention policy
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateRetentionPolicyRequest {
+    pub policy_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub entity_type: String,
+    #[serde(default = "default_365")]
+    pub retention_days: i32,
+    #[serde(default = "default_action_type")]
+    pub action_type: String,
+    pub purge_after_days: Option<i32>,
+    pub condition_expression: Option<String>,
+}
+
+fn default_365() -> i32 { 365 }
+fn default_action_type() -> String { "archive_then_purge".to_string() }
+
+/// Legal hold – prevents archival or purging of specific records.
+///
+/// Oracle Fusion Cloud: Information Lifecycle Management > Legal Holds
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LegalHold {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub hold_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub status: String,
+    pub reason: Option<String>,
+    pub case_reference: Option<String>,
+    pub authorized_by: Option<Uuid>,
+    pub released_at: Option<DateTime<Utc>>,
+    pub released_by: Option<Uuid>,
+    pub release_reason: Option<String>,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Request to create a legal hold
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateLegalHoldRequest {
+    pub hold_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub reason: Option<String>,
+    pub case_reference: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+/// Legal hold item – a specific record under a legal hold
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LegalHoldItem {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub legal_hold_id: Uuid,
+    pub entity_type: String,
+    pub record_id: Uuid,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Archived record – tracks a record that has been archived
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArchivedRecord {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub entity_type: String,
+    pub original_record_id: Uuid,
+    pub original_data: serde_json::Value,
+    pub retention_policy_id: Option<Uuid>,
+    pub archive_batch_id: Option<Uuid>,
+    pub status: String,
+    pub original_created_at: Option<DateTime<Utc>>,
+    pub original_updated_at: Option<DateTime<Utc>>,
+    pub archived_at: DateTime<Utc>,
+    pub archived_by: Option<Uuid>,
+    pub restored_at: Option<DateTime<Utc>>,
+    pub restored_by: Option<Uuid>,
+    pub purged_at: Option<DateTime<Utc>>,
+    pub purged_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Archive batch – groups records archived together
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArchiveBatch {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_number: String,
+    pub retention_policy_id: Option<Uuid>,
+    pub entity_type: String,
+    pub status: String,
+    pub total_records: i32,
+    pub archived_records: i32,
+    pub failed_records: i32,
+    pub criteria: serde_json::Value,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Archive audit entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArchiveAudit {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub operation: String,
+    pub entity_type: String,
+    pub record_id: Option<Uuid>,
+    pub batch_id: Option<Uuid>,
+    pub legal_hold_id: Option<Uuid>,
+    pub retention_policy_id: Option<Uuid>,
+    pub result: String,
+    pub details: Option<String>,
+    pub performed_by: Option<Uuid>,
+    pub performed_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+}
+
+/// Data archiving dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DataArchivingDashboard {
+    pub total_policies: i64,
+    pub active_policies: i64,
+    pub total_legal_holds: i64,
+    pub active_legal_holds: i64,
+    pub total_archived_records: i64,
+    pub total_purged_records: i64,
+    pub total_restored_records: i64,
+    pub policies_by_entity_type: serde_json::Value,
+    pub recent_audit_entries: Vec<ArchiveAudit>,
+}
+

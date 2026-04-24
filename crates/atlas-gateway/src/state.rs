@@ -54,6 +54,7 @@ use atlas_core::{
     AbsenceEngine,
     TimeAndLaborEngine,
     ApprovalAuthorityEngine,
+    DataArchivingEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -106,6 +107,7 @@ use atlas_core::{
     absence::PostgresAbsenceRepository,
     time_and_labor::PostgresTimeAndLaborRepository,
     approval_authority::PostgresApprovalAuthorityRepository,
+    data_archiving::PostgresDataArchivingRepository,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -172,6 +174,7 @@ pub struct AppState {
     pub absence_engine: Arc<AbsenceEngine>,
     pub time_and_labor_engine: Arc<TimeAndLaborEngine>,
     pub approval_authority_engine: Arc<ApprovalAuthorityEngine>,
+    pub data_archiving_engine: Arc<DataArchivingEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -466,6 +469,11 @@ impl AppState {
             PostgresApprovalAuthorityRepository::new(db_pool.clone())
         )));
 
+        // Initialize data archiving engine
+        let data_archiving_engine = Arc::new(DataArchivingEngine::new(Arc::new(
+            PostgresDataArchivingRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -562,6 +570,7 @@ impl AppState {
             absence_engine,
             time_and_labor_engine,
             approval_authority_engine,
+            data_archiving_engine,
             event_bus,
             jwt_secret,
         };

@@ -14,6 +14,7 @@ use atlas_core::{
     ApprovalDelegationEngine,
     WarehouseManagementEngine,
     ApprovalAuthorityEngine,
+    DataArchivingEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -350,6 +351,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         approval_authority_engine: Arc::new(ApprovalAuthorityEngine::new(Arc::new(
             atlas_core::approval_authority::PostgresApprovalAuthorityRepository::new(db_pool.clone()),
         ))),
+        data_archiving_engine: Arc::new(DataArchivingEngine::new(Arc::new(
+            atlas_core::data_archiving::PostgresDataArchivingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -636,4 +640,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     // Clean approval authority limits test data
     sqlx::query("DELETE FROM _atlas.approval_authority_check_audit").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.approval_authority_limits").execute(pool).await.ok();
+    // Clean data archiving test data
+    sqlx::query("DELETE FROM _atlas.archive_audit").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.archived_records").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.archive_batches").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.legal_hold_items").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.legal_holds").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.retention_policies").execute(pool).await.ok();
 }

@@ -56,6 +56,7 @@ pub mod warehouse_management;
 pub mod absence;
 pub mod time_and_labor;
 pub mod approval_authority;
+pub mod data_archiving;
 
 pub use schema::*;
 pub use records::*;
@@ -2100,6 +2101,48 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Authority Dashboard
         .route("/approval-authority/dashboard", get(approval_authority::get_authority_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Data Archiving & Retention Management (Oracle Fusion ILM)
+        // ═══════════════════════════════════════════════════════
+
+        // Retention Policies
+        .route("/data-archiving/policies", post(data_archiving::create_retention_policy))
+        .route("/data-archiving/policies", get(data_archiving::list_retention_policies))
+        .route("/data-archiving/policies/:id", get(data_archiving::get_retention_policy))
+        .route("/data-archiving/policies/:id", delete(data_archiving::delete_retention_policy))
+        .route("/data-archiving/policies/:id/activate", post(data_archiving::activate_retention_policy))
+        .route("/data-archiving/policies/:id/deactivate", post(data_archiving::deactivate_retention_policy))
+
+        // Legal Holds
+        .route("/data-archiving/legal-holds", post(data_archiving::create_legal_hold))
+        .route("/data-archiving/legal-holds", get(data_archiving::list_legal_holds))
+        .route("/data-archiving/legal-holds/:id", get(data_archiving::get_legal_hold))
+        .route("/data-archiving/legal-holds/:id", delete(data_archiving::delete_legal_hold))
+        .route("/data-archiving/legal-holds/:id/release", post(data_archiving::release_legal_hold))
+
+        // Legal Hold Items
+        .route("/data-archiving/legal-holds/:id/items", post(data_archiving::add_legal_hold_items))
+        .route("/data-archiving/legal-holds/:id/items", get(data_archiving::list_legal_hold_items))
+        .route("/data-archiving/legal-holds/items/:id", delete(data_archiving::remove_legal_hold_item))
+        .route("/data-archiving/holds/check", get(data_archiving::check_legal_hold))
+
+        // Archive Operations
+        .route("/data-archiving/archive", post(data_archiving::execute_archive))
+        .route("/data-archiving/archived", get(data_archiving::list_archived_records))
+        .route("/data-archiving/archived/:id", get(data_archiving::get_archived_record))
+        .route("/data-archiving/archived/:id/restore", post(data_archiving::restore_archived_record))
+        .route("/data-archiving/archived/:id/purge", post(data_archiving::purge_archived_record))
+
+        // Archive Batches
+        .route("/data-archiving/batches", get(data_archiving::list_archive_batches))
+        .route("/data-archiving/batches/:id", get(data_archiving::get_archive_batch))
+
+        // Archive Audit
+        .route("/data-archiving/audit", get(data_archiving::list_archive_audit))
+
+        // Data Archiving Dashboard
+        .route("/data-archiving/dashboard", get(data_archiving::get_data_archiving_dashboard))
 
         // ═══════════════════════════════════════════════════════
         // Manufacturing Execution (Oracle Fusion SCM > Manufacturing)

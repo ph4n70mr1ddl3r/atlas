@@ -354,6 +354,12 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         data_archiving_engine: Arc::new(DataArchivingEngine::new(Arc::new(
             atlas_core::data_archiving::PostgresDataArchivingRepository::new(db_pool.clone()),
         ))),
+        payroll_engine: Arc::new(atlas_core::PayrollEngine::new(Arc::new(
+            atlas_core::payroll::PostgresPayrollRepository::new(db_pool.clone()),
+        ))),
+        compensation_engine: Arc::new(atlas_core::CompensationEngine::new(Arc::new(
+            atlas_core::compensation::PostgresCompensationRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -647,4 +653,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.legal_hold_items").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.legal_holds").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.retention_policies").execute(pool).await.ok();
+    // Clean compensation management test data
+    sqlx::query("DELETE FROM _atlas.compensation_worksheet_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.compensation_worksheets").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.compensation_budget_pools").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.compensation_statements").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.compensation_cycles").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.compensation_components").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.compensation_plans").execute(pool).await.ok();
 }

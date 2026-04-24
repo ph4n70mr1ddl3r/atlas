@@ -54,3 +54,4 @@ mod absence;
 mod time_and_labor;
 mod approval_authority;
 mod data_archiving;
+mod compensation;

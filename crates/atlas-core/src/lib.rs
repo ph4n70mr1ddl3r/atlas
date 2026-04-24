@@ -80,6 +80,7 @@ pub mod time_and_labor;
 pub mod approval_authority;
 pub mod data_archiving;
 pub mod payroll;
+pub mod compensation;
 
 pub use schema::*;
 pub use workflow::{
@@ -161,6 +162,7 @@ pub use time_and_labor::{TimeAndLaborEngine, PostgresTimeAndLaborRepository as P
 pub use approval_authority::{ApprovalAuthorityEngine, PostgresApprovalAuthorityRepository as PostgresApprovalAuthorityRepo};
 pub use data_archiving::{DataArchivingEngine, PostgresDataArchivingRepository as PostgresDataArchivingRepo};
 pub use payroll::{PayrollEngine, PostgresPayrollRepository as PostgresPayrollRepo};
+pub use compensation::{CompensationEngine, PostgresCompensationRepository as PostgresCompensationRepository};
 
 mod mock_repos;
 pub use mock_repos::*;

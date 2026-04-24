@@ -51,6 +51,7 @@ pub mod product_information;
 pub mod transfer_pricing;
 pub mod order_management;
 pub mod approval_delegation;
+pub mod compensation;
 pub mod manufacturing;
 pub mod warehouse_management;
 pub mod absence;
@@ -2306,6 +2307,54 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Time and Labor Dashboard
         .route("/time-and-labor/dashboard", get(time_and_labor::get_time_and_labor_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════
+        // Compensation Management (Oracle Fusion Cloud HCM Compensation Workbench)
+        // ═══════════════════════════════════════════════════════════════
+
+        // Compensation Plans
+        .route("/compensation/plans", post(compensation::create_plan))
+        .route("/compensation/plans", get(compensation::list_plans))
+        .route("/compensation/plans/:code", get(compensation::get_plan))
+        .route("/compensation/plans/:code", delete(compensation::delete_plan))
+
+        // Plan Components
+        .route("/compensation/plans/:plan_code/components", post(compensation::create_component))
+        .route("/compensation/plans/:plan_code/components", get(compensation::list_components))
+
+        // Compensation Cycles
+        .route("/compensation/cycles", post(compensation::create_cycle))
+        .route("/compensation/cycles", get(compensation::list_cycles))
+        .route("/compensation/cycles/:id", get(compensation::get_cycle))
+        .route("/compensation/cycles/:id/transition", post(compensation::transition_cycle))
+        .route("/compensation/cycles/:id", delete(compensation::delete_cycle))
+
+        // Budget Pools
+        .route("/compensation/cycles/:cycle_id/pools", post(compensation::create_budget_pool))
+        .route("/compensation/cycles/:cycle_id/pools", get(compensation::list_budget_pools))
+
+        // Worksheets
+        .route("/compensation/cycles/:cycle_id/worksheets", post(compensation::create_worksheet))
+        .route("/compensation/cycles/:cycle_id/worksheets", get(compensation::list_worksheets))
+        .route("/compensation/worksheets/:id", get(compensation::get_worksheet))
+        .route("/compensation/worksheets/:id/submit", post(compensation::submit_worksheet))
+        .route("/compensation/worksheets/:id/approve", post(compensation::approve_worksheet))
+        .route("/compensation/worksheets/:id/reject", post(compensation::reject_worksheet))
+
+        // Worksheet Lines
+        .route("/compensation/worksheets/:worksheet_id/lines", post(compensation::add_worksheet_line))
+        .route("/compensation/worksheets/:worksheet_id/lines", get(compensation::list_worksheet_lines))
+        .route("/compensation/lines/:line_id", put(compensation::update_worksheet_line))
+        .route("/compensation/lines/:line_id", delete(compensation::delete_worksheet_line))
+
+        // Compensation Statements
+        .route("/compensation/cycles/:cycle_id/statements", post(compensation::generate_statement))
+        .route("/compensation/cycles/:cycle_id/statements", get(compensation::list_statements))
+        .route("/compensation/statements/:id", get(compensation::get_statement))
+        .route("/compensation/statements/:id/publish", post(compensation::publish_statement))
+
+        // Compensation Dashboard
+        .route("/compensation/dashboard", get(compensation::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

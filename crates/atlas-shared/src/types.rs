@@ -13240,4 +13240,196 @@ pub struct PayrollDashboard {
     pub top_deductions_by_category: serde_json::Value,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Compensation Management (Oracle Fusion Cloud HCM Compensation Workbench)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Compensation plan component type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompensationComponent {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub plan_id: Uuid,
+    pub component_name: String,
+    pub component_type: String,
+    pub description: Option<String>,
+    pub is_recurring: bool,
+    pub frequency: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Compensation plan definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompensationPlan {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub plan_code: String,
+    pub plan_name: String,
+    pub description: Option<String>,
+    pub plan_type: String,
+    pub status: String,
+    pub effective_start_date: Option<chrono::NaiveDate>,
+    pub effective_end_date: Option<chrono::NaiveDate>,
+    pub eligibility_criteria: serde_json::Value,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Compensation cycle (annual review cycle)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompensationCycle {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub cycle_name: String,
+    pub description: Option<String>,
+    pub cycle_type: String,
+    pub status: String,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub allocation_start_date: Option<chrono::NaiveDate>,
+    pub allocation_end_date: Option<chrono::NaiveDate>,
+    pub review_start_date: Option<chrono::NaiveDate>,
+    pub review_end_date: Option<chrono::NaiveDate>,
+    pub total_budget: String,
+    pub total_allocated: String,
+    pub total_approved: String,
+    pub total_employees: i32,
+    pub currency_code: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Compensation budget pool for manager allocation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompensationBudgetPool {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub cycle_id: Uuid,
+    pub pool_name: String,
+    pub pool_type: String,
+    pub manager_id: Option<Uuid>,
+    pub manager_name: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    pub total_budget: String,
+    pub allocated_amount: String,
+    pub approved_amount: String,
+    pub remaining_budget: String,
+    pub currency_code: String,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Compensation worksheet line (per-employee allocation)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompensationWorksheetLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub worksheet_id: Uuid,
+    pub employee_id: Uuid,
+    pub employee_name: Option<String>,
+    pub job_title: Option<String>,
+    pub department_name: Option<String>,
+    pub current_base_salary: String,
+    pub proposed_base_salary: String,
+    pub salary_change_amount: String,
+    pub salary_change_percent: String,
+    pub merit_amount: String,
+    pub bonus_amount: String,
+    pub equity_amount: String,
+    pub total_compensation: String,
+    pub performance_rating: Option<String>,
+    pub compa_ratio: String,
+    pub status: String,
+    pub manager_comments: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Compensation worksheet (manager's worksheet)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompensationWorksheet {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub cycle_id: Uuid,
+    pub pool_id: Option<Uuid>,
+    pub manager_id: Uuid,
+    pub manager_name: Option<String>,
+    pub status: String,
+    pub total_employees: i32,
+    pub total_current_salary: String,
+    pub total_proposed_salary: String,
+    pub total_merit: String,
+    pub total_bonus: String,
+    pub total_equity: String,
+    pub total_compensation_change: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Compensation statement (employee view)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompensationStatement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub cycle_id: Uuid,
+    pub employee_id: Uuid,
+    pub employee_name: Option<String>,
+    pub statement_date: chrono::NaiveDate,
+    pub base_salary: String,
+    pub merit_increase: String,
+    pub bonus: String,
+    pub equity: String,
+    pub benefits_value: String,
+    pub total_compensation: String,
+    pub total_direct_compensation: String,
+    pub total_indirect_compensation: String,
+    pub change_from_previous: String,
+    pub change_percent: String,
+    pub currency_code: String,
+    pub components: serde_json::Value,
+    pub status: String,
+    pub published_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Compensation dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompensationDashboard {
+    pub active_plans: i32,
+    pub active_cycles: i32,
+    pub total_budget: String,
+    pub total_allocated: String,
+    pub total_approved: String,
+    pub total_employees_in_cycle: i32,
+    pub pending_worksheets: i32,
+    pub completed_worksheets: i32,
+    pub average_salary_increase_percent: String,
+    pub budget_utilization_percent: String,
+}
 

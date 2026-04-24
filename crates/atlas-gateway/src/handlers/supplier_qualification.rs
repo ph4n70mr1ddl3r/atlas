@@ -16,7 +16,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::AppState;
-use crate::handlers::auth::Claims;
+use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Query Parameters
@@ -64,7 +64,7 @@ pub async fn create_qualification_area(
 
     match state.supplier_qualification_engine.create_area(
         org_id, &area_code, &name, description, &area_type, &scoring_model,
-        &passing_score, is_mandatory, renewal_period_days, Some(claims.sub.parse().unwrap_or(Uuid::nil())),
+        &passing_score, is_mandatory, renewal_period_days, parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(area) => Ok((StatusCode::CREATED, Json(serde_json::to_value(area).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(json!({"error": e.to_string()})))),
@@ -209,7 +209,7 @@ pub async fn create_initiative(
 
     match state.supplier_qualification_engine.create_initiative(
         org_id, &name, description, area_id, &qualification_purpose,
-        deadline, Some(claims.sub.parse().unwrap_or(Uuid::nil())),
+        deadline, parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(initiative) => Ok((StatusCode::CREATED, Json(serde_json::to_value(initiative).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(json!({"error": e.to_string()})))),
@@ -309,7 +309,7 @@ pub async fn invite_supplier(
     match state.supplier_qualification_engine.invite_supplier(
         org_id, initiative_id, supplier_id, &supplier_name,
         supplier_contact_name, supplier_contact_email, expiry_date,
-        Some(claims.sub.parse().unwrap_or(Uuid::nil())),
+        parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(invitation) => Ok((StatusCode::CREATED, Json(serde_json::to_value(invitation).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(json!({"error": e.to_string()})))),
@@ -359,7 +359,7 @@ pub async fn qualify_supplier(
     Path(invitation_id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let user_id: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
+    let user_id: Uuid = parse_uuid(&claims.sub)?;
     let evaluation_notes = body["evaluation_notes"].as_str();
 
     match state.supplier_qualification_engine.qualify_supplier(
@@ -377,7 +377,7 @@ pub async fn disqualify_supplier(
     Path(invitation_id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let user_id: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
+    let user_id: Uuid = parse_uuid(&claims.sub)?;
     let reason = body["reason"].as_str().unwrap_or("");
 
     match state.supplier_qualification_engine.disqualify_supplier(
@@ -438,7 +438,7 @@ pub async fn score_response(
     Path(response_id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let user_id: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
+    let user_id: Uuid = parse_uuid(&claims.sub)?;
     let score = body["score"].as_str().unwrap_or("0");
     let evaluator_notes = body["evaluator_notes"].as_str();
 
@@ -484,7 +484,7 @@ pub async fn create_certification(
         org_id, supplier_id, &supplier_name, &certification_type, &certification_name,
         certifying_body, certificate_number, issued_date, expiry_date, renewal_date,
         qualification_invitation_id, document_reference, notes,
-        Some(claims.sub.parse().unwrap_or(Uuid::nil())),
+        parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(cert) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cert).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(json!({"error": e.to_string()})))),

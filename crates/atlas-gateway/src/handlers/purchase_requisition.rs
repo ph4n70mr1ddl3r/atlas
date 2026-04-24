@@ -16,7 +16,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::AppState;
-use crate::handlers::auth::Claims;
+use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Query Parameters
@@ -391,7 +391,7 @@ pub async fn approve_requisition(
     Path(id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    let approver_id = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| Uuid::nil());
+    let approver_id = parse_uuid(&claims.sub)?;
     let approver_name = claims.email.clone();
     let comments = body["comments"].as_str().map(String::from);
 
@@ -417,7 +417,7 @@ pub async fn reject_requisition(
     Path(id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    let approver_id = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| Uuid::nil());
+    let approver_id = parse_uuid(&claims.sub)?;
     let approver_name = claims.email.clone();
     let comments = body["comments"].as_str().map(String::from);
 

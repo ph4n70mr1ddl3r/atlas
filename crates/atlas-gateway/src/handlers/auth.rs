@@ -16,6 +16,19 @@ use sqlx::FromRow;
 use argon2::password_hash::{PasswordHash, PasswordVerifier, PasswordHasher};
 use argon2::Argon2;
 
+/// Error type used by handlers that return `(StatusCode, Json<Value>)` tuples.
+type HandlerError = (StatusCode, Json<serde_json::Value>);
+
+/// Parse a UUID from a claim string, returning a JSON error on failure.
+///
+/// Unlike `unwrap_or_default()`, this does NOT silently fall back to the nil
+/// UUID — which would be an auth-scoping bypass.
+pub fn parse_uuid(s: &str) -> Result<Uuid, HandlerError> {
+    Uuid::parse_str(s).map_err(|_| {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Invalid auth token"})))
+    })
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginRequest {
     pub email: String,
@@ -51,15 +64,27 @@ impl Claims {
     ///
     /// Using this instead of `Uuid::parse_str(&claims.org_id).unwrap_or_default()`
     /// avoids silently falling back to the nil UUID on a malformed token.
-    pub fn org_uuid(&self) -> Result<Uuid, axum::http::StatusCode> {
+    pub fn org_uuid(&self) -> Result<Uuid, StatusCode> {
         Uuid::parse_str(&self.org_id)
-            .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     /// Parse the `sub` claim into a `Uuid`, returning 500 on failure.
-    pub fn user_uuid(&self) -> Result<Uuid, axum::http::StatusCode> {
+    pub fn user_uuid(&self) -> Result<Uuid, StatusCode> {
         Uuid::parse_str(&self.sub)
-            .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    /// Parse the `org_id` claim, returning a `(StatusCode, Json)` error.
+    ///
+    /// For handlers whose error type is `(StatusCode, Json<Value>)`.
+    pub fn org_uuid_json(&self) -> Result<Uuid, HandlerError> {
+        parse_uuid(&self.org_id)
+    }
+
+    /// Parse the `sub` claim, returning a `(StatusCode, Json)` error.
+    pub fn user_uuid_json(&self) -> Result<Uuid, HandlerError> {
+        parse_uuid(&self.sub)
     }
 }
 

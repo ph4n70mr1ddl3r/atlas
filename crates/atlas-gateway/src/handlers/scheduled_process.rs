@@ -16,7 +16,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::AppState;
-use crate::handlers::auth::Claims;
+use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Query Parameters
@@ -87,7 +87,7 @@ pub async fn create_template(
         timeout_minutes, max_retries, retry_delay_minutes,
         requires_approval, approval_chain_id,
         effective_from, effective_to,
-        Some(claims.sub.parse().unwrap_or(Uuid::nil())),
+        parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(template) => Ok((StatusCode::CREATED, Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -204,7 +204,7 @@ pub async fn submit_process(
         .and_then(|d| chrono::DateTime::parse_from_rfc3339(d).ok())
         .map(|d| d.to_utc());
     let parameters = body.get("parameters").cloned().unwrap_or(json!({}));
-    let submitted_by = Uuid::parse_str(&claims.sub).unwrap_or(Uuid::nil());
+    let submitted_by = parse_uuid(&claims.sub)?;
 
     match state.scheduled_process_engine.submit_process(
         org_id, template_code,
@@ -299,7 +299,7 @@ pub async fn cancel_process(
     Path(id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let cancelled_by = Uuid::parse_str(&claims.sub).unwrap_or(Uuid::nil());
+    let cancelled_by = parse_uuid(&claims.sub)?;
     let reason = body["reason"].as_str();
 
     match state.scheduled_process_engine.cancel_process(id, cancelled_by, reason).await {
@@ -370,7 +370,7 @@ pub async fn create_recurrence(
         org_id, &name, description, &template_code,
         parameters, &recurrence_type, recurrence_config,
         start_date, end_date, max_runs,
-        Some(claims.sub.parse().unwrap_or(Uuid::nil())),
+        parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(recurrence) => Ok((StatusCode::CREATED, Json(serde_json::to_value(recurrence).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),

@@ -16,7 +16,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::AppState;
-use crate::handlers::auth::Claims;
+use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Query Parameters
@@ -56,7 +56,7 @@ pub async fn create_batch(
     match state.manual_journal_engine.create_batch(
         org_id, &batch_number, &name, description, ledger_id,
         &currency_code, accounting_date, period_name, source,
-        is_automatic_post, Some(claims.sub.parse().unwrap_or(Uuid::nil())),
+        is_automatic_post, parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(batch) => Ok((StatusCode::CREATED, Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -125,7 +125,7 @@ pub async fn submit_batch(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let submitted_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
+    let submitted_by: Uuid = parse_uuid(&claims.sub)?;
     match state.manual_journal_engine.submit_batch(id, Some(submitted_by)).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -139,7 +139,7 @@ pub async fn approve_batch(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let approved_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
+    let approved_by: Uuid = parse_uuid(&claims.sub)?;
     match state.manual_journal_engine.approve_batch(id, Some(approved_by)).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -168,7 +168,7 @@ pub async fn post_batch(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let posted_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
+    let posted_by: Uuid = parse_uuid(&claims.sub)?;
     match state.manual_journal_engine.post_batch(id, Some(posted_by)).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -182,7 +182,7 @@ pub async fn reverse_batch(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let reversed_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
+    let reversed_by: Uuid = parse_uuid(&claims.sub)?;
     match state.manual_journal_engine.reverse_batch(id, Some(reversed_by)).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -223,7 +223,7 @@ pub async fn create_entry(
         org_id, batch_id, &entry_number, name, description,
         ledger_id, &currency_code, accounting_date, period_name,
         journal_category, reference_number, external_reference,
-        statistical_entry, Some(claims.sub.parse().unwrap_or(Uuid::nil())),
+        statistical_entry, parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(entry) => Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),

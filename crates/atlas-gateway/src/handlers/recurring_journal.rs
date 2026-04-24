@@ -16,7 +16,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::AppState;
-use crate::handlers::auth::Claims;
+use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Query Parameters
@@ -63,7 +63,7 @@ pub async fn create_schedule(
         org_id, &schedule_number, &name, description, &recurrence_type,
         &journal_type, &currency_code, effective_from, effective_to,
         incremental_percent, auto_post, reversal_method, ledger_id,
-        journal_category, reference_template, Some(claims.sub.parse().unwrap_or(Uuid::nil())),
+        journal_category, reference_template, parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(schedule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -114,7 +114,7 @@ pub async fn activate_schedule(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let approved_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
+    let approved_by: Uuid = parse_uuid(&claims.sub)?;
     match state.recurring_journal_engine.activate_schedule(id, Some(approved_by)).await {
         Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -242,7 +242,7 @@ pub async fn generate_journal(
             }).collect()
         });
 
-    let generated_by: Uuid = claims.sub.parse().unwrap_or(Uuid::nil());
+    let generated_by: Uuid = parse_uuid(&claims.sub)?;
 
     match state.recurring_journal_engine.generate_journal(
         schedule_id, generation_date, override_amounts, Some(generated_by),

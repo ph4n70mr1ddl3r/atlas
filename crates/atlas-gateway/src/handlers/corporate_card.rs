@@ -17,7 +17,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::AppState;
-use crate::handlers::auth::Claims;
+use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Query Parameters
@@ -662,7 +662,7 @@ pub async fn approve_limit_override(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    let approved_by = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| Uuid::nil());
+    let approved_by = parse_uuid(&claims.sub)?;
 
     match state.corporate_card_engine.approve_limit_override(id, approved_by).await {
         Ok(ovr) => Ok((StatusCode::OK, Json(serde_json::to_value(ovr).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
@@ -683,7 +683,7 @@ pub async fn reject_limit_override(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    let rejected_by = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| Uuid::nil());
+    let rejected_by = parse_uuid(&claims.sub)?;
 
     match state.corporate_card_engine.reject_limit_override(id, rejected_by).await {
         Ok(ovr) => Ok((StatusCode::OK, Json(serde_json::to_value(ovr).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),

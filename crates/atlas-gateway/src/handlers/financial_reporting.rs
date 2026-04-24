@@ -5,14 +5,15 @@
 use axum::{
     extract::{Path, Query, State, Extension},
     Json,
+    http::StatusCode,
 };
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::AppState;
-use crate::handlers::auth::Claims;
+use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Request Types
@@ -147,7 +148,7 @@ pub async fn create_financial_template(
     Extension(claims): Extension<Claims>,
     Json(body): Json<CreateTemplateRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     let created_by = parse_user_id(&claims);
 
     match state.financial_reporting_engine.create_template(
@@ -175,7 +176,7 @@ pub async fn get_financial_template(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     match state.financial_reporting_engine.get_template(org_id, &code).await {
         Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Template not found"})))),
@@ -189,7 +190,7 @@ pub async fn list_financial_templates(
     Extension(claims): Extension<Claims>,
     Query(query): Query<TemplateListQuery>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     match state.financial_reporting_engine.list_templates(org_id, query.report_type.as_deref()).await {
         Ok(templates) => Ok(Json(json!(templates))),
         Err(e) => Err(map_error(e)),
@@ -202,7 +203,7 @@ pub async fn delete_financial_template(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     match state.financial_reporting_engine.delete_template(org_id, &code).await {
         Ok(()) => Ok(Json(json!({"message": "Template deleted"}))),
         Err(e) => Err(map_error(e)),
@@ -216,7 +217,7 @@ pub async fn create_financial_row(
     Path(template_id): Path<Uuid>,
     Json(body): Json<CreateRowRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     match state.financial_reporting_engine.create_row(
         org_id,
         template_id,
@@ -273,7 +274,7 @@ pub async fn create_financial_column(
     Path(template_id): Path<Uuid>,
     Json(body): Json<CreateColumnRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     match state.financial_reporting_engine.create_column(
         org_id,
         template_id,
@@ -325,7 +326,7 @@ pub async fn generate_financial_report(
     Path(template_code): Path<String>,
     Json(body): Json<GenerateReportRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     let user_id = parse_user_id(&claims);
 
     match state.financial_reporting_engine.generate_report(
@@ -365,7 +366,7 @@ pub async fn list_financial_runs(
     Extension(claims): Extension<Claims>,
     Query(query): Query<RunListQuery>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     match state.financial_reporting_engine.list_runs(org_id, query.template_id, query.status.as_deref()).await {
         Ok(runs) => Ok(Json(json!(runs))),
         Err(e) => Err(map_error(e)),
@@ -434,7 +435,7 @@ pub async fn create_financial_trial_balance(
     Extension(claims): Extension<Claims>,
     Json(body): Json<CreateQuickTemplateRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     let created_by = parse_user_id(&claims);
     match state.financial_reporting_engine.create_trial_balance_template(
         org_id, &body.code, &body.name, &body.currency_code, created_by,
@@ -450,7 +451,7 @@ pub async fn create_financial_income_statement(
     Extension(claims): Extension<Claims>,
     Json(body): Json<CreateQuickTemplateRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     let created_by = parse_user_id(&claims);
     match state.financial_reporting_engine.create_income_statement_template(
         org_id, &body.code, &body.name, &body.currency_code, created_by,
@@ -466,7 +467,7 @@ pub async fn create_financial_balance_sheet(
     Extension(claims): Extension<Claims>,
     Json(body): Json<CreateQuickTemplateRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     let created_by = parse_user_id(&claims);
     match state.financial_reporting_engine.create_balance_sheet_template(
         org_id, &body.code, &body.name, &body.currency_code, created_by,
@@ -482,7 +483,7 @@ pub async fn add_financial_favourite(
     Extension(claims): Extension<Claims>,
     Path(template_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     let user_id = parse_user_id(&claims).ok_or_else(|| {
         (axum::http::StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid user"})))
     })?;
@@ -498,7 +499,7 @@ pub async fn list_financial_favourites(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     let user_id = parse_user_id(&claims).ok_or_else(|| {
         (axum::http::StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid user"})))
     })?;
@@ -515,7 +516,7 @@ pub async fn remove_financial_favourite(
     Extension(claims): Extension<Claims>,
     Path(template_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     let user_id = parse_user_id(&claims).ok_or_else(|| {
         (axum::http::StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid user"})))
     })?;
@@ -531,7 +532,7 @@ pub async fn get_financial_dashboard(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let org_id = parse_org_id(&claims);
+    let org_id = parse_org_id(&claims)?;
     match state.financial_reporting_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error(e)),
@@ -542,8 +543,8 @@ pub async fn get_financial_dashboard(
 // Helpers
 // ============================================================================
 
-fn parse_org_id(claims: &Claims) -> Uuid {
-    claims.org_id.parse().unwrap_or_else(|_| Uuid::nil())
+fn parse_org_id(claims: &Claims) -> Result<Uuid, (StatusCode, Json<Value>)> {
+    parse_uuid(&claims.org_id)
 }
 
 fn parse_user_id(claims: &Claims) -> Option<Uuid> {

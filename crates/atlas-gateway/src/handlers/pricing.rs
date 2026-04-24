@@ -12,7 +12,7 @@ use axum::{
 };
 use serde::Deserialize;
 use crate::AppState;
-use crate::handlers::auth::Claims;
+use crate::handlers::auth::{Claims, parse_uuid};
 use std::sync::Arc;
 use uuid::Uuid;
 use tracing::error;
@@ -27,16 +27,6 @@ fn default_surcharge() -> String { "surcharge".to_string() }
 fn default_handling() -> String { "handling".to_string() }
 fn default_price_list_type() -> String { "price_list".to_string() }
 
-
-/// Parse a UUID from a claim string, returning a JSON error on failure.
-///
-/// Unlike `unwrap_or_default()`, this does NOT silently fall back to the nil
-/// UUID — which would be an auth-scoping bypass.
-fn parse_uuid(s: &str) -> Result<Uuid, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    Uuid::parse_str(s).map_err(|_| {
-        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Invalid auth token"})))
-    })
-}
 // ============================================================================
 // Price Lists
 // ============================================================================

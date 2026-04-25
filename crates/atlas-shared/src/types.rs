@@ -13916,3 +13916,178 @@ pub struct DemandPlanningDashboard {
     pub accuracy_by_method: serde_json::Value,
 }
 
+// ============================================================================
+// Shipping Execution (Oracle Fusion SCM > Shipping Execution)
+// ============================================================================
+
+/// Shipping Carrier
+/// Oracle Fusion: SCM > Shipping > Carriers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShippingCarrier {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub carrier_type: String,
+    pub tracking_url_template: Option<String>,
+    pub contact_name: Option<String>,
+    pub contact_phone: Option<String>,
+    pub contact_email: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Shipping Method
+/// Oracle Fusion: SCM > Shipping > Shipping Methods
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShippingMethod {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub carrier_id: Option<Uuid>,
+    pub transit_time_days: i32,
+    pub is_express: bool,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Shipment (shipping header)
+/// Oracle Fusion: SCM > Shipping > Shipments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Shipment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub shipment_number: String,
+    pub description: Option<String>,
+    pub status: String,
+    pub carrier_id: Option<Uuid>,
+    pub carrier_name: Option<String>,
+    pub shipping_method_id: Option<Uuid>,
+    pub shipping_method_name: Option<String>,
+    pub order_id: Option<Uuid>,
+    pub order_number: Option<String>,
+    pub customer_id: Option<Uuid>,
+    pub customer_name: Option<String>,
+    pub ship_from_warehouse: Option<String>,
+    pub ship_to_name: Option<String>,
+    pub ship_to_address: Option<String>,
+    pub ship_to_city: Option<String>,
+    pub ship_to_state: Option<String>,
+    pub ship_to_postal_code: Option<String>,
+    pub ship_to_country: Option<String>,
+    pub tracking_number: Option<String>,
+    pub total_weight: String,
+    pub weight_unit: String,
+    pub total_volume: String,
+    pub volume_unit: String,
+    pub total_packages: i32,
+    pub shipped_date: Option<DateTime<Utc>>,
+    pub estimated_delivery: Option<chrono::NaiveDate>,
+    pub actual_delivery: Option<DateTime<Utc>>,
+    pub confirmed_by: Option<Uuid>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub shipped_by: Option<Uuid>,
+    pub delivered_by: Option<Uuid>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Shipment Line
+/// Oracle Fusion: SCM > Shipping > Shipment Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShipmentLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub shipment_id: Uuid,
+    pub line_number: i32,
+    pub order_line_id: Option<Uuid>,
+    pub item_code: String,
+    pub item_name: Option<String>,
+    pub item_description: Option<String>,
+    pub requested_quantity: String,
+    pub shipped_quantity: String,
+    pub backordered_quantity: String,
+    pub unit_of_measure: String,
+    pub weight: String,
+    pub weight_unit: String,
+    pub lot_number: Option<String>,
+    pub serial_number: Option<String>,
+    pub is_fragile: bool,
+    pub is_hazardous: bool,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Packing Slip
+/// Oracle Fusion: SCM > Shipping > Packing Slips
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackingSlip {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub shipment_id: Uuid,
+    pub packing_slip_number: String,
+    pub package_number: i32,
+    pub package_type: String,
+    pub weight: String,
+    pub weight_unit: String,
+    pub dimensions_length: String,
+    pub dimensions_width: String,
+    pub dimensions_height: String,
+    pub dimensions_unit: String,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Packing Slip Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackingSlipLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub packing_slip_id: Uuid,
+    pub shipment_line_id: Uuid,
+    pub line_number: i32,
+    pub item_code: String,
+    pub item_name: Option<String>,
+    pub packed_quantity: String,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Shipping Execution Dashboard
+/// Oracle Fusion: SCM > Shipping > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShippingDashboard {
+    pub total_shipments: i32,
+    pub pending_shipments: i32,
+    pub shipped_this_month: i32,
+    pub delivered_this_month: i32,
+    pub total_carriers: i32,
+    pub shipments_by_status: serde_json::Value,
+    pub recent_shipments: serde_json::Value,
+    pub top_carriers: serde_json::Value,
+}
+

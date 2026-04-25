@@ -886,6 +886,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         demand_planning_engine: Arc::new(atlas_core::DemandPlanningEngine::new(Arc::new(
             atlas_core::demand_planning::PostgresDemandPlanningRepository::new(db_pool.clone()),
         ))),
+        shipping_engine: Arc::new(atlas_core::ShippingEngine::new(Arc::new(
+            atlas_core::shipping::PostgresShippingRepository::new(db_pool.clone()),
+        ))),
         autoinvoice_engine: Arc::new(atlas_core::AutoInvoiceEngine::new(Arc::new(
             atlas_core::autoinvoice::PostgresAutoInvoiceRepository::new(db_pool.clone()),
         ))),

@@ -84,6 +84,7 @@ pub mod compensation;
 pub mod service_request;
 pub mod lead_opportunity;
 pub mod demand_planning;
+pub mod shipping;
 
 pub use schema::*;
 pub use workflow::{
@@ -169,6 +170,7 @@ pub use compensation::{CompensationEngine, PostgresCompensationRepository as Pos
 pub use service_request::{ServiceRequestEngine, PostgresServiceRequestRepository as PostgresServiceRequestRepo};
 pub use lead_opportunity::{LeadOpportunityEngine, PostgresLeadOpportunityRepository as PostgresLeadOpportunityRepo};
 pub use demand_planning::{DemandPlanningEngine, PostgresDemandPlanningRepository as PostgresDemandPlanningRepo};
+pub use shipping::{ShippingEngine, PostgresShippingRepository as PostgresShippingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

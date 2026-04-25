@@ -60,6 +60,7 @@ use atlas_core::{
     ServiceRequestEngine,
     LeadOpportunityEngine,
     DemandPlanningEngine,
+    ShippingEngine,
     AutoInvoiceEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
@@ -119,7 +120,7 @@ use atlas_core::{
     service_request::PostgresServiceRequestRepository,
     lead_opportunity::PostgresLeadOpportunityRepository,
     demand_planning::PostgresDemandPlanningRepository,
-    autoinvoice::PostgresAutoInvoiceRepository,
+    shipping::PostgresShippingRepository,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -192,6 +193,7 @@ pub struct AppState {
     pub service_request_engine: Arc<ServiceRequestEngine>,
     pub lead_opportunity_engine: Arc<LeadOpportunityEngine>,
     pub demand_planning_engine: Arc<DemandPlanningEngine>,
+    pub shipping_engine: Arc<ShippingEngine>,
     pub autoinvoice_engine: Arc<AutoInvoiceEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
@@ -517,6 +519,11 @@ impl AppState {
             PostgresDemandPlanningRepository::new(db_pool.clone())
         )));
 
+        // Initialize shipping execution engine
+        let shipping_engine = Arc::new(ShippingEngine::new(Arc::new(
+            PostgresShippingRepository::new(db_pool.clone())
+        )));
+
         // Initialize AutoInvoice engine
         let autoinvoice_engine = Arc::new(AutoInvoiceEngine::new(Arc::new(
             atlas_core::autoinvoice::PostgresAutoInvoiceRepository::new(db_pool.clone())
@@ -624,6 +631,7 @@ impl AppState {
             service_request_engine,
             lead_opportunity_engine,
             demand_planning_engine,
+            shipping_engine,
             autoinvoice_engine,
             event_bus,
             jwt_secret,

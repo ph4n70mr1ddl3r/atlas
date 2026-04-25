@@ -62,6 +62,7 @@ pub mod service_request;
 pub mod lead_opportunity;
 pub mod demand_planning;
 mod autoinvoice;
+mod shipping;
 
 pub use schema::*;
 pub use records::*;
@@ -2515,6 +2516,50 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // AutoInvoice Dashboard
         .route("/autoinvoice/dashboard", get(autoinvoice::get_autoinvoice_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Shipping Execution (Oracle Fusion SCM > Shipping Execution)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Carriers
+        .route("/shipping/carriers", post(shipping::create_carrier))
+        .route("/shipping/carriers", get(shipping::list_carriers))
+        .route("/shipping/carriers/:id", get(shipping::get_carrier))
+        .route("/shipping/carriers-by-code/:code", delete(shipping::delete_carrier))
+
+        // Shipping Methods
+        .route("/shipping/methods", post(shipping::create_shipping_method))
+        .route("/shipping/methods", get(shipping::list_shipping_methods))
+        .route("/shipping/methods-by-code/:code", delete(shipping::delete_shipping_method))
+
+        // Shipments
+        .route("/shipping/shipments", post(shipping::create_shipment))
+        .route("/shipping/shipments", get(shipping::list_shipments))
+        .route("/shipping/shipments/:id", get(shipping::get_shipment))
+        .route("/shipping/shipments/:id/confirm", post(shipping::confirm_shipment))
+        .route("/shipping/shipments/:id/ship", post(shipping::ship_confirm))
+        .route("/shipping/shipments/:id/deliver", post(shipping::deliver_shipment))
+        .route("/shipping/shipments/:id/cancel", post(shipping::cancel_shipment))
+        .route("/shipping/shipments-by-number/:shipment_number", delete(shipping::delete_shipment))
+
+        // Shipment Lines
+        .route("/shipping/shipments/:shipment_id/lines", post(shipping::add_shipment_line))
+        .route("/shipping/shipments/:shipment_id/lines", get(shipping::list_shipment_lines))
+        .route("/shipping/shipment-lines/:id", delete(shipping::delete_shipment_line))
+        .route("/shipping/shipment-lines/:id/shipped-qty", put(shipping::update_shipped_quantity))
+
+        // Packing Slips
+        .route("/shipping/shipments/:shipment_id/packing-slips", post(shipping::create_packing_slip))
+        .route("/shipping/shipments/:shipment_id/packing-slips", get(shipping::list_packing_slips))
+        .route("/shipping/packing-slips/:id", delete(shipping::delete_packing_slip))
+
+        // Packing Slip Lines
+        .route("/shipping/packing-slips/:packing_slip_id/lines", post(shipping::add_packing_slip_line))
+        .route("/shipping/packing-slips/:packing_slip_id/lines", get(shipping::list_packing_slip_lines))
+        .route("/shipping/packing-slip-lines/:id", delete(shipping::delete_packing_slip_line))
+
+        // Shipping Dashboard
+        .route("/shipping/dashboard", get(shipping::get_shipping_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

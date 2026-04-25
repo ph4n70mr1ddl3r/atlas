@@ -369,6 +369,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         demand_planning_engine: Arc::new(atlas_core::DemandPlanningEngine::new(Arc::new(
             atlas_core::demand_planning::PostgresDemandPlanningRepository::new(db_pool.clone()),
         ))),
+        shipping_engine: Arc::new(atlas_core::ShippingEngine::new(Arc::new(
+            atlas_core::shipping::PostgresShippingRepository::new(db_pool.clone()),
+        ))),
         autoinvoice_engine: Arc::new(atlas_core::AutoInvoiceEngine::new(Arc::new(
             atlas_core::autoinvoice::PostgresAutoInvoiceRepository::new(db_pool.clone()),
         ))),
@@ -685,4 +688,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.autoinvoice_batches").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.autoinvoice_validation_rules").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.autoinvoice_grouping_rules").execute(pool).await.ok();
+    // Clean shipping test data
+    sqlx::query("DELETE FROM _atlas.packing_slip_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.packing_slips").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.shipment_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.shipments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.shipping_methods").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.shipping_carriers").execute(pool).await.ok();
 }

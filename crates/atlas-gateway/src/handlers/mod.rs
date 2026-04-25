@@ -58,6 +58,7 @@ pub mod absence;
 pub mod time_and_labor;
 pub mod approval_authority;
 pub mod data_archiving;
+pub mod service_request;
 
 pub use schema::*;
 pub use records::*;
@@ -2355,6 +2356,37 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Compensation Dashboard
         .route("/compensation/dashboard", get(compensation::get_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Service Request Management (Oracle Fusion CX Service)
+        // ═══════════════════════════════════════════════════════
+
+        // Service Categories
+        .route("/service/categories", post(service_request::create_category))
+        .route("/service/categories", get(service_request::list_categories))
+        .route("/service/categories/:code", get(service_request::get_category))
+        .route("/service/categories/:code", delete(service_request::delete_category))
+
+        // Service Requests
+        .route("/service/requests", post(service_request::create_request))
+        .route("/service/requests", get(service_request::list_requests))
+        .route("/service/requests/:id", get(service_request::get_request))
+        .route("/service/requests/number/:number", get(service_request::get_request_by_number))
+
+        // Service Request Lifecycle
+        .route("/service/requests/:id/status", post(service_request::update_request_status))
+        .route("/service/requests/:id/resolve", post(service_request::resolve_request))
+
+        // Service Request Assignments
+        .route("/service/requests/:id/assign", post(service_request::assign_request))
+        .route("/service/requests/:id/assignments", get(service_request::list_assignments))
+
+        // Service Request Updates / Communications
+        .route("/service/requests/:id/updates", post(service_request::add_update))
+        .route("/service/requests/:id/updates", get(service_request::list_updates))
+
+        // Service Request Dashboard
+        .route("/service/dashboard", get(service_request::get_service_request_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

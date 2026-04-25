@@ -877,6 +877,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         compensation_engine: Arc::new(atlas_core::CompensationEngine::new(Arc::new(
             atlas_core::compensation::PostgresCompensationRepository::new(db_pool.clone()),
         ))),
+        service_request_engine: Arc::new(atlas_core::ServiceRequestEngine::new(Arc::new(
+            atlas_core::service_request::PostgresServiceRequestRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

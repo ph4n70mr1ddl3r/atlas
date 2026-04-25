@@ -13433,3 +13433,117 @@ pub struct CompensationDashboard {
     pub budget_utilization_percent: String,
 }
 
+// ============================================================================
+// Service Request Management (Oracle Fusion CX Service)
+// ============================================================================
+
+/// Service request category
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceCategory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub parent_category_id: Option<Uuid>,
+    pub default_priority: Option<String>,
+    pub default_sla_hours: Option<i32>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Service request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceRequest {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub request_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub category_id: Option<Uuid>,
+    pub category_name: Option<String>,
+    pub priority: String,
+    pub status: String,
+    pub request_type: String,
+    pub channel: String,
+    pub customer_id: Option<Uuid>,
+    pub customer_name: Option<String>,
+    pub contact_id: Option<Uuid>,
+    pub contact_name: Option<String>,
+    pub assigned_to: Option<Uuid>,
+    pub assigned_to_name: Option<String>,
+    pub assigned_group: Option<String>,
+    pub product_id: Option<Uuid>,
+    pub product_name: Option<String>,
+    pub serial_number: Option<String>,
+    pub resolution: Option<String>,
+    pub resolution_code: Option<String>,
+    pub sla_due_date: Option<chrono::NaiveDate>,
+    pub sla_breached: bool,
+    pub parent_request_id: Option<Uuid>,
+    pub related_object_type: Option<String>,
+    pub related_object_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub resolved_at: Option<DateTime<Utc>>,
+    pub closed_at: Option<DateTime<Utc>>,
+}
+
+/// Service request communication/update
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceRequestUpdate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub request_id: Uuid,
+    pub update_type: String,
+    pub author_id: Option<Uuid>,
+    pub author_name: Option<String>,
+    pub subject: Option<String>,
+    pub body: String,
+    pub is_internal: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Service request assignment history
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceRequestAssignment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub request_id: Uuid,
+    pub assigned_to: Option<Uuid>,
+    pub assigned_to_name: Option<String>,
+    pub assigned_group: Option<String>,
+    pub assigned_by: Option<Uuid>,
+    pub assigned_by_name: Option<String>,
+    pub assignment_type: String,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Service request dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceRequestDashboard {
+    pub total_open: i32,
+    pub total_resolved: i32,
+    pub total_closed: i32,
+    pub total_unassigned: i32,
+    pub sla_breached_count: i32,
+    pub by_priority: serde_json::Value,
+    pub by_status: serde_json::Value,
+    pub by_category: serde_json::Value,
+    pub by_channel: serde_json::Value,
+    pub average_resolution_hours: String,
+}
+

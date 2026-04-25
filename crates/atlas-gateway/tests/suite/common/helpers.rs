@@ -360,6 +360,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         compensation_engine: Arc::new(atlas_core::CompensationEngine::new(Arc::new(
             atlas_core::compensation::PostgresCompensationRepository::new(db_pool.clone()),
         ))),
+        service_request_engine: Arc::new(atlas_core::ServiceRequestEngine::new(Arc::new(
+            atlas_core::service_request::PostgresServiceRequestRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -661,4 +664,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.compensation_cycles").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.compensation_components").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.compensation_plans").execute(pool).await.ok();
+    // Clean service request test data
+    sqlx::query("DELETE FROM _atlas.service_request_updates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.service_request_assignments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.service_requests").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.service_categories").execute(pool).await.ok();
 }

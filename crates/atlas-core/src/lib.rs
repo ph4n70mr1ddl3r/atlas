@@ -81,6 +81,7 @@ pub mod approval_authority;
 pub mod data_archiving;
 pub mod payroll;
 pub mod compensation;
+pub mod service_request;
 
 pub use schema::*;
 pub use workflow::{
@@ -163,6 +164,7 @@ pub use approval_authority::{ApprovalAuthorityEngine, PostgresApprovalAuthorityR
 pub use data_archiving::{DataArchivingEngine, PostgresDataArchivingRepository as PostgresDataArchivingRepo};
 pub use payroll::{PayrollEngine, PostgresPayrollRepository as PostgresPayrollRepo};
 pub use compensation::{CompensationEngine, PostgresCompensationRepository as PostgresCompensationRepository};
+pub use service_request::{ServiceRequestEngine, PostgresServiceRequestRepository as PostgresServiceRequestRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

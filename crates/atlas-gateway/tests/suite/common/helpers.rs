@@ -369,6 +369,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         demand_planning_engine: Arc::new(atlas_core::DemandPlanningEngine::new(Arc::new(
             atlas_core::demand_planning::PostgresDemandPlanningRepository::new(db_pool.clone()),
         ))),
+        autoinvoice_engine: Arc::new(atlas_core::AutoInvoiceEngine::new(Arc::new(
+            atlas_core::autoinvoice::PostgresAutoInvoiceRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -675,4 +678,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.service_request_assignments").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.service_requests").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.service_categories").execute(pool).await.ok();
+    // Clean autoinvoice test data
+    sqlx::query("DELETE FROM _atlas.autoinvoice_result_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_results").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_batches").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_validation_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_grouping_rules").execute(pool).await.ok();
 }

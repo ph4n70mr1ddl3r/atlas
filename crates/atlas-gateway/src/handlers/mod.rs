@@ -61,6 +61,7 @@ pub mod data_archiving;
 pub mod service_request;
 pub mod lead_opportunity;
 pub mod demand_planning;
+mod autoinvoice;
 
 pub use schema::*;
 pub use records::*;
@@ -2480,6 +2481,40 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Demand Planning Dashboard
         .route("/demand/dashboard", get(demand_planning::get_demand_planning_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // AutoInvoice (Oracle Fusion Receivables AutoInvoice)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Grouping Rules
+        .route("/autoinvoice/grouping-rules", post(autoinvoice::create_grouping_rule))
+        .route("/autoinvoice/grouping-rules", get(autoinvoice::list_grouping_rules))
+        .route("/autoinvoice/grouping-rules/:id", get(autoinvoice::get_grouping_rule))
+        .route("/autoinvoice/grouping-rules/:id", delete(autoinvoice::delete_grouping_rule))
+
+        // Validation Rules
+        .route("/autoinvoice/validation-rules", post(autoinvoice::create_validation_rule))
+        .route("/autoinvoice/validation-rules", get(autoinvoice::list_validation_rules))
+        .route("/autoinvoice/validation-rules/:id", delete(autoinvoice::delete_validation_rule))
+
+        // Batch Import & Processing
+        .route("/autoinvoice/batches", post(autoinvoice::import_batch))
+        .route("/autoinvoice/batches", get(autoinvoice::list_batches))
+        .route("/autoinvoice/batches/:id", get(autoinvoice::get_batch))
+        .route("/autoinvoice/batches/:id/validate", post(autoinvoice::validate_batch))
+        .route("/autoinvoice/batches/:id/process", post(autoinvoice::process_batch))
+        .route("/autoinvoice/import-and-process", post(autoinvoice::import_and_process))
+
+        // Batch Lines & Results
+        .route("/autoinvoice/batches/:id/lines", get(autoinvoice::get_batch_lines))
+        .route("/autoinvoice/batches/:id/results", get(autoinvoice::get_batch_results))
+
+        // Invoice Management
+        .route("/autoinvoice/invoices/:id", get(autoinvoice::get_invoice))
+        .route("/autoinvoice/invoices/:id/status", put(autoinvoice::update_invoice_status))
+
+        // AutoInvoice Dashboard
+        .route("/autoinvoice/dashboard", get(autoinvoice::get_autoinvoice_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

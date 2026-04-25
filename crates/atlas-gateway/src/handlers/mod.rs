@@ -60,6 +60,7 @@ pub mod approval_authority;
 pub mod data_archiving;
 pub mod service_request;
 pub mod lead_opportunity;
+pub mod demand_planning;
 
 pub use schema::*;
 pub use records::*;
@@ -2436,6 +2437,49 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Sales Pipeline Dashboard
         .route("/sales/dashboard", get(lead_opportunity::get_sales_pipeline_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Demand Planning (Oracle Fusion SCM > Demand Management)
+        // ═══════════════════════════════════════════════════════════
+
+        // Forecast Methods
+        .route("/demand/methods", post(demand_planning::create_method))
+        .route("/demand/methods", get(demand_planning::list_methods))
+        .route("/demand/methods/:id", get(demand_planning::get_method))
+        .route("/demand/methods-by-code/:code", delete(demand_planning::delete_method))
+
+        // Demand Schedules
+        .route("/demand/schedules", post(demand_planning::create_schedule))
+        .route("/demand/schedules", get(demand_planning::list_schedules))
+        .route("/demand/schedules/:id", get(demand_planning::get_schedule))
+        .route("/demand/schedules/:id/submit", post(demand_planning::submit_schedule))
+        .route("/demand/schedules/:id/approve", post(demand_planning::approve_schedule))
+        .route("/demand/schedules/:id/activate", post(demand_planning::activate_schedule))
+        .route("/demand/schedules/:id/close", post(demand_planning::close_schedule))
+        .route("/demand/schedules/:id/cancel", post(demand_planning::cancel_schedule))
+        .route("/demand/schedules-by-number/:schedule_number", delete(demand_planning::delete_schedule))
+
+        // Schedule Lines
+        .route("/demand/schedules/:schedule_id/lines", post(demand_planning::add_schedule_line))
+        .route("/demand/schedules/:schedule_id/lines", get(demand_planning::list_schedule_lines))
+        .route("/demand/schedule-lines/:id", delete(demand_planning::delete_schedule_line))
+
+        // Demand History
+        .route("/demand/history", post(demand_planning::create_history))
+        .route("/demand/history", get(demand_planning::list_history))
+        .route("/demand/history/:id", delete(demand_planning::delete_history))
+
+        // Forecast Consumption
+        .route("/demand/consumption", post(demand_planning::consume_forecast))
+        .route("/demand/consumption/:schedule_line_id", get(demand_planning::list_consumption))
+        .route("/demand/consumption-entries/:id", delete(demand_planning::delete_consumption))
+
+        // Accuracy Measurement
+        .route("/demand/accuracy", post(demand_planning::measure_accuracy))
+        .route("/demand/schedules/:schedule_id/accuracy", get(demand_planning::list_accuracy))
+
+        // Demand Planning Dashboard
+        .route("/demand/dashboard", get(demand_planning::get_demand_planning_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

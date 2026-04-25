@@ -13757,3 +13757,162 @@ pub struct SalesPipelineDashboard {
     pub by_owner: serde_json::Value,
 }
 
+// ============================================================================
+// Demand Planning / Demand Management (Oracle Fusion SCM > Demand Management)
+// ============================================================================
+
+/// Forecast method definition
+/// Oracle Fusion: Demand Management > Forecast Methods
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemandForecastMethod {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub method_type: String,
+    pub parameters: serde_json::Value,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Demand schedule (forecast header)
+/// Oracle Fusion: Demand Management > Demand Schedules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemandSchedule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub method_id: Option<Uuid>,
+    pub method_name: Option<String>,
+    pub schedule_type: String,
+    pub status: String,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub currency_code: String,
+    pub total_forecast_quantity: String,
+    pub total_forecast_value: String,
+    pub confidence_level: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Demand schedule line (forecast item per period)
+/// Oracle Fusion: Demand Management > Schedule Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemandScheduleLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_id: Uuid,
+    pub line_number: i32,
+    pub item_code: String,
+    pub item_name: Option<String>,
+    pub item_category: Option<String>,
+    pub warehouse_code: Option<String>,
+    pub region: Option<String>,
+    pub customer_group: Option<String>,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub forecast_quantity: String,
+    pub forecast_value: String,
+    pub unit_price: String,
+    pub consumed_quantity: String,
+    pub remaining_quantity: String,
+    pub confidence_pct: String,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Historical demand data (actuals)
+/// Oracle Fusion: Demand Management > Demand History
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemandHistory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub item_code: String,
+    pub item_name: Option<String>,
+    pub warehouse_code: Option<String>,
+    pub region: Option<String>,
+    pub customer_group: Option<String>,
+    pub actual_date: chrono::NaiveDate,
+    pub actual_quantity: String,
+    pub actual_value: String,
+    pub source_type: String,
+    pub source_id: Option<Uuid>,
+    pub source_line_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Forecast consumption entry
+/// Oracle Fusion: Demand Management > Forecast Consumption
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemandConsumption {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_line_id: Uuid,
+    pub history_id: Option<Uuid>,
+    pub consumed_quantity: String,
+    pub consumed_date: chrono::NaiveDate,
+    pub source_type: String,
+    pub notes: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Forecast accuracy measurement
+/// Oracle Fusion: Demand Management > Accuracy Analysis
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemandAccuracy {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_id: Uuid,
+    pub schedule_line_id: Option<Uuid>,
+    pub item_code: String,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub forecast_quantity: String,
+    pub actual_quantity: String,
+    pub absolute_error: String,
+    pub absolute_pct_error: String,
+    pub bias: String,
+    pub measurement_date: chrono::NaiveDate,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Demand Planning Dashboard
+/// Oracle Fusion: Demand Management > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemandPlanningDashboard {
+    pub total_schedules: i32,
+    pub active_schedules: i32,
+    pub total_forecast_items: i32,
+    pub total_forecast_quantity: String,
+    pub total_forecast_value: String,
+    pub avg_accuracy_pct: String,
+    pub schedules_by_status: serde_json::Value,
+    pub top_forecast_items: serde_json::Value,
+    pub accuracy_by_method: serde_json::Value,
+}
+

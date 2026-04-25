@@ -366,6 +366,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         lead_opportunity_engine: Arc::new(atlas_core::LeadOpportunityEngine::new(Arc::new(
             atlas_core::lead_opportunity::PostgresLeadOpportunityRepository::new(db_pool.clone()),
         ))),
+        demand_planning_engine: Arc::new(atlas_core::DemandPlanningEngine::new(Arc::new(
+            atlas_core::demand_planning::PostgresDemandPlanningRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

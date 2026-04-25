@@ -57,3 +57,4 @@ mod data_archiving;
 mod compensation;
 mod service_request;
 mod lead_opportunity;
+mod demand_planning;

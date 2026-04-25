@@ -14091,3 +14091,181 @@ pub struct ShippingDashboard {
     pub top_carriers: serde_json::Value,
 }
 
+// ============================================================================
+// Recruiting Management (Oracle Fusion HCM > Recruiting)
+// ============================================================================
+
+/// Job Requisition
+/// Oracle Fusion: HCM > Recruiting > Job Requisitions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JobRequisition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub requisition_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub department: Option<String>,
+    pub location: Option<String>,
+    pub employment_type: String,
+    pub position_type: String,
+    pub vacancies: i32,
+    pub priority: String,
+    pub salary_min: Option<String>,
+    pub salary_max: Option<String>,
+    pub currency: String,
+    pub required_skills: serde_json::Value,
+    pub qualifications: Option<String>,
+    pub experience_years_min: Option<i32>,
+    pub experience_years_max: Option<i32>,
+    pub education_level: Option<String>,
+    pub hiring_manager_id: Option<Uuid>,
+    pub recruiter_id: Option<Uuid>,
+    pub target_start_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub posted_date: Option<DateTime<Utc>>,
+    pub closed_date: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Candidate
+/// Oracle Fusion: HCM > Recruiting > Candidates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Candidate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub candidate_number: Option<String>,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub address: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub country: Option<String>,
+    pub postal_code: Option<String>,
+    pub linkedin_url: Option<String>,
+    pub source: Option<String>,
+    pub source_detail: Option<String>,
+    pub resume_url: Option<String>,
+    pub cover_letter_url: Option<String>,
+    pub current_employer: Option<String>,
+    pub current_title: Option<String>,
+    pub years_of_experience: Option<i32>,
+    pub education_level: Option<String>,
+    pub skills: serde_json::Value,
+    pub notes: Option<String>,
+    pub status: String,
+    pub tags: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Job Application
+/// Oracle Fusion: HCM > Recruiting > Job Applications
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JobApplication {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub application_number: Option<String>,
+    pub requisition_id: Uuid,
+    pub candidate_id: Uuid,
+    pub status: String,
+    pub match_score: String,
+    pub screening_notes: Option<String>,
+    pub rejection_reason: Option<String>,
+    pub applied_at: DateTime<Utc>,
+    pub last_status_change: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Interview
+/// Oracle Fusion: HCM > Recruiting > Interviews
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Interview {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub application_id: Uuid,
+    pub interview_type: String,
+    pub round: i32,
+    pub scheduled_at: Option<DateTime<Utc>>,
+    pub duration_minutes: i32,
+    pub location: Option<String>,
+    pub meeting_link: Option<String>,
+    pub interviewer_ids: serde_json::Value,
+    pub interviewer_names: serde_json::Value,
+    pub status: String,
+    pub feedback: Option<String>,
+    pub rating: Option<i32>,
+    pub recommendation: Option<String>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Job Offer
+/// Oracle Fusion: HCM > Recruiting > Job Offers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JobOffer {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub application_id: Uuid,
+    pub offer_number: Option<String>,
+    pub job_title: String,
+    pub department: Option<String>,
+    pub location: Option<String>,
+    pub employment_type: String,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub salary_offered: Option<String>,
+    pub salary_currency: String,
+    pub salary_frequency: String,
+    pub signing_bonus: Option<String>,
+    pub benefits_summary: Option<String>,
+    pub terms_and_conditions: Option<String>,
+    pub status: String,
+    pub offer_date: Option<DateTime<Utc>>,
+    pub response_deadline: Option<DateTime<Utc>>,
+    pub responded_at: Option<DateTime<Utc>>,
+    pub response_notes: Option<String>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Recruiting Dashboard
+/// Oracle Fusion: HCM > Recruiting > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecruitingDashboard {
+    pub total_requisitions: i32,
+    pub open_requisitions: i32,
+    pub total_candidates: i32,
+    pub total_applications: i32,
+    pub applications_this_month: i32,
+    pub interviews_this_month: i32,
+    pub offers_pending: i32,
+    pub hires_this_month: i32,
+    pub requisitions_by_status: serde_json::Value,
+    pub applications_by_status: serde_json::Value,
+    pub top_departments: serde_json::Value,
+    pub recent_applications: serde_json::Value,
+}
+

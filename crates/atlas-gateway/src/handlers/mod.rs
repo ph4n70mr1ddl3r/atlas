@@ -63,6 +63,7 @@ pub mod lead_opportunity;
 pub mod demand_planning;
 mod autoinvoice;
 mod shipping;
+mod recruiting;
 
 pub use schema::*;
 pub use records::*;
@@ -2560,6 +2561,55 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Shipping Dashboard
         .route("/shipping/dashboard", get(shipping::get_shipping_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════════
+        // Recruiting Management (Oracle Fusion HCM > Recruiting)
+        // ═════════════════════════════════════════════════════════════════════════════════════
+
+        // Job Requisitions
+        .route("/recruiting/requisitions", post(recruiting::create_requisition))
+        .route("/recruiting/requisitions", get(recruiting::list_requisitions))
+        .route("/recruiting/requisitions/:id", get(recruiting::get_requisition))
+        .route("/recruiting/requisitions/:id/open", post(recruiting::open_requisition))
+        .route("/recruiting/requisitions/:id/hold", post(recruiting::hold_requisition))
+        .route("/recruiting/requisitions/:id/close", post(recruiting::close_requisition))
+        .route("/recruiting/requisitions/:id/cancel", post(recruiting::cancel_requisition))
+        .route("/recruiting/requisitions-by-number/:number", delete(recruiting::delete_requisition))
+
+        // Candidates
+        .route("/recruiting/candidates", post(recruiting::create_candidate))
+        .route("/recruiting/candidates", get(recruiting::list_candidates))
+        .route("/recruiting/candidates/:id", get(recruiting::get_candidate))
+        .route("/recruiting/candidates/:id/status", post(recruiting::update_candidate_status))
+        .route("/recruiting/candidates/:id", delete(recruiting::delete_candidate))
+
+        // Job Applications
+        .route("/recruiting/applications", post(recruiting::create_application))
+        .route("/recruiting/applications", get(recruiting::list_applications))
+        .route("/recruiting/applications/:id", get(recruiting::get_application))
+        .route("/recruiting/applications/:id/status", post(recruiting::update_application_status))
+        .route("/recruiting/applications/:id/withdraw", post(recruiting::withdraw_application))
+
+        // Interviews
+        .route("/recruiting/applications/:application_id/interviews", post(recruiting::create_interview))
+        .route("/recruiting/applications/:application_id/interviews", get(recruiting::list_interviews))
+        .route("/recruiting/interviews/:id/complete", post(recruiting::complete_interview))
+        .route("/recruiting/interviews/:id/cancel", post(recruiting::cancel_interview))
+        .route("/recruiting/interviews/:id", delete(recruiting::delete_interview))
+
+        // Job Offers
+        .route("/recruiting/applications/:application_id/offers", post(recruiting::create_offer))
+        .route("/recruiting/offers", get(recruiting::list_offers))
+        .route("/recruiting/offers/:id", get(recruiting::get_offer))
+        .route("/recruiting/offers/:id/approve", post(recruiting::approve_offer))
+        .route("/recruiting/offers/:id/extend", post(recruiting::extend_offer))
+        .route("/recruiting/offers/:id/accept", post(recruiting::accept_offer))
+        .route("/recruiting/offers/:id/decline", post(recruiting::decline_offer))
+        .route("/recruiting/offers/:id/withdraw", post(recruiting::withdraw_offer))
+        .route("/recruiting/offers/:id", delete(recruiting::delete_offer))
+
+        // Recruiting Dashboard
+        .route("/recruiting/dashboard", get(recruiting::get_recruiting_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

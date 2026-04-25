@@ -892,6 +892,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         autoinvoice_engine: Arc::new(atlas_core::AutoInvoiceEngine::new(Arc::new(
             atlas_core::autoinvoice::PostgresAutoInvoiceRepository::new(db_pool.clone()),
         ))),
+        recruiting_engine: Arc::new(atlas_core::RecruitingEngine::new(Arc::new(
+            atlas_core::recruiting::PostgresRecruitingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

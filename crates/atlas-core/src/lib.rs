@@ -85,6 +85,7 @@ pub mod service_request;
 pub mod lead_opportunity;
 pub mod demand_planning;
 pub mod shipping;
+pub mod recruiting;
 
 pub use schema::*;
 pub use workflow::{
@@ -171,6 +172,7 @@ pub use service_request::{ServiceRequestEngine, PostgresServiceRequestRepository
 pub use lead_opportunity::{LeadOpportunityEngine, PostgresLeadOpportunityRepository as PostgresLeadOpportunityRepo};
 pub use demand_planning::{DemandPlanningEngine, PostgresDemandPlanningRepository as PostgresDemandPlanningRepo};
 pub use shipping::{ShippingEngine, PostgresShippingRepository as PostgresShippingRepo};
+pub use recruiting::{RecruitingEngine, PostgresRecruitingRepository as PostgresRecruitingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

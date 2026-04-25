@@ -15,6 +15,7 @@ use atlas_core::{
     WarehouseManagementEngine,
     ApprovalAuthorityEngine,
     DataArchivingEngine,
+    RecruitingEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -375,6 +376,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         autoinvoice_engine: Arc::new(atlas_core::AutoInvoiceEngine::new(Arc::new(
             atlas_core::autoinvoice::PostgresAutoInvoiceRepository::new(db_pool.clone()),
         ))),
+        recruiting_engine: Arc::new(RecruitingEngine::new(Arc::new(
+            atlas_core::recruiting::PostgresRecruitingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -695,4 +699,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.shipments").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.shipping_methods").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.shipping_carriers").execute(pool).await.ok();
+    // Clean recruiting test data
+    sqlx::query("DELETE FROM _atlas.job_offers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.interviews").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.job_applications").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.candidates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.job_requisitions").execute(pool).await.ok();
 }

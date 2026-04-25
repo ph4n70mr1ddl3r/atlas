@@ -60,3 +60,4 @@ mod lead_opportunity;
 mod demand_planning;
 mod shipping;
 mod autoinvoice;
+mod recruiting;

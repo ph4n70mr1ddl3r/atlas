@@ -82,6 +82,7 @@ pub mod data_archiving;
 pub mod payroll;
 pub mod compensation;
 pub mod service_request;
+pub mod lead_opportunity;
 
 pub use schema::*;
 pub use workflow::{
@@ -165,6 +166,7 @@ pub use data_archiving::{DataArchivingEngine, PostgresDataArchivingRepository as
 pub use payroll::{PayrollEngine, PostgresPayrollRepository as PostgresPayrollRepo};
 pub use compensation::{CompensationEngine, PostgresCompensationRepository as PostgresCompensationRepository};
 pub use service_request::{ServiceRequestEngine, PostgresServiceRequestRepository as PostgresServiceRequestRepo};
+pub use lead_opportunity::{LeadOpportunityEngine, PostgresLeadOpportunityRepository as PostgresLeadOpportunityRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

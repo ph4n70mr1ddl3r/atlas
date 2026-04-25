@@ -59,6 +59,7 @@ pub mod time_and_labor;
 pub mod approval_authority;
 pub mod data_archiving;
 pub mod service_request;
+pub mod lead_opportunity;
 
 pub use schema::*;
 pub use records::*;
@@ -2387,6 +2388,54 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Service Request Dashboard
         .route("/service/dashboard", get(service_request::get_service_request_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Lead and Opportunity Management (Oracle Fusion CX Sales)
+        // ═══════════════════════════════════════════════════════════
+
+        // Lead Sources
+        .route("/sales/lead-sources", post(lead_opportunity::create_lead_source))
+        .route("/sales/lead-sources", get(lead_opportunity::list_lead_sources))
+        .route("/sales/lead-sources/:code", delete(lead_opportunity::delete_lead_source))
+
+        // Sales Leads
+        .route("/sales/leads", post(lead_opportunity::create_lead))
+        .route("/sales/leads", get(lead_opportunity::list_leads))
+        .route("/sales/leads/:id", get(lead_opportunity::get_lead))
+        .route("/sales/leads/:id/status", post(lead_opportunity::update_lead_status))
+        .route("/sales/leads/:id/score", post(lead_opportunity::update_lead_score))
+        .route("/sales/leads/:id/convert", post(lead_opportunity::convert_lead))
+        .route("/sales/leads/:id", delete(lead_opportunity::delete_lead))
+
+        // Opportunity Stages
+        .route("/sales/opportunity-stages", post(lead_opportunity::create_opportunity_stage))
+        .route("/sales/opportunity-stages", get(lead_opportunity::list_opportunity_stages))
+        .route("/sales/opportunity-stages/:code", delete(lead_opportunity::delete_opportunity_stage))
+
+        // Sales Opportunities
+        .route("/sales/opportunities", post(lead_opportunity::create_opportunity))
+        .route("/sales/opportunities", get(lead_opportunity::list_opportunities))
+        .route("/sales/opportunities/:id", get(lead_opportunity::get_opportunity))
+        .route("/sales/opportunities/:id/stage", post(lead_opportunity::update_opportunity_stage))
+        .route("/sales/opportunities/:id/win", post(lead_opportunity::close_opportunity_won))
+        .route("/sales/opportunities/:id/lose", post(lead_opportunity::close_opportunity_lost))
+        .route("/sales/opportunities/:id/history", get(lead_opportunity::list_stage_history))
+        .route("/sales/opportunities/:id", delete(lead_opportunity::delete_opportunity))
+
+        // Opportunity Lines
+        .route("/sales/opportunities/:opportunity_id/lines", post(lead_opportunity::add_opportunity_line))
+        .route("/sales/opportunities/:opportunity_id/lines", get(lead_opportunity::list_opportunity_lines))
+        .route("/sales/opportunity-lines/:id", delete(lead_opportunity::delete_opportunity_line))
+
+        // Sales Activities
+        .route("/sales/activities", post(lead_opportunity::create_activity))
+        .route("/sales/activities", get(lead_opportunity::list_activities))
+        .route("/sales/activities/:id/complete", post(lead_opportunity::complete_activity))
+        .route("/sales/activities/:id/cancel", post(lead_opportunity::cancel_activity))
+        .route("/sales/activities/:id", delete(lead_opportunity::delete_activity))
+
+        // Sales Pipeline Dashboard
+        .route("/sales/dashboard", get(lead_opportunity::get_sales_pipeline_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

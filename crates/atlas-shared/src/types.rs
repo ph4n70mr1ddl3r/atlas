@@ -13547,3 +13547,213 @@ pub struct ServiceRequestDashboard {
     pub average_resolution_hours: String,
 }
 
+// ============================================================================
+// Lead and Opportunity Management (Oracle Fusion CX Sales)
+// ============================================================================
+
+/// Lead source (e.g. website, referral, trade show)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeadSource {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Lead rating / scoring model
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeadRatingModel {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub scoring_criteria: serde_json::Value,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sales lead
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SalesLead {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub lead_number: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub company: Option<String>,
+    pub title: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub website: Option<String>,
+    pub industry: Option<String>,
+    pub lead_source_id: Option<Uuid>,
+    pub lead_source_name: Option<String>,
+    pub lead_rating_model_id: Option<Uuid>,
+    pub lead_score: String,
+    pub lead_rating: String,
+    pub estimated_value: String,
+    pub currency_code: String,
+    pub status: String,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub converted_opportunity_id: Option<Uuid>,
+    pub converted_customer_id: Option<Uuid>,
+    pub converted_at: Option<DateTime<Utc>>,
+    pub notes: Option<String>,
+    pub address: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Opportunity pipeline stage
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpportunityStage {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub probability: String,
+    pub display_order: i32,
+    pub is_won: bool,
+    pub is_lost: bool,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sales opportunity
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SalesOpportunity {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub opportunity_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub customer_id: Option<Uuid>,
+    pub customer_name: Option<String>,
+    pub lead_id: Option<Uuid>,
+    pub stage_id: Option<Uuid>,
+    pub stage_name: Option<String>,
+    pub amount: String,
+    pub currency_code: String,
+    pub probability: String,
+    pub weighted_amount: String,
+    pub expected_close_date: Option<chrono::NaiveDate>,
+    pub actual_close_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub contact_id: Option<Uuid>,
+    pub contact_name: Option<String>,
+    pub competitor: Option<String>,
+    pub lost_reason: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Opportunity line item
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpportunityLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub opportunity_id: Uuid,
+    pub line_number: i32,
+    pub product_name: String,
+    pub product_code: Option<String>,
+    pub description: Option<String>,
+    pub quantity: String,
+    pub unit_price: String,
+    pub line_amount: String,
+    pub discount_percent: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Sales activity (call, meeting, task)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SalesActivity {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub subject: String,
+    pub description: Option<String>,
+    pub activity_type: String,
+    pub status: String,
+    pub priority: String,
+    pub lead_id: Option<Uuid>,
+    pub opportunity_id: Option<Uuid>,
+    pub contact_id: Option<Uuid>,
+    pub contact_name: Option<String>,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub start_at: Option<DateTime<Utc>>,
+    pub end_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub outcome: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Opportunity stage history entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpportunityStageHistory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub opportunity_id: Uuid,
+    pub from_stage: Option<String>,
+    pub to_stage: String,
+    pub changed_by: Option<Uuid>,
+    pub changed_by_name: Option<String>,
+    pub changed_at: DateTime<Utc>,
+    pub notes: Option<String>,
+}
+
+/// Lead and Opportunity dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SalesPipelineDashboard {
+    pub total_leads: i32,
+    pub new_leads: i32,
+    pub qualified_leads: i32,
+    pub converted_leads: i32,
+    pub total_opportunities: i32,
+    pub open_opportunities: i32,
+    pub won_opportunities: i32,
+    pub lost_opportunities: i32,
+    pub total_pipeline_value: String,
+    pub weighted_pipeline_value: String,
+    pub total_won_value: String,
+    pub average_deal_size: String,
+    pub win_rate: String,
+    pub by_stage: serde_json::Value,
+    pub by_owner: serde_json::Value,
+}
+

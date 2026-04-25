@@ -880,6 +880,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         service_request_engine: Arc::new(atlas_core::ServiceRequestEngine::new(Arc::new(
             atlas_core::service_request::PostgresServiceRequestRepository::new(db_pool.clone()),
         ))),
+        lead_opportunity_engine: Arc::new(atlas_core::LeadOpportunityEngine::new(Arc::new(
+            atlas_core::lead_opportunity::PostgresLeadOpportunityRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

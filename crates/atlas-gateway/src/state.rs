@@ -58,6 +58,7 @@ use atlas_core::{
     PayrollEngine,
     CompensationEngine,
     ServiceRequestEngine,
+    LeadOpportunityEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -114,6 +115,7 @@ use atlas_core::{
     payroll::PostgresPayrollRepository,
     compensation::PostgresCompensationRepository,
     service_request::PostgresServiceRequestRepository,
+    lead_opportunity::PostgresLeadOpportunityRepository,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -184,6 +186,7 @@ pub struct AppState {
     pub payroll_engine: Arc<PayrollEngine>,
     pub compensation_engine: Arc<CompensationEngine>,
     pub service_request_engine: Arc<ServiceRequestEngine>,
+    pub lead_opportunity_engine: Arc<LeadOpportunityEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -498,6 +501,11 @@ impl AppState {
             PostgresServiceRequestRepository::new(db_pool.clone())
         )));
 
+        // Initialize lead and opportunity engine
+        let lead_opportunity_engine = Arc::new(LeadOpportunityEngine::new(Arc::new(
+            PostgresLeadOpportunityRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -598,6 +606,7 @@ impl AppState {
             payroll_engine,
             compensation_engine,
             service_request_engine,
+            lead_opportunity_engine,
             event_bus,
             jwt_secret,
         };

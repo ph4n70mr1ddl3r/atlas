@@ -56,3 +56,4 @@ mod approval_authority;
 mod data_archiving;
 mod compensation;
 mod service_request;
+mod lead_opportunity;

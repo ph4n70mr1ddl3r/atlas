@@ -65,6 +65,7 @@ use atlas_core::{
     RecruitingEngine,
     RevenueEngine,
     MarketingEngine,
+    ReceivingEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -127,6 +128,7 @@ use atlas_core::{
     recruiting::PostgresRecruitingRepository,
     revenue::PostgresRevenueRepository,
     marketing::PostgresMarketingRepository,
+    receiving::PostgresReceivingRepository,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -204,6 +206,7 @@ pub struct AppState {
     pub recruiting_engine: Arc<RecruitingEngine>,
     pub revenue_engine: Arc<RevenueEngine>,
     pub marketing_engine: Arc<MarketingEngine>,
+    pub receiving_engine: Arc<ReceivingEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -553,6 +556,11 @@ impl AppState {
             PostgresMarketingRepository::new(db_pool.clone())
         )));
 
+        // Initialize Receiving engine
+        let receiving_engine = Arc::new(ReceivingEngine::new(Arc::new(
+            PostgresReceivingRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -660,6 +668,7 @@ impl AppState {
             recruiting_engine,
             revenue_engine,
             marketing_engine,
+            receiving_engine,
             event_bus,
             jwt_secret,
         };

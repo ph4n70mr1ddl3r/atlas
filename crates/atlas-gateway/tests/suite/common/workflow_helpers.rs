@@ -901,6 +901,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         marketing_engine: Arc::new(atlas_core::MarketingEngine::new(Arc::new(
             atlas_core::marketing::PostgresMarketingRepository::new(db_pool.clone()),
         ))),
+        receiving_engine: Arc::new(atlas_core::ReceivingEngine::new(Arc::new(
+            atlas_core::receiving::PostgresReceivingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

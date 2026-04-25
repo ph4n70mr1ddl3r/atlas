@@ -14402,3 +14402,232 @@ pub struct MarketingDashboard {
     pub top_campaigns: serde_json::Value,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Receiving Management (Oracle Fusion SCM > Receiving)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Receiving Location
+/// Oracle Fusion: SCM > Receiving > Locations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceivingLocation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub location_type: String,
+    pub address: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub country: Option<String>,
+    pub postal_code: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Receipt Header
+/// Oracle Fusion: SCM > Receiving > Receipts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceiptHeader {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub receipt_number: String,
+    pub receipt_type: String,
+    pub receipt_source: String,
+    pub supplier_id: Option<Uuid>,
+    pub supplier_name: Option<String>,
+    pub supplier_number: Option<String>,
+    pub purchase_order_id: Option<Uuid>,
+    pub purchase_order_number: Option<String>,
+    pub receiving_location_id: Option<Uuid>,
+    pub receiving_location_code: Option<String>,
+    pub receiving_date: Option<chrono::NaiveDate>,
+    pub packing_slip_number: Option<String>,
+    pub bill_of_lading: Option<String>,
+    pub carrier: Option<String>,
+    pub tracking_number: Option<String>,
+    pub waybill_number: Option<String>,
+    pub notes: Option<String>,
+    pub status: String,
+    pub total_received_qty: String,
+    pub total_inspected_qty: String,
+    pub total_accepted_qty: String,
+    pub total_rejected_qty: String,
+    pub total_delivered_qty: String,
+    pub received_by: Option<Uuid>,
+    pub received_at: Option<DateTime<Utc>>,
+    pub closed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Receipt Line
+/// Oracle Fusion: SCM > Receiving > Receipt Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceiptLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub receipt_id: Uuid,
+    pub line_number: i32,
+    pub purchase_order_line_id: Option<Uuid>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub ordered_qty: String,
+    pub ordered_uom: Option<String>,
+    pub received_qty: String,
+    pub received_uom: Option<String>,
+    pub accepted_qty: String,
+    pub rejected_qty: String,
+    pub inspection_status: String,
+    pub delivery_status: String,
+    pub lot_number: Option<String>,
+    pub serial_numbers: serde_json::Value,
+    pub expiration_date: Option<chrono::NaiveDate>,
+    pub manufacture_date: Option<chrono::NaiveDate>,
+    pub unit_price: Option<String>,
+    pub currency: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Receipt Inspection
+/// Oracle Fusion: SCM > Receiving > Inspections
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceiptInspection {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub receipt_id: Uuid,
+    pub receipt_line_id: Uuid,
+    pub inspection_number: String,
+    pub inspection_template: Option<String>,
+    pub inspector_id: Option<Uuid>,
+    pub inspector_name: Option<String>,
+    pub inspection_date: Option<chrono::NaiveDate>,
+    pub sample_size: Option<String>,
+    pub quantity_inspected: String,
+    pub quantity_accepted: String,
+    pub quantity_rejected: String,
+    pub disposition: String,
+    pub rejection_reason: Option<String>,
+    pub quality_score: Option<String>,
+    pub notes: Option<String>,
+    pub status: String,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Inspection Detail
+/// Oracle Fusion: SCM > Receiving > Inspection Details
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InspectionDetail {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub inspection_id: Uuid,
+    pub check_number: i32,
+    pub check_name: String,
+    pub check_type: String,
+    pub specification: Option<String>,
+    pub result: String,
+    pub measured_value: Option<String>,
+    pub expected_value: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Receipt Delivery
+/// Oracle Fusion: SCM > Receiving > Deliveries
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceiptDelivery {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub receipt_id: Uuid,
+    pub receipt_line_id: Uuid,
+    pub delivery_number: String,
+    pub subinventory: Option<String>,
+    pub locator: Option<String>,
+    pub quantity_delivered: String,
+    pub uom: Option<String>,
+    pub lot_number: Option<String>,
+    pub serial_number: Option<String>,
+    pub delivered_by: Option<Uuid>,
+    pub delivered_by_name: Option<String>,
+    pub delivery_date: Option<DateTime<Utc>>,
+    pub destination_type: String,
+    pub account_code: Option<String>,
+    pub notes: Option<String>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Receipt Return (Return to Supplier)
+/// Oracle Fusion: SCM > Receiving > Returns
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceiptReturn {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub return_number: String,
+    pub receipt_id: Option<Uuid>,
+    pub receipt_line_id: Option<Uuid>,
+    pub supplier_id: Option<Uuid>,
+    pub supplier_name: Option<String>,
+    pub return_type: String,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub quantity_returned: String,
+    pub uom: Option<String>,
+    pub unit_price: Option<String>,
+    pub currency: Option<String>,
+    pub return_reason: Option<String>,
+    pub return_date: Option<chrono::NaiveDate>,
+    pub carrier: Option<String>,
+    pub tracking_number: Option<String>,
+    pub credit_expected: bool,
+    pub credit_memo_number: Option<String>,
+    pub status: String,
+    pub shipped_at: Option<DateTime<Utc>>,
+    pub credited_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Receiving Dashboard
+/// Oracle Fusion: SCM > Receiving > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceivingDashboard {
+    pub total_receipts: i32,
+    pub pending_receipts: i32,
+    pub received_today: i32,
+    pub pending_inspections: i32,
+    pub pending_deliveries: i32,
+    pub total_returns: i32,
+    pub receipts_by_status: serde_json::Value,
+    pub top_suppliers: serde_json::Value,
+    pub recent_receipts: serde_json::Value,
+}
+

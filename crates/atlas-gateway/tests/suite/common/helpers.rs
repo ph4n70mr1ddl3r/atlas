@@ -18,6 +18,7 @@ use atlas_core::{
     RecruitingEngine,
     RevenueEngine,
     MarketingEngine,
+    ReceivingEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -387,6 +388,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         marketing_engine: Arc::new(MarketingEngine::new(Arc::new(
             atlas_core::marketing::PostgresMarketingRepository::new(db_pool.clone()),
         ))),
+        receiving_engine: Arc::new(ReceivingEngine::new(Arc::new(
+            atlas_core::receiving::PostgresReceivingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -713,4 +717,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.job_applications").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.candidates").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.job_requisitions").execute(pool).await.ok();
+    // Clean receiving test data
+    sqlx::query("DELETE FROM _atlas.inspection_details").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.receipt_inspections").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.receipt_deliveries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.receipt_returns").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.receipt_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.receipt_headers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.receiving_locations").execute(pool).await.ok();
 }

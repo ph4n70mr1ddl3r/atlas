@@ -87,6 +87,7 @@ pub mod demand_planning;
 pub mod shipping;
 pub mod recruiting;
 pub mod marketing;
+pub mod receiving;
 
 pub use schema::*;
 pub use workflow::{
@@ -175,6 +176,7 @@ pub use demand_planning::{DemandPlanningEngine, PostgresDemandPlanningRepository
 pub use shipping::{ShippingEngine, PostgresShippingRepository as PostgresShippingRepo};
 pub use recruiting::{RecruitingEngine, PostgresRecruitingRepository as PostgresRecruitingRepo};
 pub use marketing::{MarketingEngine, PostgresMarketingRepository as PostgresMarketingRepo};
+pub use receiving::{ReceivingEngine, PostgresReceivingRepository as PostgresReceivingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -66,6 +66,7 @@ mod shipping;
 mod recruiting;
 pub mod revenue;
 pub mod marketing;
+pub mod receiving;
 
 pub use schema::*;
 pub use records::*;
@@ -2684,6 +2685,51 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         // Contract Modifications
         .route("/revenue/contracts/:contract_id/modifications", post(revenue::create_modification))
         .route("/revenue/contracts/:contract_id/modifications", get(revenue::list_modifications))
+
+        // ═══════════════════════════════════════════════════════════════════════════════════════
+        // Receiving Management (Oracle Fusion SCM > Receiving)
+        // ═══════════════════════════════════════════════════════════════════════════════════════
+
+        // Receiving Locations
+        .route("/receiving/locations", post(receiving::create_location))
+        .route("/receiving/locations", get(receiving::list_locations))
+        .route("/receiving/locations/:code", delete(receiving::delete_location))
+
+        // Receipts
+        .route("/receiving/receipts", post(receiving::create_receipt))
+        .route("/receiving/receipts", get(receiving::list_receipts))
+        .route("/receiving/receipts/:id", get(receiving::get_receipt))
+        .route("/receiving/receipts/:id/confirm", post(receiving::confirm_receipt))
+        .route("/receiving/receipts/:id/close", post(receiving::close_receipt))
+        .route("/receiving/receipts/:id/cancel", post(receiving::cancel_receipt))
+
+        // Receipt Lines
+        .route("/receiving/receipts/:receipt_id/lines", post(receiving::add_receipt_line))
+        .route("/receiving/receipts/:receipt_id/lines", get(receiving::list_receipt_lines))
+
+        // Inspections
+        .route("/receiving/receipts/:receipt_id/inspections", post(receiving::create_inspection))
+        .route("/receiving/receipts/:receipt_id/inspections", get(receiving::list_inspections))
+        .route("/receiving/inspections/:id/complete", post(receiving::complete_inspection))
+
+        // Inspection Details
+        .route("/receiving/inspections/:inspection_id/details", post(receiving::add_inspection_detail))
+        .route("/receiving/inspections/:inspection_id/details", get(receiving::list_inspection_details))
+
+        // Deliveries
+        .route("/receiving/receipts/:receipt_id/deliveries", post(receiving::create_delivery))
+        .route("/receiving/receipts/:receipt_id/deliveries", get(receiving::list_deliveries))
+
+        // Returns to Supplier
+        .route("/receiving/returns", post(receiving::create_return))
+        .route("/receiving/returns", get(receiving::list_returns))
+        .route("/receiving/returns/:id/submit", post(receiving::submit_return))
+        .route("/receiving/returns/:id/ship", post(receiving::ship_return))
+        .route("/receiving/returns/:id/credit", post(receiving::credit_return))
+        .route("/receiving/returns/:id/cancel", post(receiving::cancel_return))
+
+        // Receiving Dashboard
+        .route("/receiving/dashboard", get(receiving::get_receiving_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -64,6 +64,7 @@ pub mod demand_planning;
 mod autoinvoice;
 mod shipping;
 mod recruiting;
+pub mod revenue;
 
 pub use schema::*;
 pub use records::*;
@@ -2610,6 +2611,45 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Recruiting Dashboard
         .route("/recruiting/dashboard", get(recruiting::get_recruiting_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════════
+        // Revenue Recognition (Oracle Fusion Financials > Revenue Management / ASC 606)
+        // ═════════════════════════════════════════════════════════════════════════════════════
+
+        // Revenue Policies
+        .route("/revenue/policies", post(revenue::create_policy))
+        .route("/revenue/policies", get(revenue::list_policies))
+        .route("/revenue/policies/:code", get(revenue::get_policy))
+        .route("/revenue/policies/:code", delete(revenue::delete_policy))
+
+        // Revenue Contracts
+        .route("/revenue/contracts", post(revenue::create_contract))
+        .route("/revenue/contracts", get(revenue::list_contracts))
+        .route("/revenue/contracts/:id", get(revenue::get_contract))
+        .route("/revenue/contracts/:id/activate", post(revenue::activate_contract))
+        .route("/revenue/contracts/:id/cancel", post(revenue::cancel_contract))
+
+        // Performance Obligations
+        .route("/revenue/contracts/:contract_id/obligations", post(revenue::create_obligation))
+        .route("/revenue/contracts/:contract_id/obligations", get(revenue::list_obligations))
+        .route("/revenue/obligations/:id", get(revenue::get_obligation))
+
+        // Transaction Price Allocation (ASC 606 Step 4)
+        .route("/revenue/contracts/:contract_id/allocate", post(revenue::allocate_transaction_price))
+
+        // Revenue Scheduling (ASC 606 Step 5)
+        .route("/revenue/obligations/:obligation_id/schedule/straight-line", post(revenue::generate_straight_line_schedule))
+        .route("/revenue/obligations/:obligation_id/schedule/point-in-time", post(revenue::schedule_point_in_time))
+
+        // Revenue Recognition Execution
+        .route("/revenue/schedule-lines/:line_id/recognize", post(revenue::recognize_revenue))
+        .route("/revenue/schedule-lines/:line_id/reverse", post(revenue::reverse_recognition))
+        .route("/revenue/obligations/:obligation_id/schedule-lines", get(revenue::list_schedule_lines))
+        .route("/revenue/contracts/:contract_id/schedule-lines", get(revenue::list_contract_schedule_lines))
+
+        // Contract Modifications
+        .route("/revenue/contracts/:contract_id/modifications", post(revenue::create_modification))
+        .route("/revenue/contracts/:contract_id/modifications", get(revenue::list_modifications))
 
         .layer(middleware::from_fn(auth_middleware))
 }

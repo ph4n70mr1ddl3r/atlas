@@ -61,3 +61,4 @@ mod demand_planning;
 mod shipping;
 mod autoinvoice;
 mod recruiting;
+mod revenue;

@@ -63,6 +63,7 @@ use atlas_core::{
     ShippingEngine,
     AutoInvoiceEngine,
     RecruitingEngine,
+    RevenueEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -198,6 +199,7 @@ pub struct AppState {
     pub shipping_engine: Arc<ShippingEngine>,
     pub autoinvoice_engine: Arc<AutoInvoiceEngine>,
     pub recruiting_engine: Arc<RecruitingEngine>,
+    pub revenue_engine: Arc<RevenueEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -537,6 +539,11 @@ impl AppState {
             PostgresRecruitingRepository::new(db_pool.clone())
         )));
 
+        // Initialize Revenue Recognition engine
+        let revenue_engine = Arc::new(RevenueEngine::new(Arc::new(
+            atlas_core::revenue::PostgresRevenueRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -642,6 +649,7 @@ impl AppState {
             shipping_engine,
             autoinvoice_engine,
             recruiting_engine,
+            revenue_engine,
             event_bus,
             jwt_secret,
         };

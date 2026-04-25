@@ -38,10 +38,10 @@ CREATE TABLE IF NOT EXISTS _atlas.revenue_policies (
     -- Allocation basis: 'standalone_selling_price', 'residual', 'equal'
     allocation_basis VARCHAR(30) NOT NULL DEFAULT 'standalone_selling_price',
     -- Default standalone selling price
-    default_selling_price NUMERIC(18,2),
+    default_selling_price DOUBLE PRECISION,
     -- Variable consideration constraint
     constrain_variable_consideration BOOLEAN NOT NULL DEFAULT false,
-    constraint_threshold_percent NUMERIC(5,2),
+    constraint_threshold_percent DOUBLE PRECISION,
     -- Default GL account codes
     revenue_account_code VARCHAR(50),
     deferred_revenue_account_code VARCHAR(50),
@@ -85,10 +85,10 @@ CREATE TABLE IF NOT EXISTS _atlas.revenue_contracts (
     start_date DATE,
     end_date DATE,
     -- Financial amounts
-    total_transaction_price NUMERIC(18,2) NOT NULL DEFAULT 0,
-    total_allocated_revenue NUMERIC(18,2) NOT NULL DEFAULT 0,
-    total_recognized_revenue NUMERIC(18,2) NOT NULL DEFAULT 0,
-    total_deferred_revenue NUMERIC(18,2) NOT NULL DEFAULT 0,
+    total_transaction_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+    total_allocated_revenue DOUBLE PRECISION NOT NULL DEFAULT 0,
+    total_recognized_revenue DOUBLE PRECISION NOT NULL DEFAULT 0,
+    total_deferred_revenue DOUBLE PRECISION NOT NULL DEFAULT 0,
     -- Contract status: 'draft', 'active', 'completed', 'cancelled', 'modified'
     status VARCHAR(20) NOT NULL DEFAULT 'draft',
     -- ASC 606 five-step tracking
@@ -146,17 +146,17 @@ CREATE TABLE IF NOT EXISTS _atlas.performance_obligations (
     recognition_method VARCHAR(20),
     over_time_method VARCHAR(20),
     -- Standalone selling price (SSP)
-    standalone_selling_price NUMERIC(18,2) NOT NULL DEFAULT 0,
+    standalone_selling_price DOUBLE PRECISION NOT NULL DEFAULT 0,
     -- Allocated transaction price (after SSP allocation - ASC 606 Step 4)
-    allocated_transaction_price NUMERIC(18,2) NOT NULL DEFAULT 0,
+    allocated_transaction_price DOUBLE PRECISION NOT NULL DEFAULT 0,
     -- Revenue tracking
-    total_recognized_revenue NUMERIC(18,2) NOT NULL DEFAULT 0,
-    deferred_revenue NUMERIC(18,2) NOT NULL DEFAULT 0,
+    total_recognized_revenue DOUBLE PRECISION NOT NULL DEFAULT 0,
+    deferred_revenue DOUBLE PRECISION NOT NULL DEFAULT 0,
     -- Recognition period
     recognition_start_date DATE,
     recognition_end_date DATE,
     -- Percent complete (for over-time recognition)
-    percent_complete NUMERIC(5,2),
+    percent_complete DOUBLE PRECISION,
     -- Satisfaction method: 'over_time', 'point_in_time'
     satisfaction_method VARCHAR(20) NOT NULL DEFAULT 'point_in_time',
     -- Status: 'pending', 'in_progress', 'satisfied', 'partially_satisfied', 'cancelled'
@@ -197,15 +197,15 @@ CREATE TABLE IF NOT EXISTS _atlas.revenue_schedule_lines (
     -- Planned recognition date
     recognition_date DATE NOT NULL,
     -- Amount to recognize in this period
-    amount NUMERIC(18,2) NOT NULL DEFAULT 0,
+    amount DOUBLE PRECISION NOT NULL DEFAULT 0,
     -- Amount actually recognized
-    recognized_amount NUMERIC(18,2) NOT NULL DEFAULT 0,
+    recognized_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
     -- Status: 'planned', 'recognized', 'reversed', 'cancelled'
     status VARCHAR(20) NOT NULL DEFAULT 'planned',
     -- Recognition method used for this line
     recognition_method VARCHAR(20),
     -- Percentage of total obligation revenue
-    percent_of_total NUMERIC(8,4),
+    percent_of_total DOUBLE PRECISION,
     -- Journal entry reference (posted to GL)
     journal_entry_id UUID,
     -- When recognition was actually posted
@@ -247,8 +247,8 @@ CREATE TABLE IF NOT EXISTS _atlas.revenue_modifications (
     modification_type VARCHAR(30) NOT NULL,
     description TEXT,
     -- Price changes
-    previous_transaction_price NUMERIC(18,2) NOT NULL DEFAULT 0,
-    new_transaction_price NUMERIC(18,2) NOT NULL DEFAULT 0,
+    previous_transaction_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+    new_transaction_price DOUBLE PRECISION NOT NULL DEFAULT 0,
     -- Date changes
     previous_end_date DATE,
     new_end_date DATE,

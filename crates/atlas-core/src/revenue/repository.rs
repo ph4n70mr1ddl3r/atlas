@@ -192,11 +192,13 @@ fn row_to_policy(row: &sqlx::postgres::PgRow) -> RevenuePolicy {
         recognition_method: row.get("recognition_method"),
         over_time_method: row.get("over_time_method"),
         allocation_basis: row.get("allocation_basis"),
-        default_selling_price: row.try_get("default_selling_price")
-            .map(|v: serde_json::Value| v.to_string()).ok(),
+        default_selling_price: row
+            .try_get::<Option<f64>, _>("default_selling_price")
+            .ok().flatten().map(|v| format!("{:.2}", v)),
         constrain_variable_consideration: row.get("constrain_variable_consideration"),
-        constraint_threshold_percent: row.try_get("constraint_threshold_percent")
-            .map(|v: serde_json::Value| v.to_string()).ok(),
+        constraint_threshold_percent: row
+            .try_get::<Option<f64>, _>("constraint_threshold_percent")
+            .ok().flatten().map(|v| format!("{:.2}", v)),
         revenue_account_code: row.get("revenue_account_code"),
         deferred_revenue_account_code: row.get("deferred_revenue_account_code"),
         contra_revenue_account_code: row.get("contra_revenue_account_code"),
@@ -210,8 +212,8 @@ fn row_to_policy(row: &sqlx::postgres::PgRow) -> RevenuePolicy {
 
 fn row_to_contract(row: &sqlx::postgres::PgRow) -> RevenueContract {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
-        let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
-        v.to_string()
+        let v: f64 = row.try_get(col).unwrap_or(0.0);
+        format!("{:.2}", v)
     }
     RevenueContract {
         id: row.get("id"),
@@ -247,8 +249,8 @@ fn row_to_contract(row: &sqlx::postgres::PgRow) -> RevenueContract {
 
 fn row_to_obligation(row: &sqlx::postgres::PgRow) -> PerformanceObligation {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
-        let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
-        v.to_string()
+        let v: f64 = row.try_get(col).unwrap_or(0.0);
+        format!("{:.2}", v)
     }
     PerformanceObligation {
         id: row.get("id"),
@@ -268,8 +270,9 @@ fn row_to_obligation(row: &sqlx::postgres::PgRow) -> PerformanceObligation {
         deferred_revenue: get_num(row, "deferred_revenue"),
         recognition_start_date: row.get("recognition_start_date"),
         recognition_end_date: row.get("recognition_end_date"),
-        percent_complete: row.try_get("percent_complete")
-            .map(|v: serde_json::Value| v.to_string()).ok(),
+        percent_complete: row
+            .try_get::<Option<f64>, _>("percent_complete")
+            .ok().flatten().map(|v| format!("{:.4}", v)),
         satisfaction_method: row.get("satisfaction_method"),
         status: row.get("status"),
         revenue_account_code: row.get("revenue_account_code"),
@@ -283,8 +286,8 @@ fn row_to_obligation(row: &sqlx::postgres::PgRow) -> PerformanceObligation {
 
 fn row_to_schedule_line(row: &sqlx::postgres::PgRow) -> RevenueScheduleLine {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
-        let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
-        v.to_string()
+        let v: f64 = row.try_get(col).unwrap_or(0.0);
+        format!("{:.2}", v)
     }
     RevenueScheduleLine {
         id: row.get("id"),
@@ -297,8 +300,9 @@ fn row_to_schedule_line(row: &sqlx::postgres::PgRow) -> RevenueScheduleLine {
         recognized_amount: get_num(row, "recognized_amount"),
         status: row.get("status"),
         recognition_method: row.get("recognition_method"),
-        percent_of_total: row.try_get("percent_of_total")
-            .map(|v: serde_json::Value| v.to_string()).ok(),
+        percent_of_total: row
+            .try_get::<Option<f64>, _>("percent_of_total")
+            .ok().flatten().map(|v| format!("{:.4}", v)),
         journal_entry_id: row.get("journal_entry_id"),
         recognized_at: row.get("recognized_at"),
         reversed_by_id: row.get("reversed_by_id"),
@@ -312,8 +316,8 @@ fn row_to_schedule_line(row: &sqlx::postgres::PgRow) -> RevenueScheduleLine {
 
 fn row_to_modification(row: &sqlx::postgres::PgRow) -> RevenueModification {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
-        let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
-        v.to_string()
+        let v: f64 = row.try_get(col).unwrap_or(0.0);
+        format!("{:.2}", v)
     }
     RevenueModification {
         id: row.get("id"),
@@ -368,14 +372,14 @@ impl RevenueRepository for PostgresRevenueRepository {
                  revenue_account_code, deferred_revenue_account_code,
                  contra_revenue_account_code, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7,
-                    $8::numeric, $9, $10::numeric,
+                    $8::double precision, $9, $10::double precision,
                     $11, $12, $13, $14)
             ON CONFLICT (organization_id, code) DO UPDATE
                 SET name = $3, description = $4,
                     recognition_method = $5, over_time_method = $6,
-                    allocation_basis = $7, default_selling_price = $8::numeric,
+                    allocation_basis = $7, default_selling_price = $8::double precision,
                     constrain_variable_consideration = $9,
-                    constraint_threshold_percent = $10::numeric,
+                    constraint_threshold_percent = $10::double precision,
                     revenue_account_code = $11, deferred_revenue_account_code = $12,
                     contra_revenue_account_code = $13, is_active = true, updated_at = now()
             RETURNING *
@@ -469,7 +473,7 @@ impl RevenueRepository for PostgresRevenueRepository {
                  total_recognized_revenue, total_deferred_revenue,
                  currency_code, notes, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-                    $12::numeric, 0, 0, $12::numeric,
+                    $12::double precision, 0, 0, $12::double precision,
                     $13, $14, $15)
             RETURNING *
             "#,
@@ -548,10 +552,10 @@ impl RevenueRepository for PostgresRevenueRepository {
                 step3_price_determined = COALESCE($5, step3_price_determined),
                 step4_price_allocated = COALESCE($6, step4_price_allocated),
                 step5_recognition_scheduled = COALESCE($7, step5_recognition_scheduled),
-                total_allocated_revenue = COALESCE($8::numeric, total_allocated_revenue),
-                total_recognized_revenue = COALESCE($9::numeric, total_recognized_revenue),
-                total_deferred_revenue = COALESCE($10::numeric, total_deferred_revenue),
-                total_transaction_price = COALESCE($11::numeric, total_transaction_price),
+                total_allocated_revenue = COALESCE($8::double precision, total_allocated_revenue),
+                total_recognized_revenue = COALESCE($9::double precision, total_recognized_revenue),
+                total_deferred_revenue = COALESCE($10::double precision, total_deferred_revenue),
+                total_transaction_price = COALESCE($11::double precision, total_transaction_price),
                 notes = COALESCE($12, notes),
                 updated_at = now()
             WHERE id = $1
@@ -607,7 +611,7 @@ impl RevenueRepository for PostgresRevenueRepository {
                  satisfaction_method, recognition_start_date, recognition_end_date,
                  revenue_account_code, deferred_revenue_account_code, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                    $11::numeric, $12::numeric, 0, $12::numeric,
+                    $11::double precision, $12::double precision, 0, $12::double precision,
                     $13, $14, $15, $16, $17, $18)
             RETURNING *
             "#,
@@ -654,8 +658,8 @@ impl RevenueRepository for PostgresRevenueRepository {
         let row = sqlx::query(
             r#"
             UPDATE _atlas.performance_obligations
-            SET allocated_transaction_price = $2::numeric,
-                deferred_revenue = $3::numeric,
+            SET allocated_transaction_price = $2::double precision,
+                deferred_revenue = $3::double precision,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
@@ -704,9 +708,9 @@ impl RevenueRepository for PostgresRevenueRepository {
         let row = sqlx::query(
             r#"
             UPDATE _atlas.performance_obligations
-            SET total_recognized_revenue = $2::numeric,
-                deferred_revenue = $3::numeric,
-                percent_complete = $4::numeric,
+            SET total_recognized_revenue = $2::double precision,
+                deferred_revenue = $3::double precision,
+                percent_complete = $4::double precision,
                 status = $5,
                 updated_at = now()
             WHERE id = $1
@@ -743,8 +747,8 @@ impl RevenueRepository for PostgresRevenueRepository {
                 (organization_id, obligation_id, contract_id, line_number,
                  recognition_date, amount, recognized_amount,
                  status, percent_of_total, recognition_method, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6::numeric, 0,
-                    'planned', $7::numeric, $8, $9)
+            VALUES ($1, $2, $3, $4, $5, $6::double precision, 0,
+                    'planned', $7::double precision, $8, $9)
             RETURNING *
             "#,
         )
@@ -800,7 +804,7 @@ impl RevenueRepository for PostgresRevenueRepository {
             r#"
             UPDATE _atlas.revenue_schedule_lines
             SET status = $2,
-                recognized_amount = COALESCE($3::numeric, recognized_amount),
+                recognized_amount = COALESCE($3::double precision, recognized_amount),
                 recognized_at = CASE WHEN $2 = 'recognized' THEN now() ELSE recognized_at END,
                 reversal_reason = $4,
                 updated_at = now()
@@ -839,9 +843,9 @@ impl RevenueRepository for PostgresRevenueRepository {
                 (organization_id, contract_id, modification_number,
                  modification_type, description,
                  previous_transaction_price, new_transaction_price,
-                 previous_end_date, new_end_date, effective_date, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6::numeric, $7::numeric,
-                    $8, $9, $10, $11)
+                 previous_end_date, new_end_date, effective_date, status, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6::double precision, $7::double precision,
+                    $8, $9, $10, 'active', $11)
             RETURNING *
             "#,
         )

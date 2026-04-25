@@ -16,6 +16,7 @@ use atlas_core::{
     ApprovalAuthorityEngine,
     DataArchivingEngine,
     RecruitingEngine,
+    RevenueEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -378,6 +379,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         ))),
         recruiting_engine: Arc::new(RecruitingEngine::new(Arc::new(
             atlas_core::recruiting::PostgresRecruitingRepository::new(db_pool.clone()),
+        ))),
+        revenue_engine: Arc::new(atlas_core::RevenueEngine::new(Arc::new(
+            atlas_core::revenue::PostgresRevenueRepository::new(db_pool.clone()),
         ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),

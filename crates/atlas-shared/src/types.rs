@@ -14269,3 +14269,136 @@ pub struct RecruitingDashboard {
     pub recent_applications: serde_json::Value,
 }
 
+// ============================================================================
+// Marketing Campaign Management (Oracle Fusion CX Marketing)
+// ============================================================================
+
+/// Campaign Type
+/// Oracle Fusion: CX Marketing > Campaign Types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignType {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub channel: String,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Marketing Campaign
+/// Oracle Fusion: CX Marketing > Campaigns
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarketingCampaign {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub campaign_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub campaign_type_id: Option<Uuid>,
+    pub campaign_type_name: Option<String>,
+    pub status: String,
+    pub channel: String,
+    pub budget: String,
+    pub actual_cost: String,
+    pub currency_code: String,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub end_date: Option<chrono::NaiveDate>,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub expected_responses: i32,
+    pub expected_revenue: String,
+    pub actual_responses: i32,
+    pub actual_revenue: String,
+    pub converted_leads: i32,
+    pub converted_opportunities: i32,
+    pub converted_won: i32,
+    pub parent_campaign_id: Option<Uuid>,
+    pub parent_campaign_name: Option<String>,
+    pub tags: serde_json::Value,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub activated_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Campaign Member
+/// Oracle Fusion: CX Marketing > Campaign Members
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignMember {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub campaign_id: Uuid,
+    pub contact_id: Option<Uuid>,
+    pub contact_name: Option<String>,
+    pub contact_email: Option<String>,
+    pub lead_id: Option<Uuid>,
+    pub lead_number: Option<String>,
+    pub status: String,
+    pub response: Option<String>,
+    pub responded_at: Option<DateTime<Utc>>,
+    pub converted_contact_id: Option<Uuid>,
+    pub converted_lead_id: Option<Uuid>,
+    pub converted_opportunity_id: Option<Uuid>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Campaign Response
+/// Oracle Fusion: CX Marketing > Campaign Responses
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignResponse {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub campaign_id: Uuid,
+    pub member_id: Option<Uuid>,
+    pub response_type: String,
+    pub contact_id: Option<Uuid>,
+    pub contact_name: Option<String>,
+    pub contact_email: Option<String>,
+    pub lead_id: Option<Uuid>,
+    pub description: Option<String>,
+    pub value: String,
+    pub currency_code: String,
+    pub source_url: Option<String>,
+    pub responded_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Marketing Dashboard
+/// Oracle Fusion: CX Marketing > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarketingDashboard {
+    pub total_campaigns: i32,
+    pub active_campaigns: i32,
+    pub completed_campaigns: i32,
+    pub total_budget: String,
+    pub total_actual_cost: String,
+    pub total_expected_revenue: String,
+    pub total_actual_revenue: String,
+    pub total_responses: i32,
+    pub total_converted_leads: i32,
+    pub overall_roi: String,
+    pub campaigns_by_status: serde_json::Value,
+    pub campaigns_by_channel: serde_json::Value,
+    pub top_campaigns: serde_json::Value,
+}
+

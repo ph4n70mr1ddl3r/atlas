@@ -65,6 +65,7 @@ mod autoinvoice;
 mod shipping;
 mod recruiting;
 pub mod revenue;
+pub mod marketing;
 
 pub use schema::*;
 pub use records::*;
@@ -2441,6 +2442,39 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Sales Pipeline Dashboard
         .route("/sales/dashboard", get(lead_opportunity::get_sales_pipeline_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Marketing Campaign Management (Oracle Fusion CX Marketing)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Campaign Types
+        .route("/marketing/campaign-types", post(marketing::create_campaign_type))
+        .route("/marketing/campaign-types", get(marketing::list_campaign_types))
+        .route("/marketing/campaign-types/:code", delete(marketing::delete_campaign_type))
+
+        // Marketing Campaigns
+        .route("/marketing/campaigns", post(marketing::create_campaign))
+        .route("/marketing/campaigns", get(marketing::list_campaigns))
+        .route("/marketing/campaigns/:id", get(marketing::get_campaign))
+        .route("/marketing/campaigns/:id/activate", post(marketing::activate_campaign))
+        .route("/marketing/campaigns/:id/pause", post(marketing::pause_campaign))
+        .route("/marketing/campaigns/:id/complete", post(marketing::complete_campaign))
+        .route("/marketing/campaigns/:id/cancel", post(marketing::cancel_campaign))
+        .route("/marketing/campaigns/:id", delete(marketing::delete_campaign))
+
+        // Campaign Members
+        .route("/marketing/campaigns/:campaign_id/members", post(marketing::add_campaign_member))
+        .route("/marketing/campaigns/:campaign_id/members", get(marketing::list_campaign_members))
+        .route("/marketing/members/:id/status", post(marketing::update_member_status))
+        .route("/marketing/members/:id", delete(marketing::delete_campaign_member))
+
+        // Campaign Responses
+        .route("/marketing/campaigns/:campaign_id/responses", post(marketing::create_campaign_response))
+        .route("/marketing/campaigns/:campaign_id/responses", get(marketing::list_campaign_responses))
+        .route("/marketing/responses/:id", delete(marketing::delete_campaign_response))
+
+        // Marketing Dashboard
+        .route("/marketing/dashboard", get(marketing::get_marketing_dashboard))
 
         // ═══════════════════════════════════════════════════════════
         // Demand Planning (Oracle Fusion SCM > Demand Management)

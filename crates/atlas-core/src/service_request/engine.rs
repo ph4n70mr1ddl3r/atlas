@@ -96,8 +96,8 @@ impl ServiceRequestEngine {
                 "Category name is required".to_string(),
             ));
         }
-        if let Some(ref pri) = default_priority {
-            if !VALID_PRIORITIES.contains(&&*pri) {
+        if let Some(pri) = default_priority {
+            if !VALID_PRIORITIES.contains(&pri) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid priority '{}'. Must be one of: {}", pri, VALID_PRIORITIES.join(", ")
                 )));

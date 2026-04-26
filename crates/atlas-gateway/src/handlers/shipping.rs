@@ -177,7 +177,7 @@ pub async fn ship_confirm(
     Json(payload): Json<ShipConfirmRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    let tracking = payload.tracking_number.as_deref();
+    let tracking = payload.tracking_number;
     match state.shipping_engine.ship_confirm(id, tracking.as_deref(), user_id).await {
         Ok(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
         Err(e) => { error!("Error: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 404=>StatusCode::NOT_FOUND, _=>StatusCode::INTERNAL_SERVER_ERROR }) }

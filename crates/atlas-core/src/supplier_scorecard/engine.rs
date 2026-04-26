@@ -104,7 +104,7 @@ impl SupplierScorecardEngine {
         let weight_val: f64 = weight.parse().map_err(|_| {
             AtlasError::ValidationFailed("Weight must be a number".to_string())
         })?;
-        if weight_val < 0.0 || weight_val > 100.0 {
+        if !(0.0..=100.0).contains(&weight_val) {
             return Err(AtlasError::ValidationFailed("Weight must be between 0 and 100".to_string()));
         }
         if !VALID_SCORING_MODELS.contains(&scoring_model) {
@@ -267,7 +267,7 @@ impl SupplierScorecardEngine {
         let score_val: f64 = score.parse().map_err(|_| {
             AtlasError::ValidationFailed("Score must be a number".to_string())
         })?;
-        if score_val < 0.0 || score_val > 100.0 {
+        if !(0.0..=100.0).contains(&score_val) {
             return Err(AtlasError::ValidationFailed("Score must be between 0 and 100".to_string()));
         }
         let weight_val: f64 = weight.parse().map_err(|_| {

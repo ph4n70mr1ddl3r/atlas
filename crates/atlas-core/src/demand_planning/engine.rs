@@ -352,7 +352,7 @@ impl DemandPlanningEngine {
 
         // Check schedule status
         let schedule = self.repository.get_schedule(line.schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule not found")))?;
+            .ok_or_else(|| AtlasError::EntityNotFound("Schedule not found".to_string()))?;
         if schedule.status != "draft" {
             return Err(AtlasError::WorkflowError(
                 "Cannot delete lines from non-draft schedule".to_string(),

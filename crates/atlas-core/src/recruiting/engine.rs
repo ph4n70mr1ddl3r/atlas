@@ -503,7 +503,7 @@ impl RecruitingEngine {
             )));
         }
         if let Some(r) = rating {
-            if r < 1 || r > 5 {
+            if !(1..=5).contains(&r) {
                 return Err(AtlasError::ValidationFailed("Rating must be between 1 and 5".to_string()));
             }
         }

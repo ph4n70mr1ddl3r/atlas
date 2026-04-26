@@ -672,7 +672,7 @@ impl PayrollRepository for PostgresPayrollRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_run(&r)).collect())
+        Ok(rows.iter().map(row_to_run).collect())
     }
 
     async fn update_run_status(&self, id: Uuid, status: &str, action_by: Option<Uuid>) -> AtlasResult<PayrollRun> {
@@ -786,7 +786,7 @@ impl PayrollRepository for PostgresPayrollRepository {
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(row.map(|r| row_to_slip(&r)))
+        Ok(row.as_ref().map(row_to_slip))
     }
 
     async fn list_pay_slips_by_run(&self, payroll_run_id: Uuid) -> AtlasResult<Vec<PaySlip>> {
@@ -797,7 +797,7 @@ impl PayrollRepository for PostgresPayrollRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_slip(&r)).collect())
+        Ok(rows.iter().map(row_to_slip).collect())
     }
 
     async fn list_pay_slips_by_employee(&self, employee_id: Uuid) -> AtlasResult<Vec<PaySlip>> {
@@ -808,7 +808,7 @@ impl PayrollRepository for PostgresPayrollRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_slip(&r)).collect())
+        Ok(rows.iter().map(row_to_slip).collect())
     }
 
     // ========================================================================
@@ -884,7 +884,7 @@ impl PayrollRepository for PostgresPayrollRepository {
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
             rate: r.try_get("rate").ok().flatten()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
-            amount: numeric_to_string(&r, "amount"),
+            amount: numeric_to_string(r, "amount"),
             is_pretax: r.get("is_pretax"),
             is_employer: r.get("is_employer"),
             gl_account_code: r.get("gl_account_code"),

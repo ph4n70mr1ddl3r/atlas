@@ -102,14 +102,14 @@ impl KpiEngine {
                 "Target value must be a valid number".to_string(),
             ));
         }
-        if let Some(ref wt) = warning_threshold {
+        if let Some(wt) = warning_threshold {
             if wt.parse::<f64>().is_err() {
                 return Err(AtlasError::ValidationFailed(
                     "Warning threshold must be a valid number".to_string(),
                 ));
             }
         }
-        if let Some(ref ct) = critical_threshold {
+        if let Some(ct) = critical_threshold {
             if ct.parse::<f64>().is_err() {
                 return Err(AtlasError::ValidationFailed(
                     "Critical threshold must be a valid number".to_string(),

@@ -393,7 +393,7 @@ pub async fn update_opportunity_stage(
     Json(payload): Json<UpdateOpportunityStageRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    let user_name: Option<&str> = None;
+    let user_name: Option<String> = None;
     match state.lead_opportunity_engine.update_opportunity_stage(
         id, payload.stage_id, user_id, user_name.as_deref(), None,
     ).await {

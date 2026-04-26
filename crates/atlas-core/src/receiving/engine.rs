@@ -430,7 +430,7 @@ impl ReceivingEngine {
 
         if let Some(score) = quality_score {
             let s: f64 = score.parse().unwrap_or(-1.0);
-            if s < 0.0 || s > 100.0 {
+            if !(0.0..=100.0).contains(&s) {
                 return Err(AtlasError::ValidationFailed(
                     "Quality score must be between 0 and 100".to_string(),
                 ));
@@ -707,7 +707,7 @@ impl ReceivingEngine {
         let pending_receipts = receipts.iter().filter(|r| r.status == "draft").count() as i32;
         let received_today = receipts.iter().filter(|r| {
             r.status == "received" &&
-            r.received_at.map_or(false, |d| d.date_naive() == chrono::Utc::now().date_naive())
+            r.received_at.is_some_and(|d| d.date_naive() == chrono::Utc::now().date_naive())
         }).count() as i32;
 
         let pending_inspections = self.repository.list_inspections(org_id, None).await?

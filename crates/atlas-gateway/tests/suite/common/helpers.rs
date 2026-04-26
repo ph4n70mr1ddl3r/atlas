@@ -729,6 +729,14 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.receipt_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.receipt_headers").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.receiving_locations").execute(pool).await.ok();
+    // Clean subledger accounting test data
+    sqlx::query("DELETE FROM _atlas.subledger_distributions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sla_events").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.subledger_journal_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.subledger_journal_entries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_transfer_log").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.accounting_derivation_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.accounting_methods").execute(pool).await.ok();
     // Clean supplier scorecard test data
     sqlx::query("DELETE FROM _atlas.review_action_items").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.supplier_performance_reviews").execute(pool).await.ok();

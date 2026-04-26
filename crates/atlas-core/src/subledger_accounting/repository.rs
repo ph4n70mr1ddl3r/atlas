@@ -264,7 +264,7 @@ macro_rules! row_to_method {
             allow_manual_entries: $row.get("allow_manual_entries"),
             apply_rounding: $row.get("apply_rounding"),
             rounding_account_code: $row.get("rounding_account_code"),
-            rounding_threshold: $row.get::<Option<String>, _>("rounding_threshold").unwrap_or_else(|| "0.01".to_string()),
+            rounding_threshold: $row.try_get::<f64, _>("rounding_threshold").map(|v| format!("{:.4}", v)).unwrap_or_else(|_| "0.0100".to_string()),
             require_balancing: $row.get("require_balancing"),
             intercompany_balancing_account: $row.get("intercompany_balancing_account"),
             effective_from: $row.get("effective_from"),
@@ -297,11 +297,11 @@ macro_rules! row_to_entry {
             entered_currency_code: $row.get("entered_currency_code"),
             currency_conversion_date: $row.get("currency_conversion_date"),
             currency_conversion_type: $row.get("currency_conversion_type"),
-            currency_conversion_rate: $row.get::<Option<String>, _>("currency_conversion_rate"),
-            total_debit: $row.get::<String, _>("total_debit"),
-            total_credit: $row.get::<String, _>("total_credit"),
-            entered_debit: $row.get::<String, _>("entered_debit"),
-            entered_credit: $row.get::<String, _>("entered_credit"),
+            currency_conversion_rate: $row.try_get::<f64, _>("currency_conversion_rate").ok().map(|v| format!("{:.6}", v)),
+            total_debit: $row.try_get::<f64, _>("total_debit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            total_credit: $row.try_get::<f64, _>("total_credit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            entered_debit: $row.try_get::<f64, _>("entered_debit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            entered_credit: $row.try_get::<f64, _>("entered_credit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
             status: $row.get("status"),
             error_message: $row.get("error_message"),
             balancing_segment: $row.get("balancing_segment"),
@@ -332,11 +332,11 @@ macro_rules! row_to_line {
             account_code: $row.get("account_code"),
             account_description: $row.get("account_description"),
             derivation_rule_id: $row.get("derivation_rule_id"),
-            entered_amount: $row.get::<String, _>("entered_amount"),
-            accounted_amount: $row.get::<String, _>("accounted_amount"),
+            entered_amount: $row.try_get::<f64, _>("entered_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            accounted_amount: $row.try_get::<f64, _>("accounted_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
             currency_code: $row.get("currency_code"),
             conversion_date: $row.get("conversion_date"),
-            conversion_rate: $row.get::<Option<String>, _>("conversion_rate"),
+            conversion_rate: $row.try_get::<f64, _>("conversion_rate").ok().map(|v| format!("{:.6}", v)),
             attribute_category: $row.get("attribute_category"),
             attribute1: $row.get("attribute1"),
             attribute2: $row.get("attribute2"),
@@ -349,8 +349,8 @@ macro_rules! row_to_line {
             attribute9: $row.get("attribute9"),
             attribute10: $row.get("attribute10"),
             tax_code: $row.get("tax_code"),
-            tax_rate: $row.get::<Option<String>, _>("tax_rate"),
-            tax_amount: $row.get::<Option<String>, _>("tax_amount"),
+            tax_rate: $row.try_get::<f64, _>("tax_rate").ok().map(|v| format!("{:.4}", v)),
+            tax_amount: $row.try_get::<f64, _>("tax_amount").ok().map(|v| format!("{:.2}", v)),
             source_line_id: $row.get("source_line_id"),
             source_line_type: $row.get("source_line_type"),
             is_reversal_line: $row.get("is_reversal_line"),
@@ -425,8 +425,8 @@ macro_rules! row_to_transfer {
             status: $row.get("status"),
             error_message: $row.get("error_message"),
             total_entries: $row.get::<Option<i32>, _>("total_entries").unwrap_or(0),
-            total_debit: $row.get::<Option<String>, _>("total_debit").unwrap_or_else(|| "0.00".to_string()),
-            total_credit: $row.get::<Option<String>, _>("total_credit").unwrap_or_else(|| "0.00".to_string()),
+            total_debit: $row.try_get::<f64, _>("total_debit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            total_credit: $row.try_get::<f64, _>("total_credit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
             included_applications: $row.get("included_applications"),
             transferred_by: $row.get("transferred_by"),
             completed_at: $row.get("completed_at"),
@@ -466,7 +466,7 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(application).bind(transaction_type).bind(event_class)
         .bind(auto_accounting).bind(allow_manual_entries).bind(apply_rounding)
-        .bind(rounding_account_code).bind(rounding_threshold)
+        .bind(rounding_account_code).bind(rounding_threshold.parse::<f64>().unwrap_or(0.01))
         .bind(require_balancing).bind(intercompany_balancing_account)
         .bind(effective_from).bind(effective_to).bind(created_by)
         .fetch_one(&self.pool)
@@ -659,8 +659,8 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         .bind(entry_number).bind(description).bind(reference_number)
         .bind(accounting_date).bind(period_name)
         .bind(currency_code).bind(entered_currency_code)
-        .bind(currency_conversion_date).bind(currency_conversion_type).bind(currency_conversion_rate)
-        .bind(total_debit).bind(total_credit).bind(entered_debit).bind(entered_credit)
+        .bind(currency_conversion_date).bind(currency_conversion_type).bind(currency_conversion_rate.and_then(|v| v.parse::<f64>().ok()))
+        .bind(total_debit.parse::<f64>().unwrap_or(0.0)).bind(total_credit.parse::<f64>().unwrap_or(0.0)).bind(entered_debit.parse::<f64>().unwrap_or(0.0)).bind(entered_credit.parse::<f64>().unwrap_or(0.0))
         .bind(status).bind(balancing_segment).bind(is_balanced)
         .bind(created_by)
         .fetch_one(&self.pool)
@@ -778,7 +778,7 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
             WHERE id = $6
             RETURNING *"#
         )
-        .bind(total_debit).bind(total_credit).bind(entered_debit).bind(entered_credit)
+        .bind(total_debit.parse::<f64>().unwrap_or(0.0)).bind(total_credit.parse::<f64>().unwrap_or(0.0)).bind(entered_debit.parse::<f64>().unwrap_or(0.0)).bind(entered_credit.parse::<f64>().unwrap_or(0.0))
         .bind(is_balanced).bind(id)
         .fetch_one(&self.pool)
         .await
@@ -819,11 +819,11 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         )
         .bind(org_id).bind(journal_entry_id).bind(line_number).bind(line_type)
         .bind(account_code).bind(account_description).bind(derivation_rule_id)
-        .bind(entered_amount).bind(accounted_amount)
-        .bind(currency_code).bind(conversion_date).bind(conversion_rate)
+        .bind(entered_amount.parse::<f64>().unwrap_or(0.0)).bind(accounted_amount.parse::<f64>().unwrap_or(0.0))
+        .bind(currency_code).bind(conversion_date).bind(conversion_rate.and_then(|v| v.parse::<f64>().ok()))
         .bind(attribute_category).bind(attribute1).bind(attribute2).bind(attribute3).bind(attribute4).bind(attribute5)
         .bind(source_line_id).bind(source_line_type)
-        .bind(tax_code).bind(tax_rate).bind(tax_amount)
+        .bind(tax_code).bind(tax_rate.and_then(|v| v.parse::<f64>().ok())).bind(tax_amount.and_then(|v| v.parse::<f64>().ok()))
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -937,7 +937,7 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
             RETURNING *"#
         )
         .bind(org_id).bind(transfer_number).bind(from_period).bind(status)
-        .bind(total_entries).bind(total_debit).bind(total_credit)
+        .bind(total_entries).bind(total_debit.parse::<f64>().unwrap_or(0.0)).bind(total_credit.parse::<f64>().unwrap_or(0.0))
         .bind(&included_applications).bind(transferred_by).bind(&entries)
         .fetch_one(&self.pool)
         .await

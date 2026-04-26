@@ -44,7 +44,7 @@ CREATE TABLE _atlas.accounting_methods (
     rounding_account_code VARCHAR(50),
 
     -- Threshold for rounding (amounts below this are rounded)
-    rounding_threshold NUMERIC(16, 4) DEFAULT 0.01,
+    rounding_threshold DOUBLE PRECISION DEFAULT 0.01,
 
     -- Whether balancing is required (debits = credits)
     require_balancing BOOLEAN NOT NULL DEFAULT true,
@@ -166,13 +166,13 @@ CREATE TABLE _atlas.subledger_journal_entries (
     entered_currency_code VARCHAR(3) NOT NULL DEFAULT 'USD',
     currency_conversion_date DATE,
     currency_conversion_type VARCHAR(20),  -- 'spot', 'average', 'corporate'
-    currency_conversion_rate NUMERIC(20, 10),
+    currency_conversion_rate DOUBLE PRECISION,
 
     -- Totals
-    total_debit NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    total_credit NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    entered_debit NUMERIC(18, 2) DEFAULT 0,
-    entered_credit NUMERIC(18, 2) DEFAULT 0,
+    total_debit DOUBLE PRECISION NOT NULL DEFAULT 0,
+    total_credit DOUBLE PRECISION NOT NULL DEFAULT 0,
+    entered_debit DOUBLE PRECISION DEFAULT 0,
+    entered_credit DOUBLE PRECISION DEFAULT 0,
 
     -- Status: 'draft', 'accounted', 'posted', 'transferred', 'reversed', 'error'
     status VARCHAR(20) NOT NULL DEFAULT 'draft',
@@ -235,13 +235,13 @@ CREATE TABLE _atlas.subledger_journal_lines (
     derivation_rule_id UUID REFERENCES _atlas.accounting_derivation_rules(id),
 
     -- Amounts (accounted currency)
-    entered_amount NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    accounted_amount NUMERIC(18, 2) NOT NULL DEFAULT 0,
+    entered_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+    accounted_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
 
     -- Currency
     currency_code VARCHAR(3) NOT NULL DEFAULT 'USD',
     conversion_date DATE,
-    conversion_rate NUMERIC(20, 10),
+    conversion_rate DOUBLE PRECISION,
 
     -- Descriptive flexfield attributes (extensible)
     -- These allow subledger-specific attributes to flow through
@@ -259,8 +259,8 @@ CREATE TABLE _atlas.subledger_journal_lines (
 
     -- Tax reference
     tax_code VARCHAR(50),
-    tax_rate NUMERIC(10, 4) DEFAULT 0,
-    tax_amount NUMERIC(18, 2) DEFAULT 0,
+    tax_rate DOUBLE PRECISION DEFAULT 0,
+    tax_amount DOUBLE PRECISION DEFAULT 0,
 
     -- Reference to source line (in subledger transaction)
     source_line_id UUID,
@@ -299,8 +299,8 @@ CREATE TABLE _atlas.subledger_distributions (
     account_code VARCHAR(50),
     account_description VARCHAR(200),
 
-    amount NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    percentage NUMERIC(10, 4) DEFAULT 100,
+    amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+    percentage DOUBLE PRECISION DEFAULT 100,
 
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -367,8 +367,8 @@ CREATE TABLE _atlas.gl_transfer_log (
 
     -- Summary
     total_entries INT NOT NULL DEFAULT 0,
-    total_debit NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    total_credit NUMERIC(18, 2) NOT NULL DEFAULT 0,
+    total_debit DOUBLE PRECISION NOT NULL DEFAULT 0,
+    total_credit DOUBLE PRECISION NOT NULL DEFAULT 0,
 
     -- Which applications were included
     included_applications JSONB DEFAULT '[]',

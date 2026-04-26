@@ -88,6 +88,7 @@ pub mod shipping;
 pub mod recruiting;
 pub mod marketing;
 pub mod receiving;
+pub mod supplier_scorecard;
 
 pub use schema::*;
 pub use workflow::{
@@ -177,6 +178,7 @@ pub use shipping::{ShippingEngine, PostgresShippingRepository as PostgresShippin
 pub use recruiting::{RecruitingEngine, PostgresRecruitingRepository as PostgresRecruitingRepo};
 pub use marketing::{MarketingEngine, PostgresMarketingRepository as PostgresMarketingRepo};
 pub use receiving::{ReceivingEngine, PostgresReceivingRepository as PostgresReceivingRepo};
+pub use supplier_scorecard::{SupplierScorecardEngine, PostgresScorecardRepository as PostgresScorecardRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

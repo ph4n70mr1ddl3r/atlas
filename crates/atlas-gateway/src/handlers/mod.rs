@@ -67,6 +67,7 @@ mod recruiting;
 pub mod revenue;
 pub mod marketing;
 pub mod receiving;
+pub mod supplier_scorecard;
 
 pub use schema::*;
 pub use records::*;
@@ -2730,6 +2731,51 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Receiving Dashboard
         .route("/receiving/dashboard", get(receiving::get_receiving_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════════════════════════════
+        // Supplier Scorecard Management (Oracle Fusion Supplier Portal > Performance)
+        // ═══════════════════════════════════════════════════════════════════════════════════════
+
+        // Templates
+        .route("/supplier-scorecard/templates", post(supplier_scorecard::create_template))
+        .route("/supplier-scorecard/templates", get(supplier_scorecard::list_templates))
+        .route("/supplier-scorecard/templates/:id", get(supplier_scorecard::get_template))
+        .route("/supplier-scorecard/templates-by-code/:code", delete(supplier_scorecard::delete_template))
+
+        // Categories
+        .route("/supplier-scorecard/categories", post(supplier_scorecard::create_category))
+        .route("/supplier-scorecard/templates/:template_id/categories", get(supplier_scorecard::list_categories))
+        .route("/supplier-scorecard/categories/:id", delete(supplier_scorecard::delete_category))
+
+        // Scorecards
+        .route("/supplier-scorecard/scorecards", post(supplier_scorecard::create_scorecard))
+        .route("/supplier-scorecard/scorecards", get(supplier_scorecard::list_scorecards))
+        .route("/supplier-scorecard/scorecards/:id", get(supplier_scorecard::get_scorecard))
+        .route("/supplier-scorecard/scorecards/:id/submit", post(supplier_scorecard::submit_scorecard))
+        .route("/supplier-scorecard/scorecards/:id/approve", post(supplier_scorecard::approve_scorecard))
+        .route("/supplier-scorecard/scorecards/:id/reject", post(supplier_scorecard::reject_scorecard))
+        .route("/supplier-scorecard/scorecards-by-number/:scorecard_number", delete(supplier_scorecard::delete_scorecard))
+
+        // Scorecard Lines
+        .route("/supplier-scorecard/scorecards/:scorecard_id/lines", post(supplier_scorecard::add_scorecard_line))
+        .route("/supplier-scorecard/scorecards/:scorecard_id/lines", get(supplier_scorecard::list_scorecard_lines))
+        .route("/supplier-scorecard/lines/:id", delete(supplier_scorecard::delete_scorecard_line))
+
+        // Performance Reviews
+        .route("/supplier-scorecard/reviews", post(supplier_scorecard::create_review))
+        .route("/supplier-scorecard/reviews", get(supplier_scorecard::list_reviews))
+        .route("/supplier-scorecard/reviews/:id", get(supplier_scorecard::get_review))
+        .route("/supplier-scorecard/reviews/:id/complete", post(supplier_scorecard::complete_review))
+        .route("/supplier-scorecard/reviews-by-number/:review_number", delete(supplier_scorecard::delete_review))
+
+        // Review Action Items
+        .route("/supplier-scorecard/reviews/:review_id/action-items", post(supplier_scorecard::create_action_item))
+        .route("/supplier-scorecard/reviews/:review_id/action-items", get(supplier_scorecard::list_action_items))
+        .route("/supplier-scorecard/action-items/:id/complete", post(supplier_scorecard::complete_action_item))
+        .route("/supplier-scorecard/action-items/:id", delete(supplier_scorecard::delete_action_item))
+
+        // Supplier Scorecard Dashboard
+        .route("/supplier-scorecard/dashboard", get(supplier_scorecard::get_scorecard_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -14631,3 +14631,168 @@ pub struct ReceivingDashboard {
     pub recent_receipts: serde_json::Value,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Supplier Scorecard Management (Oracle Fusion Supplier Portal > Supplier Performance)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Scorecard Template
+/// Oracle Fusion: Supplier Portal > Performance > Templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScorecardTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub evaluation_period: String,
+    pub is_active: bool,
+    pub total_weight: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Scorecard Category (KPI category within a template)
+/// Oracle Fusion: Supplier Portal > Performance > KPI Categories
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScorecardCategory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub weight: String,
+    pub sort_order: i32,
+    pub scoring_model: String,
+    pub target_score: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Scorecard
+/// Oracle Fusion: Supplier Portal > Performance > Scorecards
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierScorecard {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Uuid,
+    pub scorecard_number: String,
+    pub supplier_id: Uuid,
+    pub supplier_name: Option<String>,
+    pub supplier_number: Option<String>,
+    pub evaluation_period_start: chrono::NaiveDate,
+    pub evaluation_period_end: chrono::NaiveDate,
+    pub status: String,
+    pub overall_score: String,
+    pub overall_grade: Option<String>,
+    pub reviewer_id: Option<Uuid>,
+    pub reviewer_name: Option<String>,
+    pub review_date: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Scorecard Line (individual KPI score)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScorecardLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub scorecard_id: Uuid,
+    pub category_id: Uuid,
+    pub line_number: i32,
+    pub kpi_name: String,
+    pub kpi_description: Option<String>,
+    pub weight: String,
+    pub target_value: Option<String>,
+    pub actual_value: Option<String>,
+    pub score: String,
+    pub weighted_score: String,
+    pub evidence: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Performance Review
+/// Oracle Fusion: Supplier Portal > Performance > Reviews
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierPerformanceReview {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub review_number: String,
+    pub supplier_id: Uuid,
+    pub supplier_name: Option<String>,
+    pub scorecard_id: Option<Uuid>,
+    pub review_type: String,
+    pub review_period: Option<String>,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub previous_score: Option<String>,
+    pub current_score: Option<String>,
+    pub score_change: Option<String>,
+    pub rating: Option<String>,
+    pub strengths: Option<String>,
+    pub improvement_areas: Option<String>,
+    pub action_items: Option<String>,
+    pub follow_up_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub reviewer_id: Option<Uuid>,
+    pub reviewer_name: Option<String>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Review Action Item
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewActionItem {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub review_id: Uuid,
+    pub action_number: i32,
+    pub description: String,
+    pub assignee_id: Option<Uuid>,
+    pub assignee_name: Option<String>,
+    pub priority: String,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub notes: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Supplier Scorecard Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierScorecardDashboard {
+    pub total_templates: i32,
+    pub total_scorecards: i32,
+    pub pending_reviews: i32,
+    pub average_score: String,
+    pub scorecards_by_status: serde_json::Value,
+    pub scorecards_by_grade: serde_json::Value,
+    pub top_performers: serde_json::Value,
+    pub bottom_performers: serde_json::Value,
+    pub recent_reviews: serde_json::Value,
+}
+

@@ -64,3 +64,4 @@ mod recruiting;
 mod revenue;
 mod marketing;
 mod receiving;
+mod supplier_scorecard;

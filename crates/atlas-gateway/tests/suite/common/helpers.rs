@@ -19,6 +19,7 @@ use atlas_core::{
     RevenueEngine,
     MarketingEngine,
     ReceivingEngine,
+    SupplierScorecardEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -391,6 +392,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         receiving_engine: Arc::new(ReceivingEngine::new(Arc::new(
             atlas_core::receiving::PostgresReceivingRepository::new(db_pool.clone()),
         ))),
+        scorecard_engine: Arc::new(SupplierScorecardEngine::new(Arc::new(
+            atlas_core::supplier_scorecard::PostgresScorecardRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -725,4 +729,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.receipt_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.receipt_headers").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.receiving_locations").execute(pool).await.ok();
+    // Clean supplier scorecard test data
+    sqlx::query("DELETE FROM _atlas.review_action_items").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supplier_performance_reviews").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.scorecard_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supplier_scorecards").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.scorecard_categories").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.scorecard_templates").execute(pool).await.ok();
 }

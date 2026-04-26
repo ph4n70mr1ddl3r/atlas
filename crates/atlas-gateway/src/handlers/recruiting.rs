@@ -111,7 +111,7 @@ pub async fn open_requisition(
 }
 
 pub async fn hold_requisition(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.hold_requisition(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
@@ -120,7 +120,7 @@ pub async fn hold_requisition(
 }
 
 pub async fn close_requisition(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.close_requisition(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
@@ -129,7 +129,7 @@ pub async fn close_requisition(
 }
 
 pub async fn cancel_requisition(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.cancel_requisition(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
@@ -240,7 +240,7 @@ pub async fn update_candidate_status(
 }
 
 pub async fn delete_candidate(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     match state.recruiting_engine.delete_candidate(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -273,7 +273,7 @@ pub async fn create_application(
 }
 
 pub async fn get_application(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.get_application(id).await {
         Ok(Some(a)) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
@@ -309,7 +309,7 @@ pub struct UpdateApplicationStatusRequest {
 }
 
 pub async fn update_application_status(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<UpdateApplicationStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.update_application_status(id, &payload.status, payload.notes.as_deref()).await {
@@ -319,7 +319,7 @@ pub async fn update_application_status(
 }
 
 pub async fn withdraw_application(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.withdraw_application(id).await {
         Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
@@ -367,7 +367,7 @@ pub async fn create_interview(
 }
 
 pub async fn list_interviews(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>,
     Path(application_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.list_interviews(application_id).await {
@@ -384,7 +384,7 @@ pub struct CompleteInterviewRequest {
 }
 
 pub async fn complete_interview(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<CompleteInterviewRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.complete_interview(
@@ -396,7 +396,7 @@ pub async fn complete_interview(
 }
 
 pub async fn cancel_interview(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.cancel_interview(id).await {
         Ok(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
@@ -405,7 +405,7 @@ pub async fn cancel_interview(
 }
 
 pub async fn delete_interview(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     match state.recruiting_engine.delete_interview(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -456,7 +456,7 @@ pub async fn create_offer(
 }
 
 pub async fn get_offer(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.get_offer(id).await {
         Ok(Some(o)) => Ok(Json(serde_json::to_value(o).unwrap_or_default())),
@@ -492,7 +492,7 @@ pub async fn approve_offer(
 }
 
 pub async fn extend_offer(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.extend_offer(id).await {
         Ok(o) => Ok(Json(serde_json::to_value(o).unwrap_or_default())),
@@ -506,7 +506,7 @@ pub struct RespondOfferRequest {
 }
 
 pub async fn accept_offer(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<RespondOfferRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.accept_offer(id, payload.notes.as_deref()).await {
@@ -516,7 +516,7 @@ pub async fn accept_offer(
 }
 
 pub async fn decline_offer(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<RespondOfferRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.decline_offer(id, payload.notes.as_deref()).await {
@@ -526,7 +526,7 @@ pub async fn decline_offer(
 }
 
 pub async fn withdraw_offer(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.recruiting_engine.withdraw_offer(id).await {
         Ok(o) => Ok(Json(serde_json::to_value(o).unwrap_or_default())),
@@ -535,7 +535,7 @@ pub async fn withdraw_offer(
 }
 
 pub async fn delete_offer(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     match state.recruiting_engine.delete_offer(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),

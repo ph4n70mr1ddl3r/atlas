@@ -439,7 +439,6 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         }
         if category_id.is_some() {
             query_str.push_str(&format!(" AND category_id = ${}", bind_idx));
-            bind_idx += 1;
         }
 
         query_str.push_str(" ORDER BY created_at DESC");

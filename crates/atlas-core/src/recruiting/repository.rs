@@ -475,7 +475,7 @@ impl RecruitingRepository for PostgresRecruitingRepository {
 
         if has_req { query_str.push_str(&format!(" AND requisition_id = ${}", param_idx)); param_idx += 1; }
         if has_cand { query_str.push_str(&format!(" AND candidate_id = ${}", param_idx)); param_idx += 1; }
-        if has_status { query_str.push_str(&format!(" AND status = ${}", param_idx)); param_idx += 1; }
+        if has_status { query_str.push_str(&format!(" AND status = ${}", param_idx)); }
         query_str.push_str(" ORDER BY applied_at DESC");
 
         let mut query = sqlx::query(&query_str).bind(org_id);

@@ -160,7 +160,7 @@ pub async fn confirm_receipt(
 }
 
 pub async fn close_receipt(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.close_receipt(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
@@ -169,7 +169,7 @@ pub async fn close_receipt(
 }
 
 pub async fn cancel_receipt(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.cancel_receipt(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
@@ -293,7 +293,7 @@ pub struct CompleteInspectionRequest {
 }
 
 pub async fn complete_inspection(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<CompleteInspectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.complete_inspection(
@@ -468,7 +468,7 @@ pub struct ShipReturnRequest {
 }
 
 pub async fn submit_return(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.submit_return(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
@@ -477,7 +477,7 @@ pub async fn submit_return(
 }
 
 pub async fn ship_return(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<ShipReturnRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.ship_return(id, payload.carrier.as_deref(), payload.tracking_number.as_deref()).await {
@@ -487,7 +487,7 @@ pub async fn ship_return(
 }
 
 pub async fn credit_return(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.credit_return(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
@@ -496,7 +496,7 @@ pub async fn credit_return(
 }
 
 pub async fn cancel_return(
-    State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.cancel_return(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),

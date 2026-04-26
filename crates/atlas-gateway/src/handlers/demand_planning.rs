@@ -164,7 +164,7 @@ pub async fn get_schedule(
 
 pub async fn submit_schedule(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.demand_planning_engine.submit_schedule(id).await {
@@ -193,7 +193,7 @@ pub async fn approve_schedule(
 
 pub async fn activate_schedule(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.demand_planning_engine.activate_schedule(id).await {
@@ -207,7 +207,7 @@ pub async fn activate_schedule(
 
 pub async fn close_schedule(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.demand_planning_engine.close_schedule(id).await {
@@ -221,7 +221,7 @@ pub async fn close_schedule(
 
 pub async fn cancel_schedule(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.demand_planning_engine.cancel_schedule(id).await {
@@ -304,7 +304,7 @@ pub async fn list_schedule_lines(
 
 pub async fn delete_schedule_line(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     match state.demand_planning_engine.delete_schedule_line(id).await {
@@ -381,7 +381,7 @@ pub async fn list_history(
 
 pub async fn delete_history(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     match state.demand_planning_engine.delete_history(id).await {
@@ -439,7 +439,7 @@ pub async fn list_consumption(
 
 pub async fn delete_consumption(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     match state.demand_planning_engine.delete_consumption(id).await {

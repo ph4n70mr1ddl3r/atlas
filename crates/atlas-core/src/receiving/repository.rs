@@ -126,14 +126,6 @@ impl PostgresReceivingRepository {
     }
 }
 
-fn num_to_string(val: serde_json::Value) -> String {
-    match val {
-        serde_json::Value::Number(n) => n.to_string(),
-        serde_json::Value::String(s) => s,
-        _ => "0".to_string(),
-    }
-}
-
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
     if v == v.floor() {

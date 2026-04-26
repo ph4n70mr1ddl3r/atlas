@@ -187,7 +187,7 @@ impl ServiceRequestEngine {
             if let Some(cat) = self.repository.get_category_by_id(cat_id).await? {
                 category_name = Some(cat.name.clone());
                 if let Some(hours) = cat.default_sla_hours {
-                    sla_due_date = Some((chrono::Utc::now().date_naive() + chrono::Duration::hours(hours as i64)));
+                    sla_due_date = Some(chrono::Utc::now().date_naive() + chrono::Duration::hours(hours as i64));
                     // Note: TimeDelta + NaiveDate yields NaiveDate directly
                 }
                 // Use category default priority if not explicitly set

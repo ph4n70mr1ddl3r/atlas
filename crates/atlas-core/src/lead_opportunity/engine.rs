@@ -43,6 +43,7 @@ const VALID_ACTIVITY_TYPES: &[&str] = &[
 ];
 
 /// Valid activity statuses
+#[allow(dead_code)]
 const VALID_ACTIVITY_STATUSES: &[&str] = &[
     "planned", "in_progress", "completed", "cancelled",
 ];
@@ -173,7 +174,7 @@ impl LeadOpportunityEngine {
 
         // Validate lead source if provided
         let source_name = if let Some(src_id) = lead_source_id {
-            let src = self.repository.get_lead_source_by_code(org_id, &src_id.to_string()).await?;
+            let _src = self.repository.get_lead_source_by_code(org_id, &src_id.to_string()).await?;
             // Allow direct name pass-through
             lead_source_name.map(|s| s.to_string())
         } else {

@@ -51,6 +51,7 @@ const VALID_INTERVIEW_TYPES: &[&str] = &[
 ];
 
 /// Valid interview statuses
+#[allow(dead_code)]
 const VALID_INTERVIEW_STATUSES: &[&str] = &[
     "scheduled", "in_progress", "completed", "cancelled", "no_show",
 ];

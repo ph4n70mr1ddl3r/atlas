@@ -127,7 +127,6 @@ use atlas_core::{
     demand_planning::PostgresDemandPlanningRepository,
     shipping::PostgresShippingRepository,
     recruiting::PostgresRecruitingRepository,
-    revenue::PostgresRevenueRepository,
     marketing::PostgresMarketingRepository,
     receiving::PostgresReceivingRepository,
     supplier_scorecard::PostgresScorecardRepository,

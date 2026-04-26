@@ -25,6 +25,7 @@ use uuid::Uuid;
 
 // Valid constants
 const VALID_PLAN_TYPES: &[&str] = &["salary", "bonus", "equity", "benefits", "mixed"];
+#[allow(dead_code)]
 const VALID_PLAN_STATUSES: &[&str] = &["active", "inactive", "archived"];
 const VALID_COMPONENT_TYPES: &[&str] = &[
     "salary", "merit", "bonus", "equity", "commission", "allowance", "benefits",
@@ -35,13 +36,16 @@ const VALID_CYCLE_STATUSES: &[&str] = &[
     "draft", "active", "allocation", "review", "completed", "cancelled",
 ];
 const VALID_POOL_TYPES: &[&str] = &["merit", "bonus", "equity", "general"];
+#[allow(dead_code)]
 const VALID_POOL_STATUSES: &[&str] = &["active", "exhausted", "closed"];
 const VALID_WORKSHEET_STATUSES: &[&str] = &[
     "draft", "submitted", "approved", "rejected", "completed",
 ];
+#[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &[
     "pending", "recommended", "approved", "rejected",
 ];
+#[allow(dead_code)]
 const VALID_STATEMENT_STATUSES: &[&str] = &["draft", "published", "archived"];
 
 /// Compensation Management engine

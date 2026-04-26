@@ -67,6 +67,7 @@ use atlas_core::{
     MarketingEngine,
     ReceivingEngine,
     SupplierScorecardEngine,
+    KpiEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -130,6 +131,7 @@ use atlas_core::{
     marketing::PostgresMarketingRepository,
     receiving::PostgresReceivingRepository,
     supplier_scorecard::PostgresScorecardRepository,
+    kpi::PostgresKpiRepository,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -209,6 +211,7 @@ pub struct AppState {
     pub marketing_engine: Arc<MarketingEngine>,
     pub receiving_engine: Arc<ReceivingEngine>,
     pub scorecard_engine: Arc<SupplierScorecardEngine>,
+    pub kpi_engine: Arc<KpiEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -568,6 +571,11 @@ impl AppState {
             PostgresScorecardRepository::new(db_pool.clone())
         )));
 
+        // Initialize KPI & Analytics engine
+        let kpi_engine = Arc::new(KpiEngine::new(Arc::new(
+            PostgresKpiRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -677,6 +685,7 @@ impl AppState {
             marketing_engine,
             receiving_engine,
             scorecard_engine,
+            kpi_engine,
             event_bus,
             jwt_secret,
         };

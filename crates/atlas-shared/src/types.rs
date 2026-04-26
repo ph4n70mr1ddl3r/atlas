@@ -14796,3 +14796,103 @@ pub struct SupplierScorecardDashboard {
     pub recent_reviews: serde_json::Value,
 }
 
+// ============================================================================
+// KPI & Embedded Analytics (Oracle Fusion OTBI-inspired)
+// ============================================================================
+
+/// KPI definition
+/// Oracle Fusion: Analytics > KPI Library
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KpiDefinition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub category: String,
+    pub unit_of_measure: String,
+    pub direction: String,        // "higher_is_better", "lower_is_better", "target_range"
+    pub target_value: String,
+    pub warning_threshold: Option<String>,
+    pub critical_threshold: Option<String>,
+    pub data_source_query: Option<String>,
+    pub evaluation_frequency: String, // "manual", "hourly", "daily", "weekly", "monthly"
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// KPI data point (time-series value)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KpiDataPoint {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub kpi_id: Uuid,
+    pub value: String,
+    pub recorded_at: DateTime<Utc>,
+    pub period_start: Option<chrono::NaiveDate>,
+    pub period_end: Option<chrono::NaiveDate>,
+    pub status: String, // "on_track", "warning", "critical", "no_target"
+    pub notes: Option<String>,
+    pub recorded_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Dashboard definition
+/// Oracle Fusion: Analytics > Dashboards
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Dashboard {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub owner_id: Option<Uuid>,
+    pub is_shared: bool,
+    pub is_default: bool,
+    pub layout_config: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Dashboard widget (links a KPI to a dashboard with display config)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DashboardWidget {
+    pub id: Uuid,
+    pub dashboard_id: Uuid,
+    pub kpi_id: Option<Uuid>,
+    pub widget_type: String, // "kpi_card", "chart", "table", "gauge", "trend"
+    pub title: String,
+    pub position_row: i32,
+    pub position_col: i32,
+    pub width: i32,
+    pub height: i32,
+    pub display_config: serde_json::Value,
+    pub is_visible: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// KPI Analytics Dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KpiDashboardSummary {
+    pub total_kpis: i32,
+    pub active_kpis: i32,
+    pub on_track: i32,
+    pub warning: i32,
+    pub critical: i32,
+    pub no_data: i32,
+    pub total_dashboards: i32,
+    pub kpis_by_category: serde_json::Value,
+    pub recent_values: serde_json::Value,
+}
+

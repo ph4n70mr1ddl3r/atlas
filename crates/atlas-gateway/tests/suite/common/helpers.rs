@@ -20,6 +20,7 @@ use atlas_core::{
     MarketingEngine,
     ReceivingEngine,
     SupplierScorecardEngine,
+    KpiEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -395,6 +396,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         scorecard_engine: Arc::new(SupplierScorecardEngine::new(Arc::new(
             atlas_core::supplier_scorecard::PostgresScorecardRepository::new(db_pool.clone()),
         ))),
+        kpi_engine: Arc::new(KpiEngine::new(Arc::new(
+            atlas_core::kpi::PostgresKpiRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -744,4 +748,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.supplier_scorecards").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.scorecard_categories").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.scorecard_templates").execute(pool).await.ok();
+    // Clean KPI analytics test data
+    sqlx::query("DELETE FROM _atlas.kpi_dashboard_widgets").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.kpi_data_points").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.kpi_dashboards").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.kpi_definitions").execute(pool).await.ok();
 }

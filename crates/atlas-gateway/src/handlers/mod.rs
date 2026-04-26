@@ -68,6 +68,7 @@ pub mod revenue;
 pub mod marketing;
 pub mod receiving;
 pub mod supplier_scorecard;
+pub mod kpi;
 
 pub use schema::*;
 pub use records::*;
@@ -2776,6 +2777,36 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Supplier Scorecard Dashboard
         .route("/supplier-scorecard/dashboard", get(supplier_scorecard::get_scorecard_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // KPI & Embedded Analytics (Oracle Fusion OTBI-inspired)
+        // ═══════════════════════════════════════════════════════
+
+        // KPI Definitions
+        .route("/kpi/definitions", post(kpi::create_kpi))
+        .route("/kpi/definitions", get(kpi::list_kpis))
+        .route("/kpi/definitions/id/:id", get(kpi::get_kpi))
+        .route("/kpi/definitions/code/:code", delete(kpi::delete_kpi))
+
+        // KPI Data Points
+        .route("/kpi/definitions/:kpi_id/data-points", post(kpi::record_data_point))
+        .route("/kpi/definitions/:kpi_id/data-points/latest", get(kpi::get_latest_data_point))
+        .route("/kpi/definitions/:kpi_id/data-points", get(kpi::list_data_points))
+        .route("/kpi/data-points/:id", delete(kpi::delete_data_point))
+
+        // Dashboards
+        .route("/kpi/dashboards", post(kpi::create_dashboard))
+        .route("/kpi/dashboards", get(kpi::list_dashboards))
+        .route("/kpi/dashboards/id/:id", get(kpi::get_dashboard))
+        .route("/kpi/dashboards/code/:code", delete(kpi::delete_dashboard))
+
+        // Dashboard Widgets
+        .route("/kpi/dashboards/:dashboard_id/widgets", post(kpi::add_widget))
+        .route("/kpi/dashboards/:dashboard_id/widgets", get(kpi::list_widgets))
+        .route("/kpi/widgets/:id", delete(kpi::delete_widget))
+
+        // KPI Analytics Dashboard
+        .route("/kpi/dashboard", get(kpi::get_kpi_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -907,6 +907,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         scorecard_engine: Arc::new(atlas_core::SupplierScorecardEngine::new(Arc::new(
             atlas_core::supplier_scorecard::PostgresScorecardRepository::new(db_pool.clone()),
         ))),
+        kpi_engine: Arc::new(atlas_core::KpiEngine::new(Arc::new(
+            atlas_core::kpi::PostgresKpiRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

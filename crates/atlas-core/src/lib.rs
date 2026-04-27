@@ -90,6 +90,7 @@ pub mod marketing;
 pub mod receiving;
 pub mod supplier_scorecard;
 pub mod kpi;
+pub mod account_monitor;
 
 pub use schema::*;
 pub use workflow::{
@@ -181,6 +182,7 @@ pub use marketing::{MarketingEngine, PostgresMarketingRepository as PostgresMark
 pub use receiving::{ReceivingEngine, PostgresReceivingRepository as PostgresReceivingRepo};
 pub use supplier_scorecard::{SupplierScorecardEngine, PostgresScorecardRepository as PostgresScorecardRepo};
 pub use kpi::{KpiEngine, PostgresKpiRepository as PostgresKpiRepo};
+pub use account_monitor::{AccountMonitorEngine, PostgresAccountMonitorRepository as PostgresAccountMonitorRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

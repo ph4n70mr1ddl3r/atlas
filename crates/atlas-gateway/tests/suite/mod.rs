@@ -67,3 +67,4 @@ mod receiving;
 mod supplier_scorecard;
 mod subledger_accounting;
 mod kpi;
+mod account_monitor;

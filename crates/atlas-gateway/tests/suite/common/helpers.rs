@@ -20,6 +20,7 @@ use atlas_core::{
     ReceivingEngine,
     SupplierScorecardEngine,
     KpiEngine,
+    AccountMonitorEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -398,6 +399,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         kpi_engine: Arc::new(KpiEngine::new(Arc::new(
             atlas_core::kpi::PostgresKpiRepository::new(db_pool.clone()),
         ))),
+        account_monitor_engine: Arc::new(AccountMonitorEngine::new(Arc::new(
+            atlas_core::account_monitor::PostgresAccountMonitorRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -752,4 +756,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.kpi_data_points").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.kpi_dashboards").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.kpi_definitions").execute(pool).await.ok();
+    // Clean account monitor test data
+    sqlx::query("DELETE FROM _atlas.saved_balance_inquiries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.balance_snapshots").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.account_group_members").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.account_groups").execute(pool).await.ok();
 }

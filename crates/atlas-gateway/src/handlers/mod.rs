@@ -69,6 +69,7 @@ pub mod marketing;
 pub mod receiving;
 pub mod supplier_scorecard;
 pub mod kpi;
+pub mod account_monitor;
 
 pub use schema::*;
 pub use records::*;
@@ -2807,6 +2808,36 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // KPI Analytics Dashboard
         .route("/kpi/dashboard", get(kpi::get_kpi_dashboard))
+
+        // ========================================================================
+        // Account Monitor & Balance Inquiry (Oracle Fusion GL Account Monitor)
+        // ========================================================================
+
+        // Account Groups
+        .route("/account-monitor/groups", post(account_monitor::create_account_group))
+        .route("/account-monitor/groups", get(account_monitor::list_account_groups))
+        .route("/account-monitor/groups/id/:id", get(account_monitor::get_account_group))
+        .route("/account-monitor/groups/code/:code", delete(account_monitor::delete_account_group))
+
+        // Group Members
+        .route("/account-monitor/groups/:group_id/members", post(account_monitor::add_group_member))
+        .route("/account-monitor/groups/:group_id/members", get(account_monitor::list_group_members))
+        .route("/account-monitor/members/:id", delete(account_monitor::remove_group_member))
+
+        // Balance Snapshots
+        .route("/account-monitor/groups/:group_id/snapshots", post(account_monitor::capture_snapshot))
+        .route("/account-monitor/groups/:group_id/snapshots", get(account_monitor::list_snapshots))
+        .route("/account-monitor/snapshots/alerts", get(account_monitor::get_alert_snapshots))
+        .route("/account-monitor/snapshots/:id", delete(account_monitor::delete_snapshot))
+
+        // Saved Balance Inquiries
+        .route("/account-monitor/inquiries", post(account_monitor::create_saved_inquiry))
+        .route("/account-monitor/inquiries", get(account_monitor::list_saved_inquiries))
+        .route("/account-monitor/inquiries/id/:id", get(account_monitor::get_saved_inquiry))
+        .route("/account-monitor/inquiries/id/:id", delete(account_monitor::delete_saved_inquiry))
+
+        // Account Monitor Dashboard
+        .route("/account-monitor/dashboard", get(account_monitor::get_account_monitor_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

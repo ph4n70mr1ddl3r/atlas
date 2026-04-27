@@ -14896,3 +14896,117 @@ pub struct KpiDashboardSummary {
     pub recent_values: serde_json::Value,
 }
 
+// ============================================================================
+// Account Monitor & Balance Inquiry (Oracle Fusion General Ledger)
+// ============================================================================
+
+/// Account Group: a user-defined collection of GL accounts to monitor together.
+/// Oracle Fusion equivalent: General Ledger > Journals > Account Monitor > Account Groups
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountGroup {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub owner_id: Option<Uuid>,
+    pub is_shared: bool,
+    pub threshold_warning_pct: Option<String>,
+    pub threshold_critical_pct: Option<String>,
+    pub comparison_type: String,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub members: Vec<AccountGroupMember>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A single account within an account group.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountGroupMember {
+    pub id: Uuid,
+    pub group_id: Uuid,
+    pub account_segment: String,
+    pub account_label: Option<String>,
+    pub display_order: i32,
+    pub include_children: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Point-in-time GL balance snapshot for a monitored account.
+/// Oracle Fusion equivalent: Account Monitor balance rows
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BalanceSnapshot {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub account_group_id: Uuid,
+    pub member_id: Option<Uuid>,
+    pub account_segment: String,
+    pub period_name: String,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub fiscal_year: i32,
+    pub period_number: i32,
+    pub beginning_balance: String,
+    pub total_debits: String,
+    pub total_credits: String,
+    pub net_activity: String,
+    pub ending_balance: String,
+    pub journal_entry_count: i32,
+    pub comparison_balance: Option<String>,
+    pub comparison_period_name: Option<String>,
+    pub variance_amount: Option<String>,
+    pub variance_pct: Option<String>,
+    pub alert_status: String,
+    pub snapshot_date: chrono::NaiveDate,
+    pub computed_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Saved balance inquiry configuration.
+/// Oracle Fusion equivalent: General Ledger > Save Balance Inquiry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedBalanceInquiry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub user_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub account_segments: serde_json::Value,
+    pub period_from: String,
+    pub period_to: String,
+    pub currency_code: String,
+    pub amount_type: String,
+    pub include_zero_balances: bool,
+    pub comparison_enabled: bool,
+    pub comparison_type: Option<String>,
+    pub sort_by: String,
+    pub sort_direction: String,
+    pub is_shared: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Account Monitor dashboard summary.
+/// Oracle Fusion equivalent: Account Monitor summary panel
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountMonitorSummary {
+    pub total_groups: i32,
+    pub active_groups: i32,
+    pub total_members: i32,
+    pub snapshots_with_warning: i32,
+    pub snapshots_with_critical: i32,
+    pub snapshots_on_track: i32,
+    pub latest_snapshot_date: Option<chrono::NaiveDate>,
+    pub recent_alerts: serde_json::Value,
+}
+

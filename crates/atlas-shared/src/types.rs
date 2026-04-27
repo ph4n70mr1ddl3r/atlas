@@ -15165,3 +15165,166 @@ pub struct GoalManagementSummary {
     pub total_alignments: i32,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Landed Cost Management (Oracle Fusion SCM > Landed Cost Management)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Landed Cost Template
+/// Oracle Fusion: SCM > Landed Cost Management > Cost Templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LandedCostTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Landed Cost Component (e.g., Freight, Insurance, Customs Duty)
+/// Oracle Fusion: SCM > Landed Cost Management > Cost Components
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LandedCostComponent {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Option<Uuid>,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub cost_type: String,
+    pub allocation_basis: String,
+    pub default_rate: Option<String>,
+    pub rate_uom: Option<String>,
+    pub expense_account: Option<String>,
+    pub is_taxable: bool,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Landed Cost Charge Header
+/// Oracle Fusion: SCM > Landed Cost Management > Charges
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LandedCostCharge {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub charge_number: String,
+    pub template_id: Option<Uuid>,
+    pub receipt_id: Option<Uuid>,
+    pub purchase_order_id: Option<Uuid>,
+    pub supplier_id: Option<Uuid>,
+    pub supplier_name: Option<String>,
+    pub charge_type: String,
+    pub charge_date: Option<chrono::NaiveDate>,
+    pub total_amount: String,
+    pub currency: String,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Landed Cost Charge Line
+/// Oracle Fusion: SCM > Landed Cost Management > Charge Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LandedCostChargeLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub charge_id: Uuid,
+    pub component_id: Option<Uuid>,
+    pub line_number: i32,
+    pub receipt_line_id: Option<Uuid>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub charge_amount: String,
+    pub allocated_amount: String,
+    pub allocation_basis: String,
+    pub allocation_qty: Option<String>,
+    pub allocation_value: Option<String>,
+    pub expense_account: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Landed Cost Allocation
+/// Oracle Fusion: SCM > Landed Cost Management > Allocations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LandedCostAllocation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub charge_id: Uuid,
+    pub charge_line_id: Uuid,
+    pub receipt_id: Option<Uuid>,
+    pub receipt_line_id: Option<Uuid>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub allocated_amount: String,
+    pub allocation_basis: String,
+    pub allocation_basis_value: Option<String>,
+    pub total_basis_value: Option<String>,
+    pub allocation_pct: Option<String>,
+    pub unit_landed_cost: Option<String>,
+    pub original_unit_cost: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Landed Cost Simulation
+/// Oracle Fusion: SCM > Landed Cost Management > Simulation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LandedCostSimulation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub simulation_number: String,
+    pub template_id: Option<Uuid>,
+    pub purchase_order_id: Option<Uuid>,
+    pub item_id: Option<Uuid>,
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub estimated_quantity: String,
+    pub unit_price: String,
+    pub currency: String,
+    pub estimated_charges: serde_json::Value,
+    pub estimated_landed_cost: String,
+    pub estimated_landed_cost_per_unit: String,
+    pub variance_vs_actual: Option<String>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Landed Cost Dashboard Summary
+/// Oracle Fusion: SCM > Landed Cost Management > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LandedCostDashboard {
+    pub total_charges: i32,
+    pub pending_charges: i32,
+    pub allocated_charges: i32,
+    pub total_charge_amount: String,
+    pub total_allocated_amount: String,
+    pub total_simulations: i32,
+    pub charges_by_type: serde_json::Value,
+    pub recent_charges: serde_json::Value,
+    pub top_cost_components: serde_json::Value,
+}
+

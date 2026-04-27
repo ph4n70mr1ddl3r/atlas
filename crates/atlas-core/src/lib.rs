@@ -92,6 +92,7 @@ pub mod supplier_scorecard;
 pub mod kpi;
 pub mod account_monitor;
 pub mod goal_management;
+pub mod landed_cost;
 
 pub use schema::*;
 pub use workflow::{
@@ -185,6 +186,7 @@ pub use supplier_scorecard::{SupplierScorecardEngine, PostgresScorecardRepositor
 pub use kpi::{KpiEngine, PostgresKpiRepository as PostgresKpiRepo};
 pub use account_monitor::{AccountMonitorEngine, PostgresAccountMonitorRepository as PostgresAccountMonitorRepo};
 pub use goal_management::{GoalManagementEngine, PostgresGoalManagementRepository as PostgresGoalManagementRepo};
+pub use landed_cost::{LandedCostEngine, PostgresLandedCostRepository as PostgresLandedCostRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

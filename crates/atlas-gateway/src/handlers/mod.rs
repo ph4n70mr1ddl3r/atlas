@@ -70,6 +70,7 @@ pub mod receiving;
 pub mod supplier_scorecard;
 pub mod kpi;
 pub mod account_monitor;
+pub mod goal_management;
 
 pub use schema::*;
 pub use records::*;
@@ -2838,6 +2839,43 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Account Monitor Dashboard
         .route("/account-monitor/dashboard", get(account_monitor::get_account_monitor_summary))
+
+        // Goal Management - Library Categories
+        .route("/goal-management/library/categories", post(goal_management::create_library_category))
+        .route("/goal-management/library/categories", get(goal_management::list_library_categories))
+        .route("/goal-management/library/categories/:code", delete(goal_management::delete_library_category))
+
+        // Goal Management - Library Templates
+        .route("/goal-management/library/templates", post(goal_management::create_library_template))
+        .route("/goal-management/library/templates", get(goal_management::list_library_templates))
+        .route("/goal-management/library/templates/:code", delete(goal_management::delete_library_template))
+
+        // Goal Management - Plans
+        .route("/goal-management/plans", post(goal_management::create_goal_plan))
+        .route("/goal-management/plans", get(goal_management::list_goal_plans))
+        .route("/goal-management/plans/id/:id", get(goal_management::get_goal_plan))
+        .route("/goal-management/plans/id/:id/status", post(goal_management::update_goal_plan_status))
+        .route("/goal-management/plans/code/:code", delete(goal_management::delete_goal_plan))
+
+        // Goal Management - Goals
+        .route("/goal-management/goals", post(goal_management::create_goal))
+        .route("/goal-management/goals", get(goal_management::list_goals))
+        .route("/goal-management/goals/id/:id", get(goal_management::get_goal))
+        .route("/goal-management/goals/id/:id/progress", post(goal_management::update_goal_progress))
+        .route("/goal-management/goals/id/:id", delete(goal_management::delete_goal))
+
+        // Goal Management - Alignments
+        .route("/goal-management/alignments", post(goal_management::create_goal_alignment))
+        .route("/goal-management/alignments/goal/:goal_id", get(goal_management::list_goal_alignments))
+        .route("/goal-management/alignments/id/:id", delete(goal_management::delete_goal_alignment))
+
+        // Goal Management - Notes
+        .route("/goal-management/goals/:goal_id/notes", post(goal_management::create_goal_note))
+        .route("/goal-management/goals/:goal_id/notes", get(goal_management::list_goal_notes))
+        .route("/goal-management/notes/id/:id", delete(goal_management::delete_goal_note))
+
+        // Goal Management - Dashboard
+        .route("/goal-management/dashboard", get(goal_management::get_goal_management_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -69,6 +69,7 @@ use atlas_core::{
     SupplierScorecardEngine,
     KpiEngine,
     AccountMonitorEngine,
+    GoalManagementEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -134,6 +135,7 @@ use atlas_core::{
     supplier_scorecard::PostgresScorecardRepository,
     kpi::PostgresKpiRepository,
     account_monitor::PostgresAccountMonitorRepository,
+    goal_management::PostgresGoalManagementRepository,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -215,6 +217,7 @@ pub struct AppState {
     pub scorecard_engine: Arc<SupplierScorecardEngine>,
     pub kpi_engine: Arc<KpiEngine>,
     pub account_monitor_engine: Arc<AccountMonitorEngine>,
+    pub goal_management_engine: Arc<GoalManagementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -584,6 +587,11 @@ impl AppState {
             PostgresAccountMonitorRepository::new(db_pool.clone())
         )));
 
+        // Initialize Goal Management engine
+        let goal_management_engine = Arc::new(GoalManagementEngine::new(Arc::new(
+            PostgresGoalManagementRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -695,6 +703,7 @@ impl AppState {
             scorecard_engine,
             kpi_engine,
             account_monitor_engine,
+            goal_management_engine,
             event_bus,
             jwt_secret,
         };

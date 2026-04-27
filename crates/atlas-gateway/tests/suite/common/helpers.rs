@@ -21,6 +21,7 @@ use atlas_core::{
     SupplierScorecardEngine,
     KpiEngine,
     AccountMonitorEngine,
+    GoalManagementEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -402,6 +403,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         account_monitor_engine: Arc::new(AccountMonitorEngine::new(Arc::new(
             atlas_core::account_monitor::PostgresAccountMonitorRepository::new(db_pool.clone()),
         ))),
+        goal_management_engine: Arc::new(GoalManagementEngine::new(Arc::new(
+            atlas_core::goal_management::PostgresGoalManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -761,4 +765,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.balance_snapshots").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.account_group_members").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.account_groups").execute(pool).await.ok();
+    // Clean goal management test data
+    sqlx::query("DELETE FROM _atlas.goal_notes").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.goal_alignments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.goals").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.goal_plans").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.goal_library_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.goal_library_categories").execute(pool).await.ok();
 }

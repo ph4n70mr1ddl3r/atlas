@@ -913,6 +913,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         account_monitor_engine: Arc::new(atlas_core::AccountMonitorEngine::new(Arc::new(
             atlas_core::account_monitor::PostgresAccountMonitorRepository::new(db_pool.clone()),
         ))),
+        goal_management_engine: Arc::new(atlas_core::GoalManagementEngine::new(Arc::new(
+            atlas_core::goal_management::PostgresGoalManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

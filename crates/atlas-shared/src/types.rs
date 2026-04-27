@@ -15010,3 +15010,158 @@ pub struct AccountMonitorSummary {
     pub recent_alerts: serde_json::Value,
 }
 
+// ============================================================================
+// Goal Management (Oracle Fusion HCM > Goal Management)
+// ============================================================================
+
+/// Goal Library Category: groups library templates.
+/// Oracle Fusion equivalent: Goal Library > Categories
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalLibraryCategory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub display_order: i32,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Goal Library Template: predefined goal template.
+/// Oracle Fusion equivalent: Goal Library > Goal Templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalLibraryTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub category_id: Option<Uuid>,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub goal_type: String,
+    pub success_criteria: Option<String>,
+    pub target_metric: Option<String>,
+    pub target_value: Option<String>,
+    pub uom: Option<String>,
+    pub suggested_weight: Option<String>,
+    pub estimated_duration_days: Option<i32>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Goal Plan: a performance or development period that contains goals.
+/// Oracle Fusion equivalent: Goal Management > Goal Plans
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalPlan {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub plan_type: String,
+    pub review_period_start: chrono::NaiveDate,
+    pub review_period_end: chrono::NaiveDate,
+    pub goal_creation_deadline: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub allow_self_goals: bool,
+    pub allow_team_goals: bool,
+    pub max_weight_sum: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Goal: individual, team, or organizational goal with progress tracking.
+/// Oracle Fusion equivalent: Goal Management > Goals
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Goal {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub plan_id: Option<Uuid>,
+    pub parent_goal_id: Option<Uuid>,
+    pub library_template_id: Option<Uuid>,
+    pub code: Option<String>,
+    pub name: String,
+    pub description: Option<String>,
+    pub goal_type: String,
+    pub category: Option<String>,
+    pub owner_id: Uuid,
+    pub owner_type: String,
+    pub assigned_by: Option<Uuid>,
+    pub success_criteria: Option<String>,
+    pub target_metric: Option<String>,
+    pub target_value: Option<String>,
+    pub actual_value: Option<String>,
+    pub uom: Option<String>,
+    pub progress_pct: Option<String>,
+    pub weight: Option<String>,
+    pub status: String,
+    pub priority: String,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub target_date: Option<chrono::NaiveDate>,
+    pub completed_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Goal Alignment: explicit link between two goals showing how they relate.
+/// Oracle Fusion equivalent: Goal Management > Alignments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalAlignment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub source_goal_id: Uuid,
+    pub aligned_to_goal_id: Uuid,
+    pub alignment_type: String,
+    pub description: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Goal Note: comment or feedback on a goal.
+/// Oracle Fusion equivalent: Goal Management > Notes / Check-ins
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalNote {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub goal_id: Uuid,
+    pub author_id: Uuid,
+    pub note_type: String,
+    pub content: String,
+    pub visibility: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Goal Management Dashboard Summary.
+/// Oracle Fusion equivalent: Goal Management > Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalManagementSummary {
+    pub total_goals: i32,
+    pub goals_not_started: i32,
+    pub goals_in_progress: i32,
+    pub goals_on_track: i32,
+    pub goals_at_risk: i32,
+    pub goals_completed: i32,
+    pub goals_cancelled: i32,
+    pub avg_progress_pct: Option<String>,
+    pub total_plans: i32,
+    pub active_plans: i32,
+    pub total_alignments: i32,
+}
+

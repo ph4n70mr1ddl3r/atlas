@@ -648,8 +648,8 @@ async fn test_get_transfer_log() {
 #[tokio::test]
 async fn test_list_transfer_logs() {
     let state = setup_sla_test().await;
-    let logs = state.sla_engine.list_transfer_logs(org_id(), None).await.unwrap();
-    assert!(logs.is_empty() || logs.len() >= 0); // Just verify no error
+    let _logs = state.sla_engine.list_transfer_logs(org_id(), None).await.unwrap();
+    // Just verify no error — the call succeeded
 }
 
 // ============================================================================
@@ -701,9 +701,8 @@ async fn test_auto_generate_lines() {
 #[tokio::test]
 async fn test_list_sla_events() {
     let state = setup_sla_test().await;
-    let events = state.sla_engine.list_sla_events(org_id(), None, None).await.unwrap();
-    // Just verify no error - events are created during reversals
-    assert!(events.is_empty() || events.len() >= 0);
+    let _events = state.sla_engine.list_sla_events(org_id(), None, None).await.unwrap();
+    // Just verify no error — the call succeeded
 }
 
 // ============================================================================

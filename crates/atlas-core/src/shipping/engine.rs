@@ -587,8 +587,8 @@ mod tests {
         let qty: f64 = "100".parse().unwrap();
         assert!(qty > 0.0);
         let qty: f64 = "0".parse().unwrap();
-        assert!(!(qty > 0.0));
+        assert!(qty <= 0.0);
         let qty: f64 = "-5".parse().unwrap();
-        assert!(!(qty > 0.0));
+        assert!(qty <= 0.0);
     }
 }

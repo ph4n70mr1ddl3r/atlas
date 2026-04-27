@@ -343,7 +343,7 @@ async fn test_allocate_transaction_price() {
     let resp: serde_json::Value = serde_json::from_slice(&b).unwrap_or_else(|_| {
         panic!("Allocate response not JSON: {}", String::from_utf8_lossy(&b));
     });
-    let obligations = resp["data"].as_array().expect(&format!("Expected data array: {:?}", resp));
+    let obligations = resp["data"].as_array().unwrap_or_else(|| panic!("Expected data array: {:?}", resp));
     assert_eq!(obligations.len(), 2, "allocate response: {:?}", resp);
 
     // Verify proportional allocation: 60k/100k * 100k = 60000, 40k/100k * 100k = 40000

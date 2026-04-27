@@ -773,18 +773,20 @@ mod tests {
 
     #[test]
     fn test_rating_bounds() {
-        // Rating should be between 1 and 5
-        assert!(1 >= 1 && 1 <= 5);
-        assert!(5 >= 1 && 5 <= 5);
-        assert!(!(0 >= 1 && 0 <= 5));
-        assert!(!(6 >= 1 && 6 <= 5));
+        // Rating should be between 1 and 5 — verify the range is inclusive
+        for r in 1..=5 {
+            assert!((1..=5).contains(&r), "{} should be in [1,5]", r);
+        }
+        assert!(!(1..=5).contains(&0), "0 should be outside [1,5]");
+        assert!(!(1..=5).contains(&6), "6 should be outside [1,5]");
     }
 
     #[test]
     fn test_vacancies_positive() {
-        assert!(1 >= 1);
-        assert!(!(0 >= 1));
-        assert!(!(-1 >= 1));
+        // Vacancies must be >= 1 — verify the range check logic
+        assert!((1..).contains(&1), "1 should be valid");
+        assert!(!(1..).contains(&0), "0 should be invalid");
+        assert!(!(1..).contains(&(-1)), "-1 should be invalid");
     }
 
     #[test]

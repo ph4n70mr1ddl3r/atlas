@@ -16,7 +16,6 @@ use atlas_core::{
     ApprovalAuthorityEngine,
     DataArchivingEngine,
     RecruitingEngine,
-    RevenueEngine,
     MarketingEngine,
     ReceivingEngine,
     SupplierScorecardEngine,

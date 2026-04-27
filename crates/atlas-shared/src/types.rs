@@ -15328,3 +15328,271 @@ pub struct LandedCostDashboard {
     pub top_cost_components: serde_json::Value,
 }
 
+// ============================================================================
+// Contract Lifecycle Management (Oracle Fusion Enterprise Contracts)
+// ============================================================================
+
+/// CLM Contract Type
+/// Oracle Fusion: Enterprise Contracts > Contract Types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmContractType {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub contract_category: String,
+    pub default_duration_days: Option<i32>,
+    pub requires_approval: bool,
+    pub is_auto_renew: bool,
+    pub risk_scoring_enabled: bool,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Clause (reusable contract clause)
+/// Oracle Fusion: Enterprise Contracts > Clause Library
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmClause {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub title: String,
+    pub body: String,
+    pub clause_type: String,
+    pub clause_category: String,
+    pub applicability: String,
+    pub is_locked: bool,
+    pub version: i32,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Template
+/// Oracle Fusion: Enterprise Contracts > Contract Templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub contract_type_id: Option<Uuid>,
+    pub default_currency: String,
+    pub default_duration_days: Option<i32>,
+    pub terms_and_conditions: Option<String>,
+    pub is_standard: bool,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Template Clause
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmTemplateClause {
+    pub id: Uuid,
+    pub template_id: Uuid,
+    pub clause_id: Uuid,
+    pub section: Option<String>,
+    pub display_order: i32,
+    pub is_required: bool,
+    pub created_at: DateTime<Utc>,
+}
+
+/// CLM Contract
+/// Oracle Fusion: Enterprise Contracts > Contracts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmContract {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub contract_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub contract_type_id: Option<Uuid>,
+    pub template_id: Option<Uuid>,
+    pub contract_category: String,
+    pub currency: String,
+    pub total_value: String,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub end_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub priority: String,
+    pub risk_score: Option<i32>,
+    pub risk_level: Option<String>,
+    pub parent_contract_id: Option<Uuid>,
+    pub renewal_type: String,
+    pub auto_renew_months: Option<i32>,
+    pub renewal_notice_days: i32,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Contract Party
+/// Oracle Fusion: Enterprise Contracts > Contract Parties
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmContractParty {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub contract_id: Uuid,
+    pub party_type: String,
+    pub party_role: String,
+    pub party_name: String,
+    pub contact_name: Option<String>,
+    pub contact_email: Option<String>,
+    pub contact_phone: Option<String>,
+    pub entity_reference: Option<String>,
+    pub is_primary: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Contract Clause (instance in a contract)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmContractClause {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub contract_id: Uuid,
+    pub clause_id: Option<Uuid>,
+    pub section: Option<String>,
+    pub title: String,
+    pub body: String,
+    pub clause_type: String,
+    pub display_order: i32,
+    pub is_modified: bool,
+    pub original_body: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Contract Milestone
+/// Oracle Fusion: Enterprise Contracts > Milestones
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmMilestone {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub contract_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub milestone_type: String,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub completed_date: Option<chrono::NaiveDate>,
+    pub amount: Option<String>,
+    pub currency: String,
+    pub status: String,
+    pub responsible_party_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Contract Deliverable
+/// Oracle Fusion: Enterprise Contracts > Deliverables
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmDeliverable {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub contract_id: Uuid,
+    pub milestone_id: Option<Uuid>,
+    pub name: String,
+    pub description: Option<String>,
+    pub deliverable_type: String,
+    pub quantity: String,
+    pub unit_of_measure: String,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub completed_date: Option<chrono::NaiveDate>,
+    pub acceptance_date: Option<chrono::NaiveDate>,
+    pub amount: Option<String>,
+    pub currency: String,
+    pub status: String,
+    pub accepted_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Contract Amendment
+/// Oracle Fusion: Enterprise Contracts > Amendments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmAmendment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub contract_id: Uuid,
+    pub amendment_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub amendment_type: String,
+    pub previous_value: Option<String>,
+    pub new_value: Option<String>,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Contract Risk Assessment
+/// Oracle Fusion: Enterprise Contracts > Risk Management
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmRisk {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub contract_id: Uuid,
+    pub risk_category: String,
+    pub risk_description: String,
+    pub probability: String,
+    pub impact: String,
+    pub mitigation_strategy: Option<String>,
+    pub residual_risk: Option<String>,
+    pub owner_id: Option<Uuid>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub assessed_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CLM Dashboard Summary
+/// Oracle Fusion: Enterprise Contracts > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClmDashboard {
+    pub total_contracts: i32,
+    pub active_contracts: i32,
+    pub draft_contracts: i32,
+    pub expiring_contracts: i32,
+    pub total_contract_value: String,
+    pub contracts_by_category: serde_json::Value,
+    pub contracts_by_status: serde_json::Value,
+    pub high_risk_contracts: i32,
+    pub pending_milestones: i32,
+    pub pending_deliverables: i32,
+    pub pending_amendments: i32,
+    pub recent_contracts: serde_json::Value,
+}
+

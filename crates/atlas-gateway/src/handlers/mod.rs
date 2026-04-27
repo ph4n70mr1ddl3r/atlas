@@ -71,6 +71,7 @@ pub mod supplier_scorecard;
 pub mod kpi;
 pub mod account_monitor;
 pub mod goal_management;
+pub mod contract_lifecycle;
 
 pub use schema::*;
 pub use records::*;
@@ -2876,6 +2877,65 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Goal Management - Dashboard
         .route("/goal-management/dashboard", get(goal_management::get_goal_management_summary))
+
+        // ═══════════════════════════════════════════════════════════
+        // Contract Lifecycle Management (Oracle Fusion Enterprise Contracts)
+        // ═══════════════════════════════════════════════════════════
+
+        // Contract Types
+        .route("/clm/contract-types", post(contract_lifecycle::create_contract_type))
+        .route("/clm/contract-types", get(contract_lifecycle::list_contract_types))
+        .route("/clm/contract-types/id/:id", get(contract_lifecycle::get_contract_type))
+        .route("/clm/contract-types/code/:code", delete(contract_lifecycle::delete_contract_type))
+
+        // Clause Library
+        .route("/clm/clauses", post(contract_lifecycle::create_clause))
+        .route("/clm/clauses", get(contract_lifecycle::list_clauses))
+        .route("/clm/clauses/code/:code", delete(contract_lifecycle::delete_clause))
+
+        // Contract Templates
+        .route("/clm/templates", post(contract_lifecycle::create_template))
+        .route("/clm/templates", get(contract_lifecycle::list_templates))
+        .route("/clm/templates/code/:code", delete(contract_lifecycle::delete_template))
+
+        // Contracts
+        .route("/clm/contracts", post(contract_lifecycle::create_contract))
+        .route("/clm/contracts", get(contract_lifecycle::list_contracts))
+        .route("/clm/contracts/id/:id", get(contract_lifecycle::get_contract))
+        .route("/clm/contracts/id/:id/status", post(contract_lifecycle::transition_contract))
+        .route("/clm/contracts/number/:number", delete(contract_lifecycle::delete_contract))
+
+        // Contract Parties
+        .route("/clm/contracts/:contract_id/parties", post(contract_lifecycle::add_contract_party))
+        .route("/clm/contracts/:contract_id/parties", get(contract_lifecycle::list_contract_parties))
+        .route("/clm/parties/:id", delete(contract_lifecycle::remove_contract_party))
+
+        // Contract Milestones
+        .route("/clm/contracts/:contract_id/milestones", post(contract_lifecycle::create_milestone))
+        .route("/clm/contracts/:contract_id/milestones", get(contract_lifecycle::list_milestones))
+        .route("/clm/milestones/:id/complete", post(contract_lifecycle::complete_milestone))
+        .route("/clm/milestones/:id", delete(contract_lifecycle::delete_milestone))
+
+        // Contract Deliverables
+        .route("/clm/contracts/:contract_id/deliverables", post(contract_lifecycle::create_deliverable))
+        .route("/clm/contracts/:contract_id/deliverables", get(contract_lifecycle::list_deliverables))
+        .route("/clm/deliverables/:id/accept", post(contract_lifecycle::accept_deliverable))
+        .route("/clm/deliverables/:id/reject", post(contract_lifecycle::reject_deliverable))
+        .route("/clm/deliverables/:id", delete(contract_lifecycle::delete_deliverable))
+
+        // Contract Amendments
+        .route("/clm/contracts/:contract_id/amendments", post(contract_lifecycle::create_amendment))
+        .route("/clm/contracts/:contract_id/amendments", get(contract_lifecycle::list_amendments))
+        .route("/clm/amendments/:id/approve", post(contract_lifecycle::approve_amendment))
+        .route("/clm/amendments/:id/reject", post(contract_lifecycle::reject_amendment))
+
+        // Contract Risk Assessments
+        .route("/clm/contracts/:contract_id/risks", post(contract_lifecycle::create_risk))
+        .route("/clm/contracts/:contract_id/risks", get(contract_lifecycle::list_risks))
+        .route("/clm/risks/:id", delete(contract_lifecycle::delete_risk))
+
+        // CLM Dashboard
+        .route("/clm/dashboard", get(contract_lifecycle::get_clm_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

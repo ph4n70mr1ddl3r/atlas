@@ -406,6 +406,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         goal_management_engine: Arc::new(GoalManagementEngine::new(Arc::new(
             atlas_core::goal_management::PostgresGoalManagementRepository::new(db_pool.clone()),
         ))),
+        clm_engine: Arc::new(atlas_core::ContractLifecycleEngine::new(Arc::new(
+            atlas_core::contract_lifecycle::PostgresContractLifecycleRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

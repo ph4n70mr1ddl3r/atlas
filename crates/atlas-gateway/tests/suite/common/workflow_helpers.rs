@@ -919,6 +919,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         clm_engine: Arc::new(atlas_core::ContractLifecycleEngine::new(Arc::new(
             atlas_core::contract_lifecycle::PostgresContractLifecycleRepository::new(db_pool.clone()),
         ))),
+        risk_management_engine: Arc::new(atlas_core::RiskManagementEngine::new(Arc::new(
+            atlas_core::risk_management::PostgresRiskManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

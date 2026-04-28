@@ -72,6 +72,7 @@ pub mod kpi;
 pub mod account_monitor;
 pub mod goal_management;
 pub mod contract_lifecycle;
+pub mod risk_management;
 
 pub use schema::*;
 pub use records::*;
@@ -2936,6 +2937,57 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // CLM Dashboard
         .route("/clm/dashboard", get(contract_lifecycle::get_clm_dashboard))
+
+        // ═══════════════════════════════════════════════════════════
+        // Risk Management & Internal Controls (Oracle Fusion GRC)
+        // ═══════════════════════════════════════════════════════════
+
+        // Risk Categories
+        .route("/risk/categories", post(risk_management::create_category))
+        .route("/risk/categories", get(risk_management::list_categories))
+        .route("/risk/categories/id/:id", get(risk_management::get_category))
+        .route("/risk/categories/code/:code", delete(risk_management::delete_category))
+
+        // Risk Register
+        .route("/risk/risks", post(risk_management::create_risk))
+        .route("/risk/risks", get(risk_management::list_risks))
+        .route("/risk/risks/id/:id", get(risk_management::get_risk))
+        .route("/risk/risks/id/:id/status", post(risk_management::update_risk_status))
+        .route("/risk/risks/id/:id/assess", post(risk_management::assess_risk))
+        .route("/risk/risks/number/:risk_number", delete(risk_management::delete_risk))
+
+        // Control Registry
+        .route("/risk/controls", post(risk_management::create_control))
+        .route("/risk/controls", get(risk_management::list_controls))
+        .route("/risk/controls/id/:id", get(risk_management::get_control))
+        .route("/risk/controls/id/:id/status", post(risk_management::update_control_status))
+        .route("/risk/controls/id/:id/effectiveness", post(risk_management::update_control_effectiveness))
+        .route("/risk/controls/number/:control_number", delete(risk_management::delete_control))
+
+        // Risk-Control Mappings
+        .route("/risk/mappings", post(risk_management::create_mapping))
+        .route("/risk/risks/id/:risk_id/mappings", get(risk_management::list_risk_mappings))
+        .route("/risk/controls/id/:control_id/mappings", get(risk_management::list_control_mappings))
+        .route("/risk/mappings/:id", delete(risk_management::delete_mapping))
+
+        // Control Tests
+        .route("/risk/tests", post(risk_management::create_control_test))
+        .route("/risk/tests/id/:id", get(risk_management::get_control_test))
+        .route("/risk/controls/id/:control_id/tests", get(risk_management::list_control_tests))
+        .route("/risk/tests/id/:id/start", post(risk_management::start_control_test))
+        .route("/risk/tests/id/:id/complete", post(risk_management::complete_control_test))
+        .route("/risk/tests/number/:test_number", delete(risk_management::delete_control_test))
+
+        // Issues & Remediations
+        .route("/risk/issues", post(risk_management::create_issue))
+        .route("/risk/issues", get(risk_management::list_issues))
+        .route("/risk/issues/id/:id", get(risk_management::get_issue))
+        .route("/risk/issues/id/:id/status", post(risk_management::update_issue_status))
+        .route("/risk/issues/id/:id/resolve", post(risk_management::resolve_issue))
+        .route("/risk/issues/number/:issue_number", delete(risk_management::delete_issue))
+
+        // Risk Dashboard
+        .route("/risk/dashboard", get(risk_management::get_risk_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

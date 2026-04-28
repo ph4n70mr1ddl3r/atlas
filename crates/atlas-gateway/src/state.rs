@@ -71,6 +71,7 @@ use atlas_core::{
     AccountMonitorEngine,
     GoalManagementEngine,
     ContractLifecycleEngine,
+    RiskManagementEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -138,6 +139,7 @@ use atlas_core::{
     account_monitor::PostgresAccountMonitorRepository,
     goal_management::PostgresGoalManagementRepository,
     contract_lifecycle::PostgresContractLifecycleRepository,
+    risk_management::PostgresRiskManagementRepository,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -221,6 +223,7 @@ pub struct AppState {
     pub account_monitor_engine: Arc<AccountMonitorEngine>,
     pub goal_management_engine: Arc<GoalManagementEngine>,
     pub clm_engine: Arc<ContractLifecycleEngine>,
+    pub risk_management_engine: Arc<RiskManagementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -600,6 +603,11 @@ impl AppState {
             PostgresContractLifecycleRepository::new(db_pool.clone())
         )));
 
+        // Initialize Risk Management engine
+        let risk_management_engine = Arc::new(RiskManagementEngine::new(Arc::new(
+            PostgresRiskManagementRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -713,6 +721,7 @@ impl AppState {
             account_monitor_engine,
             goal_management_engine,
             clm_engine,
+            risk_management_engine,
             event_bus,
             jwt_secret,
         };

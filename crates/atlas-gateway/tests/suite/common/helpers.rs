@@ -409,6 +409,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         clm_engine: Arc::new(atlas_core::ContractLifecycleEngine::new(Arc::new(
             atlas_core::contract_lifecycle::PostgresContractLifecycleRepository::new(db_pool.clone()),
         ))),
+        risk_management_engine: Arc::new(atlas_core::RiskManagementEngine::new(Arc::new(
+            atlas_core::risk_management::PostgresRiskManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -775,4 +778,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.goal_plans").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.goal_library_templates").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.goal_library_categories").execute(pool).await.ok();
+    // Clean risk management test data
+    sqlx::query("DELETE FROM _atlas.risk_issues").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.control_tests").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.risk_control_mappings").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.control_registry").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.risk_register").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.risk_categories").execute(pool).await.ok();
 }

@@ -97,6 +97,7 @@ pub mod contract_lifecycle;
 pub mod succession_planning;
 pub mod learning_management;
 pub mod joint_venture;
+pub mod risk_management;
 
 pub use schema::*;
 pub use workflow::{
@@ -195,6 +196,7 @@ pub use contract_lifecycle::{ContractLifecycleEngine, PostgresContractLifecycleR
 pub use succession_planning::{SuccessionPlanningEngine, PostgresSuccessionPlanningRepository as PostgresSuccessionPlanningRepo};
 pub use learning_management::{LearningManagementEngine, PostgresLearningManagementRepository as PostgresLearningManagementRepo};
 pub use joint_venture::{JointVentureEngine, PostgresJointVentureRepository as PostgresJointVentureRepo};
+pub use risk_management::{RiskManagementEngine, PostgresRiskManagementRepository as PostgresRiskManagementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

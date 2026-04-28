@@ -70,3 +70,4 @@ mod kpi;
 mod account_monitor;
 mod goal_management;
 mod contract_lifecycle;
+mod risk_management;

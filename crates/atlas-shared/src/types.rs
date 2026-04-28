@@ -16207,3 +16207,204 @@ pub struct JvDashboard {
     pub pending_afes: i32,
     pub ventures_by_status: serde_json::Value,
 }
+
+// ============================================================================
+// Risk Management & Internal Controls (Oracle Fusion GRC / Advanced Controls)
+// ============================================================================
+
+/// Risk Category
+/// Oracle Fusion: GRC > Risk Manager > Risk Categories
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RiskCategory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub parent_category_id: Option<Uuid>,
+    pub is_active: bool,
+    pub sort_order: i32,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Risk Register Entry
+/// Oracle Fusion: GRC > Risk Manager > Risk Register
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RiskEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub risk_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub category_id: Option<Uuid>,
+    pub risk_source: String,
+    pub likelihood: i32,
+    pub impact: i32,
+    pub risk_score: i32,
+    pub risk_level: String,
+    pub status: String,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub business_units: serde_json::Value,
+    pub response_strategy: Option<String>,
+    pub residual_likelihood: Option<i32>,
+    pub residual_impact: Option<i32>,
+    pub identified_date: chrono::NaiveDate,
+    pub last_assessed_date: Option<chrono::NaiveDate>,
+    pub next_review_date: Option<chrono::NaiveDate>,
+    pub closed_date: Option<chrono::NaiveDate>,
+    pub related_entity_type: Option<String>,
+    pub related_entity_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Control Registry Entry
+/// Oracle Fusion: GRC > Advanced Controls > Control Registry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ControlEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub control_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub control_type: String,
+    pub control_nature: String,
+    pub frequency: String,
+    pub objective: Option<String>,
+    pub test_procedures: Option<String>,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub is_key_control: bool,
+    pub effectiveness: String,
+    pub status: String,
+    pub business_processes: serde_json::Value,
+    pub regulatory_frameworks: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Risk-Control Mapping
+/// Oracle Fusion: GRC > Risk Manager > Risk-Control Associations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RiskControlMapping {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub risk_id: Uuid,
+    pub control_id: Uuid,
+    pub mitigation_effectiveness: String,
+    pub status: String,
+    pub description: Option<String>,
+    pub mapped_by: Option<Uuid>,
+    pub mapped_at: DateTime<Utc>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Control Test
+/// Oracle Fusion: GRC > Advanced Controls > Control Testing & Certification
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ControlTest {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub control_id: Uuid,
+    pub test_number: String,
+    pub test_plan: String,
+    pub test_period_start: chrono::NaiveDate,
+    pub test_period_end: chrono::NaiveDate,
+    pub tester_id: Option<Uuid>,
+    pub tester_name: Option<String>,
+    pub result: String,
+    pub findings: Option<String>,
+    pub deficiency_severity: Option<String>,
+    pub evidence_document_ids: serde_json::Value,
+    pub sample_size: Option<i32>,
+    pub sample_exceptions: Option<i32>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub reviewer_id: Option<Uuid>,
+    pub reviewer_name: Option<String>,
+    pub reviewed_at: Option<DateTime<Utc>>,
+    pub review_status: String,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Risk Issue / Remediation
+/// Oracle Fusion: GRC > Issue Management > Remediation Tracker
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RiskIssue {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub issue_number: String,
+    pub title: String,
+    pub description: String,
+    pub source: String,
+    pub risk_id: Option<Uuid>,
+    pub control_id: Option<Uuid>,
+    pub control_test_id: Option<Uuid>,
+    pub severity: String,
+    pub priority: String,
+    pub status: String,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub remediation_plan: Option<String>,
+    pub remediation_due_date: Option<chrono::NaiveDate>,
+    pub remediation_completed_date: Option<chrono::NaiveDate>,
+    pub root_cause: Option<String>,
+    pub corrective_actions: Option<String>,
+    pub identified_date: chrono::NaiveDate,
+    pub resolved_date: Option<chrono::NaiveDate>,
+    pub closed_date: Option<chrono::NaiveDate>,
+    pub regulatory_reference: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Risk Management Dashboard Summary
+/// Oracle Fusion: GRC > Risk Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RiskDashboard {
+    pub total_risks: i32,
+    pub open_risks: i32,
+    pub mitigated_risks: i32,
+    pub accepted_risks: i32,
+    pub critical_risks: i32,
+    pub high_risks: i32,
+    pub medium_risks: i32,
+    pub low_risks: i32,
+    pub total_controls: i32,
+    pub active_controls: i32,
+    pub effective_controls: i32,
+    pub ineffective_controls: i32,
+    pub not_tested_controls: i32,
+    pub total_tests: i32,
+    pub passed_tests: i32,
+    pub failed_tests: i32,
+    pub open_issues: i32,
+    pub critical_issues: i32,
+    pub overdue_remediations: i32,
+    pub risks_by_source: serde_json::Value,
+    pub risks_by_level: serde_json::Value,
+    pub control_effectiveness_summary: serde_json::Value,
+}

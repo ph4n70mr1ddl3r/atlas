@@ -95,6 +95,7 @@ pub mod goal_management;
 pub mod landed_cost;
 pub mod contract_lifecycle;
 pub mod succession_planning;
+pub mod learning_management;
 
 pub use schema::*;
 pub use workflow::{
@@ -191,6 +192,7 @@ pub use goal_management::{GoalManagementEngine, PostgresGoalManagementRepository
 pub use landed_cost::{LandedCostEngine, PostgresLandedCostRepository as PostgresLandedCostRepo};
 pub use contract_lifecycle::{ContractLifecycleEngine, PostgresContractLifecycleRepository as PostgresContractLifecycleRepo};
 pub use succession_planning::{SuccessionPlanningEngine, PostgresSuccessionPlanningRepository as PostgresSuccessionPlanningRepo};
+pub use learning_management::{LearningManagementEngine, PostgresLearningManagementRepository as PostgresLearningManagementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

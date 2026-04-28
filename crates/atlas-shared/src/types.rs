@@ -15795,3 +15795,164 @@ pub struct SuccessionDashboard {
     pub coverage_pct: Option<String>,
 }
 
+// ============================================================================
+// Learning Management
+// Oracle Fusion: HCM > Learning > Courses, Specializations, Certifications,
+//   Learning Paths, Enrollments, Completions, Assignments
+// ============================================================================
+
+/// Learning Item
+/// Oracle Fusion: HCM > Learning > Learning Items
+/// A learning object such as a course, certification, or specialization.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningItem {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub item_type: String,            // course, certification, specialization, video, assessment, blended
+    pub format: String,               // online, classroom, virtual_classroom, self_paced, blended
+    pub category: Option<String>,
+    pub provider: Option<String>,
+    pub duration_hours: Option<f64>,
+    pub currency_code: Option<String>,
+    pub cost: Option<String>,
+    pub credits: Option<String>,
+    pub credit_type: Option<String>,  // ceu, cpe, pdu, college_credit, custom
+    pub validity_months: Option<i32>, // how long the certification remains valid
+    pub recertification_required: bool,
+    pub max_enrollments: Option<i32>,
+    pub status: String,               // draft, active, inactive, archived
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Learning Category
+/// Oracle Fusion: HCM > Learning > Catalog Categories
+/// A hierarchical category for organizing learning items.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningCategory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub parent_category_id: Option<Uuid>,
+    pub display_order: i32,
+    pub status: String,               // active, inactive
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Learning Enrollment
+/// Oracle Fusion: HCM > Learning > Enrollments
+/// A person's enrollment in a learning item.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningEnrollment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub learning_item_id: Uuid,
+    pub person_id: Uuid,
+    pub person_name: Option<String>,
+    pub enrollment_type: String,       // self, manager, mandatory, auto_assigned
+    pub enrolled_by: Option<Uuid>,
+    pub status: String,               // enrolled, in_progress, completed, failed, withdrawn, expired
+    pub progress_pct: Option<String>,
+    pub score: Option<String>,
+    pub enrollment_date: Option<chrono::NaiveDate>,
+    pub completion_date: Option<chrono::NaiveDate>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub certification_expiry: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Learning Path
+/// Oracle Fusion: HCM > Learning > Learning Paths / Curricula
+/// A sequence of learning items forming a curriculum.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningPath {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub path_type: String,            // sequential, elective, milestone, tiered
+    pub target_role: Option<String>,
+    pub target_job_id: Option<Uuid>,
+    pub estimated_duration_hours: Option<f64>,
+    pub total_items: i32,
+    pub status: String,               // draft, active, inactive, archived
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Learning Path Item
+/// Oracle Fusion: HCM > Learning > Path Steps
+/// A single step/item within a learning path.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningPathItem {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub learning_path_id: Uuid,
+    pub learning_item_id: Uuid,
+    pub sequence_number: i32,
+    pub is_required: bool,
+    pub milestone_name: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Learning Assignment
+/// Oracle Fusion: HCM > Learning > Mandatory Assignments
+/// A mandatory learning requirement assigned to a person or group.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningAssignment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub learning_item_id: Option<Uuid>,
+    pub learning_path_id: Option<Uuid>,
+    pub title: String,
+    pub description: Option<String>,
+    pub assignment_type: String,       // individual, organization, department, job, position
+    pub target_id: Option<Uuid>,
+    pub assigned_by: Option<Uuid>,
+    pub priority: String,             // low, medium, high, critical
+    pub due_date: Option<chrono::NaiveDate>,
+    pub status: String,               // active, completed, cancelled
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Learning Dashboard Summary
+/// Oracle Fusion: HCM > Learning > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningDashboard {
+    pub total_learning_items: i32,
+    pub active_items: i32,
+    pub items_by_type: serde_json::Value,
+    pub total_enrollments: i32,
+    pub enrollments_by_status: serde_json::Value,
+    pub completion_rate: Option<String>,
+    pub total_learning_paths: i32,
+    pub total_active_assignments: i32,
+    pub overdue_enrollments: i32,
+    pub avg_score: Option<String>,
+}
+

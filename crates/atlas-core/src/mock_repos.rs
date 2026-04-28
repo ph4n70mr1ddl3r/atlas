@@ -5651,3 +5651,395 @@ impl crate::product_configurator::ProductConfiguratorRepository for MockProductC
         })
     }
 }
+
+/// Mock Transportation Management Repository
+pub struct MockTransportationManagementRepository;
+
+#[async_trait]
+impl crate::transportation_management::TransportationManagementRepository for MockTransportationManagementRepository {
+    // Carriers
+    async fn create_carrier(
+        &self,
+        org_id: Uuid, carrier_code: &str, name: &str, description: Option<&str>,
+        carrier_type: &str, status: &str,
+        scac_code: Option<&str>, dot_number: Option<&str>, mc_number: Option<&str>, tax_id: Option<&str>,
+        contact_name: Option<&str>, contact_email: Option<&str>, contact_phone: Option<&str>,
+        address_line1: Option<&str>, address_line2: Option<&str>,
+        city: Option<&str>, state: Option<&str>, postal_code: Option<&str>, country: &str,
+        currency_code: &str, payment_terms: &str,
+        insurance_policy_number: Option<&str>, insurance_expiry_date: Option<chrono::NaiveDate>,
+        default_service_level: &str,
+        capabilities: serde_json::Value, metadata: serde_json::Value,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::Carrier> {
+        Ok(atlas_shared::Carrier {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            carrier_code: carrier_code.to_string(),
+            name: name.to_string(),
+            description: description.map(|s| s.to_string()),
+            carrier_type: carrier_type.to_string(),
+            status: status.to_string(),
+            scac_code: scac_code.map(|s| s.to_string()),
+            dot_number: dot_number.map(|s| s.to_string()),
+            mc_number: mc_number.map(|s| s.to_string()),
+            tax_id: tax_id.map(|s| s.to_string()),
+            contact_name: contact_name.map(|s| s.to_string()),
+            contact_email: contact_email.map(|s| s.to_string()),
+            contact_phone: contact_phone.map(|s| s.to_string()),
+            address_line1: address_line1.map(|s| s.to_string()),
+            address_line2: address_line2.map(|s| s.to_string()),
+            city: city.map(|s| s.to_string()),
+            state: state.map(|s| s.to_string()),
+            postal_code: postal_code.map(|s| s.to_string()),
+            country: country.to_string(),
+            currency_code: currency_code.to_string(),
+            payment_terms: payment_terms.to_string(),
+            insurance_policy_number: insurance_policy_number.map(|s| s.to_string()),
+            insurance_expiry_date,
+            performance_rating: 0.0,
+            on_time_delivery_pct: 0.0,
+            claims_ratio: 0.0,
+            default_service_level: default_service_level.to_string(),
+            capabilities,
+            metadata,
+            created_by,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_carrier(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::Carrier>> { Ok(None) }
+    async fn get_carrier_by_code(&self, _org_id: Uuid, _carrier_code: &str) -> AtlasResult<Option<atlas_shared::Carrier>> { Ok(None) }
+    async fn list_carriers(&self, _org_id: Uuid, _status: Option<&str>, _carrier_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::Carrier>> { Ok(vec![]) }
+    async fn update_carrier_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::Carrier> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_carrier_performance(&self, _id: Uuid, _rating: f64, _on_time_pct: f64, _claims: f64) -> AtlasResult<atlas_shared::Carrier> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_carrier(&self, _org_id: Uuid, _carrier_code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Carrier Services
+    async fn create_carrier_service(
+        &self,
+        org_id: Uuid, carrier_id: Uuid, service_code: &str, name: &str,
+        description: Option<&str>, service_level: &str,
+        transit_days_min: i32, transit_days_max: i32,
+        max_weight_kg: Option<f64>, max_dimensions: Option<serde_json::Value>,
+        cutoff_time: Option<chrono::NaiveTime>,
+        operates_on_weekends: bool, is_international: bool,
+        rate_per_kg: f64, minimum_charge: f64, fuel_surcharge_pct: f64,
+        is_active: bool, metadata: serde_json::Value,
+    ) -> AtlasResult<atlas_shared::CarrierService> {
+        Ok(atlas_shared::CarrierService {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            carrier_id,
+            service_code: service_code.to_string(),
+            name: name.to_string(),
+            description: description.map(|s| s.to_string()),
+            service_level: service_level.to_string(),
+            transit_days_min,
+            transit_days_max,
+            max_weight_kg,
+            max_dimensions,
+            cutoff_time,
+            operates_on_weekends,
+            is_international,
+            rate_per_kg,
+            minimum_charge,
+            fuel_surcharge_pct,
+            is_active,
+            metadata,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_carrier_service(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CarrierService>> { Ok(None) }
+    async fn list_carrier_services(&self, _carrier_id: Uuid, _active_only: bool) -> AtlasResult<Vec<atlas_shared::CarrierService>> { Ok(vec![]) }
+    async fn update_carrier_service_active(&self, _id: Uuid, _is_active: bool) -> AtlasResult<atlas_shared::CarrierService> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_carrier_service(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // Transport Lanes
+    async fn create_lane(
+        &self,
+        org_id: Uuid, lane_code: &str, name: &str, description: Option<&str>,
+        origin_location_id: Option<Uuid>, origin_location_name: Option<&str>,
+        origin_city: Option<&str>, origin_state: Option<&str>, origin_country: &str, origin_postal_code: Option<&str>,
+        destination_location_id: Option<Uuid>, destination_location_name: Option<&str>,
+        destination_city: Option<&str>, destination_state: Option<&str>, destination_country: &str, destination_postal_code: Option<&str>,
+        distance_km: Option<f64>, estimated_transit_hours: Option<f64>,
+        lane_type: &str, preferred_carrier_id: Option<Uuid>, preferred_service_id: Option<Uuid>,
+        status: &str, effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        restrictions: serde_json::Value, metadata: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TransportLane> {
+        Ok(atlas_shared::TransportLane {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            lane_code: lane_code.to_string(),
+            name: name.to_string(),
+            description: description.map(|s| s.to_string()),
+            origin_location_id, origin_location_name: origin_location_name.map(|s| s.to_string()),
+            origin_city: origin_city.map(|s| s.to_string()), origin_state: origin_state.map(|s| s.to_string()),
+            origin_country: origin_country.to_string(), origin_postal_code: origin_postal_code.map(|s| s.to_string()),
+            destination_location_id, destination_location_name: destination_location_name.map(|s| s.to_string()),
+            destination_city: destination_city.map(|s| s.to_string()), destination_state: destination_state.map(|s| s.to_string()),
+            destination_country: destination_country.to_string(), destination_postal_code: destination_postal_code.map(|s| s.to_string()),
+            distance_km, estimated_transit_hours,
+            lane_type: lane_type.to_string(),
+            preferred_carrier_id, preferred_service_id,
+            status: status.to_string(),
+            effective_from, effective_to,
+            restrictions, metadata,
+            created_by,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_lane(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TransportLane>> { Ok(None) }
+    async fn get_lane_by_code(&self, _org_id: Uuid, _lane_code: &str) -> AtlasResult<Option<atlas_shared::TransportLane>> { Ok(None) }
+    async fn list_lanes(&self, _org_id: Uuid, _status: Option<&str>, _lane_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::TransportLane>> { Ok(vec![]) }
+    async fn update_lane_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::TransportLane> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_lane(&self, _org_id: Uuid, _lane_code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Shipments
+    #[allow(clippy::too_many_arguments)]
+    async fn create_shipment(
+        &self,
+        org_id: Uuid, shipment_number: &str, name: Option<&str>, description: Option<&str>,
+        status: &str, shipment_type: &str, priority: &str,
+        carrier_id: Option<Uuid>, carrier_code: Option<&str>, carrier_name: Option<&str>,
+        carrier_service_id: Option<Uuid>, carrier_service_code: Option<&str>,
+        lane_id: Option<Uuid>, lane_code: Option<&str>,
+        origin_location_id: Option<Uuid>, origin_location_name: Option<&str>, origin_address: serde_json::Value,
+        destination_location_id: Option<Uuid>, destination_location_name: Option<&str>, destination_address: serde_json::Value,
+        planned_ship_date: Option<chrono::NaiveDate>, planned_delivery_date: Option<chrono::NaiveDate>,
+        pickup_window_start: Option<chrono::DateTime<chrono::Utc>>,
+        pickup_window_end: Option<chrono::DateTime<chrono::Utc>>,
+        delivery_window_start: Option<chrono::DateTime<chrono::Utc>>,
+        delivery_window_end: Option<chrono::DateTime<chrono::Utc>>,
+        currency_code: &str,
+        tracking_number: Option<&str>, pro_number: Option<&str>, bill_of_lading: Option<&str>,
+        sales_order_id: Option<Uuid>, sales_order_number: Option<&str>,
+        purchase_order_id: Option<Uuid>, purchase_order_number: Option<&str>,
+        transfer_order_id: Option<Uuid>,
+        special_instructions: Option<&str>,
+        declared_value: Option<f64>, insurance_required: bool, signature_required: bool,
+        temperature_requirements: Option<serde_json::Value>, hazmat_info: Option<serde_json::Value>,
+        metadata: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TransportShipment> {
+        Ok(atlas_shared::TransportShipment {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            shipment_number: shipment_number.to_string(),
+            name: name.map(|s| s.to_string()),
+            description: description.map(|s| s.to_string()),
+            status: status.to_string(),
+            shipment_type: shipment_type.to_string(),
+            priority: priority.to_string(),
+            carrier_id, carrier_code: carrier_code.map(|s| s.to_string()), carrier_name: carrier_name.map(|s| s.to_string()),
+            carrier_service_id, carrier_service_code: carrier_service_code.map(|s| s.to_string()),
+            lane_id, lane_code: lane_code.map(|s| s.to_string()),
+            origin_location_id, origin_location_name: origin_location_name.map(|s| s.to_string()), origin_address,
+            destination_location_id, destination_location_name: destination_location_name.map(|s| s.to_string()), destination_address,
+            planned_ship_date, actual_ship_date: None,
+            planned_delivery_date, actual_delivery_date: None,
+            pickup_window_start, pickup_window_end,
+            delivery_window_start, delivery_window_end,
+            total_weight_kg: 0.0, total_volume_cbm: 0.0, total_pieces: 0,
+            freight_cost: 0.0, fuel_surcharge: 0.0, accessorial_charges: 0.0, total_cost: 0.0,
+            currency_code: currency_code.to_string(),
+            tracking_number: tracking_number.map(|s| s.to_string()),
+            tracking_url: None,
+            pro_number: pro_number.map(|s| s.to_string()),
+            bill_of_lading: bill_of_lading.map(|s| s.to_string()),
+            sales_order_id, sales_order_number: sales_order_number.map(|s| s.to_string()),
+            purchase_order_id, purchase_order_number: purchase_order_number.map(|s| s.to_string()),
+            transfer_order_id,
+            special_instructions: special_instructions.map(|s| s.to_string()),
+            declared_value, insurance_required, signature_required,
+            temperature_requirements, hazmat_info,
+            driver_name: None, vehicle_id: None,
+            metadata,
+            booked_by: None, shipped_by: None, received_by: None,
+            created_by,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_shipment(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TransportShipment>> { Ok(None) }
+    async fn get_shipment_by_number(&self, _org_id: Uuid, _shipment_number: &str) -> AtlasResult<Option<atlas_shared::TransportShipment>> { Ok(None) }
+    async fn list_shipments(&self, _org_id: Uuid, _status: Option<&str>, _shipment_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::TransportShipment>> { Ok(vec![]) }
+    async fn update_shipment_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::TransportShipment> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_shipment_carrier(&self, _id: Uuid, _carrier_id: Option<Uuid>, _carrier_code: Option<&str>, _carrier_name: Option<&str>, _carrier_service_id: Option<Uuid>, _carrier_service_code: Option<&str>) -> AtlasResult<atlas_shared::TransportShipment> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_shipment_dates(&self, _id: Uuid, _actual_ship_date: Option<chrono::NaiveDate>, _actual_delivery_date: Option<chrono::NaiveDate>) -> AtlasResult<atlas_shared::TransportShipment> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_shipment_tracking(&self, _id: Uuid, _tracking_number: Option<&str>, _tracking_url: Option<&str>, _pro_number: Option<&str>, _bill_of_lading: Option<&str>) -> AtlasResult<atlas_shared::TransportShipment> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_shipment_totals(&self, _id: Uuid, _weight: f64, _volume: f64, _pieces: i32, _freight: f64, _fuel: f64, _accessorial: f64, _total: f64) -> AtlasResult<atlas_shared::TransportShipment> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_shipment_delivery(&self, _id: Uuid, _received_by: Option<Uuid>) -> AtlasResult<atlas_shared::TransportShipment> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_shipment(&self, _org_id: Uuid, _shipment_number: &str) -> AtlasResult<()> { Ok(()) }
+
+    // TransportShipment Stops
+    async fn create_stop(
+        &self,
+        org_id: Uuid, shipment_id: Uuid, stop_number: i32, stop_type: &str,
+        location_id: Option<Uuid>, location_name: Option<&str>, address: serde_json::Value,
+        planned_arrival: Option<chrono::DateTime<chrono::Utc>>,
+        planned_departure: Option<chrono::DateTime<chrono::Utc>>,
+        contact_name: Option<&str>, contact_phone: Option<&str>,
+        special_instructions: Option<&str>,
+        metadata: serde_json::Value,
+    ) -> AtlasResult<atlas_shared::TransportShipmentStop> {
+        Ok(atlas_shared::TransportShipmentStop {
+            id: Uuid::new_v4(),
+            organization_id: org_id, shipment_id, stop_number,
+            stop_type: stop_type.to_string(),
+            location_id, location_name: location_name.map(|s| s.to_string()),
+            address, planned_arrival, actual_arrival: None,
+            planned_departure, actual_departure: None,
+            status: "pending".to_string(),
+            contact_name: contact_name.map(|s| s.to_string()),
+            contact_phone: contact_phone.map(|s| s.to_string()),
+            special_instructions: special_instructions.map(|s| s.to_string()),
+            pieces: 0, weight_kg: 0.0, metadata,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_stop(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TransportShipmentStop>> { Ok(None) }
+    async fn list_stops(&self, _shipment_id: Uuid) -> AtlasResult<Vec<atlas_shared::TransportShipmentStop>> { Ok(vec![]) }
+    async fn update_stop_status(&self, _id: Uuid, _status: &str, _actual_arrival: Option<chrono::DateTime<chrono::Utc>>, _actual_departure: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<atlas_shared::TransportShipmentStop> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_stop(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // TransportShipment Lines
+    async fn create_shipment_line(
+        &self,
+        org_id: Uuid, shipment_id: Uuid, line_number: i32,
+        item_id: Option<Uuid>, item_number: Option<&str>, item_description: Option<&str>,
+        quantity: i32, unit_of_measure: &str,
+        weight_kg: f64, volume_cbm: f64,
+        lot_number: Option<&str>, serial_numbers: serde_json::Value,
+        source_line_id: Option<Uuid>, source_line_type: Option<&str>,
+        stop_id: Option<Uuid>,
+        freight_class: Option<&str>, nmfc_code: Option<&str>, hazmat_class: Option<&str>,
+        metadata: serde_json::Value,
+    ) -> AtlasResult<atlas_shared::TransportShipmentLine> {
+        Ok(atlas_shared::TransportShipmentLine {
+            id: Uuid::new_v4(),
+            organization_id: org_id, shipment_id, line_number,
+            item_id, item_number: item_number.map(|s| s.to_string()),
+            item_description: item_description.map(|s| s.to_string()),
+            quantity, quantity_shipped: 0, quantity_received: 0,
+            unit_of_measure: unit_of_measure.to_string(),
+            weight_kg, volume_cbm,
+            lot_number: lot_number.map(|s| s.to_string()), serial_numbers,
+            source_line_id, source_line_type: source_line_type.map(|s| s.to_string()),
+            stop_id, freight_class: freight_class.map(|s| s.to_string()),
+            nmfc_code: nmfc_code.map(|s| s.to_string()), hazmat_class: hazmat_class.map(|s| s.to_string()),
+            metadata, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_shipment_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TransportShipmentLine>> { Ok(None) }
+    async fn list_shipment_lines(&self, _shipment_id: Uuid) -> AtlasResult<Vec<atlas_shared::TransportShipmentLine>> { Ok(vec![]) }
+    async fn update_shipment_line_quantities(&self, _id: Uuid, _shipped: i32, _received: i32) -> AtlasResult<atlas_shared::TransportShipmentLine> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_shipment_line(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // Tracking Events
+    async fn create_tracking_event(
+        &self,
+        org_id: Uuid, shipment_id: Uuid, event_type: &str,
+        event_timestamp: chrono::DateTime<chrono::Utc>,
+        location_description: Option<&str>,
+        city: Option<&str>, state: Option<&str>, country: Option<&str>,
+        latitude: Option<f64>, longitude: Option<f64>,
+        description: Option<&str>,
+        carrier_event_code: Option<&str>, carrier_event_description: Option<&str>,
+        updated_by: Option<&str>,
+        metadata: serde_json::Value,
+    ) -> AtlasResult<atlas_shared::TransportShipmentTrackingEvent> {
+        Ok(atlas_shared::TransportShipmentTrackingEvent {
+            id: Uuid::new_v4(),
+            organization_id: org_id, shipment_id,
+            event_type: event_type.to_string(), event_timestamp,
+            location_description: location_description.map(|s| s.to_string()),
+            city: city.map(|s| s.to_string()), state: state.map(|s| s.to_string()),
+            country: country.map(|s| s.to_string()),
+            latitude, longitude, description: description.map(|s| s.to_string()),
+            carrier_event_code: carrier_event_code.map(|s| s.to_string()),
+            carrier_event_description: carrier_event_description.map(|s| s.to_string()),
+            updated_by: updated_by.map(|s| s.to_string()),
+            metadata, created_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_tracking_events(&self, _shipment_id: Uuid) -> AtlasResult<Vec<atlas_shared::TransportShipmentTrackingEvent>> { Ok(vec![]) }
+
+    // Freight Rates
+    async fn create_freight_rate(
+        &self,
+        org_id: Uuid, rate_code: &str, name: &str, description: Option<&str>,
+        carrier_id: Uuid, carrier_service_id: Option<Uuid>, lane_id: Option<Uuid>,
+        rate_type: &str, rate_amount: f64, minimum_charge: f64, currency_code: &str,
+        fuel_surcharge_pct: f64, accessorial_rates: serde_json::Value,
+        effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        status: &str, is_contract_rate: bool, contract_number: Option<&str>,
+        volume_threshold_min: Option<f64>, volume_threshold_max: Option<f64>,
+        metadata: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::FreightRate> {
+        Ok(atlas_shared::FreightRate {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            rate_code: rate_code.to_string(), name: name.to_string(),
+            description: description.map(|s| s.to_string()),
+            carrier_id, carrier_service_id, lane_id,
+            rate_type: rate_type.to_string(), rate_amount, minimum_charge,
+            currency_code: currency_code.to_string(), fuel_surcharge_pct,
+            accessorial_rates, effective_from, effective_to,
+            status: status.to_string(), is_contract_rate,
+            contract_number: contract_number.map(|s| s.to_string()),
+            volume_threshold_min, volume_threshold_max,
+            metadata, created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_freight_rate(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::FreightRate>> { Ok(None) }
+    async fn get_freight_rate_by_code(&self, _org_id: Uuid, _rate_code: &str) -> AtlasResult<Option<atlas_shared::FreightRate>> { Ok(None) }
+    async fn list_freight_rates(&self, _org_id: Uuid, _carrier_id: Option<&Uuid>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::FreightRate>> { Ok(vec![]) }
+    async fn update_freight_rate_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::FreightRate> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_freight_rate(&self, _org_id: Uuid, _rate_code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Dashboard
+    async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::TransportationDashboard> {
+        Ok(atlas_shared::TransportationDashboard {
+            total_shipments: 0, active_shipments: 0, delivered_shipments: 0,
+            delayed_shipments: 0, exception_shipments: 0,
+            total_carriers: 0, active_carriers: 0,
+            total_lanes: 0, active_lanes: 0,
+            on_time_delivery_pct: 0.0, avg_transit_days: 0.0,
+            total_freight_cost: 0.0, avg_cost_per_kg: 0.0,
+            shipments_by_status: serde_json::json!({}),
+            shipments_by_carrier: serde_json::json!({}),
+            cost_by_carrier: serde_json::json!({}),
+            top_lanes: serde_json::json!([]),
+        })
+    }
+}

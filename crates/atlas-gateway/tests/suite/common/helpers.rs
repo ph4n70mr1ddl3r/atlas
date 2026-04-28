@@ -423,6 +423,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         configurator_engine: Arc::new(atlas_core::ProductConfiguratorEngine::new(Arc::new(
             atlas_core::product_configurator::PostgresProductConfiguratorRepository::new(db_pool.clone()),
         ))),
+        transportation_engine: Arc::new(atlas_core::TransportationManagementEngine::new(Arc::new(
+            atlas_core::transportation_management::PostgresTransportationManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -807,4 +810,13 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.config_options").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.config_features").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.config_models").execute(pool).await.ok();
+    // Clean transportation management test data
+    sqlx::query("DELETE FROM _atlas.shipment_tracking_events").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.shipment_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.shipment_stops").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.shipments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.freight_rates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.transport_lanes").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.carrier_services").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.carriers").execute(pool).await.ok();
 }

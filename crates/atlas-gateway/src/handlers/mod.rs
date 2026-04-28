@@ -75,6 +75,7 @@ pub mod contract_lifecycle;
 pub mod enterprise_asset_management;
 pub mod risk_management;
 pub mod product_configurator;
+pub mod transportation_management;
 
 pub use schema::*;
 pub use records::*;
@@ -3064,6 +3065,71 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Configurator Dashboard
         .route("/configurator/dashboard", get(product_configurator::get_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Transportation Management (Oracle Fusion SCM > Transportation Management)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Carriers
+        .route("/transport/carriers", post(transportation_management::create_carrier))
+        .route("/transport/carriers", get(transportation_management::list_carriers))
+        .route("/transport/carriers/id/:id", get(transportation_management::get_carrier))
+        .route("/transport/carriers/id/:id/suspend", post(transportation_management::suspend_carrier))
+        .route("/transport/carriers/id/:id/reactivate", post(transportation_management::reactivate_carrier))
+        .route("/transport/carriers/id/:id/blacklist", post(transportation_management::blacklist_carrier))
+        .route("/transport/carriers/id/:id/performance", post(transportation_management::update_carrier_performance))
+        .route("/transport/carriers/code/:code", delete(transportation_management::delete_carrier))
+
+        // Carrier Services
+        .route("/transport/carriers/:carrier_id/services", post(transportation_management::create_carrier_service))
+        .route("/transport/carriers/:carrier_id/services", get(transportation_management::list_carrier_services))
+        .route("/transport/services/:id/toggle", post(transportation_management::toggle_carrier_service))
+        .route("/transport/services/:id", delete(transportation_management::delete_carrier_service))
+
+        // Transport Lanes
+        .route("/transport/lanes", post(transportation_management::create_lane))
+        .route("/transport/lanes", get(transportation_management::list_lanes))
+        .route("/transport/lanes/id/:id", get(transportation_management::get_lane))
+        .route("/transport/lanes/id/:id/deactivate", post(transportation_management::deactivate_lane))
+        .route("/transport/lanes/code/:code", delete(transportation_management::delete_lane))
+
+        // Shipments
+        .route("/transport/shipments", post(transportation_management::create_shipment))
+        .route("/transport/shipments", get(transportation_management::list_shipments))
+        .route("/transport/shipments/id/:id", get(transportation_management::get_shipment))
+        .route("/transport/shipments/id/:id/book", post(transportation_management::book_shipment))
+        .route("/transport/shipments/id/:id/pickup", post(transportation_management::confirm_pickup))
+        .route("/transport/shipments/id/:id/transit", post(transportation_management::start_transit))
+        .route("/transport/shipments/id/:id/arrive", post(transportation_management::arrive_at_destination))
+        .route("/transport/shipments/id/:id/deliver", post(transportation_management::confirm_delivery))
+        .route("/transport/shipments/id/:id/cancel", post(transportation_management::cancel_shipment))
+        .route("/transport/shipments/id/:id/exception", post(transportation_management::mark_exception))
+        .route("/transport/shipments/id/:id/assign-carrier", post(transportation_management::assign_carrier))
+        .route("/transport/shipments/id/:id/tracking", post(transportation_management::update_tracking))
+        .route("/transport/shipments/number/:number", delete(transportation_management::delete_shipment))
+
+        // Shipment Stops
+        .route("/transport/shipments/:shipment_id/stops", post(transportation_management::add_stop))
+        .route("/transport/shipments/:shipment_id/stops", get(transportation_management::list_stops))
+        .route("/transport/stops/:id/status", post(transportation_management::update_stop_status))
+
+        // Shipment Lines
+        .route("/transport/shipments/:shipment_id/lines", post(transportation_management::add_shipment_line))
+        .route("/transport/shipments/:shipment_id/lines", get(transportation_management::list_shipment_lines))
+        .route("/transport/shipments/id/:id/recalculate", post(transportation_management::recalculate_shipment_totals))
+
+        // Tracking Events
+        .route("/transport/shipments/:shipment_id/tracking-events", post(transportation_management::add_tracking_event))
+        .route("/transport/shipments/:shipment_id/tracking-events", get(transportation_management::list_tracking_events))
+
+        // Freight Rates
+        .route("/transport/freight-rates", post(transportation_management::create_freight_rate))
+        .route("/transport/freight-rates", get(transportation_management::list_freight_rates))
+        .route("/transport/freight-rates/id/:id/expire", post(transportation_management::expire_freight_rate))
+        .route("/transport/freight-rates/code/:code", delete(transportation_management::delete_freight_rate))
+
+        // Transportation Dashboard
+        .route("/transport/dashboard", get(transportation_management::get_transportation_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

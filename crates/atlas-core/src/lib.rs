@@ -102,6 +102,7 @@ pub mod risk_management;
 pub mod project_billing;
 pub mod engineering_change_management;
 pub mod sustainability;
+pub mod channel_revenue;
 
 pub use schema::*;
 pub use workflow::{
@@ -205,6 +206,7 @@ pub use enterprise_asset_management::{EnterpriseAssetManagementEngine, PostgresA
 pub use project_billing::{ProjectBillingEngine, PostgresProjectBillingRepository as PostgresProjectBillingRepo};
 pub use sustainability::{SustainabilityEngine, PostgresSustainabilityRepository as PostgresSustainabilityRepo};
 pub use engineering_change_management::{EngineeringChangeEngine, PostgresEngineeringChangeManagementRepository as PostgresEcmRepository};
+pub use channel_revenue::{ChannelRevenueEngine, PostgresChannelRevenueRepository as PostgresChannelRevenueRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

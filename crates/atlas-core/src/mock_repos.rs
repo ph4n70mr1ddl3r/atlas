@@ -5167,3 +5167,263 @@ impl EngineeringChangeManagementRepository for MockEngineeringChangeManagementRe
         })
     }
 }
+
+// ============================================================================
+// Mock Channel Revenue Management Repository
+// ============================================================================
+
+pub struct MockChannelRevenueRepository;
+
+#[async_trait]
+impl crate::channel_revenue::ChannelRevenueRepository for MockChannelRevenueRepository {
+    async fn create_promotion(
+        &self,
+        org_id: Uuid, promotion_number: &str, name: &str, description: Option<&str>,
+        promotion_type: &str, status: &str, priority: Option<&str>,
+        category: Option<&str>,
+        partner_id: Option<Uuid>, partner_number: Option<&str>, partner_name: Option<&str>,
+        fund_id: Option<Uuid>,
+        start_date: chrono::NaiveDate, end_date: chrono::NaiveDate,
+        sell_in_start_date: Option<chrono::NaiveDate>, sell_in_end_date: Option<chrono::NaiveDate>,
+        sell_out_start_date: Option<chrono::NaiveDate>, sell_out_end_date: Option<chrono::NaiveDate>,
+        product_category: Option<&str>,
+        product_id: Option<Uuid>, product_number: Option<&str>, product_name: Option<&str>,
+        customer_segment: Option<&str>, territory: Option<&str>,
+        expected_revenue: f64, planned_budget: f64, currency_code: &str,
+        discount_pct: Option<f64>, discount_amount: Option<f64>,
+        volume_threshold: Option<f64>, volume_uom: Option<&str>,
+        tier_config: serde_json::Value,
+        objectives: Option<&str>, terms_and_conditions: Option<&str>,
+        approval_status: &str,
+        owner_id: Option<Uuid>, owner_name: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TradePromotion> {
+        Ok(atlas_shared::TradePromotion {
+            id: Uuid::new_v4(), organization_id: org_id,
+            promotion_number: promotion_number.to_string(),
+            name: name.to_string(),
+            description: description.map(String::from),
+            promotion_type: promotion_type.to_string(),
+            status: status.to_string(),
+            priority: priority.map(String::from),
+            category: category.map(String::from),
+            partner_id, partner_number: partner_number.map(String::from),
+            partner_name: partner_name.map(String::from),
+            fund_id,
+            start_date, end_date,
+            sell_in_start_date, sell_in_end_date,
+            sell_out_start_date, sell_out_end_date,
+            product_category: product_category.map(String::from),
+            product_id, product_number: product_number.map(String::from),
+            product_name: product_name.map(String::from),
+            customer_segment: customer_segment.map(String::from),
+            territory: territory.map(String::from),
+            expected_revenue, planned_budget,
+            actual_spend: 0.0, accrued_amount: 0.0, claimed_amount: 0.0, settled_amount: 0.0,
+            currency_code: currency_code.to_string(),
+            discount_pct, discount_amount, volume_threshold,
+            volume_uom: volume_uom.map(String::from),
+            tier_config, objectives: objectives.map(String::from),
+            terms_and_conditions: terms_and_conditions.map(String::from),
+            approval_status: approval_status.to_string(),
+            approved_by: None, approved_at: None,
+            owner_id, owner_name: owner_name.map(String::from),
+            effective_from, effective_to,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_promotion(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TradePromotion>> { Ok(None) }
+    async fn get_promotion_by_number(&self, _org_id: Uuid, _promotion_number: &str) -> AtlasResult<Option<atlas_shared::TradePromotion>> { Ok(None) }
+    async fn list_promotions(&self, _org_id: Uuid, _status: Option<&str>, _promotion_type: Option<&str>, _partner_id: Option<&Uuid>) -> AtlasResult<Vec<atlas_shared::TradePromotion>> { Ok(vec![]) }
+    async fn update_promotion_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::TradePromotion> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_promotion_approval(&self, _id: Uuid, _approval_status: &str, _approved_by: Option<Uuid>) -> AtlasResult<atlas_shared::TradePromotion> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_promotion_spend(&self, _id: Uuid, _actual_spend: f64, _accrued_amount: f64) -> AtlasResult<atlas_shared::TradePromotion> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_promotion(&self, _org_id: Uuid, _promotion_number: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_promotion_line(
+        &self, org_id: Uuid, promotion_id: Uuid, line_number: i32,
+        product_id: Option<Uuid>, product_number: Option<&str>, product_name: Option<&str>,
+        product_category: Option<&str>, discount_type: &str, discount_value: f64,
+        unit_of_measure: Option<&str>, quantity_from: Option<f64>, quantity_to: Option<f64>,
+        planned_quantity: f64, planned_amount: f64, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TradePromotionLine> {
+        Ok(atlas_shared::TradePromotionLine {
+            id: Uuid::new_v4(), organization_id: org_id, promotion_id, line_number,
+            product_id, product_number: product_number.map(String::from),
+            product_name: product_name.map(String::from),
+            product_category: product_category.map(String::from),
+            discount_type: discount_type.to_string(), discount_value,
+            unit_of_measure: unit_of_measure.map(String::from),
+            quantity_from, quantity_to, planned_quantity,
+            actual_quantity: 0.0, planned_amount, actual_amount: 0.0, accrual_amount: 0.0,
+            status: "active".to_string(),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_promotion_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TradePromotionLine>> { Ok(None) }
+    async fn list_promotion_lines(&self, _promotion_id: Uuid) -> AtlasResult<Vec<atlas_shared::TradePromotionLine>> { Ok(vec![]) }
+    async fn update_promotion_line_actuals(&self, _id: Uuid, _actual_quantity: f64, _actual_amount: f64, _accrual_amount: f64) -> AtlasResult<atlas_shared::TradePromotionLine> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_promotion_line(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_fund(
+        &self, org_id: Uuid, fund_number: &str, name: &str, description: Option<&str>,
+        fund_type: &str, status: &str, partner_id: Option<Uuid>, partner_number: Option<&str>, partner_name: Option<&str>,
+        total_budget: f64, currency_code: &str, fund_year: Option<i32>, fund_quarter: Option<&str>,
+        start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>,
+        owner_id: Option<Uuid>, owner_name: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::PromotionFund> {
+        Ok(atlas_shared::PromotionFund {
+            id: Uuid::new_v4(), organization_id: org_id,
+            fund_number: fund_number.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            fund_type: fund_type.to_string(), status: status.to_string(),
+            partner_id, partner_number: partner_number.map(String::from),
+            partner_name: partner_name.map(String::from),
+            total_budget, allocated_amount: 0.0, committed_amount: 0.0,
+            utilized_amount: 0.0, available_amount: total_budget,
+            currency_code: currency_code.to_string(),
+            fund_year, fund_quarter: fund_quarter.map(String::from),
+            start_date, end_date, owner_id, owner_name: owner_name.map(String::from),
+            approval_status: "not_submitted".to_string(),
+            approved_by: None, approved_at: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_fund(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::PromotionFund>> { Ok(None) }
+    async fn get_fund_by_number(&self, _org_id: Uuid, _fund_number: &str) -> AtlasResult<Option<atlas_shared::PromotionFund>> { Ok(None) }
+    async fn list_funds(&self, _org_id: Uuid, _status: Option<&str>, _fund_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::PromotionFund>> { Ok(vec![]) }
+    async fn update_fund_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::PromotionFund> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_fund_budget(&self, _id: Uuid, _total_budget: f64) -> AtlasResult<atlas_shared::PromotionFund> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_fund_utilization(&self, _id: Uuid, _allocated_amount: f64, _committed_amount: f64, _utilized_amount: f64, _available_amount: f64) -> AtlasResult<atlas_shared::PromotionFund> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_fund(&self, _org_id: Uuid, _fund_number: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_claim(
+        &self, org_id: Uuid, claim_number: &str,
+        promotion_id: Option<Uuid>, promotion_number: Option<&str>,
+        fund_id: Option<Uuid>, fund_number: Option<&str>,
+        claim_type: &str, status: &str, priority: Option<&str>,
+        partner_id: Option<Uuid>, partner_number: Option<&str>, partner_name: Option<&str>,
+        claim_date: chrono::NaiveDate, sell_in_from: Option<chrono::NaiveDate>, sell_in_to: Option<chrono::NaiveDate>,
+        product_id: Option<Uuid>, product_number: Option<&str>, product_name: Option<&str>,
+        quantity: f64, unit_of_measure: Option<&str>, unit_price: Option<f64>,
+        claimed_amount: f64, currency_code: &str,
+        invoice_number: Option<&str>, invoice_date: Option<chrono::NaiveDate>,
+        reference_document: Option<&str>, proof_of_performance: serde_json::Value,
+        assigned_to: Option<Uuid>, assigned_to_name: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TradeClaim> {
+        Ok(atlas_shared::TradeClaim {
+            id: Uuid::new_v4(), organization_id: org_id,
+            claim_number: claim_number.to_string(),
+            promotion_id, promotion_number: promotion_number.map(String::from),
+            fund_id, fund_number: fund_number.map(String::from),
+            claim_type: claim_type.to_string(), status: status.to_string(),
+            priority: priority.map(String::from),
+            partner_id, partner_number: partner_number.map(String::from),
+            partner_name: partner_name.map(String::from),
+            claim_date, sell_in_from, sell_in_to,
+            product_id, product_number: product_number.map(String::from),
+            product_name: product_name.map(String::from),
+            quantity, unit_of_measure: unit_of_measure.map(String::from), unit_price,
+            claimed_amount, approved_amount: 0.0, paid_amount: 0.0,
+            currency_code: currency_code.to_string(),
+            invoice_number: invoice_number.map(String::from), invoice_date,
+            reference_document: reference_document.map(String::from),
+            proof_of_performance,
+            rejection_reason: None, resolution_notes: None,
+            assigned_to, assigned_to_name: assigned_to_name.map(String::from),
+            submitted_at: None, approved_at: None, paid_at: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_claim(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TradeClaim>> { Ok(None) }
+    async fn get_claim_by_number(&self, _org_id: Uuid, _claim_number: &str) -> AtlasResult<Option<atlas_shared::TradeClaim>> { Ok(None) }
+    async fn list_claims(&self, _org_id: Uuid, _status: Option<&str>, _claim_type: Option<&str>, _promotion_id: Option<&Uuid>) -> AtlasResult<Vec<atlas_shared::TradeClaim>> { Ok(vec![]) }
+    async fn update_claim_status(&self, _id: Uuid, _status: &str, _approved_amount: Option<f64>, _rejection_reason: Option<&str>, _resolution_notes: Option<&str>) -> AtlasResult<atlas_shared::TradeClaim> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_claim_payment(&self, _id: Uuid, _paid_amount: f64) -> AtlasResult<atlas_shared::TradeClaim> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_claim(&self, _org_id: Uuid, _claim_number: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_settlement(
+        &self, org_id: Uuid, settlement_number: &str,
+        claim_id: Option<Uuid>, claim_number: Option<&str>,
+        promotion_id: Option<Uuid>, promotion_number: Option<&str>,
+        partner_id: Option<Uuid>, partner_number: Option<&str>, partner_name: Option<&str>,
+        settlement_type: &str, status: &str,
+        settlement_date: chrono::NaiveDate, settlement_amount: f64, currency_code: &str,
+        payment_method: Option<&str>, payment_reference: Option<&str>,
+        bank_account: Option<&str>, gl_account: Option<&str>, cost_center: Option<&str>,
+        notes: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TradeSettlement> {
+        Ok(atlas_shared::TradeSettlement {
+            id: Uuid::new_v4(), organization_id: org_id,
+            settlement_number: settlement_number.to_string(),
+            claim_id, claim_number: claim_number.map(String::from),
+            promotion_id, promotion_number: promotion_number.map(String::from),
+            partner_id, partner_number: partner_number.map(String::from),
+            partner_name: partner_name.map(String::from),
+            settlement_type: settlement_type.to_string(),
+            status: status.to_string(),
+            settlement_date, settlement_amount,
+            currency_code: currency_code.to_string(),
+            payment_method: payment_method.map(String::from),
+            payment_reference: payment_reference.map(String::from),
+            bank_account: bank_account.map(String::from),
+            gl_account: gl_account.map(String::from),
+            cost_center: cost_center.map(String::from),
+            approved_by: None, approved_at: None, paid_at: None,
+            notes: notes.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_settlement(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::TradeSettlement>> { Ok(None) }
+    async fn get_settlement_by_number(&self, _org_id: Uuid, _settlement_number: &str) -> AtlasResult<Option<atlas_shared::TradeSettlement>> { Ok(None) }
+    async fn list_settlements(&self, _org_id: Uuid, _status: Option<&str>, _settlement_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::TradeSettlement>> { Ok(vec![]) }
+    async fn update_settlement_status(&self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>) -> AtlasResult<atlas_shared::TradeSettlement> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_settlement(&self, _org_id: Uuid, _settlement_number: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::ChannelRevenueDashboard> {
+        Ok(atlas_shared::ChannelRevenueDashboard {
+            total_promotions: 0, active_promotions: 0,
+            total_planned_budget: 0.0, total_actual_spend: 0.0,
+            budget_utilization_pct: 0.0, total_expected_revenue: 0.0,
+            roi_pct: 0.0,
+            total_claims: 0, pending_claims: 0, approved_claims: 0, rejected_claims: 0,
+            total_claimed_amount: 0.0, total_approved_amount: 0.0, total_paid_amount: 0.0,
+            total_funds: 0, active_funds: 0,
+            total_fund_budget: 0.0, total_fund_utilized: 0.0, fund_utilization_pct: 0.0,
+            total_settlements: 0, pending_settlements: 0, completed_settlements: 0,
+            total_settlement_amount: 0.0,
+            promotions_by_status: serde_json::json!({}),
+            promotions_by_type: serde_json::json!({}),
+            claims_by_status: serde_json::json!({}),
+            spend_trend: serde_json::json!([]),
+            top_partners: serde_json::json!([]),
+        })
+    }
+}

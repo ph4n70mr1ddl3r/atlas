@@ -4949,3 +4949,221 @@ impl crate::sustainability::SustainabilityRepository for MockSustainabilityRepos
         })
     }
 }
+
+// ============================================================================
+// Engineering Change Management Mock Repository
+// ============================================================================
+
+use crate::engineering_change_management::EngineeringChangeManagementRepository;
+
+/// Mock Engineering Change Management repository
+pub struct MockEngineeringChangeManagementRepository;
+
+#[async_trait]
+impl EngineeringChangeManagementRepository for MockEngineeringChangeManagementRepository {
+    async fn create_change_type(
+        &self, org_id: Uuid, type_code: &str, name: &str, description: Option<&str>,
+        category: &str, approval_required: bool, default_priority: &str,
+        number_prefix: &str, description_template: Option<&str>,
+        statuses: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EngineeringChangeType> {
+        Ok(atlas_shared::EngineeringChangeType {
+            id: Uuid::new_v4(), organization_id: org_id,
+            type_code: type_code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            category: category.to_string(),
+            approval_required, default_priority: default_priority.to_string(),
+            number_prefix: number_prefix.to_string(),
+            description_template: description_template.map(String::from),
+            status: "active".to_string(),
+            statuses, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_change_type(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EngineeringChangeType>> { Ok(None) }
+    async fn get_change_type_by_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::EngineeringChangeType>> { Ok(None) }
+    async fn list_change_types(&self, _org_id: Uuid, _category: Option<&str>) -> AtlasResult<Vec<atlas_shared::EngineeringChangeType>> { Ok(vec![]) }
+    async fn delete_change_type(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_change(
+        &self, org_id: Uuid, change_number: &str, change_type_id: Option<Uuid>,
+        category: &str, title: &str, description: Option<&str>,
+        change_reason: Option<&str>, change_reason_description: Option<&str>,
+        priority: &str, status: &str, revision: &str,
+        assigned_to: Option<Uuid>, assigned_to_name: Option<&str>,
+        submitted_at: Option<chrono::DateTime<chrono::Utc>>,
+        approved_at: Option<chrono::DateTime<chrono::Utc>>,
+        implemented_at: Option<chrono::DateTime<chrono::Utc>>,
+        target_date: Option<chrono::NaiveDate>,
+        effective_date: Option<chrono::NaiveDate>,
+        resolution_code: Option<&str>,
+        resolution_notes: Option<&str>,
+        parent_change_id: Option<Uuid>,
+        superseded_by_id: Option<Uuid>,
+        impact_analysis: serde_json::Value,
+        estimated_cost: Option<f64>,
+        actual_cost: Option<f64>,
+        currency_code: &str,
+        estimated_hours: Option<f64>,
+        actual_hours: Option<f64>,
+        regulatory_impact: Option<&str>,
+        safety_impact: Option<&str>,
+        validation_required: bool,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EngineeringChange> {
+        Ok(atlas_shared::EngineeringChange {
+            id: Uuid::new_v4(), organization_id: org_id,
+            change_number: change_number.to_string(),
+            change_type_id, category: category.to_string(),
+            title: title.to_string(), description: description.map(String::from),
+            change_reason: change_reason.map(String::from),
+            change_reason_description: change_reason_description.map(String::from),
+            priority: priority.to_string(), status: status.to_string(),
+            revision: revision.to_string(),
+            assigned_to, assigned_to_name: assigned_to_name.map(String::from),
+            submitted_at, approved_at, implemented_at,
+            target_date, effective_date,
+            resolution_code: resolution_code.map(String::from),
+            resolution_notes: resolution_notes.map(String::from),
+            parent_change_id, superseded_by_id,
+            impact_analysis,
+            estimated_cost, actual_cost, currency_code: currency_code.to_string(),
+            estimated_hours, actual_hours,
+            regulatory_impact: regulatory_impact.map(String::from),
+            safety_impact: safety_impact.map(String::from),
+            validation_required,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_change(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EngineeringChange>> { Ok(None) }
+    async fn get_change_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::EngineeringChange>> { Ok(None) }
+    async fn list_changes(&self, _org_id: Uuid, _status: Option<&str>, _category: Option<&str>, _priority: Option<&str>, _assigned_to: Option<&Uuid>) -> AtlasResult<Vec<atlas_shared::EngineeringChange>> { Ok(vec![]) }
+    async fn update_change_status(
+        &self, _id: Uuid, _status: &str,
+        _submitted_at: Option<chrono::DateTime<chrono::Utc>>,
+        _approved_at: Option<chrono::DateTime<chrono::Utc>>,
+        _implemented_at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> AtlasResult<atlas_shared::EngineeringChange> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_change_with_resolution(
+        &self, _id: Uuid, _status: &str, _resolution_notes: Option<&str>, _resolution_code: Option<&str>,
+    ) -> AtlasResult<atlas_shared::EngineeringChange> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn implement_change(
+        &self, _id: Uuid, _actual_cost: Option<f64>, _actual_hours: Option<f64>, _implemented_at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> AtlasResult<atlas_shared::EngineeringChange> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn return_for_rework(&self, _id: Uuid, _comments: Option<&str>) -> AtlasResult<atlas_shared::EngineeringChange> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_change(&self, _org_id: Uuid, _number: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_change_line(
+        &self, org_id: Uuid, change_id: Uuid, line_number: i32,
+        item_id: Option<Uuid>, item_number: Option<&str>, item_name: Option<&str>,
+        change_category: &str, field_name: Option<&str>,
+        old_value: Option<&str>, new_value: Option<&str>,
+        old_revision: Option<&str>, new_revision: Option<&str>,
+        component_item_id: Option<Uuid>, component_item_number: Option<&str>,
+        bom_quantity_old: Option<f64>, bom_quantity_new: Option<f64>,
+        effectivity_date: Option<chrono::NaiveDate>,
+        effectivity_end_date: Option<chrono::NaiveDate>,
+        status: &str, completion_notes: Option<&str>,
+        sequence_number: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EngineeringChangeLine> {
+        Ok(atlas_shared::EngineeringChangeLine {
+            id: Uuid::new_v4(), organization_id: org_id, change_id, line_number,
+            item_id, item_number: item_number.map(String::from),
+            item_name: item_name.map(String::from),
+            change_category: change_category.to_string(),
+            field_name: field_name.map(String::from),
+            old_value: old_value.map(String::from), new_value: new_value.map(String::from),
+            old_revision: old_revision.map(String::from), new_revision: new_revision.map(String::from),
+            component_item_id, component_item_number: component_item_number.map(String::from),
+            bom_quantity_old, bom_quantity_new,
+            effectivity_date, effectivity_end_date,
+            status: status.to_string(), completion_notes: completion_notes.map(String::from),
+            sequence_number, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_change_line(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EngineeringChangeLine>> { Ok(None) }
+    async fn list_change_lines(&self, _change_id: Uuid) -> AtlasResult<Vec<atlas_shared::EngineeringChangeLine>> { Ok(vec![]) }
+    async fn update_change_line_status(&self, _id: Uuid, _status: &str, _completion_notes: Option<&str>) -> AtlasResult<atlas_shared::EngineeringChangeLine> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_change_line(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_affected_item(
+        &self, org_id: Uuid, change_id: Uuid, item_id: Uuid,
+        item_number: &str, item_name: Option<&str>,
+        impact_type: &str, impact_description: Option<&str>,
+        current_revision: Option<&str>, new_revision: Option<&str>,
+        disposition: Option<&str>,
+        old_item_status: Option<&str>, new_item_status: Option<&str>,
+        phase_in_date: Option<chrono::NaiveDate>,
+        phase_out_date: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EngineeringChangeAffectedItem> {
+        Ok(atlas_shared::EngineeringChangeAffectedItem {
+            id: Uuid::new_v4(), organization_id: org_id, change_id, item_id,
+            item_number: item_number.to_string(), item_name: item_name.map(String::from),
+            impact_type: impact_type.to_string(),
+            impact_description: impact_description.map(String::from),
+            current_revision: current_revision.map(String::from),
+            new_revision: new_revision.map(String::from),
+            disposition: disposition.map(String::from),
+            old_item_status: old_item_status.map(String::from),
+            new_item_status: new_item_status.map(String::from),
+            phase_in_date, phase_out_date,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_affected_item(&self, _change_id: Uuid, _item_id: Uuid) -> AtlasResult<Option<atlas_shared::EngineeringChangeAffectedItem>> { Ok(None) }
+    async fn get_affected_item_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EngineeringChangeAffectedItem>> { Ok(None) }
+    async fn list_affected_items(&self, _change_id: Uuid) -> AtlasResult<Vec<atlas_shared::EngineeringChangeAffectedItem>> { Ok(vec![]) }
+    async fn remove_affected_item(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_approval(
+        &self, org_id: Uuid, change_id: Uuid, approval_level: i32,
+        approver_id: Option<Uuid>, approver_name: Option<&str>,
+        approver_role: Option<&str>, status: &str,
+        action_date: Option<chrono::DateTime<chrono::Utc>>,
+        comments: Option<&str>,
+        delegated_from_id: Option<Uuid>,
+        approval_conditions: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EngineeringChangeApproval> {
+        Ok(atlas_shared::EngineeringChangeApproval {
+            id: Uuid::new_v4(), organization_id: org_id, change_id, approval_level,
+            approver_id, approver_name: approver_name.map(String::from),
+            approver_role: approver_role.map(String::from),
+            status: status.to_string(), action_date,
+            comments: comments.map(String::from),
+            delegated_from_id, approval_conditions: approval_conditions.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_approvals(&self, _change_id: Uuid) -> AtlasResult<Vec<atlas_shared::EngineeringChangeApproval>> { Ok(vec![]) }
+    async fn get_pending_approvals(&self, _approver_id: Uuid) -> AtlasResult<Vec<atlas_shared::EngineeringChangeApproval>> { Ok(vec![]) }
+
+    async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::EcmDashboard> {
+        Ok(atlas_shared::EcmDashboard {
+            total_changes: 0, open_changes: 0, pending_approval: 0,
+            approved_changes: 0, implemented_changes: 0, rejected_changes: 0,
+            ecr_count: 0, eco_count: 0, ecn_count: 0,
+            critical_open: 0, high_open: 0, medium_open: 0, low_open: 0,
+            avg_days_to_implement: 0.0, avg_days_to_approve: 0.0,
+            total_items_affected: 0, total_estimated_cost: 0.0, total_actual_cost: 0.0,
+            changes_by_reason: serde_json::json!({}),
+            changes_by_status: serde_json::json!({}),
+            changes_trend: serde_json::json!([]),
+        })
+    }
+}

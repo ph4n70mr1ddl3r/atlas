@@ -16943,6 +16943,175 @@ pub struct CarbonOffset {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+// ============================================================================
+// Engineering Change Management (ECM) Types
+// Oracle Fusion Cloud: Product Development > Engineering Change Management
+// ============================================================================
+
+/// Engineering change type definition (ECR, ECO, ECN)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EngineeringChangeType {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub type_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub category: String,
+    pub approval_required: bool,
+    pub default_priority: String,
+    pub number_prefix: String,
+    pub statuses: serde_json::Value,
+    pub description_template: Option<String>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Engineering change order / request / notice
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EngineeringChange {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub change_number: String,
+    pub change_type_id: Option<Uuid>,
+    pub category: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub change_reason: Option<String>,
+    pub change_reason_description: Option<String>,
+    pub priority: String,
+    pub status: String,
+    pub revision: String,
+    pub assigned_to: Option<Uuid>,
+    pub assigned_to_name: Option<String>,
+    pub submitted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub implemented_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub target_date: Option<chrono::NaiveDate>,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub resolution_code: Option<String>,
+    pub resolution_notes: Option<String>,
+    pub parent_change_id: Option<Uuid>,
+    pub superseded_by_id: Option<Uuid>,
+    pub impact_analysis: serde_json::Value,
+    pub estimated_cost: Option<f64>,
+    pub actual_cost: Option<f64>,
+    pub currency_code: String,
+    pub estimated_hours: Option<f64>,
+    pub actual_hours: Option<f64>,
+    pub regulatory_impact: Option<String>,
+    pub safety_impact: Option<String>,
+    pub validation_required: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Change line within an engineering change
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EngineeringChangeLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub change_id: Uuid,
+    pub line_number: i32,
+    pub item_id: Option<Uuid>,
+    pub item_number: Option<String>,
+    pub item_name: Option<String>,
+    pub change_category: String,
+    pub field_name: Option<String>,
+    pub old_value: Option<String>,
+    pub new_value: Option<String>,
+    pub old_revision: Option<String>,
+    pub new_revision: Option<String>,
+    pub component_item_id: Option<Uuid>,
+    pub component_item_number: Option<String>,
+    pub bom_quantity_old: Option<f64>,
+    pub bom_quantity_new: Option<f64>,
+    pub effectivity_date: Option<chrono::NaiveDate>,
+    pub effectivity_end_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub completion_notes: Option<String>,
+    pub sequence_number: i32,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Affected item linked to an engineering change
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EngineeringChangeAffectedItem {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub change_id: Uuid,
+    pub item_id: Uuid,
+    pub item_number: String,
+    pub item_name: Option<String>,
+    pub impact_type: String,
+    pub impact_description: Option<String>,
+    pub current_revision: Option<String>,
+    pub new_revision: Option<String>,
+    pub disposition: Option<String>,
+    pub old_item_status: Option<String>,
+    pub new_item_status: Option<String>,
+    pub phase_in_date: Option<chrono::NaiveDate>,
+    pub phase_out_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Approval record for an engineering change
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EngineeringChangeApproval {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub change_id: Uuid,
+    pub approval_level: i32,
+    pub approver_id: Option<Uuid>,
+    pub approver_name: Option<String>,
+    pub approver_role: Option<String>,
+    pub status: String,
+    pub action_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub comments: Option<String>,
+    pub delegated_from_id: Option<Uuid>,
+    pub approval_conditions: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// ECM dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EcmDashboard {
+    pub total_changes: i32,
+    pub open_changes: i32,
+    pub pending_approval: i32,
+    pub approved_changes: i32,
+    pub implemented_changes: i32,
+    pub rejected_changes: i32,
+    pub ecr_count: i32,
+    pub eco_count: i32,
+    pub ecn_count: i32,
+    pub critical_open: i32,
+    pub high_open: i32,
+    pub medium_open: i32,
+    pub low_open: i32,
+    pub avg_days_to_implement: f64,
+    pub avg_days_to_approve: f64,
+    pub total_items_affected: i32,
+    pub total_estimated_cost: f64,
+    pub total_actual_cost: f64,
+    pub changes_by_reason: serde_json::Value,
+    pub changes_by_status: serde_json::Value,
+    pub changes_trend: serde_json::Value,
+}
+
 /// Sustainability dashboard summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SustainabilityDashboard {

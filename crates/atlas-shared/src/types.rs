@@ -16736,3 +16736,235 @@ pub struct ProjectBillingDashboard {
     pub by_invoice_status: serde_json::Value,
     pub billing_trend: serde_json::Value,
 }
+
+// ============================================================================
+// Sustainability & ESG Management Types
+// Oracle Fusion Cloud: Sustainability / Environmental Accounting & Reporting
+// ============================================================================
+
+/// Sustainability facility (site / building being tracked)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SustainabilityFacility {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub facility_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub country_code: Option<String>,
+    pub region: Option<String>,
+    pub city: Option<String>,
+    pub address: Option<String>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub facility_type: String,
+    pub industry_sector: Option<String>,
+    pub total_area_sqm: Option<f64>,
+    pub employee_count: Option<i32>,
+    pub operating_hours_per_year: i32,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Emission factor for converting activity data to CO2e
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmissionFactor {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub factor_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub scope: String,
+    pub category: String,
+    pub activity_type: String,
+    pub factor_value: f64,
+    pub unit_of_measure: String,
+    pub gas_type: String,
+    pub factor_source: Option<String>,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub region_code: Option<String>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Environmental activity log entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnvironmentalActivity {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub activity_number: String,
+    pub facility_id: Option<Uuid>,
+    pub facility_code: Option<String>,
+    pub activity_type: String,
+    pub scope: String,
+    pub category: Option<String>,
+    pub quantity: f64,
+    pub unit_of_measure: String,
+    pub emission_factor_id: Option<Uuid>,
+    pub co2e_kg: f64,
+    pub co2_kg: Option<f64>,
+    pub ch4_kg: Option<f64>,
+    pub n2o_kg: Option<f64>,
+    pub cost_amount: Option<f64>,
+    pub cost_currency: Option<String>,
+    pub activity_date: chrono::NaiveDate,
+    pub reporting_period: Option<String>,
+    pub source_type: Option<String>,
+    pub source_reference: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
+    pub status: String,
+    pub verified_by: Option<Uuid>,
+    pub verified_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// ESG metric definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EsgMetric {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub metric_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub pillar: String,
+    pub category: String,
+    pub unit_of_measure: String,
+    pub gri_standard: Option<String>,
+    pub sasb_standard: Option<String>,
+    pub tcfd_category: Option<String>,
+    pub eu_taxonomy_code: Option<String>,
+    pub target_value: Option<f64>,
+    pub warning_threshold: Option<f64>,
+    pub direction: String,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// ESG metric reading (actual value over time)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EsgMetricReading {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub metric_id: Uuid,
+    pub metric_value: f64,
+    pub reading_date: chrono::NaiveDate,
+    pub reporting_period: Option<String>,
+    pub facility_id: Option<Uuid>,
+    pub notes: Option<String>,
+    pub source: Option<String>,
+    pub verified_by: Option<Uuid>,
+    pub verified_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Sustainability goal
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SustainabilityGoal {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub goal_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub goal_type: String,
+    pub scope: Option<String>,
+    pub baseline_value: f64,
+    pub baseline_year: i32,
+    pub baseline_unit: String,
+    pub target_value: f64,
+    pub target_year: i32,
+    pub target_unit: String,
+    pub target_reduction_pct: Option<f64>,
+    pub milestones: serde_json::Value,
+    pub current_value: f64,
+    pub progress_pct: f64,
+    pub facility_id: Option<Uuid>,
+    pub status: String,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub framework: Option<String>,
+    pub framework_reference: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Carbon offset
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CarbonOffset {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub offset_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub project_name: String,
+    pub project_type: String,
+    pub project_location: Option<String>,
+    pub registry: Option<String>,
+    pub registry_id: Option<String>,
+    pub certification_standard: Option<String>,
+    pub quantity_tonnes: f64,
+    pub remaining_tonnes: f64,
+    pub unit_price: Option<f64>,
+    pub total_cost: Option<f64>,
+    pub currency_code: Option<String>,
+    pub vintage_year: i32,
+    pub retired_quantity: f64,
+    pub retired_date: Option<chrono::NaiveDate>,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub supplier_name: Option<String>,
+    pub supplier_id: Option<Uuid>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Sustainability dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SustainabilityDashboard {
+    pub total_facilities: i32,
+    pub active_facilities: i32,
+    pub total_emissions_co2e_tonnes: f64,
+    pub scope1_emissions_tonnes: f64,
+    pub scope2_emissions_tonnes: f64,
+    pub scope3_emissions_tonnes: f64,
+    pub total_energy_consumed_kwh: f64,
+    pub renewable_energy_pct: f64,
+    pub total_water_consumed_cubic_m: f64,
+    pub total_waste_generated_tonnes: f64,
+    pub waste_diverted_pct: f64,
+    pub total_offsets_tonnes: f64,
+    pub net_emissions_tonnes: f64,
+    pub active_goals: i32,
+    pub goals_on_track: i32,
+    pub goals_achieved: i32,
+    pub esg_metrics_count: i32,
+    pub emissions_by_scope: serde_json::Value,
+    pub emissions_by_category: serde_json::Value,
+    pub emissions_trend: serde_json::Value,
+    pub goals_by_status: serde_json::Value,
+}

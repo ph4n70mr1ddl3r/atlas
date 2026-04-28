@@ -4695,3 +4695,257 @@ impl crate::joint_venture::JointVentureRepository for MockJointVentureRepository
         })
     }
 }
+
+/// Mock Sustainability repository for testing
+pub struct MockSustainabilityRepository;
+
+#[async_trait]
+impl crate::sustainability::SustainabilityRepository for MockSustainabilityRepository {
+    async fn create_facility(
+        &self, org_id: Uuid, facility_code: &str, name: &str, description: Option<&str>,
+        country_code: Option<&str>, region: Option<&str>, city: Option<&str>,
+        address: Option<&str>, latitude: Option<f64>, longitude: Option<f64>,
+        facility_type: &str, industry_sector: Option<&str>,
+        total_area_sqm: Option<f64>, employee_count: Option<i32>,
+        operating_hours_per_year: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SustainabilityFacility> {
+        Ok(atlas_shared::SustainabilityFacility {
+            id: Uuid::new_v4(), organization_id: org_id,
+            facility_code: facility_code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            country_code: country_code.map(String::from),
+            region: region.map(String::from),
+            city: city.map(String::from),
+            address: address.map(String::from),
+            latitude, longitude,
+            facility_type: facility_type.to_string(),
+            industry_sector: industry_sector.map(String::from),
+            total_area_sqm, employee_count,
+            operating_hours_per_year,
+            status: "active".to_string(),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_facility(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SustainabilityFacility>> { Ok(None) }
+    async fn get_facility_by_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::SustainabilityFacility>> { Ok(None) }
+    async fn list_facilities(&self, _org_id: Uuid, _status: Option<&str>, _facility_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::SustainabilityFacility>> { Ok(vec![]) }
+    async fn update_facility_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::SustainabilityFacility> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_facility(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_emission_factor(
+        &self, org_id: Uuid, factor_code: &str, name: &str, description: Option<&str>,
+        scope: &str, category: &str, activity_type: &str, factor_value: f64,
+        unit_of_measure: &str, gas_type: &str, factor_source: Option<&str>,
+        effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        region_code: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EmissionFactor> {
+        Ok(atlas_shared::EmissionFactor {
+            id: Uuid::new_v4(), organization_id: org_id,
+            factor_code: factor_code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            scope: scope.to_string(), category: category.to_string(),
+            activity_type: activity_type.to_string(), factor_value,
+            unit_of_measure: unit_of_measure.to_string(),
+            gas_type: gas_type.to_string(),
+            factor_source: factor_source.map(String::from),
+            effective_from, effective_to, region_code: region_code.map(String::from),
+            status: "active".to_string(),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_emission_factor(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EmissionFactor>> { Ok(None) }
+    async fn get_emission_factor_by_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::EmissionFactor>> { Ok(None) }
+    async fn list_emission_factors(&self, _org_id: Uuid, _scope: Option<&str>, _category: Option<&str>, _activity_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::EmissionFactor>> { Ok(vec![]) }
+    async fn delete_emission_factor(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_activity(
+        &self, org_id: Uuid, activity_number: &str,
+        facility_id: Option<Uuid>, facility_code: Option<&str>,
+        activity_type: &str, scope: &str, category: Option<&str>,
+        quantity: f64, unit_of_measure: &str,
+        emission_factor_id: Option<Uuid>,
+        co2e_kg: f64, co2_kg: Option<f64>, ch4_kg: Option<f64>, n2o_kg: Option<f64>,
+        cost_amount: Option<f64>, cost_currency: Option<&str>,
+        activity_date: chrono::NaiveDate, reporting_period: Option<&str>,
+        source_type: Option<&str>, source_reference: Option<&str>,
+        department_id: Option<Uuid>, project_id: Option<Uuid>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EnvironmentalActivity> {
+        Ok(atlas_shared::EnvironmentalActivity {
+            id: Uuid::new_v4(), organization_id: org_id,
+            activity_number: activity_number.to_string(),
+            facility_id, facility_code: facility_code.map(String::from),
+            activity_type: activity_type.to_string(), scope: scope.to_string(),
+            category: category.map(String::from),
+            quantity, unit_of_measure: unit_of_measure.to_string(),
+            emission_factor_id, co2e_kg, co2_kg, ch4_kg, n2o_kg,
+            cost_amount, cost_currency: cost_currency.map(String::from),
+            activity_date, reporting_period: reporting_period.map(String::from),
+            source_type: source_type.map(String::from), source_reference: source_reference.map(String::from),
+            department_id, project_id,
+            status: "confirmed".to_string(),
+            verified_by: None, verified_at: None,
+            notes: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_activity(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EnvironmentalActivity>> { Ok(None) }
+    async fn get_activity_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::EnvironmentalActivity>> { Ok(None) }
+    async fn list_activities(&self, _org_id: Uuid, _scope: Option<&str>, _facility_id: Option<&Uuid>, _activity_type: Option<&str>, _period: Option<&str>) -> AtlasResult<Vec<atlas_shared::EnvironmentalActivity>> { Ok(vec![]) }
+    async fn update_activity_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::EnvironmentalActivity> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_activity(&self, _org_id: Uuid, _number: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_metric(
+        &self, org_id: Uuid, metric_code: &str, name: &str, description: Option<&str>,
+        pillar: &str, category: &str, unit_of_measure: &str,
+        gri_standard: Option<&str>, sasb_standard: Option<&str>,
+        tcfd_category: Option<&str>, eu_taxonomy_code: Option<&str>,
+        target_value: Option<f64>, warning_threshold: Option<f64>, direction: &str,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EsgMetric> {
+        Ok(atlas_shared::EsgMetric {
+            id: Uuid::new_v4(), organization_id: org_id,
+            metric_code: metric_code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            pillar: pillar.to_string(), category: category.to_string(),
+            unit_of_measure: unit_of_measure.to_string(),
+            gri_standard: gri_standard.map(String::from),
+            sasb_standard: sasb_standard.map(String::from),
+            tcfd_category: tcfd_category.map(String::from),
+            eu_taxonomy_code: eu_taxonomy_code.map(String::from),
+            target_value, warning_threshold,
+            direction: direction.to_string(),
+            status: "active".to_string(),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_metric(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EsgMetric>> { Ok(None) }
+    async fn get_metric_by_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::EsgMetric>> { Ok(None) }
+    async fn list_metrics(&self, _org_id: Uuid, _pillar: Option<&str>, _category: Option<&str>) -> AtlasResult<Vec<atlas_shared::EsgMetric>> { Ok(vec![]) }
+    async fn delete_metric(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_metric_reading(
+        &self, org_id: Uuid, metric_id: Uuid, metric_value: f64,
+        reading_date: chrono::NaiveDate, reporting_period: Option<&str>,
+        facility_id: Option<Uuid>, notes: Option<&str>, source: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::EsgMetricReading> {
+        Ok(atlas_shared::EsgMetricReading {
+            id: Uuid::new_v4(), organization_id: org_id, metric_id, metric_value,
+            reading_date, reporting_period: reporting_period.map(String::from),
+            facility_id, notes: notes.map(String::from), source: source.map(String::from),
+            verified_by: None, verified_at: None,
+            status: "confirmed".to_string(),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_metric_reading(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::EsgMetricReading>> { Ok(None) }
+    async fn list_metric_readings(&self, _metric_id: Uuid, _from: Option<chrono::NaiveDate>, _to: Option<chrono::NaiveDate>) -> AtlasResult<Vec<atlas_shared::EsgMetricReading>> { Ok(vec![]) }
+    async fn delete_metric_reading(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_goal(
+        &self, org_id: Uuid, goal_code: &str, name: &str, description: Option<&str>,
+        goal_type: &str, scope: Option<&str>,
+        baseline_value: f64, baseline_year: i32, baseline_unit: &str,
+        target_value: f64, target_year: i32, target_unit: &str,
+        target_reduction_pct: Option<f64>, milestones: serde_json::Value,
+        progress_pct: f64,
+        facility_id: Option<Uuid>, owner_id: Option<Uuid>, owner_name: Option<&str>,
+        framework: Option<&str>, framework_reference: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SustainabilityGoal> {
+        Ok(atlas_shared::SustainabilityGoal {
+            id: Uuid::new_v4(), organization_id: org_id,
+            goal_code: goal_code.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            goal_type: goal_type.to_string(), scope: scope.map(String::from),
+            baseline_value, baseline_year, baseline_unit: baseline_unit.to_string(),
+            target_value, target_year, target_unit: target_unit.to_string(),
+            target_reduction_pct, milestones,
+            current_value: baseline_value, progress_pct,
+            facility_id, status: "on_track".to_string(),
+            owner_id, owner_name: owner_name.map(String::from),
+            framework: framework.map(String::from),
+            framework_reference: framework_reference.map(String::from),
+            effective_from, effective_to,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_goal(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SustainabilityGoal>> { Ok(None) }
+    async fn get_goal_by_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::SustainabilityGoal>> { Ok(None) }
+    async fn list_goals(&self, _org_id: Uuid, _goal_type: Option<&str>, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::SustainabilityGoal>> { Ok(vec![]) }
+    async fn update_goal_progress(&self, _id: Uuid, _current_value: f64) -> AtlasResult<atlas_shared::SustainabilityGoal> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_goal_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::SustainabilityGoal> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_goal(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_carbon_offset(
+        &self, org_id: Uuid, offset_number: &str, name: &str, description: Option<&str>,
+        project_name: &str, project_type: &str, project_location: Option<&str>,
+        registry: Option<&str>, registry_id: Option<&str>, certification_standard: Option<&str>,
+        quantity_tonnes: f64, remaining_tonnes: f64,
+        unit_price: Option<f64>, total_cost: Option<f64>, currency_code: Option<&str>,
+        vintage_year: i32, effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        supplier_name: Option<&str>, supplier_id: Option<Uuid>, notes: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::CarbonOffset> {
+        Ok(atlas_shared::CarbonOffset {
+            id: Uuid::new_v4(), organization_id: org_id,
+            offset_number: offset_number.to_string(), name: name.to_string(),
+            description: description.map(String::from),
+            project_name: project_name.to_string(),
+            project_type: project_type.to_string(),
+            project_location: project_location.map(String::from),
+            registry: registry.map(String::from),
+            registry_id: registry_id.map(String::from),
+            certification_standard: certification_standard.map(String::from),
+            quantity_tonnes, remaining_tonnes,
+            unit_price, total_cost, currency_code: currency_code.map(String::from),
+            vintage_year, retired_quantity: 0.0, retired_date: None,
+            effective_from, effective_to,
+            status: "active".to_string(),
+            supplier_name: supplier_name.map(String::from), supplier_id, notes: notes.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_carbon_offset(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::CarbonOffset>> { Ok(None) }
+    async fn get_offset_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::CarbonOffset>> { Ok(None) }
+    async fn list_carbon_offsets(&self, _org_id: Uuid, _status: Option<&str>, _project_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::CarbonOffset>> { Ok(vec![]) }
+    async fn retire_carbon_offset(&self, _id: Uuid, _qty: f64) -> AtlasResult<atlas_shared::CarbonOffset> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_carbon_offset(&self, _org_id: Uuid, _number: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::SustainabilityDashboard> {
+        Ok(atlas_shared::SustainabilityDashboard {
+            total_facilities: 0, active_facilities: 0,
+            total_emissions_co2e_tonnes: 0.0,
+            scope1_emissions_tonnes: 0.0, scope2_emissions_tonnes: 0.0, scope3_emissions_tonnes: 0.0,
+            total_energy_consumed_kwh: 0.0, renewable_energy_pct: 0.0,
+            total_water_consumed_cubic_m: 0.0,
+            total_waste_generated_tonnes: 0.0, waste_diverted_pct: 0.0,
+            total_offsets_tonnes: 0.0, net_emissions_tonnes: 0.0,
+            active_goals: 0, goals_on_track: 0, goals_achieved: 0,
+            esg_metrics_count: 0,
+            emissions_by_scope: serde_json::json!({}),
+            emissions_by_category: serde_json::json!({}),
+            emissions_trend: serde_json::json!({}),
+            goals_by_status: serde_json::json!({}),
+        })
+    }
+}

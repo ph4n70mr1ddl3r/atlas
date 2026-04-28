@@ -100,6 +100,7 @@ pub mod joint_venture;
 pub mod enterprise_asset_management;
 pub mod risk_management;
 pub mod project_billing;
+pub mod sustainability;
 
 pub use schema::*;
 pub use workflow::{
@@ -201,6 +202,7 @@ pub use joint_venture::{JointVentureEngine, PostgresJointVentureRepository as Po
 pub use risk_management::{RiskManagementEngine, PostgresRiskManagementRepository as PostgresRiskManagementRepo};
 pub use enterprise_asset_management::{EnterpriseAssetManagementEngine, PostgresAssetManagementRepository as PostgresAssetManagementRepo};
 pub use project_billing::{ProjectBillingEngine, PostgresProjectBillingRepository as PostgresProjectBillingRepo};
+pub use sustainability::{SustainabilityEngine, PostgresSustainabilityRepository as PostgresSustainabilityRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

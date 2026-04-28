@@ -15596,3 +15596,202 @@ pub struct ClmDashboard {
     pub recent_contracts: serde_json::Value,
 }
 
+// ============================================================================
+// Succession Planning
+// Oracle Fusion: HCM > Succession Management > Succession Plans, Talent Pools,
+//   Talent Reviews, Career Paths
+// ============================================================================
+
+/// Succession Plan
+/// Oracle Fusion: HCM > Succession Management > Succession Plans
+/// A plan for a key position identifying backup candidates and their readiness.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SuccessionPlan {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub plan_type: String,              // position, role, key_person
+    pub position_id: Option<Uuid>,
+    pub position_title: Option<String>,
+    pub job_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub current_incumbent_id: Option<Uuid>,
+    pub current_incumbent_name: Option<String>,
+    pub risk_level: String,             // low, medium, high, critical
+    pub urgency: String,                // immediate, short_term, medium_term, long_term
+    pub status: String,                 // draft, active, completed, cancelled
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Succession Plan Candidate
+/// Oracle Fusion: HCM > Succession Management > Plan Candidates
+/// A candidate within a succession plan with readiness assessment.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SuccessionCandidate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub plan_id: Uuid,
+    pub person_id: Uuid,
+    pub person_name: Option<String>,
+    pub employee_number: Option<String>,
+    pub readiness: String,              // ready_now, ready_1_2_years, ready_3_5_years, not_ready
+    pub ranking: Option<i32>,
+    pub performance_rating: Option<String>,  // 1-5 scale or labels
+    pub potential_rating: Option<String>,    // 1-5 scale or labels
+    pub flight_risk: Option<String>,         // low, medium, high
+    pub development_notes: Option<String>,
+    pub recommended_actions: Option<String>,
+    pub status: String,                 // proposed, approved, rejected, development
+    pub metadata: serde_json::Value,
+    pub added_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Talent Pool
+/// Oracle Fusion: HCM > Succession Management > Talent Pools
+/// A named group of high-potential employees tracked for development.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TalentPool {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub pool_type: String,              // leadership, technical, high_potential, diversity, custom
+    pub owner_id: Option<Uuid>,
+    pub max_members: Option<i32>,
+    pub status: String,                 // draft, active, archived
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Talent Pool Member
+/// Oracle Fusion: HCM > Succession Management > Pool Members
+/// A member of a talent pool with their assessment info.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TalentPoolMember {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub pool_id: Uuid,
+    pub person_id: Uuid,
+    pub person_name: Option<String>,
+    pub performance_rating: Option<String>,
+    pub potential_rating: Option<String>,
+    pub readiness: String,              // ready_now, ready_1_2_years, ready_3_5_years, not_ready
+    pub development_plan: Option<String>,
+    pub notes: Option<String>,
+    pub added_date: Option<chrono::NaiveDate>,
+    pub review_date: Option<chrono::NaiveDate>,
+    pub status: String,                 // active, on_hold, removed, graduated
+    pub metadata: serde_json::Value,
+    pub added_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Talent Review
+/// Oracle Fusion: HCM > Succession Management > Talent Review Meetings
+/// A formal assessment session where managers evaluate talent.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TalentReview {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub review_type: String,            // calibration, performance_potential, nine_box, leadership
+    pub facilitator_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub review_date: Option<chrono::NaiveDate>,
+    pub status: String,                 // scheduled, in_progress, completed, cancelled
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Talent Review Assessment
+/// Oracle Fusion: HCM > Succession Management > Review Assessments
+/// An individual assessment within a talent review meeting.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TalentReviewAssessment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub review_id: Uuid,
+    pub person_id: Uuid,
+    pub person_name: Option<String>,
+    pub performance_rating: Option<String>,
+    pub potential_rating: Option<String>,
+    pub nine_box_position: Option<String>,  // star, workhorse, puzzle, solid_citizen, etc.
+    pub strengths: Option<String>,
+    pub weaknesses: Option<String>,
+    pub career_aspiration: Option<String>,
+    pub development_needs: Option<String>,
+    pub succession_readiness: Option<String>,
+    pub assessor_id: Option<Uuid>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Career Path
+/// Oracle Fusion: HCM > Succession Management > Career Paths
+/// A defined progression path between jobs/roles.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CareerPath {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub path_type: String,              // linear, branching, lattice, dual_track
+    pub from_job_id: Option<Uuid>,
+    pub from_job_title: Option<String>,
+    pub to_job_id: Option<Uuid>,
+    pub to_job_title: Option<String>,
+    pub typical_duration_months: Option<i32>,
+    pub required_competencies: Option<String>,
+    pub required_certifications: Option<String>,
+    pub development_activities: Option<String>,
+    pub status: String,                 // draft, active, archived
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Succession Planning Dashboard Summary
+/// Oracle Fusion: HCM > Succession Management > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SuccessionDashboard {
+    pub total_succession_plans: i32,
+    pub active_plans: i32,
+    pub plans_by_risk: serde_json::Value,
+    pub plans_by_urgency: serde_json::Value,
+    pub total_candidates: i32,
+    pub candidates_by_readiness: serde_json::Value,
+    pub total_talent_pools: i32,
+    pub total_pool_members: i32,
+    pub total_reviews: i32,
+    pub total_career_paths: i32,
+    pub coverage_pct: Option<String>,
+}
+

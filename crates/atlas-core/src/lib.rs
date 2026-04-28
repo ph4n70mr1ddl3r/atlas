@@ -99,6 +99,7 @@ pub mod learning_management;
 pub mod joint_venture;
 pub mod enterprise_asset_management;
 pub mod risk_management;
+pub mod project_billing;
 
 pub use schema::*;
 pub use workflow::{
@@ -199,6 +200,7 @@ pub use learning_management::{LearningManagementEngine, PostgresLearningManageme
 pub use joint_venture::{JointVentureEngine, PostgresJointVentureRepository as PostgresJointVentureRepo};
 pub use risk_management::{RiskManagementEngine, PostgresRiskManagementRepository as PostgresRiskManagementRepo};
 pub use enterprise_asset_management::{EnterpriseAssetManagementEngine, PostgresAssetManagementRepository as PostgresAssetManagementRepo};
+pub use project_billing::{ProjectBillingEngine, PostgresProjectBillingRepository as PostgresProjectBillingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

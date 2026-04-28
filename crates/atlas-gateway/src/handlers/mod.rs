@@ -72,6 +72,7 @@ pub mod kpi;
 pub mod account_monitor;
 pub mod goal_management;
 pub mod contract_lifecycle;
+pub mod enterprise_asset_management;
 pub mod risk_management;
 
 pub use schema::*;
@@ -2988,6 +2989,41 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Risk Dashboard
         .route("/risk/dashboard", get(risk_management::get_risk_dashboard))
+
+        // ========================================================================
+        // Enterprise Asset Management (eAM) Routes
+        // ========================================================================
+        // Asset Locations
+        .route("/eam/locations", post(enterprise_asset_management::create_location))
+        .route("/eam/locations", get(enterprise_asset_management::list_locations))
+        .route("/eam/locations/id/:id", get(enterprise_asset_management::get_location))
+        .route("/eam/locations/code/:code", delete(enterprise_asset_management::delete_location))
+
+        // Asset Definitions
+        .route("/eam/assets", post(enterprise_asset_management::create_asset))
+        .route("/eam/assets", get(enterprise_asset_management::list_assets))
+        .route("/eam/assets/id/:id", get(enterprise_asset_management::get_asset))
+        .route("/eam/assets/id/:id/status", post(enterprise_asset_management::update_asset_status))
+        .route("/eam/assets/id/:id/meter", post(enterprise_asset_management::update_asset_meter))
+        .route("/eam/assets/number/:asset_number", delete(enterprise_asset_management::delete_asset))
+
+        // Work Orders
+        .route("/eam/work-orders", post(enterprise_asset_management::create_work_order))
+        .route("/eam/work-orders", get(enterprise_asset_management::list_work_orders))
+        .route("/eam/work-orders/id/:id", get(enterprise_asset_management::get_work_order))
+        .route("/eam/work-orders/id/:id/status", post(enterprise_asset_management::update_work_order_status))
+        .route("/eam/work-orders/id/:id/complete", post(enterprise_asset_management::complete_work_order))
+        .route("/eam/work-orders/number/:wo_number", delete(enterprise_asset_management::delete_work_order))
+
+        // Preventive Maintenance Schedules
+        .route("/eam/pm-schedules", post(enterprise_asset_management::create_pm_schedule))
+        .route("/eam/pm-schedules", get(enterprise_asset_management::list_pm_schedules))
+        .route("/eam/pm-schedules/id/:id", get(enterprise_asset_management::get_pm_schedule))
+        .route("/eam/pm-schedules/id/:id/status", post(enterprise_asset_management::update_pm_schedule_status))
+        .route("/eam/pm-schedules/number/:schedule_number", delete(enterprise_asset_management::delete_pm_schedule))
+
+        // Maintenance Dashboard
+        .route("/eam/dashboard", get(enterprise_asset_management::get_maintenance_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

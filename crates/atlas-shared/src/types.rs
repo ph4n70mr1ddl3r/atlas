@@ -16408,3 +16408,142 @@ pub struct RiskDashboard {
     pub risks_by_level: serde_json::Value,
     pub control_effectiveness_summary: serde_json::Value,
 }
+
+// ============================================================================
+// Enterprise Asset Management (eAM)
+// Oracle Fusion Cloud: Maintenance Management / Enterprise Asset Management
+// Physical asset maintenance, work orders, preventive maintenance,
+// maintenance schedules, material & labor tracking.
+// ============================================================================
+
+/// Physical asset definition (distinct from Fixed Assets which is financial)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssetDefinition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub asset_number: String,
+    pub name: String,
+    pub description: String,
+    pub asset_group: String,            // equipment class (pump, motor, vehicle, hvac, etc.)
+    pub asset_criticality: String,      // low, medium, high, critical
+    pub asset_status: String,           // active, inactive, disposed, in_repair
+    pub location_id: Option<Uuid>,
+    pub location_name: String,
+    pub parent_asset_id: Option<Uuid>,
+    pub serial_number: String,
+    pub manufacturer: String,
+    pub model: String,
+    pub install_date: Option<chrono::NaiveDate>,
+    pub warranty_expiry: Option<chrono::NaiveDate>,
+    pub last_maintenance_date: Option<chrono::NaiveDate>,
+    pub next_maintenance_date: Option<chrono::NaiveDate>,
+    pub meter_reading: Option<serde_json::Value>,  // {type, value, unit, last_read}
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Maintenance work order
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaintenanceWorkOrder {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub work_order_number: String,
+    pub title: String,
+    pub description: String,
+    pub work_order_type: String,        // corrective, preventive, emergency, inspection, project
+    pub priority: String,               // low, normal, high, urgent
+    pub status: String,                 // draft, approved, in_progress, completed, closed, cancelled
+    pub asset_id: Uuid,
+    pub asset_number: String,
+    pub asset_name: String,
+    pub location_name: String,
+    pub assigned_to: Option<Uuid>,
+    pub assigned_to_name: String,
+    pub scheduled_start: Option<chrono::NaiveDate>,
+    pub scheduled_end: Option<chrono::NaiveDate>,
+    pub actual_start: Option<chrono::DateTime<chrono::Utc>>,
+    pub actual_end: Option<chrono::DateTime<chrono::Utc>>,
+    pub estimated_hours: Option<serde_json::Value>,
+    pub actual_hours: Option<serde_json::Value>,
+    pub estimated_cost: String,
+    pub actual_cost: String,
+    pub downtime_hours: f64,
+    pub failure_code: String,
+    pub cause_code: String,
+    pub resolution_code: String,
+    pub materials: serde_json::Value,    // [{item, quantity, unit_cost}]
+    pub labor: serde_json::Value,        // [{person_id, name, hours, rate}]
+    pub completion_notes: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub closed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Preventive maintenance schedule / program
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PreventiveMaintenanceSchedule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_number: String,
+    pub name: String,
+    pub description: String,
+    pub asset_id: Uuid,
+    pub asset_number: String,
+    pub asset_name: String,
+    pub schedule_type: String,          // time_based, meter_based, condition_based
+    pub frequency: String,              // daily, weekly, monthly, quarterly, semi_annual, annual
+    pub interval_value: i32,            // every N days/weeks/months/meters
+    pub interval_unit: String,          // days, weeks, months, hours, miles, cycles
+    pub meter_type: String,             // hours, miles, km, cycles (for meter-based)
+    pub meter_threshold: Option<serde_json::Value>,
+    pub work_order_template: Option<serde_json::Value>,
+    pub estimated_duration_hours: f64,
+    pub estimated_cost: String,
+    pub next_due_date: Option<chrono::NaiveDate>,
+    pub last_completed_date: Option<chrono::NaiveDate>,
+    pub last_completed_wo: String,
+    pub auto_generate: bool,            // auto-generate work orders
+    pub lead_time_days: i32,            // days before due to generate WO
+    pub status: String,                 // active, inactive, completed
+    pub effective_start: Option<chrono::NaiveDate>,
+    pub effective_end: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Asset maintenance dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaintenanceDashboard {
+    pub total_assets: i32,
+    pub active_assets: i32,
+    pub assets_in_repair: i32,
+    pub critical_assets: i32,
+    pub total_work_orders: i32,
+    pub open_work_orders: i32,
+    pub in_progress_work_orders: i32,
+    pub completed_work_orders: i32,
+    pub overdue_work_orders: i32,
+    pub emergency_work_orders: i32,
+    pub preventive_work_orders: i32,
+    pub corrective_work_orders: i32,
+    pub total_schedules: i32,
+    pub active_schedules: i32,
+    pub overdue_schedules: i32,
+    pub avg_completion_days: f64,
+    pub total_maintenance_cost: String,
+    pub total_downtime_hours: f64,
+    pub mtbf_hours: f64,               // mean time between failures
+    pub mttr_hours: f64,               // mean time to repair
+    pub work_orders_by_priority: serde_json::Value,
+    pub work_orders_by_type: serde_json::Value,
+    pub assets_by_criticality: serde_json::Value,
+    pub costs_by_month: serde_json::Value,
+}

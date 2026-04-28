@@ -4417,3 +4417,281 @@ impl crate::payroll::PayrollRepository for MockPayrollRepository {
         })
     }
 }
+
+/// Mock Joint Venture repository for testing
+pub struct MockJointVentureRepository;
+
+#[async_trait]
+impl crate::joint_venture::JointVentureRepository for MockJointVentureRepository {
+    async fn create_venture(
+        &self, org_id: Uuid, venture_number: &str, name: &str, description: Option<&str>,
+        operator_id: Option<Uuid>, operator_name: Option<&str>,
+        currency_code: &str, start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>, accounting_method: &str,
+        billing_cycle: &str, cost_cap_amount: Option<&str>,
+        cost_cap_currency: Option<&str>,
+        gl_revenue_account: Option<&str>, gl_cost_account: Option<&str>,
+        gl_billing_account: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::JointVenture> {
+        Ok(atlas_shared::JointVenture {
+            id: Uuid::new_v4(), organization_id: org_id,
+            venture_number: venture_number.to_string(),
+            name: name.to_string(),
+            description: description.map(String::from),
+            status: "draft".to_string(),
+            operator_id, operator_name: operator_name.map(String::from),
+            currency_code: currency_code.to_string(),
+            start_date, end_date,
+            accounting_method: accounting_method.to_string(),
+            billing_cycle: billing_cycle.to_string(),
+            cost_cap_amount: cost_cap_amount.map(String::from),
+            cost_cap_currency: cost_cap_currency.map(String::from),
+            gl_revenue_account: gl_revenue_account.map(String::from),
+            gl_cost_account: gl_cost_account.map(String::from),
+            gl_billing_account: gl_billing_account.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_venture(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::JointVenture>> { Ok(None) }
+    async fn get_venture_by_number(&self, _org_id: Uuid, _venture_number: &str) -> AtlasResult<Option<atlas_shared::JointVenture>> { Ok(None) }
+    async fn list_ventures(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::JointVenture>> { Ok(vec![]) }
+    async fn update_venture_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::JointVenture> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_partner(
+        &self, org_id: Uuid, venture_id: Uuid, partner_id: Uuid, partner_name: &str,
+        partner_type: &str, ownership_percentage: &str,
+        revenue_interest_pct: Option<&str>, cost_bearing_pct: Option<&str>,
+        role: &str, billing_contact: Option<&str>,
+        billing_email: Option<&str>, billing_address: Option<&str>,
+        effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::JointVenturePartner> {
+        Ok(atlas_shared::JointVenturePartner {
+            id: Uuid::new_v4(), organization_id: org_id, venture_id,
+            partner_id, partner_name: partner_name.to_string(),
+            partner_type: partner_type.to_string(),
+            ownership_percentage: ownership_percentage.to_string(),
+            revenue_interest_pct: revenue_interest_pct.map(String::from),
+            cost_bearing_pct: cost_bearing_pct.map(String::from),
+            role: role.to_string(),
+            billing_contact: billing_contact.map(String::from),
+            billing_email: billing_email.map(String::from),
+            billing_address: billing_address.map(String::from),
+            effective_from, effective_to,
+            status: "active".to_string(),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_partner(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::JointVenturePartner>> { Ok(None) }
+    async fn list_partners_by_venture(&self, _venture_id: Uuid) -> AtlasResult<Vec<atlas_shared::JointVenturePartner>> { Ok(vec![]) }
+    async fn list_active_partners(&self, _venture_id: Uuid, _on_date: chrono::NaiveDate) -> AtlasResult<Vec<atlas_shared::JointVenturePartner>> { Ok(vec![]) }
+    async fn update_partner_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::JointVenturePartner> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_partner(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_afe(
+        &self, org_id: Uuid, venture_id: Uuid, afe_number: &str, title: &str,
+        description: Option<&str>, estimated_cost: &str, currency_code: &str,
+        cost_center: Option<&str>, work_area: Option<&str>, well_name: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::JointVentureAfe> {
+        Ok(atlas_shared::JointVentureAfe {
+            id: Uuid::new_v4(), organization_id: org_id, venture_id,
+            afe_number: afe_number.to_string(), title: title.to_string(),
+            description: description.map(String::from),
+            status: "draft".to_string(),
+            estimated_cost: estimated_cost.to_string(),
+            actual_cost: "0".to_string(),
+            committed_cost: "0".to_string(),
+            remaining_budget: estimated_cost.to_string(),
+            currency_code: currency_code.to_string(),
+            cost_center: cost_center.map(String::from),
+            work_area: work_area.map(String::from),
+            well_name: well_name.map(String::from),
+            requested_by: None, requested_at: None,
+            approved_by: None, approved_at: None,
+            rejected_reason: None,
+            effective_from, effective_to,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_afe(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::JointVentureAfe>> { Ok(None) }
+    async fn get_afe_by_number(&self, _org_id: Uuid, _afe_number: &str) -> AtlasResult<Option<atlas_shared::JointVentureAfe>> { Ok(None) }
+    async fn list_afes_by_venture(&self, _venture_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::JointVentureAfe>> { Ok(vec![]) }
+    async fn update_afe_status(
+        &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>, _rejected_reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::JointVentureAfe> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_afe_costs(&self, _id: Uuid, _actual: &str, _committed: &str, _remaining: &str) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_cost_distribution(
+        &self, org_id: Uuid, venture_id: Uuid, distribution_number: &str,
+        afe_id: Option<Uuid>, description: Option<&str>,
+        total_amount: &str, currency_code: &str, cost_type: &str,
+        distribution_date: chrono::NaiveDate,
+        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::JvCostDistribution> {
+        Ok(atlas_shared::JvCostDistribution {
+            id: Uuid::new_v4(), organization_id: org_id, venture_id,
+            distribution_number: distribution_number.to_string(),
+            afe_id, description: description.map(String::from),
+            status: "draft".to_string(),
+            total_amount: total_amount.to_string(),
+            currency_code: currency_code.to_string(),
+            cost_type: cost_type.to_string(),
+            distribution_date,
+            gl_posting_date: None, gl_posted_at: None,
+            source_type: source_type.map(String::from),
+            source_id, source_number: source_number.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_cost_distribution(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::JvCostDistribution>> { Ok(None) }
+    async fn list_cost_distributions(&self, _venture_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::JvCostDistribution>> { Ok(vec![]) }
+    async fn update_cost_distribution_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::JvCostDistribution> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn create_cost_distribution_line(
+        &self, org_id: Uuid, distribution_id: Uuid, partner_id: Uuid, partner_name: Option<&str>,
+        ownership_pct: &str, cost_bearing_pct: &str, distributed_amount: &str,
+        gl_account_code: Option<&str>, line_description: Option<&str>,
+    ) -> AtlasResult<atlas_shared::JvCostDistributionLine> {
+        Ok(atlas_shared::JvCostDistributionLine {
+            id: Uuid::new_v4(), organization_id: org_id, distribution_id,
+            partner_id, partner_name: partner_name.map(String::from),
+            ownership_pct: ownership_pct.to_string(),
+            cost_bearing_pct: cost_bearing_pct.to_string(),
+            distributed_amount: distributed_amount.to_string(),
+            gl_account_code: gl_account_code.map(String::from),
+            line_description: line_description.map(String::from),
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_cost_distribution_lines(&self, _distribution_id: Uuid) -> AtlasResult<Vec<atlas_shared::JvCostDistributionLine>> { Ok(vec![]) }
+
+    async fn create_revenue_distribution(
+        &self, org_id: Uuid, venture_id: Uuid, distribution_number: &str,
+        description: Option<&str>, total_amount: &str, currency_code: &str,
+        revenue_type: &str, distribution_date: chrono::NaiveDate,
+        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::JvRevenueDistribution> {
+        Ok(atlas_shared::JvRevenueDistribution {
+            id: Uuid::new_v4(), organization_id: org_id, venture_id,
+            distribution_number: distribution_number.to_string(),
+            description: description.map(String::from),
+            status: "draft".to_string(),
+            total_amount: total_amount.to_string(),
+            currency_code: currency_code.to_string(),
+            revenue_type: revenue_type.to_string(),
+            distribution_date,
+            gl_posting_date: None, gl_posted_at: None,
+            source_type: source_type.map(String::from),
+            source_id, source_number: source_number.map(String::from),
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_revenue_distribution(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::JvRevenueDistribution>> { Ok(None) }
+    async fn list_revenue_distributions(&self, _venture_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::JvRevenueDistribution>> { Ok(vec![]) }
+    async fn update_revenue_distribution_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::JvRevenueDistribution> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn create_revenue_distribution_line(
+        &self, org_id: Uuid, distribution_id: Uuid, partner_id: Uuid, partner_name: Option<&str>,
+        revenue_interest_pct: &str, distributed_amount: &str,
+        gl_account_code: Option<&str>, line_description: Option<&str>,
+    ) -> AtlasResult<atlas_shared::JvRevenueDistributionLine> {
+        Ok(atlas_shared::JvRevenueDistributionLine {
+            id: Uuid::new_v4(), organization_id: org_id, distribution_id,
+            partner_id, partner_name: partner_name.map(String::from),
+            revenue_interest_pct: revenue_interest_pct.to_string(),
+            distributed_amount: distributed_amount.to_string(),
+            gl_account_code: gl_account_code.map(String::from),
+            line_description: line_description.map(String::from),
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_revenue_distribution_lines(&self, _distribution_id: Uuid) -> AtlasResult<Vec<atlas_shared::JvRevenueDistributionLine>> { Ok(vec![]) }
+
+    async fn create_billing(
+        &self, org_id: Uuid, venture_id: Uuid, billing_number: &str,
+        partner_id: Uuid, partner_name: Option<&str>, billing_type: &str,
+        total_amount: &str, tax_amount: &str, total_with_tax: &str,
+        currency_code: &str,
+        billing_period_start: chrono::NaiveDate, billing_period_end: chrono::NaiveDate,
+        due_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::JvBilling> {
+        Ok(atlas_shared::JvBilling {
+            id: Uuid::new_v4(), organization_id: org_id, venture_id,
+            billing_number: billing_number.to_string(),
+            partner_id, partner_name: partner_name.map(String::from),
+            billing_type: billing_type.to_string(),
+            status: "draft".to_string(),
+            total_amount: total_amount.to_string(),
+            tax_amount: tax_amount.to_string(),
+            total_with_tax: total_with_tax.to_string(),
+            currency_code: currency_code.to_string(),
+            billing_period_start, billing_period_end, due_date,
+            approved_by: None, approved_at: None,
+            paid_at: None, payment_reference: None, dispute_reason: None,
+            metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_billing(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::JvBilling>> { Ok(None) }
+    async fn get_billing_by_number(&self, _org_id: Uuid, _billing_number: &str) -> AtlasResult<Option<atlas_shared::JvBilling>> { Ok(None) }
+    async fn list_billings(&self, _venture_id: Uuid, _status: Option<&str>, _billing_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::JvBilling>> { Ok(vec![]) }
+    async fn update_billing_status(
+        &self, _id: Uuid, _status: &str, _approved_by: Option<Uuid>,
+        _payment_reference: Option<&str>, _dispute_reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::JvBilling> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn create_billing_line(
+        &self, org_id: Uuid, billing_id: Uuid, line_number: i32,
+        cost_distribution_id: Option<Uuid>, revenue_distribution_id: Option<Uuid>,
+        description: Option<&str>, cost_type: Option<&str>, amount: &str,
+        ownership_pct: Option<&str>,
+    ) -> AtlasResult<atlas_shared::JvBillingLine> {
+        Ok(atlas_shared::JvBillingLine {
+            id: Uuid::new_v4(), organization_id: org_id, billing_id,
+            line_number,
+            cost_distribution_id, revenue_distribution_id,
+            description: description.map(String::from),
+            cost_type: cost_type.map(String::from),
+            amount: amount.to_string(),
+            ownership_pct: ownership_pct.map(String::from),
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_billing_lines(&self, _billing_id: Uuid) -> AtlasResult<Vec<atlas_shared::JvBillingLine>> { Ok(vec![]) }
+
+    async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::JvDashboard> {
+        Ok(atlas_shared::JvDashboard {
+            total_ventures: 0,
+            active_ventures: 0,
+            total_partners: 0,
+            total_cost_distributed: "0".to_string(),
+            total_revenue_distributed: "0".to_string(),
+            total_billed: "0".to_string(),
+            total_collected: "0".to_string(),
+            outstanding_balance: "0.00".to_string(),
+            pending_afes: 0,
+            ventures_by_status: serde_json::json!({}),
+        })
+    }
+}

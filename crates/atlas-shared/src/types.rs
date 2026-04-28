@@ -15956,3 +15956,254 @@ pub struct LearningDashboard {
     pub avg_score: Option<String>,
 }
 
+
+// ============================================================================
+// Joint Venture Management Types
+// Oracle Fusion Cloud Financials > Joint Venture Management
+// ============================================================================
+
+/// Joint Venture
+/// Oracle Fusion: Financials > Joint Venture Management > Joint Ventures
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JointVenture {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub venture_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub status: String,               // draft, active, on_hold, closed
+    pub operator_id: Option<Uuid>,
+    pub operator_name: Option<String>,
+    pub currency_code: String,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub end_date: Option<chrono::NaiveDate>,
+    pub accounting_method: String,    // proportional, equity, cost_method
+    pub billing_cycle: String,        // monthly, quarterly, semi_annual, annual
+    pub cost_cap_amount: Option<String>,
+    pub cost_cap_currency: Option<String>,
+    pub gl_revenue_account: Option<String>,
+    pub gl_cost_account: Option<String>,
+    pub gl_billing_account: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Joint Venture Partner
+/// Oracle Fusion: Financials > Joint Venture Management > Partners
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JointVenturePartner {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub venture_id: Uuid,
+    pub partner_id: Uuid,
+    pub partner_name: String,
+    pub partner_type: String,         // operator, non_operator, carried_interest
+    pub ownership_percentage: String,
+    pub revenue_interest_pct: Option<String>,
+    pub cost_bearing_pct: Option<String>,
+    pub role: String,                 // operator, partner, carried
+    pub billing_contact: Option<String>,
+    pub billing_email: Option<String>,
+    pub billing_address: Option<String>,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub status: String,               // active, withdrawn, suspended
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// AFE (Authorization for Expenditure)
+/// Oracle Fusion: Financials > Joint Venture Management > AFEs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JointVentureAfe {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub venture_id: Uuid,
+    pub afe_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub status: String,               // draft, submitted, approved, rejected, closed
+    pub estimated_cost: String,
+    pub actual_cost: String,
+    pub committed_cost: String,
+    pub remaining_budget: String,
+    pub currency_code: String,
+    pub cost_center: Option<String>,
+    pub work_area: Option<String>,
+    pub well_name: Option<String>,
+    pub requested_by: Option<Uuid>,
+    pub requested_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rejected_reason: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Joint Venture Cost Distribution
+/// Oracle Fusion: Financials > Joint Venture Management > Cost Distributions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JvCostDistribution {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub venture_id: Uuid,
+    pub distribution_number: String,
+    pub afe_id: Option<Uuid>,
+    pub description: Option<String>,
+    pub status: String,               // draft, posted, reversed
+    pub total_amount: String,
+    pub currency_code: String,
+    pub cost_type: String,            // operating, capital, aba, overhead
+    pub distribution_date: chrono::NaiveDate,
+    pub gl_posting_date: Option<chrono::NaiveDate>,
+    pub gl_posted_at: Option<DateTime<Utc>>,
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Joint Venture Cost Distribution Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JvCostDistributionLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub distribution_id: Uuid,
+    pub partner_id: Uuid,
+    pub partner_name: Option<String>,
+    pub ownership_pct: String,
+    pub cost_bearing_pct: String,
+    pub distributed_amount: String,
+    pub gl_account_code: Option<String>,
+    pub line_description: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Joint Venture Revenue Distribution
+/// Oracle Fusion: Financials > Joint Venture Management > Revenue Distributions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JvRevenueDistribution {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub venture_id: Uuid,
+    pub distribution_number: String,
+    pub description: Option<String>,
+    pub status: String,               // draft, posted, reversed
+    pub total_amount: String,
+    pub currency_code: String,
+    pub revenue_type: String,         // sales, royalty, bonus, other
+    pub distribution_date: chrono::NaiveDate,
+    pub gl_posting_date: Option<chrono::NaiveDate>,
+    pub gl_posted_at: Option<DateTime<Utc>>,
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Joint Venture Revenue Distribution Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JvRevenueDistributionLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub distribution_id: Uuid,
+    pub partner_id: Uuid,
+    pub partner_name: Option<String>,
+    pub revenue_interest_pct: String,
+    pub distributed_amount: String,
+    pub gl_account_code: Option<String>,
+    pub line_description: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Joint Venture Billing (Joint Interest Billing / JIB)
+/// Oracle Fusion: Financials > Joint Venture Management > Billings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JvBilling {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub venture_id: Uuid,
+    pub billing_number: String,
+    pub partner_id: Uuid,
+    pub partner_name: Option<String>,
+    pub billing_type: String,         // jib (cost), revenue, adjustment
+    pub status: String,               // draft, submitted, approved, paid, disputed, cancelled
+    pub total_amount: String,
+    pub tax_amount: String,
+    pub total_with_tax: String,
+    pub currency_code: String,
+    pub billing_period_start: chrono::NaiveDate,
+    pub billing_period_end: chrono::NaiveDate,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub paid_at: Option<DateTime<Utc>>,
+    pub payment_reference: Option<String>,
+    pub dispute_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Joint Venture Billing Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JvBillingLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub billing_id: Uuid,
+    pub line_number: i32,
+    pub cost_distribution_id: Option<Uuid>,
+    pub revenue_distribution_id: Option<Uuid>,
+    pub description: Option<String>,
+    pub cost_type: Option<String>,
+    pub amount: String,
+    pub ownership_pct: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Joint Venture Dashboard Summary
+/// Oracle Fusion: Financials > Joint Venture Management > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JvDashboard {
+    pub total_ventures: i32,
+    pub active_ventures: i32,
+    pub total_partners: i32,
+    pub total_cost_distributed: String,
+    pub total_revenue_distributed: String,
+    pub total_billed: String,
+    pub total_collected: String,
+    pub outstanding_balance: String,
+    pub pending_afes: i32,
+    pub ventures_by_status: serde_json::Value,
+}

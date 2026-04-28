@@ -74,6 +74,7 @@ pub mod goal_management;
 pub mod contract_lifecycle;
 pub mod enterprise_asset_management;
 pub mod risk_management;
+pub mod product_configurator;
 
 pub use schema::*;
 pub use records::*;
@@ -3024,6 +3025,45 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Maintenance Dashboard
         .route("/eam/dashboard", get(enterprise_asset_management::get_maintenance_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Product Configurator (Oracle Fusion Cloud SCM > Product Management > Configurator)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Configuration Models
+        .route("/configurator/models", post(product_configurator::create_model))
+        .route("/configurator/models", get(product_configurator::list_models))
+        .route("/configurator/models/:id", get(product_configurator::get_model))
+        .route("/configurator/models/:id/activate", post(product_configurator::activate_model))
+        .route("/configurator/models/:id/deactivate", post(product_configurator::deactivate_model))
+        .route("/configurator/models/number/:model_number", delete(product_configurator::delete_model))
+
+        // Configuration Features
+        .route("/configurator/models/:model_id/features", post(product_configurator::create_feature))
+        .route("/configurator/models/:model_id/features", get(product_configurator::list_features))
+        .route("/configurator/features/:id", delete(product_configurator::delete_feature))
+
+        // Configuration Options
+        .route("/configurator/features/:feature_id/options", post(product_configurator::create_option))
+        .route("/configurator/features/:feature_id/options", get(product_configurator::list_options))
+        .route("/configurator/options/:id", delete(product_configurator::delete_option))
+
+        // Configuration Rules
+        .route("/configurator/models/:model_id/rules", post(product_configurator::create_rule))
+        .route("/configurator/models/:model_id/rules", get(product_configurator::list_rules))
+        .route("/configurator/rules/:id", delete(product_configurator::delete_rule))
+
+        // Configuration Instances
+        .route("/configurator/instances", post(product_configurator::create_instance))
+        .route("/configurator/instances", get(product_configurator::list_instances))
+        .route("/configurator/instances/:id", get(product_configurator::get_instance))
+        .route("/configurator/instances/:id/submit", post(product_configurator::submit_instance))
+        .route("/configurator/instances/:id/approve", post(product_configurator::approve_instance))
+        .route("/configurator/instances/:id/cancel", post(product_configurator::cancel_instance))
+        .route("/configurator/instances/number/:instance_number", delete(product_configurator::delete_instance))
+
+        // Configurator Dashboard
+        .route("/configurator/dashboard", get(product_configurator::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

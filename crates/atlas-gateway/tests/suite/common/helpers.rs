@@ -22,6 +22,8 @@ use atlas_core::{
     KpiEngine,
     AccountMonitorEngine,
     GoalManagementEngine,
+    EngineeringChangeEngine,
+    ProductConfiguratorEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -415,6 +417,12 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         eam_engine: Arc::new(atlas_core::EnterpriseAssetManagementEngine::new(Arc::new(
             atlas_core::enterprise_asset_management::PostgresAssetManagementRepository::new(db_pool.clone()),
         ))),
+        ecm_engine: Arc::new(atlas_core::EngineeringChangeEngine::new(Arc::new(
+            atlas_core::engineering_change_management::PostgresEngineeringChangeManagementRepository::new(db_pool.clone()),
+        ))),
+        configurator_engine: Arc::new(atlas_core::ProductConfiguratorEngine::new(Arc::new(
+            atlas_core::product_configurator::PostgresProductConfiguratorRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -793,4 +801,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.work_orders").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.asset_definitions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.asset_locations").execute(pool).await.ok();
+    // Clean product configurator test data
+    sqlx::query("DELETE FROM _atlas.config_instances").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.config_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.config_options").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.config_features").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.config_models").execute(pool).await.ok();
 }

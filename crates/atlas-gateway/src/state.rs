@@ -75,6 +75,8 @@ use atlas_core::{
     EnterpriseAssetManagementEngine,
     EngineeringChangeEngine,
     engineering_change_management::PostgresEngineeringChangeManagementRepository,
+    ProductConfiguratorEngine,
+    product_configurator::PostgresProductConfiguratorRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -230,6 +232,7 @@ pub struct AppState {
     pub risk_management_engine: Arc<RiskManagementEngine>,
     pub eam_engine: Arc<EnterpriseAssetManagementEngine>,
     pub ecm_engine: Arc<EngineeringChangeEngine>,
+    pub configurator_engine: Arc<ProductConfiguratorEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -624,6 +627,11 @@ impl AppState {
             PostgresEngineeringChangeManagementRepository::new(db_pool.clone())
         )));
 
+        // Initialize Product Configurator engine
+        let configurator_engine = Arc::new(ProductConfiguratorEngine::new(Arc::new(
+            PostgresProductConfiguratorRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -740,6 +748,7 @@ impl AppState {
             risk_management_engine,
             eam_engine,
             ecm_engine,
+            configurator_engine,
             event_bus,
             jwt_secret,
         };

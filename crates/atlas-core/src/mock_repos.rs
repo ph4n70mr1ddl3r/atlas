@@ -5427,3 +5427,227 @@ impl crate::channel_revenue::ChannelRevenueRepository for MockChannelRevenueRepo
         })
     }
 }
+
+/// Mock Product Configurator Repository
+pub struct MockProductConfiguratorRepository;
+
+#[async_trait]
+impl crate::product_configurator::ProductConfiguratorRepository for MockProductConfiguratorRepository {
+    // Models
+    async fn create_model(
+        &self,
+        org_id: Uuid, model_number: &str, name: &str, description: Option<&str>,
+        base_product_id: Option<Uuid>, base_product_number: Option<&str>, base_product_name: Option<&str>,
+        model_type: &str, status: &str, version: i32,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        default_config: serde_json::Value, validation_mode: &str,
+        ui_layout: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConfigModel> {
+        Ok(atlas_shared::ConfigModel {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            model_number: model_number.to_string(),
+            name: name.to_string(),
+            description: description.map(|s| s.to_string()),
+            base_product_id,
+            base_product_number: base_product_number.map(|s| s.to_string()),
+            base_product_name: base_product_name.map(|s| s.to_string()),
+            model_type: model_type.to_string(),
+            status: status.to_string(),
+            version,
+            effective_from,
+            effective_to,
+            default_config,
+            validation_mode: validation_mode.to_string(),
+            ui_layout,
+            metadata: serde_json::json!({}),
+            created_by,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_model(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ConfigModel>> { Ok(None) }
+    async fn get_model_by_number(&self, _org_id: Uuid, _model_number: &str) -> AtlasResult<Option<atlas_shared::ConfigModel>> { Ok(None) }
+    async fn list_models(&self, _org_id: Uuid, _status: Option<&str>, _model_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::ConfigModel>> { Ok(vec![]) }
+    async fn update_model_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::ConfigModel> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_model(&self, _org_id: Uuid, _model_number: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Features
+    async fn create_feature(
+        &self,
+        org_id: Uuid, model_id: Uuid, feature_code: &str, name: &str,
+        description: Option<&str>, feature_type: &str, is_required: bool,
+        display_order: i32, ui_hints: serde_json::Value,
+    ) -> AtlasResult<atlas_shared::ConfigFeature> {
+        Ok(atlas_shared::ConfigFeature {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            model_id,
+            feature_code: feature_code.to_string(),
+            name: name.to_string(),
+            description: description.map(|s| s.to_string()),
+            feature_type: feature_type.to_string(),
+            is_required,
+            display_order,
+            ui_hints,
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_feature(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ConfigFeature>> { Ok(None) }
+    async fn list_features(&self, _model_id: Uuid) -> AtlasResult<Vec<atlas_shared::ConfigFeature>> { Ok(vec![]) }
+    async fn delete_feature(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // Options
+    async fn create_option(
+        &self,
+        org_id: Uuid, feature_id: Uuid, option_code: &str, name: &str,
+        description: Option<&str>, option_type: &str,
+        price_adjustment: f64, cost_adjustment: f64, lead_time_days: i32,
+        is_default: bool, is_available: bool, display_order: i32,
+    ) -> AtlasResult<atlas_shared::ConfigOption> {
+        Ok(atlas_shared::ConfigOption {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            feature_id,
+            option_code: option_code.to_string(),
+            name: name.to_string(),
+            description: description.map(|s| s.to_string()),
+            option_type: option_type.to_string(),
+            price_adjustment,
+            cost_adjustment,
+            lead_time_days,
+            is_default,
+            is_available,
+            display_order,
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_option(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ConfigOption>> { Ok(None) }
+    async fn list_options(&self, _feature_id: Uuid) -> AtlasResult<Vec<atlas_shared::ConfigOption>> { Ok(vec![]) }
+    async fn update_option_availability(&self, _id: Uuid, _is_available: bool) -> AtlasResult<atlas_shared::ConfigOption> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_option(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // Rules
+    async fn create_rule(
+        &self,
+        org_id: Uuid, model_id: Uuid, rule_code: &str, name: &str,
+        description: Option<&str>, rule_type: &str,
+        source_feature_id: Option<Uuid>, source_option_id: Option<Uuid>,
+        target_feature_id: Option<Uuid>, target_option_id: Option<Uuid>,
+        condition_expression: Option<&str>, severity: &str,
+        is_active: bool, priority: i32, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConfigRule> {
+        Ok(atlas_shared::ConfigRule {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            model_id,
+            rule_code: rule_code.to_string(),
+            name: name.to_string(),
+            description: description.map(|s| s.to_string()),
+            rule_type: rule_type.to_string(),
+            source_feature_id,
+            source_option_id,
+            target_feature_id,
+            target_option_id,
+            condition_expression: condition_expression.map(|s| s.to_string()),
+            severity: severity.to_string(),
+            is_active,
+            priority,
+            metadata: serde_json::json!({}),
+            created_by,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_rule(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ConfigRule>> { Ok(None) }
+    async fn get_rule_by_code(&self, _model_id: Uuid, _rule_code: &str) -> AtlasResult<Option<atlas_shared::ConfigRule>> { Ok(None) }
+    async fn list_rules(&self, _model_id: Uuid, _rule_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::ConfigRule>> { Ok(vec![]) }
+    async fn update_rule_active(&self, _id: Uuid, _is_active: bool) -> AtlasResult<atlas_shared::ConfigRule> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_rule(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+
+    // Instances
+    async fn create_instance(
+        &self,
+        org_id: Uuid, instance_number: &str, model_id: Uuid,
+        model_number: Option<&str>, name: Option<&str>, description: Option<&str>,
+        status: &str, selections: serde_json::Value,
+        validation_errors: serde_json::Value, validation_warnings: serde_json::Value,
+        base_price: f64, total_price: f64, currency_code: &str,
+        config_hash: Option<&str>,
+        effective_date: Option<chrono::NaiveDate>,
+        configured_by: Option<Uuid>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ConfigInstance> {
+        Ok(atlas_shared::ConfigInstance {
+            id: Uuid::new_v4(),
+            organization_id: org_id,
+            instance_number: instance_number.to_string(),
+            model_id,
+            model_number: model_number.map(|s| s.to_string()),
+            name: name.map(|s| s.to_string()),
+            description: description.map(|s| s.to_string()),
+            status: status.to_string(),
+            selections,
+            validation_errors,
+            validation_warnings,
+            base_price,
+            total_price,
+            currency_code: currency_code.to_string(),
+            config_hash: config_hash.map(|s| s.to_string()),
+            effective_date,
+            valid_from: None,
+            valid_to: None,
+            sales_order_id: None,
+            sales_order_number: None,
+            sales_order_line: None,
+            configured_by,
+            approved_by: None,
+            approved_at: None,
+            metadata: serde_json::json!({}),
+            created_by,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_instance(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ConfigInstance>> { Ok(None) }
+    async fn get_instance_by_number(&self, _org_id: Uuid, _instance_number: &str) -> AtlasResult<Option<atlas_shared::ConfigInstance>> { Ok(None) }
+    async fn list_instances(&self, _org_id: Uuid, _status: Option<&str>, _model_id: Option<&Uuid>) -> AtlasResult<Vec<atlas_shared::ConfigInstance>> { Ok(vec![]) }
+    async fn update_instance_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::ConfigInstance> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_instance_validation(&self, _id: Uuid, _validation_errors: serde_json::Value, _validation_warnings: serde_json::Value) -> AtlasResult<atlas_shared::ConfigInstance> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_instance_selections(&self, _id: Uuid, _selections: serde_json::Value, _total_price: f64, _config_hash: Option<&str>) -> AtlasResult<atlas_shared::ConfigInstance> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_instance_approval(&self, _id: Uuid, _approved_by: Option<Uuid>) -> AtlasResult<atlas_shared::ConfigInstance> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn link_instance_to_order(&self, _id: Uuid, _sales_order_id: Option<Uuid>, _sales_order_number: Option<&str>, _sales_order_line: Option<i32>) -> AtlasResult<atlas_shared::ConfigInstance> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_instance(&self, _org_id: Uuid, _instance_number: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Dashboard
+    async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::ConfiguratorDashboard> {
+        Ok(atlas_shared::ConfiguratorDashboard {
+            total_models: 0, active_models: 0,
+            total_configurations: 0, valid_configurations: 0, invalid_configurations: 0, ordered_configurations: 0,
+            total_rules: 0, active_rules: 0,
+            avg_configuration_price: 0.0, total_configured_value: 0.0,
+            models_by_status: serde_json::json!({}),
+            configurations_by_status: serde_json::json!({}),
+            top_configured_models: serde_json::json!([]),
+        })
+    }
+}

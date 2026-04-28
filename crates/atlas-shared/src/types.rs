@@ -17371,3 +17371,146 @@ pub struct ChannelRevenueDashboard {
     pub spend_trend: serde_json::Value,
     pub top_partners: serde_json::Value,
 }
+
+// ============================================================================
+// Product Configurator (Oracle Fusion Cloud SCM > Product Management > Configurator)
+// ============================================================================
+
+/// Configuration Model – defines a configurable product structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigModel {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub model_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub base_product_id: Option<Uuid>,
+    pub base_product_number: Option<String>,
+    pub base_product_name: Option<String>,
+    pub model_type: String,
+    pub status: String,
+    pub version: i32,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub default_config: serde_json::Value,
+    pub validation_mode: String,
+    pub ui_layout: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Configuration Feature – a group of choices (e.g. "Color", "Engine Type")
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigFeature {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub model_id: Uuid,
+    pub feature_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub feature_type: String,
+    pub is_required: bool,
+    pub display_order: i32,
+    pub ui_hints: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Configuration Option – a specific choice within a feature
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigOption {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub feature_id: Uuid,
+    pub option_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub option_type: String,
+    pub price_adjustment: f64,
+    pub cost_adjustment: f64,
+    pub lead_time_days: i32,
+    pub is_default: bool,
+    pub is_available: bool,
+    pub display_order: i32,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Configuration Rule – constraints between features/options
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub model_id: Uuid,
+    pub rule_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub rule_type: String,
+    pub source_feature_id: Option<Uuid>,
+    pub source_option_id: Option<Uuid>,
+    pub target_feature_id: Option<Uuid>,
+    pub target_option_id: Option<Uuid>,
+    pub condition_expression: Option<String>,
+    pub severity: String,
+    pub is_active: bool,
+    pub priority: i32,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Configuration Instance – an actual configuration created from a model
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigInstance {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub instance_number: String,
+    pub model_id: Uuid,
+    pub model_number: Option<String>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub status: String,
+    pub selections: serde_json::Value,
+    pub validation_errors: serde_json::Value,
+    pub validation_warnings: serde_json::Value,
+    pub base_price: f64,
+    pub total_price: f64,
+    pub currency_code: String,
+    pub config_hash: Option<String>,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub valid_from: Option<chrono::DateTime<chrono::Utc>>,
+    pub valid_to: Option<chrono::DateTime<chrono::Utc>>,
+    pub sales_order_id: Option<Uuid>,
+    pub sales_order_number: Option<String>,
+    pub sales_order_line: Option<i32>,
+    pub configured_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Product Configurator Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfiguratorDashboard {
+    pub total_models: i32,
+    pub active_models: i32,
+    pub total_configurations: i32,
+    pub valid_configurations: i32,
+    pub invalid_configurations: i32,
+    pub ordered_configurations: i32,
+    pub total_rules: i32,
+    pub active_rules: i32,
+    pub avg_configuration_price: f64,
+    pub total_configured_value: f64,
+    pub models_by_status: serde_json::Value,
+    pub configurations_by_status: serde_json::Value,
+    pub top_configured_models: serde_json::Value,
+}

@@ -31,6 +31,7 @@ const VALID_PROMOTION_PRIORITIES: &[&str] = &[
     "high", "medium", "low",
 ];
 
+#[allow(dead_code)]
 const VALID_APPROVAL_STATUSES: &[&str] = &[
     "not_submitted", "pending_approval", "approved", "rejected",
 ];
@@ -40,6 +41,7 @@ const VALID_LINE_DISCOUNT_TYPES: &[&str] = &[
     "percentage", "fixed_amount", "buy_x_get_y",
 ];
 
+#[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &[
     "active", "completed", "cancelled",
 ];
@@ -173,7 +175,7 @@ impl ChannelRevenueEngine {
             ));
         }
         if let Some(pct) = discount_pct {
-            if pct < 0.0 || pct > 100.0 {
+            if !(0.0..=100.0).contains(&pct) {
                 return Err(AtlasError::ValidationFailed(
                     "Discount percentage must be between 0 and 100".to_string(),
                 ));
@@ -493,7 +495,7 @@ impl ChannelRevenueEngine {
             }
         }
         if let Some(y) = fund_year {
-            if y < 2000 || y > 2100 {
+            if !(2000..=2100).contains(&y) {
                 return Err(AtlasError::ValidationFailed(
                     "Fund year must be between 2000 and 2100".to_string(),
                 ));

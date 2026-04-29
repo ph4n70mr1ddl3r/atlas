@@ -942,9 +942,6 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         let mut scope1: f64 = 0.0;
         let mut scope2: f64 = 0.0;
         let mut scope3: f64 = 0.0;
-        let mut total_energy: f64 = 0.0;
-        let mut total_water: f64 = 0.0;
-        let mut total_waste: f64 = 0.0;
         let mut by_scope = std::collections::HashMap::new();
         let mut by_category = std::collections::HashMap::new();
 
@@ -968,19 +965,19 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             r#"SELECT COALESCE(SUM(quantity), 0) as total FROM _atlas.environmental_activities
                WHERE organization_id = $1 AND activity_type IN ('electricity', 'natural_gas', 'diesel', 'gasoline')"#,
         ).bind(org_id).fetch_one(&self.pool).await.unwrap();
-        total_energy = energy_rows.try_get("total").unwrap_or(0.0);
+        let total_energy: f64 = energy_rows.try_get("total").unwrap_or(0.0);
 
         let water_rows = sqlx::query(
             r#"SELECT COALESCE(SUM(quantity), 0) as total FROM _atlas.environmental_activities
                WHERE organization_id = $1 AND activity_type = 'water'"#,
         ).bind(org_id).fetch_one(&self.pool).await.unwrap();
-        total_water = water_rows.try_get("total").unwrap_or(0.0);
+        let total_water: f64 = water_rows.try_get("total").unwrap_or(0.0);
 
         let waste_rows = sqlx::query(
             r#"SELECT COALESCE(SUM(quantity), 0) as total FROM _atlas.environmental_activities
                WHERE organization_id = $1 AND activity_type = 'waste'"#,
         ).bind(org_id).fetch_one(&self.pool).await.unwrap();
-        total_waste = waste_rows.try_get("total").unwrap_or(0.0);
+        let total_waste: f64 = waste_rows.try_get("total").unwrap_or(0.0);
 
         // Carbon offsets
         let offset_rows = sqlx::query(

@@ -244,17 +244,17 @@ impl TransportationManagementEngine {
         on_time_pct: f64,
         claims: f64,
     ) -> AtlasResult<Carrier> {
-        if rating < 0.0 || rating > 5.0 {
+        if !(0.0..=5.0).contains(&rating) {
             return Err(AtlasError::ValidationFailed(
                 "Performance rating must be between 0.0 and 5.0".to_string()
             ));
         }
-        if on_time_pct < 0.0 || on_time_pct > 100.0 {
+        if !(0.0..=100.0).contains(&on_time_pct) {
             return Err(AtlasError::ValidationFailed(
                 "On-time delivery percentage must be between 0.0 and 100.0".to_string()
             ));
         }
-        if claims < 0.0 || claims > 1.0 {
+        if !(0.0..=1.0).contains(&claims) {
             return Err(AtlasError::ValidationFailed(
                 "Claims ratio must be between 0.0 and 1.0".to_string()
             ));
@@ -326,7 +326,7 @@ impl TransportationManagementEngine {
         if minimum_charge < 0.0 {
             return Err(AtlasError::ValidationFailed("Minimum charge cannot be negative".to_string()));
         }
-        if fuel_surcharge_pct < 0.0 || fuel_surcharge_pct > 100.0 {
+        if !(0.0..=100.0).contains(&fuel_surcharge_pct) {
             return Err(AtlasError::ValidationFailed(
                 "Fuel surcharge must be between 0.0 and 100.0".to_string()
             ));
@@ -732,12 +732,12 @@ impl TransportationManagementEngine {
         if tracking_number.is_some() || pro_number.is_some() {
             s = self.repository.update_shipment_tracking(id, tracking_number, None, pro_number, None).await?;
         }
-        s = self.repository.update_shipment_dates(id, Some(chrono::Utc::now().date_naive()), None).await?;
+        self.repository.update_shipment_dates(id, Some(chrono::Utc::now().date_naive()), None).await?;
         Ok(s)
     }
 
     /// Start transit (picked_up → in_transit)
-    pub async fn start_transit(&self, id: Uuid, driver_name: Option<&str>, vehicle_id: Option<&str>) -> AtlasResult<TransportShipment> {
+    pub async fn start_transit(&self, id: Uuid, _driver_name: Option<&str>, _vehicle_id: Option<&str>) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
 
@@ -778,8 +778,8 @@ impl TransportationManagementEngine {
         }
 
         info!("Confirming delivery for shipment {} by {:?}", shipment.shipment_number, received_by);
-        let mut s = self.repository.update_shipment_status(id, "delivered").await?;
-        s = self.repository.update_shipment_delivery(id, received_by).await?;
+        let _s = self.repository.update_shipment_status(id, "delivered").await?;
+        let s = self.repository.update_shipment_delivery(id, received_by).await?;
         Ok(s)
     }
 
@@ -1150,7 +1150,7 @@ impl TransportationManagementEngine {
         if minimum_charge < 0.0 {
             return Err(AtlasError::ValidationFailed("Minimum charge cannot be negative".to_string()));
         }
-        if fuel_surcharge_pct < 0.0 || fuel_surcharge_pct > 100.0 {
+        if !(0.0..=100.0).contains(&fuel_surcharge_pct) {
             return Err(AtlasError::ValidationFailed(
                 "Fuel surcharge must be between 0.0 and 100.0".to_string()
             ));
@@ -1242,10 +1242,10 @@ impl TransportationManagementEngine {
     /// Calculate freight cost for a shipment
     async fn calculate_freight_cost(
         &self,
-        carrier_id: Option<Uuid>,
-        lane_id: Option<Uuid>,
+        _carrier_id: Option<Uuid>,
+        _lane_id: Option<Uuid>,
         weight_kg: f64,
-        pieces: i32,
+        _pieces: i32,
     ) -> AtlasResult<f64> {
         // In production this would query freight_rates and apply
         // the best matching rate. For now, a simple calculation.

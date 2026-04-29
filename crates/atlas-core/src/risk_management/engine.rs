@@ -59,10 +59,12 @@ const VALID_TEST_RESULTS: &[&str] = &[
     "pass", "fail", "not_tested", "in_progress",
 ];
 
+#[allow(dead_code)]
 const VALID_TEST_STATUSES: &[&str] = &[
     "planned", "in_progress", "completed", "cancelled",
 ];
 
+#[allow(dead_code)]
 const VALID_REVIEW_STATUSES: &[&str] = &[
     "pending", "approved", "rejected",
 ];

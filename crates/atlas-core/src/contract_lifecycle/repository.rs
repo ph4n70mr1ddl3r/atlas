@@ -227,7 +227,7 @@ impl ContractLifecycleRepository for PostgresContractLifecycleRepository {
         for c in &contracts { *by_status.entry(c.status.clone()).or_insert(0) += 1; *by_category.entry(c.contract_category.clone()).or_insert(0) += 1; }
         let today = chrono::Utc::now().date_naive();
         let thirty = today + chrono::Duration::days(30);
-        let expiring = contracts.iter().filter(|c| c.end_date.map_or(false, |d| d <= thirty && d >= today && c.status == "active")).count() as i32;
+        let expiring = contracts.iter().filter(|c| c.end_date.is_some_and(|d| d <= thirty && d >= today && c.status == "active")).count() as i32;
         let recent: Vec<serde_json::Value> = contracts.iter().take(10).map(|c| serde_json::json!({"id":c.id,"contractNumber":c.contract_number,"title":c.title,"status":c.status,"contractCategory":c.contract_category,"totalValue":c.total_value,"currency":c.currency})).collect();
         Ok(ClmDashboard { total_contracts: total, active_contracts: active, draft_contracts: draft, expiring_contracts: expiring, total_contract_value: format!("{:.2}", total_value), contracts_by_category: serde_json::to_value(&by_category).unwrap_or(serde_json::json!({})), contracts_by_status: serde_json::to_value(&by_status).unwrap_or(serde_json::json!({})), high_risk_contracts: high_risk, pending_milestones: 0, pending_deliverables: 0, pending_amendments: 0, recent_contracts: serde_json::json!(recent) })
     }

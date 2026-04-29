@@ -396,11 +396,9 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     }
 
     async fn update_risk_status(&self, id: Uuid, status: &str) -> AtlasResult<RiskEntry> {
-        let closed_date = if status == "closed" { "CURRENT_DATE" } else { "NULL" };
-        let query = format!(
-            r#"UPDATE _atlas.risk_register SET status = $2, closed_date = CASE WHEN $3 THEN CURRENT_DATE ELSE closed_date END, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
-        );
+        let _closed_date = if status == "closed" { "CURRENT_DATE" } else { "NULL" };
+        let query = r#"UPDATE _atlas.risk_register SET status = $2, closed_date = CASE WHEN $3 THEN CURRENT_DATE ELSE closed_date END, updated_at = now()
+               WHERE id = $1 RETURNING *"#.to_string();
         let row = sqlx::query(&query)
             .bind(id).bind(status).bind(status == "closed")
             .fetch_one(&self.pool).await
@@ -605,11 +603,9 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     }
 
     async fn update_control_test_status(&self, id: Uuid, status: &str) -> AtlasResult<ControlTest> {
-        let started = if status == "in_progress" { "now()" } else { "started_at" };
-        let query = format!(
-            r#"UPDATE _atlas.control_tests SET status = $2, started_at = CASE WHEN $3 THEN now() ELSE started_at END, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
-        );
+        let _started = if status == "in_progress" { "now()" } else { "started_at" };
+        let query = r#"UPDATE _atlas.control_tests SET status = $2, started_at = CASE WHEN $3 THEN now() ELSE started_at END, updated_at = now()
+               WHERE id = $1 RETURNING *"#.to_string();
         let row = sqlx::query(&query)
             .bind(id).bind(status).bind(status == "in_progress")
             .fetch_one(&self.pool).await

@@ -343,7 +343,7 @@ impl GoalManagementEngine {
             let w_val: f64 = w.parse().map_err(|_| AtlasError::ValidationFailed(
                 "Weight must be a valid number".to_string(),
             ))?;
-            if w_val < 0.0 || w_val > 100.0 {
+            if !(0.0..=100.0).contains(&w_val) {
                 return Err(AtlasError::ValidationFailed(
                     "Weight must be between 0 and 100".to_string(),
                 ));
@@ -440,7 +440,7 @@ impl GoalManagementEngine {
             let p_val: f64 = p.parse().map_err(|_| AtlasError::ValidationFailed(
                 "Progress percentage must be a valid number".to_string(),
             ))?;
-            if p_val < 0.0 || p_val > 100.0 {
+            if !(0.0..=100.0).contains(&p_val) {
                 return Err(AtlasError::ValidationFailed(
                     "Progress must be between 0 and 100".to_string(),
                 ));

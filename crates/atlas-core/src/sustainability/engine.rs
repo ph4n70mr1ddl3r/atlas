@@ -81,6 +81,7 @@ const VALID_OFFSET_PROJECT_TYPES: &[&str] = &[
     "direct_air_capture", "cookstove", "ocean_restoration", "other",
 ];
 
+#[allow(dead_code)]
 const VALID_OFFSET_STATUSES: &[&str] = &[
     "active", "retired", "expired", "cancelled",
 ];
@@ -589,12 +590,12 @@ impl SustainabilityEngine {
         if let Some(fw) = framework {
             validate_enum("framework", fw, VALID_GOAL_FRAMEWORKS)?;
         }
-        if baseline_year < 1990 || baseline_year > 2100 {
+        if !(1990..=2100).contains(&baseline_year) {
             return Err(AtlasError::ValidationFailed(
                 "Baseline year must be between 1990 and 2100".to_string(),
             ));
         }
-        if target_year < 1990 || target_year > 2100 {
+        if !(1990..=2100).contains(&target_year) {
             return Err(AtlasError::ValidationFailed(
                 "Target year must be between 1990 and 2100".to_string(),
             ));
@@ -628,7 +629,7 @@ impl SustainabilityEngine {
         let progress = if baseline_value != 0.0 {
             let reduction = baseline_value - target_value;
             let current_reduction = baseline_value; // starts at baseline
-            (current_reduction / reduction * 100.0).min(100.0).max(0.0)
+            (current_reduction / reduction * 100.0).clamp(0.0, 100.0)
         } else {
             0.0
         };
@@ -739,7 +740,7 @@ impl SustainabilityEngine {
                 "Quantity must be positive".to_string(),
             ));
         }
-        if vintage_year < 2000 || vintage_year > 2100 {
+        if !(2000..=2100).contains(&vintage_year) {
             return Err(AtlasError::ValidationFailed(
                 "Vintage year must be between 2000 and 2100".to_string(),
             ));

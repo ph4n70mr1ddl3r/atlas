@@ -56,10 +56,12 @@ const VALID_DISPOSITIONS: &[&str] = &[
     "use_existing", "scrap", "rework", "return_to_supplier",
 ];
 
+#[allow(dead_code)]
 const VALID_APPROVAL_STATUSES: &[&str] = &[
     "pending", "approved", "rejected", "returned", "delegated",
 ];
 
+#[allow(dead_code)]
 const VALID_RESOLUTION_CODES: &[&str] = &[
     "implemented", "partially_implemented", "withdrawn", "superseded",
 ];

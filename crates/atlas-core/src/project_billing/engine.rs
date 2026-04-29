@@ -23,6 +23,7 @@ use uuid::Uuid;
 
 const VALID_SCHEDULE_TYPES: &[&str] = &["standard", "overtime", "holiday", "custom"];
 
+#[allow(dead_code)]
 const VALID_SCHEDULE_STATUSES: &[&str] = &["draft", "active", "inactive"];
 
 const VALID_BILLING_METHODS: &[&str] = &[
@@ -33,12 +34,14 @@ const VALID_INVOICE_FORMATS: &[&str] = &["detailed", "summary", "consolidated"];
 
 const VALID_BILLING_CYCLES: &[&str] = &["weekly", "biweekly", "monthly", "milestone"];
 
+#[allow(dead_code)]
 const VALID_BILLING_CONFIG_STATUSES: &[&str] = &["draft", "active", "completed", "cancelled"];
 
 const VALID_EVENT_TYPES: &[&str] = &[
     "milestone", "progress", "completion", "retention_release",
 ];
 
+#[allow(dead_code)]
 const VALID_EVENT_STATUSES: &[&str] = &[
     "planned", "ready", "invoiced", "partially_invoiced", "cancelled",
 ];
@@ -47,14 +50,17 @@ const VALID_INVOICE_TYPES: &[&str] = &[
     "progress", "milestone", "t_and_m", "retention_release", "debit_memo", "credit_memo",
 ];
 
+#[allow(dead_code)]
 const VALID_INVOICE_STATUSES: &[&str] = &[
     "draft", "submitted", "approved", "rejected", "posted", "cancelled",
 ];
 
+#[allow(dead_code)]
 const VALID_LINE_SOURCES: &[&str] = &[
     "expenditure_item", "billing_event", "retention", "manual",
 ];
 
+#[allow(dead_code)]
 const VALID_PAYMENT_STATUSES: &[&str] = &["unpaid", "partially_paid", "paid"];
 
 /// Compute retention amount from a bill total
@@ -280,7 +286,7 @@ impl ProjectBillingEngine {
         if payment_terms_days < 0 {
             return Err(AtlasError::ValidationFailed("Payment terms days must be >= 0".to_string()));
         }
-        if retention_pct < 0.0 || retention_pct > 100.0 {
+        if !(0.0..=100.0).contains(&retention_pct) {
             return Err(AtlasError::ValidationFailed("Retention pct must be 0-100".to_string()));
         }
         if retention_amount_cap < 0.0 {
@@ -530,7 +536,7 @@ impl ProjectBillingEngine {
             total_tax += line.tax_amount;
         }
 
-        let total_amount = invoice_amount + total_tax - total_retention;
+        let total_amount = invoice_amount + total_markup + total_tax - total_retention;
 
         let today = chrono::Utc::now().date_naive();
         let due_date = today + chrono::Duration::days(payment_terms as i64);

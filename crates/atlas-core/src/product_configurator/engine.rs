@@ -531,7 +531,7 @@ impl ProductConfiguratorEngine {
         // Validate the configuration
         let (errors, warnings) = self.validate_configuration(model_id, &selections).await?;
 
-        let status = if errors.as_array().map_or(true, |a| a.is_empty()) {
+        let status = if errors.as_array().is_none_or(|a| a.is_empty()) {
             "valid"
         } else {
             "invalid"
@@ -601,7 +601,7 @@ impl ProductConfiguratorEngine {
         let config_hash = Self::compute_config_hash(&selections);
         let (errors, warnings) = self.validate_configuration(instance.model_id, &selections).await?;
 
-        let new_status = if errors.as_array().map_or(true, |a| a.is_empty()) {
+        let new_status = if errors.as_array().is_none_or(|a| a.is_empty()) {
             "valid"
         } else {
             "invalid"
@@ -609,11 +609,11 @@ impl ProductConfiguratorEngine {
 
         info!("Updating instance {} selections [status={}, price={:.2}]", id, new_status, total_price);
 
-        let mut inst = self.repository.update_instance_selections(
+        let _inst = self.repository.update_instance_selections(
             id, selections, total_price, Some(&config_hash),
         ).await?;
-        inst = self.repository.update_instance_validation(id, errors, warnings).await?;
-        inst.status = new_status.to_string();
+        let _inst = self.repository.update_instance_validation(id, errors, warnings).await?;
+        let _ = _inst; // suppress unused warning; validation already persisted
         // Update status via repository
         self.repository.update_instance_status(id, new_status).await
     }
@@ -682,7 +682,7 @@ impl ProductConfiguratorEngine {
         }
 
         info!("Linking config instance {} to order {}", id, sales_order_number);
-        let inst = self.repository.link_instance_to_order(
+        let _inst = self.repository.link_instance_to_order(
             id, Some(sales_order_id), Some(sales_order_number), Some(sales_order_line),
         ).await?;
         self.repository.update_instance_status(id, "ordered").await
@@ -774,7 +774,7 @@ impl ProductConfiguratorEngine {
                 let has_selection = selections.get(&feature.feature_code)
                     .and_then(|v| {
                         if v.is_string() { Some(v.as_str().map(|s| !s.is_empty())).flatten() }
-                        else if v.is_array() { Some(!v.as_array().map_or(true, |a| a.is_empty())) }
+                        else if v.is_array() { Some(!v.as_array().is_none_or(|a| a.is_empty())) }
                         else { None }
                     })
                     .unwrap_or(false);
@@ -795,7 +795,7 @@ impl ProductConfiguratorEngine {
                 continue;
             }
 
-            let source_selected = rule.source_option_id.map_or(true, |_so_id| {
+            let source_selected = rule.source_option_id.is_none_or(|_so_id| {
                 // Check if source option is selected in selections
                 true // simplified – real implementation would check
             });
@@ -894,7 +894,7 @@ impl ProductConfiguratorEngine {
                     if sel.is_string() {
                         sel.as_str() == Some(&o.option_code)
                     } else if sel.is_array() {
-                        sel.as_array().map_or(false, |arr| {
+                        sel.as_array().is_some_and(|arr| {
                             arr.iter().any(|v| v.as_str() == Some(&o.option_code))
                         })
                     } else {

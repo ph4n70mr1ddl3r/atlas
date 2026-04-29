@@ -25,6 +25,7 @@ const VALID_VENTURE_STATUSES: &[&str] = &["draft", "active", "on_hold", "closed"
 const VALID_ACCOUNTING_METHODS: &[&str] = &["proportional", "equity", "cost_method"];
 const VALID_BILLING_CYCLES: &[&str] = &["monthly", "quarterly", "semi_annual", "annual"];
 const VALID_PARTNER_TYPES: &[&str] = &["operator", "non_operator", "carried_interest"];
+#[allow(dead_code)]
 const VALID_PARTNER_STATUSES: &[&str] = &["active", "withdrawn", "suspended"];
 const VALID_ROLES: &[&str] = &["operator", "partner", "carried"];
 const VALID_AFE_STATUSES: &[&str] = &["draft", "submitted", "approved", "rejected", "closed"];
@@ -229,7 +230,7 @@ impl JointVentureEngine {
         let ownership: f64 = ownership_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
             "Ownership percentage must be a valid number".to_string(),
         ))?;
-        if ownership < 0.0 || ownership > 100.0 {
+        if !(0.0..=100.0).contains(&ownership) {
             return Err(AtlasError::ValidationFailed(
                 "Ownership percentage must be between 0 and 100".to_string(),
             ));

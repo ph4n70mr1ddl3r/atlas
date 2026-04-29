@@ -27,6 +27,7 @@ const VALID_PATH_STATUSES: &[&str] = &["draft", "active", "inactive", "archived"
 const VALID_ASSIGNMENT_TYPES: &[&str] = &["individual", "organization", "department", "job", "position"];
 const VALID_ASSIGNMENT_STATUSES: &[&str] = &["active", "completed", "cancelled"];
 const VALID_PRIORITIES: &[&str] = &["low", "medium", "high", "critical"];
+#[allow(dead_code)]
 const VALID_CATEGORY_STATUSES: &[&str] = &["active", "inactive"];
 
 /// Learning Management Engine
@@ -286,7 +287,7 @@ impl LearningManagementEngine {
             let p_val: f64 = p.parse().map_err(|_| AtlasError::ValidationFailed(
                 "Progress must be a valid number".to_string(),
             ))?;
-            if p_val < 0.0 || p_val > 100.0 {
+            if !(0.0..=100.0).contains(&p_val) {
                 return Err(AtlasError::ValidationFailed("Progress must be between 0 and 100".to_string()));
             }
         }

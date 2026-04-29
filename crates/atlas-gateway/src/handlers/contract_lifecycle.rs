@@ -36,7 +36,7 @@ fn parse_uuid(s: &str, label: &str) -> Result<Uuid, StatusCode> {
 }
 
 fn parse_date(s: Option<&String>) -> Option<chrono::NaiveDate> {
-    s.as_deref().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+    s.and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
 }
 
 // ═══════════════════════════════════════════════════════════════════════

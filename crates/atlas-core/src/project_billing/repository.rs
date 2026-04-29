@@ -784,7 +784,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         let mut submitted_invoices = 0i32;
         let mut approved_invoices = 0i32;
         let mut posted_invoices = 0i32;
-        let mut overdue_invoices = 0i32;
+        let overdue_invoices = 0i32;
         let mut total_billed = 0.0_f64;
         let mut total_retention_held = 0.0_f64;
         let mut by_invoice_status = std::collections::HashMap::new();

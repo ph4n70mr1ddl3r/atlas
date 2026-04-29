@@ -18021,3 +18021,188 @@ pub struct PromoMgmtDashboard {
     pub by_status: serde_json::Value,
     pub by_type: serde_json::Value,
 }
+
+// ============================================================================
+// Cost Accounting (Oracle Fusion Cost Management)
+// ============================================================================
+
+/// Cost Book - defines a costing method for an organization
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostBook {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub costing_method: String, // standard, average, fifo, lifo
+    pub currency_code: String,
+    pub is_active: bool,
+    pub status: String, // active, inactive
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Cost Element - material, labor, overhead, subcontracting, expense
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostElement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub element_type: String, // material, labor, overhead, subcontracting, expense
+    pub cost_book_id: Option<Uuid>,
+    pub is_active: bool,
+    pub default_rate: String,
+    pub rate_uom: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Cost Profile - item-level costing configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostProfile {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub cost_book_id: Uuid,
+    pub item_id: Option<Uuid>,
+    pub item_name: Option<String>,
+    pub cost_type: String, // standard, average, fifo, lifo
+    pub lot_level_costing: bool,
+    pub include_landed_costs: bool,
+    pub overhead_absorption_method: String, // rate, amount, percentage
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Standard Cost per item per cost book per cost element
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StandardCost {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub cost_book_id: Uuid,
+    pub cost_profile_id: Option<Uuid>,
+    pub cost_element_id: Uuid,
+    pub item_id: Uuid,
+    pub item_name: Option<String>,
+    pub standard_cost: String,
+    pub currency_code: String,
+    pub effective_date: chrono::NaiveDate,
+    pub status: String, // active, pending, superseded
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Cost Adjustment header
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostAdjustment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub adjustment_number: String,
+    pub cost_book_id: Uuid,
+    pub adjustment_type: String, // standard_cost_update, cost_correction, revaluation, overhead_adjustment
+    pub description: Option<String>,
+    pub reason: Option<String>,
+    pub status: String, // draft, submitted, approved, rejected, posted
+    pub total_adjustment_amount: String,
+    pub currency_code: String,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub posted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub posted_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub rejected_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Cost Adjustment Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostAdjustmentLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub adjustment_id: Uuid,
+    pub line_number: i32,
+    pub item_id: Uuid,
+    pub item_name: Option<String>,
+    pub cost_element_id: Option<Uuid>,
+    pub old_cost: String,
+    pub new_cost: String,
+    pub adjustment_amount: String,
+    pub currency_code: String,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Cost Variance entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostVariance {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub cost_book_id: Uuid,
+    pub variance_type: String, // purchase_price, routing, overhead, rate, usage, mix
+    pub variance_date: chrono::NaiveDate,
+    pub item_id: Uuid,
+    pub item_name: Option<String>,
+    pub cost_element_id: Option<Uuid>,
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub standard_cost: String,
+    pub actual_cost: String,
+    pub variance_amount: String,
+    pub variance_percent: String,
+    pub quantity: String,
+    pub currency_code: String,
+    pub accounting_period: Option<String>,
+    pub is_analyzed: bool,
+    pub analysis_notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Cost Accounting Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostAccountingDashboard {
+    pub total_cost_books: i32,
+    pub active_cost_books: i32,
+    pub total_cost_elements: i32,
+    pub total_standard_costs: i32,
+    pub total_adjustments: i32,
+    pub pending_adjustments: i32,
+    pub total_variances: i32,
+    pub unfavorable_variances: i32,
+    pub total_standard_cost_value: String,
+    pub total_variance_amount: String,
+    pub variance_by_type: serde_json::Value,
+    pub variance_by_element: serde_json::Value,
+    pub adjustments_by_status: serde_json::Value,
+}

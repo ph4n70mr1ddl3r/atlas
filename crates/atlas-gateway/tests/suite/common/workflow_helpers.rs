@@ -940,6 +940,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         sustainability_engine: Arc::new(atlas_core::SustainabilityEngine::new(Arc::new(
             atlas_core::sustainability::PostgresSustainabilityRepository::new(db_pool.clone()),
         ))),
+        promotions_engine: Arc::new(atlas_core::PromotionsManagementEngine::new(Arc::new(
+            atlas_core::promotions_management::PostgresPromotionsManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

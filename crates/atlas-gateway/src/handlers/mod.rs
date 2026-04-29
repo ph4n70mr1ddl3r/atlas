@@ -78,6 +78,7 @@ pub mod product_configurator;
 pub mod territory_management;
 pub mod transportation_management;
 pub mod sustainability;
+pub mod promotions_management;
 
 pub use schema::*;
 pub use records::*;
@@ -3167,6 +3168,48 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Territory Dashboard
         .route("/territories/dashboard", get(territory_management::get_territory_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Promotions Management (Oracle Fusion Trade Management > Trade Promotion)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Promotion CRUD
+        .route("/promotions", post(promotions_management::create_promotion))
+        .route("/promotions", get(promotions_management::list_promotions))
+        .route("/promotions/:id", get(promotions_management::get_promotion))
+        .route("/promotions/:id", put(promotions_management::update_promotion))
+        .route("/promotions/:id", delete(promotions_management::delete_promotion))
+
+        // Promotion Lifecycle
+        .route("/promotions/:id/activate", post(promotions_management::activate_promotion))
+        .route("/promotions/:id/hold", post(promotions_management::hold_promotion))
+        .route("/promotions/:id/complete", post(promotions_management::complete_promotion))
+        .route("/promotions/:id/cancel", post(promotions_management::cancel_promotion))
+
+        // Promotional Offers
+        .route("/promotions/:promotion_id/offers", post(promotions_management::create_offer))
+        .route("/promotions/:promotion_id/offers", get(promotions_management::list_offers))
+        .route("/promotions/offers/:offer_id", delete(promotions_management::delete_offer))
+
+        // Fund Allocation
+        .route("/promotions/:promotion_id/funds", post(promotions_management::create_fund))
+        .route("/promotions/:promotion_id/funds", get(promotions_management::list_funds))
+        .route("/promotions/funds/:fund_id/committed", put(promotions_management::update_fund_committed))
+        .route("/promotions/funds/:fund_id/spent", put(promotions_management::update_fund_spent))
+        .route("/promotions/funds/:fund_id", delete(promotions_management::delete_fund))
+
+        // Claims Processing
+        .route("/promotions/:promotion_id/claims", post(promotions_management::create_claim))
+        .route("/promotions/:promotion_id/claims", get(promotions_management::list_claims))
+        .route("/promotions/claims/:claim_id", get(promotions_management::get_claim))
+        .route("/promotions/claims/:claim_id/review", post(promotions_management::review_claim))
+        .route("/promotions/claims/:claim_id/approve", post(promotions_management::approve_claim))
+        .route("/promotions/claims/:claim_id/reject", post(promotions_management::reject_claim))
+        .route("/promotions/claims/:claim_id/settle", post(promotions_management::settle_claim))
+        .route("/promotions/claims/:claim_id", delete(promotions_management::delete_claim))
+
+        // Promotions Dashboard
+        .route("/promotions/dashboard", get(promotions_management::get_promotions_dashboard))
 
         // ═════════════════════════════════════════════════════════════════════════════════
         // Sustainability & ESG Management (Oracle Fusion Sustainability)

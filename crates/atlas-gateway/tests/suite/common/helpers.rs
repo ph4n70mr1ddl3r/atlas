@@ -26,6 +26,7 @@ use atlas_core::{
     ProductConfiguratorEngine,
     TerritoryManagementEngine,
     SustainabilityEngine,
+    PromotionsManagementEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -434,6 +435,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         sustainability_engine: Arc::new(SustainabilityEngine::new(Arc::new(
             atlas_core::sustainability::PostgresSustainabilityRepository::new(db_pool.clone()),
         ))),
+        promotions_engine: Arc::new(atlas_core::PromotionsManagementEngine::new(Arc::new(
+            atlas_core::promotions_management::PostgresPromotionsManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -840,4 +844,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.environmental_activities").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.emission_factors").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.sustainability_facilities").execute(pool).await.ok();
+    // Clean promotions management test data
+    sqlx::query("DELETE FROM _atlas.promotion_claims").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.promotion_funds").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.promotion_offers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.promotions").execute(pool).await.ok();
 }

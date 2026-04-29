@@ -106,6 +106,7 @@ pub mod channel_revenue;
 pub mod product_configurator;
 pub mod transportation_management;
 pub mod territory_management;
+pub mod promotions_management;
 
 pub use schema::*;
 pub use workflow::{
@@ -213,6 +214,7 @@ pub use channel_revenue::{ChannelRevenueEngine, PostgresChannelRevenueRepository
 pub use product_configurator::{ProductConfiguratorEngine, PostgresProductConfiguratorRepository as PostgresProductConfiguratorRepo};
 pub use transportation_management::{TransportationManagementEngine, PostgresTransportationManagementRepository as PostgresTransportationManagementRepo};
 pub use territory_management::{TerritoryManagementEngine, PostgresTerritoryManagementRepository as PostgresTerritoryManagementRepo};
+pub use promotions_management::{PromotionsManagementEngine, PostgresPromotionsManagementRepository as PostgresPromotionsManagementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -17908,3 +17908,116 @@ pub struct TerritoryDashboard {
     pub quota_count: i32,
     pub by_type: serde_json::Value,
 }
+
+// ============================================================================
+// Promotions Management (Oracle Fusion Trade Management > Trade Promotion)
+// ============================================================================
+
+/// Trade promotion definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromoMgmtPromotion {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub promotion_type: String, // trade, consumer, channel, co_op
+    pub status: String,        // draft, active, on_hold, completed, cancelled
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub customer_id: Option<Uuid>,
+    pub customer_name: Option<String>,
+    pub territory_id: Option<Uuid>,
+    pub product_id: Option<Uuid>,
+    pub product_name: Option<String>,
+    pub budget_amount: String,
+    pub spent_amount: String,
+    pub currency_code: String,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Promotional offer within a promotion
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromoMgmtOffer {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub promotion_id: Uuid,
+    pub offer_type: String,       // discount, buy_get, bundle, free_item, rebate
+    pub description: Option<String>,
+    pub discount_type: String,    // percentage, fixed_amount, fixed_price
+    pub discount_value: String,
+    pub buy_quantity: Option<i32>,
+    pub get_quantity: Option<i32>,
+    pub minimum_purchase: Option<String>,
+    pub maximum_discount: Option<String>,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Promotion fund allocation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromoMgmtFund {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub promotion_id: Uuid,
+    pub fund_type: String,        // marketing_development, cooperative, trade_spend, display
+    pub allocated_amount: String,
+    pub committed_amount: String,
+    pub spent_amount: String,
+    pub currency_code: String,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Promotion claim (accrual or settlement)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromoMgmtClaim {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub promotion_id: Uuid,
+    pub claim_number: String,
+    pub claim_type: String,       // accrual, settlement, deduction, lump_sum
+    pub status: String,           // submitted, under_review, approved, rejected, paid
+    pub amount: String,
+    pub approved_amount: Option<String>,
+    pub paid_amount: Option<String>,
+    pub currency_code: String,
+    pub claim_date: chrono::NaiveDate,
+    pub settlement_date: Option<chrono::NaiveDate>,
+    pub customer_id: Option<Uuid>,
+    pub customer_name: Option<String>,
+    pub description: Option<String>,
+    pub rejection_reason: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Promotions Management Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromoMgmtDashboard {
+    pub total_promotions: i32,
+    pub active_promotions: i32,
+    pub total_budget: String,
+    pub total_spent: String,
+    pub utilization_percent: String,
+    pub total_claims: i32,
+    pub pending_claims: i32,
+    pub by_status: serde_json::Value,
+    pub by_type: serde_json::Value,
+}

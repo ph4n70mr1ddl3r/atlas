@@ -29,6 +29,10 @@ use atlas_core::{
     PromotionsManagementEngine,
     ProjectBillingEngine,
 };
+use atlas_core::{
+    QualityManagementEngine,
+};
+
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
     StateDefinition, StateType, TransitionDefinition,
@@ -441,6 +445,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         ))),
         project_billing_engine: Arc::new(ProjectBillingEngine::new(Arc::new(
             atlas_core::project_billing::PostgresProjectBillingRepository::new(db_pool.clone()),
+        ))),
+        quality_engine: Arc::new(QualityManagementEngine::new(Arc::new(
+            atlas_core::quality_management::PostgresQualityManagementRepository::new(db_pool.clone()),
         ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
@@ -860,4 +867,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.project_billing_configs").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.bill_rate_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.bill_rate_schedules").execute(pool).await.ok();
+    // Clean quality management test data
+    sqlx::query("DELETE FROM _atlas.quality_inspection_results").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.quality_inspections").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.quality_plan_criteria").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.quality_inspection_plans").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.quality_corrective_actions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.quality_non_conformance_reports").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.quality_holds").execute(pool).await.ok();
 }

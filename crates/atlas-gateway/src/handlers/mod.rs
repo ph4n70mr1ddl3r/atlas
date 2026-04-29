@@ -80,6 +80,7 @@ pub mod transportation_management;
 pub mod sustainability;
 pub mod promotions_management;
 pub mod project_billing;
+pub mod quality_management;
 
 pub use schema::*;
 pub use records::*;
@@ -3312,6 +3313,59 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Project Billing Dashboard
         .route("/project-billing/dashboard", get(project_billing::get_project_billing_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Quality Management (Oracle Fusion Quality Management)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Inspection Plans
+        .route("/quality/plans", get(quality_management::list_plans))
+        .route("/quality/plans", post(quality_management::create_plan))
+        .route("/quality/plans/:code", get(quality_management::get_plan))
+        .route("/quality/plans/:code", delete(quality_management::delete_plan))
+
+        // Plan Criteria
+        .route("/quality/plans/:plan_id/criteria", post(quality_management::create_criterion))
+        .route("/quality/plans/:plan_id/criteria", get(quality_management::list_criteria))
+        .route("/quality/criteria/:id", delete(quality_management::delete_criterion))
+
+        // Inspections
+        .route("/quality/inspections", get(quality_management::list_inspections))
+        .route("/quality/inspections", post(quality_management::create_inspection))
+        .route("/quality/inspections/:id", get(quality_management::get_inspection))
+        .route("/quality/inspections/:id/start", post(quality_management::start_inspection))
+        .route("/quality/inspections/:id/complete", post(quality_management::complete_inspection))
+        .route("/quality/inspections/:id/cancel", post(quality_management::cancel_inspection))
+
+        // Inspection Results
+        .route("/quality/inspections/:inspection_id/results", post(quality_management::create_result))
+        .route("/quality/inspections/:inspection_id/results", get(quality_management::list_results))
+
+        // Non-Conformance Reports
+        .route("/quality/ncrs", get(quality_management::list_ncrs))
+        .route("/quality/ncrs", post(quality_management::create_ncr))
+        .route("/quality/ncrs/:id", get(quality_management::get_ncr))
+        .route("/quality/ncrs/:id/investigate", post(quality_management::investigate_ncr))
+        .route("/quality/ncrs/:id/corrective-action", post(quality_management::start_ncr_corrective_action))
+        .route("/quality/ncrs/:id/resolve", post(quality_management::resolve_ncr))
+        .route("/quality/ncrs/:id/close", post(quality_management::close_ncr))
+
+        // Corrective & Preventive Actions
+        .route("/quality/ncrs/:ncr_id/actions", post(quality_management::create_corrective_action))
+        .route("/quality/ncrs/:ncr_id/actions", get(quality_management::list_corrective_actions))
+        .route("/quality/actions/:id", get(quality_management::get_corrective_action))
+        .route("/quality/actions/:id/start", post(quality_management::start_corrective_action))
+        .route("/quality/actions/:id/complete", post(quality_management::complete_corrective_action))
+        .route("/quality/actions/:id/verify", post(quality_management::verify_corrective_action))
+
+        // Quality Holds
+        .route("/quality/holds", get(quality_management::list_holds))
+        .route("/quality/holds", post(quality_management::create_hold))
+        .route("/quality/holds/:id", get(quality_management::get_hold))
+        .route("/quality/holds/:id/release", post(quality_management::release_hold))
+
+        // Quality Dashboard
+        .route("/quality/dashboard", get(quality_management::get_quality_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

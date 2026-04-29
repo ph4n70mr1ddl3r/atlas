@@ -78,3 +78,4 @@ mod transportation_management;
 mod sustainability;
 mod promotions_management;
 mod project_billing;
+mod quality_management;

@@ -199,6 +199,14 @@ impl QualityManagementEngine {
 
         info!("Creating inspection plan {} ({}) for org {}", plan_code, name, org_id);
 
+        // Check for duplicate plan code
+        if let Some(_existing) = self.repository.get_plan(org_id, plan_code).await? {
+            return Err(AtlasError::Conflict(format!(
+                "Inspection plan '{}' already exists",
+                plan_code
+            )));
+        }
+
         self.repository
             .create_plan(
                 org_id, plan_code, name, description, plan_type,

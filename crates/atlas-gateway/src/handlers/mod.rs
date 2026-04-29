@@ -79,6 +79,7 @@ pub mod territory_management;
 pub mod transportation_management;
 pub mod sustainability;
 pub mod promotions_management;
+pub mod project_billing;
 
 pub use schema::*;
 pub use records::*;
@@ -3263,6 +3264,54 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Sustainability Dashboard
         .route("/sustainability/dashboard", get(sustainability::get_sustainability_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Project Billing (Oracle Fusion Project Management > Project Billing)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Bill Rate Schedules
+        .route("/project-billing/schedules", get(project_billing::list_schedules))
+        .route("/project-billing/schedules", post(project_billing::create_schedule))
+        .route("/project-billing/schedules/:id", get(project_billing::get_schedule))
+        .route("/project-billing/schedules/:id/activate", post(project_billing::activate_schedule))
+        .route("/project-billing/schedules/:id/deactivate", post(project_billing::deactivate_schedule))
+        .route("/project-billing/schedules/number/:schedule_number", delete(project_billing::delete_schedule))
+
+        // Bill Rate Lines
+        .route("/project-billing/schedules/:schedule_id/rate-lines", get(project_billing::list_rate_lines))
+        .route("/project-billing/schedules/:schedule_id/rate-lines", post(project_billing::add_rate_line))
+        .route("/project-billing/schedules/:schedule_id/rate-lines/:id", delete(project_billing::delete_rate_line))
+        .route("/project-billing/schedules/:schedule_id/find-rate/:role_name", get(project_billing::find_rate_for_role))
+
+        // Project Billing Configs
+        .route("/project-billing/configs", get(project_billing::list_billing_configs))
+        .route("/project-billing/configs", post(project_billing::create_billing_config))
+        .route("/project-billing/configs/:id", get(project_billing::get_billing_config))
+        .route("/project-billing/configs/project/:project_id", get(project_billing::get_billing_config_by_project))
+        .route("/project-billing/configs/:id/activate", post(project_billing::activate_billing_config))
+        .route("/project-billing/configs/:id/cancel", post(project_billing::cancel_billing_config))
+
+        // Billing Events
+        .route("/project-billing/events", get(project_billing::list_billing_events))
+        .route("/project-billing/events", post(project_billing::create_billing_event))
+        .route("/project-billing/events/:id", get(project_billing::get_billing_event))
+        .route("/project-billing/events/:id/complete", post(project_billing::complete_billing_event))
+        .route("/project-billing/events/:id/cancel", post(project_billing::cancel_billing_event))
+        .route("/project-billing/events/number/:event_number", delete(project_billing::delete_billing_event))
+
+        // Project Invoices
+        .route("/project-billing/invoices", get(project_billing::list_invoices))
+        .route("/project-billing/invoices", post(project_billing::create_invoice))
+        .route("/project-billing/invoices/:id", get(project_billing::get_invoice))
+        .route("/project-billing/invoices/:invoice_id/lines", get(project_billing::get_invoice_lines))
+        .route("/project-billing/invoices/:id/submit", post(project_billing::submit_invoice))
+        .route("/project-billing/invoices/:id/approve", post(project_billing::approve_invoice))
+        .route("/project-billing/invoices/:id/reject", post(project_billing::reject_invoice))
+        .route("/project-billing/invoices/:id/post", post(project_billing::post_invoice))
+        .route("/project-billing/invoices/:id/cancel", post(project_billing::cancel_invoice))
+
+        // Project Billing Dashboard
+        .route("/project-billing/dashboard", get(project_billing::get_project_billing_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

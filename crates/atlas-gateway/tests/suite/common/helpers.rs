@@ -27,6 +27,7 @@ use atlas_core::{
     TerritoryManagementEngine,
     SustainabilityEngine,
     PromotionsManagementEngine,
+    ProjectBillingEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -437,6 +438,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         ))),
         promotions_engine: Arc::new(atlas_core::PromotionsManagementEngine::new(Arc::new(
             atlas_core::promotions_management::PostgresPromotionsManagementRepository::new(db_pool.clone()),
+        ))),
+        project_billing_engine: Arc::new(ProjectBillingEngine::new(Arc::new(
+            atlas_core::project_billing::PostgresProjectBillingRepository::new(db_pool.clone()),
         ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
@@ -849,4 +853,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.promotion_funds").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.promotion_offers").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.promotions").execute(pool).await.ok();
+    // Clean project billing test data
+    sqlx::query("DELETE FROM _atlas.project_invoice_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.project_invoice_headers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.billing_events").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.project_billing_configs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.bill_rate_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.bill_rate_schedules").execute(pool).await.ok();
 }

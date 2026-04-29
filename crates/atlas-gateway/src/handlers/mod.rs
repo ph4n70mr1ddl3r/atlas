@@ -77,6 +77,7 @@ pub mod risk_management;
 pub mod product_configurator;
 pub mod territory_management;
 pub mod transportation_management;
+pub mod sustainability;
 
 pub use schema::*;
 pub use records::*;
@@ -3166,6 +3167,59 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Territory Dashboard
         .route("/territories/dashboard", get(territory_management::get_territory_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Sustainability & ESG Management (Oracle Fusion Sustainability)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Facilities
+        .route("/sustainability/facilities", post(sustainability::create_facility))
+        .route("/sustainability/facilities", get(sustainability::list_facilities))
+        .route("/sustainability/facilities/id/:id", get(sustainability::get_facility))
+        .route("/sustainability/facilities/id/:id/status", post(sustainability::update_facility_status))
+        .route("/sustainability/facilities/code/:facility_code", delete(sustainability::delete_facility))
+
+        // Emission Factors
+        .route("/sustainability/emission-factors", post(sustainability::create_emission_factor))
+        .route("/sustainability/emission-factors", get(sustainability::list_emission_factors))
+        .route("/sustainability/emission-factors/id/:id", get(sustainability::get_emission_factor))
+        .route("/sustainability/emission-factors/code/:factor_code", delete(sustainability::delete_emission_factor))
+
+        // Environmental Activities
+        .route("/sustainability/activities", post(sustainability::create_activity))
+        .route("/sustainability/activities", get(sustainability::list_activities))
+        .route("/sustainability/activities/id/:id", get(sustainability::get_activity))
+        .route("/sustainability/activities/id/:id/status", post(sustainability::update_activity_status))
+        .route("/sustainability/activities/number/:activity_number", delete(sustainability::delete_activity))
+
+        // ESG Metrics
+        .route("/sustainability/metrics", post(sustainability::create_metric))
+        .route("/sustainability/metrics", get(sustainability::list_metrics))
+        .route("/sustainability/metrics/id/:id", get(sustainability::get_metric))
+        .route("/sustainability/metrics/code/:metric_code", delete(sustainability::delete_metric))
+
+        // ESG Metric Readings
+        .route("/sustainability/metric-readings", post(sustainability::create_metric_reading))
+        .route("/sustainability/metrics/:metric_id/readings", get(sustainability::list_metric_readings))
+        .route("/sustainability/metric-readings/id/:id", delete(sustainability::delete_metric_reading))
+
+        // Sustainability Goals
+        .route("/sustainability/goals", post(sustainability::create_goal))
+        .route("/sustainability/goals", get(sustainability::list_goals))
+        .route("/sustainability/goals/id/:id", get(sustainability::get_goal))
+        .route("/sustainability/goals/id/:id/progress", post(sustainability::update_goal_progress))
+        .route("/sustainability/goals/id/:id/status", post(sustainability::update_goal_status))
+        .route("/sustainability/goals/code/:goal_code", delete(sustainability::delete_goal))
+
+        // Carbon Offsets
+        .route("/sustainability/carbon-offsets", post(sustainability::create_carbon_offset))
+        .route("/sustainability/carbon-offsets", get(sustainability::list_carbon_offsets))
+        .route("/sustainability/carbon-offsets/id/:id", get(sustainability::get_carbon_offset))
+        .route("/sustainability/carbon-offsets/id/:id/retire", post(sustainability::retire_carbon_offset))
+        .route("/sustainability/carbon-offsets/number/:offset_number", delete(sustainability::delete_carbon_offset))
+
+        // Sustainability Dashboard
+        .route("/sustainability/dashboard", get(sustainability::get_sustainability_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -81,6 +81,8 @@ use atlas_core::{
     transportation_management::PostgresTransportationManagementRepository,
     TerritoryManagementEngine,
     territory_management::PostgresTerritoryManagementRepository,
+    SustainabilityEngine,
+    sustainability::PostgresSustainabilityRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -239,6 +241,7 @@ pub struct AppState {
     pub configurator_engine: Arc<ProductConfiguratorEngine>,
     pub transportation_engine: Arc<TransportationManagementEngine>,
     pub territory_engine: Arc<TerritoryManagementEngine>,
+    pub sustainability_engine: Arc<SustainabilityEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -648,6 +651,11 @@ impl AppState {
             PostgresTerritoryManagementRepository::new(db_pool.clone())
         )));
 
+        // Initialize Sustainability & ESG engine
+        let sustainability_engine = Arc::new(SustainabilityEngine::new(Arc::new(
+            PostgresSustainabilityRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -767,6 +775,7 @@ impl AppState {
             configurator_engine,
             transportation_engine,
             territory_engine,
+            sustainability_engine,
             event_bus,
             jwt_secret,
         };

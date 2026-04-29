@@ -25,6 +25,7 @@ use atlas_core::{
     EngineeringChangeEngine,
     ProductConfiguratorEngine,
     TerritoryManagementEngine,
+    SustainabilityEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -430,6 +431,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         territory_engine: Arc::new(TerritoryManagementEngine::new(Arc::new(
             atlas_core::territory_management::PostgresTerritoryManagementRepository::new(db_pool.clone()),
         ))),
+        sustainability_engine: Arc::new(SustainabilityEngine::new(Arc::new(
+            atlas_core::sustainability::PostgresSustainabilityRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -828,4 +832,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.territory_members").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.territories").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.carriers").execute(pool).await.ok();
+    // Clean sustainability test data
+    sqlx::query("DELETE FROM _atlas.esg_metric_readings").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.esg_metrics").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sustainability_goals").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.carbon_offsets").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.environmental_activities").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.emission_factors").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sustainability_facilities").execute(pool).await.ok();
 }

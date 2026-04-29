@@ -75,3 +75,4 @@ mod enterprise_asset_management;
 mod product_configurator;
 mod territory_management;
 mod transportation_management;
+mod sustainability;

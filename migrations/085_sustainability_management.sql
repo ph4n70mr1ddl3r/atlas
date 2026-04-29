@@ -21,12 +21,12 @@ CREATE TABLE IF NOT EXISTS _atlas.sustainability_facilities (
     region VARCHAR(200),
     city VARCHAR(200),
     address TEXT,
-    latitude NUMERIC(10, 8),
-    longitude NUMERIC(11, 8),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
     -- Classification
     facility_type VARCHAR(50) NOT NULL DEFAULT 'office',  -- office, manufacturing, warehouse, data_center, retail, other
     industry_sector VARCHAR(200),
-    total_area_sqm NUMERIC(14, 2),
+    total_area_sqm DOUBLE PRECISION,
     employee_count INT,
     operating_hours_per_year INT DEFAULT 8760,
     -- Status
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS _atlas.emission_factors (
     -- Source activity (e.g., natural_gas, diesel, electricity_grid)
     activity_type VARCHAR(200) NOT NULL,
     -- Factor value: kg CO2e per unit
-    factor_value NUMERIC(18, 8) NOT NULL,
+    factor_value DOUBLE PRECISION NOT NULL,
     -- Unit of the activity (e.g., kWh, liters, kg, therms, gallons)
     unit_of_measure VARCHAR(50) NOT NULL,
     -- Gas type: co2, ch4, n2o, hfcs, pfcs, sf6, co2e
@@ -98,17 +98,17 @@ CREATE TABLE IF NOT EXISTS _atlas.environmental_activities (
     scope VARCHAR(30) NOT NULL,             -- scope_1, scope_2, scope_3
     category VARCHAR(100),
     -- Measurement
-    quantity NUMERIC(18, 4) NOT NULL,
+    quantity DOUBLE PRECISION NOT NULL,
     unit_of_measure VARCHAR(50) NOT NULL,
     -- Emission factor used
     emission_factor_id UUID REFERENCES _atlas.emission_factors(id),
     -- Computed emissions
-    co2e_kg NUMERIC(18, 4) NOT NULL DEFAULT 0,
-    co2_kg NUMERIC(18, 4) DEFAULT 0,
-    ch4_kg NUMERIC(18, 4) DEFAULT 0,
-    n2o_kg NUMERIC(18, 4) DEFAULT 0,
+    co2e_kg DOUBLE PRECISION NOT NULL DEFAULT 0,
+    co2_kg DOUBLE PRECISION DEFAULT 0,
+    ch4_kg DOUBLE PRECISION DEFAULT 0,
+    n2o_kg DOUBLE PRECISION DEFAULT 0,
     -- Cost
-    cost_amount NUMERIC(18, 4),
+    cost_amount DOUBLE PRECISION,
     cost_currency VARCHAR(10) DEFAULT 'USD',
     -- Time period
     activity_date DATE NOT NULL,
@@ -160,8 +160,8 @@ CREATE TABLE IF NOT EXISTS _atlas.esg_metrics (
     tcfd_category VARCHAR(100),
     eu_taxonomy_code VARCHAR(100),
     -- Target / threshold
-    target_value NUMERIC(18, 4),
-    warning_threshold NUMERIC(18, 4),
+    target_value DOUBLE PRECISION,
+    warning_threshold DOUBLE PRECISION,
     -- Higher is better or lower is better
     direction VARCHAR(20) NOT NULL DEFAULT 'lower_is_better',  -- lower_is_better, higher_is_better
     -- Status
@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS _atlas.esg_metric_readings (
     organization_id UUID NOT NULL,
     metric_id UUID NOT NULL REFERENCES _atlas.esg_metrics(id) ON DELETE CASCADE,
     -- Value
-    metric_value NUMERIC(18, 4) NOT NULL,
+    metric_value DOUBLE PRECISION NOT NULL,
     -- Time
     reading_date DATE NOT NULL,
     reporting_period VARCHAR(50),
@@ -220,20 +220,20 @@ CREATE TABLE IF NOT EXISTS _atlas.sustainability_goals (
     -- Scope
     scope VARCHAR(30),                      -- scope_1, scope_2, scope_3, all_scopes (for emission goals)
     -- Baseline
-    baseline_value NUMERIC(18, 4) NOT NULL,
+    baseline_value DOUBLE PRECISION NOT NULL,
     baseline_year INT NOT NULL,
     baseline_unit VARCHAR(50) NOT NULL,
     -- Target
-    target_value NUMERIC(18, 4) NOT NULL,
+    target_value DOUBLE PRECISION NOT NULL,
     target_year INT NOT NULL,
     target_unit VARCHAR(50) NOT NULL,
     -- Reduction / improvement percentage
-    target_reduction_pct NUMERIC(8, 4),
+    target_reduction_pct DOUBLE PRECISION,
     -- Interim milestones (JSON array of {year, value})
     milestones JSONB DEFAULT '[]'::jsonb,
     -- Current progress
-    current_value NUMERIC(18, 4) DEFAULT 0,
-    progress_pct NUMERIC(8, 4) DEFAULT 0,
+    current_value DOUBLE PRECISION DEFAULT 0,
+    progress_pct DOUBLE PRECISION DEFAULT 0,
     -- Facility / org-wide
     facility_id UUID REFERENCES _atlas.sustainability_facilities(id),
     -- Status
@@ -276,15 +276,15 @@ CREATE TABLE IF NOT EXISTS _atlas.carbon_offsets (
     registry_id VARCHAR(200),
     certification_standard VARCHAR(200),
     -- Quantity
-    quantity_tonnes NUMERIC(18, 4) NOT NULL,
-    remaining_tonnes NUMERIC(18, 4) NOT NULL,
-    unit_price NUMERIC(18, 4),
-    total_cost NUMERIC(18, 4),
+    quantity_tonnes DOUBLE PRECISION NOT NULL,
+    remaining_tonnes DOUBLE PRECISION NOT NULL,
+    unit_price DOUBLE PRECISION,
+    total_cost DOUBLE PRECISION,
     currency_code VARCHAR(10) DEFAULT 'USD',
     -- Vintage
     vintage_year INT NOT NULL,
     -- Retirement
-    retired_quantity NUMERIC(18, 4) DEFAULT 0,
+    retired_quantity DOUBLE PRECISION DEFAULT 0,
     retired_date DATE,
     -- Effectivity
     effective_from DATE NOT NULL,

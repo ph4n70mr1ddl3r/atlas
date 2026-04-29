@@ -75,6 +75,7 @@ pub mod contract_lifecycle;
 pub mod enterprise_asset_management;
 pub mod risk_management;
 pub mod product_configurator;
+pub mod territory_management;
 pub mod transportation_management;
 
 pub use schema::*;
@@ -3130,6 +3131,41 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Transportation Dashboard
         .route("/transport/dashboard", get(transportation_management::get_transportation_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Territory Management (Oracle Fusion CX Sales > Territory Management)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Territory CRUD
+        .route("/territories", post(territory_management::create_territory))
+        .route("/territories", get(territory_management::list_territories))
+        .route("/territories/:id", get(territory_management::get_territory))
+        .route("/territories/:id", put(territory_management::update_territory))
+        .route("/territories/:id", delete(territory_management::delete_territory))
+        .route("/territories/:id/activate", post(territory_management::activate_territory))
+        .route("/territories/:id/deactivate", post(territory_management::deactivate_territory))
+
+        // Territory Members
+        .route("/territories/:territory_id/members", post(territory_management::add_member))
+        .route("/territories/:territory_id/members", get(territory_management::list_members))
+        .route("/territories/members/:member_id", delete(territory_management::remove_member))
+
+        // Territory Routing Rules
+        .route("/territories/:territory_id/rules", post(territory_management::add_rule))
+        .route("/territories/:territory_id/rules", get(territory_management::list_rules))
+        .route("/territories/rules/:rule_id", delete(territory_management::remove_rule))
+
+        // Entity Routing
+        .route("/territories/route", post(territory_management::route_entity))
+
+        // Territory Quotas
+        .route("/territories/:territory_id/quotas", post(territory_management::set_quota))
+        .route("/territories/:territory_id/quotas", get(territory_management::list_quotas))
+        .route("/territories/quotas/:quota_id/attainment", put(territory_management::update_attainment))
+        .route("/territories/quotas/:quota_id", delete(territory_management::delete_quota))
+
+        // Territory Dashboard
+        .route("/territories/dashboard", get(territory_management::get_territory_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

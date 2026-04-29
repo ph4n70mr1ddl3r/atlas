@@ -73,4 +73,5 @@ mod contract_lifecycle;
 mod risk_management;
 mod enterprise_asset_management;
 mod product_configurator;
+mod territory_management;
 mod transportation_management;

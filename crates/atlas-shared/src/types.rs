@@ -17812,3 +17812,99 @@ pub struct TransportationDashboard {
     pub cost_by_carrier: serde_json::Value,
     pub top_lanes: serde_json::Value,
 }
+
+// ============================================================================
+// Territory Management (Oracle Fusion CX Sales > Territory Management)
+// ============================================================================
+
+/// Sales territory definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Territory {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub territory_type: String, // geography, product, industry, customer, hybrid
+    pub parent_id: Option<Uuid>,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Territory member assignment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerritoryMember {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub territory_id: Uuid,
+    pub user_id: Uuid,
+    pub user_name: String,
+    pub role: String, // owner, member, backup
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Territory routing rule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerritoryRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub territory_id: Uuid,
+    pub entity_type: String, // lead, opportunity, account, contact
+    pub field_name: String,
+    pub match_operator: String, // equals, contains, starts_with, ends_with, in, not_null
+    pub match_value: String,
+    pub priority: i32,
+    pub is_active: bool,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Territory revenue quota
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerritoryQuota {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub territory_id: Uuid,
+    pub period_name: String,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub revenue_quota: String,
+    pub actual_revenue: String,
+    pub attainment_percent: String,
+    pub currency_code: String,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Territory Management Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerritoryDashboard {
+    pub total_territories: i32,
+    pub active_territories: i32,
+    pub top_level_territories: i32,
+    pub total_members: i32,
+    pub total_quota: String,
+    pub total_actual: String,
+    pub attainment_percent: String,
+    pub quota_count: i32,
+    pub by_type: serde_json::Value,
+}

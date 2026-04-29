@@ -934,6 +934,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         transportation_engine: Arc::new(atlas_core::TransportationManagementEngine::new(Arc::new(
             atlas_core::transportation_management::PostgresTransportationManagementRepository::new(db_pool.clone()),
         ))),
+        territory_engine: Arc::new(atlas_core::TerritoryManagementEngine::new(Arc::new(
+            atlas_core::territory_management::PostgresTerritoryManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

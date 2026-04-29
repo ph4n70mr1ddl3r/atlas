@@ -24,6 +24,7 @@ use atlas_core::{
     GoalManagementEngine,
     EngineeringChangeEngine,
     ProductConfiguratorEngine,
+    TerritoryManagementEngine,
 };
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
@@ -426,6 +427,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         transportation_engine: Arc::new(atlas_core::TransportationManagementEngine::new(Arc::new(
             atlas_core::transportation_management::PostgresTransportationManagementRepository::new(db_pool.clone()),
         ))),
+        territory_engine: Arc::new(TerritoryManagementEngine::new(Arc::new(
+            atlas_core::territory_management::PostgresTerritoryManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -818,5 +822,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.freight_rates").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.transport_lanes").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.carrier_services").execute(pool).await.ok();
+    // Clean territory management test data
+    sqlx::query("DELETE FROM _atlas.territory_quotas").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.territory_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.territory_members").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.territories").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.carriers").execute(pool).await.ok();
 }

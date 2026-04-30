@@ -108,6 +108,7 @@ pub mod transportation_management;
 pub mod territory_management;
 pub mod promotions_management;
 pub mod cost_accounting;
+pub mod accounts_payable;
 
 pub use schema::*;
 pub use workflow::{
@@ -217,6 +218,7 @@ pub use transportation_management::{TransportationManagementEngine, PostgresTran
 pub use territory_management::{TerritoryManagementEngine, PostgresTerritoryManagementRepository as PostgresTerritoryManagementRepo};
 pub use promotions_management::{PromotionsManagementEngine, PostgresPromotionsManagementRepository as PostgresPromotionsManagementRepo};
 pub use cost_accounting::{CostAccountingEngine, PostgresCostAccountingRepository as PostgresCostAccountingRepo};
+pub use accounts_payable::{AccountsPayableEngine, PostgresAccountsPayableRepository as PostgresAccountsPayableRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -449,6 +449,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         cost_accounting_engine: Arc::new(atlas_core::CostAccountingEngine::new(Arc::new(
             atlas_core::cost_accounting::PostgresCostAccountingRepository::new(db_pool.clone()),
         ))),
+        accounts_payable_engine: Arc::new(atlas_core::AccountsPayableEngine::new(Arc::new(
+            atlas_core::accounts_payable::PostgresAccountsPayableRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -875,4 +878,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.quality_corrective_actions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.quality_non_conformance_reports").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.quality_holds").execute(pool).await.ok();
+    // Clean accounts payable test data
+    sqlx::query("DELETE FROM _atlas.ap_invoice_holds").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_distributions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ap_payments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoices").execute(pool).await.ok();
 }

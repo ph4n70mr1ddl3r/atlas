@@ -18188,6 +18188,208 @@ pub struct CostVariance {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+// ============================================================================
+// Accounts Payable (Oracle Fusion Payables)
+// ============================================================================
+
+/// AP Invoice (Supplier Invoice)
+/// Oracle Fusion: Payables > Invoices
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApInvoice {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub invoice_number: String,
+    pub invoice_date: chrono::NaiveDate,
+    pub invoice_type: String, // standard, credit_memo, debit_memo, prepayment, expense_report, po_default
+    pub description: Option<String>,
+    pub supplier_id: Uuid,
+    pub supplier_number: Option<String>,
+    pub supplier_name: Option<String>,
+    pub supplier_site: Option<String>,
+    pub invoice_currency_code: String,
+    pub payment_currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub exchange_rate_type: Option<String>,
+    pub exchange_date: Option<chrono::NaiveDate>,
+    pub invoice_amount: String,
+    pub tax_amount: String,
+    pub total_amount: String,
+    pub amount_paid: String,
+    pub amount_remaining: String,
+    pub discount_available: String,
+    pub discount_taken: String,
+    pub payment_terms: Option<String>,
+    pub payment_method: Option<String>,
+    pub payment_due_date: Option<chrono::NaiveDate>,
+    pub discount_date: Option<chrono::NaiveDate>,
+    pub gl_date: Option<chrono::NaiveDate>,
+    pub gl_posted_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub status: String, // draft, submitted, approved, paid, cancelled, on_hold
+    pub approval_status: Option<String>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub cancelled_reason: Option<String>,
+    pub cancelled_by: Option<Uuid>,
+    pub cancelled_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub po_number: Option<String>,
+    pub receipt_number: Option<String>,
+    pub source: Option<String>,
+    pub batch_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AP Invoice Line
+/// Oracle Fusion: Payables > Invoices > Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApInvoiceLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub invoice_id: Uuid,
+    pub line_number: i32,
+    pub line_type: String, // item, freight, tax, miscellaneous, withholding
+    pub description: Option<String>,
+    pub amount: String,
+    pub unit_price: Option<String>,
+    pub quantity_invoiced: Option<String>,
+    pub unit_of_measure: Option<String>,
+    pub po_line_id: Option<Uuid>,
+    pub po_line_number: Option<String>,
+    pub product_code: Option<String>,
+    pub tax_code: Option<String>,
+    pub tax_amount: Option<String>,
+    pub asset_category_code: Option<String>,
+    pub project_id: Option<Uuid>,
+    pub task_id: Option<Uuid>,
+    pub expenditure_type: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AP Invoice Distribution (accounting)
+/// Oracle Fusion: Payables > Invoices > Distributions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApInvoiceDistribution {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub invoice_id: Uuid,
+    pub invoice_line_id: Option<Uuid>,
+    pub distribution_line_number: i32,
+    pub distribution_type: String, // charge, tax, withholding, variance
+    pub account_combination: Option<String>,
+    pub description: Option<String>,
+    pub amount: String,
+    pub base_amount: Option<String>,
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub gl_account: Option<String>,
+    pub cost_center: Option<String>,
+    pub department: Option<String>,
+    pub project_id: Option<Uuid>,
+    pub task_id: Option<Uuid>,
+    pub expenditure_type: Option<String>,
+    pub tax_code: Option<String>,
+    pub tax_recoverable: bool,
+    pub tax_recoverable_amount: Option<String>,
+    pub accounting_date: Option<chrono::NaiveDate>,
+    pub posted_status: String, // unposted, posted, error
+    pub posted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AP Invoice Hold
+/// Oracle Fusion: Payables > Invoices > Holds
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApInvoiceHold {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub invoice_id: Uuid,
+    pub hold_type: String, // system, manual, matching, approval, variance, budget
+    pub hold_reason: String,
+    pub hold_status: String, // active, released
+    pub released_by: Option<Uuid>,
+    pub released_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub release_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AP Payment (payment against invoices)
+/// Oracle Fusion: Payables > Payments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApPayment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub payment_number: String,
+    pub payment_date: chrono::NaiveDate,
+    pub payment_method: String,
+    pub payment_currency_code: String,
+    pub payment_amount: String,
+    pub bank_account_id: Option<Uuid>,
+    pub bank_account_name: Option<String>,
+    pub payment_document: Option<String>,
+    pub status: String, // draft, submitted, confirmed, cancelled, reversed
+    pub supplier_id: Uuid,
+    pub supplier_number: Option<String>,
+    pub supplier_name: Option<String>,
+    pub invoice_ids: serde_json::Value,
+    pub confirmed_by: Option<Uuid>,
+    pub confirmed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub cancelled_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AP Aging Summary
+/// Oracle Fusion: Payables > Reports > Aging Report
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApAgingSummary {
+    pub organization_id: Uuid,
+    pub as_of_date: chrono::NaiveDate,
+    pub total_outstanding: String,
+    pub current_amount: String,
+    pub aging_1_30: String,
+    pub aging_31_60: String,
+    pub aging_61_90: String,
+    pub aging_91_plus: String,
+    pub supplier_count: i32,
+    pub invoice_count: i32,
+    pub by_supplier: Vec<ApAgingBySupplier>,
+}
+
+/// AP Aging by Supplier
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApAgingBySupplier {
+    pub supplier_id: Uuid,
+    pub supplier_name: String,
+    pub supplier_number: Option<String>,
+    pub total_outstanding: String,
+    pub current_amount: String,
+    pub aging_1_30: String,
+    pub aging_31_60: String,
+    pub aging_61_90: String,
+    pub aging_91_plus: String,
+    pub invoice_count: i32,
+}
+
 /// Cost Accounting Dashboard
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

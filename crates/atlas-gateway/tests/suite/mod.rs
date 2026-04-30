@@ -80,3 +80,4 @@ mod promotions_management;
 mod project_billing;
 mod quality_management;
 mod cost_accounting;
+mod accounts_payable;

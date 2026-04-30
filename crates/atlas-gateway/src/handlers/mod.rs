@@ -82,6 +82,7 @@ pub mod promotions_management;
 pub mod project_billing;
 pub mod quality_management;
 pub mod cost_accounting;
+pub mod accounts_payable;
 
 pub use schema::*;
 pub use records::*;
@@ -3425,6 +3426,34 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Cost Accounting Dashboard
         .route("/cost-accounting/dashboard", get(cost_accounting::get_cost_accounting_dashboard))
+
+        // ================================================================
+        // Accounts Payable (Oracle Fusion Payables)
+        // ================================================================
+        .route("/ap/invoices", post(accounts_payable::create_ap_invoice))
+        .route("/ap/invoices", get(accounts_payable::list_ap_invoices))
+        .route("/ap/invoices/:id", get(accounts_payable::get_ap_invoice))
+        .route("/ap/invoices/:id/submit", post(accounts_payable::submit_ap_invoice))
+        .route("/ap/invoices/:id/approve", post(accounts_payable::approve_ap_invoice))
+        .route("/ap/invoices/:id/cancel", post(accounts_payable::cancel_ap_invoice))
+        // Invoice Lines
+        .route("/ap/invoices/:invoice_id/lines", post(accounts_payable::add_ap_invoice_line))
+        .route("/ap/invoices/:invoice_id/lines", get(accounts_payable::list_ap_invoice_lines))
+        .route("/ap/invoices/:invoice_id/lines/:line_id", delete(accounts_payable::delete_ap_invoice_line))
+        // Invoice Distributions
+        .route("/ap/invoices/:invoice_id/distributions", post(accounts_payable::add_ap_distribution))
+        .route("/ap/invoices/:invoice_id/distributions", get(accounts_payable::list_ap_distributions))
+        // Invoice Holds
+        .route("/ap/invoices/:invoice_id/holds", post(accounts_payable::apply_ap_hold))
+        .route("/ap/invoices/:invoice_id/holds", get(accounts_payable::list_ap_holds))
+        .route("/ap/holds/:hold_id/release", post(accounts_payable::release_ap_hold))
+        // Payments
+        .route("/ap/payments", post(accounts_payable::create_ap_payment))
+        .route("/ap/payments", get(accounts_payable::list_ap_payments))
+        .route("/ap/payments/:id", get(accounts_payable::get_ap_payment))
+        .route("/ap/payments/:id/confirm", post(accounts_payable::confirm_ap_payment))
+        // AP Aging
+        .route("/ap/aging", get(accounts_payable::get_ap_aging))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -949,6 +949,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         quality_engine: Arc::new(atlas_core::QualityManagementEngine::new(Arc::new(
             atlas_core::quality_management::PostgresQualityManagementRepository::new(db_pool.clone()),
         ))),
+        cost_accounting_engine: Arc::new(atlas_core::CostAccountingEngine::new(Arc::new(
+            atlas_core::cost_accounting::PostgresCostAccountingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

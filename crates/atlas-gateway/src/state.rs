@@ -88,6 +88,7 @@ use atlas_core::{
     ProjectBillingEngine,
     project_billing::PostgresProjectBillingRepository,
     QualityManagementEngine,
+    CostAccountingEngine,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -250,6 +251,7 @@ pub struct AppState {
     pub promotions_engine: Arc<PromotionsManagementEngine>,
     pub project_billing_engine: Arc<ProjectBillingEngine>,
     pub quality_engine: Arc<QualityManagementEngine>,
+    pub cost_accounting_engine: Arc<CostAccountingEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -679,6 +681,11 @@ impl AppState {
             atlas_core::quality_management::PostgresQualityManagementRepository::new(db_pool.clone())
         )));
 
+        // Initialize Cost Accounting engine
+        let cost_accounting_engine = Arc::new(CostAccountingEngine::new(Arc::new(
+            atlas_core::cost_accounting::PostgresCostAccountingRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -802,6 +809,7 @@ impl AppState {
             promotions_engine,
             project_billing_engine,
             quality_engine,
+            cost_accounting_engine,
             event_bus,
             jwt_secret,
         };

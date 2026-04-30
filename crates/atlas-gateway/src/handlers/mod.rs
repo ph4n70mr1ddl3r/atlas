@@ -81,6 +81,7 @@ pub mod sustainability;
 pub mod promotions_management;
 pub mod project_billing;
 pub mod quality_management;
+pub mod cost_accounting;
 
 pub use schema::*;
 pub use records::*;
@@ -3366,6 +3367,63 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Quality Dashboard
         .route("/quality/dashboard", get(quality_management::get_quality_dashboard))
+
+        // ================================================================
+        // Cost Accounting (Oracle Fusion Cost Management)
+        // ================================================================
+
+        // Cost Books
+        .route("/cost-accounting/books", post(cost_accounting::create_cost_book))
+        .route("/cost-accounting/books", get(cost_accounting::list_cost_books))
+        .route("/cost-accounting/books/:id", get(cost_accounting::get_cost_book))
+        .route("/cost-accounting/books/:id", put(cost_accounting::update_cost_book))
+        .route("/cost-accounting/books/:id", delete(cost_accounting::delete_cost_book))
+        .route("/cost-accounting/books/:id/deactivate", post(cost_accounting::deactivate_cost_book))
+        .route("/cost-accounting/books/:id/activate", post(cost_accounting::activate_cost_book))
+
+        // Cost Elements
+        .route("/cost-accounting/elements", post(cost_accounting::create_cost_element))
+        .route("/cost-accounting/elements", get(cost_accounting::list_cost_elements))
+        .route("/cost-accounting/elements/:id", get(cost_accounting::get_cost_element))
+        .route("/cost-accounting/elements/:id", delete(cost_accounting::delete_cost_element))
+
+        // Cost Profiles
+        .route("/cost-accounting/profiles", post(cost_accounting::create_cost_profile))
+        .route("/cost-accounting/profiles", get(cost_accounting::list_cost_profiles))
+        .route("/cost-accounting/profiles/:id", get(cost_accounting::get_cost_profile))
+        .route("/cost-accounting/profiles/:id", delete(cost_accounting::delete_cost_profile))
+
+        // Standard Costs
+        .route("/cost-accounting/standard-costs", post(cost_accounting::create_standard_cost))
+        .route("/cost-accounting/standard-costs", get(cost_accounting::list_standard_costs))
+        .route("/cost-accounting/standard-costs/:id", get(cost_accounting::get_standard_cost))
+        .route("/cost-accounting/standard-costs/:id", put(cost_accounting::update_standard_cost))
+        .route("/cost-accounting/standard-costs/:id/supersede", post(cost_accounting::supersede_standard_cost))
+        .route("/cost-accounting/standard-costs/:id", delete(cost_accounting::delete_standard_cost))
+
+        // Cost Adjustments
+        .route("/cost-accounting/adjustments", post(cost_accounting::create_cost_adjustment))
+        .route("/cost-accounting/adjustments", get(cost_accounting::list_cost_adjustments))
+        .route("/cost-accounting/adjustments/:id", get(cost_accounting::get_cost_adjustment))
+        .route("/cost-accounting/adjustments/:id/submit", post(cost_accounting::submit_adjustment))
+        .route("/cost-accounting/adjustments/:id/approve", post(cost_accounting::approve_adjustment))
+        .route("/cost-accounting/adjustments/:id/reject", post(cost_accounting::reject_adjustment))
+        .route("/cost-accounting/adjustments/:id/post", post(cost_accounting::post_adjustment))
+        .route("/cost-accounting/adjustments/:id", delete(cost_accounting::delete_cost_adjustment))
+
+        // Cost Adjustment Lines
+        .route("/cost-accounting/adjustments/:adjustment_id/lines", post(cost_accounting::add_adjustment_line))
+        .route("/cost-accounting/adjustments/:adjustment_id/lines", get(cost_accounting::list_adjustment_lines))
+        .route("/cost-accounting/adjustment-lines/:id", delete(cost_accounting::delete_adjustment_line))
+
+        // Cost Variances
+        .route("/cost-accounting/variances", post(cost_accounting::create_cost_variance))
+        .route("/cost-accounting/variances", get(cost_accounting::list_cost_variances))
+        .route("/cost-accounting/variances/:id", get(cost_accounting::get_cost_variance))
+        .route("/cost-accounting/variances/:id/analyze", post(cost_accounting::analyze_variance))
+
+        // Cost Accounting Dashboard
+        .route("/cost-accounting/dashboard", get(cost_accounting::get_cost_accounting_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

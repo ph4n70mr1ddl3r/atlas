@@ -361,6 +361,11 @@ impl CostAccountingEngine {
         self.repository.get_cost_book(cost_book_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", cost_book_id)))?;
 
+        // Check uniqueness
+        if self.repository.get_cost_profile_by_code(org_id, &code).await?.is_some() {
+            return Err(AtlasError::Conflict(format!("Cost profile '{}' already exists", code)));
+        }
+
         info!("Creating cost profile '{}' for org {}", name, org_id);
         self.repository.create_cost_profile(
             org_id, &code, name, description, cost_book_id,

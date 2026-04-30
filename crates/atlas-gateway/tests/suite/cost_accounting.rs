@@ -375,6 +375,41 @@ async fn test_cost_book_invalid_costing_method() {
 // ============================================================================
 
 #[tokio::test]
+async fn test_cost_element_update() {
+    let (_state, app) = setup_cost_accounting_test().await;
+
+    let elem = create_test_cost_element(&app, "UPD-ELEM", "Original Name", "labor", None).await;
+    let elem_id = elem["id"].as_str().unwrap();
+    let (k, v) = auth_header(&admin_claims());
+
+    // Update
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(&format!("/api/v1/cost-accounting/elements/{}", elem_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "name": "Updated Element",
+                        "defaultRate": "20.00"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let updated: serde_json::Value =
+        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    assert_eq!(updated["name"], "Updated Element");
+    assert!(updated["defaultRate"].as_str().unwrap().contains("20"));
+}
+
+#[tokio::test]
 async fn test_cost_element_crud() {
     let (_state, app) = setup_cost_accounting_test().await;
 
@@ -463,9 +498,121 @@ async fn test_cost_element_invalid_type() {
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }
 
+#[tokio::test]
+async fn test_cost_element_duplicate_code() {
+    let (_state, app) = setup_cost_accounting_test().await;
+    let (k, v) = auth_header(&admin_claims());
+
+    // Create first
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/cost-accounting/elements")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "DUP-ELEM",
+                        "name": "First",
+                        "elementType": "overhead",
+                        "defaultRate": "5.00"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    // Create second with same code
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/cost-accounting/elements")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "DUP-ELEM",
+                        "name": "Second",
+                        "elementType": "overhead",
+                        "defaultRate": "10.00"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CONFLICT);
+}
+
 // ============================================================================
 // Cost Profiles
 // ============================================================================
+
+#[tokio::test]
+async fn test_cost_profile_duplicate_code() {
+    let (_state, app) = setup_cost_accounting_test().await;
+
+    let book = create_test_cost_book(&app, "DUP-PROF-BOOK", "Profile Book", "fifo").await;
+    let book_id = book["id"].as_str().unwrap();
+    let (k, v) = auth_header(&admin_claims());
+
+    // Create first profile
+    let payload = json!({
+        "code": "DUP-PROF",
+        "name": "First Profile",
+        "costBookId": book_id,
+        "costType": "fifo",
+        "lotLevelCosting": false,
+        "includeLandedCosts": true,
+        "overheadAbsorptionMethod": "rate"
+    });
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/cost-accounting/profiles")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    // Create second with same code
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/cost-accounting/profiles")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({
+        "code": "DUP-PROF",
+        "name": "Second Profile",
+        "costBookId": book_id,
+        "costType": "fifo",
+        "lotLevelCosting": false,
+        "includeLandedCosts": true,
+        "overheadAbsorptionMethod": "rate"
+    })).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CONFLICT);
+}
 
 #[tokio::test]
 async fn test_cost_profile_crud() {

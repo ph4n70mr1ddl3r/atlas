@@ -355,6 +355,40 @@ pub async fn delete_cost_element(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCostElementRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub default_rate: Option<String>,
+}
+
+pub async fn update_cost_element(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<UpdateCostElementRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let element = state
+        .cost_accounting_engine
+        .update_cost_element(
+            id,
+            payload.name.as_deref(),
+            payload.description.as_deref(),
+            payload.default_rate.as_deref(),
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Update cost element error: {}", e);
+            match e {
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
+
+    Ok(Json(serde_json::to_value(element).unwrap_or_default()))
+}
+
 // ============================================================================
 // Cost Profiles
 // ============================================================================

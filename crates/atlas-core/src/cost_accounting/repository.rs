@@ -96,6 +96,7 @@ pub trait CostAccountingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CostProfile>;
     async fn get_cost_profile(&self, id: Uuid) -> AtlasResult<Option<CostProfile>>;
+    async fn get_cost_profile_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CostProfile>>;
     async fn list_cost_profiles(
         &self,
         org_id: Uuid,
@@ -508,7 +509,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
     async fn update_cost_book_status(&self, id: Uuid, status: &str) -> AtlasResult<CostBook> {
         let row = sqlx::query(
             r#"UPDATE _atlas.cost_books SET status = $2, is_active = ($2 = 'active'),
-                updated_at = now() WHERE id = $1"
+                updated_at = now() WHERE id = $1
                RETURNING id, organization_id, code, name, description, costing_method,
                  currency_code, is_active, status, effective_from, effective_to,
                  metadata, created_by, created_at, updated_at"#,
@@ -676,6 +677,15 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
             "SELECT id, organization_id, code, name, description, cost_book_id, item_id, item_name, cost_type, lot_level_costing, include_landed_costs, overhead_absorption_method, is_active, metadata, created_by, created_at, updated_at FROM _atlas.cost_profiles WHERE id = $1",
         )
         .bind(id).fetch_optional(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row.map(|r| row_to_cost_profile(&r)))
+    }
+
+    async fn get_cost_profile_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CostProfile>> {
+        let row = sqlx::query(
+            "SELECT id, organization_id, code, name, description, cost_book_id, item_id, item_name, cost_type, lot_level_costing, include_landed_costs, overhead_absorption_method, is_active, metadata, created_by, created_at, updated_at FROM _atlas.cost_profiles WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id).bind(code).fetch_optional(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_cost_profile(&r)))
     }

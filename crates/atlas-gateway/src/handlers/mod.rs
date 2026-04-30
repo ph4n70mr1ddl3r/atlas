@@ -3385,6 +3385,7 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/cost-accounting/elements", post(cost_accounting::create_cost_element))
         .route("/cost-accounting/elements", get(cost_accounting::list_cost_elements))
         .route("/cost-accounting/elements/:id", get(cost_accounting::get_cost_element))
+        .route("/cost-accounting/elements/:id", put(cost_accounting::update_cost_element))
         .route("/cost-accounting/elements/:id", delete(cost_accounting::delete_cost_element))
 
         // Cost Profiles

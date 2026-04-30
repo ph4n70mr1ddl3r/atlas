@@ -81,3 +81,4 @@ mod project_billing;
 mod quality_management;
 mod cost_accounting;
 mod accounts_payable;
+mod supply_chain_planning;

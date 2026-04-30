@@ -83,6 +83,7 @@ pub mod project_billing;
 pub mod quality_management;
 pub mod cost_accounting;
 pub mod accounts_payable;
+pub mod supply_chain_planning;
 
 pub use schema::*;
 pub use records::*;
@@ -3454,6 +3455,34 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/ap/payments/:id/confirm", post(accounts_payable::confirm_ap_payment))
         // AP Aging
         .route("/ap/aging", get(accounts_payable::get_ap_aging))
+
+        // ========================================================================
+        // Supply Chain Planning (MRP)
+        // ========================================================================
+        // Planning Scenarios
+        .route("/scp/scenarios", post(supply_chain_planning::create_scenario))
+        .route("/scp/scenarios", get(supply_chain_planning::list_scenarios))
+        .route("/scp/scenarios/:id", get(supply_chain_planning::get_scenario))
+        .route("/scp/scenarios/:id/run", post(supply_chain_planning::run_mrp))
+        .route("/scp/scenarios/:id/cancel", post(supply_chain_planning::cancel_scenario))
+        // Planning Parameters
+        .route("/scp/parameters", post(supply_chain_planning::upsert_parameter))
+        .route("/scp/parameters", get(supply_chain_planning::list_parameters))
+        .route("/scp/parameters/:item_id", delete(supply_chain_planning::delete_parameter))
+        // Supply/Demand Entries
+        .route("/scp/supply-demand", post(supply_chain_planning::create_supply_demand))
+        .route("/scp/scenarios/:scenario_id/supply-demand", get(supply_chain_planning::list_supply_demand))
+        // Planned Orders
+        .route("/scp/scenarios/:scenario_id/orders", get(supply_chain_planning::list_planned_orders))
+        .route("/scp/orders/:id", get(supply_chain_planning::get_planned_order))
+        .route("/scp/orders/:id/firm", post(supply_chain_planning::firm_planned_order))
+        .route("/scp/orders/:id/cancel", post(supply_chain_planning::cancel_planned_order))
+        // Planning Exceptions
+        .route("/scp/scenarios/:scenario_id/exceptions", get(supply_chain_planning::list_exceptions))
+        .route("/scp/exceptions/:id/resolve", post(supply_chain_planning::resolve_exception))
+        .route("/scp/exceptions/:id/dismiss", post(supply_chain_planning::dismiss_exception))
+        // Planning Dashboard
+        .route("/scp/dashboard", get(supply_chain_planning::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -109,6 +109,7 @@ pub mod territory_management;
 pub mod promotions_management;
 pub mod cost_accounting;
 pub mod accounts_payable;
+pub mod supply_chain_planning;
 
 pub use schema::*;
 pub use workflow::{
@@ -219,6 +220,7 @@ pub use territory_management::{TerritoryManagementEngine, PostgresTerritoryManag
 pub use promotions_management::{PromotionsManagementEngine, PostgresPromotionsManagementRepository as PostgresPromotionsManagementRepo};
 pub use cost_accounting::{CostAccountingEngine, PostgresCostAccountingRepository as PostgresCostAccountingRepo};
 pub use accounts_payable::{AccountsPayableEngine, PostgresAccountsPayableRepository as PostgresAccountsPayableRepo};
+pub use supply_chain_planning::{SupplyChainPlanningEngine, PostgresPlanningRepository as PostgresPlanningRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

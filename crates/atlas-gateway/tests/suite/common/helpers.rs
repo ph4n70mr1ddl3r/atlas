@@ -30,6 +30,10 @@ use atlas_core::{
     QualityManagementEngine,
 };
 
+use atlas_core::{
+    SupplyChainPlanningEngine,
+};
+
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
     StateDefinition, StateType, TransitionDefinition,
@@ -451,6 +455,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         ))),
         accounts_payable_engine: Arc::new(atlas_core::AccountsPayableEngine::new(Arc::new(
             atlas_core::accounts_payable::PostgresAccountsPayableRepository::new(db_pool.clone()),
+        ))),
+        planning_engine: Arc::new(SupplyChainPlanningEngine::new(Arc::new(
+            atlas_core::supply_chain_planning::PostgresPlanningRepository::new(db_pool.clone()),
         ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
@@ -884,4 +891,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.ap_invoice_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.ap_payments").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.ap_invoices").execute(pool).await.ok();
+    // Clean supply chain planning test data
+    sqlx::query("DELETE FROM _atlas.planning_exceptions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.planned_orders").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supply_demand_entries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.planning_scenarios").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.planning_parameters").execute(pool).await.ok();
 }

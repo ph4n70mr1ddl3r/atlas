@@ -12,6 +12,7 @@ use uuid::Uuid;
 use atlas_core::{
     SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
     SecurityEngine, AuditEngine,
+    SupplyChainPlanningEngine,
     eventbus::NatsEventBus,
     schema::{SchemaBuilder, PostgresSchemaRepository},
     audit::PostgresAuditRepository,
@@ -951,6 +952,12 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         ))),
         cost_accounting_engine: Arc::new(atlas_core::CostAccountingEngine::new(Arc::new(
             atlas_core::cost_accounting::PostgresCostAccountingRepository::new(db_pool.clone()),
+        ))),
+        accounts_payable_engine: Arc::new(atlas_core::AccountsPayableEngine::new(Arc::new(
+            atlas_core::accounts_payable::PostgresAccountsPayableRepository::new(db_pool.clone()),
+        ))),
+        planning_engine: Arc::new(atlas_core::SupplyChainPlanningEngine::new(Arc::new(
+            atlas_core::supply_chain_planning::PostgresPlanningRepository::new(db_pool.clone()),
         ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),

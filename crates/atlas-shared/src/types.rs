@@ -18408,3 +18408,177 @@ pub struct CostAccountingDashboard {
     pub variance_by_element: serde_json::Value,
     pub adjustments_by_status: serde_json::Value,
 }
+
+// ============================================================================
+// Supply Chain Planning (MRP) Types
+// Oracle Fusion equivalent: Supply Chain Management > Supply Chain Planning
+// ============================================================================
+
+/// Planning Scenario - defines the context for a planning run
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanningScenario {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub scenario_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub scenario_type: String,
+    pub status: String,
+    pub planning_horizon_days: i32,
+    pub planning_start_date: Option<chrono::NaiveDate>,
+    pub planning_end_date: Option<chrono::NaiveDate>,
+    pub include_existing_supply: bool,
+    pub include_on_hand: bool,
+    pub include_work_in_progress: bool,
+    pub auto_firm: bool,
+    pub auto_firm_days: Option<i32>,
+    pub net_shortages_only: bool,
+    pub total_planned_orders: i32,
+    pub total_exceptions: i32,
+    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Planning Parameters - item-level planning attributes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanningParameter {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub item_id: Uuid,
+    pub item_name: Option<String>,
+    pub item_number: Option<String>,
+    pub planner_code: Option<String>,
+    pub planning_method: String,
+    pub make_buy: String,
+    pub lead_time_days: i32,
+    pub safety_stock_quantity: String,
+    pub min_order_quantity: String,
+    pub max_order_quantity: Option<String>,
+    pub fixed_order_quantity: Option<String>,
+    pub fixed_lot_multiplier: String,
+    pub order_multiple: String,
+    pub planning_time_fence_days: i32,
+    pub release_time_fence_days: i32,
+    pub shrinkage_rate: String,
+    pub lot_size_policy: String,
+    pub period_order_quantity_days: Option<i32>,
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub source_name: Option<String>,
+    pub default_supplier_id: Option<Uuid>,
+    pub default_supplier_name: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Supply/Demand Entry - netting input for planning
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplyDemandEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub scenario_id: Option<Uuid>,
+    pub item_id: Uuid,
+    pub item_name: Option<String>,
+    pub item_number: Option<String>,
+    pub entry_type: String,
+    pub source_type: String,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub quantity: String,
+    pub quantity_remaining: String,
+    pub due_date: chrono::NaiveDate,
+    pub priority: i32,
+    pub status: String,
+    pub pegged_to_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Planned Order - output of MRP planning run
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedOrder {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub scenario_id: Option<Uuid>,
+    pub item_id: Uuid,
+    pub item_name: Option<String>,
+    pub item_number: Option<String>,
+    pub order_number: String,
+    pub order_type: String,
+    pub status: String,
+    pub quantity: String,
+    pub quantity_firmed: String,
+    pub due_date: chrono::NaiveDate,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub need_date: Option<chrono::NaiveDate>,
+    pub planner_notes: Option<String>,
+    pub planning_priority: i32,
+    pub order_action: String,
+    pub suggested_supplier_id: Option<Uuid>,
+    pub suggested_supplier_name: Option<String>,
+    pub suggested_source_type: Option<String>,
+    pub suggested_source_id: Option<Uuid>,
+    pub firm_deadline: Option<chrono::NaiveDate>,
+    pub pegging_demand_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Planning Exception - issues flagged during planning run
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanningException {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub scenario_id: Option<Uuid>,
+    pub item_id: Uuid,
+    pub item_name: Option<String>,
+    pub item_number: Option<String>,
+    pub exception_type: String,
+    pub severity: String,
+    pub message: String,
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub affected_quantity: Option<String>,
+    pub affected_date: Option<chrono::NaiveDate>,
+    pub resolution_status: String,
+    pub resolution_notes: Option<String>,
+    pub resolved_by: Option<Uuid>,
+    pub resolved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Supply Chain Planning Dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanningDashboard {
+    pub organization_id: Uuid,
+    pub total_scenarios: i64,
+    pub active_scenarios: i64,
+    pub total_planned_orders: i64,
+    pub unfirm_orders: i64,
+    pub firmed_orders: i64,
+    pub total_exceptions: i64,
+    pub critical_exceptions: i64,
+    pub open_exceptions: i64,
+    pub total_items_planned: i64,
+    pub items_with_shortage: i64,
+}

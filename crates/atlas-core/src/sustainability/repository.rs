@@ -200,11 +200,11 @@ fn row_to_facility(row: &sqlx::postgres::PgRow) -> SustainabilityFacility {
         region: row.try_get("region").unwrap_or_default(),
         city: row.try_get("city").unwrap_or_default(),
         address: row.try_get("address").unwrap_or_default(),
-        latitude: get_optional_numeric(&row, "latitude"),
-        longitude: get_optional_numeric(&row, "longitude"),
+        latitude: get_optional_numeric(row, "latitude"),
+        longitude: get_optional_numeric(row, "longitude"),
         facility_type: row.try_get("facility_type").unwrap_or_default(),
         industry_sector: row.try_get("industry_sector").unwrap_or_default(),
-        total_area_sqm: get_optional_numeric(&row, "total_area_sqm"),
+        total_area_sqm: get_optional_numeric(row, "total_area_sqm"),
         employee_count: row.try_get("employee_count").unwrap_or_default(),
         operating_hours_per_year: row.try_get("operating_hours_per_year").unwrap_or(8760),
         status: row.try_get("status").unwrap_or_default(),
@@ -225,7 +225,7 @@ fn row_to_emission_factor(row: &sqlx::postgres::PgRow) -> EmissionFactor {
         scope: row.try_get("scope").unwrap_or_default(),
         category: row.try_get("category").unwrap_or_default(),
         activity_type: row.try_get("activity_type").unwrap_or_default(),
-        factor_value: get_numeric(&row, "factor_value"),
+        factor_value: get_numeric(row, "factor_value"),
         unit_of_measure: row.try_get("unit_of_measure").unwrap_or_default(),
         gas_type: row.try_get("gas_type").unwrap_or_default(),
         factor_source: row.try_get("factor_source").unwrap_or_default(),
@@ -250,14 +250,14 @@ fn row_to_activity(row: &sqlx::postgres::PgRow) -> EnvironmentalActivity {
         activity_type: row.try_get("activity_type").unwrap_or_default(),
         scope: row.try_get("scope").unwrap_or_default(),
         category: row.try_get("category").unwrap_or_default(),
-        quantity: get_numeric(&row, "quantity"),
+        quantity: get_numeric(row, "quantity"),
         unit_of_measure: row.try_get("unit_of_measure").unwrap_or_default(),
         emission_factor_id: row.try_get("emission_factor_id").unwrap_or_default(),
-        co2e_kg: get_numeric(&row, "co2e_kg"),
-        co2_kg: get_optional_numeric(&row, "co2_kg"),
-        ch4_kg: get_optional_numeric(&row, "ch4_kg"),
-        n2o_kg: get_optional_numeric(&row, "n2o_kg"),
-        cost_amount: get_optional_numeric(&row, "cost_amount"),
+        co2e_kg: get_numeric(row, "co2e_kg"),
+        co2_kg: get_optional_numeric(row, "co2_kg"),
+        ch4_kg: get_optional_numeric(row, "ch4_kg"),
+        n2o_kg: get_optional_numeric(row, "n2o_kg"),
+        cost_amount: get_optional_numeric(row, "cost_amount"),
         cost_currency: row.try_get("cost_currency").unwrap_or_default(),
         activity_date: row.try_get("activity_date").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
         reporting_period: row.try_get("reporting_period").unwrap_or_default(),
@@ -290,8 +290,8 @@ fn row_to_metric(row: &sqlx::postgres::PgRow) -> EsgMetric {
         sasb_standard: row.try_get("sasb_standard").unwrap_or_default(),
         tcfd_category: row.try_get("tcfd_category").unwrap_or_default(),
         eu_taxonomy_code: row.try_get("eu_taxonomy_code").unwrap_or_default(),
-        target_value: get_optional_numeric(&row, "target_value"),
-        warning_threshold: get_optional_numeric(&row, "warning_threshold"),
+        target_value: get_optional_numeric(row, "target_value"),
+        warning_threshold: get_optional_numeric(row, "warning_threshold"),
         direction: row.try_get("direction").unwrap_or_default(),
         status: row.try_get("status").unwrap_or_default(),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
@@ -306,7 +306,7 @@ fn row_to_reading(row: &sqlx::postgres::PgRow) -> EsgMetricReading {
         id: row.try_get("id").unwrap_or_default(),
         organization_id: row.try_get("organization_id").unwrap_or_default(),
         metric_id: row.try_get("metric_id").unwrap_or_default(),
-        metric_value: get_numeric(&row, "metric_value"),
+        metric_value: get_numeric(row, "metric_value"),
         reading_date: row.try_get("reading_date").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
         reporting_period: row.try_get("reporting_period").unwrap_or_default(),
         facility_id: row.try_get("facility_id").unwrap_or_default(),
@@ -331,16 +331,16 @@ fn row_to_goal(row: &sqlx::postgres::PgRow) -> SustainabilityGoal {
         description: row.try_get("description").unwrap_or_default(),
         goal_type: row.try_get("goal_type").unwrap_or_default(),
         scope: row.try_get("scope").unwrap_or_default(),
-        baseline_value: get_numeric(&row, "baseline_value"),
+        baseline_value: get_numeric(row, "baseline_value"),
         baseline_year: row.try_get("baseline_year").unwrap_or(2024),
         baseline_unit: row.try_get("baseline_unit").unwrap_or_default(),
-        target_value: get_numeric(&row, "target_value"),
+        target_value: get_numeric(row, "target_value"),
         target_year: row.try_get("target_year").unwrap_or(2030),
         target_unit: row.try_get("target_unit").unwrap_or_default(),
-        target_reduction_pct: get_optional_numeric(&row, "target_reduction_pct"),
+        target_reduction_pct: get_optional_numeric(row, "target_reduction_pct"),
         milestones: row.try_get("milestones").unwrap_or(serde_json::json!([])),
-        current_value: get_numeric(&row, "current_value"),
-        progress_pct: get_numeric(&row, "progress_pct"),
+        current_value: get_numeric(row, "current_value"),
+        progress_pct: get_numeric(row, "progress_pct"),
         facility_id: row.try_get("facility_id").unwrap_or_default(),
         status: row.try_get("status").unwrap_or_default(),
         owner_id: row.try_get("owner_id").unwrap_or_default(),
@@ -369,13 +369,13 @@ fn row_to_offset(row: &sqlx::postgres::PgRow) -> CarbonOffset {
         registry: row.try_get("registry").unwrap_or_default(),
         registry_id: row.try_get("registry_id").unwrap_or_default(),
         certification_standard: row.try_get("certification_standard").unwrap_or_default(),
-        quantity_tonnes: get_numeric(&row, "quantity_tonnes"),
-        remaining_tonnes: get_numeric(&row, "remaining_tonnes"),
-        unit_price: get_optional_numeric(&row, "unit_price"),
-        total_cost: get_optional_numeric(&row, "total_cost"),
+        quantity_tonnes: get_numeric(row, "quantity_tonnes"),
+        remaining_tonnes: get_numeric(row, "remaining_tonnes"),
+        unit_price: get_optional_numeric(row, "unit_price"),
+        total_cost: get_optional_numeric(row, "total_cost"),
         currency_code: row.try_get("currency_code").unwrap_or_default(),
         vintage_year: row.try_get("vintage_year").unwrap_or(2024),
-        retired_quantity: get_numeric(&row, "retired_quantity"),
+        retired_quantity: get_numeric(row, "retired_quantity"),
         retired_date: row.try_get("retired_date").unwrap_or_default(),
         effective_from: row.try_get("effective_from").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
         effective_to: row.try_get("effective_to").unwrap_or_default(),
@@ -994,7 +994,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         for row in &act_rows {
             let scope: String = row.try_get("scope").unwrap_or_default();
             let atype: String = row.try_get("activity_type").unwrap_or_default();
-            let co2e: f64 = get_numeric(&row, "co2e_kg");
+            let co2e: f64 = get_numeric(row, "co2e_kg");
 
             match scope.as_str() {
                 "scope_1" => scope1 += co2e,
@@ -1031,7 +1031,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         ).bind(org_id).fetch_all(&self.pool).await.unwrap_or_default();
 
         let total_offsets: f64 = offset_rows.iter()
-            .map(|r| get_numeric(&r, "retired_quantity"))
+            .map(|r| get_numeric(r, "retired_quantity"))
             .sum();
 
         // Goals

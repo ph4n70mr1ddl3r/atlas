@@ -775,6 +775,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn make_schedule(id: Uuid, org_id: Uuid, number: &str, status: &str) -> BillRateSchedule {
         BillRateSchedule {
             id,
@@ -795,6 +796,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn make_billing_config(id: Uuid, org_id: Uuid, project_id: Uuid, method: &str, status: &str) -> ProjectBillingConfig {
         ProjectBillingConfig {
             id,
@@ -821,6 +823,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn make_event(id: Uuid, org_id: Uuid, project_id: Uuid, number: &str, status: &str) -> BillingEvent {
         BillingEvent {
             id,
@@ -848,6 +851,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn make_invoice(id: Uuid, org_id: Uuid, project_id: Uuid, number: &str, status: &str) -> ProjectInvoiceHeader {
         ProjectInvoiceHeader {
             id,
@@ -927,7 +931,7 @@ mod tests {
 
         async fn get_schedule_by_number(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<Option<BillRateSchedule>> {
             let state = self.state.lock().unwrap();
-            for (_, (_, s)) in &state.schedules {
+            for (_, s) in state.schedules.values() {
                 if s.organization_id == org_id && s.schedule_number == schedule_number {
                     return Ok(Some(s.clone()));
                 }
@@ -938,7 +942,7 @@ mod tests {
         async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BillRateSchedule>> {
             let state = self.state.lock().unwrap();
             let mut result = Vec::new();
-            for (_, (st, s)) in &state.schedules {
+            for (st, s) in state.schedules.values() {
                 if s.organization_id == org_id && (status.is_none() || st == status.unwrap()) {
                     result.push(s.clone());
                 }
@@ -1077,7 +1081,7 @@ mod tests {
 
         async fn get_billing_config_by_project(&self, org_id: Uuid, project_id: Uuid) -> AtlasResult<Option<ProjectBillingConfig>> {
             let state = self.state.lock().unwrap();
-            for (_, (_, c)) in &state.billing_configs {
+            for (_, c) in state.billing_configs.values() {
                 if c.organization_id == org_id && c.project_id == project_id {
                     return Ok(Some(c.clone()));
                 }
@@ -1098,7 +1102,7 @@ mod tests {
         async fn list_billing_configs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ProjectBillingConfig>> {
             let state = self.state.lock().unwrap();
             let mut result = Vec::new();
-            for (_, (st, c)) in &state.billing_configs {
+            for (st, c) in state.billing_configs.values() {
                 if c.organization_id == org_id && (status.is_none() || st == status.unwrap()) {
                     result.push(c.clone());
                 }
@@ -1152,7 +1156,7 @@ mod tests {
 
         async fn get_billing_event_by_number(&self, org_id: Uuid, event_number: &str) -> AtlasResult<Option<BillingEvent>> {
             let state = self.state.lock().unwrap();
-            for (_, (_, e)) in &state.events {
+            for (_, e) in state.events.values() {
                 if e.organization_id == org_id && e.event_number == event_number {
                     return Ok(Some(e.clone()));
                 }
@@ -1165,7 +1169,7 @@ mod tests {
         ) -> AtlasResult<Vec<BillingEvent>> {
             let state = self.state.lock().unwrap();
             let mut result = Vec::new();
-            for (_, (st, e)) in &state.events {
+            for (st, e) in state.events.values() {
                 if e.organization_id == org_id
                     && (project_id.is_none() || e.project_id == project_id.unwrap())
                     && (status.is_none() || st == status.unwrap())
@@ -1279,7 +1283,7 @@ mod tests {
 
         async fn get_invoice_by_number(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<Option<ProjectInvoiceHeader>> {
             let state = self.state.lock().unwrap();
-            for (_, (_, inv)) in &state.invoices {
+            for (_, inv) in state.invoices.values() {
                 if inv.organization_id == org_id && inv.invoice_number == invoice_number {
                     return Ok(Some(inv.clone()));
                 }
@@ -1292,7 +1296,7 @@ mod tests {
         ) -> AtlasResult<Vec<ProjectInvoiceHeader>> {
             let state = self.state.lock().unwrap();
             let mut result = Vec::new();
-            for (_, (st, inv)) in &state.invoices {
+            for (st, inv) in state.invoices.values() {
                 if inv.organization_id == org_id
                     && (project_id.is_none() || inv.project_id == project_id.unwrap())
                     && (status.is_none() || st == status.unwrap())
@@ -1519,7 +1523,7 @@ mod tests {
     #[tokio::test]
     async fn test_activate_schedule() {
         let repo = MockBillingRepo::new();
-        let repo_clone = repo.cloned();
+        let _repo_clone = repo.cloned();
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
@@ -1539,7 +1543,7 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let s1 = engine.create_schedule(
+        let _s1 = engine.create_schedule(
             org_id, "SCH-01", "Draft", None, "standard", "USD",
             chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
         ).await.unwrap();
@@ -1590,7 +1594,7 @@ mod tests {
     #[tokio::test]
     async fn test_add_rate_line_success() {
         let repo = MockBillingRepo::new();
-        let repo_clone = repo.cloned();
+        let _repo_clone = repo.cloned();
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
@@ -1724,7 +1728,7 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, None,
         ).await.unwrap();
 
-        let l2 = engine.add_rate_line(
+        let _l2 = engine.add_rate_line(
             org_id, schedule.id, "Role B", None,
             150.0, "hours",
             chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, None,

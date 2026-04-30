@@ -507,8 +507,8 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
 
     async fn update_cost_book_status(&self, id: Uuid, status: &str) -> AtlasResult<CostBook> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.cost_books SET status = $2, is_active = (status = 'active'),
-                updated_at = now() WHERE id = $1
+            r#"UPDATE _atlas.cost_books SET status = $2, is_active = ($2 = 'active'),
+                updated_at = now() WHERE id = $1"
                RETURNING id, organization_id, code, name, description, costing_method,
                  currency_code, is_active, status, effective_from, effective_to,
                  metadata, created_by, created_at, updated_at"#,

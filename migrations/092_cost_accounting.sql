@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS _atlas.standard_costs (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_std_costs_item ON _atlas.standard_costs(item_id);
-CREATE INDEX IF NOT EXISTS idx_std_costs_book ON _atlas.standard_books_cost ON _atlas.standard_costs(cost_book_id);
+CREATE INDEX IF NOT EXISTS idx_std_costs_book ON _atlas.standard_costs(cost_book_id);
 
 -- ============================================================================
 -- Cost Adjustments: Cost corrections and updates

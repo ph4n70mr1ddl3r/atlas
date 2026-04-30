@@ -178,19 +178,16 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         let _type_filter = if territory_type.is_some() { " AND territory_type = $3" } else { "" };
         let _parent_filter = match parent_id {
             Some(_) => " AND parent_id = $4",
-            None => {
-                // Only filter parent_id when it's provided
-                if territory_type.is_some() { "" } else { "" }
-            }
+            None => "",
         };
 
         // Simpler approach: build query dynamically
         let rows = match (territory_type, parent_id, include_inactive) {
             (Some(tt), Some(pid), false) => sqlx::query(
-                &format!("SELECT * FROM _atlas.territories WHERE organization_id = $1 AND territory_type = $2 AND parent_id = $3 AND is_active = true ORDER BY name"))
+                "SELECT * FROM _atlas.territories WHERE organization_id = $1 AND territory_type = $2 AND parent_id = $3 AND is_active = true ORDER BY name")
                 .bind(org_id).bind(tt).bind(pid).fetch_all(&self.pool).await,
             (Some(tt), Some(pid), true) => sqlx::query(
-                &format!("SELECT * FROM _atlas.territories WHERE organization_id = $1 AND territory_type = $2 AND parent_id = $3 ORDER BY name"))
+                "SELECT * FROM _atlas.territories WHERE organization_id = $1 AND territory_type = $2 AND parent_id = $3 ORDER BY name")
                 .bind(org_id).bind(tt).bind(pid).fetch_all(&self.pool).await,
             (Some(tt), None, false) => sqlx::query(
                 "SELECT * FROM _atlas.territories WHERE organization_id = $1 AND territory_type = $2 AND is_active = true ORDER BY name")

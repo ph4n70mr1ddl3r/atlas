@@ -458,7 +458,7 @@ impl TerritoryManagementEngine {
         // Sort by priority (lower = better match)
         matches.sort_by_key(|m| m.priority);
 
-        let best = matches.first().map(|m| m.clone());
+        let best = matches.first().cloned();
         Ok(RouteResult {
             matched: best.is_some(),
             best_match: best,

@@ -1036,9 +1036,12 @@ mod tests {
 
     #[test]
     fn test_line_number_validation() {
-        assert!(1 >= 1);
-        assert!(0 < 1);
-        assert!((-1) < 1);
+        let valid: i32 = 1;
+        let zero: i32 = 0;
+        let neg: i32 = -1;
+        assert!(valid >= 1);
+        assert!(zero < 1);
+        assert!(neg < 1);
     }
 
     #[test]

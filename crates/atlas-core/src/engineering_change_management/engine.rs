@@ -1009,12 +1009,12 @@ mod tests {
 
     #[test]
     fn test_estimated_cost_validation() {
-        // Valid costs
-        assert!(0.0_f64 >= 0.0);
-        assert!(1000.50_f64 >= 0.0);
-
-        // Invalid costs
-        assert!((-1.0_f64) < 0.0);
+        let valid: f64 = 1000.50;
+        let zero: f64 = 0.0;
+        let invalid: f64 = -1.0;
+        assert!(valid >= 0.0);
+        assert!(zero >= 0.0);
+        assert!(invalid < 0.0);
     }
 
     // ========================================================================

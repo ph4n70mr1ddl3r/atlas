@@ -6463,3 +6463,176 @@ impl crate::funds_reservation::FundsReservationRepository for MockFundsReservati
         })
     }
 }
+
+/// Mock Rebate Management repository
+pub struct MockRebateManagementRepository;
+
+#[async_trait]
+impl crate::rebate_management::RebateManagementRepository for MockRebateManagementRepository {
+    async fn create_agreement(
+        &self, org_id: Uuid, agreement_number: &str, name: &str, _description: Option<&str>,
+        rebate_type: &str, direction: &str, partner_type: &str,
+        partner_id: Option<Uuid>, partner_name: Option<&str>, partner_number: Option<&str>,
+        product_category: Option<&str>, product_id: Option<Uuid>, product_name: Option<&str>,
+        uom: Option<&str>, currency_code: &str,
+        start_date: chrono::NaiveDate, end_date: chrono::NaiveDate,
+        calculation_method: &str,
+        accrual_account: Option<&str>, liability_account: Option<&str>, expense_account: Option<&str>,
+        payment_terms: Option<&str>, settlement_frequency: Option<&str>,
+        minimum_amount: f64, maximum_amount: Option<f64>,
+        auto_accrue: bool, requires_approval: bool,
+        notes: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::RebateAgreement> {
+        Ok(atlas_shared::RebateAgreement {
+            id: Uuid::new_v4(), organization_id: org_id,
+            agreement_number: agreement_number.to_string(), name: name.to_string(),
+            description: _description.unwrap_or("").to_string(),
+            rebate_type: rebate_type.to_string(), direction: direction.to_string(),
+            partner_type: partner_type.to_string(),
+            partner_id, partner_name: partner_name.unwrap_or("").to_string(),
+            partner_number: partner_number.unwrap_or("").to_string(),
+            product_category: product_category.unwrap_or("").to_string(),
+            product_id, product_name: product_name.unwrap_or("").to_string(),
+            uom: uom.unwrap_or("").to_string(),
+            currency_code: currency_code.to_string(),
+            start_date, end_date, status: "draft".to_string(),
+            calculation_method: calculation_method.to_string(),
+            accrual_account: accrual_account.unwrap_or("").to_string(),
+            liability_account: liability_account.unwrap_or("").to_string(),
+            expense_account: expense_account.unwrap_or("").to_string(),
+            payment_terms: payment_terms.unwrap_or("").to_string(),
+            settlement_frequency: settlement_frequency.unwrap_or("").to_string(),
+            minimum_amount, maximum_amount,
+            auto_accrue, requires_approval,
+            approved_by: None, approved_at: None,
+            notes: notes.unwrap_or("").to_string(),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_agreement(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::RebateAgreement>> { Ok(None) }
+    async fn get_agreement_by_number(&self, _org_id: Uuid, _agreement_number: &str) -> AtlasResult<Option<atlas_shared::RebateAgreement>> { Ok(None) }
+    async fn list_agreements(&self, _org_id: Uuid, _status: Option<&str>, _rebate_type: Option<&str>, _partner_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::RebateAgreement>> { Ok(vec![]) }
+    async fn update_agreement_status(&self, id: Uuid, status: &str) -> AtlasResult<atlas_shared::RebateAgreement> {
+        Err(AtlasError::EntityNotFound(format!("Agreement {} not found", id)))
+    }
+    async fn delete_agreement(&self, _org_id: Uuid, _agreement_number: &str) -> AtlasResult<()> { Ok(()) }
+    async fn create_tier(&self, org_id: Uuid, agreement_id: Uuid, tier_number: i32, from_value: f64, to_value: Option<f64>, rebate_rate: f64, rate_type: &str, description: Option<&str>) -> AtlasResult<atlas_shared::RebateTier> {
+        Ok(atlas_shared::RebateTier {
+            id: Uuid::new_v4(), organization_id: org_id, agreement_id, tier_number,
+            from_value, to_value, rebate_rate, rate_type: rate_type.to_string(),
+            description: description.unwrap_or("").to_string(),
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_tiers(&self, _agreement_id: Uuid) -> AtlasResult<Vec<atlas_shared::RebateTier>> { Ok(vec![]) }
+    async fn delete_tier(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+    async fn create_transaction(
+        &self, org_id: Uuid, agreement_id: Uuid, transaction_number: &str,
+        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        transaction_date: chrono::NaiveDate, product_id: Option<Uuid>, product_name: Option<&str>,
+        quantity: f64, unit_price: f64, transaction_amount: f64,
+        currency_code: &str, applicable_rate: f64, rebate_amount: f64,
+        tier_id: Option<Uuid>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::RebateTransaction> {
+        Ok(atlas_shared::RebateTransaction {
+            id: Uuid::new_v4(), organization_id: org_id, agreement_id,
+            transaction_number: transaction_number.to_string(),
+            source_type: source_type.unwrap_or("").to_string(),
+            source_id, source_number: source_number.unwrap_or("").to_string(),
+            transaction_date, product_id, product_name: product_name.unwrap_or("").to_string(),
+            quantity, unit_price, transaction_amount, currency_code: currency_code.to_string(),
+            applicable_rate, rebate_amount, status: "eligible".to_string(), tier_id,
+            excluded_reason: String::new(), metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_transaction(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::RebateTransaction>> { Ok(None) }
+    async fn get_transaction_by_number(&self, _org_id: Uuid, _transaction_number: &str) -> AtlasResult<Option<atlas_shared::RebateTransaction>> { Ok(None) }
+    async fn list_transactions(&self, _agreement_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::RebateTransaction>> { Ok(vec![]) }
+    async fn update_transaction_status(&self, id: Uuid, _status: &str, _reason: Option<&str>) -> AtlasResult<atlas_shared::RebateTransaction> {
+        Err(AtlasError::EntityNotFound(format!("Transaction {} not found", id)))
+    }
+    async fn delete_transaction(&self, _org_id: Uuid, _transaction_number: &str) -> AtlasResult<()> { Ok(()) }
+    async fn create_accrual(
+        &self, org_id: Uuid, agreement_id: Uuid, accrual_number: &str,
+        accrual_date: chrono::NaiveDate, accrual_period: Option<&str>,
+        accumulated_quantity: f64, accumulated_amount: f64,
+        applicable_tier_id: Option<Uuid>, applicable_rate: f64, accrued_amount: f64,
+        currency_code: &str, notes: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::RebateAccrual> {
+        Ok(atlas_shared::RebateAccrual {
+            id: Uuid::new_v4(), organization_id: org_id, agreement_id,
+            accrual_number: accrual_number.to_string(), accrual_date,
+            accrual_period: accrual_period.unwrap_or("").to_string(),
+            accumulated_quantity, accumulated_amount,
+            applicable_tier_id, applicable_rate, accrued_amount,
+            currency_code: currency_code.to_string(),
+            gl_posted: false, gl_journal_id: None, status: "draft".to_string(),
+            notes: notes.unwrap_or("").to_string(),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_accrual(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::RebateAccrual>> { Ok(None) }
+    async fn get_accrual_by_number(&self, _org_id: Uuid, _accrual_number: &str) -> AtlasResult<Option<atlas_shared::RebateAccrual>> { Ok(None) }
+    async fn list_accruals(&self, _agreement_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::RebateAccrual>> { Ok(vec![]) }
+    async fn update_accrual_status(&self, id: Uuid, _status: &str) -> AtlasResult<atlas_shared::RebateAccrual> {
+        Err(AtlasError::EntityNotFound(format!("Accrual {} not found", id)))
+    }
+    async fn delete_accrual(&self, _org_id: Uuid, _accrual_number: &str) -> AtlasResult<()> { Ok(()) }
+    async fn create_settlement(
+        &self, org_id: Uuid, agreement_id: Uuid, settlement_number: &str,
+        settlement_date: chrono::NaiveDate, settlement_period_from: Option<chrono::NaiveDate>,
+        settlement_period_to: Option<chrono::NaiveDate>,
+        total_qualifying_amount: f64, total_qualifying_quantity: f64,
+        applicable_tier_id: Option<Uuid>, applicable_rate: f64, settlement_amount: f64,
+        currency_code: &str, settlement_type: &str, payment_method: Option<&str>,
+        notes: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::RebateSettlement> {
+        Ok(atlas_shared::RebateSettlement {
+            id: Uuid::new_v4(), organization_id: org_id, agreement_id,
+            settlement_number: settlement_number.to_string(), settlement_date,
+            settlement_period_from, settlement_period_to,
+            total_qualifying_amount, total_qualifying_quantity,
+            applicable_tier_id, applicable_rate, settlement_amount,
+            currency_code: currency_code.to_string(),
+            settlement_type: settlement_type.to_string(),
+            payment_method: payment_method.unwrap_or("").to_string(),
+            payment_reference: String::new(), status: "pending".to_string(),
+            approved_by: None, approved_at: None, paid_at: None,
+            notes: notes.unwrap_or("").to_string(),
+            metadata: serde_json::json!({}), created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_settlement(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::RebateSettlement>> { Ok(None) }
+    async fn get_settlement_by_number(&self, _org_id: Uuid, _settlement_number: &str) -> AtlasResult<Option<atlas_shared::RebateSettlement>> { Ok(None) }
+    async fn list_settlements(&self, _agreement_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::RebateSettlement>> { Ok(vec![]) }
+    async fn update_settlement_status(&self, id: Uuid, _status: &str) -> AtlasResult<atlas_shared::RebateSettlement> {
+        Err(AtlasError::EntityNotFound(format!("Settlement {} not found", id)))
+    }
+    async fn approve_settlement(&self, id: Uuid, _approved_by: Uuid) -> AtlasResult<atlas_shared::RebateSettlement> {
+        Err(AtlasError::EntityNotFound(format!("Settlement {} not found", id)))
+    }
+    async fn pay_settlement(&self, id: Uuid) -> AtlasResult<atlas_shared::RebateSettlement> {
+        Err(AtlasError::EntityNotFound(format!("Settlement {} not found", id)))
+    }
+    async fn delete_settlement(&self, _org_id: Uuid, _settlement_number: &str) -> AtlasResult<()> { Ok(()) }
+    async fn create_settlement_line(&self, settlement_id: Uuid, transaction_id: Uuid, amount: f64) -> AtlasResult<atlas_shared::RebateSettlementLine> {
+        Ok(atlas_shared::RebateSettlementLine {
+            id: Uuid::new_v4(), settlement_id, transaction_id, settlement_amount: amount,
+            metadata: serde_json::json!({}), created_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_settlement_lines(&self, _settlement_id: Uuid) -> AtlasResult<Vec<atlas_shared::RebateSettlementLine>> { Ok(vec![]) }
+    async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<atlas_shared::RebateDashboard> {
+        Ok(atlas_shared::RebateDashboard {
+            organization_id: org_id,
+            total_agreements: 0, active_agreements: 0, total_transactions: 0,
+            total_qualifying_amount: 0.0, total_accrued_amount: 0.0, total_settled_amount: 0.0,
+            pending_settlements: 0, agreements_by_type: serde_json::json!({}),
+            top_rebate_agreements: serde_json::json!([]), recent_settlements: serde_json::json!([]),
+        })
+    }
+}

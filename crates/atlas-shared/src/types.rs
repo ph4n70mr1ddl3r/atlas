@@ -18927,3 +18927,198 @@ pub struct BudgetaryControlDashboard {
     pub top_departments_by_reservation: serde_json::Value,
     pub budget_utilization_pct: f64,
 }
+
+// ============================================================================
+// Rebate Management (Oracle Fusion Cloud: Trade Management > Rebates)
+// ============================================================================
+// Manages supplier and customer rebate agreements with tiered pricing,
+// volume tracking, accruals, and settlement processing.
+//
+// Key concepts:
+// - Rebate Agreement: contract defining rebate terms with a partner
+// - Rebate Tier: volume-based pricing thresholds
+// - Rebate Transaction: qualifying purchase/sale linked to an agreement
+// - Rebate Accrual: periodic recognition of estimated rebate income/expense
+// - Rebate Settlement: actual payment or credit of accrued rebates
+// ============================================================================
+
+/// Rebate Agreement
+/// Defines the terms of a rebate arrangement with a supplier or customer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RebateAgreement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub agreement_number: String,
+    pub name: String,
+    pub description: String,
+    pub rebate_type: String, // supplier_rebate, customer_rebate
+    pub direction: String, // receivable, payable
+    pub partner_type: String, // supplier, customer
+    pub partner_id: Option<Uuid>,
+    pub partner_name: String,
+    pub partner_number: String,
+    pub product_category: String,
+    pub product_id: Option<Uuid>,
+    pub product_name: String,
+    pub uom: String,
+    pub currency_code: String,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub status: String,
+    pub calculation_method: String, // flat_rate, tiered, cumulative
+    pub accrual_account: String,
+    pub liability_account: String,
+    pub expense_account: String,
+    pub payment_terms: String,
+    pub settlement_frequency: String,
+    pub minimum_amount: f64,
+    pub maximum_amount: Option<f64>,
+    pub auto_accrue: bool,
+    pub requires_approval: bool,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Rebate Tier
+/// Defines a volume threshold within a tiered rebate agreement.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RebateTier {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub agreement_id: Uuid,
+    pub tier_number: i32,
+    pub from_value: f64,
+    pub to_value: Option<f64>,
+    pub rebate_rate: f64,
+    pub rate_type: String, // percentage, fixed_per_unit, fixed_amount
+    pub description: String,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Rebate Transaction
+/// A qualifying purchase/sale transaction linked to a rebate agreement.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RebateTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub agreement_id: Uuid,
+    pub transaction_number: String,
+    pub source_type: String,
+    pub source_id: Option<Uuid>,
+    pub source_number: String,
+    pub transaction_date: chrono::NaiveDate,
+    pub product_id: Option<Uuid>,
+    pub product_name: String,
+    pub quantity: f64,
+    pub unit_price: f64,
+    pub transaction_amount: f64,
+    pub currency_code: String,
+    pub applicable_rate: f64,
+    pub rebate_amount: f64,
+    pub status: String,
+    pub tier_id: Option<Uuid>,
+    pub excluded_reason: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Rebate Accrual
+/// Periodic recognition of estimated rebate amounts.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RebateAccrual {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub agreement_id: Uuid,
+    pub accrual_number: String,
+    pub accrual_date: chrono::NaiveDate,
+    pub accrual_period: String,
+    pub accumulated_quantity: f64,
+    pub accumulated_amount: f64,
+    pub applicable_tier_id: Option<Uuid>,
+    pub applicable_rate: f64,
+    pub accrued_amount: f64,
+    pub currency_code: String,
+    pub gl_posted: bool,
+    pub gl_journal_id: Option<Uuid>,
+    pub status: String,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Rebate Settlement
+/// Actual payment or credit memo for accrued rebate amounts.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RebateSettlement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub agreement_id: Uuid,
+    pub settlement_number: String,
+    pub settlement_date: chrono::NaiveDate,
+    pub settlement_period_from: Option<chrono::NaiveDate>,
+    pub settlement_period_to: Option<chrono::NaiveDate>,
+    pub total_qualifying_amount: f64,
+    pub total_qualifying_quantity: f64,
+    pub applicable_tier_id: Option<Uuid>,
+    pub applicable_rate: f64,
+    pub settlement_amount: f64,
+    pub currency_code: String,
+    pub settlement_type: String,
+    pub payment_method: String,
+    pub payment_reference: String,
+    pub status: String,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub paid_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Rebate Settlement Line
+/// Links a settlement to specific rebate transactions.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RebateSettlementLine {
+    pub id: Uuid,
+    pub settlement_id: Uuid,
+    pub transaction_id: Uuid,
+    pub settlement_amount: f64,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Rebate Management Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RebateDashboard {
+    pub organization_id: Uuid,
+    pub total_agreements: i64,
+    pub active_agreements: i64,
+    pub total_transactions: i64,
+    pub total_qualifying_amount: f64,
+    pub total_accrued_amount: f64,
+    pub total_settled_amount: f64,
+    pub pending_settlements: i64,
+    pub agreements_by_type: serde_json::Value,
+    pub top_rebate_agreements: serde_json::Value,
+    pub recent_settlements: serde_json::Value,
+}

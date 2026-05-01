@@ -462,6 +462,12 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         health_safety_engine: Arc::new(atlas_core::HealthSafetyEngine::new(Arc::new(
             atlas_core::health_safety::PostgresHealthSafetyRepository::new(db_pool.clone()),
         ))),
+        funds_reservation_engine: Arc::new(atlas_core::FundsReservationEngine::new(Arc::new(
+            atlas_core::funds_reservation::PostgresFundsReservationRepository::new(db_pool.clone()),
+        ))),
+        rebate_management_engine: Arc::new(atlas_core::RebateManagementEngine::new(Arc::new(
+            atlas_core::rebate_management::PostgresRebateManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -905,4 +911,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.safety_inspections").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.safety_hazards").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.safety_incidents").execute(pool).await.ok();
+    // Clean rebate management test data
+    sqlx::query("DELETE FROM _atlas.rebate_settlement_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.rebate_settlements").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.rebate_accruals").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.rebate_transactions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.rebate_tiers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.rebate_agreements").execute(pool).await.ok();
 }

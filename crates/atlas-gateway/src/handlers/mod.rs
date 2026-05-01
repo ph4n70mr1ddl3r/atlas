@@ -86,6 +86,7 @@ pub mod accounts_payable;
 pub mod supply_chain_planning;
 pub mod health_safety;
 pub mod funds_reservation;
+pub mod rebate_management;
 
 pub use schema::*;
 pub use records::*;
@@ -3535,6 +3536,46 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/funds-reservation/reservations/id/:reservation_id/lines", get(funds_reservation::list_reservation_lines))
         .route("/funds-reservation/fund-availability", get(funds_reservation::check_fund_availability))
         .route("/funds-reservation/dashboard", get(funds_reservation::get_dashboard))
+
+        // ══════════════════════════════════════════════════════════════════════
+        // Rebate Management (Oracle Fusion: Trade Management > Rebates)
+        // ══════════════════════════════════════════════════════════════════════
+        // Agreements
+        .route("/rebate/agreements", post(rebate_management::create_agreement))
+        .route("/rebate/agreements", get(rebate_management::list_agreements))
+        .route("/rebate/agreements/:id", get(rebate_management::get_agreement))
+        .route("/rebate/agreements/:id/activate", post(rebate_management::activate_agreement))
+        .route("/rebate/agreements/:id/hold", post(rebate_management::hold_agreement))
+        .route("/rebate/agreements/:id/terminate", post(rebate_management::terminate_agreement))
+        .route("/rebate/agreements/number/:number", delete(rebate_management::delete_agreement))
+        // Tiers
+        .route("/rebate/agreements/:agreement_id/tiers", post(rebate_management::create_tier))
+        .route("/rebate/agreements/:agreement_id/tiers", get(rebate_management::list_tiers))
+        .route("/rebate/tiers/:id", delete(rebate_management::delete_tier))
+        // Transactions
+        .route("/rebate/agreements/:agreement_id/transactions", post(rebate_management::create_transaction))
+        .route("/rebate/transactions/:id", get(rebate_management::get_transaction))
+        .route("/rebate/agreements/:agreement_id/transactions", get(rebate_management::list_transactions))
+        .route("/rebate/transactions/:id/status", post(rebate_management::update_transaction_status))
+        .route("/rebate/transactions/number/:number", delete(rebate_management::delete_transaction))
+        // Accruals
+        .route("/rebate/agreements/:agreement_id/accruals", post(rebate_management::create_accrual))
+        .route("/rebate/accruals/:id", get(rebate_management::get_accrual))
+        .route("/rebate/agreements/:agreement_id/accruals", get(rebate_management::list_accruals))
+        .route("/rebate/accruals/:id/post", post(rebate_management::post_accrual))
+        .route("/rebate/accruals/:id/reverse", post(rebate_management::reverse_accrual))
+        .route("/rebate/accruals/number/:number", delete(rebate_management::delete_accrual))
+        // Settlements
+        .route("/rebate/agreements/:agreement_id/settlements", post(rebate_management::create_settlement))
+        .route("/rebate/settlements/:id", get(rebate_management::get_settlement))
+        .route("/rebate/agreements/:agreement_id/settlements", get(rebate_management::list_settlements))
+        .route("/rebate/settlements/:id/approve", post(rebate_management::approve_settlement))
+        .route("/rebate/settlements/:id/pay", post(rebate_management::pay_settlement))
+        .route("/rebate/settlements/:id/cancel", post(rebate_management::cancel_settlement))
+        .route("/rebate/settlements/number/:number", delete(rebate_management::delete_settlement))
+        .route("/rebate/settlements/:settlement_id/lines", get(rebate_management::list_settlement_lines))
+        // Dashboard
+        .route("/rebate/dashboard", get(rebate_management::get_rebate_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -959,6 +959,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         planning_engine: Arc::new(atlas_core::SupplyChainPlanningEngine::new(Arc::new(
             atlas_core::supply_chain_planning::PostgresPlanningRepository::new(db_pool.clone()),
         ))),
+        health_safety_engine: Arc::new(atlas_core::HealthSafetyEngine::new(Arc::new(
+            atlas_core::health_safety::PostgresHealthSafetyRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -82,3 +82,4 @@ mod quality_management;
 mod cost_accounting;
 mod accounts_payable;
 mod supply_chain_planning;
+mod health_safety;

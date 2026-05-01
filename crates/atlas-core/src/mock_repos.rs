@@ -6043,3 +6043,247 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
         })
     }
 }
+
+// ===========================================================================
+// Workplace Health & Safety (EHS)
+// ===========================================================================
+
+pub struct MockHealthSafetyRepository;
+
+#[async_trait]
+impl crate::health_safety::HealthSafetyRepository for MockHealthSafetyRepository {
+    // Incidents
+    async fn create_incident(
+        &self, org_id: Uuid, incident_number: &str, title: &str, description: Option<&str>,
+        incident_type: &str, severity: &str, status: &str, priority: &str,
+        incident_date: chrono::NaiveDate, incident_time: Option<&str>,
+        location: Option<&str>, facility_id: Option<Uuid>, department_id: Option<Uuid>,
+        reported_by_id: Option<Uuid>, reported_by_name: Option<&str>,
+        assigned_to_id: Option<Uuid>, assigned_to_name: Option<&str>,
+        root_cause: Option<&str>, immediate_action: Option<&str>,
+        osha_recordable: bool, osha_classification: Option<&str>,
+        days_away_from_work: i32, days_restricted: i32,
+        body_part: Option<&str>, injury_source: Option<&str>,
+        event_type: Option<&str>, environment_factor: Option<&str>,
+        involved_parties: serde_json::Value, witness_statements: serde_json::Value,
+        attachments: serde_json::Value,
+        resolution_date: Option<chrono::NaiveDate>, closed_date: Option<chrono::NaiveDate>,
+        closed_by: Option<Uuid>,
+        metadata: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SafetyIncident> {
+        Ok(atlas_shared::SafetyIncident {
+            id: Uuid::new_v4(), organization_id: org_id,
+            incident_number: incident_number.to_string(),
+            title: title.to_string(),
+            description: description.map(String::from),
+            incident_type: incident_type.to_string(),
+            severity: severity.to_string(),
+            status: status.to_string(),
+            priority: priority.to_string(),
+            incident_date, incident_time: incident_time.map(String::from),
+            location: location.map(String::from),
+            facility_id, department_id,
+            reported_by_id, reported_by_name: reported_by_name.map(String::from),
+            assigned_to_id, assigned_to_name: assigned_to_name.map(String::from),
+            root_cause: root_cause.map(String::from),
+            immediate_action: immediate_action.map(String::from),
+            osha_recordable, osha_classification: osha_classification.map(String::from),
+            days_away_from_work, days_restricted,
+            body_part: body_part.map(String::from),
+            injury_source: injury_source.map(String::from),
+            event_type: event_type.map(String::from),
+            environment_factor: environment_factor.map(String::from),
+            involved_parties, witness_statements, attachments,
+            resolution_date, closed_date, closed_by,
+            metadata, created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_incident(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SafetyIncident>> { Ok(None) }
+    async fn get_incident_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::SafetyIncident>> { Ok(None) }
+    async fn list_incidents(&self, _org_id: Uuid, _status: Option<&str>, _severity: Option<&str>, _incident_type: Option<&str>, _facility_id: Option<&Uuid>) -> AtlasResult<Vec<atlas_shared::SafetyIncident>> { Ok(vec![]) }
+    async fn update_incident_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::SafetyIncident> {
+        Ok(atlas_shared::SafetyIncident {
+            id: _id, organization_id: Uuid::new_v4(),
+            incident_number: "MOCK".to_string(), title: "Mock".to_string(),
+            description: None, incident_type: "injury".to_string(),
+            severity: "medium".to_string(), status: _status.to_string(),
+            priority: "medium".to_string(),
+            incident_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            incident_time: None, location: None,
+            facility_id: None, department_id: None,
+            reported_by_id: None, reported_by_name: None,
+            assigned_to_id: None, assigned_to_name: None,
+            root_cause: None, immediate_action: None,
+            osha_recordable: false, osha_classification: None,
+            days_away_from_work: 0, days_restricted: 0,
+            body_part: None, injury_source: None,
+            event_type: None, environment_factor: None,
+            involved_parties: serde_json::json!([]),
+            witness_statements: serde_json::json!([]),
+            attachments: serde_json::json!([]),
+            resolution_date: None, closed_date: None, closed_by: None,
+            metadata: serde_json::json!({}), created_by: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn update_incident_investigation(&self, _id: Uuid, _root_cause: Option<&str>, _immediate_action: Option<&str>, _assigned_to_id: Option<Uuid>, _assigned_to_name: Option<&str>, _days_away: Option<i32>, _days_restricted: Option<i32>) -> AtlasResult<atlas_shared::SafetyIncident> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn close_incident(&self, _id: Uuid, _closed_by: Option<Uuid>) -> AtlasResult<atlas_shared::SafetyIncident> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_incident(&self, _org_id: Uuid, _number: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Hazards
+    async fn create_hazard(
+        &self, org_id: Uuid, hazard_code: &str, title: &str, description: Option<&str>,
+        hazard_category: &str, risk_level: &str, likelihood: &str, consequence: &str,
+        risk_score: i32, status: &str,
+        location: Option<&str>, facility_id: Option<Uuid>, department_id: Option<Uuid>,
+        identified_by_id: Option<Uuid>, identified_by_name: Option<&str>,
+        identified_date: chrono::NaiveDate,
+        mitigation_measures: serde_json::Value,
+        residual_risk_level: Option<&str>, residual_risk_score: Option<i32>,
+        review_date: Option<chrono::NaiveDate>,
+        owner_id: Option<Uuid>, owner_name: Option<&str>,
+        metadata: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::Hazard> {
+        Ok(atlas_shared::Hazard {
+            id: Uuid::new_v4(), organization_id: org_id,
+            hazard_code: hazard_code.to_string(),
+            title: title.to_string(),
+            description: description.map(String::from),
+            hazard_category: hazard_category.to_string(),
+            risk_level: risk_level.to_string(),
+            likelihood: likelihood.to_string(),
+            consequence: consequence.to_string(),
+            risk_score, status: status.to_string(),
+            location: location.map(String::from),
+            facility_id, department_id,
+            identified_by_id, identified_by_name: identified_by_name.map(String::from),
+            identified_date, mitigation_measures,
+            residual_risk_level: residual_risk_level.map(String::from),
+            residual_risk_score, review_date,
+            owner_id, owner_name: owner_name.map(String::from),
+            metadata, created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_hazard(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::Hazard>> { Ok(None) }
+    async fn get_hazard_by_code(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::Hazard>> { Ok(None) }
+    async fn list_hazards(&self, _org_id: Uuid, _status: Option<&str>, _risk_level: Option<&str>, _hazard_category: Option<&str>, _facility_id: Option<&Uuid>) -> AtlasResult<Vec<atlas_shared::Hazard>> { Ok(vec![]) }
+    async fn update_hazard_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::Hazard> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_residual_risk(&self, _id: Uuid, _residual_risk_level: &str, _residual_risk_score: i32) -> AtlasResult<atlas_shared::Hazard> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_hazard(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Inspections
+    async fn create_inspection(
+        &self, org_id: Uuid, inspection_number: &str, title: &str, description: Option<&str>,
+        inspection_type: &str, status: &str, priority: &str,
+        scheduled_date: chrono::NaiveDate, _completed_date: Option<chrono::NaiveDate>,
+        location: Option<&str>, facility_id: Option<Uuid>, department_id: Option<Uuid>,
+        inspector_id: Option<Uuid>, inspector_name: Option<&str>,
+        findings_summary: Option<&str>,
+        total_findings: i32, critical_findings: i32, non_conformities: i32, observations: i32,
+        score: Option<f64>, max_score: Option<f64>, score_pct: Option<f64>,
+        findings: serde_json::Value, attachments: serde_json::Value,
+        metadata: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SafetyInspection> {
+        Ok(atlas_shared::SafetyInspection {
+            id: Uuid::new_v4(), organization_id: org_id,
+            inspection_number: inspection_number.to_string(),
+            title: title.to_string(),
+            description: description.map(String::from),
+            inspection_type: inspection_type.to_string(),
+            status: status.to_string(),
+            priority: priority.to_string(),
+            scheduled_date, completed_date: None,
+            location: location.map(String::from),
+            facility_id, department_id,
+            inspector_id, inspector_name: inspector_name.map(String::from),
+            findings_summary: findings_summary.map(String::from),
+            total_findings, critical_findings, non_conformities, observations,
+            score, max_score, score_pct,
+            findings, attachments, metadata, created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_inspection(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SafetyInspection>> { Ok(None) }
+    async fn get_inspection_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::SafetyInspection>> { Ok(None) }
+    async fn list_inspections(&self, _org_id: Uuid, _status: Option<&str>, _inspection_type: Option<&str>, _facility_id: Option<&Uuid>) -> AtlasResult<Vec<atlas_shared::SafetyInspection>> { Ok(vec![]) }
+    async fn complete_inspection(&self, _id: Uuid, _findings_summary: Option<&str>, _total: i32, _critical: i32, _nc: i32, _obs: i32, _score: Option<f64>, _max_score: Option<f64>, _score_pct: Option<f64>, _findings: serde_json::Value) -> AtlasResult<atlas_shared::SafetyInspection> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_inspection_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::SafetyInspection> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_inspection(&self, _org_id: Uuid, _number: &str) -> AtlasResult<()> { Ok(()) }
+
+    // CAPA
+    async fn create_corrective_action(
+        &self, org_id: Uuid, action_number: &str, title: &str, description: Option<&str>,
+        action_type: &str, status: &str, priority: &str,
+        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        root_cause: Option<&str>, corrective_action_plan: Option<&str>, preventive_action_plan: Option<&str>,
+        assigned_to_id: Option<Uuid>, assigned_to_name: Option<&str>,
+        due_date: Option<chrono::NaiveDate>, completed_date: Option<chrono::NaiveDate>,
+        verified_by: Option<Uuid>, verified_date: Option<chrono::NaiveDate>, effectiveness: Option<&str>,
+        facility_id: Option<Uuid>, department_id: Option<Uuid>,
+        estimated_cost: Option<f64>, actual_cost: Option<f64>, currency_code: Option<&str>,
+        notes: Option<&str>, attachments: serde_json::Value,
+        metadata: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::SafetyCorrectiveAction> {
+        Ok(atlas_shared::SafetyCorrectiveAction {
+            id: Uuid::new_v4(), organization_id: org_id,
+            action_number: action_number.to_string(),
+            title: title.to_string(),
+            description: description.map(String::from),
+            action_type: action_type.to_string(),
+            status: status.to_string(),
+            priority: priority.to_string(),
+            source_type: source_type.map(String::from),
+            source_id, source_number: source_number.map(String::from),
+            root_cause: root_cause.map(String::from),
+            corrective_action_plan: corrective_action_plan.map(String::from),
+            preventive_action_plan: preventive_action_plan.map(String::from),
+            assigned_to_id, assigned_to_name: assigned_to_name.map(String::from),
+            due_date, completed_date, verified_by, verified_date,
+            effectiveness: effectiveness.map(String::from),
+            facility_id, department_id,
+            estimated_cost, actual_cost, currency_code: currency_code.map(String::from),
+            notes: notes.map(String::from), attachments, metadata, created_by,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_corrective_action(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::SafetyCorrectiveAction>> { Ok(None) }
+    async fn get_corrective_action_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::SafetyCorrectiveAction>> { Ok(None) }
+    async fn list_corrective_actions(&self, _org_id: Uuid, _status: Option<&str>, _action_type: Option<&str>, _source_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::SafetyCorrectiveAction>> { Ok(vec![]) }
+    async fn update_corrective_action_status(&self, _id: Uuid, _status: &str) -> AtlasResult<atlas_shared::SafetyCorrectiveAction> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn complete_corrective_action(&self, _id: Uuid, _effectiveness: &str, _actual_cost: Option<f64>, _verified_by: Option<Uuid>) -> AtlasResult<atlas_shared::SafetyCorrectiveAction> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn delete_corrective_action(&self, _org_id: Uuid, _number: &str) -> AtlasResult<()> { Ok(()) }
+
+    // Dashboard
+    async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<atlas_shared::HealthSafetyDashboard> {
+        Ok(atlas_shared::HealthSafetyDashboard {
+            organization_id: org_id,
+            total_incidents: 0, open_incidents: 0, closed_incidents: 0, critical_incidents: 0,
+            total_hazards: 0, open_hazards: 0, high_risk_hazards: 0,
+            total_inspections: 0, open_inspections: 0, completed_inspections: 0,
+            total_capa: 0, open_capa: 0, overdue_capa: 0,
+            osha_recordable_count: 0, days_since_last_incident: -1,
+            incidents_by_type: serde_json::json!({}),
+            incidents_by_severity: serde_json::json!({}),
+            hazards_by_risk: serde_json::json!({}),
+            inspection_pass_rate: 0.0,
+        })
+    }
+}

@@ -84,6 +84,7 @@ pub mod quality_management;
 pub mod cost_accounting;
 pub mod accounts_payable;
 pub mod supply_chain_planning;
+pub mod health_safety;
 
 pub use schema::*;
 pub use records::*;
@@ -3483,6 +3484,40 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/scp/exceptions/:id/dismiss", post(supply_chain_planning::dismiss_exception))
         // Planning Dashboard
         .route("/scp/dashboard", get(supply_chain_planning::get_dashboard))
+
+        // ========================================================================
+        // Workplace Health & Safety (EHS)
+        // ========================================================================
+        .route("/health-safety/incidents", post(health_safety::create_incident))
+        .route("/health-safety/incidents", get(health_safety::list_incidents))
+        .route("/health-safety/incidents/id/:id", get(health_safety::get_incident))
+        .route("/health-safety/incidents/id/:id/status", post(health_safety::update_incident_status))
+        .route("/health-safety/incidents/id/:id/investigation", post(health_safety::update_incident_investigation))
+        .route("/health-safety/incidents/id/:id/close", post(health_safety::close_incident))
+        .route("/health-safety/incidents/number/:incident_number", delete(health_safety::delete_incident))
+
+        .route("/health-safety/hazards", post(health_safety::create_hazard))
+        .route("/health-safety/hazards", get(health_safety::list_hazards))
+        .route("/health-safety/hazards/id/:id", get(health_safety::get_hazard))
+        .route("/health-safety/hazards/id/:id/status", post(health_safety::update_hazard_status))
+        .route("/health-safety/hazards/id/:id/residual-risk", post(health_safety::assess_hazard_residual_risk))
+        .route("/health-safety/hazards/code/:hazard_code", delete(health_safety::delete_hazard))
+
+        .route("/health-safety/inspections", post(health_safety::create_inspection))
+        .route("/health-safety/inspections", get(health_safety::list_inspections))
+        .route("/health-safety/inspections/id/:id", get(health_safety::get_inspection))
+        .route("/health-safety/inspections/id/:id/complete", post(health_safety::complete_inspection))
+        .route("/health-safety/inspections/id/:id/status", post(health_safety::update_inspection_status))
+        .route("/health-safety/inspections/number/:inspection_number", delete(health_safety::delete_inspection))
+
+        .route("/health-safety/corrective-actions", post(health_safety::create_corrective_action))
+        .route("/health-safety/corrective-actions", get(health_safety::list_corrective_actions))
+        .route("/health-safety/corrective-actions/id/:id", get(health_safety::get_corrective_action))
+        .route("/health-safety/corrective-actions/id/:id/status", post(health_safety::update_corrective_action_status))
+        .route("/health-safety/corrective-actions/id/:id/complete", post(health_safety::complete_corrective_action))
+        .route("/health-safety/corrective-actions/number/:action_number", delete(health_safety::delete_corrective_action))
+
+        .route("/health-safety/dashboard", get(health_safety::get_health_safety_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

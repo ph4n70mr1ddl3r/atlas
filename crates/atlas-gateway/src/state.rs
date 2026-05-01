@@ -93,6 +93,8 @@ use atlas_core::{
     accounts_payable::PostgresAccountsPayableRepository,
     SupplyChainPlanningEngine,
     supply_chain_planning::PostgresPlanningRepository,
+    HealthSafetyEngine,
+    health_safety::PostgresHealthSafetyRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -258,6 +260,7 @@ pub struct AppState {
     pub cost_accounting_engine: Arc<CostAccountingEngine>,
     pub accounts_payable_engine: Arc<AccountsPayableEngine>,
     pub planning_engine: Arc<SupplyChainPlanningEngine>,
+    pub health_safety_engine: Arc<HealthSafetyEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -702,6 +705,11 @@ impl AppState {
             PostgresPlanningRepository::new(db_pool.clone())
         )));
 
+        // Initialize Workplace Health & Safety engine
+        let health_safety_engine = Arc::new(HealthSafetyEngine::new(Arc::new(
+            PostgresHealthSafetyRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -828,6 +836,7 @@ impl AppState {
             cost_accounting_engine,
             accounts_payable_engine,
             planning_engine,
+            health_safety_engine,
             event_bus,
             jwt_secret,
         };

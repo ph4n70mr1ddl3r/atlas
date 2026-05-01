@@ -18566,6 +18566,187 @@ pub struct PlanningException {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+// ===========================================================================
+// Workplace Health & Safety (EHS)
+// Oracle Fusion Cloud: Environment, Health, and Safety
+// ===========================================================================
+
+/// Safety incident (injury, near-miss, property damage, environmental release)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SafetyIncident {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub incident_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub incident_type: String,
+    pub severity: String,
+    pub status: String,
+    pub priority: String,
+    pub incident_date: chrono::NaiveDate,
+    pub incident_time: Option<String>,
+    pub location: Option<String>,
+    pub facility_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub reported_by_id: Option<Uuid>,
+    pub reported_by_name: Option<String>,
+    pub assigned_to_id: Option<Uuid>,
+    pub assigned_to_name: Option<String>,
+    pub root_cause: Option<String>,
+    pub immediate_action: Option<String>,
+    pub osha_recordable: bool,
+    pub osha_classification: Option<String>,
+    pub days_away_from_work: i32,
+    pub days_restricted: i32,
+    pub body_part: Option<String>,
+    pub injury_source: Option<String>,
+    pub event_type: Option<String>,
+    pub environment_factor: Option<String>,
+    pub involved_parties: serde_json::Value,
+    pub witness_statements: serde_json::Value,
+    pub attachments: serde_json::Value,
+    pub resolution_date: Option<chrono::NaiveDate>,
+    pub closed_date: Option<chrono::NaiveDate>,
+    pub closed_by: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Hazard identification record
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Hazard {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub hazard_code: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub hazard_category: String,
+    pub risk_level: String,
+    pub likelihood: String,
+    pub consequence: String,
+    pub risk_score: i32,
+    pub status: String,
+    pub location: Option<String>,
+    pub facility_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub identified_by_id: Option<Uuid>,
+    pub identified_by_name: Option<String>,
+    pub identified_date: chrono::NaiveDate,
+    pub mitigation_measures: serde_json::Value,
+    pub residual_risk_level: Option<String>,
+    pub residual_risk_score: Option<i32>,
+    pub review_date: Option<chrono::NaiveDate>,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Safety inspection / audit
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SafetyInspection {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub inspection_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub inspection_type: String,
+    pub status: String,
+    pub priority: String,
+    pub scheduled_date: chrono::NaiveDate,
+    pub completed_date: Option<chrono::NaiveDate>,
+    pub location: Option<String>,
+    pub facility_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub inspector_id: Option<Uuid>,
+    pub inspector_name: Option<String>,
+    pub findings_summary: Option<String>,
+    pub total_findings: i32,
+    pub critical_findings: i32,
+    pub non_conformities: i32,
+    pub observations: i32,
+    pub score: Option<f64>,
+    pub max_score: Option<f64>,
+    pub score_pct: Option<f64>,
+    pub findings: serde_json::Value,
+    pub attachments: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Safety-specific Corrective and Preventive Action (CAPA)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SafetyCorrectiveAction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub action_number: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub action_type: String,
+    pub status: String,
+    pub priority: String,
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub root_cause: Option<String>,
+    pub corrective_action_plan: Option<String>,
+    pub preventive_action_plan: Option<String>,
+    pub assigned_to_id: Option<Uuid>,
+    pub assigned_to_name: Option<String>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub completed_date: Option<chrono::NaiveDate>,
+    pub verified_by: Option<Uuid>,
+    pub verified_date: Option<chrono::NaiveDate>,
+    pub effectiveness: Option<String>,
+    pub facility_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub estimated_cost: Option<f64>,
+    pub actual_cost: Option<f64>,
+    pub currency_code: Option<String>,
+    pub notes: Option<String>,
+    pub attachments: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Workplace Health & Safety Dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HealthSafetyDashboard {
+    pub organization_id: Uuid,
+    pub total_incidents: i64,
+    pub open_incidents: i64,
+    pub closed_incidents: i64,
+    pub critical_incidents: i64,
+    pub total_hazards: i64,
+    pub open_hazards: i64,
+    pub high_risk_hazards: i64,
+    pub total_inspections: i64,
+    pub open_inspections: i64,
+    pub completed_inspections: i64,
+    pub total_capa: i64,
+    pub open_capa: i64,
+    pub overdue_capa: i64,
+    pub osha_recordable_count: i64,
+    pub days_since_last_incident: i64,
+    pub incidents_by_type: serde_json::Value,
+    pub incidents_by_severity: serde_json::Value,
+    pub hazards_by_risk: serde_json::Value,
+    pub inspection_pass_rate: f64,
+}
+
 /// Supply Chain Planning Dashboard summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

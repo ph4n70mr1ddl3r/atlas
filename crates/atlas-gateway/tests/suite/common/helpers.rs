@@ -459,6 +459,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         planning_engine: Arc::new(SupplyChainPlanningEngine::new(Arc::new(
             atlas_core::supply_chain_planning::PostgresPlanningRepository::new(db_pool.clone()),
         ))),
+        health_safety_engine: Arc::new(atlas_core::HealthSafetyEngine::new(Arc::new(
+            atlas_core::health_safety::PostgresHealthSafetyRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -897,4 +900,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.supply_demand_entries").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.planning_scenarios").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.planning_parameters").execute(pool).await.ok();
+    // Clean health & safety test data
+    sqlx::query("DELETE FROM _atlas.corrective_actions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.safety_inspections").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.safety_hazards").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.safety_incidents").execute(pool).await.ok();
 }

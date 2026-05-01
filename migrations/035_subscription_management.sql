@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS _atlas.subscriptions (
     end_date DATE,
     renewal_date DATE,
     billing_frequency VARCHAR(30) NOT NULL DEFAULT 'monthly',
-    billing_dayOfMonth INT NOT NULL DEFAULT 1,
+    billing_day_of_month INT NOT NULL DEFAULT 1,
     billing_alignment VARCHAR(20) NOT NULL DEFAULT 'start_date', -- start_date, first_of_month, anniversary
     currency_code VARCHAR(3) NOT NULL DEFAULT 'USD',
     quantity NUMERIC(18, 2) NOT NULL DEFAULT 1,
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS _atlas.subscriptions (
     recurring_amount NUMERIC(18, 2) NOT NULL DEFAULT 0,
     total_contract_value NUMERIC(18, 2) NOT NULL DEFAULT 0,
     total_billed NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    total_revenue recognized NUMERIC(18, 2) NOT NULL DEFAULT 0,
+    total_revenue_recognized NUMERIC(18, 2) NOT NULL DEFAULT 0,
     duration_months INT NOT NULL DEFAULT 12,
     is_auto_renew BOOLEAN NOT NULL DEFAULT true,
     cancellation_date DATE,

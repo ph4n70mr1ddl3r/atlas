@@ -97,3 +97,4 @@ mod inflation_adjustment;
 mod impairment_management;
 mod bank_account_transfer;
 mod tax_reporting;
+mod subscription;

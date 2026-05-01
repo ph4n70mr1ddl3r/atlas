@@ -3,6 +3,8 @@
 //! Shared state for all request handlers.
 
 use atlas_core::{
+    subscription::PostgresSubscriptionRepository,
+    SubscriptionEngine,
     SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
     SecurityEngine, AuditEngine,
     NotificationEngine,
@@ -297,6 +299,7 @@ pub struct AppState {
     pub impairment_management_engine: Arc<ImpairmentManagementEngine>,
     pub bank_transfer_engine: Arc<BankAccountTransferEngine>,
     pub tax_reporting_engine: Arc<TaxReportingEngine>,
+    pub subscription_engine: Arc<SubscriptionEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -816,6 +819,11 @@ impl AppState {
             PostgresTaxReportingRepository::new(db_pool.clone())
         )));
 
+        // Initialize Subscription Management engine
+        let subscription_engine = Arc::new(SubscriptionEngine::new(Arc::new(
+            PostgresSubscriptionRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -957,6 +965,7 @@ impl AppState {
             impairment_management_engine,
             bank_transfer_engine,
             tax_reporting_engine,
+            subscription_engine,
             event_bus,
             jwt_secret,
         };

@@ -99,6 +99,7 @@ pub mod inflation_adjustment;
 pub mod impairment_management;
 pub mod bank_account_transfer;
 pub mod tax_reporting;
+pub mod subscription;
 
 pub use schema::*;
 pub use records::*;
@@ -3768,7 +3769,7 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/journal-import/formats", get(journal_import::list_import_formats))
         .route("/journal-import/formats", post(journal_import::create_import_format))
         .route("/journal-import/formats/:id", get(journal_import::get_import_format))
-        .route("/journal-import/formats/:code", delete(journal_import::delete_import_format))
+        .route("/journal-import/formats/:id", delete(journal_import::delete_import_format))
 
         // Column Mappings
         .route("/journal-import/formats/:format_id/mappings", post(journal_import::add_column_mapping))
@@ -3863,6 +3864,43 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/tax-reporting/dashboard", get(tax_reporting::get_tax_reporting_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Subscription Management (Oracle Fusion Subscription Management)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Product Catalog
+        .route("/subscription/products", post(subscription::create_product))
+        .route("/subscription/products", get(subscription::list_products))
+        .route("/subscription/products/:code", get(subscription::get_product))
+        .route("/subscription/products/:code", delete(subscription::delete_product))
+
+        // Price Tiers
+        .route("/subscription/products/:product_id/price-tiers", post(subscription::create_price_tier))
+
+        // Subscriptions
+        .route("/subscription/subscriptions", post(subscription::create_subscription))
+        .route("/subscription/subscriptions", get(subscription::list_subscriptions))
+        .route("/subscription/subscriptions/:id", get(subscription::get_subscription))
+        .route("/subscription/subscriptions/:id/activate", post(subscription::activate_subscription))
+        .route("/subscription/subscriptions/:id/suspend", post(subscription::suspend_subscription))
+        .route("/subscription/subscriptions/:id/reactivate", post(subscription::reactivate_subscription))
+        .route("/subscription/subscriptions/:id/cancel", post(subscription::cancel_subscription))
+        .route("/subscription/subscriptions/:id/renew", post(subscription::renew_subscription))
+
+        // Amendments
+        .route("/subscription/subscriptions/:id/amendments", post(subscription::create_amendment))
+        .route("/subscription/subscriptions/:id/amendments", get(subscription::list_amendments))
+        .route("/subscription/amendments/:id/apply", post(subscription::apply_amendment))
+        .route("/subscription/amendments/:id/cancel", post(subscription::cancel_amendment))
+
+        // Billing & Revenue Schedules
+        .route("/subscription/subscriptions/:id/billing-schedule", get(subscription::list_billing_schedule))
+        .route("/subscription/subscriptions/:id/revenue-schedule", get(subscription::list_revenue_schedule))
+        .route("/subscription/revenue-lines/:line_id/recognize", post(subscription::recognize_revenue))
+
+        // Dashboard
+        .route("/subscription/dashboard", get(subscription::get_subscription_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

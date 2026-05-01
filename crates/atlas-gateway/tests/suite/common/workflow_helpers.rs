@@ -1004,6 +1004,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         tax_reporting_engine: Arc::new(atlas_core::TaxReportingEngine::new(Arc::new(
             atlas_core::tax_reporting::PostgresTaxReportingRepository::new(db_pool.clone()),
         ))),
+        subscription_engine: Arc::new(atlas_core::SubscriptionEngine::new(Arc::new(
+            atlas_core::subscription::PostgresSubscriptionRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

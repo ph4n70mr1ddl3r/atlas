@@ -108,8 +108,8 @@ impl PostgresSubscriptionRepository {
     pub fn new(pool: PgPool) -> Self { Self { pool } }
 
     fn get_numeric(&self, row: &sqlx::postgres::PgRow, col: &str) -> String {
-        let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
-        v.to_string()
+        let v: f64 = row.try_get(col).unwrap_or(0.0);
+        format!("{:.2}", v)
     }
 
     fn row_to_product(&self, row: &sqlx::postgres::PgRow) -> SubscriptionProduct {
@@ -490,12 +490,12 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         let rows = sqlx::query(
             r#"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_count,
-                COUNT(*) FILTER (WHERE status = 'active') FILTER (WHERE customer_id IS NOT NULL) as distinct_customers,
-                COALESCE(SUM(recurring_amount) FILTER (WHERE status = 'active'), 0) as mrr,
+                COUNT(DISTINCT CASE WHEN status = 'active' AND customer_id IS NOT NULL THEN customer_id END) as distinct_customers,
+                COALESCE(SUM(recurring_amount) FILTER (WHERE status = 'active'), 0::numeric)::float8 as mrr,
                 COUNT(DISTINCT customer_id) FILTER (WHERE status = 'active') as total_subscribers,
-                COALESCE(SUM(total_contract_value) FILTER (WHERE status = 'active'), 0) as tcv,
-                COALESCE(SUM(total_billed) FILTER (WHERE status = 'active'), 0) as total_billed,
-                COALESCE(SUM(total_revenue_recognized), 0) as total_rev,
+                COALESCE(SUM(total_contract_value) FILTER (WHERE status = 'active'), 0::numeric)::float8 as tcv,
+                COALESCE(SUM(total_billed) FILTER (WHERE status = 'active'), 0::numeric)::float8 as total_billed,
+                COALESCE(SUM(total_revenue_recognized), 0::numeric)::float8 as total_rev,
                 COUNT(*) FILTER (WHERE renewal_date <= CURRENT_DATE + INTERVAL '30 days' AND status = 'active' AND is_auto_renew = true) as renewals_30,
                 COUNT(*) FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE) AND status IN ('active','draft')) as new_this_month,
                 COUNT(*) FILTER (WHERE cancellation_date >= date_trunc('month', CURRENT_DATE)) as cancelled_this_month
@@ -509,22 +509,21 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         let new_month: i64 = rows.try_get("new_this_month").unwrap_or(0);
         let cancelled_month: i64 = rows.try_get("cancelled_this_month").unwrap_or(0);
 
-        let mrr: serde_json::Value = rows.try_get("mrr").unwrap_or(serde_json::json!(0));
-        let tcv: serde_json::Value = rows.try_get("tcv").unwrap_or(serde_json::json!(0));
-        let billed: serde_json::Value = rows.try_get("total_billed").unwrap_or(serde_json::json!(0));
-        let rev: serde_json::Value = rows.try_get("total_rev").unwrap_or(serde_json::json!(0));
+        let mrr: f64 = rows.try_get("mrr").unwrap_or(0.0);
+        let tcv: f64 = rows.try_get("tcv").unwrap_or(0.0);
+        let billed: f64 = rows.try_get("total_billed").unwrap_or(0.0);
+        let rev: f64 = rows.try_get("total_rev").unwrap_or(0.0);
 
-        let mrr_val: f64 = mrr.to_string().parse().unwrap_or(0.0);
-        let arr_val = mrr_val * 12.0;
+        let arr_val = mrr * 12.0;
 
         Ok(SubscriptionDashboardSummary {
             total_active_subscriptions: active as i32,
             total_subscribers: subscribers as i32,
-            total_monthly_recurring_revenue: format!("{:.2}", mrr_val),
+            total_monthly_recurring_revenue: format!("{:.2}", mrr),
             total_annual_recurring_revenue: format!("{:.2}", arr_val),
-            total_contract_value: tcv.to_string(),
-            total_billed: billed.to_string(),
-            total_revenue_recognized: rev.to_string(),
+            total_contract_value: format!("{:.2}", tcv),
+            total_billed: format!("{:.2}", billed),
+            total_revenue_recognized: format!("{:.2}", rev),
             total_deferred_revenue: "0".to_string(),
             churn_rate_percent: "0".to_string(),
             renewals_due_30_days: renewals_30 as i32,
@@ -566,8 +565,8 @@ fn row_to_amendment(row: &sqlx::postgres::PgRow) -> SubscriptionAmendment {
 
 fn row_to_billing_line(row: &sqlx::postgres::PgRow) -> SubscriptionBillingLine {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
-        let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
-        v.to_string()
+        let v: f64 = row.try_get(col).unwrap_or(0.0);
+        format!("{:.2}", v)
     }
     SubscriptionBillingLine {
         id: row.get("id"), organization_id: row.get("organization_id"),
@@ -591,8 +590,8 @@ fn row_to_billing_line(row: &sqlx::postgres::PgRow) -> SubscriptionBillingLine {
 
 fn row_to_revenue_line(row: &sqlx::postgres::PgRow) -> SubscriptionRevenueLine {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
-        let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
-        v.to_string()
+        let v: f64 = row.try_get(col).unwrap_or(0.0);
+        format!("{:.2}", v)
     }
     SubscriptionRevenueLine {
         id: row.get("id"), organization_id: row.get("organization_id"),

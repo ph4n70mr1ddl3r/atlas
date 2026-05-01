@@ -489,8 +489,9 @@ impl SubscriptionEngine {
 
         // Generate billing schedule
         let billing_lines = self.generate_billing_schedule(&sub)?;
+        let mut inserted_billing_lines = Vec::with_capacity(billing_lines.len());
         for line in &billing_lines {
-            self.repository
+            let inserted = self.repository
                 .create_billing_line(
                     line.organization_id,
                     line.subscription_id,
@@ -503,10 +504,11 @@ impl SubscriptionEngine {
                     &line.total_amount,
                 )
                 .await?;
+            inserted_billing_lines.push(inserted);
         }
 
         // Generate revenue schedule (ASC 606)
-        let revenue_lines = self.generate_revenue_schedule(&sub, &billing_lines)?;
+        let revenue_lines = self.generate_revenue_schedule(&sub, &inserted_billing_lines)?;;
         for line in &revenue_lines {
             self.repository
                 .create_revenue_line(
@@ -679,8 +681,9 @@ impl SubscriptionEngine {
             current_end,
             new_end,
         )?;
+        let mut inserted_renewal_billing = Vec::with_capacity(renewal_billing.len());
         for line in &renewal_billing {
-            self.repository
+            let inserted = self.repository
                 .create_billing_line(
                     line.organization_id,
                     line.subscription_id,
@@ -693,9 +696,10 @@ impl SubscriptionEngine {
                     &line.total_amount,
                 )
                 .await?;
+            inserted_renewal_billing.push(inserted);
         }
 
-        let renewal_revenue = self.generate_revenue_schedule(&sub, &renewal_billing)?;
+        let renewal_revenue = self.generate_revenue_schedule(&sub, &inserted_renewal_billing)?;
         for line in &renewal_revenue {
             self.repository
                 .create_revenue_line(

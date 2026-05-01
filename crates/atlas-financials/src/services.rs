@@ -3786,6 +3786,407 @@ impl JournalReversalService {
     }
 }
 
+// ============================================================================
+// Inflation Adjustment Service (IAS 29)
+// ============================================================================
+
+/// Inflation Adjustment service
+/// Oracle Fusion: Financials > General Ledger > Inflation Adjustment
+#[allow(dead_code)]
+pub struct InflationAdjustmentService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid inflation index types
+#[allow(dead_code)]
+const VALID_INDEX_TYPES: &[&str] = &["cpi", "gdp_deflator", "custom"];
+
+/// Valid inflation adjustment methods
+#[allow(dead_code)]
+const VALID_ADJUSTMENT_METHODS: &[&str] = &["historical", "current"];
+
+impl InflationAdjustmentService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate the inflation restatement factor between two periods
+    pub fn calculate_restatement_factor(
+        current_index_value: f64,
+        base_index_value: f64,
+    ) -> f64 {
+        if base_index_value <= 0.0 {
+            return 1.0;
+        }
+        current_index_value / base_index_value
+    }
+
+    /// Restate a non-monetary balance using the inflation factor
+    /// IAS 29: Non-monetary items restated from acquisition date index
+    pub fn restate_non_monetary_balance(
+        historical_balance: f64,
+        restatement_factor: f64,
+    ) -> f64 {
+        historical_balance * restatement_factor
+    }
+
+    /// Calculate monetary gain/loss (purchasing power gain/loss)
+    /// IAS 29: Monetary items are NOT restated; gain/loss recognized in P&L
+    pub fn calculate_monetary_gain_loss(
+        monetary_balance: f64,
+        restatement_factor: f64,
+    ) -> f64 {
+        monetary_balance * (restatement_factor - 1.0)
+    }
+
+    /// Calculate inflation adjustment amount for an account
+    pub fn calculate_adjustment_amount(
+        original_balance: f64,
+        restated_balance: f64,
+    ) -> f64 {
+        restated_balance - original_balance
+    }
+}
+
+// ============================================================================
+// Impairment Management Service (IAS 36 / ASC 360)
+// ============================================================================
+
+/// Impairment Management service
+/// Oracle Fusion: Financials > Fixed Assets > Impairment Management
+#[allow(dead_code)]
+pub struct ImpairmentManagementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid impairment indicator types
+#[allow(dead_code)]
+const VALID_INDICATOR_TYPES: &[&str] = &["external", "internal", "market"];
+
+/// Valid impairment severity levels
+#[allow(dead_code)]
+const VALID_SEVERITY_LEVELS: &[&str] = &["low", "medium", "high", "critical"];
+
+/// Valid impairment test types
+#[allow(dead_code)]
+const VALID_TEST_TYPES: &[&str] = &["individual", "cash_generating_unit"];
+
+/// Valid impairment test methods
+#[allow(dead_code)]
+const VALID_TEST_METHODS: &[&str] = &["value_in_use", "fair_value_less_costs"];
+
+impl ImpairmentManagementService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate impairment loss
+    /// IAS 36: Loss = Carrying Amount - Recoverable Amount (only if carrying > recoverable)
+    pub fn calculate_impairment_loss(
+        carrying_amount: f64,
+        recoverable_amount: f64,
+    ) -> f64 {
+        if carrying_amount > recoverable_amount {
+            carrying_amount - recoverable_amount
+        } else {
+            0.0
+        }
+    }
+
+    /// Calculate present value of future cash flows (value-in-use)
+    pub fn calculate_present_value(
+        cash_flows: &[(f64, f64)], // (cash_flow, discount_factor)
+    ) -> f64 {
+        cash_flows.iter().map(|(cf, df)| cf * df).sum()
+    }
+
+    /// Calculate discount factor for a given period
+    /// DF = 1 / (1 + r)^n
+    pub fn calculate_discount_factor(
+        discount_rate: f64,
+        period_number: i32,
+    ) -> f64 {
+        if discount_rate <= 0.0 {
+            return 1.0;
+        }
+        1.0 / (1.0 + discount_rate).powi(period_number)
+    }
+
+    /// Calculate terminal value present value
+    pub fn calculate_terminal_value_pv(
+        terminal_value: f64,
+        discount_rate: f64,
+        periods: i32,
+    ) -> f64 {
+        terminal_value * Self::calculate_discount_factor(discount_rate, periods)
+    }
+
+    /// Determine if asset is impaired
+    pub fn is_impaired(carrying_amount: f64, recoverable_amount: f64) -> bool {
+        carrying_amount > recoverable_amount
+    }
+
+    /// Calculate impairment reversal cap
+    /// IAS 36: Reversal limited to what carrying amount would have been
+    pub fn calculate_reversal_cap(
+        current_carrying: f64,
+        original_carrying: f64,
+        accumulated_depreciation_since_impairment: f64,
+    ) -> f64 {
+        let hypothetical_carrying = original_carrying - accumulated_depreciation_since_impairment;
+        (hypothetical_carrying - current_carrying).max(0.0)
+    }
+}
+
+// ============================================================================
+// Bank Account Transfer Service
+// ============================================================================
+
+/// Bank Account Transfer service
+/// Oracle Fusion: Financials > Cash Management > Bank Account Transfers
+#[allow(dead_code)]
+pub struct BankAccountTransferService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid transfer settlement methods
+#[allow(dead_code)]
+const VALID_SETTLEMENT_METHODS: &[&str] = &["immediate", "scheduled", "batch"];
+
+impl BankAccountTransferService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate cross-currency transfer amount
+    pub fn calculate_cross_currency_amount(amount: f64, exchange_rate: f64) -> f64 {
+        amount * exchange_rate
+    }
+
+    /// Check if transfer requires approval based on threshold
+    pub fn requires_approval(amount: f64, threshold: f64) -> bool {
+        if threshold <= 0.0 {
+            return false;
+        }
+        amount > threshold
+    }
+}
+
+// ============================================================================
+// Tax Reporting Service
+// ============================================================================
+
+/// Tax Reporting service
+/// Oracle Fusion: Tax > Tax Reporting
+#[allow(dead_code)]
+pub struct TaxReportingService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid tax report types
+#[allow(dead_code)]
+const VALID_TAX_REPORT_TYPES: &[&str] = &[
+    "vat", "gst", "sales_tax", "corporate_income", "withholding",
+];
+
+impl TaxReportingService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate net tax due from input/output tax
+    pub fn calculate_net_tax_due(output_tax: f64, input_tax: f64) -> f64 {
+        output_tax - input_tax
+    }
+
+    /// Calculate total amount due including penalties and interest
+    pub fn calculate_total_amount_due(net_tax: f64, penalty: f64, interest: f64) -> f64 {
+        net_tax + penalty + interest
+    }
+
+    /// Calculate net refund or payment
+    pub fn calculate_payment_or_refund(total_amount_due: f64, payments_made: f64) -> f64 {
+        total_amount_due - payments_made
+    }
+
+    /// Calculate effective tax rate
+    pub fn calculate_effective_tax_rate(total_tax: f64, total_taxable: f64) -> f64 {
+        if total_taxable <= 0.0 {
+            return 0.0;
+        }
+        (total_tax / total_taxable) * 100.0
+    }
+}
+
+// ============================================================================
+// Grant Management Service
+// ============================================================================
+
+/// Grant Management service
+/// Oracle Fusion: Financials > Grants Management
+#[allow(dead_code)]
+pub struct GrantManagementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid sponsor types
+#[allow(dead_code)]
+const VALID_SPONSOR_TYPES: &[&str] = &[
+    "government", "foundation", "corporate", "internal", "university",
+];
+
+impl GrantManagementService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate indirect costs
+    pub fn calculate_indirect_costs(direct_costs: f64, indirect_cost_rate: f64) -> f64 {
+        direct_costs * (indirect_cost_rate / 100.0)
+    }
+
+    /// Calculate total award amount (direct + indirect)
+    pub fn calculate_total_award(direct_costs: f64, indirect_costs: f64) -> f64 {
+        direct_costs + indirect_costs
+    }
+
+    /// Calculate available balance
+    pub fn calculate_available_balance(
+        total_award: f64,
+        total_expenditures: f64,
+        total_commitments: f64,
+    ) -> f64 {
+        total_award - total_expenditures - total_commitments
+    }
+
+    /// Calculate budget utilization percentage
+    pub fn calculate_budget_utilization(expended: f64, budget: f64) -> f64 {
+        if budget <= 0.0 { return 0.0; }
+        (expended / budget) * 100.0
+    }
+
+    /// Calculate cost sharing amount
+    pub fn calculate_cost_sharing(total_expenditures: f64, cost_sharing_percent: f64) -> f64 {
+        total_expenditures * (cost_sharing_percent / 100.0)
+    }
+
+    /// Check if expenditure exceeds budget line
+    pub fn is_budget_line_exceeded(
+        budget_amount: f64,
+        expended_amount: f64,
+        committed_amount: f64,
+    ) -> bool {
+        (expended_amount + committed_amount) > budget_amount
+    }
+}
+
+// ============================================================================
+// Corporate Card Management Service
+// ============================================================================
+
+/// Corporate Card Management service
+/// Oracle Fusion: Financials > Expenses > Corporate Cards
+#[allow(dead_code)]
+pub struct CorporateCardManagementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid card networks
+#[allow(dead_code)]
+const VALID_CARD_NETWORKS: &[&str] = &["visa", "mastercard", "amex"];
+
+/// Valid card types
+#[allow(dead_code)]
+const VALID_CARD_TYPES: &[&str] = &["corporate", "purchasing", "travel"];
+
+/// Valid matching methods
+#[allow(dead_code)]
+const VALID_MATCHING_METHODS: &[&str] = &["auto", "manual", "semi"];
+
+impl CorporateCardManagementService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Check if a purchase is within spending limits
+    pub fn check_spending_limit(
+        purchase_amount: f64,
+        single_purchase_limit: f64,
+        current_cycle_spend: f64,
+        monthly_limit: f64,
+    ) -> bool {
+        let within_single = single_purchase_limit <= 0.0 || purchase_amount <= single_purchase_limit;
+        let within_monthly = monthly_limit <= 0.0 || (current_cycle_spend + purchase_amount) <= monthly_limit;
+        within_single && within_monthly
+    }
+
+    /// Calculate available monthly spend
+    pub fn calculate_available_spend(monthly_limit: f64, current_cycle_spend: f64) -> f64 {
+        if monthly_limit <= 0.0 { return f64::MAX; }
+        (monthly_limit - current_cycle_spend).max(0.0)
+    }
+
+    /// Calculate statement balance
+    pub fn calculate_statement_balance(
+        opening_balance: f64,
+        total_charges: f64,
+        total_credits: f64,
+        total_payments: f64,
+    ) -> f64 {
+        opening_balance + total_charges - total_credits - total_payments
+    }
+
+    /// Calculate match confidence score (0-100)
+    pub fn calculate_match_confidence(
+        amount_match: bool,
+        date_proximity_days: i32,
+        merchant_match: bool,
+    ) -> f64 {
+        let mut score = 0.0;
+        if amount_match { score += 40.0; }
+        if merchant_match { score += 30.0; }
+        let date_score = (30 - date_proximity_days * 2).max(0) as f64;
+        score += date_score;
+        score
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -8392,6 +8793,629 @@ mod tests {
     }
 
     // ========================================================================
+    // ========================================================================
+    // Inflation Adjustment Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_inflation_index_definition() {
+        let def = entities::inflation_index_definition();
+        assert_eq!(def.name, "inflation_indices");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_inflation_index_rate_definition() {
+        let def = entities::inflation_index_rate_definition();
+        assert_eq!(def.name, "inflation_index_rates");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_inflation_adjustment_run_definition() {
+        let def = entities::inflation_adjustment_run_definition();
+        assert_eq!(def.name, "inflation_adjustment_runs");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "calculated"));
+        assert!(wf.states.iter().any(|s| s.name == "reviewed"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_inflation_adjustment_line_definition() {
+        let def = entities::inflation_adjustment_line_definition();
+        assert_eq!(def.name, "inflation_adjustment_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_valid_index_types() {
+        for t in &["cpi", "gdp_deflator", "custom"] {
+            assert!(super::VALID_INDEX_TYPES.contains(t));
+        }
+        assert!(!super::VALID_INDEX_TYPES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_valid_adjustment_methods() {
+        for m in &["historical", "current"] {
+            assert!(super::VALID_ADJUSTMENT_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_restatement_factor_calculation() {
+        let factor = super::InflationAdjustmentService::calculate_restatement_factor(150.0, 100.0);
+        assert!((factor - 1.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_restatement_factor_zero_base() {
+        let factor = super::InflationAdjustmentService::calculate_restatement_factor(150.0, 0.0);
+        assert_eq!(factor, 1.0);
+    }
+
+    #[test]
+    fn test_restate_non_monetary_balance() {
+        let restated = super::InflationAdjustmentService::restate_non_monetary_balance(100000.0, 1.5);
+        assert!((restated - 150000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_monetary_gain_loss() {
+        let gain = super::InflationAdjustmentService::calculate_monetary_gain_loss(50000.0, 1.5);
+        assert!((gain - 25000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_monetary_gain_loss_no_inflation() {
+        let gain = super::InflationAdjustmentService::calculate_monetary_gain_loss(50000.0, 1.0);
+        assert!((gain - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_inflation_adjustment_amount() {
+        let adj = super::InflationAdjustmentService::calculate_adjustment_amount(100000.0, 150000.0);
+        assert!((adj - 50000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_inflation_adjustment_run_workflow_transitions() {
+        let def = entities::inflation_adjustment_run_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "calculated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "calculated" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "posted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+    }
+
+    // ========================================================================
+    // Impairment Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_impairment_indicator_definition() {
+        let def = entities::impairment_indicator_definition();
+        assert_eq!(def.name, "impairment_indicators");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_impairment_test_definition() {
+        let def = entities::impairment_test_definition();
+        assert_eq!(def.name, "impairment_tests");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "reversed"));
+    }
+
+    #[test]
+    fn test_impairment_cash_flow_definition() {
+        let def = entities::impairment_cash_flow_definition();
+        assert_eq!(def.name, "impairment_cash_flows");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_impairment_test_asset_definition() {
+        let def = entities::impairment_test_asset_definition();
+        assert_eq!(def.name, "impairment_test_assets");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_valid_indicator_types() {
+        for t in &["external", "internal", "market"] {
+            assert!(super::VALID_INDICATOR_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_valid_severity_levels() {
+        for s in &["low", "medium", "high", "critical"] {
+            assert!(super::VALID_SEVERITY_LEVELS.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_valid_test_types() {
+        for t in &["individual", "cash_generating_unit"] {
+            assert!(super::VALID_TEST_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_valid_test_methods() {
+        for m in &["value_in_use", "fair_value_less_costs"] {
+            assert!(super::VALID_TEST_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_impairment_loss_when_impaired() {
+        let loss = super::ImpairmentManagementService::calculate_impairment_loss(100000.0, 75000.0);
+        assert!((loss - 25000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_impairment_loss_when_not_impaired() {
+        let loss = super::ImpairmentManagementService::calculate_impairment_loss(75000.0, 100000.0);
+        assert_eq!(loss, 0.0);
+    }
+
+    #[test]
+    fn test_impairment_loss_when_equal() {
+        let loss = super::ImpairmentManagementService::calculate_impairment_loss(100000.0, 100000.0);
+        assert_eq!(loss, 0.0);
+    }
+
+    #[test]
+    fn test_is_impaired() {
+        assert!(super::ImpairmentManagementService::is_impaired(100000.0, 75000.0));
+        assert!(!super::ImpairmentManagementService::is_impaired(75000.0, 100000.0));
+    }
+
+    #[test]
+    fn test_present_value_of_cash_flows() {
+        let cash_flows = vec![(30000.0, 0.909), (30000.0, 0.826), (30000.0, 0.751)];
+        let pv = super::ImpairmentManagementService::calculate_present_value(&cash_flows);
+        assert!(pv > 74000.0 && pv < 75000.0);
+    }
+
+    #[test]
+    fn test_discount_factor() {
+        let df = super::ImpairmentManagementService::calculate_discount_factor(0.10, 1);
+        assert!((df - 0.9091).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_discount_factor_zero_rate() {
+        let df = super::ImpairmentManagementService::calculate_discount_factor(0.0, 5);
+        assert_eq!(df, 1.0);
+    }
+
+    #[test]
+    fn test_terminal_value_pv() {
+        let tv_pv = super::ImpairmentManagementService::calculate_terminal_value_pv(500000.0, 0.10, 5);
+        assert!(tv_pv > 300000.0 && tv_pv < 320000.0);
+    }
+
+    #[test]
+    fn test_impairment_reversal_cap() {
+        let cap = super::ImpairmentManagementService::calculate_reversal_cap(70000.0, 100000.0, 10000.0);
+        assert!((cap - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_impairment_reversal_cap_zero() {
+        let cap = super::ImpairmentManagementService::calculate_reversal_cap(100000.0, 100000.0, 0.0);
+        assert_eq!(cap, 0.0);
+    }
+
+    #[test]
+    fn test_impairment_test_workflow_transitions() {
+        let def = entities::impairment_test_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "completed" && t.to_state == "reversed"));
+    }
+
+    // ========================================================================
+    // Bank Account Transfer Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_bank_transfer_type_definition() {
+        let def = entities::bank_transfer_type_definition();
+        assert_eq!(def.name, "bank_transfer_types");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_bank_account_transfer_definition() {
+        let def = entities::bank_account_transfer_definition();
+        assert_eq!(def.name, "bank_account_transfers");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "reversed"));
+        assert!(wf.states.iter().any(|s| s.name == "failed"));
+    }
+
+    #[test]
+    fn test_valid_settlement_methods() {
+        for m in &["immediate", "scheduled", "batch"] {
+            assert!(super::VALID_SETTLEMENT_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_cross_currency_amount() {
+        let converted = super::BankAccountTransferService::calculate_cross_currency_amount(10000.0, 0.85);
+        assert!((converted - 8500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_requires_approval_above_threshold() {
+        assert!(super::BankAccountTransferService::requires_approval(50000.0, 25000.0));
+    }
+
+    #[test]
+    fn test_requires_approval_no_threshold() {
+        assert!(!super::BankAccountTransferService::requires_approval(50000.0, 0.0));
+    }
+
+    #[test]
+    fn test_bank_transfer_workflow_transitions() {
+        let def = entities::bank_account_transfer_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "in_transit"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_transit" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "completed" && t.to_state == "reversed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_transit" && t.to_state == "failed"));
+    }
+
+    // ========================================================================
+    // Tax Reporting Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_tax_return_template_def() {
+        let def = entities::tax_return_template_definition();
+        assert_eq!(def.name, "tax_return_templates");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_tax_return_template_line_def() {
+        let def = entities::tax_return_template_line_definition();
+        assert_eq!(def.name, "tax_return_template_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_tax_report_def() {
+        let def = entities::tax_report_definition();
+        assert_eq!(def.name, "tax_reports");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "filed"));
+        assert!(wf.states.iter().any(|s| s.name == "paid"));
+        assert!(wf.states.iter().any(|s| s.name == "amended"));
+    }
+
+    #[test]
+    fn test_valid_tax_report_types() {
+        for t in &["vat", "gst", "sales_tax", "corporate_income", "withholding"] {
+            assert!(super::VALID_TAX_REPORT_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_net_tax_due_positive() {
+        let due = super::TaxReportingService::calculate_net_tax_due(50000.0, 30000.0);
+        assert!((due - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_net_tax_due_negative_refund() {
+        let due = super::TaxReportingService::calculate_net_tax_due(20000.0, 35000.0);
+        assert!(due < 0.0);
+    }
+
+    #[test]
+    fn test_total_amount_due() {
+        let total = super::TaxReportingService::calculate_total_amount_due(20000.0, 500.0, 200.0);
+        assert!((total - 20700.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_payment_or_refund_payment() {
+        let result = super::TaxReportingService::calculate_payment_or_refund(20700.0, 15000.0);
+        assert!((result - 5700.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_effective_tax_rate() {
+        let rate = super::TaxReportingService::calculate_effective_tax_rate(15000.0, 100000.0);
+        assert!((rate - 15.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_effective_tax_rate_zero_taxable() {
+        let rate = super::TaxReportingService::calculate_effective_tax_rate(15000.0, 0.0);
+        assert_eq!(rate, 0.0);
+    }
+
+    #[test]
+    fn test_tax_report_workflow_transitions() {
+        let def = entities::tax_report_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "filed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "filed" && t.to_state == "paid"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "filed" && t.to_state == "amended"));
+    }
+
+    // ========================================================================
+    // Grant Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_grant_sponsor_def() {
+        let def = entities::grant_sponsor_definition();
+        assert_eq!(def.name, "grant_sponsors");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_grant_award_def() {
+        let def = entities::grant_award_definition();
+        assert_eq!(def.name, "grant_awards");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "suspended"));
+        assert!(wf.states.iter().any(|s| s.name == "terminated"));
+    }
+
+    #[test]
+    fn test_grant_budget_line_def() {
+        let def = entities::grant_budget_line_definition();
+        assert_eq!(def.name, "grant_budget_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_grant_expenditure_def() {
+        let def = entities::grant_expenditure_definition();
+        assert_eq!(def.name, "grant_expenditures");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "pending");
+        assert!(wf.states.iter().any(|s| s.name == "billed"));
+    }
+
+    #[test]
+    fn test_valid_sponsor_types() {
+        for t in &["government", "foundation", "corporate", "internal", "university"] {
+            assert!(super::VALID_SPONSOR_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_grant_indirect_costs() {
+        let indirect = super::GrantManagementService::calculate_indirect_costs(80000.0, 55.0);
+        assert!((indirect - 44000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_grant_total_award() {
+        let total = super::GrantManagementService::calculate_total_award(80000.0, 44000.0);
+        assert!((total - 124000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_grant_available_balance() {
+        let available = super::GrantManagementService::calculate_available_balance(500000.0, 200000.0, 100000.0);
+        assert!((available - 200000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_grant_available_balance_negative() {
+        let available = super::GrantManagementService::calculate_available_balance(500000.0, 350000.0, 200000.0);
+        assert!(available < 0.0);
+    }
+
+    #[test]
+    fn test_grant_budget_utilization() {
+        let pct = super::GrantManagementService::calculate_budget_utilization(75000.0, 100000.0);
+        assert!((pct - 75.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_grant_cost_sharing() {
+        let sharing = super::GrantManagementService::calculate_cost_sharing(100000.0, 20.0);
+        assert!((sharing - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_grant_budget_line_exceeded() {
+        assert!(super::GrantManagementService::is_budget_line_exceeded(100000.0, 60000.0, 50000.0));
+    }
+
+    #[test]
+    fn test_grant_budget_line_not_exceeded() {
+        assert!(!super::GrantManagementService::is_budget_line_exceeded(100000.0, 40000.0, 30000.0));
+    }
+
+    #[test]
+    fn test_grant_award_workflow_transitions() {
+        let def = entities::grant_award_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "suspended"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "terminated"));
+    }
+
+    #[test]
+    fn test_grant_expenditure_workflow_transitions() {
+        let def = entities::grant_expenditure_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "billed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "hold"));
+    }
+
+    // ========================================================================
+    // Corporate Card Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_corporate_card_program_def() {
+        let def = entities::corporate_card_program_definition();
+        assert_eq!(def.name, "corporate_card_programs");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_corporate_card_def() {
+        let def = entities::corporate_card_definition();
+        assert_eq!(def.name, "corporate_cards");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "active");
+        assert!(wf.states.iter().any(|s| s.name == "lost"));
+        assert!(wf.states.iter().any(|s| s.name == "stolen"));
+    }
+
+    #[test]
+    fn test_corporate_card_transaction_def() {
+        let def = entities::corporate_card_transaction_definition();
+        assert_eq!(def.name, "corporate_card_transactions");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_valid_card_networks() {
+        for n in &["visa", "mastercard", "amex"] {
+            assert!(super::VALID_CARD_NETWORKS.contains(n));
+        }
+    }
+
+    #[test]
+    fn test_check_spending_limit_within() {
+        assert!(super::CorporateCardManagementService::check_spending_limit(500.0, 1000.0, 3000.0, 5000.0));
+    }
+
+    #[test]
+    fn test_check_spending_limit_exceeds_single() {
+        assert!(!super::CorporateCardManagementService::check_spending_limit(1500.0, 1000.0, 3000.0, 5000.0));
+    }
+
+    #[test]
+    fn test_check_spending_limit_no_limits() {
+        assert!(super::CorporateCardManagementService::check_spending_limit(500.0, 0.0, 3000.0, 0.0));
+    }
+
+    #[test]
+    fn test_calculate_available_spend() {
+        let available = super::CorporateCardManagementService::calculate_available_spend(10000.0, 7500.0);
+        assert!((available - 2500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_available_spend_no_limit() {
+        let available = super::CorporateCardManagementService::calculate_available_spend(0.0, 5000.0);
+        assert_eq!(available, f64::MAX);
+    }
+
+    #[test]
+    fn test_calculate_statement_balance() {
+        let balance = super::CorporateCardManagementService::calculate_statement_balance(5000.0, 8000.0, 1500.0, 3000.0);
+        assert!((balance - 8500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_match_confidence_high() {
+        let score = super::CorporateCardManagementService::calculate_match_confidence(true, 0, true);
+        assert!((score - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_match_confidence_low() {
+        let score = super::CorporateCardManagementService::calculate_match_confidence(false, 15, false);
+        assert_eq!(score, 0.0);
+    }
+
+    #[test]
+    fn test_corporate_card_workflow_transitions() {
+        let def = entities::corporate_card_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "suspended"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "lost"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "stolen"));
+    }
+
+    #[test]
+    fn test_six_new_features_entity_count() {
+        let new_entities = vec![
+            entities::inflation_index_definition(),
+            entities::inflation_index_rate_definition(),
+            entities::inflation_adjustment_run_definition(),
+            entities::inflation_adjustment_line_definition(),
+            entities::impairment_indicator_definition(),
+            entities::impairment_test_definition(),
+            entities::impairment_cash_flow_definition(),
+            entities::impairment_test_asset_definition(),
+            entities::bank_transfer_type_definition(),
+            entities::bank_account_transfer_definition(),
+            entities::tax_return_template_definition(),
+            entities::tax_return_template_line_definition(),
+            entities::tax_report_definition(),
+            entities::grant_sponsor_definition(),
+            entities::grant_award_definition(),
+            entities::grant_budget_line_definition(),
+            entities::grant_expenditure_definition(),
+            entities::corporate_card_program_definition(),
+            entities::corporate_card_definition(),
+            entities::corporate_card_transaction_definition(),
+        ];
+        assert_eq!(new_entities.len(), 20);
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 20, "All 20 entity names must be unique");
+    }
+
+    #[test]
+    fn test_six_new_features_workflow_count() {
+        let workflow_entities = vec![
+            entities::inflation_adjustment_run_definition(),
+            entities::impairment_test_definition(),
+            entities::bank_account_transfer_definition(),
+            entities::tax_report_definition(),
+            entities::grant_award_definition(),
+            entities::grant_expenditure_definition(),
+            entities::corporate_card_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 7);
+    }
+
     // Comprehensive: All New Feature Entities Build
     // ========================================================================
 

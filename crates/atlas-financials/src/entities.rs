@@ -4370,3 +4370,723 @@ pub fn journal_reversal_request_definition() -> EntityDefinition {
         .workflow(workflow)
         .build()
 }
+
+// ============================================================================
+// Inflation Adjustment (IAS 29 Hyperinflationary Economy Accounting)
+// Oracle Fusion: Financials > General Ledger > Inflation Adjustment
+// ============================================================================
+
+/// Inflation Index entity
+/// Oracle Fusion: Inflation Adjustment > Inflation Indices
+pub fn inflation_index_definition() -> EntityDefinition {
+    SchemaBuilder::new("inflation_indices", "Inflation Index")
+        .plural_label("Inflation Indices")
+        .table_name("fin_inflation_indices")
+        .description("Consumer price indices or similar metrics for hyperinflationary economies")
+        .icon("chart-line")
+        .required_string("code", "Index Code")
+        .required_string("name", "Index Name")
+        .string("description", "Description")
+        .string("country_code", "Country Code")
+        .string("currency_code", "Currency Code")
+        .enumeration("index_type", "Index Type", vec![
+            "cpi", "gdp_deflator", "custom",
+        ])
+        .boolean("is_hyperinflationary", "Hyperinflationary")
+        .date("hyperinflationary_start_date", "Hyperinflation Start Date")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .enumeration("status", "Status", vec!["active", "inactive"])
+        .build()
+}
+
+/// Inflation Index Rate entity
+/// Oracle Fusion: Inflation Adjustment > Index Rates
+pub fn inflation_index_rate_definition() -> EntityDefinition {
+    SchemaBuilder::new("inflation_index_rates", "Inflation Index Rate")
+        .plural_label("Inflation Index Rates")
+        .table_name("fin_inflation_index_rates")
+        .description("Monthly/periodic inflation index rates")
+        .icon("percent")
+        .reference("index_id", "Inflation Index", "inflation_indices")
+        .date("period_start", "Period Start")
+        .date("period_end", "Period End")
+        .decimal("index_value", "Index Value", 18, 6)
+        .decimal("cumulative_factor", "Cumulative Factor", 18, 6)
+        .decimal("period_factor", "Period Factor", 18, 6)
+        .string("source", "Source")
+        .enumeration("status", "Status", vec!["active", "inactive"])
+        .build()
+}
+
+/// Inflation Adjustment Run entity with workflow
+/// Oracle Fusion: Inflation Adjustment > Adjustment Runs
+pub fn inflation_adjustment_run_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("inflation_adjustment_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("calculated", "Calculated")
+        .working_state("reviewed", "Reviewed")
+        .working_state("approved", "Approved")
+        .final_state("posted", "Posted")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "calculated", "calculate")
+        .transition("calculated", "reviewed", "review")
+        .transition("reviewed", "approved", "approve")
+        .transition("approved", "posted", "post")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("inflation_adjustment_runs", "Inflation Adjustment Run")
+        .plural_label("Inflation Adjustment Runs")
+        .table_name("fin_inflation_adjustment_runs")
+        .description("Inflation adjustment runs for hyperinflationary economy accounting")
+        .icon("sync")
+        .required_string("run_number", "Run Number")
+        .string("name", "Name")
+        .string("description", "Description")
+        .reference("index_id", "Inflation Index", "inflation_indices")
+        .date("from_period", "From Period")
+        .date("to_period", "To Period")
+        .enumeration("adjustment_method", "Method", vec!["historical", "current"])
+        .currency("total_debit_adjustment", "Total Debit Adjustment", "USD")
+        .currency("total_credit_adjustment", "Total Credit Adjustment", "USD")
+        .currency("total_monetary_gain_loss", "Monetary Gain/Loss", "USD")
+        .integer("account_count", "Account Count")
+        .enumeration("status", "Status", vec![
+            "draft", "calculated", "reviewed", "approved", "posted", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Inflation Adjustment Line entity
+/// Oracle Fusion: Inflation Adjustment > Adjustment Lines
+pub fn inflation_adjustment_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("inflation_adjustment_lines", "Inflation Adjustment Line")
+        .plural_label("Inflation Adjustment Lines")
+        .table_name("fin_inflation_adjustment_lines")
+        .description("Per-account inflation adjustment details")
+        .icon("list")
+        .reference("run_id", "Run", "inflation_adjustment_runs")
+        .integer("line_number", "Line Number")
+        .string("account_code", "Account Code")
+        .string("account_name", "Account Name")
+        .enumeration("account_type", "Account Type", vec!["monetary", "non_monetary"])
+        .enumeration("balance_type", "Balance Type", vec!["debit", "credit"])
+        .currency("original_balance", "Original Balance", "USD")
+        .currency("restated_balance", "Restated Balance", "USD")
+        .currency("adjustment_amount", "Adjustment Amount", "USD")
+        .decimal("inflation_factor", "Inflation Factor", 18, 6)
+        .date("acquisition_date", "Acquisition Date")
+        .currency("gain_loss_amount", "Gain/Loss Amount", "USD")
+        .string("gain_loss_account", "Gain/Loss Account")
+        .string("currency_code", "Currency Code")
+        .build()
+}
+
+// ============================================================================
+// Impairment Management (IAS 36 / ASC 360)
+// Oracle Fusion: Financials > Fixed Assets > Impairment Management
+// ============================================================================
+
+/// Impairment Indicator entity
+/// Oracle Fusion: Impairment > Impairment Indicators
+pub fn impairment_indicator_definition() -> EntityDefinition {
+    SchemaBuilder::new("impairment_indicators", "Impairment Indicator")
+        .plural_label("Impairment Indicators")
+        .table_name("fin_impairment_indicators")
+        .description("Triggers that may indicate asset impairment")
+        .icon("exclamation-triangle")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("indicator_type", "Indicator Type", vec![
+            "external", "internal", "market",
+        ])
+        .enumeration("severity", "Severity", vec![
+            "low", "medium", "high", "critical",
+        ])
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Impairment Test entity with workflow
+/// Oracle Fusion: Impairment > Impairment Tests
+pub fn impairment_test_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("impairment_test_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .final_state("completed", "Completed")
+        .final_state("reversed", "Reversed")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("approved", "completed", "complete")
+        .transition("completed", "reversed", "reverse")
+        .build();
+
+    SchemaBuilder::new("impairment_tests", "Impairment Test")
+        .plural_label("Impairment Tests")
+        .table_name("fin_impairment_tests")
+        .description("Impairment testing for assets and cash-generating units (IAS 36)")
+        .icon("clipboard-check")
+        .required_string("test_number", "Test Number")
+        .string("name", "Name")
+        .string("description", "Description")
+        .enumeration("test_type", "Test Type", vec![
+            "individual", "cash_generating_unit",
+        ])
+        .enumeration("test_method", "Test Method", vec![
+            "value_in_use", "fair_value_less_costs",
+        ])
+        .date("test_date", "Test Date")
+        .string("reporting_period", "Reporting Period")
+        .reference("indicator_id", "Impairment Indicator", "impairment_indicators")
+        .currency("carrying_amount", "Carrying Amount", "USD")
+        .currency("recoverable_amount", "Recoverable Amount", "USD")
+        .currency("impairment_loss", "Impairment Loss", "USD")
+        .currency("reversal_amount", "Reversal Amount", "USD")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "completed", "reversed",
+        ])
+        .string("impairment_account", "Impairment Account")
+        .string("reversal_account", "Reversal Account")
+        .reference("asset_id", "Asset", "fixed_assets")
+        .decimal("discount_rate", "Discount Rate", 8, 4)
+        .decimal("growth_rate", "Growth Rate", 8, 4)
+        .currency("terminal_value", "Terminal Value", "USD")
+        .workflow(workflow)
+        .build()
+}
+
+/// Impairment Cash Flow Projection entity
+/// Oracle Fusion: Impairment > Cash Flow Projections
+pub fn impairment_cash_flow_definition() -> EntityDefinition {
+    SchemaBuilder::new("impairment_cash_flows", "Impairment Cash Flow")
+        .plural_label("Impairment Cash Flows")
+        .table_name("fin_impairment_cash_flows")
+        .description("Cash flow projections for value-in-use impairment calculations")
+        .icon("cash-register")
+        .reference("test_id", "Test", "impairment_tests")
+        .integer("period_year", "Year")
+        .integer("period_number", "Period")
+        .string("description", "Description")
+        .currency("cash_inflow", "Cash Inflow", "USD")
+        .currency("cash_outflow", "Cash Outflow", "USD")
+        .currency("net_cash_flow", "Net Cash Flow", "USD")
+        .decimal("discount_factor", "Discount Factor", 10, 6)
+        .currency("present_value", "Present Value", "USD")
+        .build()
+}
+
+/// Impairment Test Asset entity
+/// Oracle Fusion: Impairment > Test Assets
+pub fn impairment_test_asset_definition() -> EntityDefinition {
+    SchemaBuilder::new("impairment_test_assets", "Impairment Test Asset")
+        .plural_label("Impairment Test Assets")
+        .table_name("fin_impairment_test_assets")
+        .description("Links impairment test to specific assets")
+        .icon("link")
+        .reference("test_id", "Test", "impairment_tests")
+        .reference("asset_id", "Asset", "fixed_assets")
+        .string("asset_number", "Asset Number")
+        .string("asset_name", "Asset Name")
+        .string("asset_category", "Asset Category")
+        .currency("carrying_amount", "Carrying Amount", "USD")
+        .currency("recoverable_amount", "Recoverable Amount", "USD")
+        .currency("impairment_loss", "Impairment Loss", "USD")
+        .enumeration("status", "Status", vec![
+            "pending", "impaired", "not_impaired", "reversed",
+        ])
+        .date("impairment_date", "Impairment Date")
+        .build()
+}
+
+// ============================================================================
+// Bank Account Transfer (Internal Fund Transfers)
+// Oracle Fusion: Financials > Cash Management > Bank Account Transfers
+// ============================================================================
+
+/// Bank Transfer Type entity
+/// Oracle Fusion: Cash Management > Bank Transfer Types
+pub fn bank_transfer_type_definition() -> EntityDefinition {
+    SchemaBuilder::new("bank_transfer_types", "Bank Transfer Type")
+        .plural_label("Bank Transfer Types")
+        .table_name("fin_bank_transfer_types")
+        .description("Types of internal bank account transfers")
+        .icon("tags")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("settlement_method", "Settlement Method", vec![
+            "immediate", "scheduled", "batch",
+        ])
+        .boolean("requires_approval", "Requires Approval")
+        .currency("approval_threshold", "Approval Threshold", "USD")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Bank Account Transfer entity with workflow
+/// Oracle Fusion: Cash Management > Bank Account Transfers
+pub fn bank_account_transfer_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("bank_transfer_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .working_state("in_transit", "In Transit")
+        .final_state("completed", "Completed")
+        .final_state("cancelled", "Cancelled")
+        .final_state("reversed", "Reversed")
+        .final_state("failed", "Failed")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("approved", "in_transit", "dispatch")
+        .transition("in_transit", "completed", "complete")
+        .transition("draft", "cancelled", "cancel")
+        .transition("submitted", "cancelled", "cancel")
+        .transition("completed", "reversed", "reverse")
+        .transition("in_transit", "failed", "fail")
+        .build();
+
+    SchemaBuilder::new("bank_account_transfers", "Bank Account Transfer")
+        .plural_label("Bank Account Transfers")
+        .table_name("fin_bank_account_transfers")
+        .description("Internal fund transfers between bank accounts")
+        .icon("exchange-alt")
+        .required_string("transfer_number", "Transfer Number")
+        .reference("transfer_type_id", "Transfer Type", "bank_transfer_types")
+        .reference("from_bank_account_id", "From Account", "bank_accounts")
+        .string("from_bank_account_number", "From Account Number")
+        .string("from_bank_name", "From Bank")
+        .reference("to_bank_account_id", "To Account", "bank_accounts")
+        .string("to_bank_account_number", "To Account Number")
+        .string("to_bank_name", "To Bank")
+        .currency("amount", "Amount", "USD")
+        .string("currency_code", "Currency")
+        .decimal("exchange_rate", "Exchange Rate", 18, 6)
+        .string("from_currency", "From Currency")
+        .string("to_currency", "To Currency")
+        .currency("transferred_amount", "Transferred Amount", "USD")
+        .date("transfer_date", "Transfer Date")
+        .date("value_date", "Value Date")
+        .date("settlement_date", "Settlement Date")
+        .string("reference_number", "Reference Number")
+        .string("description", "Description")
+        .string("purpose", "Purpose")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "in_transit", "completed", "cancelled", "reversed", "failed",
+        ])
+        .enumeration("priority", "Priority", vec![
+            "low", "normal", "high", "urgent",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Tax Reporting (Oracle Fusion Tax > Tax Reporting)
+// ============================================================================
+
+/// Tax Return Template entity
+/// Oracle Fusion: Tax > Tax Reporting > Return Templates
+pub fn tax_return_template_definition() -> EntityDefinition {
+    SchemaBuilder::new("tax_return_templates", "Tax Return Template")
+        .plural_label("Tax Return Templates")
+        .table_name("fin_tax_return_templates")
+        .description("Templates defining the structure of tax returns")
+        .icon("file-alt")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("tax_type", "Tax Type", vec![
+            "vat", "gst", "sales_tax", "corporate_income", "withholding",
+        ])
+        .string("jurisdiction_code", "Jurisdiction")
+        .enumeration("filing_frequency", "Filing Frequency", vec![
+            "monthly", "quarterly", "semi_annual", "annual",
+        ])
+        .string("return_form_number", "Form Number")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Tax Return Template Line entity
+/// Oracle Fusion: Tax > Tax Reporting > Template Lines
+pub fn tax_return_template_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("tax_return_template_lines", "Tax Return Template Line")
+        .plural_label("Tax Return Template Lines")
+        .table_name("fin_tax_return_template_lines")
+        .description("Boxes/fields on a tax return template")
+        .icon("list")
+        .reference("template_id", "Template", "tax_return_templates")
+        .integer("line_number", "Line Number")
+        .required_string("box_code", "Box Code")
+        .required_string("box_name", "Box Name")
+        .string("description", "Description")
+        .enumeration("line_type", "Line Type", vec![
+            "input", "calculated", "total", "informational",
+        ])
+        .string("calculation_formula", "Calculation Formula")
+        .string("account_code_filter", "Account Filter")
+        .string("tax_rate_code_filter", "Tax Rate Filter")
+        .boolean("is_debit", "Is Debit")
+        .integer("display_order", "Display Order")
+        .build()
+}
+
+/// Tax Report (filed return) entity with workflow
+/// Oracle Fusion: Tax > Tax Reporting > Tax Reports
+pub fn tax_report_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("tax_report_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .working_state("filed", "Filed")
+        .working_state("paid", "Paid")
+        .final_state("amended", "Amended")
+        .final_state("rejected", "Rejected")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "filed", "file")
+        .transition("filed", "paid", "pay")
+        .transition("filed", "amended", "amend")
+        .build();
+
+    SchemaBuilder::new("tax_reports", "Tax Report")
+        .plural_label("Tax Reports")
+        .table_name("fin_tax_reports")
+        .description("Filed tax returns with amounts and status tracking")
+        .icon("file-invoice-dollar")
+        .required_string("return_number", "Return Number")
+        .reference("template_id", "Template", "tax_return_templates")
+        .string("template_name", "Template Name")
+        .string("tax_type", "Tax Type")
+        .string("jurisdiction_code", "Jurisdiction")
+        .date("filing_period_start", "Period Start")
+        .date("filing_period_end", "Period End")
+        .date("filing_due_date", "Due Date")
+        .currency("total_tax_amount", "Total Tax", "USD")
+        .currency("total_taxable_amount", "Total Taxable", "USD")
+        .currency("total_exempt_amount", "Total Exempt", "USD")
+        .currency("total_input_tax", "Input Tax", "USD")
+        .currency("total_output_tax", "Output Tax", "USD")
+        .currency("net_tax_due", "Net Tax Due", "USD")
+        .currency("penalty_amount", "Penalty", "USD")
+        .currency("interest_amount", "Interest", "USD")
+        .currency("total_amount_due", "Total Due", "USD")
+        .currency("payment_amount", "Payment", "USD")
+        .currency("refund_amount", "Refund", "USD")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "filed", "paid", "amended", "rejected",
+        ])
+        .enumeration("filing_method", "Filing Method", vec!["electronic", "paper"])
+        .string("filing_reference", "Filing Reference")
+        .date("filing_date", "Filing Date")
+        .date("payment_date", "Payment Date")
+        .string("payment_reference", "Payment Reference")
+        .string("amendment_reason", "Amendment Reason")
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Grant Management (Oracle Fusion Grants Management)
+// Oracle Fusion: Financials > Grants Management
+// ============================================================================
+
+/// Grant Sponsor entity
+/// Oracle Fusion: Grants > Sponsors
+pub fn grant_sponsor_definition() -> EntityDefinition {
+    SchemaBuilder::new("grant_sponsors", "Grant Sponsor")
+        .plural_label("Grant Sponsors")
+        .table_name("fin_grant_sponsors")
+        .description("Funding organizations for grants")
+        .icon("hand-holding-usd")
+        .required_string("sponsor_code", "Sponsor Code")
+        .required_string("name", "Name")
+        .enumeration("sponsor_type", "Sponsor Type", vec![
+            "government", "foundation", "corporate", "internal", "university",
+        ])
+        .string("country_code", "Country")
+        .string("taxpayer_id", "Taxpayer ID")
+        .string("contact_name", "Contact Name")
+        .string("contact_email", "Contact Email")
+        .string("contact_phone", "Contact Phone")
+        .string("address_line1", "Address Line 1")
+        .string("city", "City")
+        .string("state_province", "State/Province")
+        .string("postal_code", "Postal Code")
+        .string("payment_terms", "Payment Terms")
+        .enumeration("billing_frequency", "Billing Frequency", vec![
+            "monthly", "quarterly", "annual", "on_demand", "milestone",
+        ])
+        .string("currency_code", "Currency")
+        .currency("credit_limit", "Credit Limit", "USD")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Grant Award entity with workflow
+/// Oracle Fusion: Grants > Awards
+pub fn grant_award_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("grant_award_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .working_state("suspended", "Suspended")
+        .final_state("completed", "Completed")
+        .final_state("terminated", "Terminated")
+        .final_state("closed", "Closed")
+        .transition("draft", "active", "activate")
+        .transition("active", "suspended", "suspend")
+        .transition("suspended", "active", "reactivate")
+        .transition("active", "completed", "complete")
+        .transition("active", "terminated", "terminate")
+        .transition("completed", "closed", "close")
+        .build();
+
+    SchemaBuilder::new("grant_awards", "Grant Award")
+        .plural_label("Grant Awards")
+        .table_name("fin_grant_awards")
+        .description("Grant awards from sponsors")
+        .icon("award")
+        .required_string("award_number", "Award Number")
+        .required_string("award_title", "Award Title")
+        .reference("sponsor_id", "Sponsor", "grant_sponsors")
+        .string("sponsor_name", "Sponsor Name")
+        .string("sponsor_award_number", "Sponsor Award Number")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "suspended", "completed", "terminated", "closed",
+        ])
+        .enumeration("award_type", "Award Type", vec![
+            "research", "training", "fellowship", "contract", "cooperative_agreement", "other",
+        ])
+        .string("award_purpose", "Purpose")
+        .date("start_date", "Start Date")
+        .date("end_date", "End Date")
+        .currency("total_award_amount", "Total Award Amount", "USD")
+        .currency("direct_costs_total", "Direct Costs", "USD")
+        .currency("indirect_costs_total", "Indirect Costs", "USD")
+        .currency("cost_sharing_total", "Cost Sharing", "USD")
+        .currency("total_funded", "Total Funded", "USD")
+        .currency("total_billed", "Total Billed", "USD")
+        .currency("total_collected", "Total Collected", "USD")
+        .currency("total_expenditures", "Total Expenditures", "USD")
+        .currency("total_commitments", "Total Commitments", "USD")
+        .currency("available_balance", "Available Balance", "USD")
+        .string("currency_code", "Currency")
+        .decimal("indirect_cost_rate", "Indirect Cost Rate", 8, 4)
+        .boolean("cost_sharing_required", "Cost Sharing Required")
+        .decimal("cost_sharing_percent", "Cost Sharing %", 5, 2)
+        .reference("principal_investigator_id", "Principal Investigator", "employees")
+        .string("principal_investigator_name", "PI Name")
+        .reference("department_id", "Department", "departments")
+        .string("department_name", "Department Name")
+        .reference("project_id", "Project", "projects")
+        .string("cost_center", "Cost Center")
+        .enumeration("billing_basis", "Billing Basis", vec![
+            "cost", "milestone", "fixed_price", "deliverable",
+        ])
+        .enumeration("billing_frequency", "Billing Frequency", vec![
+            "monthly", "quarterly", "annual", "on_demand", "milestone",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Grant Budget Line entity
+/// Oracle Fusion: Grants > Budget Lines
+pub fn grant_budget_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("grant_budget_lines", "Grant Budget Line")
+        .plural_label("Grant Budget Lines")
+        .table_name("fin_grant_budget_lines")
+        .description("Budget lines for grant awards")
+        .icon("chart-bar")
+        .reference("award_id", "Award", "grant_awards")
+        .integer("line_number", "Line Number")
+        .enumeration("budget_category", "Budget Category", vec![
+            "personnel", "fringe", "travel", "equipment", "supplies",
+            "contractual", "other_direct", "indirect", "cost_sharing",
+        ])
+        .string("description", "Description")
+        .string("account_code", "Account Code")
+        .currency("budget_amount", "Budget Amount", "USD")
+        .currency("committed_amount", "Committed", "USD")
+        .currency("expended_amount", "Expended", "USD")
+        .currency("billed_amount", "Billed", "USD")
+        .currency("available_balance", "Available", "USD")
+        .date("period_start", "Period Start")
+        .date("period_end", "Period End")
+        .integer("fiscal_year", "Fiscal Year")
+        .build()
+}
+
+/// Grant Expenditure entity with workflow
+/// Oracle Fusion: Grants > Expenditures
+pub fn grant_expenditure_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("grant_expenditure_workflow", "pending")
+        .initial_state("pending", "Pending")
+        .working_state("approved", "Approved")
+        .working_state("billed", "Billed")
+        .final_state("reversed", "Reversed")
+        .final_state("hold", "On Hold")
+        .transition("pending", "approved", "approve")
+        .transition("approved", "billed", "bill")
+        .transition("pending", "hold", "place_on_hold")
+        .transition("hold", "pending", "release_hold")
+        .transition("approved", "reversed", "reverse")
+        .build();
+
+    SchemaBuilder::new("grant_expenditures", "Grant Expenditure")
+        .plural_label("Grant Expenditures")
+        .table_name("fin_grant_expenditures")
+        .description("Expenditures charged to grant awards")
+        .icon("receipt")
+        .reference("award_id", "Award", "grant_awards")
+        .required_string("expenditure_number", "Expenditure Number")
+        .enumeration("expenditure_type", "Type", vec![
+            "actual", "commitment", "encumbrance", "adjustment",
+        ])
+        .date("expenditure_date", "Date")
+        .string("description", "Description")
+        .reference("budget_line_id", "Budget Line", "grant_budget_lines")
+        .string("budget_category", "Budget Category")
+        .currency("amount", "Amount", "USD")
+        .currency("indirect_cost_amount", "Indirect Cost", "USD")
+        .currency("total_amount", "Total", "USD")
+        .currency("cost_sharing_amount", "Cost Sharing", "USD")
+        .string("source_entity_type", "Source Type")
+        .string("source_entity_number", "Source Number")
+        .enumeration("status", "Status", vec![
+            "pending", "approved", "billed", "reversed", "hold",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Corporate Card Management
+// Oracle Fusion: Financials > Expenses > Corporate Cards
+// ============================================================================
+
+/// Corporate Card Program entity
+/// Oracle Fusion: Expenses > Corporate Cards > Programs
+pub fn corporate_card_program_definition() -> EntityDefinition {
+    SchemaBuilder::new("corporate_card_programs", "Corporate Card Program")
+        .plural_label("Corporate Card Programs")
+        .table_name("fin_corporate_card_programs")
+        .description("Corporate credit card programmes")
+        .icon("credit-card")
+        .required_string("program_code", "Program Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .string("issuer_bank", "Issuer Bank")
+        .enumeration("card_network", "Card Network", vec![
+            "visa", "mastercard", "amex",
+        ])
+        .enumeration("card_type", "Card Type", vec![
+            "corporate", "purchasing", "travel",
+        ])
+        .string("currency_code", "Currency")
+        .currency("default_single_purchase_limit", "Single Purchase Limit", "USD")
+        .currency("default_monthly_limit", "Monthly Limit", "USD")
+        .currency("default_cash_limit", "Cash Limit", "USD")
+        .currency("default_atm_limit", "ATM Limit", "USD")
+        .boolean("allow_cash_withdrawal", "Allow Cash Withdrawal")
+        .boolean("allow_international", "Allow International")
+        .boolean("auto_deactivate_on_termination", "Auto-Deactivate on Termination")
+        .enumeration("expense_matching_method", "Matching Method", vec![
+            "auto", "manual", "semi",
+        ])
+        .integer("billing_cycle_day", "Billing Cycle Day")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Corporate Card entity with workflow
+/// Oracle Fusion: Expenses > Corporate Cards > Cards
+pub fn corporate_card_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("corporate_card_workflow", "active")
+        .initial_state("active", "Active")
+        .working_state("suspended", "Suspended")
+        .final_state("cancelled", "Cancelled")
+        .final_state("expired", "Expired")
+        .final_state("lost", "Lost")
+        .final_state("stolen", "Stolen")
+        .transition("active", "suspended", "suspend")
+        .transition("suspended", "active", "reactivate")
+        .transition("active", "cancelled", "cancel")
+        .transition("active", "lost", "report_lost")
+        .transition("active", "stolen", "report_stolen")
+        .build();
+
+    SchemaBuilder::new("corporate_cards", "Corporate Card")
+        .plural_label("Corporate Cards")
+        .table_name("fin_corporate_cards")
+        .description("Corporate credit cards issued to employees")
+        .icon("id-card")
+        .reference("program_id", "Program", "corporate_card_programs")
+        .required_string("card_number_masked", "Card Number (Masked)")
+        .required_string("cardholder_name", "Cardholder Name")
+        .reference("cardholder_id", "Cardholder", "employees")
+        .string("cardholder_email", "Cardholder Email")
+        .reference("department_id", "Department", "departments")
+        .string("department_name", "Department")
+        .enumeration("status", "Status", vec![
+            "active", "suspended", "cancelled", "expired", "lost", "stolen",
+        ])
+        .date("issue_date", "Issue Date")
+        .date("expiry_date", "Expiry Date")
+        .currency("single_purchase_limit", "Purchase Limit", "USD")
+        .currency("monthly_limit", "Monthly Limit", "USD")
+        .currency("cash_limit", "Cash Limit", "USD")
+        .currency("atm_limit", "ATM Limit", "USD")
+        .currency("current_balance", "Current Balance", "USD")
+        .currency("total_spend_current_cycle", "Current Cycle Spend", "USD")
+        .currency("last_statement_balance", "Last Statement Balance", "USD")
+        .date("last_statement_date", "Last Statement Date")
+        .string("gl_liability_account", "GL Liability Account")
+        .string("gl_expense_account", "GL Expense Account")
+        .string("cost_center", "Cost Center")
+        .workflow(workflow)
+        .build()
+}
+
+/// Corporate Card Transaction entity
+/// Oracle Fusion: Expenses > Corporate Cards > Transactions
+pub fn corporate_card_transaction_definition() -> EntityDefinition {
+    SchemaBuilder::new("corporate_card_transactions", "Card Transaction")
+        .plural_label("Card Transactions")
+        .table_name("fin_corporate_card_transactions")
+        .description("Corporate card charge and credit transactions")
+        .icon("exchange-alt")
+        .reference("card_id", "Card", "corporate_cards")
+        .reference("program_id", "Program", "corporate_card_programs")
+        .required_string("transaction_reference", "Transaction Reference")
+        .date("posting_date", "Posting Date")
+        .date("transaction_date", "Transaction Date")
+        .string("merchant_name", "Merchant")
+        .string("merchant_category", "Merchant Category")
+        .string("merchant_category_code", "MCC")
+        .currency("amount", "Amount", "USD")
+        .string("currency_code", "Currency")
+        .currency("original_amount", "Original Amount", "USD")
+        .string("original_currency", "Original Currency")
+        .decimal("exchange_rate", "Exchange Rate", 18, 6)
+        .enumeration("transaction_type", "Type", vec![
+            "charge", "credit", "payment", "cash_withdrawal", "fee", "interest",
+        ])
+        .enumeration("status", "Status", vec![
+            "unmatched", "matched", "disputed", "approved", "rejected",
+        ])
+        .reference("expense_report_id", "Expense Report", "expense_reports")
+        .string("match_confidence", "Match Confidence")
+        .string("dispute_reason", "Dispute Reason")
+        .date("dispute_date", "Dispute Date")
+        .boolean("gl_posted", "GL Posted")
+        .build()
+}

@@ -40,4 +40,10 @@ pub use services::{
     FinancialStatementService,
     TaxFilingService,
     JournalReversalService,
+    InflationAdjustmentService,
+    ImpairmentManagementService,
+    BankAccountTransferService,
+    TaxReportingService,
+    GrantManagementService,
+    CorporateCardManagementService,
 };

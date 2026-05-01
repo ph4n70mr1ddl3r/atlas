@@ -87,3 +87,8 @@ mod funds_reservation;
 mod rebate_management;
 mod project_resource_management;
 mod loyalty_management;
+mod general_ledger;
+mod accounts_receivable;
+mod payment_management;
+mod netting;
+mod financial_statements;

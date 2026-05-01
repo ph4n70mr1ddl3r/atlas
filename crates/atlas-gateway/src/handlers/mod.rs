@@ -89,6 +89,11 @@ pub mod funds_reservation;
 pub mod rebate_management;
 pub mod project_resource_management;
 pub mod loyalty_management;
+pub mod general_ledger;
+pub mod accounts_receivable;
+pub mod payment_management;
+pub mod netting;
+pub mod financial_statements;
 
 pub use schema::*;
 pub use records::*;
@@ -3660,6 +3665,95 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/loyalty/dashboard", get(loyalty_management::get_loyalty_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // General Ledger (Oracle Fusion GL > Chart of Accounts, Journal Entries)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Chart of Accounts
+        .route("/gl/accounts", get(general_ledger::list_gl_accounts))
+        .route("/gl/accounts", post(general_ledger::create_gl_account))
+        .route("/gl/accounts/:id", get(general_ledger::get_gl_account))
+
+        // Journal Entries
+        .route("/gl/journal-entries", get(general_ledger::list_journal_entries))
+        .route("/gl/journal-entries", post(general_ledger::create_journal_entry))
+        .route("/gl/journal-entries/:id", get(general_ledger::get_journal_entry))
+
+        // Journal Lines
+        .route("/gl/journal-entries/:entry_id/lines", get(general_ledger::list_journal_lines))
+        .route("/gl/journal-entries/:entry_id/lines", post(general_ledger::add_journal_line))
+
+        // Journal Entry Workflow
+        .route("/gl/journal-entries/:id/post", post(general_ledger::post_journal_entry))
+        .route("/gl/journal-entries/:id/reverse", post(general_ledger::reverse_journal_entry))
+
+        // Trial Balance
+        .route("/gl/trial-balance", get(general_ledger::generate_trial_balance))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Accounts Receivable (Oracle Fusion Receivables)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // AR Transactions
+        .route("/ar/transactions", get(accounts_receivable::list_ar_transactions))
+        .route("/ar/transactions", post(accounts_receivable::create_ar_transaction))
+        .route("/ar/transactions/:id", get(accounts_receivable::get_ar_transaction))
+        .route("/ar/transactions/:id/complete", post(accounts_receivable::complete_ar_transaction))
+        .route("/ar/transactions/:id/post", post(accounts_receivable::post_ar_transaction))
+        .route("/ar/transactions/:id/cancel", post(accounts_receivable::cancel_ar_transaction))
+
+        // AR Transaction Lines
+        .route("/ar/transactions/:transaction_id/lines", get(accounts_receivable::list_transaction_lines))
+        .route("/ar/transactions/:transaction_id/lines", post(accounts_receivable::add_transaction_line))
+
+        // AR Receipts
+        .route("/ar/receipts", get(accounts_receivable::list_receipts))
+        .route("/ar/receipts", post(accounts_receivable::create_receipt))
+        .route("/ar/receipts/:id/confirm", post(accounts_receivable::confirm_receipt))
+        .route("/ar/receipts/:receipt_id/apply/:transaction_id", post(accounts_receivable::apply_receipt))
+        .route("/ar/receipts/:id/reverse", post(accounts_receivable::reverse_receipt))
+
+        // AR Credit Memos
+        .route("/ar/credit-memos", post(accounts_receivable::create_credit_memo))
+        .route("/ar/credit-memos/:id/approve", post(accounts_receivable::approve_credit_memo))
+        .route("/ar/credit-memos/:memo_id/apply/:transaction_id", post(accounts_receivable::apply_credit_memo))
+
+        // AR Aging
+        .route("/ar/aging", get(accounts_receivable::get_ar_aging))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Payment Management (Oracle Fusion Payments)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        .route("/payments", get(payment_management::list_payments))
+        .route("/payments", post(payment_management::create_payment))
+        .route("/payments/:id", get(payment_management::get_payment))
+        .route("/payments/:id/issue", post(payment_management::issue_payment))
+        .route("/payments/:id/clear", post(payment_management::clear_payment))
+        .route("/payments/:id/void", post(payment_management::void_payment))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Netting (Oracle Fusion Netting)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        .route("/netting/agreements", get(netting::list_netting_agreements))
+        .route("/netting/agreements", post(netting::create_netting_agreement))
+        .route("/netting/agreements/:id", get(netting::get_netting_agreement))
+        .route("/netting/agreements/:id/activate", post(netting::activate_netting_agreement))
+        .route("/netting/batches", post(netting::create_netting_batch))
+        .route("/netting/batches/:id/submit", post(netting::submit_netting_batch))
+        .route("/netting/batches/:id/approve", post(netting::approve_netting_batch))
+        .route("/netting/batches/:id/settle", post(netting::settle_netting_batch))
+        .route("/netting/dashboard", get(netting::get_netting_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Financial Statements (Oracle Fusion GL > Financial Statements)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        .route("/financial-statements", get(financial_statements::list_financial_statements))
+        .route("/financial-statements/generate", post(financial_statements::generate_financial_statement))
+        .route("/financial-statements/:id", get(financial_statements::get_financial_statement))
 
         .layer(middleware::from_fn(auth_middleware))
 }

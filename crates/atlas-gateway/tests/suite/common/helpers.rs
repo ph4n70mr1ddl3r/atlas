@@ -474,6 +474,21 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         loyalty_engine: Arc::new(atlas_core::LoyaltyManagementEngine::new(Arc::new(
             atlas_core::loyalty_management::PostgresLoyaltyManagementRepository::new(db_pool.clone()),
         ))),
+        general_ledger_engine: Arc::new(atlas_core::GeneralLedgerEngine::new(Arc::new(
+            atlas_core::general_ledger::PostgresGeneralLedgerRepository::new(db_pool.clone()),
+        ))),
+        accounts_receivable_engine: Arc::new(atlas_core::AccountsReceivableEngine::new(Arc::new(
+            atlas_core::accounts_receivable::PostgresAccountsReceivableRepository::new(db_pool.clone()),
+        ))),
+        payment_engine: Arc::new(atlas_core::PaymentEngine::new(Arc::new(
+            atlas_core::payment::PostgresPaymentRepository::new(db_pool.clone()),
+        ))),
+        netting_engine: Arc::new(atlas_core::NettingEngine::new(Arc::new(
+            atlas_core::netting::PostgresNettingRepository::new(db_pool.clone()),
+        ))),
+        financial_statements_engine: Arc::new(atlas_core::FinancialStatementEngine::new(Arc::new(
+            atlas_core::financial_statements::PostgresFinancialStatementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -938,4 +953,25 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.loyalty_members").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.loyalty_tiers").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.loyalty_programs").execute(pool).await.ok();
+    // General Ledger
+    sqlx::query("DELETE FROM _atlas.gl_journal_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_journal_entries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_accounts").execute(pool).await.ok();
+    // Accounts Receivable
+    sqlx::query("DELETE FROM _atlas.ar_transaction_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ar_transactions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ar_receipts").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ar_credit_memos").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ar_adjustments").execute(pool).await.ok();
+    // Payment
+    sqlx::query("DELETE FROM _atlas.payment_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.payments").execute(pool).await.ok();
+    // Netting
+    sqlx::query("DELETE FROM _atlas.netting_transaction_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.netting_batches").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.netting_agreements").execute(pool).await.ok();
+    // Financial Statements
+    sqlx::query("DELETE FROM _atlas.financial_statement_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.financial_statements").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fs_report_definitions").execute(pool).await.ok();
 }

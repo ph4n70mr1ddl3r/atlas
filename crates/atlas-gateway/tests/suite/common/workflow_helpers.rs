@@ -974,6 +974,21 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         loyalty_engine: Arc::new(atlas_core::LoyaltyManagementEngine::new(Arc::new(
             atlas_core::loyalty_management::PostgresLoyaltyManagementRepository::new(db_pool.clone()),
         ))),
+        general_ledger_engine: Arc::new(atlas_core::GeneralLedgerEngine::new(Arc::new(
+            atlas_core::general_ledger::PostgresGeneralLedgerRepository::new(db_pool.clone()),
+        ))),
+        accounts_receivable_engine: Arc::new(atlas_core::AccountsReceivableEngine::new(Arc::new(
+            atlas_core::accounts_receivable::PostgresAccountsReceivableRepository::new(db_pool.clone()),
+        ))),
+        payment_engine: Arc::new(atlas_core::PaymentEngine::new(Arc::new(
+            atlas_core::payment::PostgresPaymentRepository::new(db_pool.clone()),
+        ))),
+        netting_engine: Arc::new(atlas_core::NettingEngine::new(Arc::new(
+            atlas_core::netting::PostgresNettingRepository::new(db_pool.clone()),
+        ))),
+        financial_statements_engine: Arc::new(atlas_core::FinancialStatementEngine::new(Arc::new(
+            atlas_core::financial_statements::PostgresFinancialStatementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

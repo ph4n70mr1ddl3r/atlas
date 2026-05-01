@@ -103,6 +103,16 @@ use atlas_core::{
     project_resource_management::PostgresProjectResourceManagementRepository,
     LoyaltyManagementEngine,
     loyalty_management::PostgresLoyaltyManagementRepository,
+    GeneralLedgerEngine,
+    general_ledger::PostgresGeneralLedgerRepository,
+    AccountsReceivableEngine,
+    accounts_receivable::PostgresAccountsReceivableRepository,
+    PaymentEngine,
+    payment::PostgresPaymentRepository,
+    NettingEngine,
+    netting::PostgresNettingRepository,
+    FinancialStatementEngine,
+    financial_statements::PostgresFinancialStatementRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -273,6 +283,11 @@ pub struct AppState {
     pub rebate_management_engine: Arc<RebateManagementEngine>,
     pub project_resource_engine: Arc<ProjectResourceManagementEngine>,
     pub loyalty_engine: Arc<LoyaltyManagementEngine>,
+    pub general_ledger_engine: Arc<GeneralLedgerEngine>,
+    pub accounts_receivable_engine: Arc<AccountsReceivableEngine>,
+    pub payment_engine: Arc<PaymentEngine>,
+    pub netting_engine: Arc<NettingEngine>,
+    pub financial_statements_engine: Arc<FinancialStatementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -742,6 +757,31 @@ impl AppState {
             PostgresLoyaltyManagementRepository::new(db_pool.clone())
         )));
 
+        // Initialize General Ledger engine
+        let general_ledger_engine = Arc::new(GeneralLedgerEngine::new(Arc::new(
+            atlas_core::general_ledger::PostgresGeneralLedgerRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Accounts Receivable engine
+        let accounts_receivable_engine = Arc::new(AccountsReceivableEngine::new(Arc::new(
+            atlas_core::accounts_receivable::PostgresAccountsReceivableRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Payment engine
+        let payment_engine = Arc::new(PaymentEngine::new(Arc::new(
+            atlas_core::payment::PostgresPaymentRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Netting engine
+        let netting_engine = Arc::new(NettingEngine::new(Arc::new(
+            atlas_core::netting::PostgresNettingRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Financial Statements engine
+        let financial_statements_engine = Arc::new(FinancialStatementEngine::new(Arc::new(
+            atlas_core::financial_statements::PostgresFinancialStatementRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -873,6 +913,11 @@ impl AppState {
             rebate_management_engine,
             project_resource_engine,
             loyalty_engine,
+            general_ledger_engine,
+            accounts_receivable_engine,
+            payment_engine,
+            netting_engine,
+            financial_statements_engine,
             event_bus,
             jwt_secret,
         };

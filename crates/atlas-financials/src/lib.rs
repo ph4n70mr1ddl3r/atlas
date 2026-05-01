@@ -46,4 +46,10 @@ pub use services::{
     TaxReportingService,
     GrantManagementService,
     CorporateCardManagementService,
+    TreasuryService,
+    RecurringJournalService,
+    AutoInvoiceService,
+    NettingService,
+    SubscriptionService,
+    FundsReservationService,
 };

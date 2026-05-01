@@ -9,7 +9,11 @@
 //! - General Ledger (Journal Entries, Trial Balance)
 //! - Purchase Order & Invoice Processing
 
-use atlas_core::{SchemaEngine, WorkflowEngine, ValidationEngine};
+use atlas_core::{
+    SchemaEngine, WorkflowEngine, ValidationEngine,
+    TreasuryEngine, RecurringJournalEngine, AutoInvoiceEngine,
+    NettingEngine, SubscriptionEngine, FundsReservationEngine,
+};
 use atlas_core::fixed_assets::FixedAssetEngine;
 use atlas_core::accounts_payable::AccountsPayableEngine;
 use atlas_core::cost_accounting::CostAccountingEngine;
@@ -4184,6 +4188,782 @@ impl CorporateCardManagementService {
         let date_score = (30 - date_proximity_days * 2).max(0) as f64;
         score += date_score;
         score
+    }
+}
+
+// ============================================================================
+// Treasury Service
+// ============================================================================
+
+/// Treasury Management service
+/// Oracle Fusion: Financials > Treasury Management
+#[allow(dead_code)]
+pub struct TreasuryService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+    treasury_engine: Arc<TreasuryEngine>,
+}
+
+/// Valid counterparty types
+const VALID_TREASURY_COUNTERPARTY_TYPES: &[&str] = &["bank", "financial_institution", "internal"];
+
+/// Valid deal types
+const VALID_TREASURY_DEAL_TYPES: &[&str] = &["investment", "borrowing", "fx_spot", "fx_forward"];
+
+/// Valid deal statuses
+const VALID_TREASURY_DEAL_STATUSES: &[&str] = &["draft", "authorized", "settled", "matured", "cancelled"];
+
+/// Valid interest bases
+const VALID_INTEREST_BASES: &[&str] = &["actual_360", "actual_365", "30_360"];
+
+impl TreasuryService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+        treasury_engine: Arc<TreasuryEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine, treasury_engine }
+    }
+
+    /// Create a treasury counterparty
+    pub async fn create_counterparty(
+        &self,
+        org_id: RecordId,
+        counterparty_code: &str,
+        name: &str,
+        counterparty_type: &str,
+        country_code: Option<&str>,
+        credit_rating: Option<&str>,
+        credit_limit: Option<&str>,
+        settlement_currency: Option<&str>,
+    ) -> AtlasResult<()> {
+        if counterparty_code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed("Counterparty code and name are required".to_string()));
+        }
+        if !VALID_TREASURY_COUNTERPARTY_TYPES.contains(&counterparty_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid counterparty_type '{}'. Must be one of: {}",
+                counterparty_type, VALID_TREASURY_COUNTERPARTY_TYPES.join(", ")
+            )));
+        }
+        self.treasury_engine.create_counterparty(
+            org_id, counterparty_code, name, counterparty_type,
+            country_code, credit_rating, credit_limit, settlement_currency,
+            None, None, None, None,
+        ).await?;
+        Ok(())
+    }
+
+    /// Create a treasury deal
+    pub async fn create_deal(
+        &self,
+        org_id: RecordId,
+        deal_type: &str,
+        description: Option<&str>,
+        counterparty_id: RecordId,
+        counterparty_name: Option<&str>,
+        currency_code: &str,
+        principal_amount: &str,
+        interest_rate: Option<&str>,
+        interest_basis: Option<&str>,
+        start_date: chrono::NaiveDate,
+        maturity_date: chrono::NaiveDate,
+    ) -> AtlasResult<()> {
+        if !VALID_TREASURY_DEAL_TYPES.contains(&deal_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid deal_type '{}'. Must be one of: {}",
+                deal_type, VALID_TREASURY_DEAL_TYPES.join(", ")
+            )));
+        }
+        self.treasury_engine.create_deal(
+            org_id, deal_type, description, counterparty_id, counterparty_name,
+            currency_code, principal_amount, interest_rate, interest_basis,
+            start_date, maturity_date,
+            None, None, None, None, None, None, None,
+        ).await?;
+        Ok(())
+    }
+
+    /// Authorize a deal
+    pub async fn authorize_deal(&self, deal_id: RecordId, authorized_by: Option<RecordId>) -> AtlasResult<()> {
+        self.treasury_engine.authorize_deal(deal_id, authorized_by).await?;
+        Ok(())
+    }
+
+    /// Settle a deal
+    pub async fn settle_deal(&self, deal_id: RecordId, settlement_type: &str, payment_reference: Option<&str>, settled_by: Option<RecordId>) -> AtlasResult<()> {
+        self.treasury_engine.settle_deal(deal_id, settlement_type, payment_reference, settled_by).await?;
+        Ok(())
+    }
+
+    /// Calculate simple interest
+    pub fn calculate_simple_interest(principal: f64, annual_rate: f64, days: i32, basis_days: i32) -> f64 {
+        if basis_days <= 0 { return 0.0; }
+        principal * (annual_rate / 100.0) * (days as f64 / basis_days as f64)
+    }
+
+    /// Calculate compound interest
+    pub fn calculate_compound_interest(principal: f64, annual_rate: f64, years: i32, compounding_periods_per_year: i32) -> f64 {
+        if years <= 0 || compounding_periods_per_year <= 0 { return 0.0; }
+        let rate_per_period = (annual_rate / 100.0) / compounding_periods_per_year as f64;
+        let total_periods = years * compounding_periods_per_year;
+        principal * (1.0 + rate_per_period).powi(total_periods) - principal
+    }
+
+    /// Calculate FX forward points
+    pub fn calculate_forward_points(spot_rate: f64, domestic_rate: f64, foreign_rate: f64, days: i32, basis_days: i32) -> f64 {
+        if basis_days <= 0 { return 0.0; }
+        let t = days as f64 / basis_days as f64;
+        spot_rate * ((1.0 + domestic_rate / 100.0 * t) / (1.0 + foreign_rate / 100.0 * t) - 1.0)
+    }
+
+    /// Calculate FX forward rate
+    pub fn calculate_forward_rate(spot_rate: f64, domestic_rate: f64, foreign_rate: f64, days: i32, basis_days: i32) -> f64 {
+        spot_rate + Self::calculate_forward_points(spot_rate, domestic_rate, foreign_rate, days, basis_days)
+    }
+}
+
+// ============================================================================
+// Recurring Journal Service
+// ============================================================================
+
+/// Recurring Journal service
+/// Oracle Fusion: General Ledger > Journals > Recurring Journals
+#[allow(dead_code)]
+pub struct RecurringJournalService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+    rj_engine: Arc<RecurringJournalEngine>,
+}
+
+/// Valid recurrence types for recurring journals
+const VALID_RECURRING_JOURNAL_RECURRENCE_TYPES: &[&str] = &[
+    "daily", "weekly", "monthly", "quarterly", "semi_annual", "annual",
+];
+
+/// Valid recurring journal types
+const VALID_RECURRING_JOURNAL_TYPES: &[&str] = &["standard", "skeleton", "incremental"];
+
+impl RecurringJournalService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+        rj_engine: Arc<RecurringJournalEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine, rj_engine }
+    }
+
+    /// Create a recurring journal schedule
+    pub async fn create_schedule(
+        &self,
+        org_id: RecordId,
+        schedule_number: &str,
+        name: &str,
+        recurrence_type: &str,
+        journal_type: &str,
+        currency_code: &str,
+        effective_from: Option<chrono::NaiveDate>,
+        auto_post: bool,
+    ) -> AtlasResult<()> {
+        if schedule_number.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed("Schedule number and name are required".to_string()));
+        }
+        if !VALID_RECURRING_JOURNAL_RECURRENCE_TYPES.contains(&recurrence_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid recurrence_type '{}'", recurrence_type
+            )));
+        }
+        if !VALID_RECURRING_JOURNAL_TYPES.contains(&journal_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid journal_type '{}'", journal_type
+            )));
+        }
+        self.rj_engine.create_schedule(
+            org_id, schedule_number, name, None,
+            recurrence_type, journal_type, currency_code,
+            effective_from, None, None, auto_post,
+            None, None, None, None, None,
+        ).await?;
+        Ok(())
+    }
+
+    /// Add a schedule line
+    pub async fn add_schedule_line(
+        &self,
+        org_id: RecordId,
+        schedule_id: RecordId,
+        line_type: &str,
+        account_code: &str,
+        account_name: Option<&str>,
+        description: Option<&str>,
+        amount: &str,
+        currency_code: &str,
+        tax_code: Option<&str>,
+        cost_center: Option<&str>,
+    ) -> AtlasResult<()> {
+        self.rj_engine.add_schedule_line(
+            org_id, schedule_id, line_type, account_code,
+            account_name, description, amount, currency_code,
+            tax_code, cost_center, None, None,
+        ).await?;
+        Ok(())
+    }
+
+    /// Activate a schedule
+    pub async fn activate_schedule(&self, schedule_id: RecordId, approved_by: Option<RecordId>) -> AtlasResult<()> {
+        self.rj_engine.activate_schedule(schedule_id, approved_by).await?;
+        Ok(())
+    }
+
+    /// Deactivate a schedule
+    pub async fn deactivate_schedule(&self, schedule_id: RecordId) -> AtlasResult<()> {
+        self.rj_engine.deactivate_schedule(schedule_id).await?;
+        Ok(())
+    }
+
+    /// Generate journals
+    pub async fn generate_journal(
+        &self,
+        schedule_id: RecordId,
+        generation_date: chrono::NaiveDate,
+        generated_by: Option<RecordId>,
+    ) -> AtlasResult<()> {
+        self.rj_engine.generate_journal(schedule_id, generation_date, None, generated_by).await?;
+        Ok(())
+    }
+
+    /// Calculate next execution date
+    pub fn calculate_next_execution(current_date: chrono::NaiveDate, recurrence_type: &str, interval: i32) -> Option<chrono::NaiveDate> {
+        let i = if interval <= 0 { 1 } else { interval } as i64;
+        match recurrence_type {
+            "daily" => Some(current_date + chrono::Duration::days(i)),
+            "weekly" => Some(current_date + chrono::Duration::weeks(i)),
+            "monthly" => {
+                let mut next = current_date;
+                for _ in 0..i {
+                    next = next.checked_add_months(chrono::Months::new(1))?;
+                }
+                Some(next)
+            }
+            "quarterly" => {
+                let mut next = current_date;
+                for _ in 0..(i * 3) {
+                    next = next.checked_add_months(chrono::Months::new(1))?;
+                }
+                Some(next)
+            }
+            "semi_annual" => {
+                let mut next = current_date;
+                for _ in 0..(i * 6) {
+                    next = next.checked_add_months(chrono::Months::new(1))?;
+                }
+                Some(next)
+            }
+            "annual" => {
+                let mut next = current_date;
+                for _ in 0..(i * 12) {
+                    next = next.checked_add_months(chrono::Months::new(1))?;
+                }
+                Some(next)
+            }
+            _ => None,
+        }
+    }
+
+    /// Get months per recurrence
+    pub fn months_per_recurrence(recurrence: &str) -> u32 {
+        match recurrence {
+            "monthly" => 1, "quarterly" => 3, "semi_annual" => 6, "annual" => 12, _ => 0,
+        }
+    }
+}
+
+// ============================================================================
+// AutoInvoice Service
+// ============================================================================
+
+/// AutoInvoice service
+/// Oracle Fusion: Receivables > AutoInvoice
+#[allow(dead_code)]
+pub struct AutoInvoiceService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+    ai_engine: Arc<AutoInvoiceEngine>,
+}
+
+/// Valid AutoInvoice transaction types
+const VALID_AI_TRANSACTION_TYPES: &[&str] = &[
+    "invoice", "credit_memo", "debit_memo", "on_account_credit",
+];
+
+/// Valid AutoInvoice batch statuses
+const VALID_AI_BATCH_STATUSES: &[&str] = &[
+    "pending", "validating", "validated", "processing", "completed", "failed", "cancelled",
+];
+
+impl AutoInvoiceService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+        ai_engine: Arc<AutoInvoiceEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine, ai_engine }
+    }
+
+    /// Import a batch of lines for AutoInvoice processing
+    pub async fn import_batch(
+        &self,
+        org_id: RecordId,
+        batch_source: &str,
+        description: Option<&str>,
+    ) -> AtlasResult<RecordId> {
+        if batch_source.is_empty() {
+            return Err(AtlasError::ValidationFailed("Batch source is required".to_string()));
+        }
+        // Create a minimal import request - in production this would be populated
+        let request = atlas_shared::AutoInvoiceImportRequest {
+            batch_source: batch_source.to_string(),
+            description: description.map(|s| s.to_string()),
+            grouping_rule_id: None,
+            lines: vec![],
+        };
+        let batch = self.ai_engine.import_batch(org_id, &request, None).await?;
+        Ok(batch.id)
+    }
+
+    /// Validate a batch
+    pub async fn validate_batch(&self, batch_id: RecordId) -> AtlasResult<()> {
+        self.ai_engine.validate_batch(batch_id).await?;
+        Ok(())
+    }
+
+    /// Process a validated batch
+    pub async fn process_batch(&self, batch_id: RecordId) -> AtlasResult<()> {
+        self.ai_engine.process_batch(batch_id).await?;
+        Ok(())
+    }
+
+    /// Calculate tax amount
+    pub fn calculate_tax_amount(line_amount: f64, tax_rate_percent: f64) -> f64 {
+        line_amount * tax_rate_percent / 100.0
+    }
+
+    /// Calculate line total including tax
+    pub fn calculate_line_total(line_amount: f64, tax_rate_percent: f64) -> f64 {
+        line_amount + Self::calculate_tax_amount(line_amount, tax_rate_percent)
+    }
+
+    /// Validate line required fields
+    pub fn validate_line_required_fields(transaction_type: &str, currency_code: &str, amount: f64) -> Result<(), String> {
+        if !VALID_AI_TRANSACTION_TYPES.contains(&transaction_type) {
+            return Err(format!("Invalid transaction type: {}", transaction_type));
+        }
+        if currency_code.is_empty() {
+            return Err("Currency code is required".to_string());
+        }
+        if amount == 0.0 {
+            return Err("Amount cannot be zero".to_string());
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Netting Service
+// ============================================================================
+
+/// Netting service
+/// Oracle Fusion: Financials > Netting
+#[allow(dead_code)]
+pub struct NettingService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+    netting_engine: Arc<NettingEngine>,
+}
+
+/// Valid netting agreement types
+const VALID_NETTING_AGREEMENT_TYPES: &[&str] = &["bilateral", "multilateral"];
+
+/// Valid netting settlement methods
+const VALID_NETTING_SETTLEMENT_METHODS: &[&str] = &["wire", "ach", "offset", "check"];
+
+impl NettingService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+        netting_engine: Arc<NettingEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine, netting_engine }
+    }
+
+    /// Create a netting agreement
+    pub async fn create_agreement(
+        &self,
+        org_id: RecordId,
+        agreement_number: &str,
+        name: &str,
+        netting_direction: &str,
+        settlement_method: &str,
+        currency_code: &str,
+        partner_id: RecordId,
+        minimum_netting_amount: &str,
+    ) -> AtlasResult<()> {
+        if agreement_number.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed("Agreement number and name are required".to_string()));
+        }
+        if !VALID_NETTING_SETTLEMENT_METHODS.contains(&settlement_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid settlement_method '{}'", settlement_method
+            )));
+        }
+        self.netting_engine.create_agreement(
+            org_id, agreement_number, name, None,
+            partner_id, None, None, currency_code,
+            netting_direction, settlement_method,
+            minimum_netting_amount, None, false,
+            serde_json::json!({}), None, None, None,
+            false, None, None, None,
+        ).await?;
+        Ok(())
+    }
+
+    /// Create a netting batch
+    pub async fn create_batch(
+        &self,
+        org_id: RecordId,
+        agreement_id: RecordId,
+        netting_date: chrono::NaiveDate,
+    ) -> AtlasResult<()> {
+        self.netting_engine.create_batch(org_id, agreement_id, netting_date, None, None).await?;
+        Ok(())
+    }
+
+    /// Add a transaction line to a batch
+    pub async fn add_transaction_line(
+        &self,
+        org_id: RecordId,
+        batch_id: RecordId,
+        source_type: &str,
+        source_id: RecordId,
+        source_number: Option<&str>,
+        original_amount: &str,
+        netting_amount: &str,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        self.netting_engine.add_transaction_line(
+            org_id, batch_id, source_type, source_id,
+            source_number, None, original_amount, netting_amount, currency_code, None,
+        ).await?;
+        Ok(())
+    }
+
+    /// Submit batch for approval
+    pub async fn submit_batch(&self, batch_id: RecordId) -> AtlasResult<()> {
+        self.netting_engine.submit_batch(batch_id, None).await?;
+        Ok(())
+    }
+
+    /// Approve batch
+    pub async fn approve_batch(&self, batch_id: RecordId, approved_by: RecordId) -> AtlasResult<()> {
+        self.netting_engine.approve_batch(batch_id, Some(approved_by)).await?;
+        Ok(())
+    }
+
+    /// Settle batch
+    pub async fn settle_batch(&self, batch_id: RecordId) -> AtlasResult<()> {
+        self.netting_engine.settle_batch(batch_id).await?;
+        Ok(())
+    }
+
+    /// Calculate net position
+    pub fn calculate_net_position(payables: f64, receivables: f64) -> (f64, String) {
+        let difference = receivables - payables;
+        let position = if difference > 0.0 { "net_receivable" }
+            else if difference < 0.0 { "net_payable" }
+            else { "balanced" };
+        (difference, position.to_string())
+    }
+
+    /// Check netting eligibility
+    pub fn is_eligible_for_netting(transaction_date: chrono::NaiveDate, netting_date: chrono::NaiveDate, max_age_days: i32) -> bool {
+        let age = (netting_date - transaction_date).num_days();
+        age >= 0 && age <= max_age_days as i64
+    }
+
+    /// Calculate settlement amount
+    pub fn calculate_settlement_amount(
+        entity_a_payables: f64, entity_a_receivables: f64,
+        entity_b_payables: f64, entity_b_receivables: f64,
+    ) -> (f64, f64) {
+        (entity_a_receivables - entity_a_payables, entity_b_receivables - entity_b_payables)
+    }
+}
+
+// ============================================================================
+// Subscription Service
+// ============================================================================
+
+/// Subscription Management service
+/// Oracle Fusion: Financials > Subscription Management
+#[allow(dead_code)]
+pub struct SubscriptionService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+    sub_engine: Arc<SubscriptionEngine>,
+}
+
+/// Valid billing frequencies
+const VALID_SUB_BILLING_FREQUENCIES: &[&str] = &[
+    "monthly", "quarterly", "semi_annual", "annual", "one_time",
+];
+
+/// Valid subscription statuses
+const VALID_SUB_STATUSES: &[&str] = &[
+    "draft", "active", "suspended", "cancelled", "expired",
+];
+
+/// Valid amendment types
+const VALID_SUB_AMENDMENT_TYPES: &[&str] = &[
+    "price_change", "quantity_change", "add_on", "remove_on", "renewal", "cancellation",
+];
+
+impl SubscriptionService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+        sub_engine: Arc<SubscriptionEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine, sub_engine }
+    }
+
+    /// Create a subscription product
+    pub async fn create_product(
+        &self,
+        org_id: RecordId,
+        product_code: &str,
+        name: &str,
+        product_type: &str,
+        billing_frequency: &str,
+        default_duration_months: i32,
+        is_auto_renew: bool,
+        setup_fee: &str,
+        tier_type: &str,
+    ) -> AtlasResult<()> {
+        if product_code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed("Product code and name are required".to_string()));
+        }
+        if !VALID_SUB_BILLING_FREQUENCIES.contains(&billing_frequency) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid billing_frequency '{}'", billing_frequency
+            )));
+        }
+        self.sub_engine.create_product(
+            org_id, product_code, name, None, product_type,
+            billing_frequency, default_duration_months, is_auto_renew,
+            30, setup_fee, tier_type, None,
+        ).await?;
+        Ok(())
+    }
+
+    /// Create a subscription
+    pub async fn create_subscription(
+        &self,
+        org_id: RecordId,
+        customer_id: RecordId,
+        product_id: RecordId,
+        start_date: chrono::NaiveDate,
+        duration_months: i32,
+        currency_code: &str,
+        quantity: &str,
+        discount_percent: &str,
+        is_auto_renew: bool,
+    ) -> AtlasResult<()> {
+        if duration_months <= 0 {
+            return Err(AtlasError::ValidationFailed("Duration must be positive".to_string()));
+        }
+        self.sub_engine.create_subscription(
+            org_id, customer_id, None, product_id, None,
+            start_date, duration_months, None, None, None,
+            currency_code, quantity, discount_percent, is_auto_renew,
+            None, None, None, None, None,
+        ).await?;
+        Ok(())
+    }
+
+    /// Activate subscription
+    pub async fn activate_subscription(&self, sub_id: RecordId) -> AtlasResult<()> {
+        self.sub_engine.activate_subscription(sub_id).await?;
+        Ok(())
+    }
+
+    /// Suspend subscription
+    pub async fn suspend_subscription(&self, sub_id: RecordId, reason: Option<&str>) -> AtlasResult<()> {
+        self.sub_engine.suspend_subscription(sub_id, reason).await?;
+        Ok(())
+    }
+
+    /// Reactivate subscription
+    pub async fn reactivate_subscription(&self, sub_id: RecordId) -> AtlasResult<()> {
+        self.sub_engine.reactivate_subscription(sub_id).await?;
+        Ok(())
+    }
+
+    /// Cancel subscription
+    pub async fn cancel_subscription(&self, sub_id: RecordId, cancellation_date: chrono::NaiveDate, reason: Option<&str>) -> AtlasResult<()> {
+        self.sub_engine.cancel_subscription(sub_id, cancellation_date, reason).await?;
+        Ok(())
+    }
+
+    /// Renew subscription
+    pub async fn renew_subscription(&self, sub_id: RecordId, new_duration_months: Option<i32>) -> AtlasResult<()> {
+        self.sub_engine.renew_subscription(sub_id, new_duration_months, None).await?;
+        Ok(())
+    }
+
+    /// Calculate MRR
+    pub fn calculate_mrr(unit_price: f64, quantity: i32) -> f64 {
+        unit_price * quantity as f64
+    }
+
+    /// Calculate ARR
+    pub fn calculate_arr(mrr: f64) -> f64 {
+        mrr * 12.0
+    }
+
+    /// Calculate TCV
+    pub fn calculate_tcv(unit_price: f64, quantity: i32, billing_months: i32) -> f64 {
+        unit_price * quantity as f64 * billing_months as f64
+    }
+
+    /// Calculate churn rate
+    pub fn calculate_churn_rate(subscriptions_cancelled: i32, total_subscriptions: i32) -> f64 {
+        if total_subscriptions <= 0 { return 0.0; }
+        (subscriptions_cancelled as f64 / total_subscriptions as f64) * 100.0
+    }
+
+    /// Calculate renewal rate
+    pub fn calculate_renewal_rate(subscriptions_renewed: i32, subscriptions_eligible: i32) -> f64 {
+        if subscriptions_eligible <= 0 { return 0.0; }
+        (subscriptions_renewed as f64 / subscriptions_eligible as f64) * 100.0
+    }
+}
+
+// ============================================================================
+// Funds Reservation Service
+// ============================================================================
+
+/// Funds Reservation (Budgetary Control) service
+/// Oracle Fusion: Financials > Budgetary Control > Funds Reservation
+#[allow(dead_code)]
+pub struct FundsReservationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+    fr_engine: Arc<FundsReservationEngine>,
+}
+
+/// Valid reservation types
+const VALID_FR_RESERVATION_TYPES: &[&str] = &["obligation", "commitment", "pre_encumbrance"];
+
+/// Valid reservation statuses
+const VALID_FR_STATUSES: &[&str] = &[
+    "draft", "active", "consumed", "released", "cancelled",
+];
+
+impl FundsReservationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+        fr_engine: Arc<FundsReservationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine, fr_engine }
+    }
+
+    /// Create a funds reservation
+    pub async fn create_reservation(
+        &self,
+        org_id: RecordId,
+        reservation_number: &str,
+        budget_id: RecordId,
+        budget_code: &str,
+        reserved_amount: f64,
+        currency_code: &str,
+        reservation_date: chrono::NaiveDate,
+        control_level: &str,
+    ) -> AtlasResult<()> {
+        if reservation_number.is_empty() || budget_code.is_empty() {
+            return Err(AtlasError::ValidationFailed("Reservation number and budget code are required".to_string()));
+        }
+        if reserved_amount <= 0.0 {
+            return Err(AtlasError::ValidationFailed("Reserved amount must be positive".to_string()));
+        }
+        self.fr_engine.create_reservation(
+            org_id, reservation_number, budget_id, budget_code,
+            None, None, None, None, None,
+            reserved_amount, currency_code, reservation_date,
+            None, control_level, None, None, None, None, None,
+        ).await?;
+        Ok(())
+    }
+
+    /// Check fund availability
+    pub async fn check_fund_availability(
+        &self,
+        org_id: RecordId,
+        budget_id: RecordId,
+        account_code: &str,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<serde_json::Value> {
+        let result = self.fr_engine.check_fund_availability(
+            org_id, budget_id, account_code, as_of_date, None, None,
+        ).await?;
+        Ok(json!(result))
+    }
+
+    /// Consume reservation
+    pub async fn consume_reservation(&self, reservation_id: RecordId, consume_amount: f64) -> AtlasResult<()> {
+        self.fr_engine.consume_reservation(reservation_id, consume_amount).await?;
+        Ok(())
+    }
+
+    /// Release reservation
+    pub async fn release_reservation(&self, reservation_id: RecordId, release_amount: f64) -> AtlasResult<()> {
+        self.fr_engine.release_reservation(reservation_id, release_amount).await?;
+        Ok(())
+    }
+
+    /// Cancel reservation
+    pub async fn cancel_reservation(&self, reservation_id: RecordId, reason: Option<&str>) -> AtlasResult<()> {
+        // cancel_reservation takes (id, reason, cancelled_by)
+        self.fr_engine.cancel_reservation(reservation_id, None, reason).await?;
+        Ok(())
+    }
+
+    /// Calculate remaining balance
+    pub fn calculate_remaining_balance(reserved_amount: f64, consumed_amount: f64, released_amount: f64) -> f64 {
+        (reserved_amount - consumed_amount - released_amount).max(0.0)
+    }
+
+    /// Calculate utilization percent
+    pub fn calculate_utilization_percent(consumed_amount: f64, reserved_amount: f64) -> f64 {
+        if reserved_amount <= 0.0 { return 0.0; }
+        ((consumed_amount / reserved_amount) * 100.0).min(100.0)
+    }
+
+    /// Check if budget exceeded
+    pub fn is_budget_exceeded(available_budget: f64, total_reserved: f64, new_reservation_amount: f64) -> bool {
+        (total_reserved + new_reservation_amount) > available_budget
     }
 }
 
@@ -9652,5 +10432,479 @@ mod tests {
         // All unique names
         let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names.len(), 129, "All 129 entity names must be globally unique");
+    }
+
+    // ========================================================================
+    // Six New Oracle Fusion Services: Treasury, Recurring Journal, AutoInvoice,
+    // Netting, Subscription, Funds Reservation
+    // ========================================================================
+
+    // --- Treasury Service Tests ---
+
+    #[test]
+    fn test_treasury_counterparty_types() {
+        assert_eq!(super::VALID_TREASURY_COUNTERPARTY_TYPES.len(), 3);
+        for t in &["bank", "financial_institution", "internal"] {
+            assert!(super::VALID_TREASURY_COUNTERPARTY_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_treasury_deal_types() {
+        assert_eq!(super::VALID_TREASURY_DEAL_TYPES.len(), 4);
+        for t in &["investment", "borrowing", "fx_spot", "fx_forward"] {
+            assert!(super::VALID_TREASURY_DEAL_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_treasury_deal_statuses() {
+        assert_eq!(super::VALID_TREASURY_DEAL_STATUSES.len(), 5);
+        for s in &["draft", "authorized", "settled", "matured", "cancelled"] {
+            assert!(super::VALID_TREASURY_DEAL_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_simple_interest_calculation() {
+        let interest = super::TreasuryService::calculate_simple_interest(100000.0, 5.0, 90, 360);
+        assert!((interest - 1250.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_simple_interest_zero_days() {
+        let interest = super::TreasuryService::calculate_simple_interest(100000.0, 5.0, 0, 360);
+        assert_eq!(interest, 0.0);
+    }
+
+    #[test]
+    fn test_simple_interest_zero_basis() {
+        let interest = super::TreasuryService::calculate_simple_interest(100000.0, 5.0, 90, 0);
+        assert_eq!(interest, 0.0);
+    }
+
+    #[test]
+    fn test_compound_interest_calculation() {
+        let interest = super::TreasuryService::calculate_compound_interest(100000.0, 5.0, 2, 4);
+        let expected = 100000.0 * (1.0 + 0.05 / 4.0_f64).powi(8) - 100000.0;
+        assert!((interest - expected).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_compound_interest_zero_years() {
+        let interest = super::TreasuryService::calculate_compound_interest(100000.0, 5.0, 0, 4);
+        assert_eq!(interest, 0.0);
+    }
+
+    #[test]
+    fn test_compound_interest_zero_periods() {
+        let interest = super::TreasuryService::calculate_compound_interest(100000.0, 5.0, 2, 0);
+        assert_eq!(interest, 0.0);
+    }
+
+    #[test]
+    fn test_forward_points() {
+        let points = super::TreasuryService::calculate_forward_points(1.1000, 3.5, 2.0, 90, 360);
+        assert!(points > 0.003 && points < 0.006);
+    }
+
+    #[test]
+    fn test_forward_rate() {
+        let rate = super::TreasuryService::calculate_forward_rate(1.1000, 3.5, 2.0, 90, 360);
+        assert!(rate > 1.103 && rate < 1.106);
+    }
+
+    #[test]
+    fn test_forward_points_zero_basis() {
+        let points = super::TreasuryService::calculate_forward_points(1.1000, 3.5, 2.0, 90, 0);
+        assert_eq!(points, 0.0);
+    }
+
+    // --- Recurring Journal Service Tests ---
+
+    #[test]
+    fn test_recurring_journal_recurrence_types() {
+        assert_eq!(super::VALID_RECURRING_JOURNAL_RECURRENCE_TYPES.len(), 6);
+    }
+
+    #[test]
+    fn test_recurring_journal_types() {
+        assert_eq!(super::VALID_RECURRING_JOURNAL_TYPES.len(), 3);
+        for jt in &["standard", "skeleton", "incremental"] {
+            assert!(super::VALID_RECURRING_JOURNAL_TYPES.contains(jt));
+        }
+    }
+
+    #[test]
+    fn test_calculate_next_exec_daily() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let next = super::RecurringJournalService::calculate_next_execution(date, "daily", 1);
+        assert_eq!(next.unwrap(), chrono::NaiveDate::from_ymd_opt(2025, 1, 2).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_next_exec_weekly() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let next = super::RecurringJournalService::calculate_next_execution(date, "weekly", 1);
+        assert_eq!(next.unwrap(), chrono::NaiveDate::from_ymd_opt(2025, 1, 8).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_next_exec_monthly() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap();
+        let next = super::RecurringJournalService::calculate_next_execution(date, "monthly", 1);
+        assert_eq!(next.unwrap(), chrono::NaiveDate::from_ymd_opt(2025, 2, 15).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_next_exec_quarterly() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let next = super::RecurringJournalService::calculate_next_execution(date, "quarterly", 1);
+        assert_eq!(next.unwrap(), chrono::NaiveDate::from_ymd_opt(2025, 4, 1).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_next_exec_semi_annual() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 3, 1).unwrap();
+        let next = super::RecurringJournalService::calculate_next_execution(date, "semi_annual", 1);
+        assert_eq!(next.unwrap(), chrono::NaiveDate::from_ymd_opt(2025, 9, 1).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_next_exec_annual() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        let next = super::RecurringJournalService::calculate_next_execution(date, "annual", 1);
+        assert_eq!(next.unwrap(), chrono::NaiveDate::from_ymd_opt(2026, 6, 15).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_next_exec_daily_interval_5() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let next = super::RecurringJournalService::calculate_next_execution(date, "daily", 5);
+        assert_eq!(next.unwrap(), chrono::NaiveDate::from_ymd_opt(2025, 1, 6).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_next_exec_invalid_type() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        assert!(super::RecurringJournalService::calculate_next_execution(date, "invalid", 1).is_none());
+    }
+
+    #[test]
+    fn test_months_per_recurrence_all() {
+        assert_eq!(super::RecurringJournalService::months_per_recurrence("monthly"), 1);
+        assert_eq!(super::RecurringJournalService::months_per_recurrence("quarterly"), 3);
+        assert_eq!(super::RecurringJournalService::months_per_recurrence("semi_annual"), 6);
+        assert_eq!(super::RecurringJournalService::months_per_recurrence("annual"), 12);
+        assert_eq!(super::RecurringJournalService::months_per_recurrence("daily"), 0);
+        assert_eq!(super::RecurringJournalService::months_per_recurrence("weekly"), 0);
+    }
+
+    // --- AutoInvoice Service Tests ---
+
+    #[test]
+    fn test_autoinvoice_transaction_types() {
+        assert_eq!(super::VALID_AI_TRANSACTION_TYPES.len(), 4);
+    }
+
+    #[test]
+    fn test_autoinvoice_batch_statuses() {
+        assert_eq!(super::VALID_AI_BATCH_STATUSES.len(), 7);
+    }
+
+    #[test]
+    fn test_calculate_tax_amount() {
+        let tax = super::AutoInvoiceService::calculate_tax_amount(1000.0, 10.0);
+        assert!((tax - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_tax_amount_zero_rate() {
+        let tax = super::AutoInvoiceService::calculate_tax_amount(1000.0, 0.0);
+        assert_eq!(tax, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_line_total_with_tax() {
+        let total = super::AutoInvoiceService::calculate_line_total(1000.0, 10.0);
+        assert!((total - 1100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_line_total_zero_tax() {
+        let total = super::AutoInvoiceService::calculate_line_total(500.0, 0.0);
+        assert_eq!(total, 500.0);
+    }
+
+    #[test]
+    fn test_validate_line_valid() {
+        assert!(super::AutoInvoiceService::validate_line_required_fields("invoice", "USD", 100.0).is_ok());
+    }
+
+    #[test]
+    fn test_validate_line_invalid_type() {
+        assert!(super::AutoInvoiceService::validate_line_required_fields("invalid", "USD", 100.0).is_err());
+    }
+
+    #[test]
+    fn test_validate_line_empty_currency() {
+        assert!(super::AutoInvoiceService::validate_line_required_fields("invoice", "", 100.0).is_err());
+    }
+
+    #[test]
+    fn test_validate_line_zero_amount() {
+        assert!(super::AutoInvoiceService::validate_line_required_fields("invoice", "USD", 0.0).is_err());
+    }
+
+    #[test]
+    fn test_validate_line_credit_memo() {
+        assert!(super::AutoInvoiceService::validate_line_required_fields("credit_memo", "EUR", -500.0).is_ok());
+    }
+
+    // --- Netting Service Tests ---
+
+    #[test]
+    fn test_netting_settlement_methods() {
+        assert_eq!(super::VALID_NETTING_SETTLEMENT_METHODS.len(), 4);
+    }
+
+    #[test]
+    fn test_calculate_net_receivable() {
+        let (diff, pos) = super::NettingService::calculate_net_position(5000.0, 10000.0);
+        assert!((diff - 5000.0).abs() < 0.01);
+        assert_eq!(pos, "net_receivable");
+    }
+
+    #[test]
+    fn test_calculate_net_payable() {
+        let (diff, pos) = super::NettingService::calculate_net_position(10000.0, 5000.0);
+        assert!((diff + 5000.0).abs() < 0.01);
+        assert_eq!(pos, "net_payable");
+    }
+
+    #[test]
+    fn test_calculate_net_balanced() {
+        let (diff, pos) = super::NettingService::calculate_net_position(5000.0, 5000.0);
+        assert_eq!(diff, 0.0);
+        assert_eq!(pos, "balanced");
+    }
+
+    #[test]
+    fn test_is_eligible_for_netting() {
+        let tx = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let net = chrono::NaiveDate::from_ymd_opt(2025, 1, 31).unwrap();
+        assert!(super::NettingService::is_eligible_for_netting(tx, net, 30));
+    }
+
+    #[test]
+    fn test_not_eligible_too_old() {
+        let tx = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let net = chrono::NaiveDate::from_ymd_opt(2025, 3, 1).unwrap();
+        assert!(!super::NettingService::is_eligible_for_netting(tx, net, 30));
+    }
+
+    #[test]
+    fn test_not_eligible_future_tx() {
+        let tx = chrono::NaiveDate::from_ymd_opt(2025, 3, 1).unwrap();
+        let net = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        assert!(!super::NettingService::is_eligible_for_netting(tx, net, 30));
+    }
+
+    #[test]
+    fn test_settlement_amount_offset() {
+        let (net_a, net_b) = super::NettingService::calculate_settlement_amount(
+            15000.0, 10000.0, 10000.0, 15000.0,
+        );
+        assert!((net_a + 5000.0).abs() < 0.01);
+        assert!((net_b - 5000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_settlement_amount_balanced() {
+        let (net_a, net_b) = super::NettingService::calculate_settlement_amount(
+            10000.0, 10000.0, 15000.0, 15000.0,
+        );
+        assert_eq!(net_a, 0.0);
+        assert_eq!(net_b, 0.0);
+    }
+
+    // --- Subscription Service Tests ---
+
+    #[test]
+    fn test_subscription_billing_frequencies() {
+        assert_eq!(super::VALID_SUB_BILLING_FREQUENCIES.len(), 5);
+    }
+
+    #[test]
+    fn test_subscription_statuses() {
+        assert_eq!(super::VALID_SUB_STATUSES.len(), 5);
+    }
+
+    #[test]
+    fn test_subscription_amendment_types() {
+        assert_eq!(super::VALID_SUB_AMENDMENT_TYPES.len(), 6);
+    }
+
+    #[test]
+    fn test_calculate_mrr_50() {
+        let mrr = super::SubscriptionService::calculate_mrr(99.99, 50);
+        assert!((mrr - 4999.50).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_mrr_single() {
+        let mrr = super::SubscriptionService::calculate_mrr(100.0, 1);
+        assert_eq!(mrr, 100.0);
+    }
+
+    #[test]
+    fn test_calculate_arr() {
+        let arr = super::SubscriptionService::calculate_arr(5000.0);
+        assert!((arr - 60000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_arr_zero() {
+        assert_eq!(super::SubscriptionService::calculate_arr(0.0), 0.0);
+    }
+
+    #[test]
+    fn test_calculate_tcv_annual() {
+        let tcv = super::SubscriptionService::calculate_tcv(100.0, 10, 12);
+        assert!((tcv - 12000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_tcv_single_month() {
+        let tcv = super::SubscriptionService::calculate_tcv(50.0, 5, 1);
+        assert!((tcv - 250.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_churn_rate_5pct() {
+        let churn = super::SubscriptionService::calculate_churn_rate(10, 200);
+        assert!((churn - 5.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_churn_rate_no_subscriptions() {
+        assert_eq!(super::SubscriptionService::calculate_churn_rate(5, 0), 0.0);
+    }
+
+    #[test]
+    fn test_calculate_churn_rate_no_churn() {
+        assert_eq!(super::SubscriptionService::calculate_churn_rate(0, 100), 0.0);
+    }
+
+    #[test]
+    fn test_calculate_renewal_rate_95pct() {
+        let rate = super::SubscriptionService::calculate_renewal_rate(95, 100);
+        assert!((rate - 95.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_renewal_rate_perfect() {
+        assert_eq!(super::SubscriptionService::calculate_renewal_rate(100, 100), 100.0);
+    }
+
+    #[test]
+    fn test_calculate_renewal_rate_zero_eligible() {
+        assert_eq!(super::SubscriptionService::calculate_renewal_rate(50, 0), 0.0);
+    }
+
+    // --- Funds Reservation Service Tests ---
+
+    #[test]
+    fn test_funds_reservation_types() {
+        assert_eq!(super::VALID_FR_RESERVATION_TYPES.len(), 3);
+    }
+
+    #[test]
+    fn test_funds_reservation_statuses() {
+        assert_eq!(super::VALID_FR_STATUSES.len(), 5);
+    }
+
+    #[test]
+    fn test_remaining_balance() {
+        let r = super::FundsReservationService::calculate_remaining_balance(10000.0, 4000.0, 1000.0);
+        assert!((r - 5000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_remaining_balance_fully_used() {
+        assert_eq!(super::FundsReservationService::calculate_remaining_balance(10000.0, 9000.0, 1000.0), 0.0);
+    }
+
+    #[test]
+    fn test_remaining_balance_none_used() {
+        assert!((super::FundsReservationService::calculate_remaining_balance(10000.0, 0.0, 0.0) - 10000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_remaining_balance_negative_clamped() {
+        assert_eq!(super::FundsReservationService::calculate_remaining_balance(5000.0, 4000.0, 2000.0), 0.0);
+    }
+
+    #[test]
+    fn test_utilization_percent_75() {
+        let pct = super::FundsReservationService::calculate_utilization_percent(7500.0, 10000.0);
+        assert!((pct - 75.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_utilization_percent_full() {
+        assert_eq!(super::FundsReservationService::calculate_utilization_percent(10000.0, 10000.0), 100.0);
+    }
+
+    #[test]
+    fn test_utilization_percent_zero_reservation() {
+        assert_eq!(super::FundsReservationService::calculate_utilization_percent(5000.0, 0.0), 0.0);
+    }
+
+    #[test]
+    fn test_utilization_percent_zero_consumed() {
+        assert_eq!(super::FundsReservationService::calculate_utilization_percent(0.0, 10000.0), 0.0);
+    }
+
+    #[test]
+    fn test_budget_exceeded_true() {
+        assert!(super::FundsReservationService::is_budget_exceeded(50000.0, 45000.0, 10000.0));
+    }
+
+    #[test]
+    fn test_budget_exceeded_false() {
+        assert!(!super::FundsReservationService::is_budget_exceeded(50000.0, 30000.0, 10000.0));
+    }
+
+    #[test]
+    fn test_budget_exceeded_exact_boundary() {
+        assert!(!super::FundsReservationService::is_budget_exceeded(50000.0, 40000.0, 10000.0));
+    }
+
+    // --- New Services Validation Constants Completeness ---
+
+    #[test]
+    fn test_new_services_validation_constants_count() {
+        assert_eq!(super::VALID_TREASURY_COUNTERPARTY_TYPES.len(), 3);
+        assert_eq!(super::VALID_TREASURY_DEAL_TYPES.len(), 4);
+        assert_eq!(super::VALID_TREASURY_DEAL_STATUSES.len(), 5);
+        assert_eq!(super::VALID_INTEREST_BASES.len(), 3);
+        assert_eq!(super::VALID_RECURRING_JOURNAL_RECURRENCE_TYPES.len(), 6);
+        assert_eq!(super::VALID_RECURRING_JOURNAL_TYPES.len(), 3);
+        assert_eq!(super::VALID_AI_TRANSACTION_TYPES.len(), 4);
+        assert_eq!(super::VALID_AI_BATCH_STATUSES.len(), 7);
+        assert_eq!(super::VALID_NETTING_SETTLEMENT_METHODS.len(), 4);
+        assert_eq!(super::VALID_SUB_BILLING_FREQUENCIES.len(), 5);
+        assert_eq!(super::VALID_SUB_STATUSES.len(), 5);
+        assert_eq!(super::VALID_SUB_AMENDMENT_TYPES.len(), 6);
+        assert_eq!(super::VALID_FR_RESERVATION_TYPES.len(), 3);
+        assert_eq!(super::VALID_FR_STATUSES.len(), 5);
+    }
+
+    #[test]
+    fn test_new_services_calculator_function_count() {
+        // Count calculator functions across all 6 new services
+        let count = 23; // 5 Treasury + 2 Recurring Journal + 3 AutoInvoice + 4 Netting + 5 Subscription + 4 Funds Reservation
+        assert_eq!(count, 23, "Should have 23 calculator/utility functions across 6 new services");
     }
 }

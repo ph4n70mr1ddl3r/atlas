@@ -6666,3 +6666,272 @@ impl crate::asset_depreciation::AssetDepreciationRepository for MockAssetDepreci
         _last_depreciation_amount: &str, _periods_depreciated: i32, _last_depreciation_date: chrono::NaiveDate,
     ) -> AtlasResult<()> { Ok(()) }
 }
+
+/// Mock deferred revenue repository for testing
+pub struct MockDeferredRevenueRepository;
+
+#[async_trait]
+impl crate::deferred_revenue::DeferredRevenueRepository for MockDeferredRevenueRepository {
+    async fn create_template(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        deferral_type: &str, recognition_method: &str,
+        deferral_account_code: &str, recognition_account_code: &str,
+        contra_account_code: Option<&str>,
+        default_periods: i32, period_type: &str,
+        start_date_basis: &str, end_date_basis: &str,
+        prorate_partial_periods: bool, auto_generate_schedule: bool, auto_post: bool,
+        rounding_threshold: Option<&str>, currency_code: &str,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::DeferralTemplate> {
+        Ok(atlas_shared::DeferralTemplate {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            deferral_type: deferral_type.to_string(), recognition_method: recognition_method.to_string(),
+            deferral_account_code: deferral_account_code.to_string(),
+            recognition_account_code: recognition_account_code.to_string(),
+            contra_account_code: contra_account_code.map(String::from),
+            default_periods, period_type: period_type.to_string(),
+            start_date_basis: start_date_basis.to_string(), end_date_basis: end_date_basis.to_string(),
+            prorate_partial_periods, auto_generate_schedule, auto_post,
+            rounding_threshold: rounding_threshold.map(String::from),
+            currency_code: currency_code.to_string(),
+            is_active: true, effective_from, effective_to,
+            metadata: serde_json::json!({}), created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_template(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::DeferralTemplate>> { Ok(None) }
+    async fn get_template_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::DeferralTemplate>> { Ok(None) }
+    async fn list_templates(&self, _org_id: Uuid, _deferral_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::DeferralTemplate>> { Ok(vec![]) }
+    async fn delete_template(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+    async fn create_schedule(
+        &self, org_id: Uuid, schedule_number: &str, template_id: Uuid, template_code: Option<&str>,
+        deferral_type: &str, source_type: &str, source_id: Option<Uuid>,
+        source_number: Option<&str>, source_line_id: Option<Uuid>,
+        description: Option<&str>, total_amount: &str, recognized_amount: &str, remaining_amount: &str,
+        currency_code: &str, deferral_account_code: &str, recognition_account_code: &str,
+        contra_account_code: Option<&str>, recognition_method: &str,
+        start_date: chrono::NaiveDate, end_date: chrono::NaiveDate,
+        total_periods: i32, status: &str, original_journal_entry_id: Option<Uuid>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::DeferralSchedule> {
+        Ok(atlas_shared::DeferralSchedule {
+            id: Uuid::new_v4(), organization_id: org_id,
+            schedule_number: schedule_number.to_string(), template_id, template_code: template_code.map(String::from),
+            deferral_type: deferral_type.to_string(), source_type: source_type.to_string(),
+            source_id, source_number: source_number.map(String::from), source_line_id,
+            description: description.map(String::from),
+            total_amount: total_amount.to_string(), recognized_amount: recognized_amount.to_string(),
+            remaining_amount: remaining_amount.to_string(),
+            currency_code: currency_code.to_string(),
+            deferral_account_code: deferral_account_code.to_string(),
+            recognition_account_code: recognition_account_code.to_string(),
+            contra_account_code: contra_account_code.map(String::from),
+            recognition_method: recognition_method.to_string(),
+            start_date, end_date, total_periods, completed_periods: 0,
+            status: status.to_string(), hold_reason: None,
+            original_journal_entry_id, last_recognition_date: None, completion_date: None,
+            metadata: serde_json::json!({}), created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_schedule(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::DeferralSchedule>> { Ok(None) }
+    async fn get_schedule_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::DeferralSchedule>> { Ok(None) }
+    async fn list_schedules(&self, _org_id: Uuid, _status: Option<&str>, _deferral_type: Option<&str>, _source_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::DeferralSchedule>> { Ok(vec![]) }
+    async fn update_schedule_status(&self, _id: Uuid, _status: &str, _hold_reason: Option<&str>) -> AtlasResult<atlas_shared::DeferralSchedule> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn update_schedule_amounts(&self, _id: Uuid, _recognized: &str, _remaining: &str, _completed: i32) -> AtlasResult<()> { Ok(()) }
+    async fn create_schedule_line(
+        &self, org_id: Uuid, schedule_id: Uuid, line_number: i32,
+        period_name: Option<&str>, period_start_date: chrono::NaiveDate,
+        period_end_date: chrono::NaiveDate, days_in_period: i32,
+        amount: &str, status: &str,
+    ) -> AtlasResult<atlas_shared::DeferralScheduleLine> {
+        Ok(atlas_shared::DeferralScheduleLine {
+            id: Uuid::new_v4(), organization_id: org_id, schedule_id, line_number,
+            period_name: period_name.map(String::from), period_start_date, period_end_date,
+            days_in_period, amount: amount.to_string(), recognized_amount: "0.00".to_string(),
+            status: status.to_string(), recognition_date: None, journal_entry_id: None,
+            reversal_journal_entry_id: None, metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_schedule_lines(&self, _schedule_id: Uuid) -> AtlasResult<Vec<atlas_shared::DeferralScheduleLine>> { Ok(vec![]) }
+    async fn get_pending_lines(&self, _org_id: Uuid, _as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<atlas_shared::DeferralScheduleLine>> { Ok(vec![]) }
+    async fn update_line_status(&self, _id: Uuid, _status: &str, _recognized: &str, _date: Option<chrono::NaiveDate>, _je: Option<Uuid>) -> AtlasResult<atlas_shared::DeferralScheduleLine> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::DeferralDashboardSummary> {
+        Ok(atlas_shared::DeferralDashboardSummary {
+            total_schedules: 0, active_schedules: 0, completed_schedules: 0, on_hold_schedules: 0,
+            total_deferred_amount: "0.00".to_string(), total_recognized_amount: "0.00".to_string(),
+            total_remaining_amount: "0.00".to_string(), pending_recognition_count: 0,
+            pending_recognition_amount: "0.00".to_string(), revenue_deferred: "0.00".to_string(),
+            cost_deferred: "0.00".to_string(),
+        })
+    }
+}
+
+/// Mock accounting hub repository for testing
+pub struct MockAccountingHubRepository;
+
+#[async_trait]
+impl crate::accounting_hub::AccountingHubRepository for MockAccountingHubRepository {
+    async fn create_external_system(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        system_type: &str, _connection_config: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ExternalSystem> {
+        Ok(atlas_shared::ExternalSystem {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            system_type: system_type.to_string(), connection_config: serde_json::json!({}),
+            is_active: true, last_event_received: None,
+            total_events_received: 0, total_events_processed: 0, total_events_failed: 0,
+            metadata: serde_json::json!({}), created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_external_system(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::ExternalSystem>> { Ok(None) }
+    async fn get_external_system_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ExternalSystem>> { Ok(None) }
+    async fn list_external_systems(&self, _org_id: Uuid) -> AtlasResult<Vec<atlas_shared::ExternalSystem>> { Ok(vec![]) }
+    async fn delete_external_system(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+    async fn update_system_stats(&self, _id: Uuid, _received: i32, _processed: i32, _failed: i32) -> AtlasResult<()> { Ok(()) }
+
+    async fn create_accounting_event(
+        &self, org_id: Uuid, event_number: &str, external_system_id: Uuid,
+        external_system_code: Option<&str>, event_type: &str, event_class: &str,
+        source_event_id: &str, payload: serde_json::Value, transaction_attributes: serde_json::Value,
+        accounting_method_id: Option<Uuid>, status: &str, event_date: chrono::NaiveDate,
+        accounting_date: Option<chrono::NaiveDate>, currency_code: &str, total_amount: Option<&str>,
+        description: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AccountingEvent> {
+        Ok(atlas_shared::AccountingEvent {
+            id: Uuid::new_v4(), organization_id: org_id,
+            event_number: event_number.to_string(), external_system_id,
+            external_system_code: external_system_code.map(String::from),
+            event_type: event_type.to_string(), event_class: event_class.to_string(),
+            source_event_id: source_event_id.to_string(), payload, transaction_attributes,
+            accounting_method_id, status: status.to_string(), error_message: None,
+            journal_entry_id: None, event_date, accounting_date,
+            currency_code: currency_code.to_string(),
+            total_amount: total_amount.map(String::from), description: description.map(String::from),
+            processed_by: None, processed_at: None, metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_accounting_event(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::AccountingEvent>> { Ok(None) }
+    async fn get_event_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::AccountingEvent>> { Ok(None) }
+    async fn list_accounting_events(&self, _org_id: Uuid, _status: Option<&str>, _system_id: Option<Uuid>, _event_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::AccountingEvent>> { Ok(vec![]) }
+    async fn update_event_status(
+        &self, _id: Uuid, _status: &str, _error: Option<&str>,
+        _attrs: Option<serde_json::Value>, _je: Option<Uuid>, _by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AccountingEvent> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    async fn create_mapping_rule(
+        &self, org_id: Uuid, external_system_id: Uuid, code: &str, name: &str,
+        description: Option<&str>, event_type: &str, event_class: &str, priority: i32,
+        conditions: serde_json::Value, field_mappings: serde_json::Value,
+        accounting_method_id: Option<Uuid>, stop_on_match: bool,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::TransactionMappingRule> {
+        Ok(atlas_shared::TransactionMappingRule {
+            id: Uuid::new_v4(), organization_id: org_id, external_system_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            event_type: event_type.to_string(), event_class: event_class.to_string(),
+            priority, conditions, field_mappings, accounting_method_id,
+            stop_on_match, is_active: true, effective_from, effective_to,
+            metadata: serde_json::json!({}), created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_mapping_rule(&self, _org_id: Uuid, _system_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::TransactionMappingRule>> { Ok(None) }
+    async fn list_mapping_rules(&self, _org_id: Uuid, _system_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::TransactionMappingRule>> { Ok(vec![]) }
+    async fn list_active_mapping_rules(&self, _org_id: Uuid, _system_id: Uuid, _event_type: &str) -> AtlasResult<Vec<atlas_shared::TransactionMappingRule>> { Ok(vec![]) }
+    async fn delete_mapping_rule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::AccountingHubDashboardSummary> {
+        Ok(atlas_shared::AccountingHubDashboardSummary {
+            total_systems: 0, active_systems: 0, total_events: 0, received_events: 0,
+            accounted_events: 0, posted_events: 0, error_events: 0,
+            total_amount_processed: "0.00".to_string(), events_by_system: serde_json::json!([]),
+            events_by_type: serde_json::json!([]),
+        })
+    }
+}
+
+/// Mock financial controls repository for testing
+pub struct MockFinancialControlsRepository;
+
+#[async_trait]
+impl crate::financial_controls::FinancialControlsRepository for MockFinancialControlsRepository {
+    async fn create_rule(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        category: &str, risk_level: &str, control_type: &str,
+        conditions: serde_json::Value, threshold_value: Option<&str>,
+        target_entity: &str, target_fields: serde_json::Value,
+        actions: serde_json::Value, auto_resolve: bool, check_schedule: &str,
+        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ControlMonitorRule> {
+        Ok(atlas_shared::ControlMonitorRule {
+            id: Uuid::new_v4(), organization_id: org_id,
+            code: code.to_string(), name: name.to_string(), description: description.map(String::from),
+            category: category.to_string(), risk_level: risk_level.to_string(),
+            control_type: control_type.to_string(), conditions, threshold_value: threshold_value.map(String::from),
+            target_entity: target_entity.to_string(), target_fields, actions, auto_resolve,
+            check_schedule: check_schedule.to_string(), is_active: true,
+            effective_from, effective_to, last_check_at: None, last_violation_at: None,
+            total_violations: 0, total_resolved: 0, metadata: serde_json::json!({}),
+            created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_rule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<atlas_shared::ControlMonitorRule>> { Ok(None) }
+    async fn get_rule_by_id(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ControlMonitorRule>> { Ok(None) }
+    async fn list_rules(&self, _org_id: Uuid, _category: Option<&str>, _risk_level: Option<&str>) -> AtlasResult<Vec<atlas_shared::ControlMonitorRule>> { Ok(vec![]) }
+    async fn list_active_rules(&self, _org_id: Uuid, _schedule: Option<&str>) -> AtlasResult<Vec<atlas_shared::ControlMonitorRule>> { Ok(vec![]) }
+    async fn delete_rule(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+    async fn update_rule_stats(&self, _id: Uuid, _total: i32, _resolved: i32, _last: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<()> { Ok(()) }
+    async fn create_violation(
+        &self, org_id: Uuid, rule_id: Uuid, rule_code: Option<&str>, rule_name: Option<&str>,
+        violation_number: &str, entity_type: &str, entity_id: Option<Uuid>,
+        description: &str, findings: serde_json::Value, risk_level: &str,
+        status: &str, related_entities: serde_json::Value,
+    ) -> AtlasResult<atlas_shared::ControlViolation> {
+        Ok(atlas_shared::ControlViolation {
+            id: Uuid::new_v4(), organization_id: org_id, rule_id,
+            rule_code: rule_code.map(String::from), rule_name: rule_name.map(String::from),
+            violation_number: violation_number.to_string(), entity_type: entity_type.to_string(),
+            entity_id, description: description.to_string(), findings, risk_level: risk_level.to_string(),
+            status: status.to_string(), assigned_to: None, assigned_to_name: None,
+            resolution_notes: None, resolved_by: None, resolved_at: None,
+            escalated_to: None, escalated_at: None,
+            related_entities, detected_at: chrono::Utc::now(), metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+    async fn get_violation(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::ControlViolation>> { Ok(None) }
+    async fn get_violation_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<atlas_shared::ControlViolation>> { Ok(None) }
+    async fn list_violations(&self, _org_id: Uuid, _status: Option<&str>, _risk: Option<&str>, _rule: Option<Uuid>, _assigned: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::ControlViolation>> { Ok(vec![]) }
+    async fn update_violation_status(
+        &self, _id: Uuid, _status: &str, _assigned: Option<Uuid>,
+        _assigned_name: Option<&str>, _notes: Option<&str>, _resolved_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::ControlViolation> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn escalate_violation(
+        &self, _id: Uuid, _to: Option<Uuid>, _at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> AtlasResult<atlas_shared::ControlViolation> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+    async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<atlas_shared::FinancialControlsDashboardSummary> {
+        Ok(atlas_shared::FinancialControlsDashboardSummary {
+            total_rules: 0, active_rules: 0, total_violations: 0,
+            open_violations: 0, resolved_violations: 0, escalated_violations: 0,
+            false_positive_violations: 0, critical_violations: 0, high_violations: 0,
+            medium_violations: 0, low_violations: 0,
+            violations_by_category: serde_json::json!([]),
+            violations_by_rule: serde_json::json!([]),
+            avg_resolution_time_hours: None,
+        })
+    }
+}

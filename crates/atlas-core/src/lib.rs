@@ -125,6 +125,9 @@ pub mod inflation_adjustment;
 pub mod impairment_management;
 pub mod bank_account_transfer;
 pub mod tax_reporting;
+pub mod deferred_revenue;
+pub mod accounting_hub;
+pub mod financial_controls;
 
 pub use schema::*;
 pub use workflow::{
@@ -251,6 +254,9 @@ pub use inflation_adjustment::{InflationAdjustmentEngine, PostgresInflationAdjus
 pub use impairment_management::{ImpairmentManagementEngine, PostgresImpairmentManagementRepository as PostgresImpairmentManagementRepo};
 pub use bank_account_transfer::{BankAccountTransferEngine, PostgresBankAccountTransferRepository as PostgresBankAccountTransferRepo};
 pub use tax_reporting::{TaxReportingEngine, PostgresTaxReportingRepository as PostgresTaxReportingRepo};
+pub use deferred_revenue::{DeferredRevenueEngine, PostgresDeferredRevenueRepository as PostgresDeferredRevenueRepo};
+pub use accounting_hub::{AccountingHubEngine, PostgresAccountingHubRepository as PostgresAccountingHubRepo};
+pub use financial_controls::{FinancialControlsEngine, PostgresFinancialControlsRepository as PostgresFinancialControlsRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

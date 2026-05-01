@@ -20789,3 +20789,359 @@ pub struct TaxReportingDashboardSummary {
     pub total_refunds: String,
     pub upcoming_filings: i32,
 }
+
+// ============================================================================
+// Deferred Revenue/Cost Management (Oracle Fusion Revenue/Cost Deferral)
+// ============================================================================
+
+/// Deferral template defines rules for deferring revenue or costs over time.
+/// Oracle Fusion equivalent: Financials > Revenue Management > Deferral Templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeferralTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// "revenue" or "cost"
+    pub deferral_type: String,
+    /// Recognition method: "straight_line", "daily_rate", "front_loaded", "back_loaded", "fixed_schedule"
+    pub recognition_method: String,
+    /// Deferral account (balance sheet: deferred revenue or prepaid expense)
+    pub deferral_account_code: String,
+    /// Recognition account (income statement: revenue or expense)
+    pub recognition_account_code: String,
+    /// Contra account for deferral (optional)
+    pub contra_account_code: Option<String>,
+    /// Default number of periods for deferral
+    pub default_periods: i32,
+    /// Period type: "monthly", "daily", "quarterly", "yearly"
+    pub period_type: String,
+    /// Start date basis: "transaction_date", "period_start", "custom"
+    pub start_date_basis: String,
+    /// End date basis: "fixed_periods", "end_of_period", "custom"
+    pub end_date_basis: String,
+    /// Whether to prorate partial periods
+    pub prorate_partial_periods: bool,
+    /// Whether to automatically generate recognition schedules
+    pub auto_generate_schedule: bool,
+    /// Whether to post recognition entries automatically
+    pub auto_post: bool,
+    /// Template-level rounding threshold
+    pub rounding_threshold: Option<String>,
+    /// Template-level currency code
+    pub currency_code: String,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+/// A specific deferral schedule created from a source transaction.
+/// Oracle Fusion equivalent: Revenue/Cost Deferral Schedules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeferralSchedule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_number: String,
+    pub template_id: Uuid,
+    pub template_code: Option<String>,
+    /// "revenue" or "cost"
+    pub deferral_type: String,
+    /// Source reference: e.g. "invoice", "po", "expense", "manual"
+    pub source_type: String,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub source_line_id: Option<Uuid>,
+    pub description: Option<String>,
+    /// Total deferred amount
+    pub total_amount: String,
+    /// Amount recognized to date
+    pub recognized_amount: String,
+    /// Remaining deferred amount
+    pub remaining_amount: String,
+    pub currency_code: String,
+    pub deferral_account_code: String,
+    pub recognition_account_code: String,
+    pub contra_account_code: Option<String>,
+    /// Recognition method used
+    pub recognition_method: String,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub total_periods: i32,
+    pub completed_periods: i32,
+    /// "draft", "active", "on_hold", "completed", "cancelled"
+    pub status: String,
+    pub hold_reason: Option<String>,
+    pub original_journal_entry_id: Option<Uuid>,
+    pub last_recognition_date: Option<chrono::NaiveDate>,
+    pub completion_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+/// A single period line in a deferral schedule.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeferralScheduleLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_id: Uuid,
+    pub line_number: i32,
+    pub period_name: Option<String>,
+    pub period_start_date: chrono::NaiveDate,
+    pub period_end_date: chrono::NaiveDate,
+    /// Days in this period
+    pub days_in_period: i32,
+    /// Amount to recognize in this period
+    pub amount: String,
+    /// Recognized amount (may differ if partially recognized)
+    pub recognized_amount: String,
+    /// "pending", "recognized", "reversed", "on_hold"
+    pub status: String,
+    pub recognition_date: Option<chrono::NaiveDate>,
+    pub journal_entry_id: Option<Uuid>,
+    pub reversal_journal_entry_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+/// Dashboard summary for deferred revenue/cost management
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeferralDashboardSummary {
+    pub total_schedules: i32,
+    pub active_schedules: i32,
+    pub completed_schedules: i32,
+    pub on_hold_schedules: i32,
+    pub total_deferred_amount: String,
+    pub total_recognized_amount: String,
+    pub total_remaining_amount: String,
+    pub pending_recognition_count: i32,
+    pub pending_recognition_amount: String,
+    pub revenue_deferred: String,
+    pub cost_deferred: String,
+}
+
+// ============================================================================
+// Accounting Hub (Oracle Fusion Accounting Hub Cloud)
+// ============================================================================
+
+/// External system registration for the Accounting Hub.
+/// Oracle Fusion equivalent: Accounting Hub > External Systems
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExternalSystem {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// System type: "erp", "billing", "pos", "banking", "insurance", "custom"
+    pub system_type: String,
+    /// Connection details (API endpoint, etc.)
+    pub connection_config: serde_json::Value,
+    /// Whether the system is active
+    pub is_active: bool,
+    pub last_event_received: Option<chrono::DateTime<Utc>>,
+    pub total_events_received: i32,
+    pub total_events_processed: i32,
+    pub total_events_failed: i32,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+/// An event received from an external system to be accounted.
+/// Oracle Fusion equivalent: Accounting Hub > Accounting Events
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountingEvent {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub event_number: String,
+    pub external_system_id: Uuid,
+    pub external_system_code: Option<String>,
+    /// The event type from the external system
+    pub event_type: String,
+    /// The class of the event: "invoice", "payment", "adjustment", "transfer", "custom"
+    pub event_class: String,
+    /// Unique identifier from the source system
+    pub source_event_id: String,
+    /// Raw event payload from external system
+    pub payload: serde_json::Value,
+    /// Processed/extracted transaction attributes
+    pub transaction_attributes: serde_json::Value,
+    /// The accounting method to apply
+    pub accounting_method_id: Option<Uuid>,
+    /// "received", "validated", "accounted", "posted", "transferred", "error"
+    pub status: String,
+    pub error_message: Option<String>,
+    /// The resulting journal entry
+    pub journal_entry_id: Option<Uuid>,
+    pub event_date: chrono::NaiveDate,
+    pub accounting_date: Option<chrono::NaiveDate>,
+    pub currency_code: String,
+    pub total_amount: Option<String>,
+    pub description: Option<String>,
+    pub processed_by: Option<Uuid>,
+    pub processed_at: Option<chrono::DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+/// A mapping rule that transforms external event attributes into accounting data.
+/// Oracle Fusion equivalent: Accounting Hub > Transaction Mapping Rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionMappingRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub external_system_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Event type this rule applies to
+    pub event_type: String,
+    /// Event class this rule applies to
+    pub event_class: String,
+    /// Priority (lower = higher priority)
+    pub priority: i32,
+    /// Conditions to match (JSON map of field → expected value)
+    pub conditions: serde_json::Value,
+    /// Mapping expressions (source_field → target_field)
+    pub field_mappings: serde_json::Value,
+    /// Accounting method to use when this rule matches
+    pub accounting_method_id: Option<Uuid>,
+    pub stop_on_match: bool,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+/// Dashboard summary for Accounting Hub
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountingHubDashboardSummary {
+    pub total_systems: i32,
+    pub active_systems: i32,
+    pub total_events: i32,
+    pub received_events: i32,
+    pub accounted_events: i32,
+    pub posted_events: i32,
+    pub error_events: i32,
+    pub total_amount_processed: String,
+    pub events_by_system: serde_json::Value,
+    pub events_by_type: serde_json::Value,
+}
+
+// ============================================================================
+// Advanced Financial Controls (Oracle Fusion Advanced Controls)
+// ============================================================================
+
+/// A monitoring rule that detects anomalies or policy violations.
+/// Oracle Fusion equivalent: Advanced Controls > Continuous Monitoring > Monitor Rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ControlMonitorRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Control category: "transaction", "access", "master_data", "period_close", "master_record"
+    pub category: String,
+    /// Risk level: "critical", "high", "medium", "low"
+    pub risk_level: String,
+    /// The control type: "threshold", "pattern", "frequency", "segregation", "approval", "custom"
+    pub control_type: String,
+    /// Conditions defining when to trigger the rule (JSON)
+    pub conditions: serde_json::Value,
+    /// Threshold value for threshold-based controls
+    pub threshold_value: Option<String>,
+    /// The entity/table being monitored
+    pub target_entity: String,
+    /// Fields to check
+    pub target_fields: serde_json::Value,
+    /// Actions to take on violation: "alert", "block", "escalate", "review"
+    pub actions: serde_json::Value,
+    /// Whether to auto-resolve when conditions are no longer met
+    pub auto_resolve: bool,
+    /// Schedule for periodic checks: "realtime", "daily", "weekly", "monthly"
+    pub check_schedule: String,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub last_check_at: Option<chrono::DateTime<Utc>>,
+    pub last_violation_at: Option<chrono::DateTime<Utc>>,
+    pub total_violations: i32,
+    pub total_resolved: i32,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+/// A specific violation instance detected by a control rule.
+/// Oracle Fusion equivalent: Advanced Controls > Violations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ControlViolation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub rule_id: Uuid,
+    pub rule_code: Option<String>,
+    pub rule_name: Option<String>,
+    pub violation_number: String,
+    /// The entity type that triggered the violation
+    pub entity_type: String,
+    /// The specific record ID
+    pub entity_id: Option<Uuid>,
+    /// Description of the violation
+    pub description: String,
+    /// Detailed findings (JSON)
+    pub findings: serde_json::Value,
+    /// Risk level of this specific violation
+    pub risk_level: String,
+    /// "open", "under_review", "resolved", "false_positive", "escalated", "waived"
+    pub status: String,
+    /// Who is assigned to review
+    pub assigned_to: Option<Uuid>,
+    pub assigned_to_name: Option<String>,
+    /// Resolution details
+    pub resolution_notes: Option<String>,
+    pub resolved_by: Option<Uuid>,
+    pub resolved_at: Option<chrono::DateTime<Utc>>,
+    /// For escalated violations
+    pub escalated_to: Option<Uuid>,
+    pub escalated_at: Option<chrono::DateTime<Utc>>,
+    /// Related transaction references
+    pub related_entities: serde_json::Value,
+    pub detected_at: chrono::DateTime<Utc>,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+/// Dashboard summary for Advanced Financial Controls
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FinancialControlsDashboardSummary {
+    pub total_rules: i32,
+    pub active_rules: i32,
+    pub total_violations: i32,
+    pub open_violations: i32,
+    pub resolved_violations: i32,
+    pub escalated_violations: i32,
+    pub false_positive_violations: i32,
+    pub critical_violations: i32,
+    pub high_violations: i32,
+    pub medium_violations: i32,
+    pub low_violations: i32,
+    pub violations_by_category: serde_json::Value,
+    pub violations_by_rule: serde_json::Value,
+    pub avg_resolution_time_hours: Option<f64>,
+}

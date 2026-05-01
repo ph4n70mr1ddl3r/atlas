@@ -36,4 +36,8 @@ pub use services::{
     CreditManagementFinService,
     WithholdingTaxService,
     ProjectBillingService,
+    PaymentTermsService,
+    FinancialStatementService,
+    TaxFilingService,
+    JournalReversalService,
 };

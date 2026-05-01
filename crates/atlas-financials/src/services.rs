@@ -3071,6 +3071,631 @@ impl ProjectBillingService {
     }
 }
 
+// ============================================================================
+// Payment Terms Service
+// ============================================================================
+
+/// Payment Terms service
+/// Oracle Fusion: Financials > Payment Terms
+#[allow(dead_code)]
+pub struct PaymentTermsService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid payment term types
+const VALID_TERM_TYPES: &[&str] = &[
+    "immediate", "net_days", "discount_net", "milestone", "installment",
+];
+
+/// Valid day-of-month options
+const VALID_DAYS_OF_MONTH: &[&str] = &[
+    "any", "1", "5", "10", "15", "20", "25",
+];
+
+impl PaymentTermsService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a payment term
+    /// Oracle Fusion: Financials > Payment Terms > Define
+    pub async fn create_payment_term(
+        &self,
+        code: &str,
+        name: &str,
+        term_type: &str,
+        net_due_days: i32,
+        discount_days: Option<i32>,
+        discount_percentage: Option<&str>,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Payment term code and name are required".to_string(),
+            ));
+        }
+        if !VALID_TERM_TYPES.contains(&term_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid term_type '{}'. Must be one of: {}",
+                term_type, VALID_TERM_TYPES.join(", ")
+            )));
+        }
+        if term_type != "immediate" && net_due_days <= 0 {
+            return Err(AtlasError::ValidationFailed(
+                "Net due days must be positive for non-immediate terms".to_string(),
+            ));
+        }
+        if let Some(dp) = discount_percentage {
+            let pct: f64 = dp.parse().map_err(|_| AtlasError::ValidationFailed(
+                "Discount percentage must be a valid number".to_string(),
+            ))?;
+            if !(0.0..=100.0).contains(&pct) {
+                return Err(AtlasError::ValidationFailed(
+                    "Discount percentage must be between 0 and 100".to_string(),
+                ));
+            }
+        }
+
+        info!("Payment Terms Service: Creating term '{}' ({})", code, term_type);
+        Ok(())
+    }
+
+    /// Calculate discount date from invoice date and payment term
+    pub fn calculate_discount_date(
+        invoice_date: chrono::NaiveDate,
+        discount_days: i32,
+    ) -> chrono::NaiveDate {
+        invoice_date + chrono::Duration::days(discount_days as i64)
+    }
+
+    /// Calculate net due date from invoice date and payment term
+    pub fn calculate_net_due_date(
+        invoice_date: chrono::NaiveDate,
+        net_due_days: i32,
+    ) -> chrono::NaiveDate {
+        invoice_date + chrono::Duration::days(net_due_days as i64)
+    }
+
+    /// Calculate discount amount for early payment
+    pub fn calculate_discount_amount(
+        invoice_amount: f64,
+        discount_percentage: f64,
+    ) -> f64 {
+        invoice_amount * (discount_percentage / 100.0)
+    }
+
+    /// Calculate net payment amount after discount
+    pub fn calculate_net_payment_amount(
+        invoice_amount: f64,
+        discount_amount: f64,
+    ) -> f64 {
+        invoice_amount - discount_amount
+    }
+
+    /// Determine if discount is still available based on payment date
+    pub fn is_discount_available(
+        payment_date: chrono::NaiveDate,
+        discount_date: chrono::NaiveDate,
+    ) -> bool {
+        payment_date <= discount_date
+    }
+
+    /// Calculate effective annualized cost of not taking a discount
+    /// Formula: (discount% / (100% - discount%)) * (365 / (net_days - discount_days))
+    pub fn calculate_annualized_cost_of_discount(
+        discount_percentage: f64,
+        net_due_days: i32,
+        discount_days: i32,
+    ) -> f64 {
+        let additional_days = net_due_days - discount_days;
+        if additional_days <= 0 {
+            return 0.0;
+        }
+        let discount_factor = discount_percentage / (100.0 - discount_percentage);
+        discount_factor * (365.0 / additional_days as f64) * 100.0
+    }
+
+    /// Calculate payment amount, applying discount if applicable
+    pub fn calculate_payment_with_discount(
+        invoice_amount: f64,
+        discount_percentage: f64,
+        payment_date: chrono::NaiveDate,
+        discount_date: chrono::NaiveDate,
+    ) -> (f64, f64, bool) {
+        if Self::is_discount_available(payment_date, discount_date) && discount_percentage > 0.0 {
+            let discount = Self::calculate_discount_amount(invoice_amount, discount_percentage);
+            let net = Self::calculate_net_payment_amount(invoice_amount, discount);
+            (net, discount, true)
+        } else {
+            (invoice_amount, 0.0, false)
+        }
+    }
+}
+
+// ============================================================================
+// Financial Statement Generation Service
+// ============================================================================
+
+/// Financial Statement Generation service
+/// Oracle Fusion: Financial Reporting Center
+#[allow(dead_code)]
+pub struct FinancialStatementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid financial report types
+const VALID_REPORT_TYPES: &[&str] = &[
+    "balance_sheet", "income_statement", "cash_flow", "trial_balance", "custom",
+];
+
+/// Valid row types for report definitions
+const VALID_ROW_TYPES: &[&str] = &[
+    "header", "account_range", "calculated", "total", "subtotal", "text",
+];
+
+impl FinancialStatementService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a financial report template
+    pub async fn create_report_template(
+        &self,
+        code: &str,
+        name: &str,
+        report_type: &str,
+        base_currency: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Template code and name are required".to_string(),
+            ));
+        }
+        if !VALID_REPORT_TYPES.contains(&report_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid report_type '{}'. Must be one of: {}",
+                report_type, VALID_REPORT_TYPES.join(", ")
+            )));
+        }
+        if base_currency.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Base currency code is required".to_string(),
+            ));
+        }
+        info!("FS Service: Creating '{}' report template '{}'", report_type, code);
+        Ok(())
+    }
+
+    /// Calculate balance sheet totals from account balances
+    pub fn calculate_balance_sheet(
+        total_assets: f64,
+        total_liabilities: f64,
+        total_equity: f64,
+    ) -> (f64, bool) {
+        let total_liab_equity = total_liabilities + total_equity;
+        let balanced = (total_assets - total_liab_equity).abs() < 0.01;
+        (total_liab_equity, balanced)
+    }
+
+    /// Calculate net income from revenue and expenses
+    pub fn calculate_net_income(
+        total_revenue: f64,
+        total_expenses: f64,
+    ) -> f64 {
+        total_revenue - total_expenses
+    }
+
+    /// Calculate retained earnings
+    pub fn calculate_retained_earnings(
+        beginning_retained_earnings: f64,
+        net_income: f64,
+        dividends: f64,
+    ) -> f64 {
+        beginning_retained_earnings + net_income - dividends
+    }
+
+    /// Calculate working capital
+    pub fn calculate_working_capital(
+        current_assets: f64,
+        current_liabilities: f64,
+    ) -> f64 {
+        current_assets - current_liabilities
+    }
+
+    /// Calculate current ratio
+    pub fn calculate_current_ratio(
+        current_assets: f64,
+        current_liabilities: f64,
+    ) -> f64 {
+        if current_liabilities <= 0.0 {
+            return 0.0;
+        }
+        current_assets / current_liabilities
+    }
+
+    /// Calculate debt-to-equity ratio
+    pub fn calculate_debt_to_equity(
+        total_liabilities: f64,
+        total_equity: f64,
+    ) -> f64 {
+        if total_equity <= 0.0 {
+            return 0.0;
+        }
+        total_liabilities / total_equity
+    }
+
+    /// Calculate gross profit margin
+    pub fn calculate_gross_profit_margin(
+        revenue: f64,
+        cost_of_goods_sold: f64,
+    ) -> f64 {
+        if revenue <= 0.0 {
+            return 0.0;
+        }
+        ((revenue - cost_of_goods_sold) / revenue) * 100.0
+    }
+
+    /// Calculate operating margin
+    pub fn calculate_operating_margin(
+        revenue: f64,
+        operating_income: f64,
+    ) -> f64 {
+        if revenue <= 0.0 {
+            return 0.0;
+        }
+        (operating_income / revenue) * 100.0
+    }
+
+    /// Calculate return on equity (ROE)
+    pub fn calculate_return_on_equity(
+        net_income: f64,
+        total_equity: f64,
+    ) -> f64 {
+        if total_equity <= 0.0 {
+            return 0.0;
+        }
+        (net_income / total_equity) * 100.0
+    }
+
+    /// Generate a cash flow statement using the indirect method
+    /// Returns (operating, investing, financing, net_change)
+    pub fn calculate_cash_flow_indirect(
+        net_income: f64,
+        depreciation_amortization: f64,
+        change_in_working_capital: f64,
+        capital_expenditures: f64,
+        proceeds_from_asset_sales: f64,
+        debt_proceeds: f64,
+        debt_repayments: f64,
+        dividends_paid: f64,
+    ) -> (f64, f64, f64, f64) {
+        let operating = net_income + depreciation_amortization + change_in_working_capital;
+        let investing = -capital_expenditures + proceeds_from_asset_sales;
+        let financing = debt_proceeds - debt_repayments - dividends_paid;
+        let net_change = operating + investing + financing;
+        (operating, investing, financing, net_change)
+    }
+
+    /// Sum account balances for a range
+    pub fn sum_account_range(
+        balances: &[(String, f64)],
+        from_prefix: &str,
+        to_prefix: &str,
+    ) -> f64 {
+        balances.iter()
+            .filter(|(code, _)| code.as_str() >= from_prefix && code.as_str() <= to_prefix)
+            .map(|(_, balance)| *balance)
+            .sum()
+    }
+}
+
+// ============================================================================
+// Tax Filing Service
+// ============================================================================
+
+/// Tax Filing service
+/// Oracle Fusion: Tax > Tax Filing
+#[allow(dead_code)]
+pub struct TaxFilingService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid filing frequencies
+const VALID_FILING_FREQUENCIES: &[&str] = &[
+    "monthly", "quarterly", "semi_annually", "annually",
+];
+
+/// Valid filing methods
+const VALID_FILING_METHODS: &[&str] = &[
+    "electronic", "paper", "both",
+];
+
+/// Valid tax return statuses
+const VALID_RETURN_STATUSES: &[&str] = &[
+    "draft", "calculated", "reviewed", "approved", "filed", "amended", "cancelled",
+];
+
+/// Valid tax payment statuses
+const VALID_TAX_PAYMENT_STATUSES: &[&str] = &[
+    "pending", "processed", "confirmed", "reversed",
+];
+
+/// Valid tax payment methods
+const VALID_TAX_PAYMENT_METHODS: &[&str] = &[
+    "wire", "ach", "check", "electronic",
+];
+
+impl TaxFilingService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a tax filing obligation
+    /// Oracle Fusion: Tax > Tax Filing > Filing Obligations
+    pub async fn create_filing_obligation(
+        &self,
+        obligation_code: &str,
+        name: &str,
+        filing_frequency: &str,
+        filing_method: &str,
+        due_days_after_period: i32,
+    ) -> AtlasResult<()> {
+        if obligation_code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Obligation code and name are required".to_string(),
+            ));
+        }
+        if !VALID_FILING_FREQUENCIES.contains(&filing_frequency) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid filing_frequency '{}'. Must be one of: {}",
+                filing_frequency, VALID_FILING_FREQUENCIES.join(", ")
+            )));
+        }
+        if !VALID_FILING_METHODS.contains(&filing_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid filing_method '{}'. Must be one of: {}",
+                filing_method, VALID_FILING_METHODS.join(", ")
+            )));
+        }
+        if due_days_after_period <= 0 {
+            return Err(AtlasError::ValidationFailed(
+                "Due days after period must be positive".to_string(),
+            ));
+        }
+        info!("Tax Filing Service: Creating obligation '{}' ({})", obligation_code, filing_frequency);
+        Ok(())
+    }
+
+    /// Calculate filing due date from period end
+    pub fn calculate_filing_due_date(
+        period_end: chrono::NaiveDate,
+        due_days_after_period: i32,
+    ) -> chrono::NaiveDate {
+        period_end + chrono::Duration::days(due_days_after_period as i64)
+    }
+
+    /// Calculate total tax liability from transaction lines
+    pub fn calculate_tax_liability(
+        tax_lines: &[(f64, f64)], // (taxable_amount, rate_percentage)
+    ) -> (f64, f64) {
+        let total_taxable: f64 = tax_lines.iter().map(|(amt, _)| *amt).sum();
+        let total_tax: f64 = tax_lines.iter()
+            .map(|(amt, rate)| amt * (rate / 100.0))
+            .sum();
+        (total_taxable, total_tax)
+    }
+
+    /// Calculate late filing penalty
+    pub fn calculate_late_penalty(
+        tax_amount: f64,
+        days_late: i32,
+        daily_penalty_rate: f64,
+        max_penalty_pct: f64,
+    ) -> f64 {
+        let penalty = tax_amount * (daily_penalty_rate / 100.0) * days_late as f64;
+        let max_penalty = tax_amount * (max_penalty_pct / 100.0);
+        penalty.min(max_penalty)
+    }
+
+    /// Calculate interest on late payment
+    pub fn calculate_late_interest(
+        tax_amount: f64,
+        days_late: i32,
+        annual_interest_rate: f64,
+    ) -> f64 {
+        tax_amount * (annual_interest_rate / 100.0) * (days_late as f64 / 365.0)
+    }
+
+    /// Determine filing period dates from frequency
+    pub fn calculate_filing_period(
+        year: i32,
+        period_number: i32,
+        frequency: &str,
+    ) -> Option<(chrono::NaiveDate, chrono::NaiveDate)> {
+        match frequency {
+            "monthly" => {
+                if !(1..=12).contains(&period_number) { return None; }
+                let start = chrono::NaiveDate::from_ymd_opt(year, period_number as u32, 1)?;
+                let end = if period_number == 12 {
+                    chrono::NaiveDate::from_ymd_opt(year, 12, 31)?
+                } else {
+                    chrono::NaiveDate::from_ymd_opt(year, (period_number + 1) as u32, 1)?
+                        - chrono::Duration::days(1)
+                };
+                Some((start, end))
+            }
+            "quarterly" => {
+                if !(1..=4).contains(&period_number) { return None; }
+                let start_month = ((period_number - 1) * 3 + 1) as u32;
+                let end_month = (start_month + 2) as u32;
+                let start = chrono::NaiveDate::from_ymd_opt(year, start_month, 1)?;
+                let end = if end_month == 12 {
+                    chrono::NaiveDate::from_ymd_opt(year, 12, 31)?
+                } else {
+                    chrono::NaiveDate::from_ymd_opt(year, end_month + 1, 1)?
+                        - chrono::Duration::days(1)
+                };
+                Some((start, end))
+            }
+            "annually" => {
+                if period_number != 1 { return None; }
+                let start = chrono::NaiveDate::from_ymd_opt(year, 1, 1)?;
+                let end = chrono::NaiveDate::from_ymd_opt(year, 12, 31)?;
+                Some((start, end))
+            }
+            _ => None,
+        }
+    }
+}
+
+// ============================================================================
+// Journal Reversal Service
+// ============================================================================
+
+/// Journal Reversal service
+/// Oracle Fusion: General Ledger > Journal Reversal
+#[allow(dead_code)]
+pub struct JournalReversalService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid reversal methods
+const VALID_REVERSAL_METHODS: &[&str] = &[
+    "switch_dr_cr", "sign_reverse", "switch_signs",
+];
+
+/// Valid reversal reasons
+const VALID_REVERSAL_REASONS: &[&str] = &[
+    "error_correction", "period_adjustment", "duplicate_entry",
+    "reclassification", "management_decision", "other",
+];
+
+impl JournalReversalService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a journal reversal request
+    /// Oracle Fusion: GL > Journals > Reverse Journals
+    pub async fn create_reversal_request(
+        &self,
+        reversal_number: &str,
+        original_entry_number: &str,
+        reversal_method: &str,
+        reversal_reason: &str,
+        reason_description: Option<&str>,
+    ) -> AtlasResult<()> {
+        if reversal_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Reversal number is required".to_string(),
+            ));
+        }
+        if original_entry_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Original entry number is required".to_string(),
+            ));
+        }
+        if !VALID_REVERSAL_METHODS.contains(&reversal_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid reversal_method '{}'. Must be one of: {}",
+                reversal_method, VALID_REVERSAL_METHODS.join(", ")
+            )));
+        }
+        if !VALID_REVERSAL_REASONS.contains(&reversal_reason) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid reversal_reason '{}'. Must be one of: {}",
+                reversal_reason, VALID_REVERSAL_REASONS.join(", ")
+            )));
+        }
+
+        info!("Reversal Service: Creating reversal '{}' for entry '{}' ({})",
+            reversal_number, original_entry_number, reversal_reason);
+        Ok(())
+    }
+
+    /// Reverse a journal entry line using switch debit/credit method
+    pub fn reverse_line_switch_dr_cr(
+        debit_amount: f64,
+        credit_amount: f64,
+    ) -> (f64, f64) {
+        // Swap debits and credits
+        (credit_amount, debit_amount)
+    }
+
+    /// Reverse a journal entry line using sign reversal method
+    pub fn reverse_line_sign(
+        debit_amount: f64,
+        credit_amount: f64,
+    ) -> (f64, f64) {
+        // Negate both amounts
+        (-debit_amount, -credit_amount)
+    }
+
+    /// Validate that a reversal entry balances
+    pub fn validate_reversal_balances(
+        original_total_debit: f64,
+        original_total_credit: f64,
+        reversal_total_debit: f64,
+        reversal_total_credit: f64,
+    ) -> bool {
+        // Reversal debits should equal original credits, and vice versa
+        let debit_matches = (reversal_total_debit - original_total_credit).abs() < 0.01;
+        let credit_matches = (reversal_total_credit - original_total_debit).abs() < 0.01;
+        debit_matches && credit_matches
+    }
+
+    /// Calculate the net effect of an original + reversal entry
+    pub fn calculate_net_effect(
+        original_debit: f64,
+        original_credit: f64,
+        reversal_debit: f64,
+        reversal_credit: f64,
+    ) -> (f64, f64) {
+        (original_debit + reversal_debit, original_credit + reversal_credit)
+    }
+
+    /// Check if an entry is eligible for reversal
+    pub fn is_eligible_for_reversal(
+        entry_status: &str,
+        is_reversed: bool,
+        period_status: &str,
+    ) -> Result<bool, String> {
+        if is_reversed {
+            return Err("Entry is already reversed".to_string());
+        }
+        if entry_status != "posted" {
+            return Err("Only posted entries can be reversed".to_string());
+        }
+        if period_status == "closed" || period_status == "permanently_closed" {
+            return Err("Cannot reverse entries in a closed period".to_string());
+        }
+        Ok(true)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -6213,5 +6838,824 @@ mod tests {
         ];
         let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
         assert_eq!(count, 12, "All 12 new workflow entities should have workflows");
+    }
+
+    // ========================================================================
+    // Payment Terms Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_payment_term_definition() {
+        let def = entities::payment_term_definition();
+        assert_eq!(def.name, "payment_terms");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_payment_schedule_definition() {
+        let def = entities::payment_schedule_definition();
+        assert_eq!(def.name, "payment_schedules");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_payment_term_types_valid() {
+        let valid = ["immediate", "net_days", "discount_net", "milestone", "installment"];
+        for t in &valid {
+            assert!(super::VALID_TERM_TYPES.contains(t));
+        }
+        assert!(!super::VALID_TERM_TYPES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_days_of_month_valid() {
+        let valid = ["any", "1", "5", "10", "15", "20", "25"];
+        for d in &valid {
+            assert!(super::VALID_DAYS_OF_MONTH.contains(d));
+        }
+        assert!(!super::VALID_DAYS_OF_MONTH.contains(&"30"));
+    }
+
+    // ========================================================================
+    // Payment Terms Business Logic Tests
+    // ========================================================================
+
+    #[test]
+    fn test_calculate_discount_date() {
+        let invoice_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap();
+        let discount_date = super::PaymentTermsService::calculate_discount_date(invoice_date, 10);
+        assert_eq!(discount_date, chrono::NaiveDate::from_ymd_opt(2025, 1, 25).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_net_due_date() {
+        let invoice_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap();
+        let due_date = super::PaymentTermsService::calculate_net_due_date(invoice_date, 30);
+        assert_eq!(due_date, chrono::NaiveDate::from_ymd_opt(2025, 2, 14).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_discount_amount() {
+        // 2% discount on $10,000 = $200
+        let discount = super::PaymentTermsService::calculate_discount_amount(10000.0, 2.0);
+        assert!((discount - 200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_net_payment_amount() {
+        let net = super::PaymentTermsService::calculate_net_payment_amount(10000.0, 200.0);
+        assert!((net - 9800.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_is_discount_available_true() {
+        let payment_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 20).unwrap();
+        let discount_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 25).unwrap();
+        assert!(super::PaymentTermsService::is_discount_available(payment_date, discount_date));
+    }
+
+    #[test]
+    fn test_is_discount_available_false() {
+        let payment_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 26).unwrap();
+        let discount_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 25).unwrap();
+        assert!(!super::PaymentTermsService::is_discount_available(payment_date, discount_date));
+    }
+
+    #[test]
+    fn test_is_discount_available_on_exact_date() {
+        let payment_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 25).unwrap();
+        let discount_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 25).unwrap();
+        assert!(super::PaymentTermsService::is_discount_available(payment_date, discount_date));
+    }
+
+    #[test]
+    fn test_annualized_cost_of_discount() {
+        // 2/10 Net 30: cost = (2/98) * (365/20) * 100 ≈ 37.24%
+        let cost = super::PaymentTermsService::calculate_annualized_cost_of_discount(
+            2.0, 30, 10,
+        );
+        assert!(cost > 37.0 && cost < 38.0);
+    }
+
+    #[test]
+    fn test_annualized_cost_of_discount_zero_additional_days() {
+        let cost = super::PaymentTermsService::calculate_annualized_cost_of_discount(
+            2.0, 10, 10,
+        );
+        assert_eq!(cost, 0.0);
+    }
+
+    #[test]
+    fn test_payment_with_discount_early_payment() {
+        let invoice_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let discount_date = invoice_date + chrono::Duration::days(10);
+        let payment_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 5).unwrap();
+
+        let (net, discount, took_discount) = super::PaymentTermsService::calculate_payment_with_discount(
+            10000.0, 2.0, payment_date, discount_date,
+        );
+        assert!((net - 9800.0).abs() < 0.01);
+        assert!((discount - 200.0).abs() < 0.01);
+        assert!(took_discount);
+    }
+
+    #[test]
+    fn test_payment_without_discount_late_payment() {
+        let invoice_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let discount_date = invoice_date + chrono::Duration::days(10);
+        let payment_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 20).unwrap();
+
+        let (net, discount, took_discount) = super::PaymentTermsService::calculate_payment_with_discount(
+            10000.0, 2.0, payment_date, discount_date,
+        );
+        assert!((net - 10000.0).abs() < 0.01);
+        assert!((discount - 0.0).abs() < 0.01);
+        assert!(!took_discount);
+    }
+
+    #[test]
+    fn test_payment_with_zero_discount() {
+        let invoice_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let discount_date = invoice_date + chrono::Duration::days(10);
+        let payment_date = chrono::NaiveDate::from_ymd_opt(2025, 1, 5).unwrap();
+
+        let (net, discount, took_discount) = super::PaymentTermsService::calculate_payment_with_discount(
+            10000.0, 0.0, payment_date, discount_date,
+        );
+        assert!((net - 10000.0).abs() < 0.01);
+        assert!((discount - 0.0).abs() < 0.01);
+        assert!(!took_discount);
+    }
+
+    // ========================================================================
+    // Financial Statement Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_financial_report_template_definition() {
+        let def = entities::financial_report_template_definition();
+        assert_eq!(def.name, "financial_report_templates");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_financial_report_row_definition() {
+        let def = entities::financial_report_row_definition();
+        assert_eq!(def.name, "financial_report_rows");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_generated_financial_report_definition() {
+        let def = entities::generated_financial_report_definition();
+        assert_eq!(def.name, "generated_financial_reports");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "generated"));
+        assert!(wf.states.iter().any(|s| s.name == "reviewed"));
+        assert!(wf.states.iter().any(|s| s.name == "published"));
+        assert!(wf.states.iter().any(|s| s.name == "archived"));
+    }
+
+    #[test]
+    fn test_report_types_valid() {
+        let valid = ["balance_sheet", "income_statement", "cash_flow", "trial_balance", "custom"];
+        for r in &valid {
+            assert!(super::VALID_REPORT_TYPES.contains(r));
+        }
+        assert!(!super::VALID_REPORT_TYPES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_row_types_valid() {
+        let valid = ["header", "account_range", "calculated", "total", "subtotal", "text"];
+        for r in &valid {
+            assert!(super::VALID_ROW_TYPES.contains(r));
+        }
+    }
+
+    #[test]
+    fn test_financial_report_workflow_transitions() {
+        let def = entities::generated_financial_report_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "generated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "generated" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "published"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "published" && t.to_state == "archived"));
+    }
+
+    // ========================================================================
+    // Financial Statement Business Logic Tests
+    // ========================================================================
+
+    #[test]
+    fn test_balance_sheet_balanced() {
+        // Assets = 1,000,000; Liabilities = 400,000; Equity = 600,000
+        let (liab_equity, balanced) = super::FinancialStatementService::calculate_balance_sheet(
+            1000000.0, 400000.0, 600000.0,
+        );
+        assert!(balanced);
+        assert!((liab_equity - 1000000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_balance_sheet_unbalanced() {
+        let (_, balanced) = super::FinancialStatementService::calculate_balance_sheet(
+            1000000.0, 400000.0, 500000.0,
+        );
+        assert!(!balanced);
+    }
+
+    #[test]
+    fn test_net_income_positive() {
+        let income = super::FinancialStatementService::calculate_net_income(
+            500000.0, 350000.0,
+        );
+        assert!((income - 150000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_net_income_negative() {
+        let income = super::FinancialStatementService::calculate_net_income(
+            300000.0, 350000.0,
+        );
+        assert!(income < 0.0); // Net loss
+    }
+
+    #[test]
+    fn test_retained_earnings() {
+        let re = super::FinancialStatementService::calculate_retained_earnings(
+            200000.0, 150000.0, 50000.0,
+        );
+        assert!((re - 300000.0).abs() < 0.01); // 200k + 150k - 50k = 300k
+    }
+
+    #[test]
+    fn test_working_capital() {
+        let wc = super::FinancialStatementService::calculate_working_capital(
+            500000.0, 300000.0,
+        );
+        assert!((wc - 200000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_current_ratio() {
+        let ratio = super::FinancialStatementService::calculate_current_ratio(
+            500000.0, 300000.0,
+        );
+        assert!((ratio - 1.667).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_current_ratio_zero_liabilities() {
+        let ratio = super::FinancialStatementService::calculate_current_ratio(
+            500000.0, 0.0,
+        );
+        assert_eq!(ratio, 0.0);
+    }
+
+    #[test]
+    fn test_debt_to_equity() {
+        let ratio = super::FinancialStatementService::calculate_debt_to_equity(
+            400000.0, 600000.0,
+        );
+        assert!((ratio - 0.667).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_debt_to_equity_zero_equity() {
+        let ratio = super::FinancialStatementService::calculate_debt_to_equity(
+            400000.0, 0.0,
+        );
+        assert_eq!(ratio, 0.0);
+    }
+
+    #[test]
+    fn test_gross_profit_margin() {
+        let margin = super::FinancialStatementService::calculate_gross_profit_margin(
+            500000.0, 300000.0,
+        );
+        assert!((margin - 40.0).abs() < 0.01); // (500k-300k)/500k = 40%
+    }
+
+    #[test]
+    fn test_gross_profit_margin_zero_revenue() {
+        let margin = super::FinancialStatementService::calculate_gross_profit_margin(
+            0.0, 300000.0,
+        );
+        assert_eq!(margin, 0.0);
+    }
+
+    #[test]
+    fn test_operating_margin() {
+        let margin = super::FinancialStatementService::calculate_operating_margin(
+            500000.0, 75000.0,
+        );
+        assert!((margin - 15.0).abs() < 0.01); // 75k/500k = 15%
+    }
+
+    #[test]
+    fn test_return_on_equity() {
+        let roe = super::FinancialStatementService::calculate_return_on_equity(
+            150000.0, 600000.0,
+        );
+        assert!((roe - 25.0).abs() < 0.01); // 150k/600k = 25%
+    }
+
+    #[test]
+    fn test_cash_flow_indirect() {
+        let (operating, investing, financing, net_change) =
+            super::FinancialStatementService::calculate_cash_flow_indirect(
+                150000.0,  // net income
+                50000.0,   // depreciation
+                -20000.0,  // change in working capital
+                80000.0,   // capex
+                10000.0,   // asset sale proceeds
+                50000.0,   // debt proceeds
+                30000.0,   // debt repayments
+                20000.0,   // dividends
+            );
+        // Operating: 150k + 50k - 20k = 180k
+        assert!((operating - 180000.0).abs() < 0.01);
+        // Investing: -80k + 10k = -70k
+        assert!((investing - (-70000.0)).abs() < 0.01);
+        // Financing: 50k - 30k - 20k = 0
+        assert!((financing - 0.0).abs() < 0.01);
+        // Net: 180k - 70k + 0 = 110k
+        assert!((net_change - 110000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_sum_account_range() {
+        let balances = vec![
+            ("1000".to_string(), 50000.0),
+            ("1100".to_string(), 30000.0),
+            ("1200".to_string(), 20000.0),
+            ("2000".to_string(), 40000.0),
+            ("2100".to_string(), 30000.0),
+            ("3000".to_string(), 30000.0),
+        ];
+        // Sum all 1xxx accounts (assets)
+        let assets = super::FinancialStatementService::sum_account_range(&balances, "1000", "1999");
+        assert!((assets - 100000.0).abs() < 0.01);
+
+        // Sum all 2xxx accounts (liabilities)
+        let liabilities = super::FinancialStatementService::sum_account_range(&balances, "2000", "2999");
+        assert!((liabilities - 70000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_sum_account_range_empty() {
+        let balances = vec![
+            ("1000".to_string(), 50000.0),
+        ];
+        let result = super::FinancialStatementService::sum_account_range(&balances, "2000", "2999");
+        assert!((result - 0.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Tax Filing Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_tax_filing_obligation_definition() {
+        let def = entities::tax_filing_obligation_definition();
+        assert_eq!(def.name, "tax_filing_obligations");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_tax_return_definition() {
+        let def = entities::tax_return_definition();
+        assert_eq!(def.name, "tax_returns");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "calculated"));
+        assert!(wf.states.iter().any(|s| s.name == "reviewed"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "filed"));
+        assert!(wf.states.iter().any(|s| s.name == "amended"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_tax_payment_definition() {
+        let def = entities::tax_payment_definition();
+        assert_eq!(def.name, "tax_payments");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_filing_frequencies_valid() {
+        let valid = ["monthly", "quarterly", "semi_annually", "annually"];
+        for f in &valid {
+            assert!(super::VALID_FILING_FREQUENCIES.contains(f));
+        }
+    }
+
+    #[test]
+    fn test_filing_methods_valid() {
+        let valid = ["electronic", "paper", "both"];
+        for m in &valid {
+            assert!(super::VALID_FILING_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_return_statuses_valid() {
+        let valid = ["draft", "calculated", "reviewed", "approved", "filed", "amended", "cancelled"];
+        for s in &valid {
+            assert!(super::VALID_RETURN_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_tax_payment_statuses_valid() {
+        let valid = ["pending", "processed", "confirmed", "reversed"];
+        for s in &valid {
+            assert!(super::VALID_TAX_PAYMENT_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_tax_payment_methods_valid() {
+        let valid = ["wire", "ach", "check", "electronic"];
+        for m in &valid {
+            assert!(super::VALID_TAX_PAYMENT_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_tax_return_workflow_transitions() {
+        let def = entities::tax_return_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "calculated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "calculated" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "filed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "filed" && t.to_state == "amended"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+    }
+
+    // ========================================================================
+    // Tax Filing Business Logic Tests
+    // ========================================================================
+
+    #[test]
+    fn test_calculate_filing_due_date() {
+        let period_end = chrono::NaiveDate::from_ymd_opt(2025, 3, 31).unwrap();
+        let due_date = super::TaxFilingService::calculate_filing_due_date(period_end, 30);
+        assert_eq!(due_date, chrono::NaiveDate::from_ymd_opt(2025, 4, 30).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_tax_liability() {
+        let lines = vec![
+            (10000.0, 10.0),  // $1,000 tax
+            (20000.0, 5.0),   // $1,000 tax
+            (5000.0, 20.0),   // $1,000 tax
+        ];
+        let (total_taxable, total_tax) = super::TaxFilingService::calculate_tax_liability(&lines);
+        assert!((total_taxable - 35000.0).abs() < 0.01);
+        assert!((total_tax - 3000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_tax_liability_empty() {
+        let lines: Vec<(f64, f64)> = vec![];
+        let (total_taxable, total_tax) = super::TaxFilingService::calculate_tax_liability(&lines);
+        assert_eq!(total_taxable, 0.0);
+        assert_eq!(total_tax, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_late_penalty() {
+        // $10,000 tax, 15 days late, 0.5% daily rate, 25% max
+        let penalty = super::TaxFilingService::calculate_late_penalty(
+            10000.0, 15, 0.5, 25.0,
+        );
+        // 10000 * 0.005 * 15 = 750, but max is 10000 * 0.25 = 2500, so 750
+        assert!((penalty - 750.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_late_penalty_capped() {
+        // $10,000 tax, 60 days late, 0.5% daily rate, 25% max
+        let penalty = super::TaxFilingService::calculate_late_penalty(
+            10000.0, 60, 0.5, 25.0,
+        );
+        // 10000 * 0.005 * 60 = 3000, but max is 10000 * 0.25 = 2500
+        assert!((penalty - 2500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_late_interest() {
+        // $10,000 tax, 30 days late, 8% annual rate
+        let interest = super::TaxFilingService::calculate_late_interest(
+            10000.0, 30, 8.0,
+        );
+        // 10000 * 0.08 * (30/365) ≈ 65.75
+        assert!(interest > 65.0 && interest < 66.0);
+    }
+
+    #[test]
+    fn test_calculate_late_interest_zero_days() {
+        let interest = super::TaxFilingService::calculate_late_interest(
+            10000.0, 0, 8.0,
+        );
+        assert_eq!(interest, 0.0);
+    }
+
+    #[test]
+    fn test_filing_period_monthly() {
+        let (start, end) = super::TaxFilingService::calculate_filing_period(
+            2025, 3, "monthly",
+        ).unwrap();
+        assert_eq!(start, chrono::NaiveDate::from_ymd_opt(2025, 3, 1).unwrap());
+        assert_eq!(end, chrono::NaiveDate::from_ymd_opt(2025, 3, 31).unwrap());
+    }
+
+    #[test]
+    fn test_filing_period_monthly_december() {
+        let (start, end) = super::TaxFilingService::calculate_filing_period(
+            2025, 12, "monthly",
+        ).unwrap();
+        assert_eq!(start, chrono::NaiveDate::from_ymd_opt(2025, 12, 1).unwrap());
+        assert_eq!(end, chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap());
+    }
+
+    #[test]
+    fn test_filing_period_quarterly_q1() {
+        let (start, end) = super::TaxFilingService::calculate_filing_period(
+            2025, 1, "quarterly",
+        ).unwrap();
+        assert_eq!(start, chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap());
+        assert_eq!(end, chrono::NaiveDate::from_ymd_opt(2025, 3, 31).unwrap());
+    }
+
+    #[test]
+    fn test_filing_period_quarterly_q4() {
+        let (start, end) = super::TaxFilingService::calculate_filing_period(
+            2025, 4, "quarterly",
+        ).unwrap();
+        assert_eq!(start, chrono::NaiveDate::from_ymd_opt(2025, 10, 1).unwrap());
+        assert_eq!(end, chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap());
+    }
+
+    #[test]
+    fn test_filing_period_annually() {
+        let (start, end) = super::TaxFilingService::calculate_filing_period(
+            2025, 1, "annually",
+        ).unwrap();
+        assert_eq!(start, chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap());
+        assert_eq!(end, chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap());
+    }
+
+    #[test]
+    fn test_filing_period_invalid_month() {
+        let result = super::TaxFilingService::calculate_filing_period(
+            2025, 13, "monthly",
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_filing_period_invalid_quarter() {
+        let result = super::TaxFilingService::calculate_filing_period(
+            2025, 5, "quarterly",
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_filing_period_invalid_frequency() {
+        let result = super::TaxFilingService::calculate_filing_period(
+            2025, 1, "semi_annually",
+        );
+        assert!(result.is_none());
+    }
+
+    // ========================================================================
+    // Journal Reversal Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_journal_reversal_request_definition() {
+        let def = entities::journal_reversal_request_definition();
+        assert_eq!(def.name, "journal_reversal_requests");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "processed"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_reversal_methods_valid() {
+        let valid = ["switch_dr_cr", "sign_reverse", "switch_signs"];
+        for m in &valid {
+            assert!(super::VALID_REVERSAL_METHODS.contains(m));
+        }
+        assert!(!super::VALID_REVERSAL_METHODS.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_reversal_reasons_valid() {
+        let valid = ["error_correction", "period_adjustment", "duplicate_entry",
+                     "reclassification", "management_decision", "other"];
+        for r in &valid {
+            assert!(super::VALID_REVERSAL_REASONS.contains(r));
+        }
+    }
+
+    #[test]
+    fn test_journal_reversal_workflow_transitions() {
+        let def = entities::journal_reversal_request_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "rejected"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "processed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+    }
+
+    // ========================================================================
+    // Journal Reversal Business Logic Tests
+    // ========================================================================
+
+    #[test]
+    fn test_reverse_line_switch_dr_cr() {
+        let (new_debit, new_credit) = super::JournalReversalService::reverse_line_switch_dr_cr(
+            1000.0, 0.0,
+        );
+        assert!((new_debit - 0.0).abs() < 0.01);
+        assert!((new_credit - 1000.0).abs() < 0.01);
+
+        let (new_debit, new_credit) = super::JournalReversalService::reverse_line_switch_dr_cr(
+            0.0, 500.0,
+        );
+        assert!((new_debit - 500.0).abs() < 0.01);
+        assert!((new_credit - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_reverse_line_sign() {
+        let (new_debit, new_credit) = super::JournalReversalService::reverse_line_sign(
+            1000.0, 500.0,
+        );
+        assert!((new_debit - (-1000.0)).abs() < 0.01);
+        assert!((new_credit - (-500.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_validate_reversal_balances_matching() {
+        // Original: DR 1000, CR 1000
+        // Reversal: DR 1000 (original CR), CR 1000 (original DR)
+        let valid = super::JournalReversalService::validate_reversal_balances(
+            1000.0, 1000.0,
+            1000.0, 1000.0,
+        );
+        assert!(valid);
+    }
+
+    #[test]
+    fn test_validate_reversal_balances_complex() {
+        // Original: DR 5000, CR 3000 (not balanced itself, but reversal matches)
+        // Reversal: DR 3000, CR 5000
+        let valid = super::JournalReversalService::validate_reversal_balances(
+            5000.0, 3000.0,
+            3000.0, 5000.0,
+        );
+        assert!(valid);
+    }
+
+    #[test]
+    fn test_validate_reversal_balances_mismatch() {
+        let valid = super::JournalReversalService::validate_reversal_balances(
+            1000.0, 1000.0,
+            500.0, 500.0,
+        );
+        assert!(!valid); // Reversal DR 500 != Original CR 1000
+    }
+
+    #[test]
+    fn test_calculate_net_effect() {
+        let (net_debit, net_credit) = super::JournalReversalService::calculate_net_effect(
+            1000.0, 0.0,
+            0.0, 1000.0,
+        );
+        // Net: 1000 + 0 = 1000 debit, 0 + 1000 = 1000 credit
+        assert!((net_debit - 1000.0).abs() < 0.01);
+        assert!((net_credit - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_net_effect_zeroed() {
+        let (net_debit, net_credit) = super::JournalReversalService::calculate_net_effect(
+            1000.0, 1000.0,
+            1000.0, 1000.0,
+        );
+        // Both sides equal, net debits and credits are double
+        assert!((net_debit - 2000.0).abs() < 0.01);
+        assert!((net_credit - 2000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_is_eligible_for_reversal_posted_open_period() {
+        let result = super::JournalReversalService::is_eligible_for_reversal(
+            "posted", false, "open",
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_is_eligible_for_reversal_already_reversed() {
+        let result = super::JournalReversalService::is_eligible_for_reversal(
+            "posted", true, "open",
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("already reversed"));
+    }
+
+    #[test]
+    fn test_is_eligible_for_reversal_not_posted() {
+        let result = super::JournalReversalService::is_eligible_for_reversal(
+            "draft", false, "open",
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("posted"));
+    }
+
+    #[test]
+    fn test_is_eligible_for_reversal_closed_period() {
+        let result = super::JournalReversalService::is_eligible_for_reversal(
+            "posted", false, "closed",
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("closed"));
+    }
+
+    #[test]
+    fn test_is_eligible_for_reversal_permanently_closed_period() {
+        let result = super::JournalReversalService::is_eligible_for_reversal(
+            "posted", false, "permanently_closed",
+        );
+        assert!(result.is_err());
+    }
+
+    // ========================================================================
+    // Comprehensive: All New Feature Entities Build
+    // ========================================================================
+
+    #[test]
+    fn test_all_new_financial_feature_entities_build() {
+        // Payment Terms
+        let _ = entities::payment_term_definition();
+        let _ = entities::payment_schedule_definition();
+        // Financial Statement Generation
+        let _ = entities::financial_report_template_definition();
+        let _ = entities::financial_report_row_definition();
+        let _ = entities::generated_financial_report_definition();
+        // Tax Filing
+        let _ = entities::tax_filing_obligation_definition();
+        let _ = entities::tax_return_definition();
+        let _ = entities::tax_payment_definition();
+        // Journal Reversal
+        let _ = entities::journal_reversal_request_definition();
+    }
+
+    #[test]
+    fn test_new_financial_feature_entity_count() {
+        let new_entities = vec![
+            entities::payment_term_definition(),
+            entities::payment_schedule_definition(),
+            entities::financial_report_template_definition(),
+            entities::financial_report_row_definition(),
+            entities::generated_financial_report_definition(),
+            entities::tax_filing_obligation_definition(),
+            entities::tax_return_definition(),
+            entities::tax_payment_definition(),
+            entities::journal_reversal_request_definition(),
+        ];
+        assert_eq!(new_entities.len(), 9);
+
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 9, "All new entity names must be unique");
+    }
+
+    #[test]
+    fn test_new_financial_feature_workflow_count() {
+        let workflow_entities = vec![
+            entities::generated_financial_report_definition(),
+            entities::tax_return_definition(),
+            entities::journal_reversal_request_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 3, "All 3 new workflow entities should have workflows");
     }
 }

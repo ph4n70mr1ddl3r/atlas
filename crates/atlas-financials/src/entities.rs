@@ -3295,3 +3295,316 @@ pub fn project_invoice_line_definition() -> EntityDefinition {
         .date("transaction_date", "Transaction Date")
         .build()
 }
+
+// ============================================================================
+// Payment Terms Engine (Oracle Fusion: Financials > Payment Terms)
+// ============================================================================
+
+/// Payment Term entity with discount scheduling
+/// Oracle Fusion: Financials > Payment Terms > Define Payment Terms
+pub fn payment_term_definition() -> EntityDefinition {
+    SchemaBuilder::new("payment_terms", "Payment Term")
+        .plural_label("Payment Terms")
+        .table_name("fin_payment_terms")
+        .description("Payment terms with discount schedules for AP and AR")
+        .icon("calendar-check")
+        .required_string("code", "Term Code")
+        .required_string("name", "Term Name")
+        .string("description", "Description")
+        .enumeration("term_type", "Term Type", vec![
+            "immediate", "net_days", "discount_net", "milestone", "installment",
+        ])
+        .integer("net_due_days", "Net Due Days")
+        .integer("discount_days", "Discount Days")
+        .decimal("discount_percentage", "Discount %", 8, 4)
+        .integer("discount_days_2", "Second Discount Days")
+        .decimal("discount_percentage_2", "Second Discount %", 8, 4)
+        .enumeration("day_of_month", "Due Day of Month", vec![
+            "any", "1", "5", "10", "15", "20", "25",
+        ])
+        .integer("cutoff_day", "Cutoff Day")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Payment Schedule entity for installment terms
+/// Oracle Fusion: Financials > Payment Terms > Payment Schedules
+pub fn payment_schedule_definition() -> EntityDefinition {
+    SchemaBuilder::new("payment_schedules", "Payment Schedule")
+        .plural_label("Payment Schedules")
+        .table_name("fin_payment_schedules")
+        .description("Installment payment schedules with multiple due dates")
+        .icon("tasks")
+        .reference("payment_term_id", "Payment Term", "payment_terms")
+        .integer("sequence", "Sequence")
+        .integer("due_days", "Due Days")
+        .decimal("percentage", "Percentage", 8, 4)
+        .integer("discount_days", "Discount Days")
+        .decimal("discount_percentage", "Discount %", 8, 4)
+        .string("description", "Description")
+        .build()
+}
+
+// ============================================================================
+// Financial Statement Generation (Oracle Fusion: Financial Reporting Center)
+// ============================================================================
+
+/// Financial Report Template entity
+/// Oracle Fusion: Financial Reporting > Report Templates
+pub fn financial_report_template_definition() -> EntityDefinition {
+    SchemaBuilder::new("financial_report_templates", "Report Template")
+        .plural_label("Financial Report Templates")
+        .table_name("fin_report_templates")
+        .description("Templates for generating standard financial statements")
+        .icon("file-alt")
+        .required_string("code", "Template Code")
+        .required_string("name", "Template Name")
+        .enumeration("report_type", "Report Type", vec![
+            "balance_sheet", "income_statement", "cash_flow", "trial_balance", "custom",
+        ])
+        .string("description", "Description")
+        .string("base_currency_code", "Base Currency")
+        .boolean("include_zero_balances", "Include Zero Balances")
+        .boolean("show_beginning_balance", "Show Beginning Balance")
+        .boolean("show_period_activity", "Show Period Activity")
+        .boolean("show_ending_balance", "Show Ending Balance")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Financial Report Row Definition entity
+/// Oracle Fusion: Financial Reporting > Row Definitions
+pub fn financial_report_row_definition() -> EntityDefinition {
+    SchemaBuilder::new("financial_report_rows", "Report Row")
+        .plural_label("Financial Report Rows")
+        .table_name("fin_report_rows")
+        .description("Row definitions for financial statement line items")
+        .icon("list")
+        .reference("template_id", "Template", "financial_report_templates")
+        .integer("sequence", "Sequence")
+        .required_string("label", "Row Label")
+        .enumeration("row_type", "Row Type", vec![
+            "header", "account_range", "calculated", "total", "subtotal", "text",
+        ])
+        .string("account_range_from", "Account Range From")
+        .string("account_range_to", "Account Range To")
+        .string("calculation_formula", "Calculation Formula")
+        .string("normal_balance", "Normal Balance")
+        .boolean("show_on_report", "Show on Report")
+        .integer("indent_level", "Indent Level")
+        .build()
+}
+
+/// Generated Financial Report entity with workflow
+/// Oracle Fusion: Financial Reporting > Generated Reports
+pub fn generated_financial_report_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("financial_report_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("generated", "Generated")
+        .working_state("reviewed", "Reviewed")
+        .final_state("published", "Published")
+        .final_state("archived", "Archived")
+        .transition("draft", "generated", "generate")
+        .transition("generated", "reviewed", "review")
+        .transition("reviewed", "published", "publish")
+        .transition("published", "archived", "archive")
+        .build();
+
+    SchemaBuilder::new("generated_financial_reports", "Generated Financial Report")
+        .plural_label("Generated Financial Reports")
+        .table_name("fin_generated_reports")
+        .description("Generated financial statement reports")
+        .icon("chart-bar")
+        .required_string("report_number", "Report Number")
+        .reference("template_id", "Template", "financial_report_templates")
+        .enumeration("report_type", "Report Type", vec![
+            "balance_sheet", "income_statement", "cash_flow", "trial_balance", "custom",
+        ])
+        .integer("fiscal_year", "Fiscal Year")
+        .integer("period_number", "Period Number")
+        .date("period_start_date", "Period Start")
+        .date("period_end_date", "Period End")
+        .string("base_currency_code", "Base Currency")
+        .json("report_data", "Report Data")
+        .json("row_results", "Row Results")
+        .boolean("is_balanced", "Balanced")
+        .string("reviewed_by", "Reviewed By")
+        .date("reviewed_date", "Reviewed Date")
+        .enumeration("status", "Status", vec![
+            "draft", "generated", "reviewed", "published", "archived",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Tax Return & Filing (Oracle Fusion: Tax > Tax Filing)
+// ============================================================================
+
+/// Tax Filing Obligation entity
+/// Oracle Fusion: Tax > Tax Filing > Filing Obligations
+pub fn tax_filing_obligation_definition() -> EntityDefinition {
+    SchemaBuilder::new("tax_filing_obligations", "Tax Filing Obligation")
+        .plural_label("Tax Filing Obligations")
+        .table_name("fin_tax_filing_obligations")
+        .description("Tax filing obligations by jurisdiction and period")
+        .icon("gavel")
+        .reference("regime_id", "Tax Regime", "tax_regimes")
+        .reference("jurisdiction_id", "Jurisdiction", "tax_jurisdictions")
+        .required_string("obligation_code", "Obligation Code")
+        .required_string("name", "Obligation Name")
+        .enumeration("filing_frequency", "Filing Frequency", vec![
+            "monthly", "quarterly", "semi_annually", "annually",
+        ])
+        .enumeration("filing_method", "Filing Method", vec![
+            "electronic", "paper", "both",
+        ])
+        .integer("due_day_of_month", "Due Day of Month")
+        .integer("due_days_after_period", "Due Days After Period")
+        .string("tax_authority", "Tax Authority")
+        .string("tax_authority_code", "Tax Authority Code")
+        .string("filing_form", "Filing Form")
+        .boolean("requires_payment", "Requires Payment")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Tax Return entity with workflow
+/// Oracle Fusion: Tax > Tax Filing > Tax Returns
+pub fn tax_return_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("tax_return_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("calculated", "Calculated")
+        .working_state("reviewed", "Reviewed")
+        .working_state("approved", "Approved")
+        .final_state("filed", "Filed")
+        .final_state("amended", "Amended")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "calculated", "calculate")
+        .transition("calculated", "reviewed", "review")
+        .transition("reviewed", "approved", "approve")
+        .transition("approved", "filed", "file")
+        .transition("filed", "amended", "amend")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("tax_returns", "Tax Return")
+        .plural_label("Tax Returns")
+        .table_name("fin_tax_returns")
+        .description("Tax returns prepared for filing with tax authorities")
+        .icon("file-signature")
+        .required_string("return_number", "Return Number")
+        .reference("obligation_id", "Filing Obligation", "tax_filing_obligations")
+        .reference("regime_id", "Tax Regime", "tax_regimes")
+        .reference("jurisdiction_id", "Jurisdiction", "tax_jurisdictions")
+        .integer("fiscal_year", "Fiscal Year")
+        .integer("period_number", "Period Number")
+        .date("period_start", "Period Start")
+        .date("period_end", "Period End")
+        .date("filing_due_date", "Filing Due Date")
+        .date("filed_date", "Filed Date")
+        .string("filing_confirmation", "Filing Confirmation")
+        .currency("total_taxable_amount", "Total Taxable Amount", "USD")
+        .currency("total_tax_amount", "Total Tax Amount", "USD")
+        .currency("total_tax_payable", "Tax Payable", "USD")
+        .currency("total_tax_refund", "Tax Refund", "USD")
+        .currency("penalty_amount", "Penalty Amount", "USD")
+        .currency("interest_amount", "Interest Amount", "USD")
+        .string("tax_authority_reference", "Tax Authority Reference")
+        .json("line_details", "Line Details")
+        .reference("prepared_by", "Prepared By", "employees")
+        .reference("reviewed_by", "Reviewed By", "employees")
+        .reference("approved_by", "Approved By", "employees")
+        .string("amendment_reason", "Amendment Reason")
+        .reference("original_return_id", "Original Return", "tax_returns")
+        .rich_text("notes", "Notes")
+        .enumeration("status", "Status", vec![
+            "draft", "calculated", "reviewed", "approved", "filed", "amended", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Tax Payment entity
+/// Oracle Fusion: Tax > Tax Filing > Tax Payments
+pub fn tax_payment_definition() -> EntityDefinition {
+    SchemaBuilder::new("tax_payments", "Tax Payment")
+        .plural_label("Tax Payments")
+        .table_name("fin_tax_payments")
+        .description("Tax payments made to tax authorities")
+        .icon("money-check")
+        .reference("tax_return_id", "Tax Return", "tax_returns")
+        .required_string("payment_number", "Payment Number")
+        .reference("bank_account_id", "Bank Account", "bank_accounts")
+        .date("payment_date", "Payment Date")
+        .currency("payment_amount", "Payment Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .enumeration("payment_method", "Payment Method", vec![
+            "wire", "ach", "check", "electronic",
+        ])
+        .string("tax_authority_reference", "Tax Authority Reference")
+        .string("confirmation_number", "Confirmation Number")
+        .enumeration("status", "Status", vec![
+            "pending", "processed", "confirmed", "reversed",
+        ])
+        .build()
+}
+
+// ============================================================================
+// Journal Reversal (Oracle Fusion: General Ledger > Journal Reversal)
+// ============================================================================
+
+/// Journal Reversal Request entity with workflow
+/// Oracle Fusion: GL > Journals > Reverse Journals
+pub fn journal_reversal_request_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("journal_reversal_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .final_state("processed", "Processed")
+        .final_state("rejected", "Rejected")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "processed", "process")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("journal_reversal_requests", "Journal Reversal Request")
+        .plural_label("Journal Reversal Requests")
+        .table_name("fin_journal_reversal_requests")
+        .description("Requests to reverse posted journal entries with full audit trail")
+        .icon("undo")
+        .required_string("reversal_number", "Reversal Number")
+        .reference("original_entry_id", "Original Journal Entry", "journal_entries")
+        .string("original_entry_number", "Original Entry Number")
+        .date("original_entry_date", "Original Entry Date")
+        .date("reversal_date", "Reversal Date")
+        .date("reversal_gl_date", "Reversal GL Date")
+        .enumeration("reversal_method", "Reversal Method", vec![
+            "switch_dr_cr", "sign_reverse", "switch_signs",
+        ])
+        .enumeration("reversal_reason", "Reversal Reason", vec![
+            "error_correction", "period_adjustment", "duplicate_entry",
+            "reclassification", "management_decision", "other",
+        ])
+        .string("reason_description", "Reason Description")
+        .currency("total_debit", "Total Debit", "USD")
+        .currency("total_credit", "Total Credit", "USD")
+        .reference("requested_by", "Requested By", "employees")
+        .date("requested_date", "Requested Date")
+        .reference("approved_by", "Approved By", "employees")
+        .date("approved_date", "Approved Date")
+        .string("approved_reason", "Approval Notes")
+        .reference("processed_by", "Processed By", "employees")
+        .date("processed_date", "Processed Date")
+        .string("reversal_entry_number", "Reversal Entry Number")
+        .reference("reversal_entry_id", "Reversal Entry", "journal_entries")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "processed", "rejected", "cancelled",
+        ])
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}

@@ -115,6 +115,9 @@ pub mod funds_reservation;
 pub mod rebate_management;
 pub mod project_resource_management;
 pub mod loyalty_management;
+pub mod accounts_receivable;
+pub mod general_ledger;
+pub mod asset_depreciation;
 
 pub use schema::*;
 pub use workflow::{
@@ -231,6 +234,9 @@ pub use funds_reservation::{FundsReservationEngine, PostgresFundsReservationRepo
 pub use rebate_management::{RebateManagementEngine, PostgresRebateManagementRepository as PostgresRebateManagementRepo};
 pub use project_resource_management::{ProjectResourceManagementEngine, PostgresProjectResourceManagementRepository as PostgresProjectResourceManagementRepo};
 pub use loyalty_management::{LoyaltyManagementEngine, PostgresLoyaltyManagementRepository as PostgresLoyaltyManagementRepo};
+pub use accounts_receivable::{AccountsReceivableEngine, PostgresAccountsReceivableRepository as PostgresAccountsReceivableRepo};
+pub use general_ledger::{GeneralLedgerEngine, PostgresGeneralLedgerRepository as PostgresGeneralLedgerRepo};
+pub use asset_depreciation::{AssetDepreciationEngine, PostgresAssetDepreciationRepository as PostgresAssetDepreciationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

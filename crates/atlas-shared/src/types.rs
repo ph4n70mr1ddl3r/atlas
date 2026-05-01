@@ -19462,3 +19462,341 @@ pub struct LoyaltyDashboard {
     pub top_members: serde_json::Value,
     pub recent_transactions: serde_json::Value,
 }
+
+// ============================================================================
+// Accounts Receivable (Oracle Fusion: Financials > Receivables)
+// ============================================================================
+
+/// AR Transaction (customer invoice / debit memo / credit memo)
+/// Oracle Fusion: Receivables > Transactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub transaction_number: String,
+    pub transaction_type: String, // invoice, debit_memo, credit_memo, chargeback, deposit, guarantee
+    pub transaction_date: chrono::NaiveDate,
+    pub gl_date: Option<chrono::NaiveDate>,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub bill_to_site: Option<String>,
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub exchange_rate_type: Option<String>,
+    pub entered_amount: String,
+    pub tax_amount: String,
+    pub total_amount: String,
+    pub amount_due_original: String,
+    pub amount_due_remaining: String,
+    pub amount_applied: String,
+    pub amount_adjusted: String,
+    pub payment_terms: Option<String>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub discount_due_date: Option<chrono::NaiveDate>,
+    pub reference_number: Option<String>,
+    pub purchase_order: Option<String>,
+    pub sales_rep: Option<String>,
+    pub status: String, // draft, complete, open, closed, cancelled
+    pub receipt_method: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AR Transaction Line
+/// Oracle Fusion: Receivables > Transaction Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArTransactionLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub transaction_id: Uuid,
+    pub line_number: i32,
+    pub description: Option<String>,
+    pub line_type: String, // line, tax, freight, charges
+    pub item_code: Option<String>,
+    pub item_description: Option<String>,
+    pub unit_of_measure: Option<String>,
+    pub quantity: Option<String>,
+    pub unit_price: Option<String>,
+    pub line_amount: String,
+    pub tax_amount: String,
+    pub tax_code: Option<String>,
+    pub revenue_account: Option<String>,
+    pub tax_account: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AR Receipt (customer payment)
+/// Oracle Fusion: Receivables > Receipts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArReceipt {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub receipt_number: String,
+    pub receipt_date: chrono::NaiveDate,
+    pub receipt_type: String, // cash, check, credit_card, wire_transfer, ach, other
+    pub receipt_method: String, // automatic_receipt, manual_receipt, quick_cash, miscellaneous
+    pub amount: String,
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub customer_id: Option<Uuid>,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub reference_number: Option<String>,
+    pub bank_account_name: Option<String>,
+    pub check_number: Option<String>,
+    pub maturity_date: Option<chrono::NaiveDate>,
+    pub status: String, // draft, confirmed, applied, deposited, reversed
+    pub applied_transaction_number: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AR Credit Memo
+/// Oracle Fusion: Receivables > Credit Memos
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArCreditMemo {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub credit_memo_number: String,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub transaction_id: Option<Uuid>,
+    pub transaction_number: Option<String>,
+    pub credit_memo_date: chrono::NaiveDate,
+    pub gl_date: Option<chrono::NaiveDate>,
+    pub reason_code: String, // return, pricing_error, damaged, wrong_item, discount, other
+    pub reason_description: Option<String>,
+    pub amount: String,
+    pub tax_amount: String,
+    pub total_amount: String,
+    pub status: String, // draft, submitted, approved, applied, cancelled
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AR Adjustment
+/// Oracle Fusion: Receivables > Adjustments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArAdjustment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub adjustment_number: String,
+    pub transaction_id: Option<Uuid>,
+    pub transaction_number: Option<String>,
+    pub customer_id: Option<Uuid>,
+    pub customer_number: Option<String>,
+    pub adjustment_date: chrono::NaiveDate,
+    pub gl_date: Option<chrono::NaiveDate>,
+    pub adjustment_type: String, // write_off, write_off_bad_debt, small_balance_write_off, increase, decrease, transfer, revaluation
+    pub amount: String,
+    pub receivable_account: Option<String>,
+    pub adjustment_account: Option<String>,
+    pub reason_code: Option<String>,
+    pub reason_description: Option<String>,
+    pub status: String, // draft, submitted, approved, rejected, posted
+    pub approved_by: Option<Uuid>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// AR Aging Summary
+/// Oracle Fusion: Receivables > Reports > Aging Report
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArAgingSummary {
+    pub organization_id: Uuid,
+    pub as_of_date: chrono::NaiveDate,
+    pub total_outstanding: String,
+    pub total_overdue: String,
+    pub aging_current: String,
+    pub aging_1_30: String,
+    pub aging_31_60: String,
+    pub aging_61_90: String,
+    pub aging_91_plus: String,
+    pub customer_count: i32,
+    pub overdue_customer_count: i32,
+}
+
+/// AR Aging by Customer
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArAgingByCustomer {
+    pub customer_id: Uuid,
+    pub customer_name: String,
+    pub customer_number: Option<String>,
+    pub total_outstanding: String,
+    pub current_amount: String,
+    pub aging_1_30: String,
+    pub aging_31_60: String,
+    pub aging_61_90: String,
+    pub aging_91_plus: String,
+    pub invoice_count: i32,
+}
+
+// ============================================================================
+// General Ledger (Oracle Fusion: Financials > General Ledger)
+// ============================================================================
+
+/// GL Account (Chart of Accounts segment)
+/// Oracle Fusion: General Ledger > Chart of Accounts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlAccount {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub account_code: String,
+    pub account_name: String,
+    pub description: Option<String>,
+    pub account_type: String, // asset, liability, equity, revenue, expense
+    pub subtype: Option<String>,
+    pub parent_account_id: Option<Uuid>,
+    pub is_active: bool,
+    pub natural_balance: String, // debit, credit
+    pub third_party_control: bool,
+    pub reconciliation_enabled: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// GL Journal Entry Header
+/// Oracle Fusion: General Ledger > Journals
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlJournalEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub entry_number: String,
+    pub ledger_id: Option<Uuid>,
+    pub entry_date: chrono::NaiveDate,
+    pub gl_date: chrono::NaiveDate,
+    pub entry_type: String, // standard, adjusting, closing, reversing, budget
+    pub description: Option<String>,
+    pub currency_code: String,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub is_balanced: bool,
+    pub status: String, // draft, submitted, posted, reversed, error
+    pub posted_by: Option<Uuid>,
+    pub posted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub reversal_entry_id: Option<Uuid>,
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// GL Journal Line
+/// Oracle Fusion: General Ledger > Journal Lines
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlJournalLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub journal_entry_id: Uuid,
+    pub line_number: i32,
+    pub line_type: String, // debit, credit
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub description: Option<String>,
+    pub entered_dr: String,
+    pub entered_cr: String,
+    pub accounted_dr: String,
+    pub accounted_cr: String,
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub reference: Option<String>,
+    pub tax_code: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// GL Trial Balance
+/// Oracle Fusion: General Ledger > Reports > Trial Balance
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlTrialBalance {
+    pub organization_id: Uuid,
+    pub as_of_date: chrono::NaiveDate,
+    pub ledger_id: Option<Uuid>,
+    pub lines: Vec<GlTrialBalanceLine>,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub total_net: String,
+}
+
+/// Trial Balance Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlTrialBalanceLine {
+    pub account_code: String,
+    pub account_name: String,
+    pub account_type: String,
+    pub beginning_balance: String,
+    pub period_debit: String,
+    pub period_credit: String,
+    pub ending_balance: String,
+    pub net_activity: String,
+}
+
+// ============================================================================
+// Asset Depreciation Engine (Oracle Fusion: Fixed Assets > Depreciation)
+// ============================================================================
+
+/// Depreciation calculation result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DepreciationResult {
+    pub asset_id: Uuid,
+    pub fiscal_year: i32,
+    pub period_number: i32,
+    pub depreciation_date: chrono::NaiveDate,
+    pub depreciation_amount: String,
+    pub accumulated_depreciation: String,
+    pub net_book_value: String,
+    pub depreciation_method: String,
+}
+
+/// Depreciation schedule (all periods for an asset)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DepreciationSchedule {
+    pub asset_id: Uuid,
+    pub asset_number: String,
+    pub asset_name: String,
+    pub original_cost: String,
+    pub salvage_value: String,
+    pub depreciable_basis: String,
+    pub useful_life_months: i32,
+    pub depreciation_method: String,
+    pub declining_balance_rate: Option<String>,
+    pub periods: Vec<DepreciationResult>,
+    pub total_depreciation: String,
+}

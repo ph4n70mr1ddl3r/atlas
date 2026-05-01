@@ -6636,3 +6636,33 @@ impl crate::rebate_management::RebateManagementRepository for MockRebateManageme
         })
     }
 }
+
+/// Mock asset depreciation repository for testing
+pub struct MockAssetDepreciationRepository;
+
+#[async_trait]
+impl crate::asset_depreciation::AssetDepreciationRepository for MockAssetDepreciationRepository {
+    async fn get_asset(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::FixedAsset>> { Ok(None) }
+    async fn create_depreciation_history(
+        &self, org_id: Uuid, asset_id: Uuid, fiscal_year: i32, period_number: i32,
+        period_name: Option<&str>, depreciation_date: chrono::NaiveDate,
+        depreciation_amount: &str, accumulated_depreciation: &str, net_book_value: &str,
+        depreciation_method: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::AssetDepreciationHistory> {
+        Ok(atlas_shared::AssetDepreciationHistory {
+            id: Uuid::new_v4(), organization_id: org_id, asset_id,
+            fiscal_year, period_number, period_name: period_name.map(String::from),
+            depreciation_date,
+            depreciation_amount: depreciation_amount.to_string(),
+            accumulated_depreciation: accumulated_depreciation.to_string(),
+            net_book_value: net_book_value.to_string(),
+            depreciation_method: depreciation_method.to_string(),
+            journal_entry_id: None, created_by, created_at: chrono::Utc::now(),
+        })
+    }
+    async fn list_depreciation_history(&self, _asset_id: Uuid) -> AtlasResult<Vec<atlas_shared::AssetDepreciationHistory>> { Ok(vec![]) }
+    async fn update_asset_depreciation(
+        &self, _asset_id: Uuid, _accumulated_depreciation: &str, _net_book_value: &str,
+        _last_depreciation_amount: &str, _periods_depreciated: i32, _last_depreciation_date: chrono::NaiveDate,
+    ) -> AtlasResult<()> { Ok(()) }
+}

@@ -95,6 +95,10 @@ pub mod payment_management;
 pub mod netting;
 pub mod financial_statements;
 pub mod journal_import;
+pub mod inflation_adjustment;
+pub mod impairment_management;
+pub mod bank_account_transfer;
+pub mod tax_reporting;
 
 pub use schema::*;
 pub use records::*;
@@ -3786,6 +3790,79 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Journal Import Dashboard
         .route("/journal-import/dashboard", get(journal_import::get_journal_import_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Inflation Adjustment (IAS 29) (Oracle Fusion GL > Inflation Adjustment)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Inflation Indices
+        .route("/inflation/indices", post(inflation_adjustment::create_inflation_index))
+        .route("/inflation/indices", get(inflation_adjustment::list_inflation_indices))
+        .route("/inflation/indices/:id", get(inflation_adjustment::get_inflation_index))
+
+        // Index Rates
+        .route("/inflation/rates", post(inflation_adjustment::add_index_rate))
+
+        // Adjustment Runs
+        .route("/inflation/runs", post(inflation_adjustment::create_adjustment_run))
+        .route("/inflation/runs/:id/submit", post(inflation_adjustment::submit_adjustment_run))
+        .route("/inflation/runs/:id/approve", post(inflation_adjustment::approve_adjustment_run))
+
+        // Dashboard
+        .route("/inflation/dashboard", get(inflation_adjustment::get_inflation_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Impairment Management (IAS 36/ASC 360) (Oracle Fusion Fixed Assets > Impairment)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Impairment Indicators
+        .route("/impairment/indicators", post(impairment_management::create_impairment_indicator))
+        .route("/impairment/indicators", get(impairment_management::list_impairment_indicators))
+
+        // Impairment Tests
+        .route("/impairment/tests", post(impairment_management::create_impairment_test))
+        .route("/impairment/tests", get(impairment_management::list_impairment_tests))
+        .route("/impairment/tests/:id/submit", post(impairment_management::submit_impairment_test))
+        .route("/impairment/tests/:id/approve", post(impairment_management::approve_impairment_test))
+
+        // Dashboard
+        .route("/impairment/dashboard", get(impairment_management::get_impairment_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Bank Account Transfers (Oracle Fusion Cash Management > Bank Transfers)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Transfer Types
+        .route("/bank-transfers/types", post(bank_account_transfer::create_bank_transfer_type))
+
+        // Transfers
+        .route("/bank-transfers", post(bank_account_transfer::create_bank_transfer))
+        .route("/bank-transfers", get(bank_account_transfer::list_bank_transfers))
+        .route("/bank-transfers/:id", get(bank_account_transfer::get_bank_transfer))
+        .route("/bank-transfers/:id/submit", post(bank_account_transfer::submit_bank_transfer))
+        .route("/bank-transfers/:id/approve", post(bank_account_transfer::approve_bank_transfer))
+        .route("/bank-transfers/:id/complete", post(bank_account_transfer::complete_bank_transfer))
+
+        // Dashboard
+        .route("/bank-transfers/dashboard", get(bank_account_transfer::get_bank_transfer_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Tax Reporting & Filing (Oracle Fusion Tax > Tax Reporting)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Tax Return Templates
+        .route("/tax-reporting/templates", post(tax_reporting::create_tax_template))
+        .route("/tax-reporting/templates", get(tax_reporting::list_tax_templates))
+
+        // Tax Returns
+        .route("/tax-reporting/returns", post(tax_reporting::create_tax_return))
+        .route("/tax-reporting/returns", get(tax_reporting::list_tax_returns))
+        .route("/tax-reporting/returns/:id", get(tax_reporting::get_tax_return))
+        .route("/tax-reporting/returns/:id/file", post(tax_reporting::file_tax_return))
+        .route("/tax-reporting/returns/:id/pay", post(tax_reporting::pay_tax_return))
+
+        // Dashboard
+        .route("/tax-reporting/dashboard", get(tax_reporting::get_tax_reporting_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

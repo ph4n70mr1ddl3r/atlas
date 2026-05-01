@@ -93,3 +93,7 @@ mod payment_management;
 mod netting;
 mod financial_statements;
 mod journal_import;
+mod inflation_adjustment;
+mod impairment_management;
+mod bank_account_transfer;
+mod tax_reporting;

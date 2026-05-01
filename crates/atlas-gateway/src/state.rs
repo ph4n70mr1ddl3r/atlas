@@ -109,6 +109,14 @@ use atlas_core::{
     NettingEngine,
     FinancialStatementEngine,
     JournalImportEngine,
+    InflationAdjustmentEngine,
+    inflation_adjustment::PostgresInflationAdjustmentRepository,
+    ImpairmentManagementEngine,
+    impairment_management::PostgresImpairmentManagementRepository,
+    BankAccountTransferEngine,
+    bank_account_transfer::PostgresBankAccountTransferRepository,
+    TaxReportingEngine,
+    tax_reporting::PostgresTaxReportingRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -285,6 +293,10 @@ pub struct AppState {
     pub netting_engine: Arc<NettingEngine>,
     pub financial_statements_engine: Arc<FinancialStatementEngine>,
     pub journal_import_engine: Arc<JournalImportEngine>,
+    pub inflation_adjustment_engine: Arc<InflationAdjustmentEngine>,
+    pub impairment_management_engine: Arc<ImpairmentManagementEngine>,
+    pub bank_transfer_engine: Arc<BankAccountTransferEngine>,
+    pub tax_reporting_engine: Arc<TaxReportingEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -784,6 +796,26 @@ impl AppState {
             atlas_core::journal_import::PostgresJournalImportRepository::new(db_pool.clone())
         )));
 
+        // Initialize Inflation Adjustment engine
+        let inflation_adjustment_engine = Arc::new(InflationAdjustmentEngine::new(Arc::new(
+            PostgresInflationAdjustmentRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Impairment Management engine
+        let impairment_management_engine = Arc::new(ImpairmentManagementEngine::new(Arc::new(
+            PostgresImpairmentManagementRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Bank Account Transfer engine
+        let bank_transfer_engine = Arc::new(BankAccountTransferEngine::new(Arc::new(
+            PostgresBankAccountTransferRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Tax Reporting engine
+        let tax_reporting_engine = Arc::new(TaxReportingEngine::new(Arc::new(
+            PostgresTaxReportingRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -921,6 +953,10 @@ impl AppState {
             netting_engine,
             financial_statements_engine,
             journal_import_engine,
+            inflation_adjustment_engine,
+            impairment_management_engine,
+            bank_transfer_engine,
+            tax_reporting_engine,
             event_bus,
             jwt_secret,
         };

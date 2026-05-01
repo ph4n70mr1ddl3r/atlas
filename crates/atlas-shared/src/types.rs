@@ -20317,3 +20317,475 @@ pub struct JournalImportDashboardSummary {
     pub total_rows_with_errors: i32,
     pub recent_batches: Vec<JournalImportBatch>,
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Inflation Adjustment (IAS 29 Hyperinflationary Economy Accounting)
+// Oracle Fusion equivalent: Financials > General Ledger > Inflation Adjustment
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Inflation index definition
+/// Tracks CPI or other indices for hyperinflationary economies.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InflationIndex {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub country_code: String,
+    pub currency_code: String,
+    pub index_type: String,
+    pub is_hyperinflationary: bool,
+    pub hyperinflationary_start_date: Option<chrono::NaiveDate>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Inflation index rate (periodic rate)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InflationIndexRate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub index_id: Uuid,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub index_value: String,
+    pub cumulative_factor: String,
+    pub period_factor: String,
+    pub source: Option<String>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Inflation adjustment run
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InflationAdjustmentRun {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_number: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub index_id: Uuid,
+    pub ledger_id: Option<Uuid>,
+    pub from_period: chrono::NaiveDate,
+    pub to_period: chrono::NaiveDate,
+    pub adjustment_method: String,
+    pub total_debit_adjustment: String,
+    pub total_credit_adjustment: String,
+    pub total_monetary_gain_loss: String,
+    pub account_count: i32,
+    pub status: String,
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub journal_entry_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Inflation adjustment line (per account)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InflationAdjustmentLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_id: Uuid,
+    pub line_number: i32,
+    pub account_code: String,
+    pub account_name: Option<String>,
+    pub account_type: Option<String>,
+    pub balance_type: Option<String>,
+    pub original_balance: String,
+    pub restated_balance: String,
+    pub adjustment_amount: String,
+    pub inflation_factor: String,
+    pub acquisition_date: Option<chrono::NaiveDate>,
+    pub gain_loss_amount: String,
+    pub gain_loss_account: Option<String>,
+    pub currency_code: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Inflation adjustment dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InflationDashboardSummary {
+    pub total_indices: i32,
+    pub hyperinflationary_indices: i32,
+    pub total_runs: i32,
+    pub draft_runs: i32,
+    pub completed_runs: i32,
+    pub total_adjustments: String,
+    pub total_gain_loss: String,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Impairment Management (IAS 36 / ASC 360)
+// Oracle Fusion equivalent: Financials > Fixed Assets > Impairment Management
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Impairment indicator
+/// Defines triggers that may indicate asset impairment.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImpairmentIndicator {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub indicator_type: String,
+    pub severity: String,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Impairment test
+/// Tests whether an asset's carrying amount exceeds its recoverable amount.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImpairmentTest {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub test_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub test_type: String,
+    pub test_method: String,
+    pub test_date: chrono::NaiveDate,
+    pub reporting_period: Option<String>,
+    pub indicator_id: Option<Uuid>,
+    pub carrying_amount: String,
+    pub recoverable_amount: String,
+    pub impairment_loss: String,
+    pub reversal_amount: Option<String>,
+    pub status: String,
+    pub impairment_account: Option<String>,
+    pub reversal_account: Option<String>,
+    pub asset_id: Option<Uuid>,
+    pub cgu_id: Option<Uuid>,
+    pub discount_rate: Option<String>,
+    pub growth_rate: Option<String>,
+    pub terminal_value: Option<String>,
+    pub metadata: serde_json::Value,
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Impairment cash flow projection
+/// Used for value-in-use calculation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImpairmentCashFlow {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub test_id: Uuid,
+    pub period_year: i32,
+    pub period_number: i32,
+    pub description: Option<String>,
+    pub cash_inflow: String,
+    pub cash_outflow: String,
+    pub net_cash_flow: String,
+    pub discount_factor: String,
+    pub present_value: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Impairment test asset
+/// Links an impairment test to a specific asset.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImpairmentTestAsset {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub test_id: Uuid,
+    pub asset_id: Uuid,
+    pub asset_number: Option<String>,
+    pub asset_name: Option<String>,
+    pub asset_category: Option<String>,
+    pub carrying_amount: String,
+    pub recoverable_amount: String,
+    pub impairment_loss: String,
+    pub status: String,
+    pub impairment_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Impairment management dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImpairmentDashboardSummary {
+    pub total_indicators: i32,
+    pub active_indicators: i32,
+    pub total_tests: i32,
+    pub pending_tests: i32,
+    pub completed_tests: i32,
+    pub total_impairment_loss: String,
+    pub total_reversals: String,
+    pub assets_under_review: i32,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Bank Account Transfer (Internal Fund Transfers)
+// Oracle Fusion equivalent: Financials > Cash Management > Bank Transfers
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Bank transfer type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankTransferType {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub settlement_method: String,
+    pub requires_approval: bool,
+    pub approval_threshold: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Bank account transfer
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankAccountTransfer {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub transfer_number: String,
+    pub transfer_type_id: Option<Uuid>,
+    pub from_bank_account_id: Uuid,
+    pub from_bank_account_number: Option<String>,
+    pub from_bank_name: Option<String>,
+    pub to_bank_account_id: Uuid,
+    pub to_bank_account_number: Option<String>,
+    pub to_bank_name: Option<String>,
+    pub amount: String,
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub from_currency: Option<String>,
+    pub to_currency: Option<String>,
+    pub transferred_amount: Option<String>,
+    pub transfer_date: chrono::NaiveDate,
+    pub value_date: Option<chrono::NaiveDate>,
+    pub settlement_date: Option<chrono::NaiveDate>,
+    pub reference_number: Option<String>,
+    pub description: Option<String>,
+    pub purpose: Option<String>,
+    pub status: String,
+    pub priority: String,
+    pub from_journal_id: Option<Uuid>,
+    pub to_journal_id: Option<Uuid>,
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub completed_by: Option<Uuid>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub cancelled_by: Option<Uuid>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub cancellation_reason: Option<String>,
+    pub failure_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Bank transfer dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankTransferDashboardSummary {
+    pub total_transfers: i32,
+    pub pending_transfers: i32,
+    pub completed_transfers: i32,
+    pub cancelled_transfers: i32,
+    pub total_amount_transferred: String,
+    pub average_transfer_amount: String,
+    pub total_transfer_types: i32,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tax Reporting & Filing
+// Oracle Fusion equivalent: Financials > Tax > Tax Reporting
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Tax return template
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxReturnTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub tax_type: String,
+    pub jurisdiction_code: Option<String>,
+    pub filing_frequency: String,
+    pub return_form_number: Option<String>,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Tax return template line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxReturnTemplateLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Uuid,
+    pub line_number: i32,
+    pub box_code: String,
+    pub box_name: String,
+    pub description: Option<String>,
+    pub line_type: String,
+    pub calculation_formula: Option<String>,
+    pub account_code_filter: Option<String>,
+    pub tax_rate_code_filter: Option<String>,
+    pub is_debit: bool,
+    pub display_order: i32,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Tax return
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxReturn {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub return_number: String,
+    pub template_id: Uuid,
+    pub template_name: Option<String>,
+    pub tax_type: Option<String>,
+    pub jurisdiction_code: Option<String>,
+    pub filing_period_start: chrono::NaiveDate,
+    pub filing_period_end: chrono::NaiveDate,
+    pub filing_due_date: Option<chrono::NaiveDate>,
+    pub total_tax_amount: String,
+    pub total_taxable_amount: String,
+    pub total_exempt_amount: String,
+    pub total_input_tax: String,
+    pub total_output_tax: String,
+    pub net_tax_due: String,
+    pub penalty_amount: String,
+    pub interest_amount: String,
+    pub total_amount_due: String,
+    pub payment_amount: String,
+    pub refund_amount: String,
+    pub status: String,
+    pub filing_method: Option<String>,
+    pub filing_reference: Option<String>,
+    pub filing_date: Option<chrono::NaiveDate>,
+    pub payment_date: Option<chrono::NaiveDate>,
+    pub payment_reference: Option<String>,
+    pub amendment_reason: Option<String>,
+    pub notes: Option<String>,
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub filed_by: Option<Uuid>,
+    pub filed_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Tax return line value
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxReturnLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub tax_return_id: Uuid,
+    pub template_line_id: Option<Uuid>,
+    pub line_number: i32,
+    pub box_code: String,
+    pub box_name: Option<String>,
+    pub line_type: String,
+    pub amount: String,
+    pub calculated_amount: String,
+    pub override_amount: Option<String>,
+    pub final_amount: String,
+    pub description: Option<String>,
+    pub source_count: i32,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Tax filing calendar entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxFilingCalendarEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Uuid,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub due_date: chrono::NaiveDate,
+    pub filing_status: String,
+    pub return_id: Option<Uuid>,
+    pub extension_filed: bool,
+    pub extension_due_date: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Tax reporting dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxReportingDashboardSummary {
+    pub total_templates: i32,
+    pub active_templates: i32,
+    pub total_returns: i32,
+    pub draft_returns: i32,
+    pub filed_returns: i32,
+    pub overdue_returns: i32,
+    pub total_tax_paid: String,
+    pub total_tax_due: String,
+    pub total_refunds: String,
+    pub upcoming_filings: i32,
+}

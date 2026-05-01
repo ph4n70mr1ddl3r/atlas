@@ -989,6 +989,21 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         financial_statements_engine: Arc::new(atlas_core::FinancialStatementEngine::new(Arc::new(
             atlas_core::financial_statements::PostgresFinancialStatementRepository::new(db_pool.clone()),
         ))),
+        journal_import_engine: Arc::new(atlas_core::JournalImportEngine::new(Arc::new(
+            atlas_core::journal_import::PostgresJournalImportRepository::new(db_pool.clone()),
+        ))),
+        inflation_adjustment_engine: Arc::new(atlas_core::InflationAdjustmentEngine::new(Arc::new(
+            atlas_core::inflation_adjustment::PostgresInflationAdjustmentRepository::new(db_pool.clone()),
+        ))),
+        impairment_management_engine: Arc::new(atlas_core::ImpairmentManagementEngine::new(Arc::new(
+            atlas_core::impairment_management::PostgresImpairmentManagementRepository::new(db_pool.clone()),
+        ))),
+        bank_transfer_engine: Arc::new(atlas_core::BankAccountTransferEngine::new(Arc::new(
+            atlas_core::bank_account_transfer::PostgresBankAccountTransferRepository::new(db_pool.clone()),
+        ))),
+        tax_reporting_engine: Arc::new(atlas_core::TaxReportingEngine::new(Arc::new(
+            atlas_core::tax_reporting::PostgresTaxReportingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

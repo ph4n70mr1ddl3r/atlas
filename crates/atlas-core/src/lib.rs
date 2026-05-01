@@ -121,6 +121,10 @@ pub mod asset_depreciation;
 pub mod netting;
 pub mod financial_statements;
 pub mod journal_import;
+pub mod inflation_adjustment;
+pub mod impairment_management;
+pub mod bank_account_transfer;
+pub mod tax_reporting;
 
 pub use schema::*;
 pub use workflow::{
@@ -243,6 +247,10 @@ pub use asset_depreciation::{AssetDepreciationEngine, PostgresAssetDepreciationR
 pub use netting::{NettingEngine, PostgresNettingRepository as PostgresNettingRepo};
 pub use financial_statements::{FinancialStatementEngine, PostgresFinancialStatementRepository as PostgresFinancialStatementRepo};
 pub use journal_import::{JournalImportEngine, PostgresJournalImportRepository as PostgresJournalImportRepo};
+pub use inflation_adjustment::{InflationAdjustmentEngine, PostgresInflationAdjustmentRepository as PostgresInflationAdjustmentRepo};
+pub use impairment_management::{ImpairmentManagementEngine, PostgresImpairmentManagementRepository as PostgresImpairmentManagementRepo};
+pub use bank_account_transfer::{BankAccountTransferEngine, PostgresBankAccountTransferRepository as PostgresBankAccountTransferRepo};
+pub use tax_reporting::{TaxReportingEngine, PostgresTaxReportingRepository as PostgresTaxReportingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

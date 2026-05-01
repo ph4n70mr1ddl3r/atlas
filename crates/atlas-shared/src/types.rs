@@ -19122,3 +19122,157 @@ pub struct RebateDashboard {
     pub top_rebate_agreements: serde_json::Value,
     pub recent_settlements: serde_json::Value,
 }
+
+// ============================================================================
+// Project Resource Management (Oracle Fusion Cloud: Project Management)
+// ============================================================================
+// Manages resource profiles, resource requests, assignments, utilization
+// tracking, and resource analytics for project staffing.
+//
+// Key concepts:
+// - Resource Profile: employee/contractor with skills, availability, cost rates
+// - Resource Request: project manager request for a resource with skill requirements
+// - Resource Assignment: resource assigned to a project with planned hours/dates
+// - Utilization Entry: actual hours worked on an assignment for tracking
+// - Resource Dashboard: analytics on utilization, open requests, assignments
+// ============================================================================
+
+/// Resource Profile
+/// Represents an employee or contractor available for project assignments.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceProfile {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub resource_number: String,
+    pub name: String,
+    pub email: String,
+    pub resource_type: String, // employee, contractor
+    pub department: String,
+    pub job_title: String,
+    pub skills: String,        // comma-separated skill tags
+    pub certifications: String, // comma-separated
+    pub availability_status: String, // available, partially_available, fully_allocated, on_leave
+    pub available_hours_per_week: f64,
+    pub cost_rate: f64,
+    pub cost_rate_currency: String,
+    pub bill_rate: f64,
+    pub bill_rate_currency: String,
+    pub location: String,
+    pub manager_id: Option<Uuid>,
+    pub manager_name: String,
+    pub hire_date: Option<chrono::NaiveDate>,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Resource Request
+/// A project manager's request for a resource with specific skill requirements.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceRequest {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub request_number: String,
+    pub project_id: Option<Uuid>,
+    pub project_name: String,
+    pub project_number: String,
+    pub requested_role: String,
+    pub required_skills: String,
+    pub priority: String, // low, medium, high, critical
+    pub status: String,   // draft, submitted, fulfilled, partially_fulfilled, cancelled
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub hours_per_week: f64,
+    pub total_planned_hours: f64,
+    pub max_cost_rate: Option<f64>,
+    pub currency_code: String,
+    pub resource_type_preference: String, // any, employee_only, contractor_only
+    pub location_requirement: String,
+    pub fulfilled_by: Option<Uuid>,
+    pub fulfilled_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Resource Assignment
+/// A resource assigned to a project with planned hours and date range.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceAssignment {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub assignment_number: String,
+    pub resource_id: Uuid,
+    pub resource_name: String,
+    pub resource_email: String,
+    pub project_id: Option<Uuid>,
+    pub project_name: String,
+    pub project_number: String,
+    pub request_id: Option<Uuid>,
+    pub role: String,
+    pub status: String, // planned, active, completed, cancelled
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub planned_hours: f64,
+    pub actual_hours: f64,
+    pub remaining_hours: f64,
+    pub utilization_percentage: f64,
+    pub cost_rate: f64,
+    pub bill_rate: f64,
+    pub currency_code: String,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Utilization Entry
+/// Tracks actual hours worked by a resource on an assignment for a given period.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UtilizationEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub assignment_id: Uuid,
+    pub resource_id: Uuid,
+    pub entry_date: chrono::NaiveDate,
+    pub hours_worked: f64,
+    pub description: String,
+    pub billable: bool,
+    pub status: String, // submitted, approved, rejected
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Resource Management Dashboard
+/// Analytics on resource utilization, open requests, and assignment metrics.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceDashboard {
+    pub organization_id: Uuid,
+    pub total_resources: i64,
+    pub available_resources: i64,
+    pub fully_allocated_resources: i64,
+    pub open_requests: i64,
+    pub active_assignments: i64,
+    pub average_utilization: f64,
+    pub total_planned_hours: f64,
+    pub total_actual_hours: f64,
+    pub resources_by_type: serde_json::Value,
+    pub resources_by_department: serde_json::Value,
+    pub top_resources_by_utilization: serde_json::Value,
+    pub recent_assignments: serde_json::Value,
+}

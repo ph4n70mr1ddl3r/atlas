@@ -87,6 +87,7 @@ pub mod supply_chain_planning;
 pub mod health_safety;
 pub mod funds_reservation;
 pub mod rebate_management;
+pub mod project_resource_management;
 
 pub use schema::*;
 pub use records::*;
@@ -3576,6 +3577,40 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/rebate/settlements/:settlement_id/lines", get(rebate_management::list_settlement_lines))
         // Dashboard
         .route("/rebate/dashboard", get(rebate_management::get_rebate_dashboard))
+
+        // ══════════════════════════════════════════════════════════════════════
+        // Project Resource Management (Oracle Fusion: Project Management)
+        // ══════════════════════════════════════════════════════════════════════
+        // Profiles
+        .route("/resource/profiles", post(project_resource_management::create_profile))
+        .route("/resource/profiles", get(project_resource_management::list_profiles))
+        .route("/resource/profiles/id/:id", get(project_resource_management::get_profile))
+        .route("/resource/profiles/id/:id/availability", post(project_resource_management::update_availability))
+        .route("/resource/profiles/number/:number", delete(project_resource_management::delete_profile))
+        // Requests
+        .route("/resource/requests", post(project_resource_management::create_request))
+        .route("/resource/requests", get(project_resource_management::list_requests))
+        .route("/resource/requests/id/:id", get(project_resource_management::get_request))
+        .route("/resource/requests/id/:id/submit", post(project_resource_management::submit_request))
+        .route("/resource/requests/id/:id/fulfill", post(project_resource_management::fulfill_request))
+        .route("/resource/requests/id/:id/cancel", post(project_resource_management::cancel_request))
+        .route("/resource/requests/number/:number", delete(project_resource_management::delete_request))
+        // Assignments
+        .route("/resource/assignments", post(project_resource_management::create_assignment))
+        .route("/resource/assignments", get(project_resource_management::list_assignments))
+        .route("/resource/assignments/id/:id", get(project_resource_management::get_assignment))
+        .route("/resource/assignments/id/:id/activate", post(project_resource_management::activate_assignment))
+        .route("/resource/assignments/id/:id/complete", post(project_resource_management::complete_assignment))
+        .route("/resource/assignments/id/:id/cancel", post(project_resource_management::cancel_assignment))
+        .route("/resource/assignments/number/:number", delete(project_resource_management::delete_assignment))
+        // Utilization
+        .route("/resource/utilization", post(project_resource_management::create_utilization_entry))
+        .route("/resource/utilization", get(project_resource_management::list_utilization_entries))
+        .route("/resource/utilization/id/:id/approve", post(project_resource_management::approve_utilization_entry))
+        .route("/resource/utilization/id/:id/reject", post(project_resource_management::reject_utilization_entry))
+        .route("/resource/utilization/id/:id", delete(project_resource_management::delete_utilization_entry))
+        // Dashboard
+        .route("/resource/dashboard", get(project_resource_management::get_resource_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

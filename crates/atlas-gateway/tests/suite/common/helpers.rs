@@ -468,6 +468,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         rebate_management_engine: Arc::new(atlas_core::RebateManagementEngine::new(Arc::new(
             atlas_core::rebate_management::PostgresRebateManagementRepository::new(db_pool.clone()),
         ))),
+        project_resource_engine: Arc::new(atlas_core::ProjectResourceManagementEngine::new(Arc::new(
+            atlas_core::project_resource_management::PostgresProjectResourceManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -918,4 +921,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.rebate_transactions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.rebate_tiers").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.rebate_agreements").execute(pool).await.ok();
+
+    // Project Resource Management
+    sqlx::query("DELETE FROM _atlas.utilization_entries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.resource_assignments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.resource_requests").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.resource_profiles").execute(pool).await.ok();
 }

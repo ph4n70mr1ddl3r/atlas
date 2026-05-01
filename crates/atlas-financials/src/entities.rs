@@ -3551,6 +3551,768 @@ pub fn tax_payment_definition() -> EntityDefinition {
 }
 
 // ============================================================================
+// ============================================================================
+// Recurring Journals (Oracle Fusion: General Ledger > Recurring Journals)
+// ============================================================================
+
+/// Recurring Journal Template entity
+/// Oracle Fusion: GL > Journals > Recurring Journals > Define Template
+pub fn recurring_journal_template_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("recurring_journal_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .transition("inactive", "active", "reactivate")
+        .build();
+
+    SchemaBuilder::new("recurring_journal_templates", "Recurring Journal Template")
+        .plural_label("Recurring Journal Templates")
+        .table_name("fin_recurring_journal_templates")
+        .description("Templates for automatically generating recurring journal entries")
+        .icon("redo")
+        .required_string("template_number", "Template Number")
+        .required_string("name", "Template Name")
+        .string("description", "Description")
+        .enumeration("recurrence_type", "Recurrence Type", vec![
+            "daily", "weekly", "monthly", "quarterly", "yearly",
+        ])
+        .integer("recurrence_interval", "Recurrence Interval")
+        .enumeration("journal_type", "Journal Type", vec![
+            "standard", "statistical", "budget",
+        ])
+        .enumeration("amount_type", "Amount Type", vec![
+            "fixed", "variable", "calculated",
+        ])
+        .currency("fixed_amount", "Fixed Amount", "USD")
+        .string("calculation_formula", "Calculation Formula")
+        .string("currency_code", "Currency Code")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .date("last_generated_date", "Last Generated Date")
+        .date("next_generation_date", "Next Generation Date")
+        .integer("times_generated", "Times Generated")
+        .integer("max_generations", "Max Generations")
+        .boolean("auto_post", "Auto Post")
+        .boolean("allow_edit_before_post", "Allow Edit Before Post")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Recurring Journal Line entity
+/// Oracle Fusion: GL > Journals > Recurring Journal Lines
+pub fn recurring_journal_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("recurring_journal_lines", "Recurring Journal Line")
+        .plural_label("Recurring Journal Lines")
+        .table_name("fin_recurring_journal_lines")
+        .description("Line items within a recurring journal template")
+        .icon("list")
+        .reference("template_id", "Template", "recurring_journal_templates")
+        .integer("line_number", "Line Number")
+        .string("account_code", "Account Code")
+        .string("account_name", "Account Name")
+        .enumeration("line_type", "Line Type", vec![
+            "debit", "credit",
+        ])
+        .enumeration("amount_type", "Amount Type", vec![
+            "fixed", "variable", "calculated",
+        ])
+        .currency("fixed_amount", "Fixed Amount", "USD")
+        .string("calculation_rule", "Calculation Rule")
+        .string("description", "Description")
+        .string("cost_center", "Cost Center")
+        .string("department", "Department")
+        .reference("project_id", "Project", "projects")
+        .build()
+}
+
+// ============================================================================
+// Allocations / Mass Allocations (Oracle Fusion: GL > Allocations)
+// ============================================================================
+
+/// Allocation Rule entity with workflow
+/// Oracle Fusion: GL > Allocations > Define Allocation Rule
+pub fn allocation_rule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("allocation_rule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .transition("inactive", "active", "reactivate")
+        .build();
+
+    SchemaBuilder::new("allocation_rules", "Allocation Rule")
+        .plural_label("Allocation Rules")
+        .table_name("fin_allocation_rules")
+        .description("Rules for allocating costs across cost centers, projects, or departments")
+        .icon("project-diagram")
+        .required_string("rule_number", "Rule Number")
+        .required_string("name", "Rule Name")
+        .string("description", "Description")
+        .enumeration("allocation_type", "Allocation Type", vec![
+            "mass_allocation", "recurring_allocation", "statistical_allocation",
+        ])
+        .enumeration("allocation_basis", "Allocation Basis", vec![
+            "fixed_percentage", "statistical", "ratio", "equal_share",
+        ])
+        .string("source_pool_account", "Source Pool Account")
+        .string("target_account_prefix", "Target Account Prefix")
+        .string("offset_account", "Offset Account")
+        .string("currency_code", "Currency Code")
+        .enumeration("recurrence", "Recurrence", vec![
+            "manual", "monthly", "quarterly", "yearly",
+        ])
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .date("last_run_date", "Last Run Date")
+        .integer("times_run", "Times Run")
+        .boolean("auto_post", "Auto Post")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Allocation Line entity
+/// Oracle Fusion: GL > Allocations > Allocation Lines
+pub fn allocation_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("allocation_lines", "Allocation Line")
+        .plural_label("Allocation Lines")
+        .table_name("fin_allocation_lines")
+        .description("Individual allocation targets with basis and percentage")
+        .icon("list")
+        .reference("rule_id", "Rule", "allocation_rules")
+        .integer("line_number", "Line Number")
+        .string("target_account_code", "Target Account")
+        .string("target_account_name", "Target Account Name")
+        .string("target_cost_center", "Target Cost Center")
+        .string("target_department", "Target Department")
+        .decimal("percentage", "Percentage", 10, 6)
+        .string("basis_value_source", "Basis Value Source")
+        .currency("basis_amount", "Basis Amount", "USD")
+        .string("description", "Description")
+        .build()
+}
+
+// ============================================================================
+// Funds Reservation / Budgetary Control (Oracle Fusion: Budgetary Control)
+// ============================================================================
+
+/// Funds Reservation entity with workflow
+/// Oracle Fusion: General Ledger > Budgetary Control > Funds Reservation
+pub fn funds_reservation_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("funds_reservation_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("reserved", "Reserved")
+        .working_state("partially_consumed", "Partially Consumed")
+        .final_state("fully_consumed", "Fully Consumed")
+        .final_state("cancelled", "Cancelled")
+        .final_state("expired", "Expired")
+        .transition("draft", "reserved", "reserve")
+        .transition("reserved", "partially_consumed", "partial_consume")
+        .transition("reserved", "fully_consumed", "full_consume")
+        .transition("reserved", "cancelled", "cancel")
+        .transition("partially_consumed", "fully_consumed", "full_consume")
+        .transition("reserved", "expired", "expire")
+        .build();
+
+    SchemaBuilder::new("funds_reservations", "Funds Reservation")
+        .plural_label("Funds Reservations")
+        .table_name("fin_funds_reservations")
+        .description("Budget funds reservations for expenditure control")
+        .icon("shield-alt")
+        .required_string("reservation_number", "Reservation Number")
+        .string("description", "Description")
+        .string("budget_code", "Budget Code")
+        .string("account_code", "Account Code")
+        .string("cost_center", "Cost Center")
+        .string("department", "Department")
+        .string("fund_code", "Fund Code")
+        .currency("reserved_amount", "Reserved Amount", "USD")
+        .currency("consumed_amount", "Consumed Amount", "USD")
+        .currency("remaining_amount", "Remaining Amount", "USD")
+        .date("reservation_date", "Reservation Date")
+        .date("expiry_date", "Expiry Date")
+        .string("source_entity", "Source Entity")
+        .string("source_id", "Source ID")
+        .reference("requested_by", "Requested By", "employees")
+        .reference("approved_by", "Approved By", "employees")
+        .enumeration("status", "Status", vec![
+            "draft", "reserved", "partially_consumed", "fully_consumed", "cancelled", "expired",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Funds Check Result entity
+/// Oracle Fusion: Budgetary Control > Funds Check Results
+pub fn funds_check_result_definition() -> EntityDefinition {
+    SchemaBuilder::new("funds_check_results", "Funds Check Result")
+        .plural_label("Funds Check Results")
+        .table_name("fin_funds_check_results")
+        .description("Results of budgetary funds availability checks")
+        .icon("check-circle")
+        .string("check_type", "Check Type")
+        .string("entity_type", "Entity Type")
+        .string("entity_id", "Entity ID")
+        .string("account_code", "Account Code")
+        .string("budget_code", "Budget Code")
+        .currency("requested_amount", "Requested Amount", "USD")
+        .currency("budget_amount", "Budget Amount", "USD")
+        .currency("reserved_amount", "Reserved Amount", "USD")
+        .currency("consumed_amount", "Consumed Amount", "USD")
+        .currency("available_amount", "Available Amount", "USD")
+        .enumeration("result", "Result", vec![
+            "pass", "warning", "fail",
+        ])
+        .string("message", "Message")
+        .date("check_date", "Check Date")
+        .build()
+}
+
+// ============================================================================
+// Journal Import (Oracle Fusion: GL > Journal Import)
+// ============================================================================
+
+/// Journal Import Request entity with workflow
+/// Oracle Fusion: GL > Journal Import > Import Journals
+pub fn journal_import_request_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("journal_import_workflow", "uploaded")
+        .initial_state("uploaded", "Uploaded")
+        .working_state("validating", "Validating")
+        .working_state("validated", "Validated")
+        .working_state("importing", "Importing")
+        .final_state("completed", "Completed")
+        .final_state("failed", "Failed")
+        .final_state("cancelled", "Cancelled")
+        .transition("uploaded", "validating", "validate")
+        .transition("validating", "validated", "validation_pass")
+        .transition("validating", "failed", "validation_fail")
+        .transition("validated", "importing", "import")
+        .transition("importing", "completed", "complete")
+        .transition("importing", "failed", "fail")
+        .transition("uploaded", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("journal_import_requests", "Journal Import Request")
+        .plural_label("Journal Import Requests")
+        .table_name("fin_journal_import_requests")
+        .description("Requests to import journal entries from external systems")
+        .icon("upload")
+        .required_string("import_number", "Import Number")
+        .required_string("source", "Source")
+        .enumeration("import_format", "Format", vec![
+            "csv", "xml", "json", "flat_file", "api",
+        ])
+        .string("ledger_code", "Ledger Code")
+        .string("currency_code", "Currency Code")
+        .date("accounting_date", "Accounting Date")
+        .date("gl_date", "GL Date")
+        .integer("total_rows", "Total Rows")
+        .integer("valid_rows", "Valid Rows")
+        .integer("imported_rows", "Imported Rows")
+        .integer("error_rows", "Error Rows")
+        .integer("skipped_rows", "Skipped Rows")
+        .boolean("auto_post", "Auto Post")
+        .boolean("stop_on_error", "Stop on Error")
+        .string("original_filename", "Original Filename")
+        .string("field_mapping", "Field Mapping")
+        .json("validation_errors", "Validation Errors")
+        .json("import_errors", "Import Errors")
+        .reference("submitted_by", "Submitted By", "employees")
+        .enumeration("status", "Status", vec![
+            "uploaded", "validating", "validated", "importing", "completed", "failed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Landed Cost Management (Oracle Fusion: Cost Management > Landed Cost)
+// ============================================================================
+
+/// Landed Cost Template entity
+/// Oracle Fusion: Cost Management > Landed Cost > Templates
+pub fn landed_cost_template_definition() -> EntityDefinition {
+    SchemaBuilder::new("landed_cost_templates", "Landed Cost Template")
+        .plural_label("Landed Cost Templates")
+        .table_name("fin_landed_cost_templates")
+        .description("Templates defining landed cost components for imported goods")
+        .icon("truck")
+        .required_string("code", "Template Code")
+        .required_string("name", "Template Name")
+        .string("description", "Description")
+        .string("currency_code", "Currency Code")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Landed Cost Component entity
+/// Oracle Fusion: Cost Management > Landed Cost > Cost Components
+pub fn landed_cost_component_definition() -> EntityDefinition {
+    SchemaBuilder::new("landed_cost_components", "Landed Cost Component")
+        .plural_label("Landed Cost Components")
+        .table_name("fin_landed_cost_components")
+        .description("Individual cost components (freight, insurance, duty, etc.)")
+        .icon("puzzle-piece")
+        .reference("template_id", "Template", "landed_cost_templates")
+        .required_string("code", "Component Code")
+        .required_string("name", "Component Name")
+        .enumeration("component_type", "Component Type", vec![
+            "freight", "insurance", "duty", "customs_fee",
+            "handling", "storage", "brokerage", "other",
+        ])
+        .enumeration("allocation_method", "Allocation Method", vec![
+            "quantity", "weight", "volume", "value", "equal",
+        ])
+        .decimal("rate_percentage", "Rate %", 10, 6)
+        .currency("flat_amount", "Flat Amount", "USD")
+        .string("charge_account_code", "Charge Account")
+        .integer("priority", "Priority")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Landed Cost Assignment entity with workflow
+/// Oracle Fusion: Cost Management > Landed Cost > Assignments
+pub fn landed_cost_assignment_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("landed_cost_assignment_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("estimated", "Estimated")
+        .working_state("actualized", "Actualized")
+        .final_state("posted", "Posted")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "estimated", "estimate")
+        .transition("estimated", "actualized", "actualize")
+        .transition("actualized", "posted", "post")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("landed_cost_assignments", "Landed Cost Assignment")
+        .plural_label("Landed Cost Assignments")
+        .table_name("fin_landed_cost_assignments")
+        .description("Assignment of landed costs to receipt lines")
+        .icon("link")
+        .required_string("assignment_number", "Assignment Number")
+        .reference("template_id", "Template", "landed_cost_templates")
+        .string("receipt_number", "Receipt Number")
+        .string("purchase_order_number", "PO Number")
+        .reference("item_id", "Item", "items")
+        .string("item_name", "Item Name")
+        .currency("item_value", "Item Value", "USD")
+        .currency("total_landed_cost", "Total Landed Cost", "USD")
+        .currency("estimated_cost", "Estimated Cost", "USD")
+        .currency("actual_cost", "Actual Cost", "USD")
+        .currency("variance_amount", "Variance Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .enumeration("status", "Status", vec![
+            "draft", "estimated", "actualized", "posted", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Transfer Pricing (Oracle Fusion: Intercompany > Transfer Pricing)
+// ============================================================================
+
+/// Transfer Pricing Policy entity
+/// Oracle Fusion: Intercompany > Transfer Pricing > Policies
+pub fn transfer_pricing_policy_definition() -> EntityDefinition {
+    SchemaBuilder::new("transfer_pricing_policies", "Transfer Pricing Policy")
+        .plural_label("Transfer Pricing Policies")
+        .table_name("fin_transfer_pricing_policies")
+        .description("Policies governing intercompany transfer pricing (arm's length compliance)")
+        .icon("balance-scale-left")
+        .required_string("code", "Policy Code")
+        .required_string("name", "Policy Name")
+        .string("description", "Description")
+        .enumeration("pricing_method", "Pricing Method", vec![
+            "comparable_uncontrolled", "resale_price", "cost_plus",
+            "profit_split", "tnmm", "other",
+        ])
+        .decimal("standard_margin_pct", "Standard Margin %", 8, 4)
+        .string("currency_code", "Currency Code")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Transfer Pricing Transaction entity
+/// Oracle Fusion: Intercompany > Transfer Pricing > Transactions
+pub fn transfer_pricing_transaction_definition() -> EntityDefinition {
+    SchemaBuilder::new("transfer_pricing_transactions", "Transfer Pricing Transaction")
+        .plural_label("Transfer Pricing Transactions")
+        .table_name("fin_transfer_pricing_transactions")
+        .description("Individual intercompany transactions with transfer pricing")
+        .icon("exchange-alt")
+        .required_string("transaction_number", "Transaction Number")
+        .reference("policy_id", "Policy", "transfer_pricing_policies")
+        .reference("from_entity_id", "From Entity", "organizations")
+        .string("from_entity_name", "From Entity Name")
+        .reference("to_entity_id", "To Entity", "organizations")
+        .string("to_entity_name", "To Entity Name")
+        .reference("item_id", "Item", "items")
+        .string("item_name", "Item Name")
+        .decimal("quantity", "Quantity", 18, 4)
+        .currency("unit_price", "Unit Price", "USD")
+        .currency("transfer_price", "Transfer Price", "USD")
+        .currency("total_amount", "Total Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .enumeration("arm_length_result", "Arm's Length Result", vec![
+            "within_range", "below_range", "above_range",
+        ])
+        .string("benchmark_study_reference", "Benchmark Study")
+        .date("transaction_date", "Transaction Date")
+        .enumeration("status", "Status", vec![
+            "pending", "approved", "disputed", "completed",
+        ])
+        .build()
+}
+
+// ============================================================================
+// AutoInvoice (Oracle Fusion: AR > AutoInvoice)
+// ============================================================================
+
+/// AutoInvoice Rule entity
+/// Oracle Fusion: Receivables > AutoInvoice > Transaction Sources
+pub fn autoinvoice_rule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("autoinvoice_rule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("autoinvoice_rules", "AutoInvoice Rule")
+        .plural_label("AutoInvoice Rules")
+        .table_name("fin_autoinvoice_rules")
+        .description("Rules for automatically generating AR invoices from source transactions")
+        .icon("magic")
+        .required_string("code", "Rule Code")
+        .required_string("name", "Rule Name")
+        .string("description", "Description")
+        .enumeration("source_type", "Source Type", vec![
+            "sales_order", "service_completion", "project_milestone",
+            "recurring_contract", "usage_based",
+        ])
+        .enumeration("invoice_type", "Invoice Type", vec![
+            "invoice", "debit_memo", "credit_memo",
+        ])
+        .boolean("group_by_customer", "Group by Customer")
+        .boolean("group_by_project", "Group by Project")
+        .string("default_payment_terms", "Default Payment Terms")
+        .string("default_revenue_account", "Default Revenue Account")
+        .string("default_tax_code", "Default Tax Code")
+        .string("currency_code", "Currency Code")
+        .boolean("auto_post_to_gl", "Auto Post to GL")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// AutoInvoice Run entity with workflow
+/// Oracle Fusion: Receivables > AutoInvoice > Process
+pub fn autoinvoice_run_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("autoinvoice_run_workflow", "pending")
+        .initial_state("pending", "Pending")
+        .working_state("processing", "Processing")
+        .final_state("completed", "Completed")
+        .final_state("failed", "Failed")
+        .final_state("cancelled", "Cancelled")
+        .transition("pending", "processing", "process")
+        .transition("processing", "completed", "complete")
+        .transition("processing", "failed", "fail")
+        .transition("pending", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("autoinvoice_runs", "AutoInvoice Run")
+        .plural_label("AutoInvoice Runs")
+        .table_name("fin_autoinvoice_runs")
+        .description("Execution runs of the AutoInvoice process")
+        .icon("play-circle")
+        .required_string("run_number", "Run Number")
+        .reference("rule_id", "Rule", "autoinvoice_rules")
+        .date("run_date", "Run Date")
+        .date("invoice_date", "Invoice Date")
+        .integer("source_transactions_processed", "Sources Processed")
+        .integer("invoices_generated", "Invoices Generated")
+        .integer("invoices_failed", "Invoices Failed")
+        .integer("lines_generated", "Lines Generated")
+        .currency("total_amount_generated", "Total Generated", "USD")
+        .string("currency_code", "Currency Code")
+        .json("errors", "Errors")
+        .reference("submitted_by", "Submitted By", "employees")
+        .enumeration("status", "Status", vec![
+            "pending", "processing", "completed", "failed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Currency Revaluation (Oracle Fusion: GL > Currency Revaluation)
+// ============================================================================
+
+/// Currency Revaluation entity with workflow
+/// Oracle Fusion: GL > Currency > Revaluation
+pub fn currency_revaluation_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("currency_revaluation_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("calculated", "Calculated")
+        .working_state("reviewed", "Reviewed")
+        .final_state("posted", "Posted")
+        .final_state("reversed", "Reversed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "calculated", "calculate")
+        .transition("calculated", "reviewed", "review")
+        .transition("reviewed", "posted", "post")
+        .transition("posted", "reversed", "reverse")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("currency_revaluations", "Currency Revaluation")
+        .plural_label("Currency Revaluations")
+        .table_name("fin_currency_revaluations")
+        .description("Month-end currency revaluation of foreign currency balances")
+        .icon("sync")
+        .required_string("revaluation_number", "Revaluation Number")
+        .string("currency_code", "Revalued Currency")
+        .string("base_currency_code", "Base Currency")
+        .enumeration("rate_type", "Rate Type", vec![
+            "period_end", "spot", "daily", "corporate",
+        ])
+        .decimal("revaluation_rate", "Revaluation Rate", 18, 10)
+        .date("revaluation_date", "Revaluation Date")
+        .date("gl_date", "GL Date")
+        .integer("fiscal_year", "Fiscal Year")
+        .integer("period_number", "Period Number")
+        .integer("accounts_revalued", "Accounts Revalued")
+        .currency("total_unrealized_gain", "Total Unrealized Gain", "USD")
+        .currency("total_unrealized_loss", "Total Unrealized Loss", "USD")
+        .string("unrealized_gain_account", "Gain Account")
+        .string("unrealized_loss_account", "Loss Account")
+        .json("revaluation_details", "Revaluation Details")
+        .enumeration("status", "Status", vec![
+            "draft", "calculated", "reviewed", "posted", "reversed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Netting (Oracle Fusion: Treasury > Netting)
+// ============================================================================
+
+/// Netting Agreement entity
+/// Oracle Fusion: Treasury > Netting > Agreements
+pub fn netting_agreement_definition() -> EntityDefinition {
+    SchemaBuilder::new("netting_agreements", "Netting Agreement")
+        .plural_label("Netting Agreements")
+        .table_name("fin_netting_agreements")
+        .description("Bilateral netting agreements between business partners")
+        .icon("handshake")
+        .required_string("agreement_number", "Agreement Number")
+        .reference("party_a_id", "Party A", "organizations")
+        .string("party_a_name", "Party A Name")
+        .reference("party_b_id", "Party B", "organizations")
+        .string("party_b_name", "Party B Name")
+        .enumeration("netting_type", "Netting Type", vec![
+            "bilateral", "multilateral",
+        ])
+        .enumeration("settlement_currency", "Settlement Currency", vec![
+            "USD", "EUR", "GBP", "JPY",
+        ])
+        .string("settlement_account_code", "Settlement Account")
+        .enumeration("frequency", "Frequency", vec![
+            "daily", "weekly", "monthly",
+        ])
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Netting Batch entity with workflow
+/// Oracle Fusion: Treasury > Netting > Batches
+pub fn netting_batch_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("netting_batch_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("calculated", "Calculated")
+        .working_state("approved", "Approved")
+        .final_state("settled", "Settled")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "calculated", "calculate")
+        .transition("calculated", "approved", "approve")
+        .transition("approved", "settled", "settle")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("netting_batches", "Netting Batch")
+        .plural_label("Netting Batches")
+        .table_name("fin_netting_batches")
+        .description("Netting batches for offsetting payables and receivables")
+        .icon("compress-arrows-alt")
+        .required_string("batch_number", "Batch Number")
+        .reference("agreement_id", "Agreement", "netting_agreements")
+        .date("netting_date", "Netting Date")
+        .date("settlement_date", "Settlement Date")
+        .string("settlement_currency", "Settlement Currency")
+        .currency("total_payables", "Total Payables", "USD")
+        .currency("total_receivables", "Total Receivables", "USD")
+        .currency("net_amount", "Net Amount", "USD")
+        .enumeration("net_direction", "Net Direction", vec![
+            "party_a_owes", "party_b_owes", "balanced",
+        ])
+        .integer("transactions_included", "Transactions Included")
+        .reference("approved_by", "Approved By", "employees")
+        .enumeration("status", "Status", vec![
+            "draft", "calculated", "approved", "settled", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Subscription Management (Oracle Fusion: Revenue > Subscription Management)
+// ============================================================================
+
+/// Subscription Product entity
+/// Oracle Fusion: Subscription Management > Products
+pub fn subscription_product_definition() -> EntityDefinition {
+    SchemaBuilder::new("subscription_products", "Subscription Product")
+        .plural_label("Subscription Products")
+        .table_name("fin_subscription_products")
+        .description("Subscription product/service definitions with billing plans")
+        .icon("box")
+        .required_string("code", "Product Code")
+        .required_string("name", "Product Name")
+        .string("description", "Description")
+        .enumeration("billing_frequency", "Billing Frequency", vec![
+            "monthly", "quarterly", "semi_annually", "annually",
+        ])
+        .enumeration("pricing_model", "Pricing Model", vec![
+            "flat_rate", "per_unit", "tiered", "volume", "usage",
+        ])
+        .currency("base_price", "Base Price", "USD")
+        .string("currency_code", "Currency Code")
+        .integer("minimum_term_months", "Minimum Term (Months)")
+        .boolean("auto_renew", "Auto Renew")
+        .integer("renewal_term_months", "Renewal Term (Months)")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Subscription Contract entity with workflow
+/// Oracle Fusion: Subscription Management > Subscriptions
+pub fn subscription_contract_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("subscription_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .working_state("suspended", "Suspended")
+        .working_state("in_renewal", "In Renewal")
+        .final_state("cancelled", "Cancelled")
+        .final_state("expired", "Expired")
+        .final_state("terminated", "Terminated")
+        .transition("draft", "active", "activate")
+        .transition("active", "suspended", "suspend")
+        .transition("suspended", "active", "reactivate")
+        .transition("active", "in_renewal", "start_renewal")
+        .transition("in_renewal", "active", "renew")
+        .transition("active", "cancelled", "cancel")
+        .transition("active", "expired", "expire")
+        .transition("active", "terminated", "terminate")
+        .build();
+
+    SchemaBuilder::new("subscription_contracts", "Subscription Contract")
+        .plural_label("Subscription Contracts")
+        .table_name("fin_subscription_contracts")
+        .description("Customer subscription contracts with recurring billing (ASC 606)")
+        .icon("file-contract")
+        .required_string("contract_number", "Contract Number")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_name", "Customer Name")
+        .reference("product_id", "Product", "subscription_products")
+        .string("product_name", "Product Name")
+        .enumeration("pricing_model", "Pricing Model", vec![
+            "flat_rate", "per_unit", "tiered", "volume", "usage",
+        ])
+        .currency("contract_value", "Contract Value", "USD")
+        .currency("monthly_recurring_revenue", "Monthly Recurring Revenue", "USD")
+        .integer("quantity", "Quantity")
+        .string("currency_code", "Currency Code")
+        .date("start_date", "Start Date")
+        .date("end_date", "End Date")
+        .date("renewal_date", "Renewal Date")
+        .date("cancellation_date", "Cancellation Date")
+        .date("termination_date", "Termination Date")
+        .integer("term_months", "Term (Months)")
+        .boolean("auto_renew", "Auto Renew")
+        .enumeration("revenue_recognition_method", "Revenue Method", vec![
+            "straight_line", "over_time", "point_in_time",
+        ])
+        .currency("recognized_revenue", "Recognized Revenue", "USD")
+        .currency("deferred_revenue", "Deferred Revenue", "USD")
+        .reference("revenue_policy_id", "Revenue Policy", "revenue_policies")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "suspended", "in_renewal", "cancelled", "expired", "terminated",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Subscription Billing Event entity with workflow
+/// Oracle Fusion: Subscription Management > Billing Events
+pub fn subscription_billing_event_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("subscription_billing_workflow", "scheduled")
+        .initial_state("scheduled", "Scheduled")
+        .working_state("invoiced", "Invoiced")
+        .working_state("partially_invoiced", "Partially Invoiced")
+        .final_state("completed", "Completed")
+        .final_state("cancelled", "Cancelled")
+        .transition("scheduled", "invoiced", "invoice")
+        .transition("scheduled", "partially_invoiced", "partial_invoice")
+        .transition("invoiced", "completed", "complete")
+        .transition("partially_invoiced", "completed", "complete")
+        .transition("scheduled", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("subscription_billing_events", "Subscription Billing Event")
+        .plural_label("Subscription Billing Events")
+        .table_name("fin_subscription_billing_events")
+        .description("Recurring billing events for subscription contracts")
+        .icon("calendar-alt")
+        .reference("contract_id", "Contract", "subscription_contracts")
+        .reference("product_id", "Product", "subscription_products")
+        .integer("billing_period_number", "Billing Period")
+        .date("billing_start_date", "Billing Start")
+        .date("billing_end_date", "Billing End")
+        .date("billing_date", "Billing Date")
+        .currency("billing_amount", "Billing Amount", "USD")
+        .currency("recognized_revenue", "Recognized Revenue", "USD")
+        .currency("deferred_revenue", "Deferred Revenue", "USD")
+        .string("currency_code", "Currency Code")
+        .string("invoice_number", "Invoice Number")
+        .enumeration("status", "Status", vec![
+            "scheduled", "invoiced", "partially_invoiced", "completed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
 // Journal Reversal (Oracle Fusion: General Ledger > Journal Reversal)
 // ============================================================================
 

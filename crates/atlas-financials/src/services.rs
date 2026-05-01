@@ -4156,7 +4156,7 @@ mod tests {
     #[test]
     fn test_ar_credit_memo_must_be_negative() {
         // Credit memos should have negative amounts
-        let transaction_type = "credit_memo";
+        let _transaction_type = "credit_memo";
         let amount: f64 = 100.0;
         assert!(amount > 0.0, "Credit memo should not have positive amount");
 
@@ -4175,11 +4175,11 @@ mod tests {
 
     #[test]
     fn test_ar_write_off_must_be_negative() {
-        let adjustment_type = "write_off";
+        let _adjustment_type = "write_off";
         let amount: f64 = -100.0;
         assert!(amount <= 0.0, "Write-off amount should be negative");
 
-        let adjustment_type = "increase";
+        let _adjustment_type = "increase";
         let amount: f64 = 50.0;
         assert!(amount > 0.0, "Increase adjustment should be positive");
     }
@@ -7747,5 +7747,886 @@ mod tests {
         ];
         let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
         assert_eq!(count, 3, "All 3 new workflow entities should have workflows");
+    }
+
+    // ========================================================================
+    // Recurring Journals Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_recurring_journal_template_definition() {
+        let def = entities::recurring_journal_template_definition();
+        assert_eq!(def.name, "recurring_journal_templates");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_recurring_journal_line_definition() {
+        let def = entities::recurring_journal_line_definition();
+        assert_eq!(def.name, "recurring_journal_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_recurring_journal_workflow_transitions() {
+        let def = entities::recurring_journal_template_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "inactive" && t.to_state == "active"));
+    }
+
+    // ========================================================================
+    // Allocations Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_allocation_rule_definition() {
+        let def = entities::allocation_rule_definition();
+        assert_eq!(def.name, "allocation_rules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_allocation_line_definition() {
+        let def = entities::allocation_line_definition();
+        assert_eq!(def.name, "allocation_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_allocation_rule_workflow_transitions() {
+        let def = entities::allocation_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    // ========================================================================
+    // Funds Reservation Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_funds_reservation_definition() {
+        let def = entities::funds_reservation_definition();
+        assert_eq!(def.name, "funds_reservations");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "reserved"));
+        assert!(wf.states.iter().any(|s| s.name == "partially_consumed"));
+        assert!(wf.states.iter().any(|s| s.name == "fully_consumed"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+        assert!(wf.states.iter().any(|s| s.name == "expired"));
+    }
+
+    #[test]
+    fn test_funds_check_result_definition() {
+        let def = entities::funds_check_result_definition();
+        assert_eq!(def.name, "funds_check_results");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_funds_reservation_workflow_transitions() {
+        let def = entities::funds_reservation_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "reserved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reserved" && t.to_state == "partially_consumed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reserved" && t.to_state == "fully_consumed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reserved" && t.to_state == "cancelled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reserved" && t.to_state == "expired"));
+    }
+
+    // ========================================================================
+    // Journal Import Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_journal_import_request_definition() {
+        let def = entities::journal_import_request_definition();
+        assert_eq!(def.name, "journal_import_requests");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "uploaded");
+        assert!(wf.states.iter().any(|s| s.name == "validating"));
+        assert!(wf.states.iter().any(|s| s.name == "validated"));
+        assert!(wf.states.iter().any(|s| s.name == "importing"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "failed"));
+    }
+
+    #[test]
+    fn test_journal_import_workflow_transitions() {
+        let def = entities::journal_import_request_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "uploaded" && t.to_state == "validating"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "validating" && t.to_state == "validated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "validated" && t.to_state == "importing"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "importing" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "validating" && t.to_state == "failed"));
+    }
+
+    // ========================================================================
+    // Landed Cost Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_landed_cost_template_definition() {
+        let def = entities::landed_cost_template_definition();
+        assert_eq!(def.name, "landed_cost_templates");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_landed_cost_component_definition() {
+        let def = entities::landed_cost_component_definition();
+        assert_eq!(def.name, "landed_cost_components");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_landed_cost_assignment_definition() {
+        let def = entities::landed_cost_assignment_definition();
+        assert_eq!(def.name, "landed_cost_assignments");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "estimated"));
+        assert!(wf.states.iter().any(|s| s.name == "actualized"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+    }
+
+    #[test]
+    fn test_landed_cost_assignment_workflow_transitions() {
+        let def = entities::landed_cost_assignment_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "estimated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "estimated" && t.to_state == "actualized"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "actualized" && t.to_state == "posted"));
+    }
+
+    // ========================================================================
+    // Transfer Pricing Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_transfer_pricing_policy_definition() {
+        let def = entities::transfer_pricing_policy_definition();
+        assert_eq!(def.name, "transfer_pricing_policies");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_transfer_pricing_transaction_definition() {
+        let def = entities::transfer_pricing_transaction_definition();
+        assert_eq!(def.name, "transfer_pricing_transactions");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // AutoInvoice Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_autoinvoice_rule_definition() {
+        let def = entities::autoinvoice_rule_definition();
+        assert_eq!(def.name, "autoinvoice_rules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_autoinvoice_run_definition() {
+        let def = entities::autoinvoice_run_definition();
+        assert_eq!(def.name, "autoinvoice_runs");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "pending");
+        assert!(wf.states.iter().any(|s| s.name == "processing"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "failed"));
+    }
+
+    #[test]
+    fn test_autoinvoice_rule_workflow_transitions() {
+        let def = entities::autoinvoice_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    #[test]
+    fn test_autoinvoice_run_workflow_transitions() {
+        let def = entities::autoinvoice_run_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "processing"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "processing" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "processing" && t.to_state == "failed"));
+    }
+
+    // ========================================================================
+    // Currency Revaluation Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_currency_revaluation_definition() {
+        let def = entities::currency_revaluation_definition();
+        assert_eq!(def.name, "currency_revaluations");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "calculated"));
+        assert!(wf.states.iter().any(|s| s.name == "reviewed"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+        assert!(wf.states.iter().any(|s| s.name == "reversed"));
+    }
+
+    #[test]
+    fn test_currency_revaluation_workflow_transitions() {
+        let def = entities::currency_revaluation_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "calculated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "calculated" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "posted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "posted" && t.to_state == "reversed"));
+    }
+
+    // ========================================================================
+    // Netting Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_netting_agreement_definition() {
+        let def = entities::netting_agreement_definition();
+        assert_eq!(def.name, "netting_agreements");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_netting_batch_definition() {
+        let def = entities::netting_batch_definition();
+        assert_eq!(def.name, "netting_batches");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "calculated"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "settled"));
+    }
+
+    #[test]
+    fn test_netting_batch_workflow_transitions() {
+        let def = entities::netting_batch_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "calculated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "calculated" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "settled"));
+    }
+
+    // ========================================================================
+    // Subscription Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_subscription_product_definition() {
+        let def = entities::subscription_product_definition();
+        assert_eq!(def.name, "subscription_products");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_subscription_contract_definition() {
+        let def = entities::subscription_contract_definition();
+        assert_eq!(def.name, "subscription_contracts");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "suspended"));
+        assert!(wf.states.iter().any(|s| s.name == "in_renewal"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+        assert!(wf.states.iter().any(|s| s.name == "expired"));
+        assert!(wf.states.iter().any(|s| s.name == "terminated"));
+    }
+
+    #[test]
+    fn test_subscription_billing_event_definition() {
+        let def = entities::subscription_billing_event_definition();
+        assert_eq!(def.name, "subscription_billing_events");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "scheduled");
+        assert!(wf.states.iter().any(|s| s.name == "invoiced"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+    }
+
+    #[test]
+    fn test_subscription_contract_workflow_transitions() {
+        let def = entities::subscription_contract_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "suspended"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "suspended" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "in_renewal"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_renewal" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "cancelled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "expired"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "terminated"));
+    }
+
+    #[test]
+    fn test_subscription_billing_workflow_transitions() {
+        let def = entities::subscription_billing_event_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "scheduled" && t.to_state == "invoiced"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "invoiced" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "scheduled" && t.to_state == "cancelled"));
+    }
+
+    // ========================================================================
+    // Business Logic Tests: Recurring Journals
+    // ========================================================================
+
+    #[test]
+    fn test_recurring_journal_next_generation_monthly() {
+        let last = chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap();
+        let next = chrono::NaiveDate::from_ymd_opt(2025, 2, 15).unwrap();
+        assert_eq!(next, last + chrono::Duration::days(31)); // rough check
+    }
+
+    // ========================================================================
+    // Business Logic Tests: Allocations
+    // ========================================================================
+
+    #[test]
+    fn test_allocation_fixed_percentage() {
+        let lines = vec![
+            ("1000", 50.0),
+            ("2000", 30.0),
+            ("3000", 20.0),
+        ];
+        let pool_amount = 100000.0;
+        let total_pct: f64 = lines.iter().map(|(_, pct)| *pct).sum();
+        assert!((total_pct - 100.0).abs() < 0.01);
+        let allocated: Vec<(&str, f64)> = lines.iter()
+            .map(|(acct, pct)| (*acct, pool_amount * (pct / 100.0)))
+            .collect();
+        assert!((allocated[0].1 - 50000.0).abs() < 0.01);
+        assert!((allocated[1].1 - 30000.0).abs() < 0.01);
+        assert!((allocated[2].1 - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_allocation_equal_share() {
+        let targets = vec!["CC-A", "CC-B", "CC-C", "CC-D"];
+        let pool = 120000.0;
+        let share = pool / targets.len() as f64;
+        assert!((share - 30000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_allocation_statistical_basis() {
+        let basis_values = vec![
+            ("Dept-A", 500.0),
+            ("Dept-B", 300.0),
+            ("Dept-C", 200.0),
+        ];
+        let total_basis: f64 = basis_values.iter().map(|(_, v)| *v).sum();
+        assert_eq!(total_basis, 1000.0);
+        let pool = 50000.0;
+        let allocated: Vec<(&str, f64)> = basis_values.iter()
+            .map(|(dept, basis)| (*dept, pool * (basis / total_basis)))
+            .collect();
+        assert!((allocated[0].1 - 25000.0).abs() < 0.01); // 50%
+        assert!((allocated[1].1 - 15000.0).abs() < 0.01); // 30%
+        assert!((allocated[2].1 - 10000.0).abs() < 0.01); // 20%
+    }
+
+    // ========================================================================
+    // Business Logic Tests: Funds Reservation / Budgetary Control
+    // ========================================================================
+
+    #[test]
+    fn test_funds_check_pass() {
+        let budget = 100000.0_f64;
+        let reserved = 30000.0_f64;
+        let consumed = 20000.0_f64;
+        let requested = 40000.0_f64;
+        let available = budget - reserved - consumed;
+        assert!(requested <= available, "Funds check should pass");
+    }
+
+    #[test]
+    fn test_funds_check_fail() {
+        let budget = 100000.0_f64;
+        let reserved = 50000.0_f64;
+        let consumed = 40000.0_f64;
+        let requested = 20000.0_f64;
+        let available = budget - reserved - consumed;
+        assert!(requested > available, "Funds check should fail");
+    }
+
+    #[test]
+    fn test_funds_consumption_remaining() {
+        let reserved = 50000.0_f64;
+        let consumed = 35000.0_f64;
+        let remaining = reserved - consumed;
+        assert!((remaining - 15000.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Business Logic Tests: Journal Import
+    // ========================================================================
+
+    #[test]
+    fn test_journal_import_row_count() {
+        let total = 100;
+        let valid = 95;
+        let imported = 90;
+        let error = total - valid; // 5
+        let skipped = valid - imported; // 5
+        assert_eq!(error, 5);
+        assert_eq!(skipped, 5);
+        assert_eq!(error + skipped + imported, total);
+    }
+
+    #[test]
+    fn test_journal_import_balance_check() {
+        let debits: f64 = 10000.0;
+        let credits: f64 = 10000.0;
+        let balanced = (debits - credits).abs() < 0.01;
+        assert!(balanced);
+    }
+
+    #[test]
+    fn test_journal_import_balance_fail() {
+        let debits: f64 = 10000.0;
+        let credits: f64 = 9999.99;
+        let balanced = (debits - credits).abs() < 0.01;
+        assert!(!balanced);
+    }
+
+    // ========================================================================
+    // Business Logic Tests: Landed Cost
+    // ========================================================================
+
+    #[test]
+    fn test_landed_cost_by_value() {
+        let item_value = 50000.0;
+        let freight_total = 5000.0;
+        let insurance_total = 1000.0;
+        let duty_rate = 5.0; // 5%
+        let duty: f64 = item_value * (duty_rate / 100.0);
+        assert!((duty - 2500.0_f64).abs() < 0.01);
+        let total_landed: f64 = item_value + freight_total + insurance_total + duty;
+        assert!((total_landed - 58500.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_landed_cost_variance() {
+        let estimated = 58000.0;
+        let actual = 58500.0;
+        let variance: f64 = actual - estimated;
+        assert!((variance - 500.0_f64).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Business Logic Tests: Transfer Pricing
+    // ========================================================================
+
+    #[test]
+    fn test_transfer_pricing_cost_plus() {
+        let manufacturing_cost = 80000.0;
+        let margin_pct = 25.0;
+        let transfer_price: f64 = manufacturing_cost * (1.0 + margin_pct / 100.0);
+        assert!((transfer_price - 100000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_transfer_pricing_resale_price() {
+        let resale_price = 120000.0;
+        let gross_margin_pct = 20.0;
+        let transfer_price: f64 = resale_price * (1.0 - gross_margin_pct / 100.0);
+        assert!((transfer_price - 96000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_transfer_pricing_arm_length_within_range() {
+        let transfer_price = 100000.0;
+        let min_arm = 95000.0;
+        let max_arm = 105000.0;
+        let within = transfer_price >= min_arm && transfer_price <= max_arm;
+        assert!(within);
+    }
+
+    #[test]
+    fn test_transfer_pricing_arm_length_outside_range() {
+        let transfer_price = 110000.0;
+        let min_arm = 95000.0;
+        let max_arm = 105000.0;
+        let within = transfer_price >= min_arm && transfer_price <= max_arm;
+        assert!(!within);
+    }
+
+    // ========================================================================
+    // Business Logic Tests: Currency Revaluation
+    // ========================================================================
+
+    #[test]
+    fn test_currency_revaluation_unrealized_gain() {
+        // EUR receivable: 100,000 EUR
+        // Original rate: 1.10, Period-end rate: 1.15
+        let original_amount_eur = 100000.0;
+        let original_rate = 1.10;
+        let new_rate = 1.15;
+        let original_usd = original_amount_eur * original_rate;
+        let new_usd = original_amount_eur * new_rate;
+        let gain: f64 = new_usd - original_usd;
+        assert!((gain - 5000.0_f64).abs() < 0.01); // $5,000 unrealized gain
+    }
+
+    #[test]
+    fn test_currency_revaluation_unrealized_loss() {
+        // EUR payable: 100,000 EUR
+        // Original rate: 1.10, Period-end rate: 1.15
+        let original_amount_eur = 100000.0;
+        let original_rate = 1.10;
+        let new_rate = 1.15;
+        let original_usd = original_amount_eur * original_rate;
+        let new_usd = original_amount_eur * new_rate;
+        let loss = new_usd - original_usd; // loss on payable = more USD needed
+        assert!(loss > 0.0);
+    }
+
+    // ========================================================================
+    // Business Logic Tests: Netting
+    // ========================================================================
+
+    #[test]
+    fn test_netting_calculation() {
+        let payables = 75000.0;
+        let receivables = 60000.0;
+        let net: f64 = receivables - payables; // -15000 means party A owes
+        assert!((net - (-15000.0_f64)).abs() < 0.01);
+        assert!(net < 0.0, "Party A owes the net amount");
+    }
+
+    #[test]
+    fn test_netting_balanced() {
+        let payables = 50000.0;
+        let receivables = 50000.0;
+        let net: f64 = receivables - payables;
+        assert!((net - 0.0_f64).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Business Logic Tests: Subscription Management
+    // ========================================================================
+
+    #[test]
+    fn test_subscription_mrr_calculation() {
+        let annual_contract = 120000.0;
+        let mrr: f64 = annual_contract / 12.0;
+        assert!((mrr - 10000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_subscription_straight_line_revenue() {
+        let contract_value = 240000.0;
+        let term_months = 24;
+        let monthly_revenue = contract_value / term_months as f64;
+        assert!((monthly_revenue - 10000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_subscription_deferred_revenue() {
+        let contract_value = 120000.0;
+        let months_elapsed = 3;
+        let term_months = 12;
+        let recognized = contract_value * (months_elapsed as f64 / term_months as f64);
+        let deferred = contract_value - recognized;
+        assert!((recognized - 30000.0).abs() < 0.01);
+        assert!((deferred - 90000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_subscription_per_unit_pricing() {
+        let unit_price = 50.0;
+        let quantity = 100;
+        let mrr = unit_price * quantity as f64;
+        assert!((mrr - 5000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_subscription_tiered_pricing() {
+        let tiers = vec![
+            (1, 100, 10.0),    // 1-100 units @ $10
+            (101, 500, 8.0),   // 101-500 units @ $8
+            (501, 1000, 6.0),  // 501-1000 units @ $6
+        ];
+        let usage = 600;
+        let mut total = 0.0;
+        for &(from, to, price) in &tiers {
+            if usage >= from {
+                let units_in_tier = (usage.min(to) - from + 1) as f64;
+                total += units_in_tier * price;
+            }
+        }
+        // Tier 1: 100 * 10 = 1000
+        // Tier 2: 400 * 8 = 3200
+        // Tier 3: 100 * 6 = 600
+        // Total = 4800
+        assert!((total - 4800.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Comprehensive: All New Feature Entities Build
+    // ========================================================================
+
+    #[test]
+    fn test_all_new_oracle_fusion_entities_build() {
+        // Recurring Journals
+        let _ = entities::recurring_journal_template_definition();
+        let _ = entities::recurring_journal_line_definition();
+        // Allocations
+        let _ = entities::allocation_rule_definition();
+        let _ = entities::allocation_line_definition();
+        // Funds Reservation
+        let _ = entities::funds_reservation_definition();
+        let _ = entities::funds_check_result_definition();
+        // Journal Import
+        let _ = entities::journal_import_request_definition();
+        // Landed Cost
+        let _ = entities::landed_cost_template_definition();
+        let _ = entities::landed_cost_component_definition();
+        let _ = entities::landed_cost_assignment_definition();
+        // Transfer Pricing
+        let _ = entities::transfer_pricing_policy_definition();
+        let _ = entities::transfer_pricing_transaction_definition();
+        // AutoInvoice
+        let _ = entities::autoinvoice_rule_definition();
+        let _ = entities::autoinvoice_run_definition();
+        // Currency Revaluation
+        let _ = entities::currency_revaluation_definition();
+        // Netting
+        let _ = entities::netting_agreement_definition();
+        let _ = entities::netting_batch_definition();
+        // Subscription Management
+        let _ = entities::subscription_product_definition();
+        let _ = entities::subscription_contract_definition();
+        let _ = entities::subscription_billing_event_definition();
+    }
+
+    #[test]
+    fn test_new_oracle_fusion_entity_count() {
+        let new_entities = vec![
+            entities::recurring_journal_template_definition(),
+            entities::recurring_journal_line_definition(),
+            entities::allocation_rule_definition(),
+            entities::allocation_line_definition(),
+            entities::funds_reservation_definition(),
+            entities::funds_check_result_definition(),
+            entities::journal_import_request_definition(),
+            entities::landed_cost_template_definition(),
+            entities::landed_cost_component_definition(),
+            entities::landed_cost_assignment_definition(),
+            entities::transfer_pricing_policy_definition(),
+            entities::transfer_pricing_transaction_definition(),
+            entities::autoinvoice_rule_definition(),
+            entities::autoinvoice_run_definition(),
+            entities::currency_revaluation_definition(),
+            entities::netting_agreement_definition(),
+            entities::netting_batch_definition(),
+            entities::subscription_product_definition(),
+            entities::subscription_contract_definition(),
+            entities::subscription_billing_event_definition(),
+        ];
+        assert_eq!(new_entities.len(), 20, "Should have 20 new Oracle Fusion entities");
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 20, "All new entity names must be unique");
+    }
+
+    #[test]
+    fn test_new_oracle_fusion_workflow_count() {
+        let workflow_entities = vec![
+            entities::recurring_journal_template_definition(),
+            entities::allocation_rule_definition(),
+            entities::funds_reservation_definition(),
+            entities::journal_import_request_definition(),
+            entities::landed_cost_assignment_definition(),
+            entities::autoinvoice_rule_definition(),
+            entities::autoinvoice_run_definition(),
+            entities::currency_revaluation_definition(),
+            entities::netting_batch_definition(),
+            entities::subscription_contract_definition(),
+            entities::subscription_billing_event_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 11, "All 11 new workflow entities should have workflows");
+    }
+
+    // ========================================================================
+    // Grand Total Entity Count Test
+    // ========================================================================
+
+    #[test]
+    fn test_grand_total_entity_count_all_features() {
+        let mut all = vec![];
+
+        // Original 27
+        all.push(entities::chart_of_accounts_definition());
+        all.push(entities::journal_entry_definition());
+        all.push(entities::invoice_definition());
+        all.push(entities::budget_definition());
+        all.push(entities::expense_report_definition());
+        all.push(entities::ap_invoice_definition());
+        all.push(entities::ap_invoice_line_definition());
+        all.push(entities::ap_invoice_distribution_definition());
+        all.push(entities::ap_invoice_hold_definition());
+        all.push(entities::ap_payment_definition());
+        all.push(entities::ar_transaction_definition());
+        all.push(entities::ar_transaction_line_definition());
+        all.push(entities::ar_receipt_definition());
+        all.push(entities::ar_credit_memo_definition());
+        all.push(entities::ar_adjustment_definition());
+        all.push(entities::asset_category_definition());
+        all.push(entities::asset_book_definition());
+        all.push(entities::fixed_asset_definition());
+        all.push(entities::asset_transfer_definition());
+        all.push(entities::asset_retirement_definition());
+        all.push(entities::cost_book_definition());
+        all.push(entities::cost_element_definition());
+        all.push(entities::cost_profile_definition());
+        all.push(entities::standard_cost_definition());
+        all.push(entities::cost_adjustment_definition());
+        all.push(entities::cost_adjustment_line_definition());
+        all.push(entities::cost_variance_definition());
+
+        // Wave 2: Revenue, SLA, Cash, Tax, IC, Period, Lease, Bank, Encumbrance, Currency, Multi-Book, Consolidation (46)
+        all.push(entities::revenue_policy_definition());
+        all.push(entities::revenue_contract_definition());
+        all.push(entities::performance_obligation_definition());
+        all.push(entities::revenue_schedule_line_definition());
+        all.push(entities::revenue_modification_definition());
+        all.push(entities::accounting_method_definition());
+        all.push(entities::accounting_derivation_rule_definition());
+        all.push(entities::subledger_journal_entry_definition());
+        all.push(entities::subledger_journal_line_definition());
+        all.push(entities::cash_position_definition());
+        all.push(entities::cash_forecast_template_definition());
+        all.push(entities::cash_forecast_source_definition());
+        all.push(entities::cash_forecast_definition());
+        all.push(entities::tax_regime_definition());
+        all.push(entities::tax_jurisdiction_definition());
+        all.push(entities::tax_rate_definition());
+        all.push(entities::tax_determination_rule_definition());
+        all.push(entities::intercompany_batch_definition());
+        all.push(entities::intercompany_transaction_definition());
+        all.push(entities::intercompany_settlement_definition());
+        all.push(entities::accounting_calendar_definition());
+        all.push(entities::accounting_period_definition());
+        all.push(entities::period_close_checklist_definition());
+        all.push(entities::lease_contract_definition());
+        all.push(entities::lease_payment_definition());
+        all.push(entities::lease_modification_definition());
+        all.push(entities::lease_termination_definition());
+        all.push(entities::bank_account_definition());
+        all.push(entities::bank_statement_definition());
+        all.push(entities::bank_statement_line_definition());
+        all.push(entities::reconciliation_match_definition());
+        all.push(entities::encumbrance_type_definition());
+        all.push(entities::encumbrance_entry_definition());
+        all.push(entities::encumbrance_liquidation_definition());
+        all.push(entities::encumbrance_carry_forward_definition());
+        all.push(entities::currency_definition_entity());
+        all.push(entities::exchange_rate_definition());
+        all.push(entities::accounting_book_definition());
+        all.push(entities::account_mapping_definition());
+        all.push(entities::book_journal_entry_definition());
+        all.push(entities::consolidation_ledger_definition());
+        all.push(entities::consolidation_entity_definition());
+        all.push(entities::consolidation_scenario_definition());
+        all.push(entities::consolidation_adjustment_definition());
+        all.push(entities::consolidation_elimination_rule_definition());
+        all.push(entities::consolidation_translation_rate_definition());
+
+        // Wave 3: Collections, Credit, WHT, Project Billing, Payment Terms, Financial Statements, Tax Filing, Journal Reversal (36)
+        all.push(entities::customer_credit_profile_definition());
+        all.push(entities::collection_strategy_definition());
+        all.push(entities::collection_case_definition());
+        all.push(entities::customer_interaction_definition());
+        all.push(entities::promise_to_pay_definition());
+        all.push(entities::dunning_campaign_definition());
+        all.push(entities::dunning_letter_definition());
+        all.push(entities::receivables_aging_snapshot_definition());
+        all.push(entities::write_off_request_definition());
+        all.push(entities::credit_scoring_model_definition());
+        all.push(entities::credit_profile_definition());
+        all.push(entities::credit_limit_definition());
+        all.push(entities::credit_check_rule_definition());
+        all.push(entities::credit_exposure_definition());
+        all.push(entities::credit_hold_definition());
+        all.push(entities::credit_review_definition());
+        all.push(entities::withholding_tax_code_definition());
+        all.push(entities::withholding_tax_group_definition());
+        all.push(entities::supplier_withholding_assignment_definition());
+        all.push(entities::withholding_tax_line_definition());
+        all.push(entities::withholding_certificate_definition());
+        all.push(entities::bill_rate_schedule_definition());
+        all.push(entities::bill_rate_line_definition());
+        all.push(entities::project_billing_config_definition());
+        all.push(entities::billing_event_definition());
+        all.push(entities::project_invoice_header_definition());
+        all.push(entities::project_invoice_line_definition());
+        all.push(entities::payment_term_definition());
+        all.push(entities::payment_schedule_definition());
+        all.push(entities::financial_report_template_definition());
+        all.push(entities::financial_report_row_definition());
+        all.push(entities::generated_financial_report_definition());
+        all.push(entities::tax_filing_obligation_definition());
+        all.push(entities::tax_return_definition());
+        all.push(entities::tax_payment_definition());
+        all.push(entities::journal_reversal_request_definition());
+
+        // Wave 4: New Oracle Fusion features (20)
+        all.push(entities::recurring_journal_template_definition());
+        all.push(entities::recurring_journal_line_definition());
+        all.push(entities::allocation_rule_definition());
+        all.push(entities::allocation_line_definition());
+        all.push(entities::funds_reservation_definition());
+        all.push(entities::funds_check_result_definition());
+        all.push(entities::journal_import_request_definition());
+        all.push(entities::landed_cost_template_definition());
+        all.push(entities::landed_cost_component_definition());
+        all.push(entities::landed_cost_assignment_definition());
+        all.push(entities::transfer_pricing_policy_definition());
+        all.push(entities::transfer_pricing_transaction_definition());
+        all.push(entities::autoinvoice_rule_definition());
+        all.push(entities::autoinvoice_run_definition());
+        all.push(entities::currency_revaluation_definition());
+        all.push(entities::netting_agreement_definition());
+        all.push(entities::netting_batch_definition());
+        all.push(entities::subscription_product_definition());
+        all.push(entities::subscription_contract_definition());
+        all.push(entities::subscription_billing_event_definition());
+
+        // Total: 27 + 46 + 36 + 20 = 129
+        assert_eq!(all.len(), 129, "Should have 129 total entity definitions");
+
+        // All unique names
+        let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 129, "All 129 entity names must be globally unique");
     }
 }

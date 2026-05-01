@@ -32,4 +32,8 @@ pub use services::{
     CurrencyManagementService,
     MultiBookAccountingFinService,
     FinancialConsolidationFinService,
+    CollectionsManagementService,
+    CreditManagementFinService,
+    WithholdingTaxService,
+    ProjectBillingService,
 };

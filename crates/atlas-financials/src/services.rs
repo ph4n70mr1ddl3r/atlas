@@ -2355,6 +2355,722 @@ impl GeneralLedgerService {
     }
 }
 
+// ============================================================================
+// Collections Management Service
+// ============================================================================
+
+/// Collections Management service
+/// Oracle Fusion: Financials > Collections
+#[allow(dead_code)]
+pub struct CollectionsManagementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid risk classifications for collections
+const VALID_COLLECTION_RISK_CLASSIFICATIONS: &[&str] = &[
+    "low", "medium", "high", "very_high", "defaulted",
+];
+
+/// Valid collection case types
+const VALID_CASE_TYPES: &[&str] = &[
+    "collection", "dispute", "bankruptcy", "skip_trace",
+];
+
+/// Valid case priorities
+const VALID_CASE_PRIORITIES: &[&str] = &[
+    "low", "medium", "high", "critical",
+];
+
+/// Valid interaction types
+const VALID_INTERACTION_TYPES: &[&str] = &[
+    "phone_call", "email", "letter", "meeting", "note", "sms",
+];
+
+/// Valid interaction outcomes
+const VALID_INTERACTION_OUTCOMES: &[&str] = &[
+    "contacted", "left_message", "no_answer", "promised_to_pay",
+    "disputed", "refused", "agreed_payment_plan", "escalated", "no_action",
+];
+
+/// Valid promise types
+const VALID_PROMISE_TYPES: &[&str] = &[
+    "single_payment", "installment", "full_balance",
+];
+
+/// Valid dunning levels
+const VALID_DUNNING_LEVELS: &[&str] = &[
+    "reminder", "first_notice", "second_notice", "final_notice", "pre_legal", "legal",
+];
+
+/// Valid communication methods for dunning
+const VALID_DUNNING_COMM_METHODS: &[&str] = &[
+    "email", "letter", "sms", "phone",
+];
+
+/// Valid write-off types
+const VALID_WRITE_OFF_TYPES: &[&str] = &[
+    "bad_debt", "small_balance", "dispute", "adjustment",
+];
+
+/// Valid resolution types
+const VALID_RESOLUTION_TYPES: &[&str] = &[
+    "full_payment", "partial_payment", "payment_plan",
+    "write_off", "dispute_resolved", "uncollectible", "other",
+];
+
+impl CollectionsManagementService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate and create a customer credit profile
+    /// Oracle Fusion: Collections > Customer Credit Profiles
+    pub async fn create_credit_profile(
+        &self,
+        customer_id: RecordId,
+        credit_limit: &str,
+        risk_classification: &str,
+        credit_score: Option<i32>,
+        payment_terms: &str,
+    ) -> AtlasResult<()> {
+        let limit: f64 = credit_limit.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Credit limit must be a valid number".to_string(),
+        ))?;
+        if limit < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Credit limit must be non-negative".to_string(),
+            ));
+        }
+        if !VALID_COLLECTION_RISK_CLASSIFICATIONS.contains(&risk_classification) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid risk_classification '{}'. Must be one of: {}",
+                risk_classification, VALID_COLLECTION_RISK_CLASSIFICATIONS.join(", ")
+            )));
+        }
+        if let Some(score) = credit_score {
+            if !(0..=1000).contains(&score) {
+                return Err(AtlasError::ValidationFailed(
+                    "Credit score must be between 0 and 1000".to_string(),
+                ));
+            }
+        }
+
+        info!(
+            "Collections Service: Creating credit profile for customer {} (limit: {:.2}, risk: {})",
+            customer_id, limit, risk_classification
+        );
+        Ok(())
+    }
+
+    /// Check if customer has available credit
+    pub fn check_credit_available(
+        credit_limit: f64,
+        credit_used: f64,
+        additional_amount: f64,
+        credit_hold: bool,
+    ) -> bool {
+        if credit_hold {
+            return false;
+        }
+        let available = credit_limit - credit_used;
+        additional_amount <= available
+    }
+
+    /// Calculate credit utilization percentage
+    pub fn calculate_utilization(credit_used: f64, credit_limit: f64) -> f64 {
+        if credit_limit <= 0.0 {
+            return 0.0;
+        }
+        (credit_used / credit_limit) * 100.0
+    }
+
+    /// Calculate aging bucket from overdue days
+    pub fn aging_bucket_from_days(days_overdue: i32) -> &'static str {
+        match days_overdue {
+            d if d <= 0 => "current",
+            d if d <= 30 => "1_30",
+            d if d <= 60 => "31_60",
+            d if d <= 90 => "61_90",
+            d if d <= 120 => "91_120",
+            _ => "121_plus",
+        }
+    }
+
+    /// Validate a collection case creation
+    /// Oracle Fusion: Collections > Collection Cases
+    pub fn validate_case(
+        case_type: &str,
+        priority: &str,
+    ) -> AtlasResult<()> {
+        if !VALID_CASE_TYPES.contains(&case_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid case_type '{}'. Must be one of: {}",
+                case_type, VALID_CASE_TYPES.join(", ")
+            )));
+        }
+        if !VALID_CASE_PRIORITIES.contains(&priority) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid priority '{}'. Must be one of: {}",
+                priority, VALID_CASE_PRIORITIES.join(", ")
+            )));
+        }
+        Ok(())
+    }
+
+    /// Calculate days sales outstanding (DSO)
+    pub fn calculate_dso(
+        total_accounts_receivable: f64,
+        total_credit_sales: f64,
+        number_of_days: i32,
+    ) -> f64 {
+        if total_credit_sales <= 0.0 {
+            return 0.0;
+        }
+        (total_accounts_receivable / total_credit_sales) * number_of_days as f64
+    }
+
+    /// Calculate bad debt provision
+    pub fn calculate_bad_debt_provision(
+        total_outstanding: f64,
+        historical_bad_debt_rate: f64,
+    ) -> f64 {
+        total_outstanding * (historical_bad_debt_rate / 100.0)
+    }
+
+    /// Calculate collection effectiveness index (CEI)
+    pub fn calculate_cei(
+        beginning_receivables: f64,
+        credit_sales: f64,
+        ending_total_receivables: f64,
+        ending_current_receivables: f64,
+        total_collections: f64,
+    ) -> f64 {
+        let denom = beginning_receivables + credit_sales - ending_current_receivables;
+        if denom <= 0.0 {
+            return 0.0;
+        }
+        ((beginning_receivables + credit_sales - ending_total_receivables) / denom) * 100.0
+    }
+}
+
+// ============================================================================
+// Credit Management Service
+// ============================================================================
+
+/// Credit Management service
+/// Oracle Fusion: Financials > Credit Management
+#[allow(dead_code)]
+pub struct CreditManagementFinService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid credit model types
+const VALID_CREDIT_MODEL_TYPES: &[&str] = &[
+    "manual", "scorecard", "risk_category", "external",
+];
+
+/// Valid credit profile types
+const VALID_CREDIT_PROFILE_TYPES: &[&str] = &[
+    "customer", "customer_group", "global",
+];
+
+/// Valid credit risk levels
+const VALID_CREDIT_RISK_LEVELS: &[&str] = &[
+    "low", "medium", "high", "very_high", "blocked",
+];
+
+/// Valid credit limit types
+const VALID_CREDIT_LIMIT_TYPES: &[&str] = &[
+    "overall", "order", "delivery", "currency",
+];
+
+/// Valid credit check points
+const VALID_CREDIT_CHECK_POINTS: &[&str] = &[
+    "order_entry", "shipment", "invoice", "delivery", "payment",
+];
+
+/// Valid credit check types
+const VALID_CREDIT_CHECK_TYPES: &[&str] = &[
+    "automatic", "manual",
+];
+
+/// Valid failure actions
+const VALID_FAILURE_ACTIONS: &[&str] = &[
+    "hold", "warn", "reject", "notify",
+];
+
+/// Valid credit hold types
+const VALID_CREDIT_HOLD_TYPES: &[&str] = &[
+    "credit_limit", "overdue", "review", "manual", "scoring",
+];
+
+/// Valid credit review types
+const VALID_CREDIT_REVIEW_TYPES: &[&str] = &[
+    "periodic", "triggered", "ad_hoc", "escalation",
+];
+
+impl CreditManagementFinService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a credit scoring model
+    /// Oracle Fusion: Credit Management > Credit Scoring Models
+    pub async fn create_scoring_model(
+        &self,
+        code: &str,
+        name: &str,
+        model_type: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Scoring model code and name are required".to_string(),
+            ));
+        }
+        if !VALID_CREDIT_MODEL_TYPES.contains(&model_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid model_type '{}'. Must be one of: {}",
+                model_type, VALID_CREDIT_MODEL_TYPES.join(", ")
+            )));
+        }
+        info!("Credit Service: Creating scoring model '{}' ({})", code, model_type);
+        Ok(())
+    }
+
+    /// Create and validate a credit profile
+    /// Oracle Fusion: Credit Management > Credit Profiles
+    pub async fn create_credit_profile(
+        &self,
+        profile_number: &str,
+        profile_name: &str,
+        profile_type: &str,
+        credit_score: Option<f64>,
+        risk_level: &str,
+    ) -> AtlasResult<()> {
+        if profile_number.is_empty() || profile_name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Profile number and name are required".to_string(),
+            ));
+        }
+        if !VALID_CREDIT_PROFILE_TYPES.contains(&profile_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid profile_type '{}'. Must be one of: {}",
+                profile_type, VALID_CREDIT_PROFILE_TYPES.join(", ")
+            )));
+        }
+        if !VALID_CREDIT_RISK_LEVELS.contains(&risk_level) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid risk_level '{}'. Must be one of: {}",
+                risk_level, VALID_CREDIT_RISK_LEVELS.join(", ")
+            )));
+        }
+        if let Some(score) = credit_score {
+            if !(0.0..=100.0).contains(&score) {
+                return Err(AtlasError::ValidationFailed(
+                    "Credit score must be between 0 and 100".to_string(),
+                ));
+            }
+        }
+        info!("Credit Service: Creating profile '{}' (type: {}, risk: {})",
+            profile_number, profile_type, risk_level);
+        Ok(())
+    }
+
+    /// Validate a credit limit setup
+    /// Oracle Fusion: Credit Management > Credit Limits
+    pub fn validate_credit_limit(
+        limit_type: &str,
+        credit_limit: f64,
+        temp_increase: f64,
+    ) -> AtlasResult<()> {
+        if !VALID_CREDIT_LIMIT_TYPES.contains(&limit_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid limit_type '{}'. Must be one of: {}",
+                limit_type, VALID_CREDIT_LIMIT_TYPES.join(", ")
+            )));
+        }
+        if credit_limit < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Credit limit must be non-negative".to_string(),
+            ));
+        }
+        if temp_increase < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Temporary limit increase must be non-negative".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Calculate credit exposure
+    pub fn calculate_exposure(
+        open_receivables: f64,
+        open_orders: f64,
+        open_shipments: f64,
+        unapplied_cash: f64,
+        on_hold: f64,
+    ) -> f64 {
+        open_receivables + open_orders + open_shipments - unapplied_cash + on_hold
+    }
+
+    /// Calculate utilization percentage
+    pub fn calculate_credit_utilization(
+        total_exposure: f64,
+        credit_limit: f64,
+    ) -> f64 {
+        if credit_limit <= 0.0 {
+            return 0.0;
+        }
+        (total_exposure / credit_limit) * 100.0
+    }
+
+    /// Calculate available credit
+    pub fn calculate_available_credit(
+        credit_limit: f64,
+        temp_increase: f64,
+        total_exposure: f64,
+    ) -> f64 {
+        (credit_limit + temp_increase) - total_exposure
+    }
+
+    /// Determine risk level from credit score
+    pub fn risk_level_from_score(score: f64) -> &'static str {
+        if score >= 80.0 {
+            "low"
+        } else if score >= 60.0 {
+            "medium"
+        } else if score >= 40.0 {
+            "high"
+        } else {
+            "very_high"
+        }
+    }
+}
+
+// ============================================================================
+// Withholding Tax Service
+// ============================================================================
+
+/// Withholding Tax service
+/// Oracle Fusion: Payables > Withholding Tax
+#[allow(dead_code)]
+pub struct WithholdingTaxService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid withholding tax types
+const VALID_WHT_TAX_TYPES: &[&str] = &[
+    "income_tax", "vat", "service_tax", "contract_tax",
+    "royalty", "dividend", "interest", "other",
+];
+
+/// Valid withholding line statuses
+const VALID_WHT_LINE_STATUSES: &[&str] = &[
+    "pending", "withheld", "remitted", "refunded",
+];
+
+/// Valid certificate statuses
+const VALID_WHT_CERT_STATUSES: &[&str] = &[
+    "draft", "issued", "acknowledged", "cancelled",
+];
+
+impl WithholdingTaxService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a withholding tax code
+    /// Oracle Fusion: Payables > Withholding Tax > Tax Codes
+    pub async fn create_tax_code(
+        &self,
+        code: &str,
+        name: &str,
+        tax_type: &str,
+        rate_percentage: &str,
+        threshold_amount: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Tax code and name are required".to_string(),
+            ));
+        }
+        if !VALID_WHT_TAX_TYPES.contains(&tax_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid tax_type '{}'. Must be one of: {}",
+                tax_type, VALID_WHT_TAX_TYPES.join(", ")
+            )));
+        }
+        let rate: f64 = rate_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
+            "rate_percentage must be a valid number".to_string(),
+        ))?;
+        if !(0.0..=100.0).contains(&rate) {
+            return Err(AtlasError::ValidationFailed(
+                "rate_percentage must be between 0 and 100".to_string(),
+            ));
+        }
+        let threshold: f64 = threshold_amount.parse().map_err(|_| AtlasError::ValidationFailed(
+            "threshold_amount must be a valid number".to_string(),
+        ))?;
+        if threshold < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "threshold_amount must be non-negative".to_string(),
+            ));
+        }
+        info!("WHT Service: Creating tax code '{}' ({}) rate={}%", code, tax_type, rate);
+        Ok(())
+    }
+
+    /// Calculate withholding tax amount
+    pub fn calculate_withholding(
+        taxable_amount: f64,
+        rate_percentage: f64,
+        threshold_amount: f64,
+        is_cumulative: bool,
+        year_to_date_taxable: f64,
+    ) -> f64 {
+        if is_cumulative {
+            // Cumulative threshold: only withhold if YTD exceeds threshold
+            let total_ytd = year_to_date_taxable + taxable_amount;
+            if total_ytd <= threshold_amount {
+                return 0.0;
+            }
+            // If already past threshold, withhold on full amount
+            if year_to_date_taxable >= threshold_amount {
+                return taxable_amount * (rate_percentage / 100.0);
+            }
+            // Partially past threshold
+            let excess = total_ytd - threshold_amount;
+            let taxable_portion = excess.min(taxable_amount);
+            return taxable_portion * (rate_percentage / 100.0);
+        } else {
+            // Per-invoice threshold
+            if taxable_amount <= threshold_amount {
+                return 0.0;
+            }
+            return taxable_amount * (rate_percentage / 100.0);
+        }
+    }
+
+    /// Calculate net payment amount after withholding
+    pub fn calculate_net_payment(
+        gross_amount: f64,
+        withheld_amount: f64,
+    ) -> f64 {
+        gross_amount - withheld_amount
+    }
+
+    /// Calculate year-to-date withholding total
+    pub fn calculate_ytd_withholding(
+        lines: &[f64],
+    ) -> f64 {
+        lines.iter().sum()
+    }
+}
+
+// ============================================================================
+// Project Billing Service
+// ============================================================================
+
+/// Project Billing service
+/// Oracle Fusion: Project Management > Project Billing
+#[allow(dead_code)]
+pub struct ProjectBillingService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid schedule types
+const VALID_SCHEDULE_TYPES: &[&str] = &[
+    "standard", "overtime", "holiday", "custom",
+];
+
+/// Valid billing methods
+const VALID_BILLING_METHODS: &[&str] = &[
+    "time_and_materials", "fixed_price", "milestone", "cost_plus", "retention",
+];
+
+/// Valid invoice formats
+const VALID_INVOICE_FORMATS: &[&str] = &[
+    "detailed", "summary", "consolidated",
+];
+
+/// Valid billing cycles
+const VALID_BILLING_CYCLES: &[&str] = &[
+    "weekly", "biweekly", "monthly", "milestone",
+];
+
+/// Valid billing event types
+const VALID_EVENT_TYPES: &[&str] = &[
+    "milestone", "progress", "completion", "retention_release",
+];
+
+/// Valid project invoice types
+const VALID_PROJECT_INVOICE_TYPES: &[&str] = &[
+    "progress", "milestone", "t_and_m", "retention_release",
+    "debit_memo", "credit_memo",
+];
+
+/// Valid line sources
+const VALID_LINE_SOURCES: &[&str] = &[
+    "expenditure_item", "billing_event", "retention", "manual",
+];
+
+impl ProjectBillingService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a bill rate schedule
+    /// Oracle Fusion: Project Billing > Bill Rate Schedules
+    pub async fn create_bill_rate_schedule(
+        &self,
+        schedule_number: &str,
+        name: &str,
+        schedule_type: &str,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if schedule_number.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Schedule number and name are required".to_string(),
+            ));
+        }
+        if !VALID_SCHEDULE_TYPES.contains(&schedule_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid schedule_type '{}'. Must be one of: {}",
+                schedule_type, VALID_SCHEDULE_TYPES.join(", ")
+            )));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        info!("Project Billing Service: Creating schedule '{}' ({})", schedule_number, schedule_type);
+        Ok(())
+    }
+
+    /// Create and validate a project billing configuration
+    /// Oracle Fusion: Project Billing > Billing Configuration
+    pub async fn create_billing_config(
+        &self,
+        project_id: RecordId,
+        billing_method: &str,
+        currency_code: &str,
+        invoice_format: &str,
+        billing_cycle: &str,
+    ) -> AtlasResult<()> {
+        if !VALID_BILLING_METHODS.contains(&billing_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid billing_method '{}'. Must be one of: {}",
+                billing_method, VALID_BILLING_METHODS.join(", ")
+            )));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        if !VALID_INVOICE_FORMATS.contains(&invoice_format) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid invoice_format '{}'. Must be one of: {}",
+                invoice_format, VALID_INVOICE_FORMATS.join(", ")
+            )));
+        }
+        if !VALID_BILLING_CYCLES.contains(&billing_cycle) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid billing_cycle '{}'. Must be one of: {}",
+                billing_cycle, VALID_BILLING_CYCLES.join(", ")
+            )));
+        }
+        info!("Project Billing Service: Configuring project {} for {} billing",
+            project_id, billing_method);
+        Ok(())
+    }
+
+    /// Calculate bill amount for time and materials
+    pub fn calculate_tm_bill_amount(
+        hours: f64,
+        bill_rate: f64,
+        markup_pct: f64,
+    ) -> f64 {
+        let base = hours * bill_rate;
+        base + (base * markup_pct / 100.0)
+    }
+
+    /// Calculate retention amount
+    pub fn calculate_retention(
+        bill_amount: f64,
+        retention_pct: f64,
+        retention_cap: f64,
+    ) -> f64 {
+        let ret = bill_amount * (retention_pct / 100.0);
+        if retention_cap > 0.0 {
+            ret.min(retention_cap)
+        } else {
+            ret
+        }
+    }
+
+    /// Calculate net billable amount (after retention)
+    pub fn calculate_net_billable(
+        bill_amount: f64,
+        retention_amount: f64,
+        tax_amount: f64,
+    ) -> f64 {
+        bill_amount - retention_amount + tax_amount
+    }
+
+    /// Calculate progress billing percentage
+    pub fn calculate_progress_pct(
+        completed_value: f64,
+        total_contract_value: f64,
+    ) -> f64 {
+        if total_contract_value <= 0.0 {
+            return 0.0;
+        }
+        ((completed_value / total_contract_value) * 100.0).min(100.0)
+    }
+
+    /// Calculate earned revenue for fixed-price project
+    pub fn calculate_earned_revenue(
+        total_contract_value: f64,
+        completion_pct: f64,
+    ) -> f64 {
+        total_contract_value * (completion_pct / 100.0)
+    }
+
+    /// Calculate cost-plus billing
+    pub fn calculate_cost_plus_bill(
+        actual_cost: f64,
+        markup_pct: f64,
+    ) -> f64 {
+        actual_cost * (1.0 + markup_pct / 100.0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -4411,5 +5127,1091 @@ mod tests {
         assert_eq!(all_entities.len(), 73);
         let names: std::collections::HashSet<&str> = all_entities.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names.len(), 73, "All entity names must be globally unique");
+    }
+
+    // ========================================================================
+    // Collections Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_customer_credit_profile_definition() {
+        let def = entities::customer_credit_profile_definition();
+        assert_eq!(def.name, "customer_credit_profiles");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_collection_strategy_definition() {
+        let def = entities::collection_strategy_definition();
+        assert_eq!(def.name, "collection_strategies");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_collection_case_definition() {
+        let def = entities::collection_case_definition();
+        assert_eq!(def.name, "collection_cases");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "open");
+        assert!(wf.states.iter().any(|s| s.name == "in_progress"));
+        assert!(wf.states.iter().any(|s| s.name == "escalated"));
+        assert!(wf.states.iter().any(|s| s.name == "resolved"));
+        assert!(wf.states.iter().any(|s| s.name == "closed"));
+        assert!(wf.states.iter().any(|s| s.name == "written_off"));
+    }
+
+    #[test]
+    fn test_customer_interaction_definition() {
+        let def = entities::customer_interaction_definition();
+        assert_eq!(def.name, "customer_interactions");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_promise_to_pay_definition() {
+        let def = entities::promise_to_pay_definition();
+        assert_eq!(def.name, "promise_to_pay");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "pending");
+        assert!(wf.states.iter().any(|s| s.name == "partially_kept"));
+        assert!(wf.states.iter().any(|s| s.name == "kept"));
+        assert!(wf.states.iter().any(|s| s.name == "broken"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_dunning_campaign_definition() {
+        let def = entities::dunning_campaign_definition();
+        assert_eq!(def.name, "dunning_campaigns");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "scheduled"));
+        assert!(wf.states.iter().any(|s| s.name == "in_progress"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_dunning_letter_definition() {
+        let def = entities::dunning_letter_definition();
+        assert_eq!(def.name, "dunning_letters");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_receivables_aging_snapshot_definition() {
+        let def = entities::receivables_aging_snapshot_definition();
+        assert_eq!(def.name, "receivables_aging_snapshots");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_write_off_request_definition() {
+        let def = entities::write_off_request_definition();
+        assert_eq!(def.name, "write_off_requests");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+        assert!(wf.states.iter().any(|s| s.name == "processed"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    // ========================================================================
+    // Collections Management Validation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_collection_risk_classifications_valid() {
+        let valid = ["low", "medium", "high", "very_high", "defaulted"];
+        for r in &valid {
+            assert!(super::VALID_COLLECTION_RISK_CLASSIFICATIONS.contains(r));
+        }
+        assert!(!super::VALID_COLLECTION_RISK_CLASSIFICATIONS.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_case_types_valid() {
+        let valid = ["collection", "dispute", "bankruptcy", "skip_trace"];
+        for t in &valid {
+            assert!(super::VALID_CASE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_case_priorities_valid() {
+        let valid = ["low", "medium", "high", "critical"];
+        for p in &valid {
+            assert!(super::VALID_CASE_PRIORITIES.contains(p));
+        }
+    }
+
+    #[test]
+    fn test_interaction_types_valid() {
+        let valid = ["phone_call", "email", "letter", "meeting", "note", "sms"];
+        for t in &valid {
+            assert!(super::VALID_INTERACTION_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_interaction_outcomes_valid() {
+        let valid = ["contacted", "left_message", "no_answer", "promised_to_pay",
+                     "disputed", "refused", "agreed_payment_plan", "escalated", "no_action"];
+        for o in &valid {
+            assert!(super::VALID_INTERACTION_OUTCOMES.contains(o));
+        }
+    }
+
+    #[test]
+    fn test_promise_types_valid() {
+        let valid = ["single_payment", "installment", "full_balance"];
+        for t in &valid {
+            assert!(super::VALID_PROMISE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_dunning_levels_valid() {
+        let valid = ["reminder", "first_notice", "second_notice", "final_notice", "pre_legal", "legal"];
+        for l in &valid {
+            assert!(super::VALID_DUNNING_LEVELS.contains(l));
+        }
+    }
+
+    #[test]
+    fn test_dunning_comm_methods_valid() {
+        let valid = ["email", "letter", "sms", "phone"];
+        for m in &valid {
+            assert!(super::VALID_DUNNING_COMM_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_write_off_types_valid() {
+        let valid = ["bad_debt", "small_balance", "dispute", "adjustment"];
+        for t in &valid {
+            assert!(super::VALID_WRITE_OFF_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_resolution_types_valid() {
+        let valid = ["full_payment", "partial_payment", "payment_plan",
+                     "write_off", "dispute_resolved", "uncollectible", "other"];
+        for t in &valid {
+            assert!(super::VALID_RESOLUTION_TYPES.contains(t));
+        }
+    }
+
+    // ========================================================================
+    // Collections Management Business Logic Tests
+    // ========================================================================
+
+    #[test]
+    fn test_check_credit_available_within_limit() {
+        let available = super::CollectionsManagementService::check_credit_available(
+            100000.0, 60000.0, 30000.0, false,
+        );
+        assert!(available); // 100k - 60k = 40k available, 30k requested
+    }
+
+    #[test]
+    fn test_check_credit_available_exceeds_limit() {
+        let available = super::CollectionsManagementService::check_credit_available(
+            100000.0, 80000.0, 30000.0, false,
+        );
+        assert!(!available); // 100k - 80k = 20k available, 30k requested
+    }
+
+    #[test]
+    fn test_check_credit_available_on_hold() {
+        let available = super::CollectionsManagementService::check_credit_available(
+            100000.0, 1000.0, 100.0, true,
+        );
+        assert!(!available); // On hold, always false
+    }
+
+    #[test]
+    fn test_calculate_utilization() {
+        let pct = super::CollectionsManagementService::calculate_utilization(75000.0, 100000.0);
+        assert!((pct - 75.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_utilization_zero_limit() {
+        let pct = super::CollectionsManagementService::calculate_utilization(50000.0, 0.0);
+        assert_eq!(pct, 0.0);
+    }
+
+    #[test]
+    fn test_aging_bucket_current() {
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(0), "current");
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(-5), "current");
+    }
+
+    #[test]
+    fn test_aging_bucket_1_30() {
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(1), "1_30");
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(30), "1_30");
+    }
+
+    #[test]
+    fn test_aging_bucket_31_60() {
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(31), "31_60");
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(60), "31_60");
+    }
+
+    #[test]
+    fn test_aging_bucket_61_90() {
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(61), "61_90");
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(90), "61_90");
+    }
+
+    #[test]
+    fn test_aging_bucket_91_120() {
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(91), "91_120");
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(120), "91_120");
+    }
+
+    #[test]
+    fn test_aging_bucket_121_plus() {
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(121), "121_plus");
+        assert_eq!(super::CollectionsManagementService::aging_bucket_from_days(365), "121_plus");
+    }
+
+    #[test]
+    fn test_calculate_dso() {
+        let dso = super::CollectionsManagementService::calculate_dso(
+            500000.0, 3000000.0, 365,
+        );
+        // DSO = (500k / 3M) * 365 ≈ 60.83
+        assert!((dso - 60.83).abs() < 1.0);
+    }
+
+    #[test]
+    fn test_calculate_dso_zero_sales() {
+        let dso = super::CollectionsManagementService::calculate_dso(
+            500000.0, 0.0, 365,
+        );
+        assert_eq!(dso, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_bad_debt_provision() {
+        let provision = super::CollectionsManagementService::calculate_bad_debt_provision(
+            1000000.0, 2.5,
+        );
+        assert!((provision - 25000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_cei() {
+        // CEI = (begin + sales - end_total) / (begin + sales - end_current) * 100
+        let cei = super::CollectionsManagementService::calculate_cei(
+            500000.0, 300000.0, 200000.0, 50000.0, 550000.0,
+        );
+        // (500k + 300k - 200k) / (500k + 300k - 50k) * 100 = 600k / 750k * 100 = 80%
+        assert!((cei - 80.0).abs() < 0.1);
+    }
+
+    // ========================================================================
+    // Collections Workflow Tests
+    // ========================================================================
+
+    #[test]
+    fn test_collection_case_workflow_transitions() {
+        let def = entities::collection_case_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "open" && t.to_state == "in_progress"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_progress" && t.to_state == "escalated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_progress" && t.to_state == "resolved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "escalated" && t.to_state == "resolved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "resolved" && t.to_state == "closed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_progress" && t.to_state == "written_off"));
+    }
+
+    #[test]
+    fn test_promise_to_pay_workflow_transitions() {
+        let def = entities::promise_to_pay_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "partially_kept"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "kept"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "broken"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "cancelled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "partially_kept" && t.to_state == "kept"));
+    }
+
+    #[test]
+    fn test_dunning_campaign_workflow_transitions() {
+        let def = entities::dunning_campaign_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "scheduled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "scheduled" && t.to_state == "in_progress"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_progress" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+    }
+
+    #[test]
+    fn test_write_off_workflow_transitions() {
+        let def = entities::write_off_request_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "rejected"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "processed"));
+    }
+
+    // ========================================================================
+    // Credit Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_credit_scoring_model_definition() {
+        let def = entities::credit_scoring_model_definition();
+        assert_eq!(def.name, "credit_scoring_models");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_credit_profile_definition() {
+        let def = entities::credit_profile_definition();
+        assert_eq!(def.name, "credit_profiles");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "active");
+        assert!(wf.states.iter().any(|s| s.name == "suspended"));
+        assert!(wf.states.iter().any(|s| s.name == "blocked"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_credit_limit_definition() {
+        let def = entities::credit_limit_definition();
+        assert_eq!(def.name, "credit_limits");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_credit_check_rule_definition() {
+        let def = entities::credit_check_rule_definition();
+        assert_eq!(def.name, "credit_check_rules");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_credit_exposure_definition() {
+        let def = entities::credit_exposure_definition();
+        assert_eq!(def.name, "credit_exposure");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_credit_hold_definition() {
+        let def = entities::credit_hold_definition();
+        assert_eq!(def.name, "credit_holds");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "active");
+        assert!(wf.states.iter().any(|s| s.name == "released"));
+        assert!(wf.states.iter().any(|s| s.name == "overridden"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_credit_review_definition() {
+        let def = entities::credit_review_definition();
+        assert_eq!(def.name, "credit_reviews");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "pending");
+        assert!(wf.states.iter().any(|s| s.name == "in_review"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    // ========================================================================
+    // Credit Management Validation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_credit_model_types_valid() {
+        let valid = ["manual", "scorecard", "risk_category", "external"];
+        for t in &valid {
+            assert!(super::VALID_CREDIT_MODEL_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_credit_profile_types_valid() {
+        let valid = ["customer", "customer_group", "global"];
+        for t in &valid {
+            assert!(super::VALID_CREDIT_PROFILE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_credit_risk_levels_valid() {
+        let valid = ["low", "medium", "high", "very_high", "blocked"];
+        for l in &valid {
+            assert!(super::VALID_CREDIT_RISK_LEVELS.contains(l));
+        }
+    }
+
+    #[test]
+    fn test_credit_limit_types_valid() {
+        let valid = ["overall", "order", "delivery", "currency"];
+        for t in &valid {
+            assert!(super::VALID_CREDIT_LIMIT_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_credit_check_points_valid() {
+        let valid = ["order_entry", "shipment", "invoice", "delivery", "payment"];
+        for p in &valid {
+            assert!(super::VALID_CREDIT_CHECK_POINTS.contains(p));
+        }
+    }
+
+    #[test]
+    fn test_credit_check_types_valid() {
+        let valid = ["automatic", "manual"];
+        for t in &valid {
+            assert!(super::VALID_CREDIT_CHECK_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_failure_actions_valid() {
+        let valid = ["hold", "warn", "reject", "notify"];
+        for a in &valid {
+            assert!(super::VALID_FAILURE_ACTIONS.contains(a));
+        }
+    }
+
+    #[test]
+    fn test_credit_hold_types_valid() {
+        let valid = ["credit_limit", "overdue", "review", "manual", "scoring"];
+        for t in &valid {
+            assert!(super::VALID_CREDIT_HOLD_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_credit_review_types_valid() {
+        let valid = ["periodic", "triggered", "ad_hoc", "escalation"];
+        for t in &valid {
+            assert!(super::VALID_CREDIT_REVIEW_TYPES.contains(t));
+        }
+    }
+
+    // ========================================================================
+    // Credit Management Business Logic Tests
+    // ========================================================================
+
+    #[test]
+    fn test_credit_exposure_calculation() {
+        let exposure = super::CreditManagementFinService::calculate_exposure(
+            200000.0, 50000.0, 30000.0, 10000.0, 5000.0,
+        );
+        // 200k + 50k + 30k - 10k + 5k = 275k
+        assert!((exposure - 275000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_credit_utilization_calculation() {
+        let pct = super::CreditManagementFinService::calculate_credit_utilization(
+            75000.0, 100000.0,
+        );
+        assert!((pct - 75.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_credit_utilization_zero_limit() {
+        let pct = super::CreditManagementFinService::calculate_credit_utilization(
+            50000.0, 0.0,
+        );
+        assert_eq!(pct, 0.0);
+    }
+
+    #[test]
+    fn test_available_credit_calculation() {
+        let available = super::CreditManagementFinService::calculate_available_credit(
+            100000.0, 20000.0, 75000.0,
+        );
+        // (100k + 20k) - 75k = 45k
+        assert!((available - 45000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_available_credit_negative() {
+        let available = super::CreditManagementFinService::calculate_available_credit(
+            100000.0, 0.0, 150000.0,
+        );
+        // 100k - 150k = -50k
+        assert!(available < 0.0);
+    }
+
+    #[test]
+    fn test_risk_level_from_score() {
+        assert_eq!(super::CreditManagementFinService::risk_level_from_score(95.0), "low");
+        assert_eq!(super::CreditManagementFinService::risk_level_from_score(70.0), "medium");
+        assert_eq!(super::CreditManagementFinService::risk_level_from_score(50.0), "high");
+        assert_eq!(super::CreditManagementFinService::risk_level_from_score(20.0), "very_high");
+        assert_eq!(super::CreditManagementFinService::risk_level_from_score(80.0), "low");
+        assert_eq!(super::CreditManagementFinService::risk_level_from_score(60.0), "medium");
+        assert_eq!(super::CreditManagementFinService::risk_level_from_score(40.0), "high");
+    }
+
+    // ========================================================================
+    // Credit Management Workflow Tests
+    // ========================================================================
+
+    #[test]
+    fn test_credit_profile_workflow_transitions() {
+        let def = entities::credit_profile_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "suspended"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "suspended" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "blocked"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    #[test]
+    fn test_credit_hold_workflow_transitions() {
+        let def = entities::credit_hold_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "released"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "overridden"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "cancelled"));
+    }
+
+    #[test]
+    fn test_credit_review_workflow_transitions() {
+        let def = entities::credit_review_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "in_review"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_review" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "cancelled"));
+    }
+
+    // ========================================================================
+    // Withholding Tax Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_withholding_tax_code_definition() {
+        let def = entities::withholding_tax_code_definition();
+        assert_eq!(def.name, "withholding_tax_codes");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_withholding_tax_group_definition() {
+        let def = entities::withholding_tax_group_definition();
+        assert_eq!(def.name, "withholding_tax_groups");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_supplier_withholding_assignment_definition() {
+        let def = entities::supplier_withholding_assignment_definition();
+        assert_eq!(def.name, "supplier_withholding_assignments");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_withholding_tax_line_definition() {
+        let def = entities::withholding_tax_line_definition();
+        assert_eq!(def.name, "withholding_tax_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_withholding_certificate_definition() {
+        let def = entities::withholding_certificate_definition();
+        assert_eq!(def.name, "withholding_certificates");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "issued"));
+        assert!(wf.states.iter().any(|s| s.name == "acknowledged"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    // ========================================================================
+    // Withholding Tax Validation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_wht_tax_types_valid() {
+        let valid = ["income_tax", "vat", "service_tax", "contract_tax",
+                     "royalty", "dividend", "interest", "other"];
+        for t in &valid {
+            assert!(super::VALID_WHT_TAX_TYPES.contains(t));
+        }
+        assert!(!super::VALID_WHT_TAX_TYPES.contains(&"sales_tax"));
+    }
+
+    #[test]
+    fn test_wht_line_statuses_valid() {
+        let valid = ["pending", "withheld", "remitted", "refunded"];
+        for s in &valid {
+            assert!(super::VALID_WHT_LINE_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_wht_cert_statuses_valid() {
+        let valid = ["draft", "issued", "acknowledged", "cancelled"];
+        for s in &valid {
+            assert!(super::VALID_WHT_CERT_STATUSES.contains(s));
+        }
+    }
+
+    // ========================================================================
+    // Withholding Tax Business Logic Tests
+    // ========================================================================
+
+    #[test]
+    fn test_wht_calculate_per_invoice_above_threshold() {
+        // 10% on 10000 (threshold 1000) => 1000
+        let wht = super::WithholdingTaxService::calculate_withholding(
+            10000.0, 10.0, 1000.0, false, 0.0,
+        );
+        assert!((wht - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_wht_calculate_per_invoice_below_threshold() {
+        // 10% on 500 (threshold 1000) => 0 (below threshold)
+        let wht = super::WithholdingTaxService::calculate_withholding(
+            500.0, 10.0, 1000.0, false, 0.0,
+        );
+        assert!((wht - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_wht_calculate_cumulative_not_past_threshold() {
+        // YTD: 500, Current: 300, Threshold: 1000 => no withholding (total 800 < 1000)
+        let wht = super::WithholdingTaxService::calculate_withholding(
+            300.0, 10.0, 1000.0, true, 500.0,
+        );
+        assert!((wht - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_wht_calculate_cumulative_already_past_threshold() {
+        // YTD: 5000 (already past 1000 threshold), Current: 2000 => 2000 * 10% = 200
+        let wht = super::WithholdingTaxService::calculate_withholding(
+            2000.0, 10.0, 1000.0, true, 5000.0,
+        );
+        assert!((wht - 200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_wht_calculate_cumulative_crossing_threshold() {
+        // YTD: 800, Current: 500, Threshold: 1000
+        // Total YTD would be 1300, excess = 300, taxable = 300 (min of 300 and 500)
+        // WHT = 300 * 10% = 30
+        let wht = super::WithholdingTaxService::calculate_withholding(
+            500.0, 10.0, 1000.0, true, 800.0,
+        );
+        assert!((wht - 30.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_wht_net_payment() {
+        let net = super::WithholdingTaxService::calculate_net_payment(10000.0, 1000.0);
+        assert!((net - 9000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_wht_ytd_withholding() {
+        let ytd = super::WithholdingTaxService::calculate_ytd_withholding(
+            &[100.0, 200.0, 150.0, 50.0],
+        );
+        assert!((ytd - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_wht_certificate_workflow_transitions() {
+        let def = entities::withholding_certificate_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "issued"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "issued" && t.to_state == "acknowledged"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "issued" && t.to_state == "cancelled"));
+    }
+
+    // ========================================================================
+    // Project Billing Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_bill_rate_schedule_definition() {
+        let def = entities::bill_rate_schedule_definition();
+        assert_eq!(def.name, "bill_rate_schedules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_bill_rate_line_definition() {
+        let def = entities::bill_rate_line_definition();
+        assert_eq!(def.name, "bill_rate_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_project_billing_config_definition() {
+        let def = entities::project_billing_config_definition();
+        assert_eq!(def.name, "project_billing_configs");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_billing_event_definition() {
+        let def = entities::billing_event_definition();
+        assert_eq!(def.name, "billing_events");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "planned");
+        assert!(wf.states.iter().any(|s| s.name == "ready"));
+        assert!(wf.states.iter().any(|s| s.name == "invoiced"));
+        assert!(wf.states.iter().any(|s| s.name == "partially_invoiced"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_project_invoice_header_definition() {
+        let def = entities::project_invoice_header_definition();
+        assert_eq!(def.name, "project_invoice_headers");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_project_invoice_line_definition() {
+        let def = entities::project_invoice_line_definition();
+        assert_eq!(def.name, "project_invoice_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Project Billing Validation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_schedule_types_valid() {
+        let valid = ["standard", "overtime", "holiday", "custom"];
+        for t in &valid {
+            assert!(super::VALID_SCHEDULE_TYPES.contains(t));
+        }
+        assert!(!super::VALID_SCHEDULE_TYPES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_billing_methods_valid() {
+        let valid = ["time_and_materials", "fixed_price", "milestone", "cost_plus", "retention"];
+        for m in &valid {
+            assert!(super::VALID_BILLING_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_invoice_formats_valid() {
+        let valid = ["detailed", "summary", "consolidated"];
+        for f in &valid {
+            assert!(super::VALID_INVOICE_FORMATS.contains(f));
+        }
+    }
+
+    #[test]
+    fn test_billing_cycles_valid() {
+        let valid = ["weekly", "biweekly", "monthly", "milestone"];
+        for c in &valid {
+            assert!(super::VALID_BILLING_CYCLES.contains(c));
+        }
+    }
+
+    #[test]
+    fn test_event_types_valid() {
+        let valid = ["milestone", "progress", "completion", "retention_release"];
+        for t in &valid {
+            assert!(super::VALID_EVENT_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_project_invoice_types_valid() {
+        let valid = ["progress", "milestone", "t_and_m", "retention_release",
+                     "debit_memo", "credit_memo"];
+        for t in &valid {
+            assert!(super::VALID_PROJECT_INVOICE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_line_sources_valid() {
+        let valid = ["expenditure_item", "billing_event", "retention", "manual"];
+        for s in &valid {
+            assert!(super::VALID_LINE_SOURCES.contains(s));
+        }
+    }
+
+    // ========================================================================
+    // Project Billing Business Logic Tests
+    // ========================================================================
+
+    #[test]
+    fn test_tm_bill_amount_no_markup() {
+        let bill = super::ProjectBillingService::calculate_tm_bill_amount(
+            40.0, 150.0, 0.0,
+        );
+        assert!((bill - 6000.0).abs() < 0.01); // 40 * 150 = 6000
+    }
+
+    #[test]
+    fn test_tm_bill_amount_with_markup() {
+        let bill = super::ProjectBillingService::calculate_tm_bill_amount(
+            40.0, 150.0, 20.0,
+        );
+        // 40 * 150 = 6000, + 20% markup = 7200
+        assert!((bill - 7200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_retention_calculation() {
+        let ret = super::ProjectBillingService::calculate_retention(
+            100000.0, 10.0, 0.0,
+        );
+        assert!((ret - 10000.0).abs() < 0.01); // 10% of 100k
+    }
+
+    #[test]
+    fn test_retention_with_cap() {
+        let ret = super::ProjectBillingService::calculate_retention(
+            200000.0, 10.0, 15000.0,
+        );
+        // 10% of 200k = 20k, capped at 15k
+        assert!((ret - 15000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_net_billable() {
+        let net = super::ProjectBillingService::calculate_net_billable(
+            100000.0, 10000.0, 5000.0,
+        );
+        // 100k - 10k retention + 5k tax = 95k
+        assert!((net - 95000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_progress_pct() {
+        let pct = super::ProjectBillingService::calculate_progress_pct(
+            350000.0, 1000000.0,
+        );
+        assert!((pct - 35.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_progress_pct_capped_at_100() {
+        let pct = super::ProjectBillingService::calculate_progress_pct(
+            1200000.0, 1000000.0,
+        );
+        assert!((pct - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_progress_pct_zero_contract() {
+        let pct = super::ProjectBillingService::calculate_progress_pct(
+            50000.0, 0.0,
+        );
+        assert_eq!(pct, 0.0);
+    }
+
+    #[test]
+    fn test_earned_revenue() {
+        let earned = super::ProjectBillingService::calculate_earned_revenue(
+            1000000.0, 35.0,
+        );
+        assert!((earned - 350000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cost_plus_billing() {
+        let bill = super::ProjectBillingService::calculate_cost_plus_bill(
+            80000.0, 25.0,
+        );
+        // 80k * (1 + 25/100) = 80k * 1.25 = 100k
+        assert!((bill - 100000.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Project Billing Workflow Tests
+    // ========================================================================
+
+    #[test]
+    fn test_bill_rate_schedule_workflow_transitions() {
+        let def = entities::bill_rate_schedule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    #[test]
+    fn test_project_billing_config_workflow_transitions() {
+        let def = entities::project_billing_config_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "cancelled"));
+    }
+
+    #[test]
+    fn test_billing_event_workflow_transitions() {
+        let def = entities::billing_event_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "planned" && t.to_state == "ready"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "ready" && t.to_state == "invoiced"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "ready" && t.to_state == "partially_invoiced"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "planned" && t.to_state == "cancelled"));
+    }
+
+    #[test]
+    fn test_project_invoice_workflow_transitions() {
+        let def = entities::project_invoice_header_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "rejected"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "posted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+    }
+
+    // ========================================================================
+    // Comprehensive New Entity Build Tests
+    // ========================================================================
+
+    #[test]
+    fn test_all_new_feature_entities_build_successfully() {
+        // Collections Management
+        let _ = entities::customer_credit_profile_definition();
+        let _ = entities::collection_strategy_definition();
+        let _ = entities::collection_case_definition();
+        let _ = entities::customer_interaction_definition();
+        let _ = entities::promise_to_pay_definition();
+        let _ = entities::dunning_campaign_definition();
+        let _ = entities::dunning_letter_definition();
+        let _ = entities::receivables_aging_snapshot_definition();
+        let _ = entities::write_off_request_definition();
+        // Credit Management
+        let _ = entities::credit_scoring_model_definition();
+        let _ = entities::credit_profile_definition();
+        let _ = entities::credit_limit_definition();
+        let _ = entities::credit_check_rule_definition();
+        let _ = entities::credit_exposure_definition();
+        let _ = entities::credit_hold_definition();
+        let _ = entities::credit_review_definition();
+        // Withholding Tax
+        let _ = entities::withholding_tax_code_definition();
+        let _ = entities::withholding_tax_group_definition();
+        let _ = entities::supplier_withholding_assignment_definition();
+        let _ = entities::withholding_tax_line_definition();
+        let _ = entities::withholding_certificate_definition();
+        // Project Billing
+        let _ = entities::bill_rate_schedule_definition();
+        let _ = entities::bill_rate_line_definition();
+        let _ = entities::project_billing_config_definition();
+        let _ = entities::billing_event_definition();
+        let _ = entities::project_invoice_header_definition();
+        let _ = entities::project_invoice_line_definition();
+    }
+
+    #[test]
+    fn test_new_feature_entity_count() {
+        let new_entities = vec![
+            // Collections Management (9)
+            entities::customer_credit_profile_definition(),
+            entities::collection_strategy_definition(),
+            entities::collection_case_definition(),
+            entities::customer_interaction_definition(),
+            entities::promise_to_pay_definition(),
+            entities::dunning_campaign_definition(),
+            entities::dunning_letter_definition(),
+            entities::receivables_aging_snapshot_definition(),
+            entities::write_off_request_definition(),
+            // Credit Management (7)
+            entities::credit_scoring_model_definition(),
+            entities::credit_profile_definition(),
+            entities::credit_limit_definition(),
+            entities::credit_check_rule_definition(),
+            entities::credit_exposure_definition(),
+            entities::credit_hold_definition(),
+            entities::credit_review_definition(),
+            // Withholding Tax (5)
+            entities::withholding_tax_code_definition(),
+            entities::withholding_tax_group_definition(),
+            entities::supplier_withholding_assignment_definition(),
+            entities::withholding_tax_line_definition(),
+            entities::withholding_certificate_definition(),
+            // Project Billing (6)
+            entities::bill_rate_schedule_definition(),
+            entities::bill_rate_line_definition(),
+            entities::project_billing_config_definition(),
+            entities::billing_event_definition(),
+            entities::project_invoice_header_definition(),
+            entities::project_invoice_line_definition(),
+        ];
+        assert_eq!(new_entities.len(), 27, "Should have 27 new feature entities");
+
+        // All unique names
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 27, "All new entity names must be unique");
+    }
+
+    #[test]
+    fn test_new_feature_workflow_count() {
+        let workflow_entities = vec![
+            // Collections
+            entities::collection_case_definition(),
+            entities::promise_to_pay_definition(),
+            entities::dunning_campaign_definition(),
+            entities::write_off_request_definition(),
+            // Credit Management
+            entities::credit_profile_definition(),
+            entities::credit_hold_definition(),
+            entities::credit_review_definition(),
+            // Withholding Tax
+            entities::withholding_certificate_definition(),
+            // Project Billing
+            entities::bill_rate_schedule_definition(),
+            entities::project_billing_config_definition(),
+            entities::billing_event_definition(),
+            entities::project_invoice_header_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 12, "All 12 new workflow entities should have workflows");
     }
 }

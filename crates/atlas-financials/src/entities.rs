@@ -2335,3 +2335,963 @@ pub fn consolidation_translation_rate_definition() -> EntityDefinition {
         .integer("period_number", "Period Number")
         .build()
 }
+
+// ============================================================================
+// Collections Management (Oracle Fusion: Financials > Collections)
+// ============================================================================
+
+/// Customer Credit Profile entity (Collections context)
+/// Oracle Fusion: Collections > Customer Credit Profiles
+pub fn customer_credit_profile_definition() -> EntityDefinition {
+    SchemaBuilder::new("customer_credit_profiles", "Customer Credit Profile")
+        .plural_label("Customer Credit Profiles")
+        .table_name("fin_customer_credit_profiles")
+        .description("Customer credit profiles with limits, scoring, and risk classification")
+        .icon("user-shield")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .string("customer_name", "Customer Name")
+        .currency("credit_limit", "Credit Limit", "USD")
+        .currency("credit_used", "Credit Used", "USD")
+        .currency("credit_available", "Credit Available", "USD")
+        .enumeration("risk_classification", "Risk Classification", vec![
+            "low", "medium", "high", "very_high", "defaulted",
+        ])
+        .integer("credit_score", "Credit Score (0-1000)")
+        .string("external_credit_rating", "External Credit Rating")
+        .string("external_rating_agency", "Rating Agency")
+        .date("external_rating_date", "Rating Date")
+        .enumeration("payment_terms", "Payment Terms", vec![
+            "net_15", "net_30", "net_45", "net_60", "due_on_receipt", "cod",
+        ])
+        .decimal("average_days_to_pay", "Avg Days to Pay", 8, 2)
+        .integer("overdue_invoice_count", "Overdue Invoices")
+        .currency("total_overdue_amount", "Total Overdue", "USD")
+        .date("oldest_overdue_date", "Oldest Overdue Date")
+        .boolean("credit_hold", "Credit Hold")
+        .string("credit_hold_reason", "Hold Reason")
+        .date("last_review_date", "Last Review Date")
+        .date("next_review_date", "Next Review Date")
+        .enumeration("status", "Status", vec![
+            "active", "inactive", "blocked",
+        ])
+        .build()
+}
+
+/// Collection Strategy entity
+/// Oracle Fusion: Collections > Collection Strategies
+pub fn collection_strategy_definition() -> EntityDefinition {
+    SchemaBuilder::new("collection_strategies", "Collection Strategy")
+        .plural_label("Collection Strategies")
+        .table_name("fin_collection_strategies")
+        .description("Automated collection strategies triggered by aging and risk")
+        .icon("chess")
+        .required_string("code", "Strategy Code")
+        .required_string("name", "Strategy Name")
+        .string("description", "Description")
+        .enumeration("strategy_type", "Strategy Type", vec![
+            "automatic", "manual",
+        ])
+        .json("applicable_risk_classifications", "Applicable Risk Classifications")
+        .json("trigger_aging_buckets", "Trigger Aging Buckets")
+        .currency("overdue_amount_threshold", "Overdue Amount Threshold", "USD")
+        .json("actions", "Collection Actions")
+        .integer("priority", "Priority")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Collection Case entity with workflow
+/// Oracle Fusion: Collections > Collection Cases
+pub fn collection_case_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("collection_case_workflow", "open")
+        .initial_state("open", "Open")
+        .working_state("in_progress", "In Progress")
+        .working_state("escalated", "Escalated")
+        .final_state("resolved", "Resolved")
+        .final_state("closed", "Closed")
+        .final_state("written_off", "Written Off")
+        .transition("open", "in_progress", "start_work")
+        .transition("in_progress", "escalated", "escalate")
+        .transition("in_progress", "resolved", "resolve")
+        .transition("escalated", "resolved", "resolve")
+        .transition("resolved", "closed", "close")
+        .transition("in_progress", "written_off", "write_off")
+        .build();
+
+    SchemaBuilder::new("collection_cases", "Collection Case")
+        .plural_label("Collection Cases")
+        .table_name("fin_collection_cases")
+        .description("Collection cases for managing overdue customer receivables")
+        .icon("folder-open")
+        .required_string("case_number", "Case Number")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .string("customer_name", "Customer Name")
+        .reference("strategy_id", "Strategy", "collection_strategies")
+        .reference("assigned_to", "Assigned To", "employees")
+        .string("assigned_to_name", "Assignee Name")
+        .enumeration("case_type", "Case Type", vec![
+            "collection", "dispute", "bankruptcy", "skip_trace",
+        ])
+        .enumeration("priority", "Priority", vec![
+            "low", "medium", "high", "critical",
+        ])
+        .currency("total_overdue_amount", "Total Overdue", "USD")
+        .currency("total_disputed_amount", "Total Disputed", "USD")
+        .currency("total_invoiced_amount", "Total Invoiced", "USD")
+        .integer("overdue_invoice_count", "Overdue Invoice Count")
+        .date("oldest_overdue_date", "Oldest Overdue Date")
+        .integer("current_step", "Current Strategy Step")
+        .date("opened_date", "Opened Date")
+        .date("target_resolution_date", "Target Resolution Date")
+        .date("resolved_date", "Resolved Date")
+        .date("closed_date", "Closed Date")
+        .date("next_action_date", "Next Action Date")
+        .enumeration("resolution_type", "Resolution Type", vec![
+            "full_payment", "partial_payment", "payment_plan",
+            "write_off", "dispute_resolved", "uncollectible", "other",
+        ])
+        .string("resolution_notes", "Resolution Notes")
+        .json("related_invoice_ids", "Related Invoice IDs")
+        .enumeration("status", "Status", vec![
+            "open", "in_progress", "resolved", "closed", "escalated", "written_off",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Customer Interaction entity
+/// Oracle Fusion: Collections > Customer Interactions
+pub fn customer_interaction_definition() -> EntityDefinition {
+    SchemaBuilder::new("customer_interactions", "Customer Interaction")
+        .plural_label("Customer Interactions")
+        .table_name("fin_customer_interactions")
+        .description("Customer interactions (calls, emails, meetings) for collections")
+        .icon("comments")
+        .reference("case_id", "Case", "collection_cases")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .string("customer_name", "Customer Name")
+        .enumeration("interaction_type", "Interaction Type", vec![
+            "phone_call", "email", "letter", "meeting", "note", "sms",
+        ])
+        .enumeration("direction", "Direction", vec![
+            "outbound", "inbound",
+        ])
+        .string("contact_name", "Contact Name")
+        .string("contact_role", "Contact Role")
+        .string("contact_phone", "Contact Phone")
+        .string("contact_email", "Contact Email")
+        .string("subject", "Subject")
+        .rich_text("body", "Body")
+        .enumeration("outcome", "Outcome", vec![
+            "contacted", "left_message", "no_answer", "promised_to_pay",
+            "disputed", "refused", "agreed_payment_plan", "escalated", "no_action",
+        ])
+        .date("follow_up_date", "Follow-Up Date")
+        .string("follow_up_notes", "Follow-Up Notes")
+        .reference("performed_by", "Performed By", "employees")
+        .string("performed_by_name", "Performer Name")
+        .integer("duration_minutes", "Duration (Minutes)")
+        .build()
+}
+
+/// Promise to Pay entity
+/// Oracle Fusion: Collections > Promises to Pay
+pub fn promise_to_pay_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("promise_to_pay_workflow", "pending")
+        .initial_state("pending", "Pending")
+        .working_state("partially_kept", "Partially Kept")
+        .final_state("kept", "Kept")
+        .final_state("broken", "Broken")
+        .final_state("cancelled", "Cancelled")
+        .transition("pending", "partially_kept", "partial_payment")
+        .transition("pending", "kept", "full_payment")
+        .transition("pending", "broken", "break")
+        .transition("pending", "cancelled", "cancel")
+        .transition("partially_kept", "kept", "full_payment")
+        .transition("partially_kept", "broken", "break")
+        .build();
+
+    SchemaBuilder::new("promise_to_pay", "Promise to Pay")
+        .plural_label("Promises to Pay")
+        .table_name("fin_promise_to_pay")
+        .description("Customer promises to pay overdue amounts")
+        .icon("handshake")
+        .reference("case_id", "Case", "collection_cases")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .string("customer_name", "Customer Name")
+        .enumeration("promise_type", "Promise Type", vec![
+            "single_payment", "installment", "full_balance",
+        ])
+        .currency("promised_amount", "Promised Amount", "USD")
+        .currency("paid_amount", "Paid Amount", "USD")
+        .currency("remaining_amount", "Remaining Amount", "USD")
+        .date("promise_date", "Promise Date")
+        .integer("installment_count", "Installment Count")
+        .enumeration("installment_frequency", "Installment Frequency", vec![
+            "weekly", "biweekly", "monthly",
+        ])
+        .date("broken_date", "Broken Date")
+        .string("broken_reason", "Broken Reason")
+        .json("related_invoice_ids", "Related Invoice IDs")
+        .string("promised_by_name", "Promised By")
+        .string("promised_by_role", "Promised By Role")
+        .rich_text("notes", "Notes")
+        .reference("recorded_by", "Recorded By", "employees")
+        .enumeration("status", "Status", vec![
+            "pending", "partially_kept", "kept", "broken", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Dunning Campaign entity with workflow
+/// Oracle Fusion: Collections > Dunning Management
+pub fn dunning_campaign_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("dunning_campaign_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("scheduled", "Scheduled")
+        .working_state("in_progress", "In Progress")
+        .final_state("completed", "Completed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "scheduled", "schedule")
+        .transition("scheduled", "in_progress", "start")
+        .transition("in_progress", "completed", "complete")
+        .transition("draft", "cancelled", "cancel")
+        .transition("scheduled", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("dunning_campaigns", "Dunning Campaign")
+        .plural_label("Dunning Campaigns")
+        .table_name("fin_dunning_campaigns")
+        .description("Dunning campaigns for escalating overdue customer communications")
+        .icon("bullhorn")
+        .required_string("campaign_number", "Campaign Number")
+        .required_string("name", "Campaign Name")
+        .string("description", "Description")
+        .enumeration("dunning_level", "Dunning Level", vec![
+            "reminder", "first_notice", "second_notice",
+            "final_notice", "pre_legal", "legal",
+        ])
+        .enumeration("communication_method", "Communication Method", vec![
+            "email", "letter", "sms", "phone",
+        ])
+        .string("template_name", "Template Name")
+        .integer("min_overdue_days", "Min Overdue Days")
+        .currency("min_overdue_amount", "Min Overdue Amount", "USD")
+        .json("target_risk_classifications", "Target Risk Classifications")
+        .boolean("exclude_active_cases", "Exclude Active Cases")
+        .date("scheduled_date", "Scheduled Date")
+        .date("sent_date", "Sent Date")
+        .integer("target_customer_count", "Target Customer Count")
+        .integer("sent_count", "Sent Count")
+        .integer("failed_count", "Failed Count")
+        .enumeration("status", "Status", vec![
+            "draft", "scheduled", "in_progress", "completed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Dunning Letter entity
+/// Oracle Fusion: Collections > Dunning Letters
+pub fn dunning_letter_definition() -> EntityDefinition {
+    SchemaBuilder::new("dunning_letters", "Dunning Letter")
+        .plural_label("Dunning Letters")
+        .table_name("fin_dunning_letters")
+        .description("Individual dunning letters sent to customers")
+        .icon("envelope")
+        .reference("campaign_id", "Campaign", "dunning_campaigns")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .string("customer_name", "Customer Name")
+        .string("customer_email", "Customer Email")
+        .enumeration("dunning_level", "Dunning Level", vec![
+            "reminder", "first_notice", "second_notice",
+            "final_notice", "pre_legal", "legal",
+        ])
+        .enumeration("communication_method", "Communication Method", vec![
+            "email", "letter", "sms", "phone",
+        ])
+        .currency("total_overdue_amount", "Total Overdue", "USD")
+        .integer("overdue_invoice_count", "Overdue Invoice Count")
+        .date("oldest_overdue_date", "Oldest Overdue Date")
+        .currency("aging_current", "Current", "USD")
+        .currency("aging_1_30", "1-30 Days", "USD")
+        .currency("aging_31_60", "31-60 Days", "USD")
+        .currency("aging_61_90", "61-90 Days", "USD")
+        .currency("aging_91_120", "91-120 Days", "USD")
+        .currency("aging_121_plus", "121+ Days", "USD")
+        .enumeration("status", "Status", vec![
+            "pending", "sent", "delivered", "bounced", "failed", "viewed",
+        ])
+        .string("failure_reason", "Failure Reason")
+        .json("invoice_details", "Invoice Details")
+        .build()
+}
+
+/// Receivables Aging Snapshot entity
+/// Oracle Fusion: Collections > Aging Analysis
+pub fn receivables_aging_snapshot_definition() -> EntityDefinition {
+    SchemaBuilder::new("receivables_aging_snapshots", "Aging Snapshot")
+        .plural_label("Receivables Aging Snapshots")
+        .table_name("fin_receivables_aging_snapshots")
+        .description("Receivables aging analysis snapshots by customer")
+        .icon("chart-bar")
+        .date("snapshot_date", "Snapshot Date")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .string("customer_name", "Customer Name")
+        .currency("total_outstanding", "Total Outstanding", "USD")
+        .currency("aging_current", "Current", "USD")
+        .currency("aging_1_30", "1-30 Days", "USD")
+        .currency("aging_31_60", "31-60 Days", "USD")
+        .currency("aging_61_90", "61-90 Days", "USD")
+        .currency("aging_91_120", "91-120 Days", "USD")
+        .currency("aging_121_plus", "121+ Days", "USD")
+        .integer("count_current", "Count Current")
+        .integer("count_1_30", "Count 1-30")
+        .integer("count_31_60", "Count 31-60")
+        .integer("count_61_90", "Count 61-90")
+        .integer("count_91_120", "Count 91-120")
+        .integer("count_121_plus", "Count 121+")
+        .decimal("weighted_average_days_overdue", "Wtd Avg Days Overdue", 8, 2)
+        .decimal("overdue_percent", "Overdue %", 5, 2)
+        .build()
+}
+
+/// Write-Off Request entity with workflow
+/// Oracle Fusion: Collections > Write-Off Management
+pub fn write_off_request_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("write_off_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .final_state("processed", "Processed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "processed", "process")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("write_off_requests", "Write-Off Request")
+        .plural_label("Write-Off Requests")
+        .table_name("fin_write_off_requests")
+        .description("Write-off requests for uncollectible receivables")
+        .icon("eraser")
+        .required_string("request_number", "Request Number")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .string("customer_name", "Customer Name")
+        .enumeration("write_off_type", "Write-Off Type", vec![
+            "bad_debt", "small_balance", "dispute", "adjustment",
+        ])
+        .currency("write_off_amount", "Write-Off Amount", "USD")
+        .string("write_off_account_code", "Write-Off Account")
+        .string("reason", "Reason")
+        .json("related_invoice_ids", "Related Invoice IDs")
+        .reference("case_id", "Case", "collection_cases")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "rejected", "processed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Credit Management (Oracle Fusion: Financials > Credit Management)
+// ============================================================================
+
+/// Credit Scoring Model entity
+/// Oracle Fusion: Credit Management > Credit Scoring Models
+pub fn credit_scoring_model_definition() -> EntityDefinition {
+    SchemaBuilder::new("credit_scoring_models", "Credit Scoring Model")
+        .plural_label("Credit Scoring Models")
+        .table_name("fin_credit_scoring_models")
+        .description("Models for assessing customer creditworthiness")
+        .icon("star-half-alt")
+        .required_string("code", "Model Code")
+        .required_string("name", "Model Name")
+        .string("description", "Description")
+        .enumeration("model_type", "Model Type", vec![
+            "manual", "scorecard", "risk_category", "external",
+        ])
+        .json("scoring_criteria", "Scoring Criteria")
+        .json("score_ranges", "Score Ranges")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Credit Profile entity (Credit Management context)
+/// Oracle Fusion: Credit Management > Credit Profiles
+pub fn credit_profile_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("credit_profile_workflow", "active")
+        .initial_state("active", "Active")
+        .working_state("suspended", "Suspended")
+        .final_state("blocked", "Blocked")
+        .final_state("inactive", "Inactive")
+        .transition("active", "suspended", "suspend")
+        .transition("suspended", "active", "reactivate")
+        .transition("active", "blocked", "block")
+        .transition("active", "inactive", "deactivate")
+        .transition("suspended", "blocked", "block")
+        .build();
+
+    SchemaBuilder::new("credit_profiles", "Credit Profile")
+        .plural_label("Credit Profiles")
+        .table_name("fin_credit_profiles")
+        .description("Customer credit profiles with scoring and risk assessment")
+        .icon("id-card")
+        .required_string("profile_number", "Profile Number")
+        .required_string("profile_name", "Profile Name")
+        .string("description", "Description")
+        .enumeration("profile_type", "Profile Type", vec![
+            "customer", "customer_group", "global",
+        ])
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_name", "Customer Name")
+        .reference("scoring_model_id", "Scoring Model", "credit_scoring_models")
+        .decimal("credit_score", "Credit Score", 10, 2)
+        .string("credit_rating", "Credit Rating")
+        .enumeration("risk_level", "Risk Level", vec![
+            "low", "medium", "high", "very_high", "blocked",
+        ])
+        .integer("review_frequency_days", "Review Frequency (Days)")
+        .date("last_review_date", "Last Review Date")
+        .date("next_review_date", "Next Review Date")
+        .enumeration("status", "Status", vec![
+            "active", "inactive", "suspended", "blocked",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Credit Limit entity
+/// Oracle Fusion: Credit Management > Credit Limits
+pub fn credit_limit_definition() -> EntityDefinition {
+    SchemaBuilder::new("credit_limits", "Credit Limit")
+        .plural_label("Credit Limits")
+        .table_name("fin_credit_limits")
+        .description("Credit limits per profile with multi-currency support")
+        .icon("dollar-sign")
+        .reference("profile_id", "Credit Profile", "credit_profiles")
+        .enumeration("limit_type", "Limit Type", vec![
+            "overall", "order", "delivery", "currency",
+        ])
+        .string("currency_code", "Currency Code")
+        .currency("credit_limit", "Credit Limit", "USD")
+        .currency("temp_limit_increase", "Temp Limit Increase", "USD")
+        .date("temp_limit_expiry", "Temp Limit Expiry")
+        .currency("used_amount", "Used Amount", "USD")
+        .currency("available_amount", "Available Amount", "USD")
+        .currency("hold_amount", "Hold Amount", "USD")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Credit Check Rule entity
+/// Oracle Fusion: Credit Management > Credit Check Rules
+pub fn credit_check_rule_definition() -> EntityDefinition {
+    SchemaBuilder::new("credit_check_rules", "Credit Check Rule")
+        .plural_label("Credit Check Rules")
+        .table_name("fin_credit_check_rules")
+        .description("Rules defining when and how credit checks are triggered")
+        .icon("search-dollar")
+        .required_string("name", "Rule Name")
+        .string("description", "Description")
+        .enumeration("check_point", "Check Point", vec![
+            "order_entry", "shipment", "invoice", "delivery", "payment",
+        ])
+        .enumeration("check_type", "Check Type", vec![
+            "automatic", "manual",
+        ])
+        .json("condition", "Condition")
+        .enumeration("action_on_failure", "Action on Failure", vec![
+            "hold", "warn", "reject", "notify",
+        ])
+        .integer("priority", "Priority")
+        .boolean("is_active", "Active")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .build()
+}
+
+/// Credit Exposure entity
+/// Oracle Fusion: Credit Management > Credit Exposure
+pub fn credit_exposure_definition() -> EntityDefinition {
+    SchemaBuilder::new("credit_exposure", "Credit Exposure")
+        .plural_label("Credit Exposures")
+        .table_name("fin_credit_exposure")
+        .description("Real-time credit exposure tracking per profile")
+        .icon("tachometer-alt")
+        .reference("profile_id", "Credit Profile", "credit_profiles")
+        .date("exposure_date", "Exposure Date")
+        .currency("open_receivables", "Open Receivables", "USD")
+        .currency("open_orders", "Open Orders", "USD")
+        .currency("open_shipments", "Open Shipments", "USD")
+        .currency("open_invoices", "Open Invoices", "USD")
+        .currency("unapplied_cash", "Unapplied Cash", "USD")
+        .currency("on_hold_amount", "On Hold Amount", "USD")
+        .currency("total_exposure", "Total Exposure", "USD")
+        .currency("credit_limit", "Credit Limit", "USD")
+        .currency("available_credit", "Available Credit", "USD")
+        .decimal("utilization_percent", "Utilization %", 8, 4)
+        .string("currency_code", "Currency Code")
+        .build()
+}
+
+/// Credit Hold entity with workflow
+/// Oracle Fusion: Credit Management > Credit Holds
+pub fn credit_hold_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("credit_hold_workflow", "active")
+        .initial_state("active", "Active")
+        .final_state("released", "Released")
+        .final_state("overridden", "Overridden")
+        .final_state("cancelled", "Cancelled")
+        .transition("active", "released", "release")
+        .transition("active", "overridden", "override")
+        .transition("active", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("credit_holds", "Credit Hold")
+        .plural_label("Credit Holds")
+        .table_name("fin_credit_holds")
+        .description("Credit holds placed on transactions when limits are exceeded")
+        .icon("lock")
+        .reference("profile_id", "Credit Profile", "credit_profiles")
+        .required_string("hold_number", "Hold Number")
+        .enumeration("hold_type", "Hold Type", vec![
+            "credit_limit", "overdue", "review", "manual", "scoring",
+        ])
+        .string("entity_type", "Entity Type")
+        .string("entity_number", "Entity Number")
+        .currency("hold_amount", "Hold Amount", "USD")
+        .string("reason", "Reason")
+        .string("release_reason", "Release Reason")
+        .string("override_reason", "Override Reason")
+        .enumeration("status", "Status", vec![
+            "active", "released", "overridden", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Credit Review entity with workflow
+/// Oracle Fusion: Credit Management > Credit Reviews
+pub fn credit_review_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("credit_review_workflow", "pending")
+        .initial_state("pending", "Pending")
+        .working_state("in_review", "In Review")
+        .final_state("completed", "Completed")
+        .final_state("cancelled", "Cancelled")
+        .transition("pending", "in_review", "start_review")
+        .transition("in_review", "completed", "complete")
+        .transition("pending", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("credit_reviews", "Credit Review")
+        .plural_label("Credit Reviews")
+        .table_name("fin_credit_reviews")
+        .description("Periodic or triggered credit profile reviews")
+        .icon("clipboard-check")
+        .reference("profile_id", "Credit Profile", "credit_profiles")
+        .required_string("review_number", "Review Number")
+        .enumeration("review_type", "Review Type", vec![
+            "periodic", "triggered", "ad_hoc", "escalation",
+        ])
+        .currency("previous_credit_limit", "Previous Credit Limit", "USD")
+        .currency("recommended_credit_limit", "Recommended Credit Limit", "USD")
+        .currency("approved_credit_limit", "Approved Credit Limit", "USD")
+        .decimal("previous_score", "Previous Score", 10, 2)
+        .decimal("new_score", "New Score", 10, 2)
+        .string("previous_rating", "Previous Rating")
+        .string("new_rating", "New Rating")
+        .rich_text("findings", "Findings")
+        .rich_text("recommendations", "Recommendations")
+        .reference("reviewer_id", "Reviewer", "employees")
+        .string("reviewer_name", "Reviewer Name")
+        .reference("approver_id", "Approver", "employees")
+        .string("approver_name", "Approver Name")
+        .string("rejected_reason", "Rejected Reason")
+        .date("due_date", "Due Date")
+        .enumeration("status", "Status", vec![
+            "pending", "in_review", "completed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Withholding Tax (Oracle Fusion: Payables > Withholding Tax)
+// ============================================================================
+
+/// Withholding Tax Code entity
+/// Oracle Fusion: Payables > Withholding Tax > Tax Codes
+pub fn withholding_tax_code_definition() -> EntityDefinition {
+    SchemaBuilder::new("withholding_tax_codes", "Withholding Tax Code")
+        .plural_label("Withholding Tax Codes")
+        .table_name("fin_withholding_tax_codes")
+        .description("Withholding tax codes with rates and thresholds")
+        .icon("file-invoice-dollar")
+        .required_string("code", "Tax Code")
+        .required_string("name", "Tax Code Name")
+        .string("description", "Description")
+        .enumeration("tax_type", "Tax Type", vec![
+            "income_tax", "vat", "service_tax", "contract_tax",
+            "royalty", "dividend", "interest", "other",
+        ])
+        .decimal("rate_percentage", "Rate %", 12, 4)
+        .currency("threshold_amount", "Threshold Amount", "USD")
+        .boolean("threshold_is_cumulative", "Cumulative Threshold")
+        .string("withholding_account_code", "Withholding Account")
+        .string("expense_account_code", "Expense Account")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Withholding Tax Group entity
+/// Oracle Fusion: Payables > Withholding Tax > Tax Groups
+pub fn withholding_tax_group_definition() -> EntityDefinition {
+    SchemaBuilder::new("withholding_tax_groups", "Withholding Tax Group")
+        .plural_label("Withholding Tax Groups")
+        .table_name("fin_withholding_tax_groups")
+        .description("Groups of withholding tax codes assignable to suppliers")
+        .icon("layer-group")
+        .required_string("code", "Group Code")
+        .required_string("name", "Group Name")
+        .string("description", "Description")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Supplier Withholding Assignment entity
+/// Oracle Fusion: Payables > Withholding Tax > Supplier Assignments
+pub fn supplier_withholding_assignment_definition() -> EntityDefinition {
+    SchemaBuilder::new("supplier_withholding_assignments", "Supplier WHT Assignment")
+        .plural_label("Supplier Withholding Assignments")
+        .table_name("fin_supplier_withholding_assignments")
+        .description("Supplier assignments to withholding tax groups")
+        .icon("link")
+        .reference("supplier_id", "Supplier", "suppliers")
+        .string("supplier_number", "Supplier Number")
+        .string("supplier_name", "Supplier Name")
+        .reference("tax_group_id", "Tax Group", "withholding_tax_groups")
+        .boolean("is_exempt", "Exempt")
+        .string("exemption_reason", "Exemption Reason")
+        .string("exemption_certificate", "Exemption Certificate")
+        .date("exemption_valid_until", "Exemption Valid Until")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Withholding Tax Line entity
+/// Oracle Fusion: Payables > Withholding Tax > Tax Lines
+pub fn withholding_tax_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("withholding_tax_lines", "Withholding Tax Line")
+        .plural_label("Withholding Tax Lines")
+        .table_name("fin_withholding_tax_lines")
+        .description("Actual withholding tax lines from supplier payments")
+        .icon("receipt")
+        .reference("payment_id", "Payment", "ap_payments")
+        .string("payment_number", "Payment Number")
+        .reference("invoice_id", "Invoice", "ap_invoices")
+        .string("invoice_number", "Invoice Number")
+        .reference("supplier_id", "Supplier", "suppliers")
+        .string("supplier_name", "Supplier Name")
+        .reference("tax_code_id", "Tax Code", "withholding_tax_codes")
+        .string("tax_code", "Tax Code")
+        .string("tax_type", "Tax Type")
+        .decimal("rate_percentage", "Rate %", 12, 4)
+        .currency("taxable_amount", "Taxable Amount", "USD")
+        .currency("withheld_amount", "Withheld Amount", "USD")
+        .string("withholding_account_code", "Withholding Account")
+        .enumeration("status", "Status", vec![
+            "pending", "withheld", "remitted", "refunded",
+        ])
+        .date("remittance_date", "Remittance Date")
+        .string("remittance_reference", "Remittance Reference")
+        .build()
+}
+
+/// Withholding Certificate entity with workflow
+/// Oracle Fusion: Payables > Withholding Tax > Certificates
+pub fn withholding_certificate_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("withholding_certificate_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("issued", "Issued")
+        .final_state("acknowledged", "Acknowledged")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "issued", "issue")
+        .transition("issued", "acknowledged", "acknowledge")
+        .transition("draft", "cancelled", "cancel")
+        .transition("issued", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("withholding_certificates", "Withholding Certificate")
+        .plural_label("Withholding Certificates")
+        .table_name("fin_withholding_certificates")
+        .description("Withholding tax certificates issued to suppliers")
+        .icon("certificate")
+        .required_string("certificate_number", "Certificate Number")
+        .reference("supplier_id", "Supplier", "suppliers")
+        .string("supplier_number", "Supplier Number")
+        .string("supplier_name", "Supplier Name")
+        .string("tax_type", "Tax Type")
+        .reference("tax_code_id", "Tax Code", "withholding_tax_codes")
+        .string("tax_code", "Tax Code")
+        .date("period_start", "Period Start")
+        .date("period_end", "Period End")
+        .currency("total_invoice_amount", "Total Invoice Amount", "USD")
+        .currency("total_withheld_amount", "Total Withheld Amount", "USD")
+        .decimal("rate_percentage", "Rate %", 12, 4)
+        .json("payment_ids", "Payment IDs")
+        .string("notes", "Notes")
+        .enumeration("status", "Status", vec![
+            "draft", "issued", "acknowledged", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Project Billing (Oracle Fusion: Project Management > Project Billing)
+// ============================================================================
+
+/// Bill Rate Schedule entity with workflow
+/// Oracle Fusion: Project Billing > Bill Rate Schedules
+pub fn bill_rate_schedule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("bill_rate_schedule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("bill_rate_schedules", "Bill Rate Schedule")
+        .plural_label("Bill Rate Schedules")
+        .table_name("fin_bill_rate_schedules")
+        .description("Billable rate schedules by role and labor category")
+        .icon("clock")
+        .required_string("schedule_number", "Schedule Number")
+        .required_string("name", "Schedule Name")
+        .string("description", "Description")
+        .enumeration("schedule_type", "Schedule Type", vec![
+            "standard", "overtime", "holiday", "custom",
+        ])
+        .string("currency_code", "Currency Code")
+        .date("effective_start", "Effective Start")
+        .date("effective_end", "Effective End")
+        .decimal("default_markup_pct", "Default Markup %", 8, 4)
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Bill Rate Line entity
+/// Oracle Fusion: Project Billing > Bill Rate Lines
+pub fn bill_rate_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("bill_rate_lines", "Bill Rate Line")
+        .plural_label("Bill Rate Lines")
+        .table_name("fin_bill_rate_lines")
+        .description("Individual billable rates within a schedule")
+        .icon("list")
+        .reference("schedule_id", "Schedule", "bill_rate_schedules")
+        .required_string("role_name", "Role Name")
+        .reference("project_id", "Project", "projects")
+        .currency("bill_rate", "Bill Rate", "USD")
+        .string("unit_of_measure", "UOM")
+        .date("effective_start", "Effective Start")
+        .date("effective_end", "Effective End")
+        .decimal("markup_pct", "Markup %", 8, 4)
+        .build()
+}
+
+/// Project Billing Config entity with workflow
+/// Oracle Fusion: Project Billing > Billing Configuration
+pub fn project_billing_config_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("project_billing_config_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("active", "Active")
+        .final_state("completed", "Completed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "active", "activate")
+        .transition("active", "completed", "complete")
+        .transition("active", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("project_billing_configs", "Project Billing Config")
+        .plural_label("Project Billing Configs")
+        .table_name("fin_project_billing_configs")
+        .description("Billing arrangement configuration per project")
+        .icon("cog")
+        .reference("project_id", "Project", "projects")
+        .enumeration("billing_method", "Billing Method", vec![
+            "time_and_materials", "fixed_price", "milestone", "cost_plus", "retention",
+        ])
+        .reference("bill_rate_schedule_id", "Bill Rate Schedule", "bill_rate_schedules")
+        .currency("contract_amount", "Contract Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .enumeration("invoice_format", "Invoice Format", vec![
+            "detailed", "summary", "consolidated",
+        ])
+        .enumeration("billing_cycle", "Billing Cycle", vec![
+            "weekly", "biweekly", "monthly", "milestone",
+        ])
+        .integer("payment_terms_days", "Payment Terms (Days)")
+        .decimal("retention_pct", "Retention %", 8, 4)
+        .currency("retention_amount_cap", "Retention Cap", "USD")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_name", "Customer Name")
+        .string("customer_po_number", "Customer PO Number")
+        .string("contract_number", "Contract Number")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "completed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Billing Event entity with workflow
+/// Oracle Fusion: Project Billing > Billing Events
+pub fn billing_event_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("billing_event_workflow", "planned")
+        .initial_state("planned", "Planned")
+        .working_state("ready", "Ready")
+        .working_state("invoiced", "Invoiced")
+        .final_state("partially_invoiced", "Partially Invoiced")
+        .final_state("cancelled", "Cancelled")
+        .transition("planned", "ready", "mark_ready")
+        .transition("ready", "invoiced", "invoice")
+        .transition("ready", "partially_invoiced", "partial_invoice")
+        .transition("planned", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("billing_events", "Billing Event")
+        .plural_label("Billing Events")
+        .table_name("fin_billing_events")
+        .description("Milestones and progress markers for project billing")
+        .icon("flag")
+        .reference("project_id", "Project", "projects")
+        .required_string("event_number", "Event Number")
+        .required_string("event_name", "Event Name")
+        .string("description", "Description")
+        .enumeration("event_type", "Event Type", vec![
+            "milestone", "progress", "completion", "retention_release",
+        ])
+        .currency("billing_amount", "Billing Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .decimal("completion_pct", "Completion %", 8, 4)
+        .date("planned_date", "Planned Date")
+        .date("actual_date", "Actual Date")
+        .reference("task_id", "Task", "tasks")
+        .string("task_name", "Task Name")
+        .enumeration("status", "Status", vec![
+            "planned", "ready", "invoiced", "partially_invoiced", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Project Invoice Header entity with workflow
+/// Oracle Fusion: Project Billing > Project Invoices
+pub fn project_invoice_header_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("project_invoice_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .final_state("posted", "Posted")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "posted", "post")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("project_invoice_headers", "Project Invoice")
+        .plural_label("Project Invoices")
+        .table_name("fin_project_invoice_headers")
+        .description("Project invoices for client billing")
+        .icon("file-invoice-dollar")
+        .required_string("invoice_number", "Invoice Number")
+        .reference("project_id", "Project", "projects")
+        .string("project_number", "Project Number")
+        .string("project_name", "Project Name")
+        .enumeration("invoice_type", "Invoice Type", vec![
+            "progress", "milestone", "t_and_m", "retention_release",
+            "debit_memo", "credit_memo",
+        ])
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_name", "Customer Name")
+        .currency("invoice_amount", "Invoice Amount", "USD")
+        .currency("tax_amount", "Tax Amount", "USD")
+        .currency("retention_held", "Retention Held", "USD")
+        .currency("total_amount", "Total Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .date("billing_period_start", "Billing Period Start")
+        .date("billing_period_end", "Billing Period End")
+        .date("invoice_date", "Invoice Date")
+        .date("due_date", "Due Date")
+        .reference("billing_event_id", "Billing Event", "billing_events")
+        .string("customer_po_number", "Customer PO Number")
+        .string("contract_number", "Contract Number")
+        .boolean("gl_posted_flag", "GL Posted")
+        .string("rejected_reason", "Rejected Reason")
+        .enumeration("payment_status", "Payment Status", vec![
+            "unpaid", "partially_paid", "paid",
+        ])
+        .rich_text("notes", "Notes")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "rejected", "posted", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Project Invoice Line entity
+/// Oracle Fusion: Project Billing > Invoice Lines
+pub fn project_invoice_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("project_invoice_lines", "Project Invoice Line")
+        .plural_label("Project Invoice Lines")
+        .table_name("fin_project_invoice_lines")
+        .description("Individual line items on a project invoice")
+        .icon("list")
+        .reference("invoice_header_id", "Invoice", "project_invoice_headers")
+        .integer("line_number", "Line Number")
+        .enumeration("line_source", "Line Source", vec![
+            "expenditure_item", "billing_event", "retention", "manual",
+        ])
+        .reference("billing_event_id", "Billing Event", "billing_events")
+        .reference("task_id", "Task", "tasks")
+        .string("task_number", "Task Number")
+        .string("task_name", "Task Name")
+        .string("description", "Description")
+        .reference("employee_id", "Employee", "employees")
+        .string("employee_name", "Employee Name")
+        .string("role_name", "Role Name")
+        .string("expenditure_type", "Expenditure Type")
+        .decimal("quantity", "Quantity", 18, 4)
+        .string("unit_of_measure", "UOM")
+        .currency("bill_rate", "Bill Rate", "USD")
+        .currency("raw_cost_amount", "Raw Cost", "USD")
+        .currency("bill_amount", "Bill Amount", "USD")
+        .currency("markup_amount", "Markup Amount", "USD")
+        .currency("retention_amount", "Retention Amount", "USD")
+        .currency("tax_amount", "Tax Amount", "USD")
+        .date("transaction_date", "Transaction Date")
+        .build()
+}

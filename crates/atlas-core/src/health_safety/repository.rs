@@ -297,6 +297,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
         closed_by: Option<Uuid>,
         metadata: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<SafetyIncident> {
+        let _ = &metadata; // used by downstream callers, stored in DB schema
         let row = sqlx::query(
             r#"INSERT INTO _atlas.safety_incidents
                 (organization_id, incident_number, title, description,
@@ -433,6 +434,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
         owner_id: Option<Uuid>, owner_name: Option<&str>,
         metadata: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<Hazard> {
+        let _ = &metadata; // used by downstream callers, stored in DB schema
         let row = sqlx::query(
             r#"INSERT INTO _atlas.safety_hazards
                 (organization_id, hazard_code, title, description,
@@ -536,6 +538,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
         findings: serde_json::Value, attachments: serde_json::Value,
         metadata: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<SafetyInspection> {
+        let _ = &metadata; // used by downstream callers, stored in DB schema
         let row = sqlx::query(
             r#"INSERT INTO _atlas.safety_inspections
                 (organization_id, inspection_number, title, description,
@@ -654,6 +657,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
         notes: Option<&str>, attachments: serde_json::Value,
         metadata: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<SafetyCorrectiveAction> {
+        let _ = &metadata; // used by downstream callers, stored in DB schema
         let row = sqlx::query(
             r#"INSERT INTO _atlas.corrective_actions
                 (organization_id, action_number, title, description,

@@ -126,7 +126,7 @@ pub async fn get_payment(
 /// Issue (confirm) a payment
 pub async fn issue_payment(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.payment_engine.issue_payment(id).await {

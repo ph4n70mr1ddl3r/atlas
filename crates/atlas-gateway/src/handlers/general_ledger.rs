@@ -95,7 +95,7 @@ pub async fn list_gl_accounts(
 /// Get a GL account by ID
 pub async fn get_gl_account(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.general_ledger_engine.get_account(id).await {

@@ -21,12 +21,14 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid report types
+#[allow(dead_code)]
 const VALID_REPORT_TYPES: &[&str] = &[
     "balance_sheet", "income_statement", "cash_flow_statement",
     "trial_balance", "statement_of_changes_in_equity",
 ];
 
 /// Valid balance sheet classifications
+#[allow(dead_code)]
 const VALID_BS_CLASSIFICATIONS: &[&str] = &[
     "current_asset", "non_current_asset",
     "current_liability", "non_current_liability",
@@ -34,6 +36,7 @@ const VALID_BS_CLASSIFICATIONS: &[&str] = &[
 ];
 
 /// Valid income statement classifications
+#[allow(dead_code)]
 const VALID_IS_CLASSIFICATIONS: &[&str] = &[
     "revenue", "cost_of_goods_sold", "gross_profit",
     "operating_expense", "operating_income",
@@ -42,11 +45,13 @@ const VALID_IS_CLASSIFICATIONS: &[&str] = &[
 ];
 
 /// Valid line types
+#[allow(dead_code)]
 const VALID_LINE_TYPES: &[&str] = &[
     "header", "detail", "subtotal", "total", "blank",
 ];
 
 /// Valid sign conventions
+#[allow(dead_code)]
 const VALID_SIGN_CONVENTIONS: &[&str] = &[
     "normal", "negate",
 ];
@@ -55,6 +60,7 @@ const VALID_SIGN_CONVENTIONS: &[&str] = &[
 const DEBIT_NATURE_TYPES: &[&str] = &["asset", "expense"];
 
 /// Credit-nature account types (liabilities, equity, revenue)
+#[allow(dead_code)]
 const CREDIT_NATURE_TYPES: &[&str] = &["liability", "equity", "revenue"];
 
 /// Financial Statement Engine
@@ -452,9 +458,9 @@ impl FinancialStatementEngine {
         let mut total_revenue = 0.0_f64;
         let mut total_cogs = 0.0_f64;
         let mut total_operating_expenses = 0.0_f64;
-        let mut total_other_income = 0.0_f64;
-        let mut total_other_expense = 0.0_f64;
-        let mut income_tax = 0.0_f64;
+        let total_other_income = 0.0_f64;
+        let total_other_expense = 0.0_f64;
+        let income_tax = 0.0_f64;
 
         // Revenue
         line_num += 1;

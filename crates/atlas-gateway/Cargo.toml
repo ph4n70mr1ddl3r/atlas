@@ -48,6 +48,9 @@ parking_lot = "0.12"
 # Event bus
 async-nats = { workspace = true }
 
+# Financials
+atlas-financials = { path = "../atlas-financials" }
+
 # Validation
 validator = { workspace = true }
 regex = { workspace = true }

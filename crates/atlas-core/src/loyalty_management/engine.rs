@@ -19,29 +19,41 @@ use uuid::Uuid;
 // Valid enum constants
 // ============================================================================
 
+#[allow(dead_code)]
 const VALID_PROGRAM_TYPES: &[&str] = &["points", "tier", "frequency", "hybrid"];
+#[allow(dead_code)]
 const VALID_PROGRAM_STATUSES: &[&str] = &["draft", "active", "suspended", "closed"];
+#[allow(dead_code)]
 const VALID_ENROLLMENT_TYPES: &[&str] = &["open", "invitation", "approval"];
+#[allow(dead_code)]
 const VALID_ACCRUAL_BASES: &[&str] = &["amount", "quantity", "visit"];
+#[allow(dead_code)]
 const VALID_ROUNDING_METHODS: &[&str] = &["round", "floor", "ceil"];
+#[allow(dead_code)]
 const VALID_TIER_PERIODS: &[&str] = &["yearly", "quarterly", "monthly", "lifetime"];
 
+#[allow(dead_code)]
 const VALID_MEMBER_STATUSES: &[&str] = &["active", "inactive", "suspended", "closed"];
 
+#[allow(dead_code)]
 const VALID_TXN_TYPES: &[&str] = &[
     "accrual", "redemption", "adjustment", "expiration",
     "transfer_in", "transfer_out", "bonus", "reversal",
 ];
+#[allow(dead_code)]
 const VALID_TXN_STATUSES: &[&str] = &["posted", "pending", "reversed", "cancelled"];
+#[allow(dead_code)]
 const VALID_SOURCE_TYPES: &[&str] = &[
     "sales_order", "purchase", "manual", "promotion", "signup_bonus",
     "referral", "social", "tier_upgrade",
 ];
 
+#[allow(dead_code)]
 const VALID_REWARD_TYPES: &[&str] = &[
     "merchandise", "discount", "voucher", "experience",
     "cashback", "free_product", "upgrade",
 ];
+#[allow(dead_code)]
 const VALID_REDEMPTION_STATUSES: &[&str] = &[
     "pending", "fulfilled", "cancelled", "expired",
 ];

@@ -6513,7 +6513,7 @@ impl crate::rebate_management::RebateManagementRepository for MockRebateManageme
     async fn get_agreement(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::RebateAgreement>> { Ok(None) }
     async fn get_agreement_by_number(&self, _org_id: Uuid, _agreement_number: &str) -> AtlasResult<Option<atlas_shared::RebateAgreement>> { Ok(None) }
     async fn list_agreements(&self, _org_id: Uuid, _status: Option<&str>, _rebate_type: Option<&str>, _partner_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::RebateAgreement>> { Ok(vec![]) }
-    async fn update_agreement_status(&self, id: Uuid, status: &str) -> AtlasResult<atlas_shared::RebateAgreement> {
+    async fn update_agreement_status(&self, id: Uuid, _status: &str) -> AtlasResult<atlas_shared::RebateAgreement> {
         Err(AtlasError::EntityNotFound(format!("Agreement {} not found", id)))
     }
     async fn delete_agreement(&self, _org_id: Uuid, _agreement_number: &str) -> AtlasResult<()> { Ok(()) }

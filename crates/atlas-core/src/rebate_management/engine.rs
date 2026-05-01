@@ -19,48 +19,61 @@ use uuid::Uuid;
 // Valid enum constants
 // ============================================================================
 
+#[allow(dead_code)]
 const VALID_REBATE_TYPES: &[&str] = &["supplier_rebate", "customer_rebate"];
 
+#[allow(dead_code)]
 const VALID_DIRECTIONS: &[&str] = &["receivable", "payable"];
 
+#[allow(dead_code)]
 const VALID_PARTNER_TYPES: &[&str] = &["supplier", "customer"];
 
+#[allow(dead_code)]
 const VALID_AGREEMENT_STATUSES: &[&str] = &[
     "draft", "active", "on_hold", "expired", "terminated",
 ];
 
+#[allow(dead_code)]
 const VALID_CALC_METHODS: &[&str] = &[
     "flat_rate", "tiered", "cumulative",
 ];
 
+#[allow(dead_code)]
 const VALID_SETTLEMENT_FREQUENCIES: &[&str] = &[
     "monthly", "quarterly", "annually", "at_end",
 ];
 
+#[allow(dead_code)]
 const VALID_RATE_TYPES: &[&str] = &[
     "percentage", "fixed_per_unit", "fixed_amount",
 ];
 
+#[allow(dead_code)]
 const VALID_TXN_STATUSES: &[&str] = &[
     "eligible", "accrued", "settled", "excluded", "disputed",
 ];
 
+#[allow(dead_code)]
 const VALID_SOURCE_TYPES: &[&str] = &[
     "sales_order", "purchase_order", "invoice", "manual",
 ];
 
+#[allow(dead_code)]
 const VALID_ACCRUAL_STATUSES: &[&str] = &[
     "draft", "posted", "reversed", "settled",
 ];
 
+#[allow(dead_code)]
 const VALID_SETTLEMENT_STATUSES: &[&str] = &[
     "pending", "approved", "paid", "cancelled", "disputed",
 ];
 
+#[allow(dead_code)]
 const VALID_SETTLEMENT_TYPES: &[&str] = &[
     "payment", "credit_memo", "offset",
 ];
 
+#[allow(dead_code)]
 const VALID_PAYMENT_METHODS: &[&str] = &[
     "check", "wire", "ach", "credit_note",
 ];

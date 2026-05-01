@@ -23,32 +23,38 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid source types for import formats
+#[allow(dead_code)]
 const VALID_SOURCE_TYPES: &[&str] = &[
     "file", "api", "subledger",
 ];
 
 /// Valid file formats
+#[allow(dead_code)]
 const VALID_FILE_FORMATS: &[&str] = &[
     "csv", "json", "fixed_width",
 ];
 
 /// Valid format statuses
+#[allow(dead_code)]
 const VALID_FORMAT_STATUSES: &[&str] = &[
     "active", "inactive",
 ];
 
 /// Valid batch statuses
+#[allow(dead_code)]
 const VALID_BATCH_STATUSES: &[&str] = &[
     "uploaded", "validating", "validated", "importing",
     "completed", "completed_with_errors", "failed",
 ];
 
 /// Valid row statuses
+#[allow(dead_code)]
 const VALID_ROW_STATUSES: &[&str] = &[
     "pending", "valid", "error", "imported", "skipped",
 ];
 
 /// Valid target fields for column mappings
+#[allow(dead_code)]
 const VALID_TARGET_FIELDS: &[&str] = &[
     "account_code", "account_name", "description",
     "entered_dr", "entered_cr", "currency_code",
@@ -57,11 +63,13 @@ const VALID_TARGET_FIELDS: &[&str] = &[
 ];
 
 /// Valid data types for column mappings
+#[allow(dead_code)]
 const VALID_DATA_TYPES: &[&str] = &[
     "string", "number", "date",
 ];
 
 /// Valid error severities
+#[allow(dead_code)]
 const VALID_ERROR_SEVERITIES: &[&str] = &[
     "error", "warning",
 ];

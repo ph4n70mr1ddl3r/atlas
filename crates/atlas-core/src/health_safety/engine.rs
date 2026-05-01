@@ -19,69 +19,84 @@ use uuid::Uuid;
 // Valid enum constants
 // ============================================================================
 
+#[allow(dead_code)]
 const VALID_INCIDENT_TYPES: &[&str] = &[
     "injury", "illness", "near_miss", "property_damage",
     "environmental_release", "fire", "vehicle_incident", "other",
 ];
 
+#[allow(dead_code)]
 const VALID_SEVERITIES: &[&str] = &[
     "low", "medium", "high", "critical",
 ];
 
+#[allow(dead_code)]
 const VALID_INCIDENT_STATUSES: &[&str] = &[
     "reported", "under_investigation", "corrective_action",
     "resolved", "closed",
 ];
 
+#[allow(dead_code)]
 const VALID_PRIORITIES: &[&str] = &[
     "low", "medium", "high", "urgent",
 ];
 
+#[allow(dead_code)]
 const VALID_OSHA_CLASSIFICATIONS: &[&str] = &[
     "death", "days_away_from_work", "job_transfer_restriction",
     "other_recordable", "first_aid_only",
 ];
 
+#[allow(dead_code)]
 const VALID_HAZARD_CATEGORIES: &[&str] = &[
     "physical", "chemical", "biological", "ergonomic",
     "psychosocial", "electrical", "mechanical", "thermal",
     "radiation", "noise", "vibration", "other",
 ];
 
+#[allow(dead_code)]
 const VALID_RISK_LEVELS: &[&str] = &[
     "negligible", "low", "medium", "high", "very_high", "extreme",
 ];
 
+#[allow(dead_code)]
 const VALID_LIKELIHOODS: &[&str] = &[
     "rare", "unlikely", "possible", "likely", "almost_certain",
 ];
 
+#[allow(dead_code)]
 const VALID_CONSEQUENCES: &[&str] = &[
     "insignificant", "minor", "moderate", "major", "catastrophic",
 ];
 
+#[allow(dead_code)]
 const VALID_HAZARD_STATUSES: &[&str] = &[
     "identified", "assessed", "mitigated", "closed", "transferred",
 ];
 
+#[allow(dead_code)]
 const VALID_INSPECTION_TYPES: &[&str] = &[
     "routine", "periodic", "pre_use", "post_incident",
     "regulatory", "internal_audit", "external_audit",
 ];
 
+#[allow(dead_code)]
 const VALID_INSPECTION_STATUSES: &[&str] = &[
     "scheduled", "in_progress", "completed", "cancelled",
 ];
 
+#[allow(dead_code)]
 const VALID_ACTION_TYPES: &[&str] = &[
     "corrective", "preventive", "corrective_and_preventive",
 ];
 
+#[allow(dead_code)]
 const VALID_CAPA_STATUSES: &[&str] = &[
     "open", "in_progress", "pending_verification",
     "completed", "closed", "cancelled",
 ];
 
+#[allow(dead_code)]
 const VALID_EFFECTIVENESS: &[&str] = &[
     "not_effective", "partially_effective", "effective", "highly_effective",
 ];

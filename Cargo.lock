@@ -176,6 +176,7 @@ dependencies = [
  "argon2",
  "async-nats",
  "atlas-core",
+ "atlas-financials",
  "atlas-shared",
  "axum",
  "chrono",

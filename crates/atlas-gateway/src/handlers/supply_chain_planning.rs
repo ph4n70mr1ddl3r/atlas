@@ -92,7 +92,7 @@ pub async fn list_scenarios(
 
 pub async fn get_scenario(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.planning_engine.get_scenario(id).await {
@@ -104,7 +104,7 @@ pub async fn get_scenario(
 
 pub async fn run_mrp(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.planning_engine.run_mrp(id).await {
@@ -115,7 +115,7 @@ pub async fn run_mrp(
 
 pub async fn cancel_scenario(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.planning_engine.cancel_scenario(id).await {
@@ -242,7 +242,7 @@ pub struct ListSupplyDemandParams {
 
 pub async fn list_supply_demand(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(scenario_id): Path<Uuid>,
     Query(params): Query<ListSupplyDemandParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -266,7 +266,7 @@ pub struct ListPlannedOrdersParams {
 
 pub async fn list_planned_orders(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(scenario_id): Path<Uuid>,
     Query(params): Query<ListPlannedOrdersParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -280,7 +280,7 @@ pub async fn list_planned_orders(
 
 pub async fn get_planned_order(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.planning_engine.get_planned_order(id).await {
@@ -292,7 +292,7 @@ pub async fn get_planned_order(
 
 pub async fn firm_planned_order(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.planning_engine.firm_planned_order(id).await {
@@ -303,7 +303,7 @@ pub async fn firm_planned_order(
 
 pub async fn cancel_planned_order(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.planning_engine.cancel_planned_order(id).await {
@@ -324,7 +324,7 @@ pub struct ListExceptionsParams {
 
 pub async fn list_exceptions(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(scenario_id): Path<Uuid>,
     Query(params): Query<ListExceptionsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -343,11 +343,11 @@ pub struct ResolveExceptionRequest {
 
 pub async fn resolve_exception(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<ResolveExceptionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub).ok();
+    let user_id = Uuid::parse_str(&_claims.sub).ok();
     match state.planning_engine.resolve_exception(
         id, &payload.resolution, user_id,
     ).await {

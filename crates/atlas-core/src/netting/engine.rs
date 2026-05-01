@@ -20,36 +20,43 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid netting directions
+#[allow(dead_code)]
 const VALID_NETTING_DIRECTIONS: &[&str] = &[
     "payables_to_receivables", "receivables_to_payables", "bi_directional",
 ];
 
 /// Valid settlement methods
+#[allow(dead_code)]
 const VALID_SETTLEMENT_METHODS: &[&str] = &[
     "automatic", "manual",
 ];
 
 /// Valid agreement statuses
+#[allow(dead_code)]
 const VALID_AGREEMENT_STATUSES: &[&str] = &[
     "draft", "active", "inactive", "terminated",
 ];
 
 /// Valid batch statuses
+#[allow(dead_code)]
 const VALID_BATCH_STATUSES: &[&str] = &[
     "draft", "submitted", "approved", "settled", "cancelled", "reversed",
 ];
 
 /// Valid settlement directions
+#[allow(dead_code)]
 const VALID_SETTLEMENT_DIRECTIONS: &[&str] = &[
     "pay", "receive", "zero",
 ];
 
 /// Valid line source types
+#[allow(dead_code)]
 const VALID_LINE_SOURCE_TYPES: &[&str] = &[
     "payable", "receivable",
 ];
 
 /// Valid line statuses
+#[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &[
     "selected", "netted", "cancelled",
 ];

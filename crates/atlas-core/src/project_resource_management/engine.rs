@@ -18,28 +18,35 @@ use uuid::Uuid;
 // Valid enum constants
 // ============================================================================
 
+#[allow(dead_code)]
 const VALID_RESOURCE_TYPES: &[&str] = &["employee", "contractor"];
 
+#[allow(dead_code)]
 const VALID_AVAILABILITY_STATUSES: &[&str] = &[
     "available", "partially_available", "fully_allocated", "on_leave",
 ];
 
+#[allow(dead_code)]
 const VALID_REQUEST_PRIORITIES: &[&str] = &[
     "low", "medium", "high", "critical",
 ];
 
+#[allow(dead_code)]
 const VALID_REQUEST_STATUSES: &[&str] = &[
     "draft", "submitted", "fulfilled", "partially_fulfilled", "cancelled",
 ];
 
+#[allow(dead_code)]
 const VALID_RESOURCE_TYPE_PREFERENCES: &[&str] = &[
     "any", "employee_only", "contractor_only",
 ];
 
+#[allow(dead_code)]
 const VALID_ASSIGNMENT_STATUSES: &[&str] = &[
     "planned", "active", "completed", "cancelled",
 ];
 
+#[allow(dead_code)]
 const VALID_UTILIZATION_STATUSES: &[&str] = &[
     "submitted", "approved", "rejected",
 ];

@@ -32,49 +32,62 @@ use uuid::Uuid;
 // Valid enum constants
 // ============================================================================
 
+#[allow(dead_code)]
 const VALID_SCENARIO_TYPES: &[&str] = &[
     "mrp", "distribution_planning", "demand_planning", "production_planning",
 ];
 
+#[allow(dead_code)]
 const VALID_SCENARIO_STATUSES: &[&str] = &[
     "draft", "running", "completed", "error", "cancelled",
 ];
 
+#[allow(dead_code)]
 const VALID_PLANNING_METHODS: &[&str] = &[
     "mrp", "min_max", "reorder_point", "kanban", "not_planned",
 ];
 
+#[allow(dead_code)]
 const VALID_MAKE_BUY: &[&str] = &["make", "buy"];
 
+#[allow(dead_code)]
 const VALID_LOT_POLICIES: &[&str] = &[
     "fixed_quantity", "lot_for_lot", "period_order_quantity", "min_max",
 ];
 
+#[allow(dead_code)]
 const VALID_ENTRY_TYPES: &[&str] = &["supply", "demand"];
 
+#[allow(dead_code)]
 const VALID_SOURCE_TYPES: &[&str] = &[
     "on_hand", "purchase_order", "work_order", "transfer_order",
     "sales_order", "forecast", "safety_stock",
 ];
 
+#[allow(dead_code)]
 const VALID_ORDER_TYPES: &[&str] = &["buy", "make", "transfer"];
 
+#[allow(dead_code)]
 const VALID_ORDER_STATUSES: &[&str] = &[
     "unfirm", "firmed", "released", "cancelled", "completed",
 ];
 
+#[allow(dead_code)]
 const VALID_ORDER_ACTIONS: &[&str] = &[
     "new", "reschedule_in", "reschedule_out", "cancel", "expedite",
 ];
 
+#[allow(dead_code)]
 const VALID_EXCEPTION_TYPES: &[&str] = &[
     "late_order", "early_order", "excess_supply", "shortage",
     "past_due_demand", "order_past_due", "over_planned", "under_planned",
     "cancel_suggestion", "reschedule_suggestion",
 ];
 
+#[allow(dead_code)]
 const VALID_SEVERITIES: &[&str] = &["info", "warning", "error", "critical"];
 
+#[allow(dead_code)]
 const VALID_RESOLUTION_STATUSES: &[&str] = &[
     "open", "acknowledged", "resolved", "dismissed",
 ];

@@ -140,26 +140,31 @@ pub struct AccountsReceivableService {
 }
 
 /// Valid AR transaction types
+#[allow(dead_code)]
 const VALID_AR_TRANSACTION_TYPES: &[&str] = &[
     "invoice", "debit_memo", "credit_memo", "chargeback", "deposit", "guarantee",
 ];
 
 /// Valid AR transaction statuses
+#[allow(dead_code)]
 const VALID_AR_STATUSES: &[&str] = &[
     "draft", "complete", "open", "closed", "cancelled",
 ];
 
 /// Valid AR receipt types
+#[allow(dead_code)]
 const VALID_RECEIPT_TYPES: &[&str] = &[
     "cash", "check", "credit_card", "wire_transfer", "ach", "other",
 ];
 
 /// Valid AR credit memo reason codes
+#[allow(dead_code)]
 const VALID_CREDIT_MEMO_REASONS: &[&str] = &[
     "return", "pricing_error", "damaged", "wrong_item", "discount", "other",
 ];
 
 /// Valid AR adjustment types
+#[allow(dead_code)]
 const VALID_ADJUSTMENT_TYPES: &[&str] = &[
     "write_off", "write_off_bad_debt", "small_balance_write_off",
     "increase", "decrease", "transfer", "revaluation",
@@ -732,16 +737,19 @@ pub struct CostManagementService {
 }
 
 /// Valid costing methods for cost management
+#[allow(dead_code)]
 const VALID_COSTING_METHODS: &[&str] = &[
     "standard", "average", "fifo", "lifo",
 ];
 
 /// Valid cost element types
+#[allow(dead_code)]
 const VALID_COST_ELEMENT_TYPES: &[&str] = &[
     "material", "labor", "overhead", "subcontracting", "expense",
 ];
 
 /// Valid overhead absorption methods
+#[allow(dead_code)]
 const VALID_OVERHEAD_METHODS: &[&str] = &[
     "rate", "amount", "percentage",
 ];
@@ -1030,36 +1038,43 @@ pub struct RevenueRecognitionService {
 }
 
 /// Valid recognition methods
+#[allow(dead_code)]
 const VALID_RECOGNITION_METHODS: &[&str] = &[
     "over_time", "point_in_time",
 ];
 
 /// Valid over-time methods
+#[allow(dead_code)]
 const VALID_OVER_TIME_METHODS: &[&str] = &[
     "output", "input", "straight_line",
 ];
 
 /// Valid allocation bases
+#[allow(dead_code)]
 const VALID_ALLOCATION_BASES: &[&str] = &[
     "standalone_selling_price", "residual", "equal",
 ];
 
 /// Valid contract statuses
+#[allow(dead_code)]
 const VALID_CONTRACT_STATUSES: &[&str] = &[
     "draft", "active", "completed", "cancelled", "modified",
 ];
 
 /// Valid obligation statuses
+#[allow(dead_code)]
 const VALID_OBLIGATION_STATUSES: &[&str] = &[
     "pending", "in_progress", "satisfied", "partially_satisfied", "cancelled",
 ];
 
 /// Valid schedule statuses
+#[allow(dead_code)]
 const VALID_SCHEDULE_STATUSES: &[&str] = &[
     "planned", "recognized", "reversed", "cancelled",
 ];
 
 /// Valid modification types
+#[allow(dead_code)]
 const VALID_MODIFICATION_TYPES: &[&str] = &[
     "price_change", "scope_change", "term_extension",
     "termination", "add_obligation", "remove_obligation",
@@ -1206,21 +1221,25 @@ pub struct SubledgerAccountingService {
 }
 
 /// Valid SLA applications
+#[allow(dead_code)]
 const VALID_SLA_APPLICATIONS: &[&str] = &[
     "payables", "receivables", "expenses", "assets", "projects", "general",
 ];
 
 /// Valid SLA event classes
+#[allow(dead_code)]
 const VALID_SLA_EVENT_CLASSES: &[&str] = &[
     "create", "update", "cancel", "reverse",
 ];
 
 /// Valid SLA derivation types
+#[allow(dead_code)]
 const VALID_DERIVATION_TYPES: &[&str] = &[
     "constant", "lookup", "formula",
 ];
 
 /// Valid SLA entry statuses
+#[allow(dead_code)]
 const VALID_SLA_ENTRY_STATUSES: &[&str] = &[
     "draft", "accounted", "posted", "transferred", "reversed", "error",
 ];
@@ -1324,11 +1343,13 @@ pub struct CashManagementFinService {
 }
 
 /// Valid cash forecast bucket types
+#[allow(dead_code)]
 const VALID_BUCKET_TYPES: &[&str] = &[
     "daily", "weekly", "monthly",
 ];
 
 /// Valid cash forecast source types
+#[allow(dead_code)]
 const VALID_CASH_SOURCE_TYPES: &[&str] = &[
     "accounts_payable", "accounts_receivable", "payroll",
     "purchasing", "manual", "budget", "intercompany",
@@ -1336,11 +1357,13 @@ const VALID_CASH_SOURCE_TYPES: &[&str] = &[
 ];
 
 /// Valid cash flow directions
+#[allow(dead_code)]
 const VALID_CASH_FLOW_DIRECTIONS: &[&str] = &[
     "inflow", "outflow", "both",
 ];
 
 /// Valid forecast statuses
+#[allow(dead_code)]
 const VALID_FORECAST_STATUSES: &[&str] = &[
     "draft", "generated", "approved", "superseded",
 ];
@@ -1415,21 +1438,25 @@ pub struct TaxManagementService {
 }
 
 /// Valid tax types
+#[allow(dead_code)]
 const VALID_TAX_TYPES: &[&str] = &[
     "sales_tax", "vat", "gst", "withholding", "excise", "customs",
 ];
 
 /// Valid rate types
+#[allow(dead_code)]
 const VALID_RATE_TYPES: &[&str] = &[
     "standard", "reduced", "zero", "exempt",
 ];
 
 /// Valid rounding rules
+#[allow(dead_code)]
 const VALID_ROUNDING_RULES: &[&str] = &[
     "nearest", "up", "down", "none",
 ];
 
 /// Valid geographic levels
+#[allow(dead_code)]
 const VALID_GEOGRAPHIC_LEVELS: &[&str] = &[
     "country", "state", "county", "city", "region",
 ];
@@ -1512,16 +1539,19 @@ pub struct IntercompanyFinService {
 }
 
 /// Valid IC batch statuses
+#[allow(dead_code)]
 const VALID_IC_BATCH_STATUSES: &[&str] = &[
     "draft", "submitted", "approved", "posted", "cancelled",
 ];
 
 /// Valid IC transaction types
+#[allow(dead_code)]
 const VALID_IC_TXN_TYPES: &[&str] = &[
     "invoice", "journal_entry", "payment", "charge", "allocation",
 ];
 
 /// Valid IC settlement methods
+#[allow(dead_code)]
 const VALID_IC_SETTLEMENT_METHODS: &[&str] = &[
     "cash", "netting", "offset",
 ];
@@ -1579,11 +1609,13 @@ pub struct PeriodCloseFinService {
 }
 
 /// Valid period statuses
+#[allow(dead_code)]
 const VALID_PERIOD_STATUSES: &[&str] = &[
     "future", "not_opened", "open", "pending_close", "closed", "permanently_closed",
 ];
 
 /// Valid subledgers for period close
+#[allow(dead_code)]
 const VALID_PERIOD_SUBLEDGERS: &[&str] = &[
     "gl", "ap", "ar", "fa", "po",
 ];
@@ -1607,6 +1639,7 @@ impl PeriodCloseFinService {
         periods_per_year: i32,
         has_adjusting_period: bool,
     ) -> AtlasResult<()> {
+        let _ = calendar_type; // persisted by repository layer
         if name.is_empty() {
             return Err(AtlasError::ValidationFailed(
                 "Calendar name is required".to_string(),
@@ -1643,22 +1676,27 @@ pub struct LeaseAccountingFinService {
 }
 
 /// Valid lease classifications
+#[allow(dead_code)]
 const VALID_LEASE_CLASSIFICATIONS: &[&str] = &["operating", "finance"];
 
 /// Valid lease statuses
+#[allow(dead_code)]
 const VALID_LEASE_STATUSES: &[&str] = &[
     "draft", "active", "modified", "impaired", "terminated", "expired",
 ];
 
 /// Valid lease payment frequencies
+#[allow(dead_code)]
 const VALID_PAYMENT_FREQUENCIES: &[&str] = &["monthly", "quarterly", "annually"];
 
 /// Valid lease modification types
+#[allow(dead_code)]
 const VALID_LEASE_MOD_TYPES: &[&str] = &[
     "term_extension", "scope_change", "payment_change", "rate_change", "reclassification",
 ];
 
 /// Valid lease termination types
+#[allow(dead_code)]
 const VALID_LEASE_TERM_TYPES: &[&str] = &[
     "early", "end_of_term", "mutual_agreement", "default",
 ];
@@ -1820,11 +1858,13 @@ pub struct EncumbranceManagementService {
 }
 
 /// Valid encumbrance categories
+#[allow(dead_code)]
 const VALID_ENCUMBRANCE_CATEGORIES: &[&str] = &[
     "commitment", "obligation", "preliminary",
 ];
 
 /// Valid encumbrance entry statuses
+#[allow(dead_code)]
 const VALID_ENCUMBRANCE_STATUSES: &[&str] = &[
     "draft", "active", "partially_liquidated",
     "fully_liquidated", "cancelled", "expired",
@@ -1885,6 +1925,7 @@ pub struct CurrencyManagementService {
 }
 
 /// Valid exchange rate types
+#[allow(dead_code)]
 const VALID_EXCHANGE_RATE_TYPES: &[&str] = &[
     "daily", "spot", "corporate", "period_average", "period_end", "user", "fixed",
 ];
@@ -1989,9 +2030,11 @@ pub struct MultiBookAccountingFinService {
 }
 
 /// Valid multi-book types
+#[allow(dead_code)]
 const VALID_BOOK_TYPES: &[&str] = &["primary", "secondary"];
 
 /// Valid mapping levels
+#[allow(dead_code)]
 const VALID_MAPPING_LEVELS: &[&str] = &["journal", "subledger"];
 
 impl MultiBookAccountingFinService {
@@ -2070,16 +2113,19 @@ pub struct FinancialConsolidationFinService {
 }
 
 /// Valid consolidation methods
+#[allow(dead_code)]
 const VALID_CONSOLIDATION_METHODS: &[&str] = &[
     "full", "proportional", "equity_method",
 ];
 
 /// Valid translation methods
+#[allow(dead_code)]
 const VALID_TRANSLATION_METHODS: &[&str] = &[
     "current_rate", "temporal", "weighted_average",
 ];
 
 /// Valid scenario statuses
+#[allow(dead_code)]
 const VALID_SCENARIO_STATUSES: &[&str] = &[
     "draft", "in_progress", "pending_review", "approved", "posted", "reversed",
 ];
@@ -2369,52 +2415,62 @@ pub struct CollectionsManagementService {
 }
 
 /// Valid risk classifications for collections
+#[allow(dead_code)]
 const VALID_COLLECTION_RISK_CLASSIFICATIONS: &[&str] = &[
     "low", "medium", "high", "very_high", "defaulted",
 ];
 
 /// Valid collection case types
+#[allow(dead_code)]
 const VALID_CASE_TYPES: &[&str] = &[
     "collection", "dispute", "bankruptcy", "skip_trace",
 ];
 
 /// Valid case priorities
+#[allow(dead_code)]
 const VALID_CASE_PRIORITIES: &[&str] = &[
     "low", "medium", "high", "critical",
 ];
 
 /// Valid interaction types
+#[allow(dead_code)]
 const VALID_INTERACTION_TYPES: &[&str] = &[
     "phone_call", "email", "letter", "meeting", "note", "sms",
 ];
 
 /// Valid interaction outcomes
+#[allow(dead_code)]
 const VALID_INTERACTION_OUTCOMES: &[&str] = &[
     "contacted", "left_message", "no_answer", "promised_to_pay",
     "disputed", "refused", "agreed_payment_plan", "escalated", "no_action",
 ];
 
 /// Valid promise types
+#[allow(dead_code)]
 const VALID_PROMISE_TYPES: &[&str] = &[
     "single_payment", "installment", "full_balance",
 ];
 
 /// Valid dunning levels
+#[allow(dead_code)]
 const VALID_DUNNING_LEVELS: &[&str] = &[
     "reminder", "first_notice", "second_notice", "final_notice", "pre_legal", "legal",
 ];
 
 /// Valid communication methods for dunning
+#[allow(dead_code)]
 const VALID_DUNNING_COMM_METHODS: &[&str] = &[
     "email", "letter", "sms", "phone",
 ];
 
 /// Valid write-off types
+#[allow(dead_code)]
 const VALID_WRITE_OFF_TYPES: &[&str] = &[
     "bad_debt", "small_balance", "dispute", "adjustment",
 ];
 
 /// Valid resolution types
+#[allow(dead_code)]
 const VALID_RESOLUTION_TYPES: &[&str] = &[
     "full_payment", "partial_payment", "payment_plan",
     "write_off", "dispute_resolved", "uncollectible", "other",
@@ -2442,6 +2498,7 @@ impl CollectionsManagementService {
         let limit: f64 = credit_limit.parse().map_err(|_| AtlasError::ValidationFailed(
             "Credit limit must be a valid number".to_string(),
         ))?;
+        let _ = payment_terms; // persisted by repository layer
         if limit < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Credit limit must be non-negative".to_string(),
@@ -2551,6 +2608,7 @@ impl CollectionsManagementService {
         ending_current_receivables: f64,
         total_collections: f64,
     ) -> f64 {
+        let _ = total_collections; // reserved for extended CEI formula
         let denom = beginning_receivables + credit_sales - ending_current_receivables;
         if denom <= 0.0 {
             return 0.0;
@@ -2573,46 +2631,55 @@ pub struct CreditManagementFinService {
 }
 
 /// Valid credit model types
+#[allow(dead_code)]
 const VALID_CREDIT_MODEL_TYPES: &[&str] = &[
     "manual", "scorecard", "risk_category", "external",
 ];
 
 /// Valid credit profile types
+#[allow(dead_code)]
 const VALID_CREDIT_PROFILE_TYPES: &[&str] = &[
     "customer", "customer_group", "global",
 ];
 
 /// Valid credit risk levels
+#[allow(dead_code)]
 const VALID_CREDIT_RISK_LEVELS: &[&str] = &[
     "low", "medium", "high", "very_high", "blocked",
 ];
 
 /// Valid credit limit types
+#[allow(dead_code)]
 const VALID_CREDIT_LIMIT_TYPES: &[&str] = &[
     "overall", "order", "delivery", "currency",
 ];
 
 /// Valid credit check points
+#[allow(dead_code)]
 const VALID_CREDIT_CHECK_POINTS: &[&str] = &[
     "order_entry", "shipment", "invoice", "delivery", "payment",
 ];
 
 /// Valid credit check types
+#[allow(dead_code)]
 const VALID_CREDIT_CHECK_TYPES: &[&str] = &[
     "automatic", "manual",
 ];
 
 /// Valid failure actions
+#[allow(dead_code)]
 const VALID_FAILURE_ACTIONS: &[&str] = &[
     "hold", "warn", "reject", "notify",
 ];
 
 /// Valid credit hold types
+#[allow(dead_code)]
 const VALID_CREDIT_HOLD_TYPES: &[&str] = &[
     "credit_limit", "overdue", "review", "manual", "scoring",
 ];
 
 /// Valid credit review types
+#[allow(dead_code)]
 const VALID_CREDIT_REVIEW_TYPES: &[&str] = &[
     "periodic", "triggered", "ad_hoc", "escalation",
 ];
@@ -2773,17 +2840,20 @@ pub struct WithholdingTaxService {
 }
 
 /// Valid withholding tax types
+#[allow(dead_code)]
 const VALID_WHT_TAX_TYPES: &[&str] = &[
     "income_tax", "vat", "service_tax", "contract_tax",
     "royalty", "dividend", "interest", "other",
 ];
 
 /// Valid withholding line statuses
+#[allow(dead_code)]
 const VALID_WHT_LINE_STATUSES: &[&str] = &[
     "pending", "withheld", "remitted", "refunded",
 ];
 
 /// Valid certificate statuses
+#[allow(dead_code)]
 const VALID_WHT_CERT_STATUSES: &[&str] = &[
     "draft", "issued", "acknowledged", "cancelled",
 ];
@@ -2899,37 +2969,44 @@ pub struct ProjectBillingService {
 }
 
 /// Valid schedule types
+#[allow(dead_code)]
 const VALID_SCHEDULE_TYPES: &[&str] = &[
     "standard", "overtime", "holiday", "custom",
 ];
 
 /// Valid billing methods
+#[allow(dead_code)]
 const VALID_BILLING_METHODS: &[&str] = &[
     "time_and_materials", "fixed_price", "milestone", "cost_plus", "retention",
 ];
 
 /// Valid invoice formats
+#[allow(dead_code)]
 const VALID_INVOICE_FORMATS: &[&str] = &[
     "detailed", "summary", "consolidated",
 ];
 
 /// Valid billing cycles
+#[allow(dead_code)]
 const VALID_BILLING_CYCLES: &[&str] = &[
     "weekly", "biweekly", "monthly", "milestone",
 ];
 
 /// Valid billing event types
+#[allow(dead_code)]
 const VALID_EVENT_TYPES: &[&str] = &[
     "milestone", "progress", "completion", "retention_release",
 ];
 
 /// Valid project invoice types
+#[allow(dead_code)]
 const VALID_PROJECT_INVOICE_TYPES: &[&str] = &[
     "progress", "milestone", "t_and_m", "retention_release",
     "debit_memo", "credit_memo",
 ];
 
 /// Valid line sources
+#[allow(dead_code)]
 const VALID_LINE_SOURCES: &[&str] = &[
     "expenditure_item", "billing_event", "retention", "manual",
 ];
@@ -3085,11 +3162,13 @@ pub struct PaymentTermsService {
 }
 
 /// Valid payment term types
+#[allow(dead_code)]
 const VALID_TERM_TYPES: &[&str] = &[
     "immediate", "net_days", "discount_net", "milestone", "installment",
 ];
 
 /// Valid day-of-month options
+#[allow(dead_code)]
 const VALID_DAYS_OF_MONTH: &[&str] = &[
     "any", "1", "5", "10", "15", "20", "25",
 ];
@@ -3114,6 +3193,7 @@ impl PaymentTermsService {
         discount_days: Option<i32>,
         discount_percentage: Option<&str>,
     ) -> AtlasResult<()> {
+        let _ = discount_days; // persisted by repository layer
         if code.is_empty() || name.is_empty() {
             return Err(AtlasError::ValidationFailed(
                 "Payment term code and name are required".to_string(),
@@ -3231,11 +3311,13 @@ pub struct FinancialStatementService {
 }
 
 /// Valid financial report types
+#[allow(dead_code)]
 const VALID_REPORT_TYPES: &[&str] = &[
     "balance_sheet", "income_statement", "cash_flow", "trial_balance", "custom",
 ];
 
 /// Valid row types for report definitions
+#[allow(dead_code)]
 const VALID_ROW_TYPES: &[&str] = &[
     "header", "account_range", "calculated", "total", "subtotal", "text",
 ];
@@ -3414,26 +3496,31 @@ pub struct TaxFilingService {
 }
 
 /// Valid filing frequencies
+#[allow(dead_code)]
 const VALID_FILING_FREQUENCIES: &[&str] = &[
     "monthly", "quarterly", "semi_annually", "annually",
 ];
 
 /// Valid filing methods
+#[allow(dead_code)]
 const VALID_FILING_METHODS: &[&str] = &[
     "electronic", "paper", "both",
 ];
 
 /// Valid tax return statuses
+#[allow(dead_code)]
 const VALID_RETURN_STATUSES: &[&str] = &[
     "draft", "calculated", "reviewed", "approved", "filed", "amended", "cancelled",
 ];
 
 /// Valid tax payment statuses
+#[allow(dead_code)]
 const VALID_TAX_PAYMENT_STATUSES: &[&str] = &[
     "pending", "processed", "confirmed", "reversed",
 ];
 
 /// Valid tax payment methods
+#[allow(dead_code)]
 const VALID_TAX_PAYMENT_METHODS: &[&str] = &[
     "wire", "ach", "check", "electronic",
 ];
@@ -3579,11 +3666,13 @@ pub struct JournalReversalService {
 }
 
 /// Valid reversal methods
+#[allow(dead_code)]
 const VALID_REVERSAL_METHODS: &[&str] = &[
     "switch_dr_cr", "sign_reverse", "switch_signs",
 ];
 
 /// Valid reversal reasons
+#[allow(dead_code)]
 const VALID_REVERSAL_REASONS: &[&str] = &[
     "error_correction", "period_adjustment", "duplicate_entry",
     "reclassification", "management_decision", "other",
@@ -3608,6 +3697,7 @@ impl JournalReversalService {
         reversal_reason: &str,
         reason_description: Option<&str>,
     ) -> AtlasResult<()> {
+        let _ = reason_description; // persisted by repository layer
         if reversal_number.is_empty() {
             return Err(AtlasError::ValidationFailed(
                 "Reversal number is required".to_string(),

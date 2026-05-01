@@ -13,7 +13,7 @@
 //! Oracle Fusion Cloud ERP equivalent: Financials > Fixed Assets > Depreciation
 
 use atlas_shared::{
-    DepreciationResult, DepreciationSchedule, AssetDepreciationHistory, FixedAsset,
+    DepreciationResult, DepreciationSchedule, AssetDepreciationHistory,
     AtlasError, AtlasResult,
 };
 use super::AssetDepreciationRepository;

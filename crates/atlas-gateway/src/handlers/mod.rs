@@ -94,6 +94,7 @@ pub mod accounts_receivable;
 pub mod payment_management;
 pub mod netting;
 pub mod financial_statements;
+pub mod journal_import;
 
 pub use schema::*;
 pub use records::*;
@@ -3754,6 +3755,37 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/financial-statements", get(financial_statements::list_financial_statements))
         .route("/financial-statements/generate", post(financial_statements::generate_financial_statement))
         .route("/financial-statements/:id", get(financial_statements::get_financial_statement))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Journal Import (Oracle Fusion GL > Import Journals)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Import Formats
+        .route("/journal-import/formats", get(journal_import::list_import_formats))
+        .route("/journal-import/formats", post(journal_import::create_import_format))
+        .route("/journal-import/formats/:id", get(journal_import::get_import_format))
+        .route("/journal-import/formats/:code", delete(journal_import::delete_import_format))
+
+        // Column Mappings
+        .route("/journal-import/formats/:format_id/mappings", post(journal_import::add_column_mapping))
+        .route("/journal-import/formats/:format_id/mappings", get(journal_import::list_column_mappings))
+
+        // Import Batches
+        .route("/journal-import/batches", get(journal_import::list_import_batches))
+        .route("/journal-import/batches", post(journal_import::create_import_batch))
+        .route("/journal-import/batches/:id", get(journal_import::get_import_batch))
+        .route("/journal-import/batches/:id", delete(journal_import::delete_import_batch))
+
+        // Import Data Rows
+        .route("/journal-import/batches/:batch_id/rows", post(journal_import::add_import_row))
+        .route("/journal-import/batches/:batch_id/rows", get(journal_import::list_import_rows))
+
+        // Import Processing
+        .route("/journal-import/batches/:batch_id/validate", post(journal_import::validate_import_batch))
+        .route("/journal-import/batches/:batch_id/import", post(journal_import::import_batch))
+
+        // Journal Import Dashboard
+        .route("/journal-import/dashboard", get(journal_import::get_journal_import_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

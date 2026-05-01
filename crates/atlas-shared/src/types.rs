@@ -20175,3 +20175,145 @@ pub struct IncomeStatementSummary {
     pub net_income: String,
     pub net_profit_margin: String,
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Journal Import (Oracle Fusion GL > Import Journals)
+// ═══════════════════════════════════════════════════════════════
+
+/// Journal Import Format Definition
+/// Defines the structure and column mappings for importing journal data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalImportFormat {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub source_type: String,            // "file", "api", "subledger"
+    pub file_format: String,            // "csv", "json", "fixed_width"
+    pub delimiter: Option<String>,
+    pub header_row: bool,
+    pub ledger_id: Option<Uuid>,
+    pub currency_code: String,
+    pub default_date: Option<chrono::NaiveDate>,
+    pub default_journal_type: Option<String>,
+    pub balancing_segment: Option<String>,
+    pub status: String,                 // "active", "inactive"
+    pub validation_enabled: bool,
+    pub auto_post: bool,
+    pub max_errors_allowed: i32,
+    pub column_mappings: serde_json::Value,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Column mapping for journal import format
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalImportColumnMapping {
+    pub id: Uuid,
+    pub format_id: Uuid,
+    pub column_position: i32,
+    pub source_column: String,
+    pub target_field: String,           // "account_code", "debit", "credit", "description", etc.
+    pub data_type: String,              // "string", "number", "date"
+    pub is_required: bool,
+    pub default_value: Option<String>,
+    pub transformation: Option<String>,
+    pub validation_rule: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Journal Import Batch
+/// Represents a single import run
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalImportBatch {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub format_id: Uuid,
+    pub batch_number: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub source: String,
+    pub source_file_name: Option<String>,
+    pub status: String,                 // "uploaded", "validating", "validated", "importing",
+                                        // "completed", "completed_with_errors", "failed"
+    pub total_rows: i32,
+    pub valid_rows: i32,
+    pub error_rows: i32,
+    pub imported_rows: i32,
+    pub ledger_id: Option<Uuid>,
+    pub currency_code: String,
+    pub journal_batch_id: Option<Uuid>,
+    pub total_debit: String,
+    pub total_credit: String,
+    pub is_balanced: bool,
+    /// Row-level errors encountered during import
+    pub errors: serde_json::Value,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Journal Import Row
+/// Individual row from import data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalImportRow {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_id: Uuid,
+    pub row_number: i32,
+    pub raw_data: serde_json::Value,
+    pub status: String,                 // "pending", "valid", "error", "imported", "skipped"
+    pub account_code: Option<String>,
+    pub account_name: Option<String>,
+    pub description: Option<String>,
+    pub entered_dr: String,
+    pub entered_cr: String,
+    pub currency_code: Option<String>,
+    pub exchange_rate: Option<String>,
+    pub gl_date: Option<chrono::NaiveDate>,
+    pub reference: Option<String>,
+    pub line_type: Option<String>,
+    pub cost_center: Option<String>,
+    pub department: Option<String>,
+    pub project_code: Option<String>,
+    pub error_message: Option<String>,
+    pub error_field: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Journal Import Error
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalImportError {
+    pub row_number: i32,
+    pub field: String,
+    pub error: String,
+    pub severity: String,               // "error", "warning"
+    pub raw_value: Option<String>,
+}
+
+/// Journal Import Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalImportDashboardSummary {
+    pub total_formats: i32,
+    pub active_formats: i32,
+    pub total_batches: i32,
+    pub pending_batches: i32,
+    pub completed_batches: i32,
+    pub failed_batches: i32,
+    pub total_rows_imported: i32,
+    pub total_rows_with_errors: i32,
+    pub recent_batches: Vec<JournalImportBatch>,
+}

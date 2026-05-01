@@ -113,6 +113,8 @@ use atlas_core::{
     netting::PostgresNettingRepository,
     FinancialStatementEngine,
     financial_statements::PostgresFinancialStatementRepository,
+    JournalImportEngine,
+    journal_import::PostgresJournalImportRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -288,6 +290,7 @@ pub struct AppState {
     pub payment_engine: Arc<PaymentEngine>,
     pub netting_engine: Arc<NettingEngine>,
     pub financial_statements_engine: Arc<FinancialStatementEngine>,
+    pub journal_import_engine: Arc<JournalImportEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -782,6 +785,11 @@ impl AppState {
             atlas_core::financial_statements::PostgresFinancialStatementRepository::new(db_pool.clone())
         )));
 
+        // Initialize Journal Import engine
+        let journal_import_engine = Arc::new(JournalImportEngine::new(Arc::new(
+            atlas_core::journal_import::PostgresJournalImportRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -918,6 +926,7 @@ impl AppState {
             payment_engine,
             netting_engine,
             financial_statements_engine,
+            journal_import_engine,
             event_bus,
             jwt_secret,
         };

@@ -120,6 +120,7 @@ pub mod general_ledger;
 pub mod asset_depreciation;
 pub mod netting;
 pub mod financial_statements;
+pub mod journal_import;
 
 pub use schema::*;
 pub use workflow::{
@@ -241,6 +242,7 @@ pub use general_ledger::{GeneralLedgerEngine, PostgresGeneralLedgerRepository as
 pub use asset_depreciation::{AssetDepreciationEngine, PostgresAssetDepreciationRepository as PostgresAssetDepreciationRepo};
 pub use netting::{NettingEngine, PostgresNettingRepository as PostgresNettingRepo};
 pub use financial_statements::{FinancialStatementEngine, PostgresFinancialStatementRepository as PostgresFinancialStatementRepo};
+pub use journal_import::{JournalImportEngine, PostgresJournalImportRepository as PostgresJournalImportRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

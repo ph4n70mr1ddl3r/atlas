@@ -34,6 +34,10 @@ use atlas_core::{
     SupplyChainPlanningEngine,
 };
 
+use atlas_core::{
+    JournalImportEngine,
+};
+
 use atlas_shared::{
     EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
     StateDefinition, StateType, TransitionDefinition,
@@ -488,6 +492,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         ))),
         financial_statements_engine: Arc::new(atlas_core::FinancialStatementEngine::new(Arc::new(
             atlas_core::financial_statements::PostgresFinancialStatementRepository::new(db_pool.clone()),
+        ))),
+        journal_import_engine: Arc::new(JournalImportEngine::new(Arc::new(
+            atlas_core::journal_import::PostgresJournalImportRepository::new(db_pool.clone()),
         ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
@@ -974,4 +981,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.financial_statement_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.financial_statements").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.fs_report_definitions").execute(pool).await.ok();
+    // Journal Import
+    sqlx::query("DELETE FROM _atlas.journal_import_rows").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.journal_import_batches").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.journal_import_column_mappings").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.journal_import_formats").execute(pool).await.ok();
 }

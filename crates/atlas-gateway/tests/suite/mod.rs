@@ -92,3 +92,4 @@ mod accounts_receivable;
 mod payment_management;
 mod netting;
 mod financial_statements;
+mod journal_import;

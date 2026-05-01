@@ -88,6 +88,7 @@ pub mod health_safety;
 pub mod funds_reservation;
 pub mod rebate_management;
 pub mod project_resource_management;
+pub mod loyalty_management;
 
 pub use schema::*;
 pub use records::*;
@@ -3611,6 +3612,54 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/resource/utilization/id/:id", delete(project_resource_management::delete_utilization_entry))
         // Dashboard
         .route("/resource/dashboard", get(project_resource_management::get_resource_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Loyalty Management (Oracle Fusion CX > Loyalty Management)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Programs
+        .route("/loyalty/programs", post(loyalty_management::create_program))
+        .route("/loyalty/programs", get(loyalty_management::list_programs))
+        .route("/loyalty/programs/:id", get(loyalty_management::get_program))
+        .route("/loyalty/programs/:id/activate", post(loyalty_management::activate_program))
+        .route("/loyalty/programs/:id/suspend", post(loyalty_management::suspend_program))
+        .route("/loyalty/programs/:id/close", post(loyalty_management::close_program))
+        .route("/loyalty/programs/number/:number", delete(loyalty_management::delete_program))
+
+        // Tiers
+        .route("/loyalty/programs/:program_id/tiers", post(loyalty_management::create_tier))
+        .route("/loyalty/programs/:program_id/tiers", get(loyalty_management::list_tiers))
+        .route("/loyalty/tiers/:tier_id", delete(loyalty_management::delete_tier))
+
+        // Members
+        .route("/loyalty/programs/:program_id/members", post(loyalty_management::enroll_member))
+        .route("/loyalty/members/:id", get(loyalty_management::get_member))
+        .route("/loyalty/programs/:program_id/members", get(loyalty_management::list_members))
+        .route("/loyalty/members/:id/suspend", post(loyalty_management::suspend_member))
+        .route("/loyalty/members/:id/reactivate", post(loyalty_management::reactivate_member))
+        .route("/loyalty/members/number/:number", delete(loyalty_management::delete_member))
+
+        // Point Transactions
+        .route("/loyalty/programs/:program_id/accrue", post(loyalty_management::accrue_points))
+        .route("/loyalty/programs/:program_id/adjust", post(loyalty_management::adjust_points))
+        .route("/loyalty/transactions/:id/reverse", post(loyalty_management::reverse_transaction))
+        .route("/loyalty/members/:member_id/transactions", get(loyalty_management::list_transactions))
+        .route("/loyalty/transactions/number/:number", delete(loyalty_management::delete_transaction))
+
+        // Rewards
+        .route("/loyalty/programs/:program_id/rewards", post(loyalty_management::create_reward))
+        .route("/loyalty/programs/:program_id/rewards", get(loyalty_management::list_rewards))
+        .route("/loyalty/rewards/:id/deactivate", post(loyalty_management::deactivate_reward))
+        .route("/loyalty/rewards/code/:code", delete(loyalty_management::delete_reward))
+
+        // Redemptions
+        .route("/loyalty/programs/:program_id/redeem", post(loyalty_management::redeem_reward))
+        .route("/loyalty/redemptions/:id/fulfill", post(loyalty_management::fulfill_redemption))
+        .route("/loyalty/redemptions/:id/cancel", post(loyalty_management::cancel_redemption))
+        .route("/loyalty/members/:member_id/redemptions", get(loyalty_management::list_redemptions))
+
+        // Dashboard
+        .route("/loyalty/dashboard", get(loyalty_management::get_loyalty_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

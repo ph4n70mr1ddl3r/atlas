@@ -114,6 +114,7 @@ pub mod health_safety;
 pub mod funds_reservation;
 pub mod rebate_management;
 pub mod project_resource_management;
+pub mod loyalty_management;
 
 pub use schema::*;
 pub use workflow::{
@@ -229,6 +230,7 @@ pub use health_safety::{HealthSafetyEngine, PostgresHealthSafetyRepository as Po
 pub use funds_reservation::{FundsReservationEngine, PostgresFundsReservationRepository as PostgresFundsReservationRepo};
 pub use rebate_management::{RebateManagementEngine, PostgresRebateManagementRepository as PostgresRebateManagementRepo};
 pub use project_resource_management::{ProjectResourceManagementEngine, PostgresProjectResourceManagementRepository as PostgresProjectResourceManagementRepo};
+pub use loyalty_management::{LoyaltyManagementEngine, PostgresLoyaltyManagementRepository as PostgresLoyaltyManagementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -101,6 +101,8 @@ use atlas_core::{
     rebate_management::PostgresRebateManagementRepository,
     ProjectResourceManagementEngine,
     project_resource_management::PostgresProjectResourceManagementRepository,
+    LoyaltyManagementEngine,
+    loyalty_management::PostgresLoyaltyManagementRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -270,6 +272,7 @@ pub struct AppState {
     pub funds_reservation_engine: Arc<FundsReservationEngine>,
     pub rebate_management_engine: Arc<RebateManagementEngine>,
     pub project_resource_engine: Arc<ProjectResourceManagementEngine>,
+    pub loyalty_engine: Arc<LoyaltyManagementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -734,6 +737,11 @@ impl AppState {
             PostgresProjectResourceManagementRepository::new(db_pool.clone())
         )));
 
+        // Initialize Loyalty Management engine
+        let loyalty_engine = Arc::new(LoyaltyManagementEngine::new(Arc::new(
+            PostgresLoyaltyManagementRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -864,6 +872,7 @@ impl AppState {
             funds_reservation_engine,
             rebate_management_engine,
             project_resource_engine,
+            loyalty_engine,
             event_bus,
             jwt_secret,
         };

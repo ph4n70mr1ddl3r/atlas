@@ -471,6 +471,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         project_resource_engine: Arc::new(atlas_core::ProjectResourceManagementEngine::new(Arc::new(
             atlas_core::project_resource_management::PostgresProjectResourceManagementRepository::new(db_pool.clone()),
         ))),
+        loyalty_engine: Arc::new(atlas_core::LoyaltyManagementEngine::new(Arc::new(
+            atlas_core::loyalty_management::PostgresLoyaltyManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -927,4 +930,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.resource_assignments").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.resource_requests").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.resource_profiles").execute(pool).await.ok();
+
+    // Loyalty Management
+    sqlx::query("DELETE FROM _atlas.loyalty_redemptions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_point_transactions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_rewards").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_members").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_tiers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_programs").execute(pool).await.ok();
 }

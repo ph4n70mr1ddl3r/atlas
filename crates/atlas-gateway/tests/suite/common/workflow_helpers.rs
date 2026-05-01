@@ -971,6 +971,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         project_resource_engine: Arc::new(atlas_core::ProjectResourceManagementEngine::new(Arc::new(
             atlas_core::project_resource_management::PostgresProjectResourceManagementRepository::new(db_pool.clone()),
         ))),
+        loyalty_engine: Arc::new(atlas_core::LoyaltyManagementEngine::new(Arc::new(
+            atlas_core::loyalty_management::PostgresLoyaltyManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

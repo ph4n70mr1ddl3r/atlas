@@ -86,3 +86,4 @@ mod health_safety;
 mod funds_reservation;
 mod rebate_management;
 mod project_resource_management;
+mod loyalty_management;

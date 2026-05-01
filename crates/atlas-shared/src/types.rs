@@ -19276,3 +19276,189 @@ pub struct ResourceDashboard {
     pub top_resources_by_utilization: serde_json::Value,
     pub recent_assignments: serde_json::Value,
 }
+
+// ============================================================================
+// Loyalty Management Types (Oracle Fusion CX > Loyalty Management)
+// ============================================================================
+
+/// Loyalty Program definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoyaltyProgram {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub program_number: String,
+    pub name: String,
+    pub description: String,
+    pub program_type: String,
+    pub status: String,
+    pub currency_code: String,
+    pub points_name: String,
+    pub enrollment_type: String,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: Option<chrono::NaiveDate>,
+    pub accrual_rate: f64,
+    pub accrual_basis: String,
+    pub minimum_accrual_amount: f64,
+    pub rounding_method: String,
+    pub points_expiry_days: Option<i32>,
+    pub tier_qualification_period: String,
+    pub auto_upgrade: bool,
+    pub auto_downgrade: bool,
+    pub max_points_per_member: Option<f64>,
+    pub allow_point_transfer: bool,
+    pub allow_redemption: bool,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Loyalty Tier definition within a program
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoyaltyTier {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub program_id: Uuid,
+    pub tier_code: String,
+    pub tier_name: String,
+    pub tier_level: i32,
+    pub minimum_points: f64,
+    pub maximum_points: Option<f64>,
+    pub accrual_bonus_percentage: f64,
+    pub benefits: String,
+    pub color: String,
+    pub icon: String,
+    pub is_default: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Loyalty Member enrollment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoyaltyMember {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub program_id: Uuid,
+    pub member_number: String,
+    pub customer_id: Option<Uuid>,
+    pub customer_name: String,
+    pub customer_email: String,
+    pub tier_id: Option<Uuid>,
+    pub tier_code: String,
+    pub current_points: f64,
+    pub lifetime_points: f64,
+    pub redeemed_points: f64,
+    pub expired_points: f64,
+    pub enrollment_date: chrono::NaiveDate,
+    pub status: String,
+    pub last_activity_date: Option<chrono::NaiveDate>,
+    pub next_tier_points_remaining: Option<f64>,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Loyalty Point Transaction
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoyaltyPointTransaction {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub program_id: Uuid,
+    pub member_id: Uuid,
+    pub transaction_number: String,
+    pub transaction_type: String,
+    pub points: f64,
+    pub source_type: String,
+    pub source_id: Option<Uuid>,
+    pub source_number: String,
+    pub description: String,
+    pub reference_amount: Option<f64>,
+    pub reference_currency: String,
+    pub tier_bonus_applied: f64,
+    pub promo_bonus_applied: f64,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub reversal_reason: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Loyalty Reward in the catalog
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoyaltyReward {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub program_id: Uuid,
+    pub reward_code: String,
+    pub name: String,
+    pub description: String,
+    pub reward_type: String,
+    pub points_required: f64,
+    pub cash_value: f64,
+    pub currency_code: String,
+    pub tier_restriction: String,
+    pub quantity_available: Option<i32>,
+    pub quantity_claimed: i32,
+    pub max_per_member: Option<i32>,
+    pub image_url: String,
+    pub is_active: bool,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub end_date: Option<chrono::NaiveDate>,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Loyalty Redemption (reward claim)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoyaltyRedemption {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub program_id: Uuid,
+    pub member_id: Uuid,
+    pub reward_id: Uuid,
+    pub redemption_number: String,
+    pub points_spent: f64,
+    pub quantity: i32,
+    pub status: String,
+    pub fulfilled_at: Option<DateTime<Utc>>,
+    pub cancelled_reason: String,
+    pub notes: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Loyalty Management Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoyaltyDashboard {
+    pub organization_id: Uuid,
+    pub total_programs: i64,
+    pub active_programs: i64,
+    pub total_members: i64,
+    pub active_members: i64,
+    pub total_points_issued: f64,
+    pub total_points_redeemed: f64,
+    pub total_points_expired: f64,
+    pub total_redemptions: i64,
+    pub pending_redemptions: i64,
+    pub members_by_tier: serde_json::Value,
+    pub top_members: serde_json::Value,
+    pub recent_transactions: serde_json::Value,
+}

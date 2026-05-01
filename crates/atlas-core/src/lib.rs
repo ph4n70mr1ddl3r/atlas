@@ -118,6 +118,8 @@ pub mod loyalty_management;
 pub mod accounts_receivable;
 pub mod general_ledger;
 pub mod asset_depreciation;
+pub mod netting;
+pub mod financial_statements;
 
 pub use schema::*;
 pub use workflow::{
@@ -237,6 +239,8 @@ pub use loyalty_management::{LoyaltyManagementEngine, PostgresLoyaltyManagementR
 pub use accounts_receivable::{AccountsReceivableEngine, PostgresAccountsReceivableRepository as PostgresAccountsReceivableRepo};
 pub use general_ledger::{GeneralLedgerEngine, PostgresGeneralLedgerRepository as PostgresGeneralLedgerRepo};
 pub use asset_depreciation::{AssetDepreciationEngine, PostgresAssetDepreciationRepository as PostgresAssetDepreciationRepo};
+pub use netting::{NettingEngine, PostgresNettingRepository as PostgresNettingRepo};
+pub use financial_statements::{FinancialStatementEngine, PostgresFinancialStatementRepository as PostgresFinancialStatementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

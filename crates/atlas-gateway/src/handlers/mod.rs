@@ -85,6 +85,7 @@ pub mod cost_accounting;
 pub mod accounts_payable;
 pub mod supply_chain_planning;
 pub mod health_safety;
+pub mod funds_reservation;
 
 pub use schema::*;
 pub use records::*;
@@ -3518,6 +3519,22 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/health-safety/corrective-actions/number/:action_number", delete(health_safety::delete_corrective_action))
 
         .route("/health-safety/dashboard", get(health_safety::get_health_safety_dashboard))
+
+        // ══════════════════════════════════════════════════════════════════════
+        // Funds Reservation & Budgetary Control (Oracle Fusion: Budgetary Control)
+        // ══════════════════════════════════════════════════════════════════════
+        .route("/funds-reservation/reservations", post(funds_reservation::create_reservation))
+        .route("/funds-reservation/reservations", get(funds_reservation::list_reservations))
+        .route("/funds-reservation/reservations/id/:id", get(funds_reservation::get_reservation))
+        .route("/funds-reservation/reservations/number/:number", get(funds_reservation::get_reservation_by_number))
+        .route("/funds-reservation/reservations/id/:id/consume", post(funds_reservation::consume_reservation))
+        .route("/funds-reservation/reservations/id/:id/release", post(funds_reservation::release_reservation))
+        .route("/funds-reservation/reservations/id/:id/cancel", post(funds_reservation::cancel_reservation))
+        .route("/funds-reservation/reservations/number/:number", delete(funds_reservation::delete_reservation))
+        .route("/funds-reservation/reservations/id/:reservation_id/lines", post(funds_reservation::create_reservation_line))
+        .route("/funds-reservation/reservations/id/:reservation_id/lines", get(funds_reservation::list_reservation_lines))
+        .route("/funds-reservation/fund-availability", get(funds_reservation::check_fund_availability))
+        .route("/funds-reservation/dashboard", get(funds_reservation::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

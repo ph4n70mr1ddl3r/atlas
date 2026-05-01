@@ -18763,3 +18763,167 @@ pub struct PlanningDashboard {
     pub total_items_planned: i64,
     pub items_with_shortage: i64,
 }
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Funds Reservation & Budgetary Control
+// (Oracle Fusion: Financials > Budgetary Control > Funds Reservation)
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// Enables organizations to:
+// - Reserve funds against approved budgets before actual spending
+// - Check fund availability (advisory or absolute control)
+// - Consume reserved funds when actual transactions post
+// - Release unneeded reservations back to available budget
+// - Track fund reservations, consumption, and available balances
+//
+// This is distinct from the general budget module (which defines budgets)
+// and the encumbrance module (general commitments). Budgetary Control
+// specifically handles fund checking and reservation workflows.
+
+/// Fund Reservation header
+/// Represents a reservation of funds against a budget for an anticipated expenditure.
+/// Oracle Fusion equivalent: Budgetary Control > Funds Reservation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FundReservation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// Auto-generated reservation number (e.g., "FR-2024-00001")
+    pub reservation_number: String,
+    /// Budget definition this reservation is against
+    pub budget_id: Uuid,
+    /// Budget code (denormalized)
+    pub budget_code: String,
+    /// Budget version ID (specific version of the budget)
+    pub budget_version_id: Option<Uuid>,
+    /// Description of why funds are being reserved
+    pub description: Option<String>,
+    /// Reference to the originating document (e.g., purchase requisition, PO)
+    pub source_type: Option<String>,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    /// Total reserved amount in budget currency
+    pub reserved_amount: f64,
+    /// Amount consumed (matched to actual expenditure)
+    pub consumed_amount: f64,
+    /// Amount released back to available budget
+    pub released_amount: f64,
+    /// Remaining reserved amount (reserved - consumed - released)
+    pub remaining_amount: f64,
+    /// Currency code
+    pub currency_code: String,
+    /// Reservation date
+    pub reservation_date: chrono::NaiveDate,
+    /// Expiry date (if funds not consumed by this date, auto-release)
+    pub expiry_date: Option<chrono::NaiveDate>,
+    /// Status: "draft", "active", "partially_consumed", "fully_consumed", "released", "expired", "cancelled"
+    pub status: String,
+    /// Control level applied: "advisory", "absolute"
+    pub control_level: String,
+    /// Fiscal year
+    pub fiscal_year: Option<i32>,
+    /// Period name (e.g., "Jan-24", "Q1-2024")
+    pub period_name: Option<String>,
+    /// Requesting department
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    /// Fund check results
+    pub fund_check_passed: bool,
+    pub fund_check_message: Option<String>,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    /// Audit
+    pub created_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub cancelled_by: Option<Uuid>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+    pub cancellation_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Fund Reservation Line
+/// Individual line within a fund reservation, tied to a specific budget line / account.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FundReservationLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub reservation_id: Uuid,
+    /// Line number within the reservation
+    pub line_number: i32,
+    /// Account code being reserved against
+    pub account_code: String,
+    /// Account description
+    pub account_description: Option<String>,
+    /// Budget line ID (specific line in the budget)
+    pub budget_line_id: Option<Uuid>,
+    /// Department ID
+    pub department_id: Option<Uuid>,
+    /// Project ID
+    pub project_id: Option<Uuid>,
+    /// Cost center
+    pub cost_center: Option<String>,
+    /// Reserved amount on this line
+    pub reserved_amount: f64,
+    /// Consumed amount
+    pub consumed_amount: f64,
+    /// Released amount
+    pub released_amount: f64,
+    /// Remaining amount
+    pub remaining_amount: f64,
+    /// Metadata
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Fund Availability Check result
+/// Returned when checking whether funds are available for a given amount.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FundAvailability {
+    pub organization_id: Uuid,
+    pub budget_id: Uuid,
+    pub budget_code: String,
+    pub account_code: String,
+    /// Original budget amount
+    pub budget_amount: f64,
+    /// Total reserved (all active reservations)
+    pub total_reserved: f64,
+    /// Total consumed
+    pub total_consumed: f64,
+    /// Total released
+    pub total_released: f64,
+    /// Available balance = budget_amount - total_reserved + total_released - total_consumed
+    pub available_balance: f64,
+    /// Whether the requested amount can be reserved
+    pub check_passed: bool,
+    /// Control level: "advisory" (warning) or "absolute" (block)
+    pub control_level: String,
+    /// Human-readable message
+    pub message: String,
+    /// As-of date for the check
+    pub as_of_date: chrono::NaiveDate,
+    /// Fiscal year
+    pub fiscal_year: Option<i32>,
+    /// Period name
+    pub period_name: Option<String>,
+}
+
+/// Budgetary Control Dashboard
+/// Summary of fund reservation activity across the organization.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetaryControlDashboard {
+    pub organization_id: Uuid,
+    pub total_reservations: i64,
+    pub active_reservations: i64,
+    pub total_reserved_amount: f64,
+    pub total_consumed_amount: f64,
+    pub total_released_amount: f64,
+    pub total_available_amount: f64,
+    pub reservations_by_status: serde_json::Value,
+    pub top_departments_by_reservation: serde_json::Value,
+    pub budget_utilization_pct: f64,
+}

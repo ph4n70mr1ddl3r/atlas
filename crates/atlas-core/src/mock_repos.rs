@@ -6287,3 +6287,179 @@ impl crate::health_safety::HealthSafetyRepository for MockHealthSafetyRepository
         })
     }
 }
+
+/// Mock Funds Reservation Repository for testing
+pub struct MockFundsReservationRepository;
+
+use std::cell::RefCell;
+use std::collections::HashMap;
+
+thread_local! {
+    static FR_STORE: RefCell<HashMap<String, atlas_shared::FundReservation>> = RefCell::new(HashMap::new());
+}
+
+#[async_trait]
+impl crate::funds_reservation::FundsReservationRepository for MockFundsReservationRepository {
+    async fn create_reservation(
+        &self, org_id: Uuid, reservation_number: &str,
+        budget_id: Uuid, budget_code: &str, budget_version_id: Option<Uuid>,
+        description: Option<&str>,
+        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        reserved_amount: f64, currency_code: &str,
+        reservation_date: chrono::NaiveDate, expiry_date: Option<chrono::NaiveDate>,
+        status: &str, control_level: &str,
+        fiscal_year: Option<i32>, period_name: Option<&str>,
+        department_id: Option<Uuid>, department_name: Option<&str>,
+        fund_check_passed: bool, fund_check_message: Option<&str>,
+        metadata: serde_json::Value, created_by: Option<Uuid>,
+    ) -> AtlasResult<atlas_shared::FundReservation> {
+        let fr = atlas_shared::FundReservation {
+            id: Uuid::new_v4(), organization_id: org_id,
+            reservation_number: reservation_number.to_string(),
+            budget_id, budget_code: budget_code.to_string(), budget_version_id,
+            description: description.map(String::from),
+            source_type: source_type.map(String::from),
+            source_id, source_number: source_number.map(String::from),
+            reserved_amount, consumed_amount: 0.0, released_amount: 0.0, remaining_amount: reserved_amount,
+            currency_code: currency_code.to_string(),
+            reservation_date, expiry_date,
+            status: status.to_string(), control_level: control_level.to_string(),
+            fiscal_year, period_name: period_name.map(String::from),
+            department_id, department_name: department_name.map(String::from),
+            fund_check_passed, fund_check_message: fund_check_message.map(String::from),
+            metadata, created_by,
+            approved_by: None, cancelled_by: None, cancelled_at: None, cancellation_reason: None,
+            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        };
+        FR_STORE.with(|s| s.borrow_mut().insert(reservation_number.to_string(), fr.clone()));
+        Ok(fr)
+    }
+
+    async fn get_reservation(&self, _id: Uuid) -> AtlasResult<Option<atlas_shared::FundReservation>> {
+        FR_STORE.with(|s| Ok(s.borrow().values().find(|r| r.id == _id).cloned()))
+    }
+
+    async fn get_reservation_by_number(&self, _org_id: Uuid, reservation_number: &str) -> AtlasResult<Option<atlas_shared::FundReservation>> {
+        FR_STORE.with(|s| Ok(s.borrow().get(reservation_number).cloned()))
+    }
+
+    async fn list_reservations(
+        &self, _org_id: Uuid, _status: Option<&str>, _budget_id: Option<&Uuid>, _department_id: Option<&Uuid>,
+    ) -> AtlasResult<Vec<atlas_shared::FundReservation>> {
+        FR_STORE.with(|s| Ok(s.borrow().values().cloned().collect()))
+    }
+
+    async fn update_reservation_status(&self, id: Uuid, status: &str) -> AtlasResult<atlas_shared::FundReservation> {
+        FR_STORE.with(|s| {
+            let mut store = s.borrow_mut();
+            for (_, fr) in store.iter_mut() {
+                if fr.id == id {
+                    fr.status = status.to_string();
+                    fr.updated_at = chrono::Utc::now();
+                    return Ok(fr.clone());
+                }
+            }
+            Err(AtlasError::EntityNotFound(format!("Reservation {} not found", id)))
+        })
+    }
+
+    async fn update_reservation_amounts(
+        &self, id: Uuid, consumed_amount: f64, released_amount: f64, remaining_amount: f64,
+    ) -> AtlasResult<atlas_shared::FundReservation> {
+        FR_STORE.with(|s| {
+            let mut store = s.borrow_mut();
+            for (_, fr) in store.iter_mut() {
+                if fr.id == id {
+                    fr.consumed_amount = consumed_amount;
+                    fr.released_amount = released_amount;
+                    fr.remaining_amount = remaining_amount;
+                    fr.updated_at = chrono::Utc::now();
+                    return Ok(fr.clone());
+                }
+            }
+            Err(AtlasError::EntityNotFound(format!("Reservation {} not found", id)))
+        })
+    }
+
+    async fn cancel_reservation(
+        &self, id: Uuid, cancelled_by: Option<Uuid>, reason: Option<&str>,
+    ) -> AtlasResult<atlas_shared::FundReservation> {
+        FR_STORE.with(|s| {
+            let mut store = s.borrow_mut();
+            for (_, fr) in store.iter_mut() {
+                if fr.id == id {
+                    fr.status = "cancelled".to_string();
+                    fr.remaining_amount = 0.0;
+                    fr.released_amount = fr.reserved_amount - fr.consumed_amount;
+                    fr.cancelled_by = cancelled_by;
+                    fr.cancelled_at = Some(chrono::Utc::now());
+                    fr.cancellation_reason = reason.map(String::from);
+                    fr.updated_at = chrono::Utc::now();
+                    return Ok(fr.clone());
+                }
+            }
+            Err(AtlasError::EntityNotFound(format!("Reservation {} not found", id)))
+        })
+    }
+
+    async fn delete_reservation(&self, _org_id: Uuid, reservation_number: &str) -> AtlasResult<()> {
+        FR_STORE.with(|s| s.borrow_mut().remove(reservation_number));
+        Ok(())
+    }
+
+    // Lines - minimal mock
+    async fn create_reservation_line(
+        &self, org_id: Uuid, reservation_id: Uuid, line_number: i32,
+        account_code: &str, account_description: Option<&str>,
+        budget_line_id: Option<Uuid>, department_id: Option<Uuid>,
+        project_id: Option<Uuid>, cost_center: Option<&str>,
+        reserved_amount: f64, metadata: serde_json::Value,
+    ) -> AtlasResult<atlas_shared::FundReservationLine> {
+        Ok(atlas_shared::FundReservationLine {
+            id: Uuid::new_v4(), organization_id: org_id, reservation_id, line_number,
+            account_code: account_code.to_string(),
+            account_description: account_description.map(String::from),
+            budget_line_id, department_id, project_id,
+            cost_center: cost_center.map(String::from),
+            reserved_amount, consumed_amount: 0.0, released_amount: 0.0, remaining_amount: reserved_amount,
+            metadata, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn list_reservation_lines(&self, _reservation_id: Uuid) -> AtlasResult<Vec<atlas_shared::FundReservationLine>> { Ok(vec![]) }
+
+    async fn update_reservation_line_amounts(
+        &self, _id: Uuid, _consumed_amount: f64, _released_amount: f64, _remaining_amount: f64,
+    ) -> AtlasResult<atlas_shared::FundReservationLine> {
+        Err(AtlasError::EntityNotFound("Mock".to_string()))
+    }
+
+    // Fund availability - return generous defaults
+    async fn check_fund_availability(
+        &self, org_id: Uuid, budget_id: Uuid, account_code: &str,
+        as_of_date: chrono::NaiveDate, fiscal_year: Option<i32>, period_name: Option<&str>,
+    ) -> AtlasResult<atlas_shared::FundAvailability> {
+        Ok(atlas_shared::FundAvailability {
+            organization_id: org_id, budget_id, budget_code: "MOCK".to_string(),
+            account_code: account_code.to_string(),
+            budget_amount: 1_000_000.0, total_reserved: 0.0, total_consumed: 0.0, total_released: 0.0,
+            available_balance: 1_000_000.0, check_passed: true,
+            control_level: "advisory".to_string(),
+            message: "Funds available (mock)".to_string(),
+            as_of_date, fiscal_year, period_name: period_name.map(String::from),
+        })
+    }
+
+    // Dashboard
+    async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<atlas_shared::BudgetaryControlDashboard> {
+        Ok(atlas_shared::BudgetaryControlDashboard {
+            organization_id: org_id,
+            total_reservations: 0, active_reservations: 0,
+            total_reserved_amount: 0.0, total_consumed_amount: 0.0,
+            total_released_amount: 0.0, total_available_amount: 0.0,
+            reservations_by_status: serde_json::json!({}),
+            top_departments_by_reservation: serde_json::json!([]),
+            budget_utilization_pct: 0.0,
+        })
+    }
+}

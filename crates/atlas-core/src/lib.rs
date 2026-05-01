@@ -111,6 +111,7 @@ pub mod cost_accounting;
 pub mod accounts_payable;
 pub mod supply_chain_planning;
 pub mod health_safety;
+pub mod funds_reservation;
 
 pub use schema::*;
 pub use workflow::{
@@ -223,6 +224,7 @@ pub use cost_accounting::{CostAccountingEngine, PostgresCostAccountingRepository
 pub use accounts_payable::{AccountsPayableEngine, PostgresAccountsPayableRepository as PostgresAccountsPayableRepo};
 pub use supply_chain_planning::{SupplyChainPlanningEngine, PostgresPlanningRepository as PostgresPlanningRepo};
 pub use health_safety::{HealthSafetyEngine, PostgresHealthSafetyRepository as PostgresHealthSafetyRepo};
+pub use funds_reservation::{FundsReservationEngine, PostgresFundsReservationRepository as PostgresFundsReservationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

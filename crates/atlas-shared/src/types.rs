@@ -1,5 +1,5 @@
 //! Atlas Core Types
-//! 
+//!
 //! These types define the declarative foundation of Atlas.
 //! Everything is data that can be configured and reloaded at runtime.
 
@@ -182,32 +182,32 @@ pub struct EntityDefinition {
     pub plural_label: String,
     pub table_name: Option<String>,
     pub description: Option<String>,
-    
+
     #[serde(default)]
     pub fields: Vec<FieldDefinition>,
-    
+
     #[serde(default)]
     pub indexes: Vec<IndexDefinition>,
-    
+
     #[serde(default)]
     pub workflow: Option<WorkflowDefinition>,
-    
+
     #[serde(default)]
     pub security: Option<SecurityPolicy>,
-    
+
     // Audit settings
     #[serde(default = "default_true")]
     pub is_audit_enabled: bool,
-    
+
     #[serde(default = "default_true")]
     pub is_soft_delete: bool,
-    
+
     #[serde(default)]
     pub icon: Option<String>,
-    
+
     #[serde(default)]
     pub color: Option<String>,
-    
+
     #[serde(default)]
     pub metadata: serde_json::Value,
 }
@@ -231,13 +231,13 @@ pub struct WorkflowDefinition {
     pub id: Option<Uuid>,
     pub name: String,
     pub initial_state: String,
-    
+
     #[validate(nested)]
     pub states: Vec<StateDefinition>,
-    
+
     #[validate(nested)]
     pub transitions: Vec<TransitionDefinition>,
-    
+
     #[serde(default = "default_true")]
     pub is_active: bool,
 }
@@ -249,13 +249,13 @@ pub struct StateDefinition {
     pub name: String,
     pub label: String,
     pub state_type: StateType,
-    
+
     #[serde(default)]
     pub entry_actions: Vec<ActionDefinition>,
-    
+
     #[serde(default)]
     pub exit_actions: Vec<ActionDefinition>,
-    
+
     #[serde(default)]
     pub metadata: serde_json::Value,
 }
@@ -278,16 +278,16 @@ pub struct TransitionDefinition {
     pub to_state: String,
     pub action: String,
     pub action_label: Option<String>,
-    
+
     #[serde(default)]
     pub guards: Vec<GuardDefinition>,
-    
+
     #[serde(default)]
     pub required_roles: Vec<String>,
-    
+
     #[serde(default)]
     pub entry_actions: Vec<ActionDefinition>,
-    
+
     #[serde(default)]
     pub metadata: serde_json::Value,
 }
@@ -8021,7 +8021,7 @@ pub struct GrantComplianceReport {
 // Oracle Fusion Cloud ERP: Financials > Expenses > Corporate Cards
 // ============================================================================
 
-/// Corporate Card Program – defines a card programme with an issuer bank.
+/// Corporate Card Program - defines a card programme with an issuer bank.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CorporateCardProgram {
@@ -8051,7 +8051,7 @@ pub struct CorporateCardProgram {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Corporate Card – an individual card issued to an employee.
+/// Corporate Card - an individual card issued to an employee.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CorporateCard {
@@ -8085,7 +8085,7 @@ pub struct CorporateCard {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Corporate Card Transaction – a charge or credit on a corporate card.
+/// Corporate Card Transaction - a charge or credit on a corporate card.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CorporateCardTransaction {
@@ -8123,7 +8123,7 @@ pub struct CorporateCardTransaction {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Corporate Card Statement – a monthly billing statement from the card issuer.
+/// Corporate Card Statement - a monthly billing statement from the card issuer.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CorporateCardStatement {
@@ -8157,7 +8157,7 @@ pub struct CorporateCardStatement {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Corporate Card Spending Limit Override – temporary or permanent limit changes.
+/// Corporate Card Spending Limit Override - temporary or permanent limit changes.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CorporateCardLimitOverride {
@@ -8222,7 +8222,7 @@ pub struct GrantDashboardSummary {
 // Financial Consolidation (Oracle Fusion General Ledger > Consolidation)
 // ============================================================================
 
-/// Consolidation Ledger – defines a consolidation scope with translation method.
+/// Consolidation Ledger - defines a consolidation scope with translation method.
 /// Oracle Fusion: General Ledger > Consolidation > Consolidation Ledgers
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -8244,7 +8244,7 @@ pub struct ConsolidationLedger {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Consolidation Entity – a subsidiary / BU participating in consolidation.
+/// Consolidation Entity - a subsidiary / BU participating in consolidation.
 /// Oracle Fusion: Consolidation > Consolidation Entities
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -8269,7 +8269,7 @@ pub struct ConsolidationEntity {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Consolidation Scenario – a periodic consolidation run.
+/// Consolidation Scenario - a periodic consolidation run.
 /// Oracle Fusion: Consolidation > Consolidation Workbench
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -8369,7 +8369,7 @@ pub struct ConsolidationEliminationRule {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Consolidation Adjustment – manual journal adjustment within a scenario.
+/// Consolidation Adjustment - manual journal adjustment within a scenario.
 /// Oracle Fusion: Consolidation > Adjustments
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -8437,7 +8437,7 @@ pub struct ConsolidationDashboardSummary {
 // Supplier Qualification Management (Oracle Fusion Procurement > Supplier Qualification)
 // ============================================================================
 
-/// Qualification Area – defines a category of qualification criteria.
+/// Qualification Area - defines a category of qualification criteria.
 /// Oracle Fusion: Procurement > Supplier Qualification > Areas
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -8461,7 +8461,7 @@ pub struct QualificationArea {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Qualification Question – individual question within an area.
+/// Qualification Question - individual question within an area.
 /// Oracle Fusion: Procurement > Supplier Qualification > Questions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -8486,7 +8486,7 @@ pub struct QualificationQuestion {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Supplier Qualification Initiative – a qualification campaign/run.
+/// Supplier Qualification Initiative - a qualification campaign/run.
 /// Oracle Fusion: Procurement > Supplier Qualification > Initiatives
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -8514,7 +8514,7 @@ pub struct SupplierQualificationInitiative {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Supplier Qualification Invitation – per-supplier qualification within an initiative.
+/// Supplier Qualification Invitation - per-supplier qualification within an initiative.
 /// Oracle Fusion: Procurement > Supplier Qualification > Invitations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -8544,7 +8544,7 @@ pub struct SupplierQualificationInvitation {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Supplier Qualification Response – individual answer to a question.
+/// Supplier Qualification Response - individual answer to a question.
 /// Oracle Fusion: Procurement > Supplier Qualification > Responses
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -8566,7 +8566,7 @@ pub struct SupplierQualificationResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Supplier Certification – track ongoing supplier certifications.
+/// Supplier Certification - track ongoing supplier certifications.
 /// Oracle Fusion: Procurement > Supplier Qualification > Certifications
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -10577,7 +10577,7 @@ pub struct AutoInvoiceLine {
     pub updated_at: DateTime<Utc>,
 }
 
-/// AutoInvoice result — the generated AR invoice.
+/// AutoInvoice result - the generated AR invoice.
 /// Oracle Fusion: Receivables > Transactions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -12385,7 +12385,7 @@ pub struct PutAwayRule {
     pub rule_name: String,
     pub description: Option<String>,
     pub priority: i32,
-    /// Item category filter (optional – null means all categories)
+    /// Item category filter (optional - null means all categories)
     pub item_category: Option<String>,
     /// Zone type to route to
     pub target_zone_type: String,
@@ -12771,7 +12771,7 @@ pub struct TimeAndLaborDashboard {
 // Oracle Fusion: BPM > Approval Configuration > Document Approval Limits
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Approval authority limit – defines the maximum monetary amount a user
+/// Approval authority limit - defines the maximum monetary amount a user
 /// or role is authorised to approve for a given document type.
 ///
 /// Oracle Fusion Cloud calls these "Document Approval Limits" or
@@ -12878,7 +12878,7 @@ pub struct ApprovalAuthorityDashboard {
 // Oracle Fusion: Information Lifecycle Management (ILM)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Retention policy – defines how long data of a given entity type
+/// Retention policy - defines how long data of a given entity type
 /// must be retained before it can be archived or purged.
 ///
 /// Oracle Fusion Cloud: Tools > Information Lifecycle Management > Retention Policies
@@ -12922,7 +12922,7 @@ pub struct CreateRetentionPolicyRequest {
 fn default_365() -> i32 { 365 }
 fn default_action_type() -> String { "archive_then_purge".to_string() }
 
-/// Legal hold – prevents archival or purging of specific records.
+/// Legal hold - prevents archival or purging of specific records.
 ///
 /// Oracle Fusion Cloud: Information Lifecycle Management > Legal Holds
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12961,7 +12961,7 @@ pub struct CreateLegalHoldRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-/// Legal hold item – a specific record under a legal hold
+/// Legal hold item - a specific record under a legal hold
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LegalHoldItem {
@@ -12973,7 +12973,7 @@ pub struct LegalHoldItem {
     pub created_at: DateTime<Utc>,
 }
 
-/// Archived record – tracks a record that has been archived
+/// Archived record - tracks a record that has been archived
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArchivedRecord {
@@ -12997,7 +12997,7 @@ pub struct ArchivedRecord {
     pub created_at: DateTime<Utc>,
 }
 
-/// Archive batch – groups records archived together
+/// Archive batch - groups records archived together
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArchiveBatch {
@@ -13057,7 +13057,7 @@ pub struct DataArchivingDashboard {
 // Payroll Management (Oracle Fusion Global Payroll)
 // ============================================================================
 
-/// Payroll definition — represents a pay group.
+/// Payroll definition - represents a pay group.
 /// Oracle Fusion: Payroll > Payroll Definitions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -13086,7 +13086,7 @@ pub struct PayrollDefinition {
     pub metadata: serde_json::Value,
 }
 
-/// Payroll element — an earning or deduction component.
+/// Payroll element - an earning or deduction component.
 /// Oracle Fusion: Payroll > Element Definitions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -13123,7 +13123,7 @@ pub struct PayrollElement {
     pub metadata: serde_json::Value,
 }
 
-/// Employee element assignment — links an element to an employee with a value.
+/// Employee element assignment - links an element to an employee with a value.
 /// Oracle Fusion: Payroll > Element Entries
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -13147,7 +13147,7 @@ pub struct PayrollElementEntry {
     pub metadata: serde_json::Value,
 }
 
-/// Payroll run — a single execution of payroll for a period.
+/// Payroll run - a single execution of payroll for a period.
 /// Oracle Fusion: Payroll > Payroll Runs / Quick Pay
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -13178,7 +13178,7 @@ pub struct PayrollRun {
     pub metadata: serde_json::Value,
 }
 
-/// Pay slip — per-employee payroll result within a run.
+/// Pay slip - per-employee payroll result within a run.
 /// Oracle Fusion: Payroll > Pay Slips / Payment History
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -16553,7 +16553,7 @@ pub struct MaintenanceDashboard {
 // Oracle Fusion Cloud: Project Management > Project Billing
 // ============================================================================
 
-/// Bill rate schedule – defines billable rates for a set of roles
+/// Bill rate schedule - defines billable rates for a set of roles
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BillRateSchedule {
     pub id: Uuid,
@@ -17376,7 +17376,7 @@ pub struct ChannelRevenueDashboard {
 // Product Configurator (Oracle Fusion Cloud SCM > Product Management > Configurator)
 // ============================================================================
 
-/// Configuration Model – defines a configurable product structure
+/// Configuration Model - defines a configurable product structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigModel {
     pub id: Uuid,
@@ -17401,7 +17401,7 @@ pub struct ConfigModel {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Configuration Feature – a group of choices (e.g. "Color", "Engine Type")
+/// Configuration Feature - a group of choices (e.g. "Color", "Engine Type")
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigFeature {
     pub id: Uuid,
@@ -17419,7 +17419,7 @@ pub struct ConfigFeature {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Configuration Option – a specific choice within a feature
+/// Configuration Option - a specific choice within a feature
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigOption {
     pub id: Uuid,
@@ -17440,7 +17440,7 @@ pub struct ConfigOption {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Configuration Rule – constraints between features/options
+/// Configuration Rule - constraints between features/options
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigRule {
     pub id: Uuid,
@@ -17464,7 +17464,7 @@ pub struct ConfigRule {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Configuration Instance – an actual configuration created from a model
+/// Configuration Instance - an actual configuration created from a model
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigInstance {
     pub id: Uuid,
@@ -17519,7 +17519,7 @@ pub struct ConfiguratorDashboard {
 // Transportation Management (Oracle Fusion Cloud SCM > Transportation Management)
 // ============================================================================
 
-/// Carrier – a shipping partner (FedEx, UPS, DHL, etc.)
+/// Carrier - a shipping partner (FedEx, UPS, DHL, etc.)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Carrier {
     pub id: Uuid,
@@ -17557,7 +17557,7 @@ pub struct Carrier {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Carrier Service – a specific service level offered by a carrier
+/// Carrier Service - a specific service level offered by a carrier
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CarrierService {
     pub id: Uuid,
@@ -17583,7 +17583,7 @@ pub struct CarrierService {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Transport Lane – an origin-destination route
+/// Transport Lane - an origin-destination route
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransportLane {
     pub id: Uuid,
@@ -17618,7 +17618,7 @@ pub struct TransportLane {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Transport Shipment – a master shipment for transporting goods (Transportation Management)
+/// Transport Shipment - a master shipment for transporting goods (Transportation Management)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransportShipment {
     pub id: Uuid,
@@ -17684,7 +17684,7 @@ pub struct TransportShipment {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Transport Shipment Stop – a pickup/delivery stop on a multi-stop route
+/// Transport Shipment Stop - a pickup/delivery stop on a multi-stop route
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransportShipmentStop {
     pub id: Uuid,
@@ -17710,7 +17710,7 @@ pub struct TransportShipmentStop {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Transport Shipment Line – an item within a transport shipment
+/// Transport Shipment Line - an item within a transport shipment
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransportShipmentLine {
     pub id: Uuid,
@@ -17739,7 +17739,7 @@ pub struct TransportShipmentLine {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Transport Shipment Tracking Event – a status update during transit
+/// Transport Shipment Tracking Event - a status update during transit
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransportShipmentTrackingEvent {
     pub id: Uuid,
@@ -17761,7 +17761,7 @@ pub struct TransportShipmentTrackingEvent {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Freight Rate – a carrier rate agreement
+/// Freight Rate - a carrier rate agreement
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FreightRate {
     pub id: Uuid,
@@ -21144,4 +21144,286 @@ pub struct FinancialControlsDashboardSummary {
     pub violations_by_category: serde_json::Value,
     pub violations_by_rule: serde_json::Value,
     pub avg_resolution_time_hours: Option<f64>,
+}
+
+
+// ============================================================================
+// New Module Types: Standalone Selling Prices, Revenue Recognition Events
+// ============================================================================
+
+/// Standalone selling price record
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StandaloneSellingPrice {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub item_code: String,
+    pub item_name: String,
+    pub estimation_method: String,
+    pub price: String,
+    pub currency_code: String,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Revenue recognition event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RevenueRecognitionEvent {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub contract_id: Uuid,
+    pub obligation_id: Uuid,
+    pub event_number: String,
+    pub description: String,
+    pub event_type: String,
+    pub amount: String,
+    pub recognition_date: chrono::NaiveDate,
+    pub gl_account_code: Option<String>,
+    pub is_posted: bool,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Revenue Management dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RevenueManagementDashboard {
+    pub total_contracts: i32,
+    pub active_contracts: i32,
+    pub total_performance_obligations: i32,
+    pub satisfied_obligations: i32,
+    pub total_transaction_price: String,
+    pub total_allocated: String,
+    pub total_recognized: String,
+    pub total_unrecognized: String,
+    pub unrecognized_by_period: serde_json::Value,
+}
+
+/// Cash flow forecast definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashFlowForecastDef {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub forecast_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub status: String,
+    pub forecast_horizon: String,
+    pub periods_out: i32,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub base_currency_code: String,
+    pub total_inflows: String,
+    pub total_outflows: String,
+    pub net_cash_flow: String,
+    pub opening_balance: String,
+    pub closing_balance: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cash flow scenario for what-if analysis
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashFlowForecastScenario {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub forecast_id: Uuid,
+    pub scenario_number: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub scenario_type: String,
+    pub adjustment_factor: String,
+    pub total_inflows: String,
+    pub total_outflows: String,
+    pub net_cash_flow: String,
+    pub opening_balance: String,
+    pub closing_balance: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cash flow forecast entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashFlowForecastEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub forecast_id: Uuid,
+    pub scenario_id: Option<Uuid>,
+    pub period_name: String,
+    pub period_start_date: chrono::NaiveDate,
+    pub period_end_date: chrono::NaiveDate,
+    pub source_category: String,
+    pub flow_direction: String,
+    pub amount: String,
+    pub probability: String,
+    pub weighted_amount: String,
+    pub is_manual: bool,
+    pub description: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Cash position snapshot for forecasting
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashPositionSnapshot {
+    pub organization_id: Uuid,
+    pub as_of_date: chrono::NaiveDate,
+    pub currency_code: String,
+    pub bank_balance: String,
+    pub book_balance: String,
+    pub net_cash_position: String,
+}
+
+/// Cash flow forecast dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashFlowForecastDashboard {
+    pub total_forecasts: i32,
+    pub active_forecasts: i32,
+    pub current_cash_position: Option<CashPositionSnapshot>,
+    pub total_projected_inflows: String,
+    pub total_projected_outflows: String,
+    pub net_projected_cash_flow: String,
+    pub surplus_deficit: String,
+    pub scenario_comparison: serde_json::Value,
+}
+
+/// Regulatory report template
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegulatoryReportTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub authority: String,
+    pub report_category: String,
+    pub filing_frequency: String,
+    pub output_format: String,
+    pub row_definitions: serde_json::Value,
+    pub column_definitions: serde_json::Value,
+    pub validation_rules: serde_json::Value,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Regulatory report instance
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegulatoryReportInstance {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Uuid,
+    pub template_code: Option<String>,
+    pub report_number: String,
+    pub name: String,
+    pub status: String,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub authority: String,
+    pub output_format: String,
+    pub total_debits: String,
+    pub total_credits: String,
+    pub line_count: i32,
+    pub generated_at: Option<DateTime<Utc>>,
+    pub reviewed_by: Option<Uuid>,
+    pub reviewed_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub filing_reference: Option<String>,
+    pub rejection_reason: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Regulatory report line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegulatoryReportLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub report_id: Uuid,
+    pub line_number: i32,
+    pub row_code: String,
+    pub row_label: String,
+    pub column_code: String,
+    pub column_label: String,
+    pub amount: String,
+    pub description: Option<String>,
+    pub account_range: Option<String>,
+    pub is_subtotal: bool,
+    pub is_total: bool,
+    pub indent_level: i32,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Filing calendar entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilingCalendarEntry {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Option<Uuid>,
+    pub template_code: Option<String>,
+    pub authority: String,
+    pub report_name: String,
+    pub filing_frequency: String,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+    pub due_date: chrono::NaiveDate,
+    pub status: String,
+    pub assigned_to: Option<Uuid>,
+    pub report_id: Option<Uuid>,
+    pub filed_at: Option<DateTime<Utc>>,
+    pub filed_by: Option<Uuid>,
+    pub filing_reference: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Regulatory Reporting dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegulatoryReportingDashboard {
+    pub total_templates: i32,
+    pub active_templates: i32,
+    pub total_reports: i32,
+    pub draft_reports: i32,
+    pub pending_review: i32,
+    pub pending_submission: i32,
+    pub submitted_reports: i32,
+    pub overdue_filings: i32,
+    pub upcoming_filings: i32,
+    pub filings_by_authority: serde_json::Value,
 }

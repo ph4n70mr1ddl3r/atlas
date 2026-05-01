@@ -128,6 +128,9 @@ pub mod tax_reporting;
 pub mod deferred_revenue;
 pub mod accounting_hub;
 pub mod financial_controls;
+pub mod revenue_management;
+pub mod cash_flow_forecast;
+pub mod regulatory_reporting;
 
 pub use schema::*;
 pub use workflow::{
@@ -257,6 +260,9 @@ pub use tax_reporting::{TaxReportingEngine, PostgresTaxReportingRepository as Po
 pub use deferred_revenue::{DeferredRevenueEngine, PostgresDeferredRevenueRepository as PostgresDeferredRevenueRepo};
 pub use accounting_hub::{AccountingHubEngine, PostgresAccountingHubRepository as PostgresAccountingHubRepo};
 pub use financial_controls::{FinancialControlsEngine, PostgresFinancialControlsRepository as PostgresFinancialControlsRepo};
+pub use revenue_management::RevenueManagementEngine;
+pub use cash_flow_forecast::CashFlowForecastEngine;
+pub use regulatory_reporting::RegulatoryReportingEngine;
 
 mod mock_repos;
 pub use mock_repos::*;

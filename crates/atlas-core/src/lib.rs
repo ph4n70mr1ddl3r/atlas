@@ -140,6 +140,12 @@ pub mod ar_aging;
 pub mod ap_aging;
 pub mod financial_ratio;
 pub mod receipt_write_off;
+pub mod mass_additions;
+pub mod asset_reclassification;
+pub mod gl_budget_transfer;
+pub mod payment_format;
+pub mod financial_dimension_set;
+pub mod prepayment_application;
 
 pub use schema::*;
 pub use workflow::{
@@ -281,6 +287,12 @@ pub use ar_aging::{ArAgingEngine, PostgresArAgingRepository as PostgresArAgingRe
 pub use ap_aging::{ApAgingEngine, PostgresApAgingRepository as PostgresApAgingRepo};
 pub use financial_ratio::{FinancialRatioEngine, PostgresFinancialRatioRepository as PostgresFinancialRatioRepo};
 pub use receipt_write_off::{ReceiptWriteOffEngine, PostgresReceiptWriteOffRepository as PostgresReceiptWriteOffRepo};
+pub use mass_additions::{MassAdditionEngine, PostgresMassAdditionRepository as PostgresMassAdditionRepo};
+pub use asset_reclassification::{AssetReclassificationEngine, PostgresAssetReclassificationRepository as PostgresAssetReclassificationRepo};
+pub use gl_budget_transfer::{GlBudgetTransferEngine, PostgresGlBudgetTransferRepository as PostgresGlBudgetTransferRepo};
+pub use payment_format::{PaymentFormatEngine, PostgresPaymentFormatRepository as PostgresPaymentFormatRepo};
+pub use financial_dimension_set::{FinancialDimensionSetEngine, PostgresFinancialDimensionSetRepository as PostgresFinancialDimensionSetRepo};
+pub use prepayment_application::{PrepaymentApplicationEngine, PostgresPrepaymentApplicationRepository as PostgresPrepaymentApplicationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

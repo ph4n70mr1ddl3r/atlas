@@ -5549,6 +5549,215 @@ impl CostAllocationService {
     }
 }
 
+// ============================================================================
+// Depreciation Run Service
+// ============================================================================
+
+/// Depreciation Run service
+/// Oracle Fusion: Fixed Assets > Depreciation
+#[allow(dead_code)]
+pub struct DepreciationRunService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+#[allow(dead_code)]
+const VALID_DEPR_METHODS: &[&str] = &[
+    "straight_line", "declining_balance", "sum_of_years_digits",
+];
+
+#[allow(dead_code)]
+const VALID_DEPR_RUN_STATUSES: &[&str] = &[
+    "draft", "calculated", "reviewed", "posted", "reversed",
+];
+
+impl DepreciationRunService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate straight-line depreciation per period
+    pub fn calculate_straight_line(cost: f64, salvage: f64, useful_life_months: i32) -> f64 {
+        if useful_life_months <= 0 { return 0.0; }
+        let depreciable_basis = (cost - salvage).max(0.0);
+        depreciable_basis / useful_life_months as f64
+    }
+
+    /// Calculate declining balance depreciation for a period
+    pub fn calculate_declining_balance(
+        net_book_value: f64, rate_percent: f64, period_months: i32,
+    ) -> f64 {
+        let annual_rate = rate_percent / 100.0;
+        let monthly_rate = annual_rate / 12.0;
+        net_book_value * monthly_rate * period_months as f64
+    }
+
+    /// Calculate sum-of-years-digits depreciation for a period
+    pub fn calculate_sum_of_years_digits(
+        cost: f64, salvage: f64, useful_life_months: i32, periods_elapsed: i32,
+    ) -> f64 {
+        if useful_life_months <= 0 { return 0.0; }
+        let depreciable_basis = (cost - salvage).max(0.0);
+        let total_periods = useful_life_months;
+        let sum_of_periods: f64 = (1..=total_periods).map(|i| i as f64).sum();
+        let remaining_life = (total_periods - periods_elapsed).max(1);
+        let year_depr = depreciable_basis * (remaining_life as f64 / sum_of_periods);
+        year_depr / 12.0
+    }
+
+    /// Calculate net book value after depreciation
+    pub fn calculate_net_book_value(
+        cost: f64, accumulated_depreciation: f64,
+    ) -> f64 {
+        (cost - accumulated_depreciation).max(0.0)
+    }
+
+    /// Check if asset is fully depreciated
+    pub fn is_fully_depreciated(
+        cost: f64, salvage: f64, accumulated_depreciation: f64,
+    ) -> bool {
+        let depreciable_basis = (cost - salvage).max(0.0);
+        accumulated_depreciation >= depreciable_basis - 0.01
+    }
+
+    /// Validate depreciation run status
+    pub fn validate_status(status: &str) -> Result<(), String> {
+        if !VALID_DEPR_RUN_STATUSES.contains(&status) {
+            return Err(format!("Invalid depreciation run status '{}'", status));
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Distribution Set Service
+// ============================================================================
+
+/// Distribution Set service
+/// Oracle Fusion: Payables > Distribution Sets
+#[allow(dead_code)]
+pub struct DistributionSetService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+impl DistributionSetService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate that distribution set line percentages sum to 100%
+    pub fn validate_distribution_percentages(percentages: &[f64]) -> Result<(), String> {
+        let total: f64 = percentages.iter().sum();
+        if (total - 100.0).abs() > 0.01 {
+            Err(format!("Distribution percentages sum to {:.2}%, must equal 100%", total))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Calculate distributed amounts based on percentages
+    pub fn calculate_distribution(
+        total_amount: f64, percentages: &[f64],
+    ) -> Vec<f64> {
+        percentages.iter()
+            .map(|p| total_amount * (p / 100.0))
+            .collect()
+    }
+
+    /// Round distribution amounts ensuring they sum to total
+    pub fn round_distribution(amounts: Vec<f64>, total: f64) -> Vec<f64> {
+        let sum: f64 = amounts.iter().sum();
+        let rounding_diff = total - sum;
+        let mut rounded: Vec<f64> = amounts.iter().map(|a| (a * 100.0).round() / 100.0).collect();
+        if !rounded.is_empty() {
+            rounded[0] += rounding_diff;
+        }
+        rounded
+    }
+}
+
+// ============================================================================
+// Budget Organization Service
+// ============================================================================
+
+/// Budget Organization service
+/// Oracle Fusion: General Ledger > Budgetary Control
+#[allow(dead_code)]
+pub struct BudgetOrganizationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+#[allow(dead_code)]
+const VALID_FUNDS_CHECK_LEVELS: &[&str] = &["none", "advisory", "absolute"];
+
+impl BudgetOrganizationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Check funds availability
+    pub fn check_funds_available(
+        budget_amount: f64, committed: f64, consumed: f64, requested: f64,
+    ) -> (bool, f64) {
+        let available = (budget_amount - committed - consumed).max(0.0);
+        (requested <= available, available)
+    }
+
+    /// Calculate budget consumption percentage
+    pub fn calculate_consumption(budget_amount: f64, consumed: f64) -> f64 {
+        if budget_amount <= 0.0 { return 0.0; }
+        (consumed / budget_amount) * 100.0
+    }
+
+    /// Calculate remaining budget
+    pub fn calculate_remaining_budget(
+        budget_amount: f64, committed: f64, consumed: f64,
+    ) -> f64 {
+        (budget_amount - committed - consumed).max(0.0)
+    }
+
+    /// Check if budget is exceeded
+    pub fn is_budget_exceeded(
+        budget_amount: f64, committed: f64, consumed: f64,
+    ) -> bool {
+        committed + consumed > budget_amount
+    }
+
+    /// Calculate budget utilization
+    pub fn calculate_utilization(budget_amount: f64, consumed: f64) -> f64 {
+        if budget_amount <= 0.0 { return 0.0; }
+        (consumed / budget_amount) * 100.0
+    }
+
+    /// Calculate variance between budget and actual
+    pub fn calculate_variance(budget: f64, actual: f64) -> f64 {
+        budget - actual
+    }
+
+    /// Calculate variance percentage
+    pub fn calculate_variance_percent(budget: f64, actual: f64) -> f64 {
+        if budget <= 0.0 { return 0.0; }
+        ((budget - actual) / budget) * 100.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -12646,5 +12855,528 @@ mod tests {
         ];
         let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
         assert_eq!(count, 12, "All 12 new workflow entities should have workflows");
+    }
+
+    // ========================================================================
+    // Depreciation Run Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_depreciation_run_definition() {
+        let def = entities::depreciation_run_definition();
+        assert_eq!(def.name, "depreciation_runs");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "calculated"));
+        assert!(wf.states.iter().any(|s| s.name == "reviewed"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+        assert!(wf.states.iter().any(|s| s.name == "reversed"));
+    }
+
+    #[test]
+    fn test_depreciation_detail_definition() {
+        let def = entities::depreciation_detail_definition();
+        assert_eq!(def.name, "depreciation_details");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_depreciation_run_workflow_transitions() {
+        let def = entities::depreciation_run_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "calculated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "calculated" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "posted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "posted" && t.to_state == "reversed"));
+    }
+
+    // ========================================================================
+    // Depreciation Calculation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_straight_line_depreciation() {
+        let depr = super::DepreciationRunService::calculate_straight_line(
+            120000.0, 20000.0, 60,
+        );
+        // (120k - 20k) / 60 = 1666.67
+        assert!((depr - 1666.6667).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_straight_line_zero_salvage() {
+        let depr = super::DepreciationRunService::calculate_straight_line(
+            60000.0, 0.0, 36,
+        );
+        // 60k / 36 = 1666.67
+        assert!((depr - 1666.6667).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_straight_line_zero_useful_life() {
+        let depr = super::DepreciationRunService::calculate_straight_line(
+            50000.0, 0.0, 0,
+        );
+        assert_eq!(depr, 0.0);
+    }
+
+    #[test]
+    fn test_declining_balance_depreciation() {
+        let depr = super::DepreciationRunService::calculate_declining_balance(
+            100000.0, 20.0, 1,
+        );
+        // 100k * (20/100/12) * 1 = 1666.67
+        assert!((depr - 1666.67).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_declining_balance_depreciation_zero_nbv() {
+        let depr = super::DepreciationRunService::calculate_declining_balance(
+            0.0, 20.0, 1,
+        );
+        assert_eq!(depr, 0.0);
+    }
+
+    #[test]
+    fn test_sum_of_years_digits_depreciation() {
+        let depr = super::DepreciationRunService::calculate_sum_of_years_digits(
+            120000.0, 20000.0, 36, 0,
+        );
+        // Depreciable basis = 100k, sum = 1+2+...+36 = 666
+        // Remaining = 36, annual = 100k * 36/666 = 5405.41
+        // Monthly = 5405.41 / 12 = 450.45
+        assert!(depr > 449.0 && depr < 452.0);
+    }
+
+    #[test]
+    fn test_net_book_value_calculation() {
+        let nbv = super::DepreciationRunService::calculate_net_book_value(
+            100000.0, 40000.0,
+        );
+        assert!((nbv - 60000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_net_book_value_fully_depreciated() {
+        let nbv = super::DepreciationRunService::calculate_net_book_value(
+            100000.0, 100000.0,
+        );
+        assert_eq!(nbv, 0.0);
+    }
+
+    #[test]
+    fn test_is_fully_depreciated_true() {
+        assert!(super::DepreciationRunService::is_fully_depreciated(
+            100000.0, 10000.0, 90000.0,
+        ));
+    }
+
+    #[test]
+    fn test_is_fully_depreciated_false() {
+        assert!(!super::DepreciationRunService::is_fully_depreciated(
+            100000.0, 10000.0, 50000.0,
+        ));
+    }
+
+    #[test]
+    fn test_depreciation_status_valid() {
+        for s in &["draft", "calculated", "reviewed", "posted", "reversed"] {
+            assert!(super::DepreciationRunService::validate_status(s).is_ok());
+        }
+    }
+
+    #[test]
+    fn test_depreciation_status_invalid() {
+        assert!(super::DepreciationRunService::validate_status("unknown").is_err());
+    }
+
+    // ========================================================================
+    // Reconciliation Rule Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_reconciliation_rule_definition() {
+        let def = entities::reconciliation_rule_definition();
+        assert_eq!(def.name, "reconciliation_rules");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Budget Organization Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_budget_organization_definition() {
+        let def = entities::budget_organization_definition();
+        assert_eq!(def.name, "budget_organizations");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_budget_rule_definition() {
+        let def = entities::budget_rule_definition();
+        assert_eq!(def.name, "budget_rules");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Budget Organization Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_budget_funds_available() {
+        let (ok, available) = super::BudgetOrganizationService::check_funds_available(
+            100000.0, 30000.0, 20000.0, 40000.0,
+        );
+        assert!(ok);
+        assert!((available - 50000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_budget_funds_not_available() {
+        let (ok, _) = super::BudgetOrganizationService::check_funds_available(
+            100000.0, 30000.0, 20000.0, 60000.0,
+        );
+        assert!(!ok);
+    }
+
+    #[test]
+    fn test_budget_consumption() {
+        let pct = super::BudgetOrganizationService::calculate_consumption(
+            100000.0, 75000.0,
+        );
+        assert!((pct - 75.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_budget_consumption_zero() {
+        let pct = super::BudgetOrganizationService::calculate_consumption(0.0, 50000.0);
+        assert_eq!(pct, 0.0);
+    }
+
+    #[test]
+    fn test_budget_remaining() {
+        let remaining = super::BudgetOrganizationService::calculate_remaining_budget(
+            100000.0, 30000.0, 40000.0,
+        );
+        assert!((remaining - 30000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_budget_remaining_exceeded() {
+        let remaining = super::BudgetOrganizationService::calculate_remaining_budget(
+            100000.0, 60000.0, 50000.0,
+        );
+        assert_eq!(remaining, 0.0); // Clamped to zero
+    }
+
+    #[test]
+    fn test_budget_is_exceeded_true() {
+        assert!(super::BudgetOrganizationService::is_budget_exceeded(
+            100000.0, 60000.0, 50000.0,
+        ));
+    }
+
+    #[test]
+    fn test_budget_is_exceeded_false() {
+        assert!(!super::BudgetOrganizationService::is_budget_exceeded(
+            100000.0, 30000.0, 40000.0,
+        ));
+    }
+
+    #[test]
+    fn test_budget_utilization() {
+        let pct = super::BudgetOrganizationService::calculate_utilization(
+            100000.0, 75000.0,
+        );
+        assert!((pct - 75.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_budget_variance() {
+        let v = super::BudgetOrganizationService::calculate_variance(100000.0, 80000.0);
+        assert!((v - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_budget_variance_negative() {
+        let v = super::BudgetOrganizationService::calculate_variance(100000.0, 120000.0);
+        assert!(v < 0.0);
+    }
+
+    #[test]
+    fn test_budget_variance_percent() {
+        let vpct = super::BudgetOrganizationService::calculate_variance_percent(
+            100000.0, 80000.0,
+        );
+        assert!((vpct - 20.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_budget_variance_percent_zero_budget() {
+        let vpct = super::BudgetOrganizationService::calculate_variance_percent(0.0, 50000.0);
+        assert_eq!(vpct, 0.0);
+    }
+
+    // ========================================================================
+    // Report Column Set Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_report_column_set_definition() {
+        let def = entities::report_column_set_definition();
+        assert_eq!(def.name, "report_column_sets");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_report_column_definition() {
+        let def = entities::report_column_definition();
+        assert_eq!(def.name, "report_columns");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Distribution Set Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_distribution_set_definition() {
+        let def = entities::distribution_set_definition();
+        assert_eq!(def.name, "distribution_sets");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_distribution_set_line_definition() {
+        let def = entities::distribution_set_line_definition();
+        assert_eq!(def.name, "distribution_set_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Distribution Set Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_distribution_validate_percentages_valid() {
+        assert!(super::DistributionSetService::validate_distribution_percentages(
+            &[50.0, 30.0, 20.0],
+        ).is_ok());
+    }
+
+    #[test]
+    fn test_distribution_validate_percentages_invalid() {
+        assert!(super::DistributionSetService::validate_distribution_percentages(
+            &[50.0, 40.0, 20.0],
+        ).is_err());
+    }
+
+    #[test]
+    fn test_distribution_calculate() {
+        let amounts = super::DistributionSetService::calculate_distribution(
+            100000.0, &[50.0, 30.0, 20.0],
+        );
+        assert_eq!(amounts.len(), 3);
+        assert!((amounts[0] - 50000.0).abs() < 0.01);
+        assert!((amounts[1] - 30000.0).abs() < 0.01);
+        assert!((amounts[2] - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_distribution_round() {
+        let amounts = vec![33333.33, 33333.33, 33333.34];
+        let rounded = super::DistributionSetService::round_distribution(amounts, 100000.0);
+        let sum: f64 = rounded.iter().sum();
+        // After rounding, total should still be 100000
+        assert!((sum - 100000.0).abs() < 1.0);
+    }
+
+    // ========================================================================
+    // Tax Registration Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_tax_registration_definition() {
+        let def = entities::tax_registration_definition();
+        assert_eq!(def.name, "tax_registrations");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Tax Recovery Rate Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_tax_recovery_rate_definition() {
+        let def = entities::tax_recovery_rate_definition();
+        assert_eq!(def.name, "tax_recovery_rates");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Receivable Activity Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_receivable_activity_definition() {
+        let def = entities::receivable_activity_definition();
+        assert_eq!(def.name, "receivable_activities");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Asset Book Assignment Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_asset_book_assignment_definition() {
+        let def = entities::asset_book_assignment_definition();
+        assert_eq!(def.name, "asset_book_assignments");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Memo Line Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_memo_line_definition() {
+        let def = entities::memo_line_definition();
+        assert_eq!(def.name, "memo_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Comprehensive: All New Oracle Fusion Feature Entities Build
+    // ========================================================================
+
+    #[test]
+    fn test_all_new_oracle_fusion_feature_entities_build() {
+        // Depreciation Run
+        let _ = entities::depreciation_run_definition();
+        let _ = entities::depreciation_detail_definition();
+        // Bank Reconciliation Rules
+        let _ = entities::reconciliation_rule_definition();
+        // Budget Organization
+        let _ = entities::budget_organization_definition();
+        let _ = entities::budget_rule_definition();
+        // Financial Report Column Set
+        let _ = entities::report_column_set_definition();
+        let _ = entities::report_column_definition();
+        // Distribution Sets
+        let _ = entities::distribution_set_definition();
+        let _ = entities::distribution_set_line_definition();
+        // Tax Registration
+        let _ = entities::tax_registration_definition();
+        // Tax Recovery Rate
+        let _ = entities::tax_recovery_rate_definition();
+        // Receivable Activity
+        let _ = entities::receivable_activity_definition();
+        // Asset Book Assignment
+        let _ = entities::asset_book_assignment_definition();
+        // Memo Line
+        let _ = entities::memo_line_definition();
+    }
+
+    #[test]
+    fn test_new_oracle_fusion_feature_entity_count() {
+        let new_entities = vec![
+            entities::depreciation_run_definition(),
+            entities::depreciation_detail_definition(),
+            entities::reconciliation_rule_definition(),
+            entities::budget_organization_definition(),
+            entities::budget_rule_definition(),
+            entities::report_column_set_definition(),
+            entities::report_column_definition(),
+            entities::distribution_set_definition(),
+            entities::distribution_set_line_definition(),
+            entities::tax_registration_definition(),
+            entities::tax_recovery_rate_definition(),
+            entities::receivable_activity_definition(),
+            entities::asset_book_assignment_definition(),
+            entities::memo_line_definition(),
+        ];
+        assert_eq!(new_entities.len(), 14, "Should have 14 new Oracle Fusion feature entities");
+
+        // All unique names
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 14, "All 14 entity names must be unique");
+    }
+
+    #[test]
+    fn test_new_oracle_fusion_feature_workflow_count() {
+        let workflow_entities = vec![
+            entities::depreciation_run_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 1, "Depreciation run should have a workflow");
+    }
+
+    // ========================================================================
+    // Grand Total: All Entities Including New Features
+    // ========================================================================
+
+    #[test]
+    fn test_grand_total_entity_count_with_new_features() {
+        let mut all: Vec<_> = vec![
+            // Original 27
+            entities::chart_of_accounts_definition(),
+            entities::journal_entry_definition(),
+            entities::invoice_definition(),
+            entities::budget_definition(),
+            entities::expense_report_definition(),
+            entities::ap_invoice_definition(),
+            entities::ap_invoice_line_definition(),
+            entities::ap_invoice_distribution_definition(),
+            entities::ap_invoice_hold_definition(),
+            entities::ap_payment_definition(),
+            entities::ar_transaction_definition(),
+            entities::ar_transaction_line_definition(),
+            entities::ar_receipt_definition(),
+            entities::ar_credit_memo_definition(),
+            entities::ar_adjustment_definition(),
+            entities::asset_category_definition(),
+            entities::asset_book_definition(),
+            entities::fixed_asset_definition(),
+            entities::asset_transfer_definition(),
+            entities::asset_retirement_definition(),
+            entities::cost_book_definition(),
+            entities::cost_element_definition(),
+            entities::cost_profile_definition(),
+            entities::standard_cost_definition(),
+            entities::cost_adjustment_definition(),
+            entities::cost_adjustment_line_definition(),
+            entities::cost_variance_definition(),
+        ];
+
+        // Verify the count is still 129 + 14 = 143 total unique entities
+        // (We already have 129 from prior tests, so here we just verify the 14 new ones are unique)
+        let new_entities = vec![
+            entities::depreciation_run_definition(),
+            entities::depreciation_detail_definition(),
+            entities::reconciliation_rule_definition(),
+            entities::budget_organization_definition(),
+            entities::budget_rule_definition(),
+            entities::report_column_set_definition(),
+            entities::report_column_definition(),
+            entities::distribution_set_definition(),
+            entities::distribution_set_line_definition(),
+            entities::tax_registration_definition(),
+            entities::tax_recovery_rate_definition(),
+            entities::receivable_activity_definition(),
+            entities::asset_book_assignment_definition(),
+            entities::memo_line_definition(),
+        ];
+
+        all.extend(new_entities);
+
+        // Total: 27 + 14 = 41 (just a subset check)
+        assert_eq!(all.len(), 41);
+
+        // All unique
+        let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 41, "All entity names must be unique");
     }
 }

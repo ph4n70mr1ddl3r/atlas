@@ -5914,6 +5914,380 @@ pub fn cost_allocation_rule_definition() -> EntityDefinition {
         .build()
 }
 
+// ============================================================================
+// Depreciation Run & Detail (Oracle Fusion: Fixed Assets > Depreciation)
+// ============================================================================
+
+/// Depreciation Run entity with workflow
+/// Oracle Fusion: Fixed Assets > Depreciation > Run Depreciation
+pub fn depreciation_run_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("depreciation_run_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("calculated", "Calculated")
+        .working_state("reviewed", "Reviewed")
+        .final_state("posted", "Posted")
+        .final_state("reversed", "Reversed")
+        .transition("draft", "calculated", "calculate")
+        .transition("calculated", "reviewed", "review")
+        .transition("reviewed", "posted", "post")
+        .transition("posted", "reversed", "reverse")
+        .build();
+
+    SchemaBuilder::new("depreciation_runs", "Depreciation Run")
+        .plural_label("Depreciation Runs")
+        .table_name("fin_depreciation_runs")
+        .description("Batch depreciation calculation runs for fixed assets")
+        .icon("calculator")
+        .required_string("run_number", "Run Number")
+        .reference("book_id", "Book", "asset_books")
+        .string("book_code", "Book Code")
+        .integer("fiscal_year", "Fiscal Year")
+        .integer("period_number", "Period Number")
+        .string("period_name", "Period Name")
+        .date("depreciation_date", "Depreciation Date")
+        .integer("asset_count", "Asset Count")
+        .currency("total_depreciation", "Total Depreciation", "USD")
+        .enumeration("status", "Status", vec![
+            "draft", "calculated", "reviewed", "posted", "reversed",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Depreciation Detail entity
+/// Oracle Fusion: Fixed Assets > Depreciation > Details
+pub fn depreciation_detail_definition() -> EntityDefinition {
+    SchemaBuilder::new("depreciation_details", "Depreciation Detail")
+        .plural_label("Depreciation Details")
+        .table_name("fin_depreciation_details")
+        .description("Individual asset depreciation calculation results")
+        .icon("list-ol")
+        .reference("run_id", "Run", "depreciation_runs")
+        .reference("asset_id", "Asset", "fixed_assets")
+        .string("asset_number", "Asset Number")
+        .string("asset_name", "Asset Name")
+        .reference("category_id", "Category", "asset_categories")
+        .string("category_code", "Category Code")
+        .enumeration("depreciation_method", "Method", vec![
+            "straight_line", "declining_balance", "sum_of_years_digits",
+        ])
+        .currency("cost", "Cost", "USD")
+        .currency("salvage_value", "Salvage Value", "USD")
+        .currency("depreciable_basis", "Depreciable Basis", "USD")
+        .currency("prior_accumulated_depreciation", "Prior Accum Depr", "USD")
+        .currency("period_depreciation", "Period Depreciation", "USD")
+        .currency("new_accumulated_depreciation", "New Accum Depr", "USD")
+        .currency("net_book_value", "Net Book Value", "USD")
+        .integer("periods_depreciated", "Periods Depreciated")
+        .integer("useful_life_months", "Useful Life (Months)")
+        .boolean("is_fully_depreciated", "Fully Depreciated")
+        .build()
+}
+
+// ============================================================================
+// Bank Reconciliation Rules (Oracle Fusion: Cash Management > Reconciliation Rules)
+// ============================================================================
+
+/// Reconciliation Rule entity
+/// Oracle Fusion: Cash Management > Reconciliation > Matching Rules
+pub fn reconciliation_rule_definition() -> EntityDefinition {
+    SchemaBuilder::new("reconciliation_rules", "Reconciliation Rule")
+        .plural_label("Reconciliation Rules")
+        .table_name("fin_reconciliation_rules")
+        .description("Auto-matching rules for bank statement reconciliation")
+        .icon("cog")
+        .required_string("code", "Rule Code")
+        .required_string("name", "Rule Name")
+        .string("description", "Description")
+        .enumeration("rule_type", "Rule Type", vec![
+            "one_to_one", "one_to_many", "many_to_one", "aggregation",
+        ])
+        .enumeration("match_criteria", "Match Criteria", vec![
+            "amount_exact", "amount_tolerance", "reference_number",
+            "date_range", "amount_and_date", "amount_and_reference",
+        ])
+        .decimal("tolerance_amount", "Tolerance Amount", 18, 2)
+        .decimal("tolerance_percent", "Tolerance %", 5, 2)
+        .integer("date_range_days", "Date Range (Days)")
+        .integer("priority", "Priority")
+        .boolean("auto_match", "Auto Match")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
+// Budget Organization & Rules (Oracle Fusion: Budgetary Control)
+// ============================================================================
+
+/// Budget Organization entity
+/// Oracle Fusion: General Ledger > Budgetary Control > Budget Organizations
+pub fn budget_organization_definition() -> EntityDefinition {
+    SchemaBuilder::new("budget_organizations", "Budget Organization")
+        .plural_label("Budget Organizations")
+        .table_name("fin_budget_organizations")
+        .description("Organizations responsible for budget management and control")
+        .icon("sitemap")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .reference("parent_organization_id", "Parent", "budget_organizations")
+        .reference("ledger_id", "Ledger", "consolidation_ledgers")
+        .enumeration("funds_check_level", "Funds Check Level", vec![
+            "none", "advisory", "absolute",
+        ])
+        .boolean("allow_override", "Allow Override")
+        .string("threshold_percent", "Threshold %")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Budget Rule entity
+/// Oracle Fusion: General Ledger > Budgetary Control > Budget Rules
+pub fn budget_rule_definition() -> EntityDefinition {
+    SchemaBuilder::new("budget_rules", "Budget Rule")
+        .plural_label("Budget Rules")
+        .table_name("fin_budget_rules")
+        .description("Rules governing budget allocation and consumption")
+        .icon("gavel")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .reference("organization_id", "Organization", "budget_organizations")
+        .enumeration("rule_type", "Rule Type", vec![
+            "spending_limit", "carry_forward", "rollover", "prorate",
+        ])
+        .enumeration("time_boundary", "Time Boundary", vec![
+            "annual", "quarterly", "monthly",
+        ])
+        .currency("annual_limit", "Annual Limit", "USD")
+        .decimal("carry_forward_pct", "Carry Forward %", 5, 2)
+        .boolean("require_approval", "Require Approval")
+        .currency("approval_threshold", "Approval Threshold", "USD")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
+// Financial Report Column Set (Oracle Fusion: Financial Reporting Studio)
+// ============================================================================
+
+/// Report Column Set entity
+/// Oracle Fusion: Financial Reporting Studio > Column Sets
+pub fn report_column_set_definition() -> EntityDefinition {
+    SchemaBuilder::new("report_column_sets", "Report Column Set")
+        .plural_label("Report Column Sets")
+        .table_name("fin_report_column_sets")
+        .description("Column definitions for financial reports")
+        .icon("columns")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .integer("column_count", "Column Count")
+        .build()
+}
+
+/// Report Column Definition entity
+/// Oracle Fusion: Financial Reporting Studio > Column Definitions
+pub fn report_column_definition() -> EntityDefinition {
+    SchemaBuilder::new("report_columns", "Report Column")
+        .plural_label("Report Columns")
+        .table_name("fin_report_columns")
+        .description("Individual column definitions within a column set")
+        .icon("th")
+        .reference("column_set_id", "Column Set", "report_column_sets")
+        .integer("column_number", "Column Number")
+        .required_string("heading", "Column Heading")
+        .enumeration("column_type", "Column Type", vec![
+            "balance", "activity", "budget", "variance", "calculation", "text",
+        ])
+        .enumeration("period_type", "Period Type", vec![
+            "current", "prior", "year_to_date", "projected", "budget", "variance",
+        ])
+        .integer("offset_periods", "Offset Periods")
+        .string("calculation_formula", "Calculation Formula")
+        .string("format_mask", "Format Mask")
+        .decimal("scale_factor", "Scale Factor", 10, 4)
+        .boolean("show_decimals", "Show Decimals")
+        .boolean("show_negative", "Show Negative")
+        .build()
+}
+
+// ============================================================================
+// Distribution Set (Oracle Fusion: Payables > Distribution Sets)
+// ============================================================================
+
+/// Distribution Set entity
+/// Oracle Fusion: Payables > Setup > Distribution Sets
+pub fn distribution_set_definition() -> EntityDefinition {
+    SchemaBuilder::new("distribution_sets", "Distribution Set")
+        .plural_label("Distribution Sets")
+        .table_name("fin_distribution_sets")
+        .description("Predefined GL account distribution templates for invoices")
+        .icon("layer-group")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Distribution Set Line entity
+/// Oracle Fusion: Payables > Setup > Distribution Set Lines
+pub fn distribution_set_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("distribution_set_lines", "Distribution Set Line")
+        .plural_label("Distribution Set Lines")
+        .table_name("fin_distribution_set_lines")
+        .description("Individual lines within a distribution set")
+        .icon("list")
+        .reference("distribution_set_id", "Distribution Set", "distribution_sets")
+        .integer("line_number", "Line Number")
+        .decimal("percentage", "Percentage", 8, 4)
+        .string("account_combination", "Account Combination")
+        .string("description", "Description")
+        .build()
+}
+
+// ============================================================================
+// Tax Registration (Oracle Fusion: Tax > Registrations)
+// ============================================================================
+
+/// Tax Registration entity
+/// Oracle Fusion: Tax > Party Tax Registrations
+pub fn tax_registration_definition() -> EntityDefinition {
+    SchemaBuilder::new("tax_registrations", "Tax Registration")
+        .plural_label("Tax Registrations")
+        .table_name("fin_tax_registrations")
+        .description("Tax registration numbers for parties (suppliers, customers, legal entities)")
+        .icon("id-card")
+        .reference("regime_id", "Tax Regime", "tax_regimes")
+        .enumeration("party_type", "Party Type", vec![
+            "legal_entity", "supplier", "customer", "first_party", "third_party",
+        ])
+        .string("party_name", "Party Name")
+        .required_string("registration_number", "Registration Number")
+        .string("tax_payer_id", "Tax Payer ID")
+        .enumeration("registration_type", "Type", vec![
+            "vat", "gst", "sales_tax", "income_tax", "other",
+        ])
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .string("issuing_country_code", "Issuing Country")
+        .string("jurisdiction_code", "Jurisdiction")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
+// Tax Recovery Rate (Oracle Fusion: Tax > Recovery Rates)
+// ============================================================================
+
+/// Tax Recovery Rate entity
+/// Oracle Fusion: Tax > Recovery Rates
+pub fn tax_recovery_rate_definition() -> EntityDefinition {
+    SchemaBuilder::new("tax_recovery_rates", "Tax Recovery Rate")
+        .plural_label("Tax Recovery Rates")
+        .table_name("fin_tax_recovery_rates")
+        .description("Rates for recovering input tax on purchases")
+        .icon("undo")
+        .reference("tax_rate_id", "Tax Rate", "tax_rates")
+        .required_string("code", "Recovery Code")
+        .required_string("name", "Name")
+        .decimal("recovery_percentage", "Recovery %", 8, 4)
+        .string("recovery_account_code", "Recovery Account")
+        .string("non_recovery_account_code", "Non-Recovery Account")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .boolean("is_default", "Default")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
+// Receivable Activity (Oracle Fusion: Receivables > Activities)
+// ============================================================================
+
+/// Receivable Activity entity
+/// Oracle Fusion: Receivables > Setup > Activities
+pub fn receivable_activity_definition() -> EntityDefinition {
+    SchemaBuilder::new("receivable_activities", "Receivable Activity")
+        .plural_label("Receivable Activities")
+        .table_name("fin_receivable_activities")
+        .description("Activity types for AR adjustments, write-offs, and accruals")
+        .icon("exchange-alt")
+        .required_string("code", "Activity Code")
+        .required_string("name", "Activity Name")
+        .string("description", "Description")
+        .enumeration("activity_type", "Activity Type", vec![
+            "adjustment", "earned_discount", "unearned_discount",
+            "finance_charge", "write_off", "tax_adjustment", "misc_receipt",
+        ])
+        .string("gl_account_code", "GL Account")
+        .string("contra_account_code", "Contra Account")
+        .boolean("auto_accounting", "Auto Accounting")
+        .boolean("allow_manual", "Allow Manual")
+        .boolean("require_tax", "Require Tax")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
+// Asset Book Assignment (Oracle Fusion: Fixed Assets > Book Assignments)
+// ============================================================================
+
+/// Asset Book Assignment entity
+/// Oracle Fusion: Fixed Assets > Asset Book Assignments
+pub fn asset_book_assignment_definition() -> EntityDefinition {
+    SchemaBuilder::new("asset_book_assignments", "Asset Book Assignment")
+        .plural_label("Asset Book Assignments")
+        .table_name("fin_asset_book_assignments")
+        .description("Assignment of assets to depreciation books with book-specific parameters")
+        .icon("link")
+        .reference("asset_id", "Asset", "fixed_assets")
+        .string("asset_number", "Asset Number")
+        .reference("book_id", "Book", "asset_books")
+        .string("book_code", "Book Code")
+        .enumeration("depreciation_method", "Method", vec![
+            "straight_line", "declining_balance", "sum_of_years_digits",
+        ])
+        .integer("useful_life_months", "Useful Life (Months)")
+        .currency("cost", "Cost", "USD")
+        .currency("salvage_value", "Salvage Value", "USD")
+        .currency("depreciable_basis", "Depreciable Basis", "USD")
+        .currency("accumulated_depreciation", "Accum Depr", "USD")
+        .currency("net_book_value", "Net Book Value", "USD")
+        .date("depreciation_start_date", "Depr Start Date")
+        .integer("periods_depreciated", "Periods Depreciated")
+        .boolean("is_depreciating", "Depreciating")
+        .build()
+}
+
+// ============================================================================
+// Memo Line (Oracle Fusion: Receivables > Memo Lines)
+// ============================================================================
+
+/// Memo Line entity
+/// Oracle Fusion: Receivables > Setup > Memo Lines
+pub fn memo_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("memo_lines", "Memo Line")
+        .plural_label("Memo Lines")
+        .table_name("fin_memo_lines")
+        .description("Predefined memo lines for quick AR/AP transaction line entry")
+        .icon("sticky-note")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("line_type", "Line Type", vec![
+            "line", "tax", "freight", "charges",
+        ])
+        .string("unit_of_measure", "UOM")
+        .currency("unit_price", "Unit Price", "USD")
+        .string("tax_code", "Tax Code")
+        .string("revenue_account_code", "Revenue Account")
+        .string("tax_account_code", "Tax Account")
+        .boolean("tax_inclusive", "Tax Inclusive")
+        .boolean("is_active", "Active")
+        .build()
+}
+
 /// Cost Allocation Run entity
 /// Oracle Fusion: Cost Management > Allocation Runs
 pub fn cost_allocation_run_definition() -> EntityDefinition {

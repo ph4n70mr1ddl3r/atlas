@@ -63,4 +63,7 @@ pub use services::{
     AdvancePaymentService,
     CustomerDepositService,
     CostAllocationService,
+    DepreciationRunService,
+    DistributionSetService,
+    BudgetOrganizationService,
 };

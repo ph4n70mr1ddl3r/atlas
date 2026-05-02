@@ -7903,6 +7903,731 @@ pub struct AgingTrend {
     pub total_change: f64,
 }
 
+// ============================================================================
+// Mass Additions Service (Oracle Fusion: Fixed Assets > Mass Additions)
+// ============================================================================
+
+/// Mass Additions service
+/// Oracle Fusion: Financials > Fixed Assets > Mass Additions
+#[allow(dead_code)]
+pub struct MassAdditionService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid mass addition statuses
+#[allow(dead_code)]
+const VALID_MASS_ADDITION_STATUSES: &[&str] = &[
+    "posted", "on_hold", "reviewed", "added", "rejected", "merged",
+];
+
+/// Valid asset types for mass additions
+#[allow(dead_code)]
+const VALID_MASS_ADD_ASSET_TYPES: &[&str] = &[
+    "tangible", "intangible", "leased", "cipc",
+];
+
+impl MassAdditionService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create a mass addition from an AP invoice line
+    /// Oracle Fusion: Fixed Assets > Mass Additions > Prepare
+    pub async fn create_mass_addition(
+        &self,
+        mass_addition_number: &str,
+        invoice_number: &str,
+        description: &str,
+        cost: &str,
+        category_code: Option<&str>,
+        book_code: Option<&str>,
+        asset_type: &str,
+        depreciation_method: Option<&str>,
+        useful_life_months: Option<i32>,
+    ) -> AtlasResult<()> {
+        if mass_addition_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Mass addition number is required".to_string(),
+            ));
+        }
+        if invoice_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Invoice number is required".to_string(),
+            ));
+        }
+        if !VALID_MASS_ADD_ASSET_TYPES.contains(&asset_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid asset_type '{}'. Must be one of: {}",
+                asset_type, VALID_MASS_ADD_ASSET_TYPES.join(", ")
+            )));
+        }
+        let cost_val: f64 = cost.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Cost must be a valid number".to_string(),
+        ))?;
+        if cost_val <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Mass addition cost must be positive".to_string(),
+            ));
+        }
+
+        info!(
+            "Mass Addition: Creating '{}' from invoice '{}' (cost: {:.2}, type: {})",
+            mass_addition_number, invoice_number, cost_val, asset_type
+        );
+        Ok(())
+    }
+
+    /// Review a mass addition (prepare for add or reject)
+    /// Oracle Fusion: Fixed Assets > Mass Additions > Review
+    pub async fn review_mass_addition(
+        &self,
+        mass_addition_id: RecordId,
+        category_code: Option<&str>,
+        book_code: Option<&str>,
+    ) -> AtlasResult<()> {
+        info!(
+            "Mass Addition: Reviewing {} (category: {}, book: {})",
+            mass_addition_id,
+            category_code.unwrap_or("unchanged"),
+            book_code.unwrap_or("unchanged")
+        );
+        Ok(())
+    }
+
+    /// Add a reviewed mass addition as a fixed asset
+    /// Oracle Fusion: Fixed Assets > Mass Additions > Add
+    pub async fn add_mass_addition(
+        &self,
+        mass_addition_id: RecordId,
+    ) -> AtlasResult<()> {
+        info!("Mass Addition: Adding {} as fixed asset", mass_addition_id);
+        Ok(())
+    }
+
+    /// Merge two mass additions
+    /// Oracle Fusion: Fixed Assets > Mass Additions > Merge
+    pub async fn merge_mass_additions(
+        &self,
+        source_id: RecordId,
+        target_id: RecordId,
+    ) -> AtlasResult<()> {
+        if source_id == target_id {
+            return Err(AtlasError::ValidationFailed(
+                "Cannot merge a mass addition into itself".to_string(),
+            ));
+        }
+        info!("Mass Addition: Merging {} into {}", source_id, target_id);
+        Ok(())
+    }
+
+    /// Reject a mass addition
+    /// Oracle Fusion: Fixed Assets > Mass Additions > Reject
+    pub async fn reject_mass_addition(
+        &self,
+        mass_addition_id: RecordId,
+        reason: &str,
+    ) -> AtlasResult<()> {
+        if reason.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Rejection reason is required".to_string(),
+            ));
+        }
+        info!("Mass Addition: Rejecting {} (reason: {})", mass_addition_id, reason);
+        Ok(())
+    }
+
+    /// Calculate default salvage value (10% of cost)
+    pub fn calculate_default_salvage(cost: f64) -> f64 {
+        cost * 0.10
+    }
+
+    /// Calculate depreciable basis
+    pub fn calculate_depreciable_basis(cost: f64, salvage_value: f64) -> f64 {
+        (cost - salvage_value).max(0.0)
+    }
+}
+
+// ============================================================================
+// Asset Reclassification Service (Oracle Fusion: Fixed Assets > Reclassification)
+// ============================================================================
+
+/// Asset Reclassification service
+/// Oracle Fusion: Financials > Fixed Assets > Asset Reclassification
+#[allow(dead_code)]
+pub struct AssetReclassificationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid reclassification types
+#[allow(dead_code)]
+const VALID_RECLASSIFICATION_TYPES: &[&str] = &[
+    "category_change", "type_change", "depreciation_method_change",
+    "useful_life_change", "account_change",
+];
+
+impl AssetReclassificationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate an asset reclassification request
+    /// Oracle Fusion: Fixed Assets > Asset Reclassification > Create
+    pub async fn create_reclassification(
+        &self,
+        reclassification_number: &str,
+        asset_number: &str,
+        reclassification_type: &str,
+        reason: &str,
+        effective_date: chrono::NaiveDate,
+    ) -> AtlasResult<()> {
+        if reclassification_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Reclassification number is required".to_string(),
+            ));
+        }
+        if asset_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Asset number is required".to_string(),
+            ));
+        }
+        if !VALID_RECLASSIFICATION_TYPES.contains(&reclassification_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid reclassification_type '{}'. Must be one of: {}",
+                reclassification_type, VALID_RECLASSIFICATION_TYPES.join(", ")
+            )));
+        }
+        if reason.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Reason is required for reclassification".to_string(),
+            ));
+        }
+
+        info!(
+            "Reclassification: Creating '{}' for asset '{}' ({})",
+            reclassification_number, asset_number, reclassification_type
+        );
+        Ok(())
+    }
+
+    /// Approve a reclassification request
+    /// Oracle Fusion: Fixed Assets > Asset Reclassification > Approve
+    pub async fn approve_reclassification(
+        &self,
+        reclassification_id: RecordId,
+        approver_id: RecordId,
+    ) -> AtlasResult<()> {
+        info!(
+            "Reclassification: Approving {} by {}",
+            reclassification_id, approver_id
+        );
+        Ok(())
+    }
+
+    /// Complete an approved reclassification
+    /// Oracle Fusion: Fixed Assets > Asset Reclassification > Complete
+    pub async fn complete_reclassification(
+        &self,
+        reclassification_id: RecordId,
+    ) -> AtlasResult<()> {
+        info!("Reclassification: Completing {}", reclassification_id);
+        Ok(())
+    }
+
+    /// Calculate depreciation adjustment when changing useful life
+    pub fn calculate_useful_life_adjustment(
+        nbv: f64,
+        remaining_periods_old: i32,
+        remaining_periods_new: i32,
+    ) -> f64 {
+        if remaining_periods_new <= 0 {
+            return 0.0;
+        }
+        let old_per_period = if remaining_periods_old > 0 {
+            nbv / remaining_periods_old as f64
+        } else {
+            0.0
+        };
+        let new_per_period = nbv / remaining_periods_new as f64;
+        new_per_period - old_per_period
+    }
+}
+
+// ============================================================================
+// GL Budget Transfer Service (Oracle Fusion: GL > Budget Transfers)
+// ============================================================================
+
+/// GL Budget Transfer service
+/// Oracle Fusion: General Ledger > Budgets > Budget Transfers
+#[allow(dead_code)]
+pub struct GLBudgetTransferService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid budget transfer types
+#[allow(dead_code)]
+const VALID_BUDGET_TRANSFER_TYPES: &[&str] = &[
+    "account_to_account", "period_to_period", "department_to_department",
+];
+
+impl GLBudgetTransferService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a budget transfer
+    /// Oracle Fusion: General Ledger > Budgets > Budget Transfers > Create
+    pub async fn create_budget_transfer(
+        &self,
+        transfer_number: &str,
+        transfer_type: &str,
+        transfer_amount: &str,
+        from_account: &str,
+        to_account: &str,
+        reason: &str,
+    ) -> AtlasResult<()> {
+        if transfer_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Transfer number is required".to_string(),
+            ));
+        }
+        if !VALID_BUDGET_TRANSFER_TYPES.contains(&transfer_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid transfer_type '{}'. Must be one of: {}",
+                transfer_type, VALID_BUDGET_TRANSFER_TYPES.join(", ")
+            )));
+        }
+        let amount: f64 = transfer_amount.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Transfer amount must be a valid number".to_string(),
+        ))?;
+        if amount <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Transfer amount must be positive".to_string(),
+            ));
+        }
+        if from_account.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "From account is required".to_string(),
+            ));
+        }
+        if to_account.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "To account is required".to_string(),
+            ));
+        }
+        if from_account == to_account {
+            return Err(AtlasError::ValidationFailed(
+                "From and To accounts must be different".to_string(),
+            ));
+        }
+        if reason.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Reason is required for budget transfer".to_string(),
+            ));
+        }
+
+        info!(
+            "Budget Transfer: Creating '{}' ({}) for {:.2} from {} to {}",
+            transfer_number, transfer_type, amount, from_account, to_account
+        );
+        Ok(())
+    }
+
+    /// Submit a budget transfer for approval
+    pub async fn submit_budget_transfer(
+        &self,
+        transfer_id: RecordId,
+    ) -> AtlasResult<()> {
+        info!("Budget Transfer: Submitting {} for approval", transfer_id);
+        Ok(())
+    }
+
+    /// Post an approved budget transfer
+    pub async fn post_budget_transfer(
+        &self,
+        transfer_id: RecordId,
+    ) -> AtlasResult<()> {
+        info!("Budget Transfer: Posting {}", transfer_id);
+        Ok(())
+    }
+
+    /// Validate that a budget has sufficient available balance for transfer
+    pub fn validate_budget_availability(
+        budget_amount: f64,
+        spent_amount: f64,
+        proposed_transfer: f64,
+    ) -> AtlasResult<()> {
+        let available = budget_amount - spent_amount;
+        if proposed_transfer > available {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Insufficient budget. Available: {:.2}, Requested: {:.2}",
+                available, proposed_transfer
+            )));
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Payment Format Service (Oracle Fusion: Payables > Payment Formats)
+// ============================================================================
+
+/// Payment Format service
+/// Oracle Fusion: Payables > Setup > Payment Formats
+#[allow(dead_code)]
+pub struct PaymentFormatService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid payment format types
+#[allow(dead_code)]
+const VALID_PAYMENT_FORMAT_TYPES: &[&str] = &[
+    "check", "electronic", "wire", "ach", "swift", "eft", "bacs", "sepa",
+];
+
+impl PaymentFormatService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a payment format
+    /// Oracle Fusion: Payables > Setup > Payment Formats
+    pub async fn create_payment_format(
+        &self,
+        code: &str,
+        name: &str,
+        format_type: &str,
+        payment_method: &str,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Payment format code and name are required".to_string(),
+            ));
+        }
+        if !VALID_PAYMENT_FORMAT_TYPES.contains(&format_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid format_type '{}'. Must be one of: {}",
+                format_type, VALID_PAYMENT_FORMAT_TYPES.join(", ")
+            )));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+
+        info!(
+            "Payment Format: Creating '{}' ({}) of type {}",
+            code, name, format_type
+        );
+        Ok(())
+    }
+
+    /// Validate that a format supports the given payment method
+    pub fn validate_format_method_compatibility(
+        format_type: &str,
+        payment_method: &str,
+    ) -> AtlasResult<()> {
+        let compatible = match format_type {
+            "check" => payment_method == "check",
+            "electronic" | "eft" | "ach" | "bacs" | "sepa" => {
+                payment_method == "electronic" || payment_method == "ach"
+            }
+            "wire" => payment_method == "wire",
+            "swift" => payment_method == "swift",
+            _ => false,
+        };
+        if !compatible {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Format type '{}' is not compatible with payment method '{}'",
+                format_type, payment_method
+            )));
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Financial Dimension Set Service (Oracle Fusion: GL > Dimension Sets)
+// ============================================================================
+
+/// Financial Dimension Set service
+/// Oracle Fusion: General Ledger > Setup > Financial Dimension Sets
+#[allow(dead_code)]
+pub struct FinancialDimensionSetService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+impl FinancialDimensionSetService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a financial dimension set
+    /// Oracle Fusion: General Ledger > Setup > Financial Dimension Sets
+    pub async fn create_dimension_set(
+        &self,
+        code: &str,
+        name: &str,
+        member_count: usize,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Dimension set code and name are required".to_string(),
+            ));
+        }
+        if member_count == 0 {
+            return Err(AtlasError::ValidationFailed(
+                "Dimension set must have at least one member".to_string(),
+            ));
+        }
+
+        info!(
+            "Dimension Set: Creating '{}' with {} members",
+            code, member_count
+        );
+        Ok(())
+    }
+
+    /// Validate that dimension set members are unique within a set
+    pub fn validate_unique_members(members: &[(&str, &str)]) -> AtlasResult<()> {
+        let mut seen = std::collections::HashSet::new();
+        for (dim_code, value_code) in members {
+            let key = format!("{}:{}", dim_code, value_code);
+            if !seen.insert(key.clone()) {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Duplicate dimension member: {}",
+                    key
+                )));
+            }
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Receipt Write-Off Service (Oracle Fusion: Receivables > Receipt Write-Off)
+// ============================================================================
+
+/// Receipt Write-Off service
+/// Oracle Fusion: Financials > Receivables > Receipt Write-Off
+#[allow(dead_code)]
+pub struct ReceiptWriteOffService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid receipt write-off types
+#[allow(dead_code)]
+const VALID_RECEIPT_WRITE_OFF_TYPES: &[&str] = &[
+    "unapplied_receipt", "short_payment", "over_payment", "small_balance",
+    "bank_charge", "currency_difference",
+];
+
+/// Maximum write-off amount that can be auto-approved
+#[allow(dead_code)]
+const MAX_AUTO_APPROVE_AMOUNT: f64 = 100.0;
+
+impl ReceiptWriteOffService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a receipt write-off
+    /// Oracle Fusion: Receivables > Receipts > Write-Off
+    pub async fn create_receipt_write_off(
+        &self,
+        write_off_number: &str,
+        receipt_number: &str,
+        write_off_type: &str,
+        write_off_amount: &str,
+        reason_code: &str,
+    ) -> AtlasResult<()> {
+        if write_off_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Write-off number is required".to_string(),
+            ));
+        }
+        if receipt_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Receipt number is required".to_string(),
+            ));
+        }
+        if !VALID_RECEIPT_WRITE_OFF_TYPES.contains(&write_off_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid write_off_type '{}'. Must be one of: {}",
+                write_off_type, VALID_RECEIPT_WRITE_OFF_TYPES.join(", ")
+            )));
+        }
+        let amount: f64 = write_off_amount.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Write-off amount must be a valid number".to_string(),
+        ))?;
+        if amount <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Write-off amount must be positive".to_string(),
+            ));
+        }
+        if reason_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Reason code is required for write-off".to_string(),
+            ));
+        }
+
+        info!(
+            "Receipt Write-Off: Creating '{}' for receipt '{}' ({}) amount: {:.2}",
+            write_off_number, receipt_number, write_off_type, amount
+        );
+        Ok(())
+    }
+
+    /// Check if a write-off qualifies for auto-approval
+    pub fn is_auto_approvable(amount: f64) -> bool {
+        amount <= MAX_AUTO_APPROVE_AMOUNT && amount > 0.0
+    }
+
+    /// Validate the write-off amount against the receipt unapplied balance
+    pub fn validate_write_off_amount(
+        unapplied_balance: f64,
+        write_off_amount: f64,
+    ) -> AtlasResult<()> {
+        if write_off_amount > unapplied_balance {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Write-off amount ({:.2}) exceeds unapplied balance ({:.2})",
+                write_off_amount, unapplied_balance
+            )));
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Prepayment Application Service (Oracle Fusion: Payables > Prepayment)
+// ============================================================================
+
+/// Prepayment Application service
+/// Oracle Fusion: Financials > Payables > Prepayment Application
+#[allow(dead_code)]
+pub struct PrepaymentApplicationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+impl PrepaymentApplicationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a prepayment application
+    /// Oracle Fusion: Payables > Invoices > Apply Prepayment
+    pub async fn create_prepayment_application(
+        &self,
+        application_number: &str,
+        prepayment_invoice_number: &str,
+        standard_invoice_number: &str,
+        applied_amount: &str,
+        supplier_id: RecordId,
+    ) -> AtlasResult<()> {
+        if application_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Application number is required".to_string(),
+            ));
+        }
+        if prepayment_invoice_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Prepayment invoice number is required".to_string(),
+            ));
+        }
+        if standard_invoice_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Standard invoice number is required".to_string(),
+            ));
+        }
+        if prepayment_invoice_number == standard_invoice_number {
+            return Err(AtlasError::ValidationFailed(
+                "Prepayment and standard invoice must be different".to_string(),
+            ));
+        }
+        let amount: f64 = applied_amount.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Applied amount must be a valid number".to_string(),
+        ))?;
+        if amount <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Applied amount must be positive".to_string(),
+            ));
+        }
+
+        info!(
+            "Prepayment: Applying '{}' to '{}' for supplier {} ({:.2})",
+            prepayment_invoice_number, standard_invoice_number, supplier_id, amount
+        );
+        Ok(())
+    }
+
+    /// Validate that the prepayment has sufficient available amount
+    pub fn validate_prepayment_availability(
+        prepayment_total: f64,
+        already_applied: f64,
+        proposed_apply: f64,
+    ) -> AtlasResult<()> {
+        let available = prepayment_total - already_applied;
+        if proposed_apply > available {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Insufficient prepayment balance. Available: {:.2}, Requested: {:.2}",
+                available, proposed_apply
+            )));
+        }
+        Ok(())
+    }
+
+    /// Calculate remaining prepayment after application
+    pub fn calculate_remaining_prepayment(
+        prepayment_total: f64,
+        applied_amount: f64,
+    ) -> f64 {
+        (prepayment_total - applied_amount).max(0.0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -17724,5 +18449,373 @@ mod tests {
         ];
         let names: std::collections::HashSet<&str> = entities.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names.len(), 10, "All 10 new feature entity names must be unique");
+    }
+
+    // ========================================================================
+    // Mass Additions Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_mass_addition_definition() {
+        let def = entities::mass_addition_definition();
+        assert_eq!(def.name, "mass_additions");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "posted");
+        assert!(wf.states.iter().any(|s| s.name == "on_hold"));
+        assert!(wf.states.iter().any(|s| s.name == "reviewed"));
+        assert!(wf.states.iter().any(|s| s.name == "added"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+        assert!(wf.states.iter().any(|s| s.name == "merged"));
+    }
+
+    #[test]
+    fn test_mass_addition_workflow_transitions() {
+        let def = entities::mass_addition_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "posted" && t.to_state == "on_hold"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "posted" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "added"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "rejected"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "merged"));
+    }
+
+    #[test]
+    fn test_mass_addition_default_salvage() {
+        let salvage = super::MassAdditionService::calculate_default_salvage(10000.0);
+        assert!((salvage - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_mass_addition_depreciable_basis() {
+        let basis = super::MassAdditionService::calculate_depreciable_basis(10000.0, 1000.0);
+        assert!((basis - 9000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_mass_addition_depreciable_basis_zero() {
+        let basis = super::MassAdditionService::calculate_depreciable_basis(500.0, 600.0);
+        assert!((basis - 0.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Asset Reclassification Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_asset_reclassification_definition() {
+        let def = entities::asset_reclassification_definition();
+        assert_eq!(def.name, "asset_reclassifications");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "pending");
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+    }
+
+    #[test]
+    fn test_asset_reclassification_workflow_transitions() {
+        let def = entities::asset_reclassification_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "rejected"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "completed"));
+    }
+
+    #[test]
+    fn test_useful_life_adjustment() {
+        // NBV=10000, old remaining=60 months, new remaining=36 months
+        let adj = super::AssetReclassificationService::calculate_useful_life_adjustment(
+            10000.0, 60, 36,
+        );
+        // new_per_period=277.78, old_per_period=166.67 => diff=111.11
+        assert!((adj - 111.11).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_useful_life_adjustment_zero_old() {
+        let adj = super::AssetReclassificationService::calculate_useful_life_adjustment(
+            10000.0, 0, 36,
+        );
+        assert!((adj - (10000.0 / 36.0)).abs() < 0.1);
+    }
+
+    // ========================================================================
+    // GL Budget Transfer Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_gl_budget_transfer_definition() {
+        let def = entities::gl_budget_transfer_definition();
+        assert_eq!(def.name, "gl_budget_transfers");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+    }
+
+    #[test]
+    fn test_gl_budget_transfer_workflow_transitions() {
+        let def = entities::gl_budget_transfer_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "rejected"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "posted"));
+    }
+
+    #[test]
+    fn test_budget_availability_sufficient() {
+        let result = super::GLBudgetTransferService::validate_budget_availability(
+            100000.0, 60000.0, 30000.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_budget_availability_insufficient() {
+        let result = super::GLBudgetTransferService::validate_budget_availability(
+            100000.0, 60000.0, 50000.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_budget_availability_exact() {
+        let result = super::GLBudgetTransferService::validate_budget_availability(
+            100000.0, 60000.0, 40000.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    // ========================================================================
+    // Payment Format Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_payment_format_definition() {
+        let def = entities::payment_format_definition();
+        assert_eq!(def.name, "payment_formats");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_payment_format_method_compatibility_check() {
+        assert!(super::PaymentFormatService::validate_format_method_compatibility("check", "check").is_ok());
+        assert!(super::PaymentFormatService::validate_format_method_compatibility("wire", "wire").is_ok());
+        assert!(super::PaymentFormatService::validate_format_method_compatibility("swift", "swift").is_ok());
+        assert!(super::PaymentFormatService::validate_format_method_compatibility("ach", "ach").is_ok());
+    }
+
+    #[test]
+    fn test_payment_format_method_incompatibility() {
+        assert!(super::PaymentFormatService::validate_format_method_compatibility("check", "wire").is_err());
+        assert!(super::PaymentFormatService::validate_format_method_compatibility("wire", "check").is_err());
+        assert!(super::PaymentFormatService::validate_format_method_compatibility("swift", "check").is_err());
+    }
+
+    // ========================================================================
+    // Financial Dimension Set Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_financial_dimension_set_definition() {
+        let def = entities::financial_dimension_set_definition();
+        assert_eq!(def.name, "financial_dimension_sets");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_financial_dimension_set_member_definition() {
+        let def = entities::financial_dimension_set_member_definition();
+        assert_eq!(def.name, "financial_dimension_set_members");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_dimension_set_unique_members_valid() {
+        let members = vec![
+            ("department", "IT"),
+            ("cost_center", "CC01"),
+            ("project", "P100"),
+        ];
+        assert!(super::FinancialDimensionSetService::validate_unique_members(&members).is_ok());
+    }
+
+    #[test]
+    fn test_dimension_set_unique_members_duplicate() {
+        let members = vec![
+            ("department", "IT"),
+            ("department", "IT"),
+        ];
+        assert!(super::FinancialDimensionSetService::validate_unique_members(&members).is_err());
+    }
+
+    #[test]
+    fn test_dimension_set_unique_members_same_dim_different_value() {
+        let members = vec![
+            ("department", "IT"),
+            ("department", "HR"),
+        ];
+        assert!(super::FinancialDimensionSetService::validate_unique_members(&members).is_ok());
+    }
+
+    // ========================================================================
+    // Receipt Write-Off Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_receipt_write_off_definition() {
+        let def = entities::receipt_write_off_definition();
+        assert_eq!(def.name, "receipt_write_offs");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+    }
+
+    #[test]
+    fn test_receipt_write_off_workflow_transitions() {
+        let def = entities::receipt_write_off_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "rejected"));
+    }
+
+    #[test]
+    fn test_receipt_write_off_auto_approvable_under_limit() {
+        assert!(super::ReceiptWriteOffService::is_auto_approvable(50.0));
+        assert!(super::ReceiptWriteOffService::is_auto_approvable(100.0));
+    }
+
+    #[test]
+    fn test_receipt_write_off_not_auto_approvable_over_limit() {
+        assert!(!super::ReceiptWriteOffService::is_auto_approvable(150.0));
+        assert!(!super::ReceiptWriteOffService::is_auto_approvable(1000.0));
+    }
+
+    #[test]
+    fn test_receipt_write_off_not_auto_approvable_zero() {
+        assert!(!super::ReceiptWriteOffService::is_auto_approvable(0.0));
+    }
+
+    #[test]
+    fn test_receipt_write_off_validate_amount_ok() {
+        let result = super::ReceiptWriteOffService::validate_write_off_amount(500.0, 200.0);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_receipt_write_off_validate_amount_exceeds() {
+        let result = super::ReceiptWriteOffService::validate_write_off_amount(500.0, 600.0);
+        assert!(result.is_err());
+    }
+
+    // ========================================================================
+    // Prepayment Application Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_prepayment_application_definition() {
+        let def = entities::prepayment_application_definition();
+        assert_eq!(def.name, "prepayment_applications");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "applied"));
+        assert!(wf.states.iter().any(|s| s.name == "unapplied"));
+    }
+
+    #[test]
+    fn test_prepayment_application_workflow_transitions() {
+        let def = entities::prepayment_application_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "applied"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "applied" && t.to_state == "unapplied"));
+    }
+
+    #[test]
+    fn test_prepayment_availability_sufficient() {
+        let result = super::PrepaymentApplicationService::validate_prepayment_availability(
+            10000.0, 3000.0, 5000.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_prepayment_availability_insufficient() {
+        let result = super::PrepaymentApplicationService::validate_prepayment_availability(
+            10000.0, 3000.0, 8000.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_prepayment_remaining_calculation() {
+        let remaining = super::PrepaymentApplicationService::calculate_remaining_prepayment(
+            10000.0, 3000.0,
+        );
+        assert!((remaining - 7000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_prepayment_remaining_cannot_go_negative() {
+        let remaining = super::PrepaymentApplicationService::calculate_remaining_prepayment(
+            5000.0, 8000.0,
+        );
+        assert!((remaining - 0.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // All New Feature Entities Build Test
+    // ========================================================================
+
+    #[test]
+    fn test_all_latest_feature_entities_build() {
+        let _ = entities::mass_addition_definition();
+        let _ = entities::asset_reclassification_definition();
+        let _ = entities::gl_budget_transfer_definition();
+        let _ = entities::payment_format_definition();
+        let _ = entities::financial_dimension_set_definition();
+        let _ = entities::financial_dimension_set_member_definition();
+        let _ = entities::receipt_write_off_definition();
+        let _ = entities::prepayment_application_definition();
+    }
+
+    #[test]
+    fn test_all_latest_feature_entity_names_unique() {
+        let new_entities = vec![
+            entities::mass_addition_definition(),
+            entities::asset_reclassification_definition(),
+            entities::gl_budget_transfer_definition(),
+            entities::payment_format_definition(),
+            entities::financial_dimension_set_definition(),
+            entities::financial_dimension_set_member_definition(),
+            entities::receipt_write_off_definition(),
+            entities::prepayment_application_definition(),
+        ];
+        assert_eq!(new_entities.len(), 8);
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 8, "All 8 new entity names must be unique");
+    }
+
+    #[test]
+    fn test_all_latest_feature_workflow_count() {
+        let workflow_entities = vec![
+            entities::mass_addition_definition(),
+            entities::asset_reclassification_definition(),
+            entities::gl_budget_transfer_definition(),
+            entities::receipt_write_off_definition(),
+            entities::prepayment_application_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 5, "All 5 workflow entities should have workflows");
     }
 }

@@ -87,4 +87,12 @@ pub use services::{
     AgingBuckets,
     AgingPercentages,
     AgingTrend,
+    // New Oracle Fusion financial features
+    MassAdditionService,
+    AssetReclassificationService,
+    GLBudgetTransferService,
+    PaymentFormatService,
+    FinancialDimensionSetService,
+    ReceiptWriteOffService,
+    PrepaymentApplicationService,
 };

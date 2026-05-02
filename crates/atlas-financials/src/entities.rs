@@ -6652,3 +6652,336 @@ pub fn cost_allocation_run_definition() -> EntityDefinition {
         .workflow(workflow)
         .build()
 }
+
+// ============================================================================
+// Mass Additions (Oracle Fusion: Fixed Assets > Mass Additions)
+// Converts AP invoice lines into pending fixed asset additions
+// ============================================================================
+
+/// Mass Addition entity with workflow
+/// Oracle Fusion: Fixed Assets > Mass Additions > Prepare Mass Additions
+pub fn mass_addition_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("mass_addition_workflow", "posted")
+        .initial_state("posted", "Posted from Payables")
+        .working_state("on_hold", "On Hold")
+        .working_state("reviewed", "Reviewed")
+        .final_state("added", "Added to Assets")
+        .final_state("rejected", "Rejected")
+        .final_state("merged", "Merged")
+        .transition("posted", "on_hold", "hold")
+        .transition("posted", "reviewed", "review")
+        .transition("on_hold", "reviewed", "review")
+        .transition("reviewed", "added", "add")
+        .transition("reviewed", "rejected", "reject")
+        .transition("posted", "rejected", "reject")
+        .transition("reviewed", "merged", "merge")
+        .build();
+
+    SchemaBuilder::new("mass_additions", "Mass Addition")
+        .plural_label("Mass Additions")
+        .table_name("fin_mass_additions")
+        .description("Pending fixed asset additions from AP invoices, ready for review and conversion")
+        .icon("plus-circle")
+        .required_string("mass_addition_number", "Mass Addition Number")
+        .reference("invoice_id", "Invoice", "ap_invoices")
+        .string("invoice_number", "Invoice Number")
+        .reference("invoice_line_id", "Invoice Line", "ap_invoice_lines")
+        .integer("invoice_line_number", "Invoice Line Number")
+        .string("description", "Description")
+        .string("asset_key", "Asset Key")
+        .reference("category_id", "Category", "asset_categories")
+        .string("category_code", "Category Code")
+        .reference("book_id", "Book", "asset_books")
+        .string("book_code", "Book Code")
+        .enumeration("asset_type", "Asset Type", vec![
+            "tangible", "intangible", "leased", "cipc",
+        ])
+        .enumeration("depreciation_method", "Depreciation Method", vec![
+            "straight_line", "declining_balance", "sum_of_years_digits",
+        ])
+        .integer("useful_life_months", "Useful Life (Months)")
+        .currency("cost", "Cost", "USD")
+        .currency("salvage_value", "Salvage Value", "USD")
+        .string("salvage_value_percent", "Salvage %")
+        .string("asset_account_code", "Asset Account")
+        .string("depr_expense_account_code", "Depr Expense Account")
+        .string("location", "Location")
+        .reference("department_id", "Department", "departments")
+        .string("department_name", "Department Name")
+        .reference("supplier_id", "Supplier", "suppliers")
+        .string("supplier_number", "Supplier Number")
+        .string("supplier_name", "Supplier Name")
+        .string("po_number", "PO Number")
+        .date("invoice_date", "Invoice Date")
+        .date("date_placed_in_service", "Date Placed in Service")
+        .reference("merge_to_id", "Merge To", "mass_additions")
+        .string("merge_to_number", "Merge To Number")
+        .string("reject_reason", "Reject Reason")
+        .enumeration("status", "Status", vec![
+            "posted", "on_hold", "reviewed", "added", "rejected", "merged",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Asset Reclassification (Oracle Fusion: Fixed Assets > Reclassification)
+// ============================================================================
+
+/// Asset Reclassification entity with workflow
+/// Oracle Fusion: Fixed Assets > Asset Reclassification
+pub fn asset_reclassification_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("asset_reclassification_workflow", "pending")
+        .initial_state("pending", "Pending")
+        .final_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .final_state("completed", "Completed")
+        .transition("pending", "approved", "approve")
+        .transition("pending", "rejected", "reject")
+        .transition("approved", "completed", "complete")
+        .build();
+
+    SchemaBuilder::new("asset_reclassifications", "Asset Reclassification")
+        .plural_label("Asset Reclassifications")
+        .table_name("fin_asset_reclassifications")
+        .description("Requests to reclassify assets between categories, types, or depreciation parameters")
+        .icon("exchange-alt")
+        .required_string("reclassification_number", "Reclassification Number")
+        .reference("asset_id", "Asset", "fixed_assets")
+        .string("asset_number", "Asset Number")
+        .string("asset_name", "Asset Name")
+        .enumeration("reclassification_type", "Type", vec![
+            "category_change", "type_change", "depreciation_method_change",
+            "useful_life_change", "account_change",
+        ])
+        .string("reason", "Reason")
+        .reference("from_category_id", "From Category", "asset_categories")
+        .string("from_category_code", "From Category Code")
+        .string("from_asset_type", "From Asset Type")
+        .string("from_depreciation_method", "From Depreciation Method")
+        .integer("from_useful_life_months", "From Useful Life")
+        .string("from_asset_account_code", "From Asset Account")
+        .string("from_depr_expense_account_code", "From Depr Expense Account")
+        .reference("to_category_id", "To Category", "asset_categories")
+        .string("to_category_code", "To Category Code")
+        .string("to_asset_type", "To Asset Type")
+        .string("to_depreciation_method", "To Depreciation Method")
+        .integer("to_useful_life_months", "To Useful Life")
+        .string("to_asset_account_code", "To Asset Account")
+        .string("to_depr_expense_account_code", "To Depr Expense Account")
+        .date("effective_date", "Effective Date")
+        .string("amortization_adjustment", "Amortization Adjustment")
+        .enumeration("status", "Status", vec![
+            "pending", "approved", "rejected", "completed",
+        ])
+        .reference("approved_by", "Approved By", "employees")
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// GL Budget Transfer (Oracle Fusion: General Ledger > Budget Transfers)
+// ============================================================================
+
+/// GL Budget Transfer entity with workflow
+/// Oracle Fusion: General Ledger > Budgets > Budget Transfers
+pub fn gl_budget_transfer_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("gl_budget_transfer_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .final_state("posted", "Posted")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "posted", "post")
+        .build();
+
+    SchemaBuilder::new("gl_budget_transfers", "GL Budget Transfer")
+        .plural_label("GL Budget Transfers")
+        .table_name("fin_gl_budget_transfers")
+        .description("Budget amount transfers between accounts, departments, or periods")
+        .icon("exchange-alt")
+        .required_string("transfer_number", "Transfer Number")
+        .string("description", "Description")
+        .date("transfer_date", "Transfer Date")
+        .date("effective_date", "Effective Date")
+        .string("budget_name", "Budget Name")
+        .enumeration("transfer_type", "Transfer Type", vec![
+            "account_to_account", "period_to_period", "department_to_department",
+        ])
+        .string("from_account_combination", "From Account")
+        .string("from_department", "From Department")
+        .string("from_period", "From Period")
+        .string("to_account_combination", "To Account")
+        .string("to_department", "To Department")
+        .string("to_period", "To Period")
+        .currency("transfer_amount", "Transfer Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .string("reason", "Reason")
+        .reference("approved_by", "Approved By", "employees")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "rejected", "posted",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Payment Format (Oracle Fusion: Payables > Payment Formats)
+// ============================================================================
+
+/// Payment Format entity
+/// Oracle Fusion: Payables > Setup > Payment Formats
+pub fn payment_format_definition() -> EntityDefinition {
+    SchemaBuilder::new("payment_formats", "Payment Format")
+        .plural_label("Payment Formats")
+        .table_name("fin_payment_formats")
+        .description("Formats for generating payment files (check, EFT, wire, etc.)")
+        .icon("file-alt")
+        .required_string("code", "Format Code")
+        .required_string("name", "Format Name")
+        .string("description", "Description")
+        .enumeration("format_type", "Format Type", vec![
+            "check", "electronic", "wire", "ach", "swift", "eft", "bacs", "sepa",
+        ])
+        .enumeration("payment_method", "Payment Method", vec![
+            "check", "electronic", "wire", "ach", "swift",
+        ])
+        .string("file_template", "File Template")
+        .boolean("requires_bank_details", "Requires Bank Details")
+        .boolean("supports_remittance", "Supports Remittance")
+        .boolean("supports_void", "Supports Void")
+        .integer("max_payments_per_file", "Max Payments Per File")
+        .string("currency_code", "Currency Code")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
+// Financial Dimension Set (Oracle Fusion: GL > Financial Dimension Sets)
+// ============================================================================
+
+/// Financial Dimension Set entity
+/// Oracle Fusion: General Ledger > Setup > Financial Dimension Sets
+pub fn financial_dimension_set_definition() -> EntityDefinition {
+    SchemaBuilder::new("financial_dimension_sets", "Financial Dimension Set")
+        .plural_label("Financial Dimension Sets")
+        .table_name("fin_financial_dimension_sets")
+        .description("Groups of financial dimensions used for reporting and analysis")
+        .icon("layer-group")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .json("dimension_members", "Dimension Members")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Financial Dimension Set Member entity
+/// Oracle Fusion: General Ledger > Setup > Financial Dimension Set Members
+pub fn financial_dimension_set_member_definition() -> EntityDefinition {
+    SchemaBuilder::new("financial_dimension_set_members", "Dimension Set Member")
+        .plural_label("Dimension Set Members")
+        .table_name("fin_financial_dimension_set_members")
+        .description("Individual dimension members within a dimension set")
+        .icon("sitemap")
+        .reference("dimension_set_id", "Dimension Set", "financial_dimension_sets")
+        .reference("dimension_id", "Dimension", "financial_dimensions")
+        .string("dimension_code", "Dimension Code")
+        .reference("dimension_value_id", "Dimension Value", "financial_dimension_values")
+        .string("dimension_value_code", "Dimension Value Code")
+        .integer("display_order", "Display Order")
+        .build()
+}
+
+// ============================================================================
+// AR Receipt Write-Off (Oracle Fusion: Receivables > Receipt Write-Off)
+// ============================================================================
+
+/// Receipt Write-Off entity with workflow
+/// Oracle Fusion: Receivables > Receipts > Write-Off
+pub fn receipt_write_off_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("receipt_write_off_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .final_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .build();
+
+    SchemaBuilder::new("receipt_write_offs", "Receipt Write-Off")
+        .plural_label("Receipt Write-Offs")
+        .table_name("fin_receipt_write_offs")
+        .description("Write-off of unapplied receipt amounts or small balance differences")
+        .icon("eraser")
+        .required_string("write_off_number", "Write-Off Number")
+        .reference("receipt_id", "Receipt", "ar_receipts")
+        .string("receipt_number", "Receipt Number")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .enumeration("write_off_type", "Write-Off Type", vec![
+            "unapplied_receipt", "short_payment", "over_payment", "small_balance",
+            "bank_charge", "currency_difference",
+        ])
+        .currency("write_off_amount", "Write-Off Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .string("write_off_account_code", "Write-Off Account")
+        .string("receivable_account_code", "Receivable Account")
+        .date("write_off_date", "Write-Off Date")
+        .date("gl_date", "GL Date")
+        .string("reason_code", "Reason Code")
+        .string("reason_description", "Reason Description")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "rejected",
+        ])
+        .reference("approved_by", "Approved By", "employees")
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// AP Prepayment Application (Oracle Fusion: Payables > Prepayment Application)
+// ============================================================================
+
+/// Prepayment Application entity with workflow
+/// Oracle Fusion: Payables > Invoices > Apply Prepayment
+pub fn prepayment_application_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("prepayment_application_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("applied", "Applied")
+        .final_state("unapplied", "Unapplied")
+        .transition("draft", "applied", "apply")
+        .transition("applied", "unapplied", "unapply")
+        .build();
+
+    SchemaBuilder::new("prepayment_applications", "Prepayment Application")
+        .plural_label("Prepayment Applications")
+        .table_name("fin_prepayment_applications")
+        .description("Application of supplier prepayment invoices to standard invoices")
+        .icon("check-double")
+        .required_string("application_number", "Application Number")
+        .reference("prepayment_invoice_id", "Prepayment Invoice", "ap_invoices")
+        .string("prepayment_invoice_number", "Prepayment Invoice Number")
+        .reference("standard_invoice_id", "Standard Invoice", "ap_invoices")
+        .string("standard_invoice_number", "Standard Invoice Number")
+        .reference("supplier_id", "Supplier", "suppliers")
+        .string("supplier_number", "Supplier Number")
+        .currency("applied_amount", "Applied Amount", "USD")
+        .currency("remaining_prepayment_amount", "Remaining Prepayment", "USD")
+        .string("currency_code", "Currency Code")
+        .date("application_date", "Application Date")
+        .date("gl_date", "GL Date")
+        .enumeration("status", "Status", vec![
+            "draft", "applied", "unapplied",
+        ])
+        .string("reason", "Reason")
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}

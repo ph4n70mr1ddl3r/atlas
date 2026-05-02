@@ -6799,6 +6799,1110 @@ impl AutoOffsetService {
     }
 }
 
+// ============================================================================
+// Landed Cost Management Service
+// ============================================================================
+
+/// Landed Cost Management service
+/// Oracle Fusion: Cost Management > Landed Cost Management
+/// Calculates and allocates costs incurred to bring goods to their destination
+/// (freight, insurance, customs duties, handling charges).
+#[allow(dead_code)]
+pub struct LandedCostManagementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid landed cost component types
+#[allow(dead_code)]
+const VALID_LANDED_COST_TYPES: &[&str] = &[
+    "freight", "insurance", "customs_duty", "handling", "storage",
+    "brokerage", "port_charges", "inspection", "other",
+];
+
+/// Valid allocation bases for landed cost
+#[allow(dead_code)]
+const VALID_LANDED_COST_ALLOCATION_BASES: &[&str] = &[
+    "quantity", "weight", "volume", "value", "equal",
+];
+
+/// Valid landed cost assignment statuses
+#[allow(dead_code)]
+const VALID_LANDED_COST_ASSIGNMENT_STATUSES: &[&str] = &[
+    "draft", "estimated", "actual", "adjusted", "cancelled",
+];
+
+impl LandedCostManagementService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create a landed cost template
+    /// Oracle Fusion: Cost Management > Landed Cost > Templates
+    pub async fn create_template(
+        &self,
+        code: &str,
+        name: &str,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Template code and name are required".to_string(),
+            ));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        info!("Landed Cost: Creating template '{}' ({})", code, name);
+        Ok(())
+    }
+
+    /// Validate a landed cost component
+    pub fn validate_component(
+        component_type: &str,
+        allocation_basis: &str,
+        rate_or_amount: f64,
+    ) -> AtlasResult<()> {
+        if !VALID_LANDED_COST_TYPES.contains(&component_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid component_type '{}'. Must be one of: {}",
+                component_type, VALID_LANDED_COST_TYPES.join(", ")
+            )));
+        }
+        if !VALID_LANDED_COST_ALLOCATION_BASES.contains(&allocation_basis) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid allocation_basis '{}'. Must be one of: {}",
+                allocation_basis, VALID_LANDED_COST_ALLOCATION_BASES.join(", ")
+            )));
+        }
+        if rate_or_amount < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Rate or amount cannot be negative".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Allocate landed cost across shipment lines by quantity
+    pub fn allocate_by_quantity(
+        total_cost: f64,
+        line_quantities: &[f64],
+    ) -> Vec<f64> {
+        let total_qty: f64 = line_quantities.iter().sum();
+        if total_qty <= 0.0 {
+            return vec![0.0; line_quantities.len()];
+        }
+        line_quantities.iter()
+            .map(|q| (q / total_qty) * total_cost)
+            .collect()
+    }
+
+    /// Allocate landed cost across shipment lines by value
+    pub fn allocate_by_value(
+        total_cost: f64,
+        line_values: &[f64],
+    ) -> Vec<f64> {
+        let total_val: f64 = line_values.iter().sum();
+        if total_val <= 0.0 {
+            return vec![0.0; line_values.len()];
+        }
+        line_values.iter()
+            .map(|v| (v / total_val) * total_cost)
+            .collect()
+    }
+
+    /// Allocate landed cost equally across shipment lines
+    pub fn allocate_equally(
+        total_cost: f64,
+        line_count: usize,
+    ) -> Vec<f64> {
+        if line_count == 0 {
+            return vec![];
+        }
+        vec![total_cost / line_count as f64; line_count]
+    }
+
+    /// Calculate total landed cost from components
+    pub fn calculate_total_landed_cost(
+        item_cost: f64,
+        component_costs: &[f64],
+    ) -> f64 {
+        item_cost + component_costs.iter().sum::<f64>()
+    }
+
+    /// Calculate variance between estimated and actual landed cost
+    pub fn calculate_landed_cost_variance(
+        estimated: f64,
+        actual: f64,
+    ) -> f64 {
+        actual - estimated
+    }
+}
+
+// ============================================================================
+// Currency Revaluation Service
+// ============================================================================
+
+/// Currency Revaluation service
+/// Oracle Fusion: General Ledger > Currency Revaluation
+/// Revalues foreign currency-denominated balances at period-end rates
+/// to reflect unrealized gains and losses.
+#[allow(dead_code)]
+pub struct CurrencyRevaluationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid revaluation rate types
+#[allow(dead_code)]
+const VALID_REVAL_RATE_TYPES: &[&str] = &[
+    "period_end", "daily", "spot", "weighted_average",
+];
+
+/// Valid revaluation statuses
+#[allow(dead_code)]
+const VALID_REVAL_STATUSES: &[&str] = &[
+    "draft", "submitted", "approved", "posted", "reversed",
+];
+
+/// Valid revaluation account types
+#[allow(dead_code)]
+const VALID_REVAL_ACCOUNT_TYPES: &[&str] = &[
+    "asset", "liability", "equity", "revenue", "expense",
+];
+
+impl CurrencyRevaluationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create a currency revaluation request
+    /// Oracle Fusion: General Ledger > Currency > Revaluation
+    pub async fn create_revaluation(
+        &self,
+        revaluation_name: &str,
+        ledger_code: &str,
+        from_currency: &str,
+        to_currency: &str,
+        rate_type: &str,
+        revaluation_date: chrono::NaiveDate,
+    ) -> AtlasResult<()> {
+        if revaluation_name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Revaluation name is required".to_string(),
+            ));
+        }
+        if ledger_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Ledger code is required".to_string(),
+            ));
+        }
+        if !VALID_REVAL_RATE_TYPES.contains(&rate_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid rate_type '{}'. Must be one of: {}",
+                rate_type, VALID_REVAL_RATE_TYPES.join(", ")
+            )));
+        }
+        info!("Currency Reval: Creating revaluation '{}' for {}->{}",
+            revaluation_name, from_currency, to_currency);
+        Ok(())
+    }
+
+    /// Calculate unrealized gain/loss on a single monetary item
+    pub fn calculate_unrealized_gain_loss_item(
+        foreign_currency_amount: f64,
+        original_rate: f64,
+        revaluation_rate: f64,
+    ) -> f64 {
+        let original_base = foreign_currency_amount * original_rate;
+        let revalued_base = foreign_currency_amount * revaluation_rate;
+        revalued_base - original_base
+    }
+
+    /// Calculate total unrealized gains/losses for a set of items
+    pub fn calculate_total_unrealized(
+        items: &[(f64, f64, f64)], // (amount, original_rate, reval_rate)
+    ) -> (f64, f64) {
+        let total_gain: f64 = items.iter()
+            .map(|(amt, orig_rate, reval_rate)| {
+                let gl = Self::calculate_unrealized_gain_loss_item(*amt, *orig_rate, *reval_rate);
+                if gl > 0.0 { gl } else { 0.0 }
+            })
+            .sum();
+        let total_loss: f64 = items.iter()
+            .map(|(amt, orig_rate, reval_rate)| {
+                let gl = Self::calculate_unrealized_gain_loss_item(*amt, *orig_rate, *reval_rate);
+                if gl < 0.0 { gl.abs() } else { 0.0 }
+            })
+            .sum();
+        (total_gain, total_loss)
+    }
+
+    /// Check if revaluation rate is valid (must be positive)
+    pub fn validate_revaluation_rate(rate: f64) -> AtlasResult<()> {
+        if rate <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Revaluation rate must be positive".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Calculate net revaluation impact (gain - loss)
+    pub fn calculate_net_impact(total_gain: f64, total_loss: f64) -> f64 {
+        total_gain - total_loss
+    }
+}
+
+// ============================================================================
+// GL Allocation Service
+// ============================================================================
+
+/// GL Allocation service
+/// Oracle Fusion: General Ledger > Allocations
+/// Allocates balances from a cost pool to target cost centers based on rules.
+#[allow(dead_code)]
+pub struct GLAllocationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid allocation basis types
+#[allow(dead_code)]
+const VALID_GL_ALLOCATION_BASES: &[&str] = &[
+    "percentage", "ratio", "statistical", "actual_balance", "budget",
+];
+
+/// Valid allocation rule statuses
+#[allow(dead_code)]
+const VALID_ALLOCATION_RULE_STATUSES: &[&str] = &[
+    "draft", "active", "inactive", "suspended",
+];
+
+impl GLAllocationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate an allocation rule
+    /// Oracle Fusion: General Ledger > Allocations > Rules
+    pub async fn create_allocation_rule(
+        &self,
+        rule_code: &str,
+        name: &str,
+        allocation_basis: &str,
+        source_pool_account: &str,
+    ) -> AtlasResult<()> {
+        if rule_code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Rule code and name are required".to_string(),
+            ));
+        }
+        if !VALID_GL_ALLOCATION_BASES.contains(&allocation_basis) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid allocation_basis '{}'. Must be one of: {}",
+                allocation_basis, VALID_GL_ALLOCATION_BASES.join(", ")
+            )));
+        }
+        if source_pool_account.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Source pool account is required".to_string(),
+            ));
+        }
+        info!("GL Allocation: Creating rule '{}' ({})", rule_code, name);
+        Ok(())
+    }
+
+    /// Allocate pool amount by fixed percentages
+    pub fn allocate_by_percentage(
+        pool_amount: f64,
+        target_percentages: &[f64],
+    ) -> Vec<f64> {
+        target_percentages.iter()
+            .map(|p| pool_amount * (p / 100.0))
+            .collect()
+    }
+
+    /// Allocate pool amount by ratios
+    pub fn allocate_by_ratio(
+        pool_amount: f64,
+        ratios: &[f64],
+    ) -> Vec<f64> {
+        let total_ratio: f64 = ratios.iter().sum();
+        if total_ratio <= 0.0 {
+            return vec![0.0; ratios.len()];
+        }
+        ratios.iter()
+            .map(|r| (r / total_ratio) * pool_amount)
+            .collect()
+    }
+
+    /// Allocate pool amount by statistical data (headcount, sqft, etc.)
+    pub fn allocate_by_statistical(
+        pool_amount: f64,
+        statistical_values: &[f64],
+    ) -> Vec<f64> {
+        let total: f64 = statistical_values.iter().sum();
+        if total <= 0.0 {
+            return vec![0.0; statistical_values.len()];
+        }
+        statistical_values.iter()
+            .map(|v| (v / total) * pool_amount)
+            .collect()
+    }
+
+    /// Validate that allocation percentages sum to 100
+    pub fn validate_percentages_total_100(percentages: &[f64]) -> bool {
+        let total: f64 = percentages.iter().sum();
+        (total - 100.0).abs() < 0.01
+    }
+
+    /// Calculate rounding adjustment to ensure allocation totals match pool
+    pub fn calculate_rounding_adjustment(
+        pool_amount: f64,
+        allocated_amounts: &[f64],
+    ) -> f64 {
+        let total_allocated: f64 = allocated_amounts.iter().sum();
+        pool_amount - total_allocated
+    }
+}
+
+// ============================================================================
+// Cost Pool Management Service
+// ============================================================================
+
+/// Cost Pool Management service
+/// Oracle Fusion: Cost Management > Cost Pools
+/// Manages overhead cost pools and their sources for allocation.
+#[allow(dead_code)]
+pub struct CostPoolManagementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid cost pool types
+#[allow(dead_code)]
+const VALID_COST_POOL_TYPES: &[&str] = &[
+    "overhead", "administrative", "manufacturing", "service",
+];
+
+/// Valid cost pool statuses
+#[allow(dead_code)]
+const VALID_COST_POOL_STATUSES: &[&str] = &[
+    "draft", "active", "inactive", "closed",
+];
+
+/// Valid cost pool source types
+#[allow(dead_code)]
+const VALID_COST_POOL_SOURCE_TYPES: &[&str] = &[
+    "actual", "budget", "statistical",
+];
+
+impl CostPoolManagementService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create a cost pool
+    /// Oracle Fusion: Cost Management > Cost Pools
+    pub async fn create_cost_pool(
+        &self,
+        code: &str,
+        name: &str,
+        pool_type: &str,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Cost pool code and name are required".to_string(),
+            ));
+        }
+        if !VALID_COST_POOL_TYPES.contains(&pool_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid pool_type '{}'. Must be one of: {}",
+                pool_type, VALID_COST_POOL_TYPES.join(", ")
+            )));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        info!("Cost Pool: Creating pool '{}' ({})", code, name);
+        Ok(())
+    }
+
+    /// Calculate total pool amount from sources
+    pub fn calculate_pool_total(source_amounts: &[f64]) -> f64 {
+        source_amounts.iter().sum()
+    }
+
+    /// Validate a cost pool source
+    pub fn validate_source(
+        source_type: &str,
+        amount: f64,
+    ) -> AtlasResult<()> {
+        if !VALID_COST_POOL_SOURCE_TYPES.contains(&source_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid source_type '{}'. Must be one of: {}",
+                source_type, VALID_COST_POOL_SOURCE_TYPES.join(", ")
+            )));
+        }
+        if amount < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Source amount cannot be negative".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Calculate absorption rate per unit of allocation base
+    pub fn calculate_absorption_rate(
+        total_pool_amount: f64,
+        total_allocation_base: f64,
+    ) -> f64 {
+        if total_allocation_base <= 0.0 {
+            return 0.0;
+        }
+        total_pool_amount / total_allocation_base
+    }
+
+    /// Calculate over/under absorption
+    pub fn calculate_absorption_variance(
+        actual_pool_amount: f64,
+        absorbed_amount: f64,
+    ) -> f64 {
+        actual_pool_amount - absorbed_amount
+    }
+}
+
+// ============================================================================
+// Write-off Request Service
+// ============================================================================
+
+/// Write-off Request service
+/// Oracle Fusion: Receivables > Write-offs
+/// Manages formal write-off requests with approval workflow for bad debts
+/// and small balance write-offs.
+#[allow(dead_code)]
+pub struct WriteOffRequestService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid write-off types
+#[allow(dead_code)]
+const VALID_WRITEOFF_TYPES: &[&str] = &[
+    "bad_debt", "small_balance", "dispute", "adjustment", "currency_rounding",
+];
+
+/// Valid write-off statuses
+#[allow(dead_code)]
+const VALID_WRITEOFF_STATUSES: &[&str] = &[
+    "draft", "submitted", "approved", "rejected", "posted", "reversed",
+];
+
+/// Valid approval levels
+#[allow(dead_code)]
+const VALID_WRITEOFF_APPROVAL_LEVELS: &[&str] = &[
+    "supervisor", "manager", "director", "cfo",
+];
+
+impl WriteOffRequestService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create a write-off request
+    /// Oracle Fusion: Receivables > Write-offs > Create
+    pub async fn create_write_off_request(
+        &self,
+        request_number: &str,
+        write_off_type: &str,
+        customer_id: RecordId,
+        transaction_id: RecordId,
+        amount: &str,
+        reason: &str,
+    ) -> AtlasResult<()> {
+        if request_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Request number is required".to_string(),
+            ));
+        }
+        if !VALID_WRITEOFF_TYPES.contains(&write_off_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid write_off_type '{}'. Must be one of: {}",
+                write_off_type, VALID_WRITEOFF_TYPES.join(", ")
+            )));
+        }
+        let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Amount must be a valid number".to_string(),
+        ))?;
+        if amt <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Write-off amount must be positive".to_string(),
+            ));
+        }
+        if reason.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Reason is required for write-off".to_string(),
+            ));
+        }
+        info!("Write-off: Creating {} request '{}' for customer {} (amount: {})",
+            write_off_type, request_number, customer_id, amount);
+        let _ = transaction_id; // used by repository layer
+        Ok(())
+    }
+
+    /// Determine required approval level based on amount threshold
+    pub fn determine_approval_level(
+        amount: f64,
+        small_threshold: f64,
+        medium_threshold: f64,
+        large_threshold: f64,
+    ) -> &'static str {
+        if amount <= small_threshold {
+            "supervisor"
+        } else if amount <= medium_threshold {
+            "manager"
+        } else if amount <= large_threshold {
+            "director"
+        } else {
+            "cfo"
+        }
+    }
+
+    /// Calculate total write-off amount for a batch of requests
+    pub fn calculate_batch_total(amounts: &[f64]) -> f64 {
+        amounts.iter().sum()
+    }
+
+    /// Check if write-off is within auto-approval threshold
+    pub fn is_auto_approved(
+        amount: f64,
+        auto_approval_limit: f64,
+        write_off_type: &str,
+    ) -> bool {
+        // Small balance write-offs can be auto-approved
+        write_off_type == "small_balance" && amount <= auto_approval_limit
+    }
+
+    /// Calculate net recoverable value after write-off
+    pub fn calculate_net_recoverable(
+        outstanding_balance: f64,
+        write_off_amount: f64,
+    ) -> f64 {
+        (outstanding_balance - write_off_amount).max(0.0)
+    }
+}
+
+// ============================================================================
+// Lockbox Processing Service
+// ============================================================================
+
+/// Lockbox Processing service
+/// Oracle Fusion: Receivables > Lockbox
+/// Processes electronic bank lockbox files for automated receipt
+/// creation and application against customer transactions.
+#[allow(dead_code)]
+pub struct LockboxProcessingService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid lockbox transmission statuses
+#[allow(dead_code)]
+const VALID_LOCKBOX_STATUSES: &[&str] = &[
+    "uploaded", "parsed", "validated", "applied",
+    "partial", "error", "cancelled",
+];
+
+/// Valid receipt application methods
+#[allow(dead_code)]
+const VALID_LOCKBOX_MATCH_METHODS: &[&str] = &[
+    "invoice_number", "customer_number", "reference", "auto_match", "manual",
+];
+
+/// Valid lockbox record types
+#[allow(dead_code)]
+const VALID_LOCKBOX_RECORD_TYPES: &[&str] = &[
+    "header", "detail", "overflow", "trailer",
+];
+
+impl LockboxProcessingService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate and import a lockbox file
+    /// Oracle Fusion: Receivables > Lockbox > Import
+    pub async fn import_lockbox_file(
+        &self,
+        lockbox_number: &str,
+        bank_name: &str,
+        currency_code: &str,
+        total_file_amount: &str,
+        record_count: i32,
+    ) -> AtlasResult<()> {
+        if lockbox_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Lockbox number is required".to_string(),
+            ));
+        }
+        if bank_name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Bank name is required".to_string(),
+            ));
+        }
+        let total: f64 = total_file_amount.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Total file amount must be a valid number".to_string(),
+        ))?;
+        if total <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Total file amount must be positive".to_string(),
+            ));
+        }
+        if record_count <= 0 {
+            return Err(AtlasError::ValidationFailed(
+                "Record count must be positive".to_string(),
+            ));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        info!("Lockbox: Importing lockbox '{}' from {} with {} records ({})",
+            lockbox_number, bank_name, record_count, total_file_amount);
+        Ok(())
+    }
+
+    /// Match a lockbox receipt to a customer invoice
+    pub fn match_receipt_to_invoice(
+        lockbox_amount: f64,
+        invoice_amount: f64,
+        tolerance: f64,
+    ) -> LockboxMatchResult {
+        let diff = (lockbox_amount - invoice_amount).abs();
+        if diff <= tolerance {
+            LockboxMatchResult::ExactMatch
+        } else if lockbox_amount > invoice_amount {
+            LockboxMatchResult::Overpayment(diff)
+        } else {
+            LockboxMatchResult::Underpayment(diff)
+        }
+    }
+
+    /// Calculate lockbox processing totals
+    pub fn calculate_processing_summary(
+        total_imported: f64,
+        applied_amount: f64,
+        unapplied_amount: f64,
+        error_amount: f64,
+    ) -> LockboxSummary {
+        LockboxSummary {
+            total_imported,
+            applied_amount,
+            unapplied_amount,
+            error_amount,
+            application_rate: if total_imported > 0.0 {
+                (applied_amount / total_imported) * 100.0
+            } else {
+                0.0
+            },
+        }
+    }
+
+    /// Validate that lockbox control totals match
+    pub fn validate_control_totals(
+        file_control_total: f64,
+        calculated_total: f64,
+        tolerance: f64,
+    ) -> bool {
+        (file_control_total - calculated_total).abs() <= tolerance
+    }
+}
+
+/// Result of matching a lockbox receipt to an invoice
+#[derive(Debug, PartialEq)]
+pub enum LockboxMatchResult {
+    ExactMatch,
+    Overpayment(f64),
+    Underpayment(f64),
+}
+
+/// Summary of lockbox processing
+#[derive(Debug)]
+pub struct LockboxSummary {
+    pub total_imported: f64,
+    pub applied_amount: f64,
+    pub unapplied_amount: f64,
+    pub error_amount: f64,
+    pub application_rate: f64,
+}
+
+// ============================================================================
+// Financial Ratio Analysis Service
+// ============================================================================
+
+/// Financial Ratio Analysis service
+/// Oracle Fusion: Financial Reporting > Financial Ratios
+/// Computes key financial ratios for liquidity, profitability,
+/// leverage, and efficiency analysis.
+#[allow(dead_code)]
+pub struct FinancialRatioAnalysisService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+impl FinancialRatioAnalysisService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    // ========================================================================
+    // Liquidity Ratios
+    // ========================================================================
+
+    /// Current Ratio = Current Assets / Current Liabilities
+    pub fn current_ratio(current_assets: f64, current_liabilities: f64) -> f64 {
+        if current_liabilities == 0.0 { return 0.0; }
+        current_assets / current_liabilities
+    }
+
+    /// Quick Ratio (Acid Test) = (Current Assets - Inventory) / Current Liabilities
+    pub fn quick_ratio(current_assets: f64, inventory: f64, current_liabilities: f64) -> f64 {
+        if current_liabilities == 0.0 { return 0.0; }
+        (current_assets - inventory) / current_liabilities
+    }
+
+    /// Cash Ratio = Cash / Current Liabilities
+    pub fn cash_ratio(cash: f64, current_liabilities: f64) -> f64 {
+        if current_liabilities == 0.0 { return 0.0; }
+        cash / current_liabilities
+    }
+
+    /// Working Capital = Current Assets - Current Liabilities
+    pub fn working_capital(current_assets: f64, current_liabilities: f64) -> f64 {
+        current_assets - current_liabilities
+    }
+
+    // ========================================================================
+    // Profitability Ratios
+    // ========================================================================
+
+    /// Gross Profit Margin = (Revenue - COGS) / Revenue
+    pub fn gross_profit_margin(revenue: f64, cogs: f64) -> f64 {
+        if revenue == 0.0 { return 0.0; }
+        (revenue - cogs) / revenue
+    }
+
+    /// Net Profit Margin = Net Income / Revenue
+    pub fn net_profit_margin(net_income: f64, revenue: f64) -> f64 {
+        if revenue == 0.0 { return 0.0; }
+        net_income / revenue
+    }
+
+    /// Return on Assets (ROA) = Net Income / Total Assets
+    pub fn return_on_assets(net_income: f64, total_assets: f64) -> f64 {
+        if total_assets == 0.0 { return 0.0; }
+        net_income / total_assets
+    }
+
+    /// Return on Equity (ROE) = Net Income / Shareholders' Equity
+    pub fn return_on_equity(net_income: f64, shareholders_equity: f64) -> f64 {
+        if shareholders_equity == 0.0 { return 0.0; }
+        net_income / shareholders_equity
+    }
+
+    // ========================================================================
+    // Leverage Ratios
+    // ========================================================================
+
+    /// Debt to Equity Ratio = Total Liabilities / Shareholders' Equity
+    pub fn debt_to_equity(total_liabilities: f64, shareholders_equity: f64) -> f64 {
+        if shareholders_equity == 0.0 { return 0.0; }
+        total_liabilities / shareholders_equity
+    }
+
+    /// Debt Ratio = Total Liabilities / Total Assets
+    pub fn debt_ratio(total_liabilities: f64, total_assets: f64) -> f64 {
+        if total_assets == 0.0 { return 0.0; }
+        total_liabilities / total_assets
+    }
+
+    /// Interest Coverage = EBIT / Interest Expense
+    pub fn interest_coverage(ebit: f64, interest_expense: f64) -> f64 {
+        if interest_expense == 0.0 { return 0.0; }
+        ebit / interest_expense
+    }
+
+    // ========================================================================
+    // Efficiency / Activity Ratios
+    // ========================================================================
+
+    /// Asset Turnover = Revenue / Total Assets
+    pub fn asset_turnover(revenue: f64, total_assets: f64) -> f64 {
+        if total_assets == 0.0 { return 0.0; }
+        revenue / total_assets
+    }
+
+    /// Inventory Turnover = COGS / Average Inventory
+    pub fn inventory_turnover(cogs: f64, average_inventory: f64) -> f64 {
+        if average_inventory == 0.0 { return 0.0; }
+        cogs / average_inventory
+    }
+
+    /// Days Sales Outstanding = (AR / Revenue) * 365
+    pub fn days_sales_outstanding(accounts_receivable: f64, revenue: f64) -> f64 {
+        if revenue == 0.0 { return 0.0; }
+        (accounts_receivable / revenue) * 365.0
+    }
+
+    /// Days Payable Outstanding = (AP / COGS) * 365
+    pub fn days_payable_outstanding(accounts_payable: f64, cogs: f64) -> f64 {
+        if cogs == 0.0 { return 0.0; }
+        (accounts_payable / cogs) * 365.0
+    }
+
+    /// Compute a comprehensive set of ratios
+    pub fn compute_all_ratios(data: &FinancialStatementData) -> FinancialRatios {
+        FinancialRatios {
+            current_ratio: Self::current_ratio(data.current_assets, data.current_liabilities),
+            quick_ratio: Self::quick_ratio(data.current_assets, data.inventory, data.current_liabilities),
+            cash_ratio: Self::cash_ratio(data.cash, data.current_liabilities),
+            working_capital: Self::working_capital(data.current_assets, data.current_liabilities),
+            gross_profit_margin: Self::gross_profit_margin(data.revenue, data.cogs),
+            net_profit_margin: Self::net_profit_margin(data.net_income, data.revenue),
+            return_on_assets: Self::return_on_assets(data.net_income, data.total_assets),
+            return_on_equity: Self::return_on_equity(data.net_income, data.shareholders_equity),
+            debt_to_equity: Self::debt_to_equity(data.total_liabilities, data.shareholders_equity),
+            debt_ratio: Self::debt_ratio(data.total_liabilities, data.total_assets),
+            interest_coverage: Self::interest_coverage(data.ebit, data.interest_expense),
+            asset_turnover: Self::asset_turnover(data.revenue, data.total_assets),
+            inventory_turnover: Self::inventory_turnover(data.cogs, data.inventory),
+            days_sales_outstanding: Self::days_sales_outstanding(data.accounts_receivable, data.revenue),
+            days_payable_outstanding: Self::days_payable_outstanding(data.accounts_payable, data.cogs),
+        }
+    }
+}
+
+/// Financial statement data used as input for ratio calculations
+#[derive(Debug, Clone)]
+pub struct FinancialStatementData {
+    pub cash: f64,
+    pub inventory: f64,
+    pub current_assets: f64,
+    pub total_assets: f64,
+    pub current_liabilities: f64,
+    pub total_liabilities: f64,
+    pub shareholders_equity: f64,
+    pub revenue: f64,
+    pub cogs: f64,
+    pub ebit: f64,
+    pub interest_expense: f64,
+    pub net_income: f64,
+    pub accounts_receivable: f64,
+    pub accounts_payable: f64,
+}
+
+/// Computed financial ratios
+#[derive(Debug, Clone)]
+pub struct FinancialRatios {
+    pub current_ratio: f64,
+    pub quick_ratio: f64,
+    pub cash_ratio: f64,
+    pub working_capital: f64,
+    pub gross_profit_margin: f64,
+    pub net_profit_margin: f64,
+    pub return_on_assets: f64,
+    pub return_on_equity: f64,
+    pub debt_to_equity: f64,
+    pub debt_ratio: f64,
+    pub interest_coverage: f64,
+    pub asset_turnover: f64,
+    pub inventory_turnover: f64,
+    pub days_sales_outstanding: f64,
+    pub days_payable_outstanding: f64,
+}
+
+// ============================================================================
+// Receivable Aging Snapshot Service
+// ============================================================================
+
+/// Receivable Aging Snapshot service
+/// Oracle Fusion: Receivables > Aging > Aging Snapshots
+/// Manages point-in-time snapshots of receivable aging for reporting
+/// and collection analysis.
+#[allow(dead_code)]
+pub struct ReceivableAgingSnapshotService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+impl ReceivableAgingSnapshotService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create an aging snapshot
+    /// Oracle Fusion: Receivables > Aging > Create Snapshot
+    pub async fn create_snapshot(
+        &self,
+        snapshot_name: &str,
+        as_of_date: chrono::NaiveDate,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if snapshot_name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Snapshot name is required".to_string(),
+            ));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        info!("Aging Snapshot: Creating snapshot '{}' as of {}",
+            snapshot_name, as_of_date);
+        Ok(())
+    }
+
+    /// Calculate aging buckets from a list of overdue amounts and days
+    pub fn calculate_aging_buckets(
+        items: &[(f64, i32)], // (amount, days_overdue)
+    ) -> AgingBuckets {
+        let mut buckets = AgingBuckets::default();
+        for (amount, days) in items {
+            match days {
+                d if *d <= 0 => buckets.current += amount,
+                d if *d <= 30 => buckets.days_1_30 += amount,
+                d if *d <= 60 => buckets.days_31_60 += amount,
+                d if *d <= 90 => buckets.days_61_90 += amount,
+                _ => buckets.days_91_plus += amount,
+            }
+        }
+        buckets.total = buckets.current + buckets.days_1_30 + buckets.days_31_60
+            + buckets.days_61_90 + buckets.days_91_plus;
+        buckets
+    }
+
+    /// Calculate aging percentages
+    pub fn calculate_aging_percentages(buckets: &AgingBuckets) -> AgingPercentages {
+        if buckets.total == 0.0 {
+            return AgingPercentages::default();
+        }
+        AgingPercentages {
+            current_pct: (buckets.current / buckets.total) * 100.0,
+            days_1_30_pct: (buckets.days_1_30 / buckets.total) * 100.0,
+            days_31_60_pct: (buckets.days_31_60 / buckets.total) * 100.0,
+            days_61_90_pct: (buckets.days_61_90 / buckets.total) * 100.0,
+            days_91_plus_pct: (buckets.days_91_plus / buckets.total) * 100.0,
+        }
+    }
+
+    /// Calculate weighted average days overdue
+    pub fn calculate_weighted_average_days(items: &[(f64, i32)]) -> f64 {
+        let total_amount: f64 = items.iter().map(|(a, _)| *a).sum();
+        if total_amount == 0.0 {
+            return 0.0;
+        }
+        let weighted_sum: f64 = items.iter()
+            .map(|(amount, days)| amount * (*days as f64))
+            .sum();
+        weighted_sum / total_amount
+    }
+
+    /// Compare two aging snapshots to calculate trend
+    pub fn calculate_aging_trend(
+        previous: &AgingBuckets,
+        current: &AgingBuckets,
+    ) -> AgingTrend {
+        AgingTrend {
+            current_change: current.current - previous.current,
+            days_1_30_change: current.days_1_30 - previous.days_1_30,
+            days_31_60_change: current.days_31_60 - previous.days_31_60,
+            days_61_90_change: current.days_61_90 - previous.days_61_90,
+            days_91_plus_change: current.days_91_plus - previous.days_91_plus,
+            total_change: current.total - previous.total,
+        }
+    }
+}
+
+/// Aging bucket amounts
+#[derive(Debug, Clone, Default)]
+pub struct AgingBuckets {
+    pub current: f64,
+    pub days_1_30: f64,
+    pub days_31_60: f64,
+    pub days_61_90: f64,
+    pub days_91_plus: f64,
+    pub total: f64,
+}
+
+/// Aging bucket percentages
+#[derive(Debug, Clone, Default)]
+pub struct AgingPercentages {
+    pub current_pct: f64,
+    pub days_1_30_pct: f64,
+    pub days_31_60_pct: f64,
+    pub days_61_90_pct: f64,
+    pub days_91_plus_pct: f64,
+}
+
+/// Aging trend between two snapshots
+#[derive(Debug, Clone)]
+pub struct AgingTrend {
+    pub current_change: f64,
+    pub days_1_30_change: f64,
+    pub days_31_60_change: f64,
+    pub days_61_90_change: f64,
+    pub days_91_plus_change: f64,
+    pub total_change: f64,
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -15730,5 +16834,895 @@ mod tests {
         ];
         let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
         assert_eq!(count, 4, "All 4 workflow entities should have workflows");
+    }
+
+    // ========================================================================
+    // Landed Cost Management Tests
+    // ========================================================================
+
+    #[test]
+    fn test_landed_cost_entity_definitions() {
+        let template = entities::landed_cost_template_definition();
+        assert_eq!(template.name, "landed_cost_templates");
+
+        let component = entities::landed_cost_component_definition();
+        assert_eq!(component.name, "landed_cost_components");
+
+        let assignment = entities::landed_cost_assignment_definition();
+        assert_eq!(assignment.name, "landed_cost_assignments");
+        assert!(assignment.workflow.is_some());
+    }
+
+    #[test]
+    fn test_landed_cost_component_types_valid() {
+        let valid = ["freight", "insurance", "customs_duty", "handling", "storage",
+                     "brokerage", "port_charges", "inspection", "other"];
+        for t in &valid {
+            assert!(super::VALID_LANDED_COST_TYPES.contains(t), "{} should be valid", t);
+        }
+        assert!(!super::VALID_LANDED_COST_TYPES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_landed_cost_allocation_bases_valid() {
+        let valid = ["quantity", "weight", "volume", "value", "equal"];
+        for b in &valid {
+            assert!(super::VALID_LANDED_COST_ALLOCATION_BASES.contains(b));
+        }
+    }
+
+    #[test]
+    fn test_landed_cost_validate_component_valid() {
+        assert!(super::LandedCostManagementService::validate_component(
+            "freight", "quantity", 100.0,
+        ).is_ok());
+    }
+
+    #[test]
+    fn test_landed_cost_validate_component_invalid_type() {
+        assert!(super::LandedCostManagementService::validate_component(
+            "unknown", "quantity", 100.0,
+        ).is_err());
+    }
+
+    #[test]
+    fn test_landed_cost_validate_component_invalid_basis() {
+        assert!(super::LandedCostManagementService::validate_component(
+            "freight", "unknown", 100.0,
+        ).is_err());
+    }
+
+    #[test]
+    fn test_landed_cost_validate_component_negative_amount() {
+        assert!(super::LandedCostManagementService::validate_component(
+            "freight", "quantity", -50.0,
+        ).is_err());
+    }
+
+    #[test]
+    fn test_landed_cost_allocate_by_quantity() {
+        let qtys = vec![100.0, 200.0, 300.0];
+        let result = super::LandedCostManagementService::allocate_by_quantity(600.0, &qtys);
+        assert_eq!(result.len(), 3);
+        assert!((result[0] - 100.0).abs() < 0.01);
+        assert!((result[1] - 200.0).abs() < 0.01);
+        assert!((result[2] - 300.0).abs() < 0.01);
+        let total: f64 = result.iter().sum();
+        assert!((total - 600.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_landed_cost_allocate_by_quantity_zero() {
+        let qtys = vec![0.0, 0.0, 0.0];
+        let result = super::LandedCostManagementService::allocate_by_quantity(600.0, &qtys);
+        assert_eq!(result.len(), 3);
+        assert!(result.iter().all(|r| *r == 0.0));
+    }
+
+    #[test]
+    fn test_landed_cost_allocate_by_value() {
+        let vals = vec![50000.0, 30000.0, 20000.0];
+        let result = super::LandedCostManagementService::allocate_by_value(1000.0, &vals);
+        assert_eq!(result.len(), 3);
+        assert!((result[0] - 500.0).abs() < 0.01);
+        assert!((result[1] - 300.0).abs() < 0.01);
+        assert!((result[2] - 200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_landed_cost_allocate_equally() {
+        let result = super::LandedCostManagementService::allocate_equally(300.0, 3);
+        assert_eq!(result.len(), 3);
+        assert!(result.iter().all(|r| (*r - 100.0).abs() < 0.01));
+    }
+
+    #[test]
+    fn test_landed_cost_allocate_equally_zero_lines() {
+        let result = super::LandedCostManagementService::allocate_equally(300.0, 0);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_landed_cost_total_landed_cost() {
+        let total = super::LandedCostManagementService::calculate_total_landed_cost(
+            100.0, &[20.0, 15.0, 10.0, 5.0],
+        );
+        assert!((total - 150.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_landed_cost_variance_calc() {
+        let v = super::LandedCostManagementService::calculate_landed_cost_variance(150.0, 160.0);
+        assert!((v - 10.0).abs() < 0.01);
+
+        let v = super::LandedCostManagementService::calculate_landed_cost_variance(150.0, 140.0);
+        assert!((v - (-10.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_landed_cost_assignment_workflow() {
+        let def = entities::landed_cost_assignment_definition();
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "estimated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "estimated" && t.to_state == "actualized"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "actualized" && t.to_state == "posted"));
+    }
+
+    // ========================================================================
+    // Currency Revaluation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_currency_revaluation_entity() {
+        let def = entities::currency_revaluation_definition();
+        assert_eq!(def.name, "currency_revaluations");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+    }
+
+    #[test]
+    fn test_reval_rate_types_valid() {
+        let valid = ["period_end", "daily", "spot", "weighted_average"];
+        for r in &valid {
+            assert!(super::VALID_REVAL_RATE_TYPES.contains(r));
+        }
+        assert!(!super::VALID_REVAL_RATE_TYPES.contains(&"fixed"));
+    }
+
+    #[test]
+    fn test_reval_statuses_valid() {
+        let valid = ["draft", "submitted", "approved", "posted", "reversed"];
+        for s in &valid {
+            assert!(super::VALID_REVAL_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_reval_unrealized_gain() {
+        // EUR 1000 originally at 1.10, revalued at 1.15 => gain of 50 USD
+        let gl = super::CurrencyRevaluationService::calculate_unrealized_gain_loss_item(
+            1000.0, 1.10, 1.15,
+        );
+        assert!((gl - 50.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_reval_unrealized_loss() {
+        // EUR 1000 originally at 1.20, revalued at 1.15 => loss of 50 USD
+        let gl = super::CurrencyRevaluationService::calculate_unrealized_gain_loss_item(
+            1000.0, 1.20, 1.15,
+        );
+        assert!((gl - (-50.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_reval_unrealized_no_change() {
+        let gl = super::CurrencyRevaluationService::calculate_unrealized_gain_loss_item(
+            1000.0, 1.10, 1.10,
+        );
+        assert!((gl - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_reval_total_unrealized() {
+        let items = vec![
+            (1000.0, 1.10, 1.15), // gain of 50
+            (2000.0, 1.20, 1.10), // loss of 200
+            (500.0, 1.00, 1.10),  // gain of 50
+        ];
+        let (total_gain, total_loss) = super::CurrencyRevaluationService::calculate_total_unrealized(&items);
+        assert!((total_gain - 100.0).abs() < 0.01);
+        assert!((total_loss - 200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_reval_validate_rate_positive() {
+        assert!(super::CurrencyRevaluationService::validate_revaluation_rate(1.15).is_ok());
+    }
+
+    #[test]
+    fn test_reval_validate_rate_zero() {
+        assert!(super::CurrencyRevaluationService::validate_revaluation_rate(0.0).is_err());
+    }
+
+    #[test]
+    fn test_reval_validate_rate_negative() {
+        assert!(super::CurrencyRevaluationService::validate_revaluation_rate(-1.0).is_err());
+    }
+
+    #[test]
+    fn test_reval_net_impact() {
+        let net = super::CurrencyRevaluationService::calculate_net_impact(100.0, 200.0);
+        assert!((net - (-100.0)).abs() < 0.01);
+
+        let net = super::CurrencyRevaluationService::calculate_net_impact(200.0, 100.0);
+        assert!((net - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_currency_revaluation_workflow() {
+        let def = entities::currency_revaluation_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "calculated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "calculated" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "posted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "posted" && t.to_state == "reversed"));
+    }
+
+    // ========================================================================
+    // GL Allocation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_allocation_rule_entity() {
+        let def = entities::allocation_rule_definition();
+        assert_eq!(def.name, "allocation_rules");
+        assert!(def.workflow.is_some());
+    }
+
+    #[test]
+    fn test_allocation_line_entity() {
+        let def = entities::allocation_line_definition();
+        assert_eq!(def.name, "allocation_lines");
+    }
+
+    #[test]
+    fn test_gl_allocation_bases_valid() {
+        let valid = ["percentage", "ratio", "statistical", "actual_balance", "budget"];
+        for b in &valid {
+            assert!(super::VALID_GL_ALLOCATION_BASES.contains(b));
+        }
+        assert!(!super::VALID_GL_ALLOCATION_BASES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_gl_allocate_by_percentage() {
+        let pcts = vec![40.0, 35.0, 25.0];
+        let result = super::GLAllocationService::allocate_by_percentage(100000.0, &pcts);
+        assert_eq!(result.len(), 3);
+        assert!((result[0] - 40000.0).abs() < 0.01);
+        assert!((result[1] - 35000.0).abs() < 0.01);
+        assert!((result[2] - 25000.0).abs() < 0.01);
+        let total: f64 = result.iter().sum();
+        assert!((total - 100000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_gl_allocate_by_ratio() {
+        let ratios = vec![3.0, 2.0, 1.0];
+        let result = super::GLAllocationService::allocate_by_ratio(60000.0, &ratios);
+        assert_eq!(result.len(), 3);
+        assert!((result[0] - 30000.0).abs() < 0.01);
+        assert!((result[1] - 20000.0).abs() < 0.01);
+        assert!((result[2] - 10000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_gl_allocate_by_ratio_zero_total() {
+        let ratios = vec![0.0, 0.0];
+        let result = super::GLAllocationService::allocate_by_ratio(60000.0, &ratios);
+        assert!(result.iter().all(|r| *r == 0.0));
+    }
+
+    #[test]
+    fn test_gl_allocate_by_statistical() {
+        // Headcount: 50, 30, 20
+        let stats = vec![50.0, 30.0, 20.0];
+        let result = super::GLAllocationService::allocate_by_statistical(200000.0, &stats);
+        assert_eq!(result.len(), 3);
+        assert!((result[0] - 100000.0).abs() < 0.01);
+        assert!((result[1] - 60000.0).abs() < 0.01);
+        assert!((result[2] - 40000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_gl_validate_percentages_total_100() {
+        assert!(super::GLAllocationService::validate_percentages_total_100(&[50.0, 30.0, 20.0]));
+        assert!(!super::GLAllocationService::validate_percentages_total_100(&[50.0, 30.0, 10.0]));
+    }
+
+    #[test]
+    fn test_gl_rounding_adjustment() {
+        let allocated = vec![33333.33, 33333.33, 33333.33];
+        let adj = super::GLAllocationService::calculate_rounding_adjustment(100000.0, &allocated);
+        assert!((adj - 0.01).abs() < 0.02);
+    }
+
+    #[test]
+    fn test_allocation_rule_workflow() {
+        let def = entities::allocation_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    // ========================================================================
+    // Cost Pool Management Tests
+    // ========================================================================
+
+    #[test]
+    fn test_cost_pool_entity() {
+        let def = entities::cost_pool_definition();
+        assert_eq!(def.name, "cost_pools");
+    }
+
+    #[test]
+    fn test_cost_pool_source_entity() {
+        let def = entities::cost_pool_source_definition();
+        assert_eq!(def.name, "cost_pool_sources");
+    }
+
+    #[test]
+    fn test_cost_pool_types_valid() {
+        let valid = ["overhead", "administrative", "manufacturing", "service"];
+        for t in &valid {
+            assert!(super::VALID_COST_POOL_TYPES.contains(t));
+        }
+        assert!(!super::VALID_COST_POOL_TYPES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_cost_pool_source_types_valid() {
+        let valid = ["actual", "budget", "statistical"];
+        for t in &valid {
+            assert!(super::VALID_COST_POOL_SOURCE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_cost_pool_calculate_total() {
+        let total = super::CostPoolManagementService::calculate_pool_total(
+            &[50000.0, 30000.0, 20000.0],
+        );
+        assert!((total - 100000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cost_pool_validate_source_valid() {
+        assert!(super::CostPoolManagementService::validate_source("actual", 50000.0).is_ok());
+    }
+
+    #[test]
+    fn test_cost_pool_validate_source_invalid_type() {
+        assert!(super::CostPoolManagementService::validate_source("unknown", 50000.0).is_err());
+    }
+
+    #[test]
+    fn test_cost_pool_validate_source_negative_amount() {
+        assert!(super::CostPoolManagementService::validate_source("actual", -100.0).is_err());
+    }
+
+    #[test]
+    fn test_cost_pool_absorption_rate() {
+        let rate = super::CostPoolManagementService::calculate_absorption_rate(
+            100000.0, 5000.0,
+        );
+        assert!((rate - 20.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cost_pool_absorption_rate_zero_base() {
+        let rate = super::CostPoolManagementService::calculate_absorption_rate(
+            100000.0, 0.0,
+        );
+        assert_eq!(rate, 0.0);
+    }
+
+    #[test]
+    fn test_cost_pool_absorption_variance_over() {
+        let v = super::CostPoolManagementService::calculate_absorption_variance(
+            100000.0, 95000.0,
+        );
+        assert!((v - 5000.0).abs() < 0.01); // Under-absorbed
+    }
+
+    #[test]
+    fn test_cost_pool_absorption_variance_under() {
+        let v = super::CostPoolManagementService::calculate_absorption_variance(
+            100000.0, 105000.0,
+        );
+        assert!((v - (-5000.0)).abs() < 0.01); // Over-absorbed
+    }
+
+    // ========================================================================
+    // Write-off Request Tests
+    // ========================================================================
+
+    #[test]
+    fn test_write_off_request_entity() {
+        let def = entities::write_off_request_definition();
+        assert_eq!(def.name, "write_off_requests");
+        assert!(def.workflow.is_some());
+    }
+
+    #[test]
+    fn test_writeoff_types_valid() {
+        let valid = ["bad_debt", "small_balance", "dispute", "adjustment", "currency_rounding"];
+        for t in &valid {
+            assert!(super::VALID_WRITEOFF_TYPES.contains(t));
+        }
+        assert!(!super::VALID_WRITEOFF_TYPES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_writeoff_statuses_valid() {
+        let valid = ["draft", "submitted", "approved", "rejected", "posted", "reversed"];
+        for s in &valid {
+            assert!(super::VALID_WRITEOFF_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_writeoff_approval_levels_valid() {
+        let valid = ["supervisor", "manager", "director", "cfo"];
+        for l in &valid {
+            assert!(super::VALID_WRITEOFF_APPROVAL_LEVELS.contains(l));
+        }
+    }
+
+    #[test]
+    fn test_writeoff_determine_approval_level() {
+        assert_eq!(super::WriteOffRequestService::determine_approval_level(500.0, 1000.0, 10000.0, 50000.0), "supervisor");
+        assert_eq!(super::WriteOffRequestService::determine_approval_level(5000.0, 1000.0, 10000.0, 50000.0), "manager");
+        assert_eq!(super::WriteOffRequestService::determine_approval_level(30000.0, 1000.0, 10000.0, 50000.0), "director");
+        assert_eq!(super::WriteOffRequestService::determine_approval_level(100000.0, 1000.0, 10000.0, 50000.0), "cfo");
+    }
+
+    #[test]
+    fn test_writeoff_batch_total() {
+        let total = super::WriteOffRequestService::calculate_batch_total(&[100.0, 200.0, 300.0]);
+        assert!((total - 600.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_writeoff_auto_approved() {
+        assert!(super::WriteOffRequestService::is_auto_approved(50.0, 100.0, "small_balance"));
+        assert!(!super::WriteOffRequestService::is_auto_approved(50.0, 100.0, "bad_debt"));
+        assert!(!super::WriteOffRequestService::is_auto_approved(200.0, 100.0, "small_balance"));
+    }
+
+    #[test]
+    fn test_writeoff_net_recoverable() {
+        let nr = super::WriteOffRequestService::calculate_net_recoverable(1000.0, 800.0);
+        assert!((nr - 200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_writeoff_net_recoverable_full() {
+        let nr = super::WriteOffRequestService::calculate_net_recoverable(1000.0, 1000.0);
+        assert_eq!(nr, 0.0);
+    }
+
+    #[test]
+    fn test_writeoff_net_recoverable_over() {
+        let nr = super::WriteOffRequestService::calculate_net_recoverable(1000.0, 1500.0);
+        assert_eq!(nr, 0.0); // Clamped to 0
+    }
+
+    #[test]
+    fn test_write_off_request_workflow() {
+        let def = entities::write_off_request_definition();
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "processed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "rejected"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+    }
+
+    // ========================================================================
+    // Lockbox Processing Tests
+    // ========================================================================
+
+    #[test]
+    fn test_lockbox_statuses_valid() {
+        let valid = ["uploaded", "parsed", "validated", "applied", "partial", "error", "cancelled"];
+        for s in &valid {
+            assert!(super::VALID_LOCKBOX_STATUSES.contains(s));
+        }
+        assert!(!super::VALID_LOCKBOX_STATUSES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_lockbox_match_methods_valid() {
+        let valid = ["invoice_number", "customer_number", "reference", "auto_match", "manual"];
+        for m in &valid {
+            assert!(super::VALID_LOCKBOX_MATCH_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_lockbox_record_types_valid() {
+        let valid = ["header", "detail", "overflow", "trailer"];
+        for r in &valid {
+            assert!(super::VALID_LOCKBOX_RECORD_TYPES.contains(r));
+        }
+    }
+
+    #[test]
+    fn test_lockbox_exact_match() {
+        let result = super::LockboxProcessingService::match_receipt_to_invoice(
+            1000.0, 1000.0, 0.01,
+        );
+        assert_eq!(result, super::LockboxMatchResult::ExactMatch);
+    }
+
+    #[test]
+    fn test_lockbox_exact_match_within_tolerance() {
+        let result = super::LockboxProcessingService::match_receipt_to_invoice(
+            1000.005, 1000.0, 0.01,
+        );
+        assert_eq!(result, super::LockboxMatchResult::ExactMatch);
+    }
+
+    #[test]
+    fn test_lockbox_overpayment() {
+        let result = super::LockboxProcessingService::match_receipt_to_invoice(
+            1200.0, 1000.0, 0.01,
+        );
+        assert_eq!(result, super::LockboxMatchResult::Overpayment(200.0));
+    }
+
+    #[test]
+    fn test_lockbox_underpayment() {
+        let result = super::LockboxProcessingService::match_receipt_to_invoice(
+            800.0, 1000.0, 0.01,
+        );
+        assert_eq!(result, super::LockboxMatchResult::Underpayment(200.0));
+    }
+
+    #[test]
+    fn test_lockbox_processing_summary() {
+        let summary = super::LockboxProcessingService::calculate_processing_summary(
+            100000.0, 85000.0, 10000.0, 5000.0,
+        );
+        assert!((summary.total_imported - 100000.0).abs() < 0.01);
+        assert!((summary.applied_amount - 85000.0).abs() < 0.01);
+        assert!((summary.unapplied_amount - 10000.0).abs() < 0.01);
+        assert!((summary.error_amount - 5000.0).abs() < 0.01);
+        assert!((summary.application_rate - 85.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_lockbox_processing_summary_zero_total() {
+        let summary = super::LockboxProcessingService::calculate_processing_summary(
+            0.0, 0.0, 0.0, 0.0,
+        );
+        assert_eq!(summary.application_rate, 0.0);
+    }
+
+    #[test]
+    fn test_lockbox_validate_control_totals_match() {
+        assert!(super::LockboxProcessingService::validate_control_totals(
+            100000.0, 100000.005, 0.01,
+        ));
+    }
+
+    #[test]
+    fn test_lockbox_validate_control_totals_mismatch() {
+        assert!(!super::LockboxProcessingService::validate_control_totals(
+            100000.0, 99900.0, 0.01,
+        ));
+    }
+
+    // ========================================================================
+    // Financial Ratio Analysis Tests
+    // ========================================================================
+
+    #[test]
+    fn test_ratio_current_ratio() {
+        let r = super::FinancialRatioAnalysisService::current_ratio(500000.0, 250000.0);
+        assert!((r - 2.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_current_ratio_zero_liabilities() {
+        let r = super::FinancialRatioAnalysisService::current_ratio(500000.0, 0.0);
+        assert_eq!(r, 0.0);
+    }
+
+    #[test]
+    fn test_ratio_quick_ratio() {
+        let r = super::FinancialRatioAnalysisService::quick_ratio(500000.0, 200000.0, 250000.0);
+        assert!((r - 1.2).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_cash_ratio() {
+        let r = super::FinancialRatioAnalysisService::cash_ratio(100000.0, 250000.0);
+        assert!((r - 0.4).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_working_capital() {
+        let wc = super::FinancialRatioAnalysisService::working_capital(500000.0, 250000.0);
+        assert!((wc - 250000.0).abs() < 0.01);
+
+        let wc_neg = super::FinancialRatioAnalysisService::working_capital(200000.0, 250000.0);
+        assert!((wc_neg - (-50000.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ratio_gross_profit_margin() {
+        let r = super::FinancialRatioAnalysisService::gross_profit_margin(1000000.0, 600000.0);
+        assert!((r - 0.4).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_net_profit_margin() {
+        let r = super::FinancialRatioAnalysisService::net_profit_margin(150000.0, 1000000.0);
+        assert!((r - 0.15).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_return_on_assets() {
+        let r = super::FinancialRatioAnalysisService::return_on_assets(150000.0, 2000000.0);
+        assert!((r - 0.075).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_return_on_equity() {
+        let r = super::FinancialRatioAnalysisService::return_on_equity(150000.0, 750000.0);
+        assert!((r - 0.2).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_debt_to_equity() {
+        let r = super::FinancialRatioAnalysisService::debt_to_equity(1250000.0, 750000.0);
+        assert!((r - 1.667).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ratio_debt_ratio() {
+        let r = super::FinancialRatioAnalysisService::debt_ratio(1250000.0, 2000000.0);
+        assert!((r - 0.625).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_interest_coverage() {
+        let r = super::FinancialRatioAnalysisService::interest_coverage(300000.0, 50000.0);
+        assert!((r - 6.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_asset_turnover() {
+        let r = super::FinancialRatioAnalysisService::asset_turnover(1000000.0, 2000000.0);
+        assert!((r - 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_inventory_turnover() {
+        let r = super::FinancialRatioAnalysisService::inventory_turnover(600000.0, 200000.0);
+        assert!((r - 3.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratio_dso() {
+        let dso = super::FinancialRatioAnalysisService::days_sales_outstanding(150000.0, 1000000.0);
+        assert!((dso - 54.75).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_ratio_dpo() {
+        let dpo = super::FinancialRatioAnalysisService::days_payable_outstanding(120000.0, 600000.0);
+        assert!((dpo - 73.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_ratio_compute_all() {
+        let data = super::FinancialStatementData {
+            cash: 100000.0,
+            inventory: 200000.0,
+            current_assets: 500000.0,
+            total_assets: 2000000.0,
+            current_liabilities: 250000.0,
+            total_liabilities: 1250000.0,
+            shareholders_equity: 750000.0,
+            revenue: 1000000.0,
+            cogs: 600000.0,
+            ebit: 300000.0,
+            interest_expense: 50000.0,
+            net_income: 150000.0,
+            accounts_receivable: 150000.0,
+            accounts_payable: 120000.0,
+        };
+        let ratios = super::FinancialRatioAnalysisService::compute_all_ratios(&data);
+        assert!((ratios.current_ratio - 2.0).abs() < 0.001);
+        assert!((ratios.quick_ratio - 1.2).abs() < 0.001);
+        assert!((ratios.cash_ratio - 0.4).abs() < 0.001);
+        assert!((ratios.working_capital - 250000.0).abs() < 0.01);
+        assert!((ratios.gross_profit_margin - 0.4).abs() < 0.001);
+        assert!((ratios.net_profit_margin - 0.15).abs() < 0.001);
+        assert!((ratios.return_on_assets - 0.075).abs() < 0.001);
+        assert!((ratios.return_on_equity - 0.2).abs() < 0.001);
+        assert!((ratios.debt_to_equity - 1.667).abs() < 0.01);
+        assert!((ratios.debt_ratio - 0.625).abs() < 0.001);
+        assert!((ratios.interest_coverage - 6.0).abs() < 0.001);
+        assert!((ratios.asset_turnover - 0.5).abs() < 0.001);
+        assert!((ratios.inventory_turnover - 3.0).abs() < 0.001);
+        assert!((ratios.days_sales_outstanding - 54.75).abs() < 0.1);
+        assert!((ratios.days_payable_outstanding - 73.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_ratio_zero_revenue_safety() {
+        assert_eq!(super::FinancialRatioAnalysisService::gross_profit_margin(0.0, 0.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::net_profit_margin(0.0, 0.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::asset_turnover(0.0, 100.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::return_on_assets(0.0, 100.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::return_on_equity(0.0, 100.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::debt_to_equity(0.0, 0.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::debt_ratio(0.0, 0.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::interest_coverage(0.0, 0.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::inventory_turnover(0.0, 0.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::days_sales_outstanding(0.0, 0.0), 0.0);
+        assert_eq!(super::FinancialRatioAnalysisService::days_payable_outstanding(0.0, 0.0), 0.0);
+    }
+
+    // ========================================================================
+    // Receivable Aging Snapshot Tests
+    // ========================================================================
+
+    #[test]
+    fn test_aging_snapshot_entity() {
+        let def = entities::receivables_aging_snapshot_definition();
+        assert_eq!(def.name, "receivables_aging_snapshots");
+    }
+
+    #[test]
+    fn test_aging_buckets_calculation() {
+        let items = vec![
+            (1000.0, 0),   // current
+            (2000.0, 15),  // 1-30
+            (3000.0, 45),  // 31-60
+            (1500.0, 75),  // 61-90
+            (2500.0, 120), // 91+
+        ];
+        let buckets = super::ReceivableAgingSnapshotService::calculate_aging_buckets(&items);
+        assert!((buckets.current - 1000.0).abs() < 0.01);
+        assert!((buckets.days_1_30 - 2000.0).abs() < 0.01);
+        assert!((buckets.days_31_60 - 3000.0).abs() < 0.01);
+        assert!((buckets.days_61_90 - 1500.0).abs() < 0.01);
+        assert!((buckets.days_91_plus - 2500.0).abs() < 0.01);
+        assert!((buckets.total - 10000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_aging_buckets_empty() {
+        let items: Vec<(f64, i32)> = vec![];
+        let buckets = super::ReceivableAgingSnapshotService::calculate_aging_buckets(&items);
+        assert_eq!(buckets.total, 0.0);
+    }
+
+    #[test]
+    fn test_aging_percentages() {
+        let buckets = super::AgingBuckets {
+            current: 4000.0,
+            days_1_30: 3000.0,
+            days_31_60: 2000.0,
+            days_61_90: 500.0,
+            days_91_plus: 500.0,
+            total: 10000.0,
+        };
+        let pcts = super::ReceivableAgingSnapshotService::calculate_aging_percentages(&buckets);
+        assert!((pcts.current_pct - 40.0).abs() < 0.01);
+        assert!((pcts.days_1_30_pct - 30.0).abs() < 0.01);
+        assert!((pcts.days_31_60_pct - 20.0).abs() < 0.01);
+        assert!((pcts.days_61_90_pct - 5.0).abs() < 0.01);
+        assert!((pcts.days_91_plus_pct - 5.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_aging_percentages_zero_total() {
+        let buckets = super::AgingBuckets::default();
+        let pcts = super::ReceivableAgingSnapshotService::calculate_aging_percentages(&buckets);
+        assert_eq!(pcts.current_pct, 0.0);
+        assert_eq!(pcts.days_1_30_pct, 0.0);
+    }
+
+    #[test]
+    fn test_aging_weighted_average_days() {
+        let items = vec![
+            (1000.0, 10),  // 10000
+            (2000.0, 30),  // 60000
+            (3000.0, 60),  // 180000
+        ];
+        let avg = super::ReceivableAgingSnapshotService::calculate_weighted_average_days(&items);
+        // (10000 + 60000 + 180000) / 6000 = 41.67
+        assert!((avg - 41.667).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_aging_weighted_average_days_zero() {
+        let items: Vec<(f64, i32)> = vec![];
+        let avg = super::ReceivableAgingSnapshotService::calculate_weighted_average_days(&items);
+        assert_eq!(avg, 0.0);
+    }
+
+    #[test]
+    fn test_aging_trend() {
+        let prev = super::AgingBuckets {
+            current: 4000.0,
+            days_1_30: 3000.0,
+            days_31_60: 2000.0,
+            days_61_90: 500.0,
+            days_91_plus: 500.0,
+            total: 10000.0,
+        };
+        let curr = super::AgingBuckets {
+            current: 5000.0,
+            days_1_30: 2500.0,
+            days_31_60: 1500.0,
+            days_61_90: 800.0,
+            days_91_plus: 1200.0,
+            total: 11000.0,
+        };
+        let trend = super::ReceivableAgingSnapshotService::calculate_aging_trend(&prev, &curr);
+        assert!((trend.current_change - 1000.0).abs() < 0.01);
+        assert!((trend.days_1_30_change - (-500.0)).abs() < 0.01);
+        assert!((trend.days_31_60_change - (-500.0)).abs() < 0.01);
+        assert!((trend.days_61_90_change - 300.0).abs() < 0.01);
+        assert!((trend.days_91_plus_change - 700.0).abs() < 0.01);
+        assert!((trend.total_change - 1000.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // New Features: All Entities Build Test
+    // ========================================================================
+
+    #[test]
+    fn test_all_new_feature_entities_build() {
+        let _ = entities::landed_cost_template_definition();
+        let _ = entities::landed_cost_component_definition();
+        let _ = entities::landed_cost_assignment_definition();
+        let _ = entities::currency_revaluation_definition();
+        let _ = entities::allocation_rule_definition();
+        let _ = entities::allocation_line_definition();
+        let _ = entities::cost_pool_definition();
+        let _ = entities::cost_pool_source_definition();
+        let _ = entities::write_off_request_definition();
+        let _ = entities::receivables_aging_snapshot_definition();
+    }
+
+    #[test]
+    fn test_new_features_unique_entity_names() {
+        let entities = vec![
+            entities::landed_cost_template_definition(),
+            entities::landed_cost_component_definition(),
+            entities::landed_cost_assignment_definition(),
+            entities::currency_revaluation_definition(),
+            entities::allocation_rule_definition(),
+            entities::allocation_line_definition(),
+            entities::cost_pool_definition(),
+            entities::cost_pool_source_definition(),
+            entities::write_off_request_definition(),
+            entities::receivables_aging_snapshot_definition(),
+        ];
+        let names: std::collections::HashSet<&str> = entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 10, "All 10 new feature entity names must be unique");
     }
 }

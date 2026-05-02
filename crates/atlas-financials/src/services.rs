@@ -5758,6 +5758,554 @@ impl BudgetOrganizationService {
     }
 }
 
+// ============================================================================
+// Tax Registration Service (Oracle Fusion: Tax > Tax Registrations)
+// ============================================================================
+
+/// Tax Registration service
+/// Oracle Fusion: Tax > Tax Registrations
+/// Manages tax registration numbers for legal entities across jurisdictions
+#[allow(dead_code)]
+pub struct TaxRegistrationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid registration types
+#[allow(dead_code)]
+const VALID_REGISTRATION_TYPES: &[&str] = &[
+    "vat", "gst", "sales_tax", "income_tax", "withholding_tax", "excise", "customs",
+];
+
+/// Valid registration statuses
+#[allow(dead_code)]
+const VALID_REGISTRATION_STATUSES: &[&str] = &[
+    "active", "inactive", "pending", "deregistered", "revoked",
+];
+
+/// Valid geographic levels for tax registration
+#[allow(dead_code)]
+const VALID_REG_GEO_LEVELS: &[&str] = &[
+    "country", "state", "county", "city", "region",
+];
+
+impl TaxRegistrationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a tax registration
+    /// Oracle Fusion: Tax > Tax Registrations > Create
+    pub async fn create_registration(
+        &self,
+        registration_number: &str,
+        registration_type: &str,
+        legal_entity_name: &str,
+        country_code: &str,
+        effective_from: chrono::NaiveDate,
+        effective_to: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<()> {
+        if registration_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Registration number is required".to_string(),
+            ));
+        }
+        if !VALID_REGISTRATION_TYPES.contains(&registration_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid registration_type '{}'. Must be one of: {}",
+                registration_type, VALID_REGISTRATION_TYPES.join(", ")
+            )));
+        }
+        if legal_entity_name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Legal entity name is required".to_string(),
+            ));
+        }
+        if country_code.len() != 2 || !country_code.chars().all(|c| c.is_ascii_alphabetic()) {
+            return Err(AtlasError::ValidationFailed(
+                "Country code must be exactly 2 alphabetic characters (ISO 3166-1 alpha-2)".to_string(),
+            ));
+        }
+        if let Some(to) = effective_to {
+            if to <= effective_from {
+                return Err(AtlasError::ValidationFailed(
+                    "Effective to date must be after effective from date".to_string(),
+                ));
+            }
+        }
+
+        info!(
+            "Tax Registration: Creating {} registration '{}' for {} ({})",
+            registration_type, registration_number, legal_entity_name, country_code
+        );
+        Ok(())
+    }
+
+    /// Check if a tax registration is currently active
+    pub fn is_registration_active(
+        status: &str,
+        effective_from: chrono::NaiveDate,
+        effective_to: Option<chrono::NaiveDate>,
+        today: chrono::NaiveDate,
+    ) -> bool {
+        if status != "active" {
+            return false;
+        }
+        if today < effective_from {
+            return false;
+        }
+        if let Some(to) = effective_to {
+            if today > to {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Calculate days until registration expiry
+    pub fn days_until_expiry(
+        effective_to: chrono::NaiveDate,
+        today: chrono::NaiveDate,
+    ) -> i64 {
+        (effective_to - today).num_days()
+    }
+
+    /// Check if registration is expiring within warning days
+    pub fn is_expiring_soon(
+        effective_to: chrono::NaiveDate,
+        today: chrono::NaiveDate,
+        warning_days: i64,
+    ) -> bool {
+        let days = Self::days_until_expiry(effective_to, today);
+        days >= 0 && days <= warning_days
+    }
+}
+
+// ============================================================================
+// Tax Recovery Rate Service (Oracle Fusion: Tax > Tax Recovery Rates)
+// ============================================================================
+
+/// Tax Recovery Rate service
+/// Oracle Fusion: Tax > Tax Recovery Rates
+/// Manages tax recovery/deductibility rates for different tax regimes
+#[allow(dead_code)]
+pub struct TaxRecoveryRateService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid recovery types
+#[allow(dead_code)]
+const VALID_RECOVERY_TYPES: &[&str] = &[
+    "full", "partial", "none",
+];
+
+impl TaxRecoveryRateService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a tax recovery rate
+    /// Oracle Fusion: Tax > Tax Recovery Rates > Create
+    pub async fn create_recovery_rate(
+        &self,
+        code: &str,
+        name: &str,
+        recovery_type: &str,
+        recovery_percentage: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Recovery rate code and name are required".to_string(),
+            ));
+        }
+        if !VALID_RECOVERY_TYPES.contains(&recovery_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid recovery_type '{}'. Must be one of: {}",
+                recovery_type, VALID_RECOVERY_TYPES.join(", ")
+            )));
+        }
+        let pct: f64 = recovery_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Recovery percentage must be a valid number".to_string(),
+        ))?;
+        if !(0.0..=100.0).contains(&pct) {
+            return Err(AtlasError::ValidationFailed(
+                "Recovery percentage must be between 0 and 100".to_string(),
+            ));
+        }
+
+        info!(
+            "Tax Recovery: Creating rate '{}' ({} {}%)",
+            code, recovery_type, pct
+        );
+        Ok(())
+    }
+
+    /// Calculate recoverable tax amount
+    pub fn calculate_recoverable_tax(
+        total_tax: f64,
+        recovery_percentage: f64,
+    ) -> f64 {
+        total_tax * (recovery_percentage / 100.0)
+    }
+
+    /// Calculate non-recoverable (expense) tax amount
+    pub fn calculate_non_recoverable_tax(
+        total_tax: f64,
+        recovery_percentage: f64,
+    ) -> f64 {
+        total_tax * (1.0 - recovery_percentage / 100.0)
+    }
+
+    /// Calculate effective tax rate after recovery
+    pub fn calculate_effective_rate(
+        gross_rate: f64,
+        recovery_percentage: f64,
+    ) -> f64 {
+        gross_rate * (1.0 - recovery_percentage / 100.0)
+    }
+}
+
+// ============================================================================
+// Receivable Activity Service (Oracle Fusion: Receivables > Activities)
+// ============================================================================
+
+/// Receivable Activity service
+/// Oracle Fusion: Receivables > Activities
+/// Defines accounting activities used in AR adjustments, write-offs, and receipts
+#[allow(dead_code)]
+pub struct ReceivableActivityService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid activity types for receivable activities
+#[allow(dead_code)]
+const VALID_ACTIVITY_TYPES: &[&str] = &[
+    "adjustment", "write_off", "short_term_debt", "billback",
+    "receipt", "credit_memo_application", "earn_unearned_discount",
+    "unearn_earned_discount", "chargeback", "other",
+];
+
+/// Valid GL posting options
+#[allow(dead_code)]
+const VALID_GL_POSTING_OPTIONS: &[&str] = &[
+    "individual", "summary", "none",
+];
+
+impl ReceivableActivityService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a receivable activity
+    /// Oracle Fusion: Receivables > Activities > Create
+    pub async fn create_activity(
+        &self,
+        name: &str,
+        activity_type: &str,
+        gl_account: &str,
+        posting_option: &str,
+    ) -> AtlasResult<()> {
+        if name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Activity name is required".to_string(),
+            ));
+        }
+        if !VALID_ACTIVITY_TYPES.contains(&activity_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid activity_type '{}'. Must be one of: {}",
+                activity_type, VALID_ACTIVITY_TYPES.join(", ")
+            )));
+        }
+        if gl_account.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "GL account is required".to_string(),
+            ));
+        }
+        if !VALID_GL_POSTING_OPTIONS.contains(&posting_option) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid posting_option '{}'. Must be one of: {}",
+                posting_option, VALID_GL_POSTING_OPTIONS.join(", ")
+            )));
+        }
+
+        info!(
+            "Receivable Activity: Creating '{}' of type {} (GL: {})",
+            name, activity_type, gl_account
+        );
+        Ok(())
+    }
+
+    /// Determine if an activity type requires approval
+    pub fn requires_approval(activity_type: &str) -> bool {
+        matches!(activity_type, "write_off" | "chargeback" | "adjustment")
+    }
+
+    /// Determine if an activity type affects customer balance
+    pub fn affects_customer_balance(activity_type: &str) -> bool {
+        matches!(
+            activity_type,
+            "adjustment" | "write_off" | "chargeback" | "credit_memo_application"
+        )
+    }
+
+    /// Calculate the net effect on customer balance
+    pub fn calculate_balance_effect(
+        activity_type: &str,
+        amount: f64,
+    ) -> f64 {
+        match activity_type {
+            "adjustment" => -amount,     // Reduces balance (usually write-off)
+            "write_off" => -amount,      // Reduces balance
+            "chargeback" => amount,      // Increases balance
+            "credit_memo_application" => -amount, // Reduces balance
+            "billback" => amount,        // Increases balance
+            _ => 0.0,
+        }
+    }
+}
+
+// ============================================================================
+// Asset Book Assignment Service (Oracle Fusion: Fixed Assets > Book Assignments)
+// ============================================================================
+
+/// Asset Book Assignment service
+/// Oracle Fusion: Fixed Assets > Book Assignments
+/// Manages assignment of assets to depreciation books with book-specific settings
+#[allow(dead_code)]
+pub struct AssetBookAssignmentService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid depreciation methods for book assignments
+#[allow(dead_code)]
+const VALID_BOOK_DEPR_METHODS: &[&str] = &[
+    "straight_line", "declining_balance", "sum_of_years_digits",
+    "units_of_production", "none",
+];
+
+impl AssetBookAssignmentService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate an asset book assignment
+    /// Oracle Fusion: Fixed Assets > Book Assignments > Create
+    pub async fn create_assignment(
+        &self,
+        asset_id: RecordId,
+        book_id: RecordId,
+        depreciation_method: &str,
+        useful_life_months: i32,
+        salvage_value: &str,
+    ) -> AtlasResult<()> {
+        if !VALID_BOOK_DEPR_METHODS.contains(&depreciation_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid depreciation_method '{}'. Must be one of: {}",
+                depreciation_method, VALID_BOOK_DEPR_METHODS.join(", ")
+            )));
+        }
+        if useful_life_months <= 0 && depreciation_method != "none" {
+            return Err(AtlasError::ValidationFailed(
+                "Useful life must be positive when depreciation method is not 'none'".to_string(),
+            ));
+        }
+        let salvage: f64 = salvage_value.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Salvage value must be a valid number".to_string(),
+        ))?;
+        if salvage < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Salvage value cannot be negative".to_string(),
+            ));
+        }
+
+        info!(
+            "Asset Book Assignment: Assigning asset {} to book {} (method: {}, life: {} months)",
+            asset_id, book_id, depreciation_method, useful_life_months
+        );
+        Ok(())
+    }
+
+    /// Calculate depreciable basis for a book assignment
+    pub fn calculate_depreciable_basis(
+        original_cost: f64,
+        salvage_value: f64,
+    ) -> f64 {
+        (original_cost - salvage_value).max(0.0)
+    }
+
+    /// Calculate monthly depreciation for a book assignment
+    pub fn calculate_monthly_depreciation(
+        depreciable_basis: f64,
+        useful_life_months: i32,
+    ) -> f64 {
+        if useful_life_months <= 0 {
+            return 0.0;
+        }
+        depreciable_basis / useful_life_months as f64
+    }
+
+    /// Calculate remaining depreciation periods
+    pub fn calculate_remaining_periods(
+        total_periods: i32,
+        periods_depreciated: i32,
+    ) -> i32 {
+        (total_periods - periods_depreciated).max(0)
+    }
+
+    /// Check if asset is fully depreciated in this book
+    pub fn is_fully_depreciated(
+        accumulated_depreciation: f64,
+        depreciable_basis: f64,
+        tolerance: f64,
+    ) -> bool {
+        accumulated_depreciation >= depreciable_basis - tolerance
+    }
+}
+
+// ============================================================================
+// Memo Line Service (Oracle Fusion: Receivables > Memo Lines)
+// ============================================================================
+
+/// Memo Line service
+/// Oracle Fusion: Receivables > Memo Lines
+/// Standard memo lines for quick entry on AR transactions
+#[allow(dead_code)]
+pub struct MemoLineService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid memo line types
+#[allow(dead_code)]
+const VALID_MEMO_LINE_TYPES: &[&str] = &[
+    "line", "tax", "freight", "charges", "miscellaneous",
+];
+
+/// Valid memo line statuses
+#[allow(dead_code)]
+const VALID_MEMO_LINE_STATUSES: &[&str] = &[
+    "active", "inactive",
+];
+
+/// Valid unit of measure codes for memo lines
+#[allow(dead_code)]
+const VALID_MEMO_UOM_CODES: &[&str] = &[
+    "ea", "hr", "day", "wk", "mo", "yr", "lb", "kg", "unit", "lot",
+];
+
+impl MemoLineService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a memo line
+    /// Oracle Fusion: Receivables > Memo Lines > Create
+    pub async fn create_memo_line(
+        &self,
+        name: &str,
+        description: &str,
+        line_type: &str,
+        unit_price: &str,
+        uom_code: &str,
+        tax_code: Option<&str>,
+        revenue_account: &str,
+    ) -> AtlasResult<()> {
+        if name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Memo line name is required".to_string(),
+            ));
+        }
+        if !VALID_MEMO_LINE_TYPES.contains(&line_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid line_type '{}'. Must be one of: {}",
+                line_type, VALID_MEMO_LINE_TYPES.join(", ")
+            )));
+        }
+        let price: f64 = unit_price.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Unit price must be a valid number".to_string(),
+        ))?;
+        if price < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Unit price cannot be negative".to_string(),
+            ));
+        }
+        if !VALID_MEMO_UOM_CODES.contains(&uom_code) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid uom_code '{}'. Must be one of: {}",
+                uom_code, VALID_MEMO_UOM_CODES.join(", ")
+            )));
+        }
+        if revenue_account.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Revenue account is required".to_string(),
+            ));
+        }
+
+        info!(
+            "Memo Line: Creating '{}' ({}, price: {} {}, GL: {})",
+            name, line_type, price, uom_code, revenue_account
+        );
+        Ok(())
+    }
+
+    /// Calculate line amount for a memo line
+    pub fn calculate_line_amount(
+        unit_price: f64,
+        quantity: f64,
+    ) -> f64 {
+        unit_price * quantity
+    }
+
+    /// Calculate line total including tax
+    pub fn calculate_line_total_with_tax(
+        line_amount: f64,
+        tax_rate_percent: f64,
+    ) -> f64 {
+        line_amount * (1.0 + tax_rate_percent / 100.0)
+    }
+
+    /// Calculate tax amount for a memo line
+    pub fn calculate_tax_amount(
+        line_amount: f64,
+        tax_rate_percent: f64,
+    ) -> f64 {
+        line_amount * (tax_rate_percent / 100.0)
+    }
+
+    /// Validate memo line status
+    pub fn is_active(status: &str) -> bool {
+        status == "active"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -13378,5 +13926,506 @@ mod tests {
         // All unique
         let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names.len(), 41, "All entity names must be unique");
+    }
+
+    // ========================================================================
+    // Tax Registration Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_tax_registration_entity() {
+        let def = entities::tax_registration_definition();
+        assert_eq!(def.name, "tax_registrations");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_tax_registration_valid_types() {
+        assert!(super::VALID_REGISTRATION_TYPES.contains(&"vat"));
+        assert!(super::VALID_REGISTRATION_TYPES.contains(&"gst"));
+        assert!(super::VALID_REGISTRATION_TYPES.contains(&"sales_tax"));
+        assert!(super::VALID_REGISTRATION_TYPES.contains(&"income_tax"));
+        assert!(super::VALID_REGISTRATION_TYPES.contains(&"withholding_tax"));
+        assert!(super::VALID_REGISTRATION_TYPES.contains(&"excise"));
+        assert!(super::VALID_REGISTRATION_TYPES.contains(&"customs"));
+        assert_eq!(super::VALID_REGISTRATION_TYPES.len(), 7);
+    }
+
+    #[test]
+    fn test_tax_registration_valid_statuses() {
+        for s in &["active", "inactive", "pending", "deregistered", "revoked"] {
+            assert!(super::VALID_REGISTRATION_STATUSES.contains(s));
+        }
+        assert_eq!(super::VALID_REGISTRATION_STATUSES.len(), 5);
+    }
+
+    #[test]
+    fn test_registration_is_active_happy() {
+        let from = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        assert!(super::TaxRegistrationService::is_registration_active("active", from, None, today));
+    }
+
+    #[test]
+    fn test_registration_is_active_with_end_date() {
+        let from = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let to = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(super::TaxRegistrationService::is_registration_active("active", from, Some(to), today));
+    }
+
+    #[test]
+    fn test_registration_inactive_wrong_status() {
+        let from = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        assert!(!super::TaxRegistrationService::is_registration_active("inactive", from, None, today));
+        assert!(!super::TaxRegistrationService::is_registration_active("revoked", from, None, today));
+    }
+
+    #[test]
+    fn test_registration_inactive_future_start() {
+        let from = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        assert!(!super::TaxRegistrationService::is_registration_active("active", from, None, today));
+    }
+
+    #[test]
+    fn test_registration_inactive_past_end() {
+        let from = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let to = chrono::NaiveDate::from_ymd_opt(2024, 12, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(!super::TaxRegistrationService::is_registration_active("active", from, Some(to), today));
+    }
+
+    #[test]
+    fn test_registration_days_until_expiry() {
+        let to = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 12, 1).unwrap();
+        let days = super::TaxRegistrationService::days_until_expiry(to, today);
+        assert_eq!(days, 30);
+    }
+
+    #[test]
+    fn test_registration_days_until_expiry_past() {
+        let to = chrono::NaiveDate::from_ymd_opt(2024, 12, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap();
+        let days = super::TaxRegistrationService::days_until_expiry(to, today);
+        assert!(days < 0);
+    }
+
+    #[test]
+    fn test_registration_expiring_soon_true() {
+        let to = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 12, 15).unwrap();
+        assert!(super::TaxRegistrationService::is_expiring_soon(to, today, 30));
+    }
+
+    #[test]
+    fn test_registration_expiring_soon_false_not_yet() {
+        let to = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(!super::TaxRegistrationService::is_expiring_soon(to, today, 30));
+    }
+
+    #[test]
+    fn test_registration_expiring_soon_false_already_expired() {
+        let to = chrono::NaiveDate::from_ymd_opt(2024, 12, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(!super::TaxRegistrationService::is_expiring_soon(to, today, 30));
+    }
+
+    // ========================================================================
+    // Tax Recovery Rate Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_tax_recovery_rate_entity() {
+        let def = entities::tax_recovery_rate_definition();
+        assert_eq!(def.name, "tax_recovery_rates");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_recovery_valid_types() {
+        assert_eq!(super::VALID_RECOVERY_TYPES.len(), 3);
+        assert!(super::VALID_RECOVERY_TYPES.contains(&"full"));
+        assert!(super::VALID_RECOVERY_TYPES.contains(&"partial"));
+        assert!(super::VALID_RECOVERY_TYPES.contains(&"none"));
+    }
+
+    #[test]
+    fn test_calculate_recoverable_tax_50pct() {
+        let recovered = super::TaxRecoveryRateService::calculate_recoverable_tax(1000.0, 50.0);
+        assert!((recovered - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_recoverable_tax_full() {
+        let recovered = super::TaxRecoveryRateService::calculate_recoverable_tax(1000.0, 100.0);
+        assert!((recovered - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_recoverable_tax_zero() {
+        let recovered = super::TaxRecoveryRateService::calculate_recoverable_tax(1000.0, 0.0);
+        assert!((recovered - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_non_recoverable_tax_50pct() {
+        let expense = super::TaxRecoveryRateService::calculate_non_recoverable_tax(1000.0, 50.0);
+        assert!((expense - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_non_recoverable_tax_full_recovery() {
+        let expense = super::TaxRecoveryRateService::calculate_non_recoverable_tax(1000.0, 100.0);
+        assert!((expense - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_non_recoverable_tax_no_recovery() {
+        let expense = super::TaxRecoveryRateService::calculate_non_recoverable_tax(1000.0, 0.0);
+        assert!((expense - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_effective_rate_50pct_recovery() {
+        let effective = super::TaxRecoveryRateService::calculate_effective_rate(20.0, 50.0);
+        assert!((effective - 10.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_effective_rate_full_recovery() {
+        let effective = super::TaxRecoveryRateService::calculate_effective_rate(20.0, 100.0);
+        assert!((effective - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_effective_rate_no_recovery() {
+        let effective = super::TaxRecoveryRateService::calculate_effective_rate(20.0, 0.0);
+        assert!((effective - 20.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_recovery_plus_non_recovery_equals_total() {
+        let total_tax = 1000.0;
+        let recovery_pct = 73.5;
+        let recovered = super::TaxRecoveryRateService::calculate_recoverable_tax(total_tax, recovery_pct);
+        let expense = super::TaxRecoveryRateService::calculate_non_recoverable_tax(total_tax, recovery_pct);
+        assert!((recovered + expense - total_tax).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Receivable Activity Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_receivable_activity_entity() {
+        let def = entities::receivable_activity_definition();
+        assert_eq!(def.name, "receivable_activities");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_receivable_activity_valid_types() {
+        assert_eq!(super::VALID_ACTIVITY_TYPES.len(), 10);
+        for t in &["adjustment", "write_off", "chargeback", "receipt", "credit_memo_application"] {
+            assert!(super::VALID_ACTIVITY_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_receivable_activity_valid_posting_options() {
+        assert_eq!(super::VALID_GL_POSTING_OPTIONS.len(), 3);
+        assert!(super::VALID_GL_POSTING_OPTIONS.contains(&"individual"));
+        assert!(super::VALID_GL_POSTING_OPTIONS.contains(&"summary"));
+        assert!(super::VALID_GL_POSTING_OPTIONS.contains(&"none"));
+    }
+
+    #[test]
+    fn test_requires_approval_write_off() {
+        assert!(super::ReceivableActivityService::requires_approval("write_off"));
+    }
+
+    #[test]
+    fn test_requires_approval_chargeback() {
+        assert!(super::ReceivableActivityService::requires_approval("chargeback"));
+    }
+
+    #[test]
+    fn test_requires_approval_adjustment() {
+        assert!(super::ReceivableActivityService::requires_approval("adjustment"));
+    }
+
+    #[test]
+    fn test_requires_approval_receipt() {
+        assert!(!super::ReceivableActivityService::requires_approval("receipt"));
+    }
+
+    #[test]
+    fn test_requires_approval_billback() {
+        assert!(!super::ReceivableActivityService::requires_approval("billback"));
+    }
+
+    #[test]
+    fn test_affects_customer_balance_adjustment() {
+        assert!(super::ReceivableActivityService::affects_customer_balance("adjustment"));
+    }
+
+    #[test]
+    fn test_affects_customer_balance_write_off() {
+        assert!(super::ReceivableActivityService::affects_customer_balance("write_off"));
+    }
+
+    #[test]
+    fn test_affects_customer_balance_chargeback() {
+        assert!(super::ReceivableActivityService::affects_customer_balance("chargeback"));
+    }
+
+    #[test]
+    fn test_affects_customer_balance_receipt() {
+        assert!(!super::ReceivableActivityService::affects_customer_balance("receipt"));
+    }
+
+    #[test]
+    fn test_balance_effect_write_off() {
+        let effect = super::ReceivableActivityService::calculate_balance_effect("write_off", 500.0);
+        assert!((effect - (-500.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_balance_effect_chargeback() {
+        let effect = super::ReceivableActivityService::calculate_balance_effect("chargeback", 500.0);
+        assert!((effect - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_balance_effect_credit_memo() {
+        let effect = super::ReceivableActivityService::calculate_balance_effect("credit_memo_application", 300.0);
+        assert!((effect - (-300.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_balance_effect_billback() {
+        let effect = super::ReceivableActivityService::calculate_balance_effect("billback", 250.0);
+        assert!((effect - 250.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_balance_effect_other() {
+        let effect = super::ReceivableActivityService::calculate_balance_effect("other", 1000.0);
+        assert!((effect - 0.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Asset Book Assignment Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_asset_book_assignment_entity() {
+        let def = entities::asset_book_assignment_definition();
+        assert_eq!(def.name, "asset_book_assignments");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_asset_book_assignment_valid_depr_methods() {
+        assert_eq!(super::VALID_BOOK_DEPR_METHODS.len(), 5);
+        for m in &["straight_line", "declining_balance", "sum_of_years_digits", "units_of_production", "none"] {
+            assert!(super::VALID_BOOK_DEPR_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_calculate_depreciable_basis_normal() {
+        let basis = super::AssetBookAssignmentService::calculate_depreciable_basis(100000.0, 10000.0);
+        assert!((basis - 90000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_depreciable_basis_zero_salvage() {
+        let basis = super::AssetBookAssignmentService::calculate_depreciable_basis(50000.0, 0.0);
+        assert!((basis - 50000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_depreciable_basis_salvage_exceeds_cost() {
+        let basis = super::AssetBookAssignmentService::calculate_depreciable_basis(5000.0, 8000.0);
+        assert_eq!(basis, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_monthly_depreciation_5yr() {
+        let monthly = super::AssetBookAssignmentService::calculate_monthly_depreciation(60000.0, 60);
+        assert!((monthly - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_monthly_depreciation_1yr() {
+        let monthly = super::AssetBookAssignmentService::calculate_monthly_depreciation(12000.0, 12);
+        assert!((monthly - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_monthly_depreciation_zero_life() {
+        let monthly = super::AssetBookAssignmentService::calculate_monthly_depreciation(10000.0, 0);
+        assert_eq!(monthly, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_remaining_periods_normal() {
+        let remaining = super::AssetBookAssignmentService::calculate_remaining_periods(60, 24);
+        assert_eq!(remaining, 36);
+    }
+
+    #[test]
+    fn test_calculate_remaining_periods_fully_depreciated() {
+        let remaining = super::AssetBookAssignmentService::calculate_remaining_periods(60, 60);
+        assert_eq!(remaining, 0);
+    }
+
+    #[test]
+    fn test_calculate_remaining_periods_over_depreciated() {
+        let remaining = super::AssetBookAssignmentService::calculate_remaining_periods(60, 65);
+        assert_eq!(remaining, 0);
+    }
+
+    #[test]
+    fn test_book_assignment_is_fully_depreciated_true() {
+        assert!(super::AssetBookAssignmentService::is_fully_depreciated(90000.0, 90000.0, 0.01));
+    }
+
+    #[test]
+    fn test_book_assignment_is_fully_depreciated_within_tolerance() {
+        assert!(super::AssetBookAssignmentService::is_fully_depreciated(89999.95, 90000.0, 0.10));
+    }
+
+    #[test]
+    fn test_book_assignment_is_fully_depreciated_false() {
+        assert!(!super::AssetBookAssignmentService::is_fully_depreciated(80000.0, 90000.0, 0.01));
+    }
+
+    // ========================================================================
+    // Memo Line Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_memo_line_entity() {
+        let def = entities::memo_line_definition();
+        assert_eq!(def.name, "memo_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_memo_line_valid_types() {
+        assert_eq!(super::VALID_MEMO_LINE_TYPES.len(), 5);
+        for t in &["line", "tax", "freight", "charges", "miscellaneous"] {
+            assert!(super::VALID_MEMO_LINE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_memo_line_valid_statuses() {
+        assert_eq!(super::VALID_MEMO_LINE_STATUSES.len(), 2);
+        assert!(super::VALID_MEMO_LINE_STATUSES.contains(&"active"));
+        assert!(super::VALID_MEMO_LINE_STATUSES.contains(&"inactive"));
+    }
+
+    #[test]
+    fn test_memo_line_valid_uom_codes() {
+        assert_eq!(super::VALID_MEMO_UOM_CODES.len(), 10);
+        for u in &["ea", "hr", "day", "wk", "mo", "yr", "lb", "kg", "unit", "lot"] {
+            assert!(super::VALID_MEMO_UOM_CODES.contains(u));
+        }
+    }
+
+    #[test]
+    fn test_calculate_memo_line_amount() {
+        let amount = super::MemoLineService::calculate_line_amount(150.0, 3.0);
+        assert!((amount - 450.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_memo_line_amount_single() {
+        let amount = super::MemoLineService::calculate_line_amount(99.99, 1.0);
+        assert!((amount - 99.99).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_memo_line_amount_zero_quantity() {
+        let amount = super::MemoLineService::calculate_line_amount(100.0, 0.0);
+        assert_eq!(amount, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_memo_line_total_with_tax() {
+        let total = super::MemoLineService::calculate_line_total_with_tax(1000.0, 10.0);
+        assert!((total - 1100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_memo_line_total_zero_tax() {
+        let total = super::MemoLineService::calculate_line_total_with_tax(500.0, 0.0);
+        assert!((total - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_memo_tax_amount() {
+        let tax = super::MemoLineService::calculate_tax_amount(1000.0, 10.0);
+        assert!((tax - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_memo_tax_amount_zero_rate() {
+        let tax = super::MemoLineService::calculate_tax_amount(1000.0, 0.0);
+        assert_eq!(tax, 0.0);
+    }
+
+    #[test]
+    fn test_memo_line_is_active_true() {
+        assert!(super::MemoLineService::is_active("active"));
+    }
+
+    #[test]
+    fn test_memo_line_is_active_false() {
+        assert!(!super::MemoLineService::is_active("inactive"));
+    }
+
+    // ========================================================================
+    // Cost Allocation Run Entity Test
+    // ========================================================================
+
+    #[test]
+    fn test_cost_allocation_run_entity() {
+        let def = entities::cost_allocation_run_definition();
+        assert_eq!(def.name, "cost_allocation_runs");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+        assert!(wf.states.iter().any(|s| s.name == "reversed"));
+    }
+
+    // ========================================================================
+    // Grand Total: All 6 New Services Present
+    // ========================================================================
+
+    #[test]
+    fn test_six_new_oracle_fusion_services_entity_definitions() {
+        // Verify all 6 new feature entity definitions build correctly
+        let entities = vec![
+            entities::tax_registration_definition(),
+            entities::tax_recovery_rate_definition(),
+            entities::receivable_activity_definition(),
+            entities::asset_book_assignment_definition(),
+            entities::memo_line_definition(),
+            entities::cost_allocation_run_definition(),
+        ];
+        assert_eq!(entities.len(), 6);
+
+        // All unique names
+        let names: std::collections::HashSet<&str> = entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 6, "All 6 new entity names must be unique");
     }
 }

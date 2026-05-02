@@ -1127,6 +1127,337 @@ pub fn revenue_modification_definition() -> EntityDefinition {
 }
 
 // ============================================================================
+// Interest Invoice (Oracle Fusion: Receivables > Finance Charges)
+// ============================================================================
+
+/// Interest Invoice entity with workflow
+/// Oracle Fusion: Receivables > Finance Charges > Interest Invoices
+pub fn interest_invoice_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("interest_invoice_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .final_state("posted", "Posted")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "cancelled", "cancel")
+        .transition("approved", "posted", "post")
+        .build();
+
+    SchemaBuilder::new("interest_invoices", "Interest Invoice")
+        .plural_label("Interest Invoices")
+        .table_name("fin_interest_invoices")
+        .description("Automatically generated interest invoices for overdue customer balances")
+        .icon("percentage")
+        .required_string("invoice_number", "Invoice Number")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .string("customer_name", "Customer Name")
+        .reference("transaction_id", "Original Transaction", "ar_transactions")
+        .string("transaction_number", "Transaction Number")
+        .date("invoice_date", "Invoice Date")
+        .date("from_date", "Interest From Date")
+        .date("to_date", "Interest To Date")
+        .integer("days_overdue", "Days Overdue")
+        .currency("overdue_amount", "Overdue Amount", "USD")
+        .decimal("annual_interest_rate", "Annual Interest Rate %", 8, 4)
+        .currency("interest_amount", "Interest Amount", "USD")
+        .currency("tax_amount", "Tax Amount", "USD")
+        .currency("total_amount", "Total Amount", "USD")
+        .enumeration("interest_basis", "Interest Basis", vec![
+            "daily", "monthly", "annual",
+        ])
+        .enumeration("compounding", "Compounding", vec![
+            "simple", "compound_daily", "compound_monthly",
+        ])
+        .string("currency_code", "Currency Code")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "posted", "cancelled",
+        ])
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}
+
+/// Interest Invoice Template entity
+/// Oracle Fusion: Receivables > Finance Charges > Templates
+pub fn interest_invoice_template_definition() -> EntityDefinition {
+    SchemaBuilder::new("interest_invoice_templates", "Interest Invoice Template")
+        .plural_label("Interest Invoice Templates")
+        .table_name("fin_interest_invoice_templates")
+        .description("Templates defining interest charge rules and calculation methods")
+        .icon("file-alt")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .decimal("annual_rate", "Annual Rate %", 8, 4)
+        .enumeration("interest_basis", "Interest Basis", vec![
+            "daily", "monthly", "annual",
+        ])
+        .enumeration("compounding_method", "Compounding", vec![
+            "simple", "compound_daily", "compound_monthly",
+        ])
+        .integer("grace_period_days", "Grace Period (Days)")
+        .integer("minimum_days_overdue", "Min Days Overdue")
+        .currency("minimum_interest_amount", "Min Interest Amount", "USD")
+        .currency("maximum_interest_amount", "Max Interest Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .boolean("include_tax", "Include Tax")
+        .string("interest_receivable_account", "Interest Receivable Account")
+        .string("interest_revenue_account", "Interest Revenue Account")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
+// Payment Batch (Oracle Fusion: Payables > Payment Batches)
+// ============================================================================
+
+/// Payment Batch entity with workflow
+/// Oracle Fusion: Payables > Payments > Payment Batches
+pub fn payment_batch_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("payment_batch_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("formatted", "Formatted")
+        .working_state("confirmed", "Confirmed")
+        .final_state("completed", "Completed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "formatted", "format")
+        .transition("formatted", "confirmed", "confirm")
+        .transition("confirmed", "completed", "complete")
+        .transition("draft", "cancelled", "cancel")
+        .transition("formatted", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("payment_batches", "Payment Batch")
+        .plural_label("Payment Batches")
+        .table_name("fin_payment_batches")
+        .description("Batch payment processing for multiple supplier payments")
+        .icon("layer-group")
+        .required_string("batch_number", "Batch Number")
+        .date("batch_date", "Batch Date")
+        .enumeration("payment_method", "Payment Method", vec![
+            "check", "electronic", "wire", "ach", "swift",
+        ])
+        .string("payment_currency_code", "Payment Currency")
+        .string("bank_account_name", "Bank Account")
+        .integer("invoice_count", "Invoice Count")
+        .integer("payment_count", "Payment Count")
+        .currency("total_payment_amount", "Total Payment Amount", "USD")
+        .currency("total_discount_taken", "Total Discount Taken", "USD")
+        .enumeration("status", "Status", vec![
+            "draft", "formatted", "confirmed", "completed", "cancelled",
+        ])
+        .string("document_sequence", "Document Sequence")
+        .string("print_status", "Print Status")
+        .workflow(workflow)
+        .build()
+}
+
+/// Payment Batch Line entity
+/// Oracle Fusion: Payables > Payments > Batch Lines
+pub fn payment_batch_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("payment_batch_lines", "Payment Batch Line")
+        .plural_label("Payment Batch Lines")
+        .table_name("fin_payment_batch_lines")
+        .description("Individual payment lines within a payment batch")
+        .icon("list")
+        .reference("batch_id", "Batch", "payment_batches")
+        .reference("supplier_id", "Supplier", "suppliers")
+        .string("supplier_number", "Supplier Number")
+        .string("supplier_name", "Supplier Name")
+        .string("payment_number", "Payment Number")
+        .currency("payment_amount", "Payment Amount", "USD")
+        .currency("discount_taken", "Discount Taken", "USD")
+        .reference("invoice_id", "Invoice", "ap_invoices")
+        .string("invoice_number", "Invoice Number")
+        .currency("invoice_amount", "Invoice Amount", "USD")
+        .currency("amount_applied", "Amount Applied", "USD")
+        .enumeration("payment_method", "Payment Method", vec![
+            "check", "electronic", "wire", "ach", "swift",
+        ])
+        .enumeration("status", "Status", vec![
+            "selected", "formatted", "confirmed", "completed", "removed",
+        ])
+        .build()
+}
+
+// ============================================================================
+// Revenue Budget (Oracle Fusion: Financials > Budgeting > Revenue Budgets)
+// ============================================================================
+
+/// Revenue Budget entity with workflow
+/// Oracle Fusion: Financials > Budgeting > Revenue Budgets
+pub fn revenue_budget_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("revenue_budget_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .final_state("active", "Active")
+        .final_state("rejected", "Rejected")
+        .final_state("closed", "Closed")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "active", "activate")
+        .transition("active", "closed", "close")
+        .build();
+
+    SchemaBuilder::new("revenue_budgets", "Revenue Budget")
+        .plural_label("Revenue Budgets")
+        .table_name("fin_revenue_budgets")
+        .description("Revenue budget planning and tracking by period and dimension")
+        .icon("chart-bar")
+        .required_string("budget_number", "Budget Number")
+        .required_string("name", "Budget Name")
+        .enumeration("budget_type", "Budget Type", vec![
+            "annual", "quarterly", "monthly", "rolling",
+        ])
+        .enumeration("dimension", "Dimension", vec![
+            "customer", "product", "region", "business_unit", "sales_rep", "total",
+        ])
+        .date("start_date", "Start Date")
+        .date("end_date", "End Date")
+        .string("fiscal_year", "Fiscal Year")
+        .currency("total_budget_amount", "Total Budget Amount", "USD")
+        .currency("total_actual_amount", "Total Actual Amount", "USD")
+        .currency("total_variance", "Total Variance", "USD")
+        .decimal("variance_percent", "Variance %", 8, 2)
+        .string("currency_code", "Currency Code")
+        .reference("owner_id", "Owner", "employees")
+        .reference("department_id", "Department", "departments")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "active", "rejected", "closed",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Revenue Budget Line entity
+/// Oracle Fusion: Financials > Budgeting > Revenue Budget Lines
+pub fn revenue_budget_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("revenue_budget_lines", "Revenue Budget Line")
+        .plural_label("Revenue Budget Lines")
+        .table_name("fin_revenue_budget_lines")
+        .description("Individual period lines within a revenue budget")
+        .icon("list")
+        .reference("budget_id", "Budget", "revenue_budgets")
+        .string("period_name", "Period Name")
+        .date("period_start", "Period Start")
+        .date("period_end", "Period End")
+        .string("dimension_value", "Dimension Value")
+        .currency("budget_amount", "Budget Amount", "USD")
+        .currency("actual_amount", "Actual Amount", "USD")
+        .currency("committed_amount", "Committed Amount", "USD")
+        .currency("remaining_budget", "Remaining Budget", "USD")
+        .currency("variance_amount", "Variance Amount", "USD")
+        .decimal("variance_percent", "Variance %", 8, 2)
+        .string("currency_code", "Currency Code")
+        .string("notes", "Notes")
+        .build()
+}
+
+// ============================================================================
+// Financial Dimension Hierarchy (Oracle Fusion: GL > Financial Dimensions)
+// ============================================================================
+
+/// Financial Dimension entity
+/// Oracle Fusion: General Ledger > Financial Dimensions
+pub fn financial_dimension_definition() -> EntityDefinition {
+    SchemaBuilder::new("financial_dimensions", "Financial Dimension")
+        .plural_label("Financial Dimensions")
+        .table_name("fin_financial_dimensions")
+        .description("Accounting dimensions for reporting and analysis (e.g., cost center, department)")
+        .icon("sitemap")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("dimension_type", "Dimension Type", vec![
+            "cost_center", "department", "location", "project",
+            "product", "customer", "region", "business_unit", "custom",
+        ])
+        .boolean("is_hierarchical", "Hierarchical")
+        .reference("parent_dimension_id", "Parent Dimension", "financial_dimensions")
+        .integer("tree_depth", "Tree Depth")
+        .integer("display_order", "Display Order")
+        .boolean("is_required", "Required")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Financial Dimension Value entity
+/// Oracle Fusion: General Ledger > Dimension Values
+pub fn financial_dimension_value_definition() -> EntityDefinition {
+    SchemaBuilder::new("financial_dimension_values", "Dimension Value")
+        .plural_label("Dimension Values")
+        .table_name("fin_financial_dimension_values")
+        .description("Individual values within a financial dimension hierarchy")
+        .icon("tags")
+        .reference("dimension_id", "Dimension", "financial_dimensions")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .reference("parent_value_id", "Parent Value", "financial_dimension_values")
+        .integer("tree_level", "Tree Level")
+        .string("tree_path", "Tree Path")
+        .enumeration("value_status", "Status", vec![
+            "active", "inactive", "pending",
+        ])
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .build()
+}
+
+// ============================================================================
+// AutoOffset (Oracle Fusion: Intercompany > AutoOffsets)
+// ============================================================================
+
+/// AutoOffset Rule entity with workflow
+/// Oracle Fusion: Intercompany > AutoOffset Rules
+pub fn auto_offset_rule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("auto_offset_rule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("auto_offset_rules", "AutoOffset Rule")
+        .plural_label("AutoOffset Rules")
+        .table_name("fin_auto_offset_rules")
+        .description("Rules for automatically generating offsetting entries for intercompany transactions")
+        .icon("exchange-alt")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("trigger_source", "Trigger Source", vec![
+            "payables", "receivables", "general_ledger", "inventory", "assets",
+        ])
+        .string("from_entity", "From Entity")
+        .string("to_entity", "To Entity")
+        .string("debit_account_code", "Debit Account")
+        .string("credit_account_code", "Credit Account")
+        .string("intercompany_account_code", "IC Account")
+        .enumeration("offset_method", "Offset Method", vec![
+            "netting", "full_offset", "proportional",
+        ])
+        .enumeration("clearing_method", "Clearing Method", vec![
+            "auto", "manual", "scheduled",
+        ])
+        .boolean("allow_imbalance", "Allow Imbalance")
+        .string("imbalance_account_code", "Imbalance Account")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
 // Subledger Accounting (Oracle Fusion: Financials > General Ledger > SLA)
 // ============================================================================
 

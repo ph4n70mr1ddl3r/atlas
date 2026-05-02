@@ -6306,6 +6306,499 @@ impl MemoLineService {
     }
 }
 
+// ============================================================================
+// Interest Invoice Service
+// ============================================================================
+
+/// Interest Invoice service
+/// Oracle Fusion: Receivables > Finance Charges
+#[allow(dead_code)]
+pub struct InterestInvoiceService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid interest bases for interest invoices
+#[allow(dead_code)]
+const VALID_INTEREST_INVOICE_BASES: &[&str] = &["daily", "monthly", "annual"];
+
+/// Valid compounding methods
+#[allow(dead_code)]
+const VALID_COMPOUNDING_METHODS: &[&str] = &["simple", "compound_daily", "compound_monthly"];
+
+impl InterestInvoiceService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate simple interest for overdue balance
+    /// Oracle Fusion: Receivables > Finance Charges > Calculate
+    pub fn calculate_simple_interest(
+        principal: f64,
+        annual_rate: f64,
+        days_overdue: i32,
+        year_basis: i32,
+    ) -> f64 {
+        if year_basis <= 0 || days_overdue <= 0 {
+            return 0.0;
+        }
+        principal * (annual_rate / 100.0) * (days_overdue as f64 / year_basis as f64)
+    }
+
+    /// Calculate compound interest (daily compounding)
+    pub fn calculate_compound_interest_daily(
+        principal: f64,
+        annual_rate: f64,
+        days_overdue: i32,
+        year_basis: i32,
+    ) -> f64 {
+        if year_basis <= 0 || days_overdue <= 0 {
+            return 0.0;
+        }
+        let daily_rate = annual_rate / 100.0 / year_basis as f64;
+        principal * ((1.0 + daily_rate).powi(days_overdue) - 1.0)
+    }
+
+    /// Calculate compound interest (monthly compounding)
+    pub fn calculate_compound_interest_monthly(
+        principal: f64,
+        annual_rate: f64,
+        months_overdue: i32,
+    ) -> f64 {
+        if months_overdue <= 0 {
+            return 0.0;
+        }
+        let monthly_rate = annual_rate / 100.0 / 12.0;
+        principal * ((1.0 + monthly_rate).powi(months_overdue) - 1.0)
+    }
+
+    /// Calculate days between two dates
+    pub fn calculate_days_overdue(due_date: chrono::NaiveDate, as_of_date: chrono::NaiveDate) -> i32 {
+        (as_of_date - due_date).num_days() as i32
+    }
+
+    /// Check if overdue (past grace period)
+    pub fn is_overdue(days_overdue: i32, grace_period_days: i32) -> bool {
+        days_overdue > grace_period_days
+    }
+
+    /// Apply minimum/maximum interest limits
+    pub fn apply_interest_limits(
+        interest_amount: f64,
+        minimum: f64,
+        maximum: f64,
+    ) -> f64 {
+        let capped = if maximum > 0.0 {
+            interest_amount.min(maximum)
+        } else {
+            interest_amount
+        };
+        if minimum > 0.0 && capped < minimum {
+            0.0 // Below minimum threshold, don't charge
+        } else {
+            capped
+        }
+    }
+
+    /// Calculate tax on interest amount
+    pub fn calculate_interest_tax(
+        interest_amount: f64,
+        tax_rate_percent: f64,
+    ) -> f64 {
+        interest_amount * (tax_rate_percent / 100.0)
+    }
+
+    /// Calculate total interest invoice amount (interest + tax)
+    pub fn calculate_total_amount(
+        interest_amount: f64,
+        tax_amount: f64,
+    ) -> f64 {
+        interest_amount + tax_amount
+    }
+}
+
+// ============================================================================
+// Payment Batch Service
+// ============================================================================
+
+/// Payment Batch service
+/// Oracle Fusion: Payables > Payments > Payment Batches
+#[allow(dead_code)]
+pub struct PaymentBatchService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid payment batch statuses
+#[allow(dead_code)]
+const VALID_BATCH_STATUSES: &[&str] = &[
+    "draft", "formatted", "confirmed", "completed", "cancelled",
+];
+
+/// Valid batch payment methods
+#[allow(dead_code)]
+const VALID_BATCH_PAYMENT_METHODS: &[&str] = &[
+    "check", "electronic", "wire", "ach", "swift",
+];
+
+impl PaymentBatchService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate total batch payment amount from line items
+    pub fn calculate_batch_total(payment_amounts: &[f64]) -> f64 {
+        payment_amounts.iter().sum()
+    }
+
+    /// Calculate total discount taken in a batch
+    pub fn calculate_total_discount(discounts: &[f64]) -> f64 {
+        discounts.iter().sum()
+    }
+
+    /// Calculate net batch amount (total payments - total discounts)
+    pub fn calculate_net_batch_amount(
+        total_payments: f64,
+        total_discounts: f64,
+    ) -> f64 {
+        total_payments - total_discounts
+    }
+
+    /// Check if payment amount is within tolerance for the invoice
+    pub fn is_within_tolerance(
+        payment_amount: f64,
+        invoice_amount: f64,
+        tolerance_percent: f64,
+    ) -> bool {
+        if invoice_amount <= 0.0 {
+            return false;
+        }
+        let diff = (payment_amount - invoice_amount).abs();
+        let tolerance = invoice_amount * (tolerance_percent / 100.0);
+        diff <= tolerance
+    }
+
+    /// Validate that batch totals match line totals
+    pub fn validate_batch_totals(
+        batch_total: f64,
+        line_totals: &[f64],
+        tolerance: f64,
+    ) -> bool {
+        let calculated: f64 = line_totals.iter().sum();
+        (batch_total - calculated).abs() <= tolerance
+    }
+
+    /// Calculate payment count from lines
+    pub fn count_payments(line_statuses: &[&str]) -> (usize, usize) {
+        let total = line_statuses.len();
+        let active = line_statuses.iter()
+            .filter(|&&s| s != "removed")
+            .count();
+        (total, active)
+    }
+}
+
+// ============================================================================
+// Revenue Budget Service
+// ============================================================================
+
+/// Revenue Budget service
+/// Oracle Fusion: Financials > Budgeting > Revenue Budgets
+#[allow(dead_code)]
+pub struct RevenueBudgetService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid revenue budget types
+#[allow(dead_code)]
+const VALID_REVENUE_BUDGET_TYPES: &[&str] = &[
+    "annual", "quarterly", "monthly", "rolling",
+];
+
+/// Valid revenue budget dimensions
+#[allow(dead_code)]
+const VALID_REVENUE_DIMENSIONS: &[&str] = &[
+    "customer", "product", "region", "business_unit", "sales_rep", "total",
+];
+
+impl RevenueBudgetService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate revenue budget variance
+    pub fn calculate_variance(budget_amount: f64, actual_amount: f64) -> f64 {
+        actual_amount - budget_amount
+    }
+
+    /// Calculate variance percentage
+    pub fn calculate_variance_percent(budget_amount: f64, actual_amount: f64) -> f64 {
+        if budget_amount <= 0.0 {
+            return 0.0;
+        }
+        ((actual_amount - budget_amount) / budget_amount) * 100.0
+    }
+
+    /// Calculate remaining budget
+    pub fn calculate_remaining_budget(
+        budget_amount: f64,
+        actual_amount: f64,
+        committed_amount: f64,
+    ) -> f64 {
+        (budget_amount - actual_amount - committed_amount).max(0.0)
+    }
+
+    /// Calculate budget utilization percentage
+    pub fn calculate_utilization(
+        actual_amount: f64,
+        committed_amount: f64,
+        budget_amount: f64,
+    ) -> f64 {
+        if budget_amount <= 0.0 {
+            return 0.0;
+        }
+        ((actual_amount + committed_amount) / budget_amount) * 100.0
+    }
+
+    /// Calculate forecast accuracy (how close actual was to budget)
+    pub fn calculate_forecast_accuracy(
+        budget_amount: f64,
+        actual_amount: f64,
+    ) -> f64 {
+        if budget_amount <= 0.0 && actual_amount <= 0.0 {
+            return 100.0; // Both zero = perfect
+        }
+        if budget_amount <= 0.0 {
+            return 0.0;
+        }
+        let error_pct = ((actual_amount - budget_amount).abs() / budget_amount) * 100.0;
+        (100.0 - error_pct).max(0.0)
+    }
+
+    /// Distribute annual budget across periods
+    pub fn distribute_budget_to_periods(
+        annual_budget: f64,
+        period_weights: &[f64],
+    ) -> Vec<f64> {
+        let total_weight: f64 = period_weights.iter().sum();
+        if total_weight <= 0.0 {
+            return vec![0.0; period_weights.len()];
+        }
+        period_weights.iter()
+            .map(|w| annual_budget * (w / total_weight))
+            .collect()
+    }
+
+    /// Calculate rolling forecast adjustment
+    pub fn calculate_rolling_adjustment(
+        original_budget: f64,
+        actual_ytd: f64,
+        remaining_periods: i32,
+        total_periods: i32,
+    ) -> f64 {
+        if remaining_periods <= 0 || total_periods <= 0 {
+            return 0.0;
+        }
+        let elapsed_periods = total_periods - remaining_periods;
+        let remaining_budget = original_budget - actual_ytd;
+        let average_actual = if elapsed_periods > 0 {
+            actual_ytd / elapsed_periods as f64
+        } else {
+            original_budget / total_periods as f64
+        };
+        // Forecast = average actual * remaining + actual YTD
+        let forecast = average_actual * total_periods as f64;
+        forecast - original_budget
+    }
+}
+
+// ============================================================================
+// Financial Dimension Service
+// ============================================================================
+
+/// Financial Dimension service
+/// Oracle Fusion: General Ledger > Financial Dimensions
+#[allow(dead_code)]
+pub struct FinancialDimensionService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid dimension types
+#[allow(dead_code)]
+const VALID_DIMENSION_TYPES: &[&str] = &[
+    "cost_center", "department", "location", "project",
+    "product", "customer", "region", "business_unit", "custom",
+];
+
+/// Valid dimension value statuses
+#[allow(dead_code)]
+const VALID_DIMENSION_VALUE_STATUSES: &[&str] = &[
+    "active", "inactive", "pending",
+];
+
+impl FinancialDimensionService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Build tree path for a dimension value
+    pub fn build_tree_path(parent_path: &str, value_code: &str) -> String {
+        if parent_path.is_empty() {
+            format!("/{}", value_code)
+        } else {
+            format!("{}/{}", parent_path, value_code)
+        }
+    }
+
+    /// Get tree level from path (count of segments)
+    pub fn get_tree_level(tree_path: &str) -> i32 {
+        if tree_path.is_empty() {
+            return 0;
+        }
+        tree_path.matches('/').count() as i32
+    }
+
+    /// Check if a value is descendant of another
+    pub fn is_descendant(child_path: &str, parent_path: &str) -> bool {
+        child_path.starts_with(parent_path) && child_path != parent_path
+    }
+
+    /// Get all ancestor paths for a given tree path
+    pub fn get_ancestors(tree_path: &str) -> Vec<String> {
+        let parts: Vec<&str> = tree_path.split('/').filter(|s| !s.is_empty()).collect();
+        let mut ancestors = Vec::new();
+        for i in 1..parts.len() {
+            let path = format!("/{}", parts[..i].join("/"));
+            ancestors.push(path);
+        }
+        ancestors
+    }
+
+    /// Check if a dimension value is within a date range
+    pub fn is_value_effective(
+        value_from: Option<chrono::NaiveDate>,
+        value_to: Option<chrono::NaiveDate>,
+        check_date: chrono::NaiveDate,
+    ) -> bool {
+        let after_from = value_from.map_or(true, |f| check_date >= f);
+        let before_to = value_to.map_or(true, |t| check_date <= t);
+        after_from && before_to
+    }
+}
+
+// ============================================================================
+// AutoOffset Service
+// ============================================================================
+
+/// AutoOffset service
+/// Oracle Fusion: Intercompany > AutoOffsets
+#[allow(dead_code)]
+pub struct AutoOffsetService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid trigger sources for auto-offsets
+#[allow(dead_code)]
+const VALID_OFFSET_SOURCES: &[&str] = &[
+    "payables", "receivables", "general_ledger", "inventory", "assets",
+];
+
+/// Valid offset methods
+#[allow(dead_code)]
+const VALID_OFFSET_METHODS: &[&str] = &[
+    "netting", "full_offset", "proportional",
+];
+
+/// Valid clearing methods
+#[allow(dead_code)]
+const VALID_CLEARING_METHODS: &[&str] = &[
+    "auto", "manual", "scheduled",
+];
+
+impl AutoOffsetService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate netting offset between two entities
+    pub fn calculate_netting_offset(
+        entity_a_payable: f64,
+        entity_a_receivable: f64,
+        entity_b_payable: f64,
+        entity_b_receivable: f64,
+    ) -> (f64, f64) {
+        let net_a = entity_a_receivable - entity_a_payable;
+        let net_b = entity_b_receivable - entity_b_payable;
+        // Netting: offset the smaller amount
+        let offset_amount = net_a.abs().min(net_b.abs());
+        (offset_amount, offset_amount)
+    }
+
+    /// Calculate proportional offset based on transaction ratios
+    pub fn calculate_proportional_offset(
+        total_amount: f64,
+        entity_percentage: f64,
+    ) -> f64 {
+        total_amount * (entity_percentage / 100.0)
+    }
+
+    /// Validate that offset entries balance
+    pub fn validate_offset_balance(
+        debit_amount: f64,
+        credit_amount: f64,
+        tolerance: f64,
+    ) -> bool {
+        (debit_amount - credit_amount).abs() <= tolerance
+    }
+
+    /// Calculate imbalance amount
+    pub fn calculate_imbalance(
+        debit_total: f64,
+        credit_total: f64,
+    ) -> f64 {
+        debit_total - credit_total
+    }
+
+    /// Check if auto-offset rule is within effective date range
+    pub fn is_rule_effective(
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
+        transaction_date: chrono::NaiveDate,
+    ) -> bool {
+        let after_from = effective_from.map_or(true, |f| transaction_date >= f);
+        let before_to = effective_to.map_or(true, |t| transaction_date <= t);
+        after_from && before_to
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -14427,5 +14920,815 @@ mod tests {
         // All unique names
         let names: std::collections::HashSet<&str> = entities.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names.len(), 6, "All 6 new entity names must be unique");
+    }
+
+    // ========================================================================
+    // Interest Invoice Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_interest_invoice_definition() {
+        let def = entities::interest_invoice_definition();
+        assert_eq!(def.name, "interest_invoices");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_interest_invoice_template_definition() {
+        let def = entities::interest_invoice_template_definition();
+        assert_eq!(def.name, "interest_invoice_templates");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_interest_invoice_workflow_transitions() {
+        let def = entities::interest_invoice_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "cancelled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "posted"));
+    }
+
+    // ========================================================================
+    // Interest Invoice Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_interest_bases_valid() {
+        for b in &["daily", "monthly", "annual"] {
+            assert!(super::VALID_INTEREST_INVOICE_BASES.contains(b));
+        }
+        assert!(!super::VALID_INTEREST_INVOICE_BASES.contains(&"weekly"));
+    }
+
+    #[test]
+    fn test_compounding_methods_valid() {
+        for m in &["simple", "compound_daily", "compound_monthly"] {
+            assert!(super::VALID_COMPOUNDING_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_interest_simple_calculation() {
+        // $10,000 overdue for 60 days at 12% annual, 365-day basis
+        let interest = super::InterestInvoiceService::calculate_simple_interest(
+            10000.0, 12.0, 60, 365,
+        );
+        // 10000 * 0.12 * (60/365) ≈ 197.26
+        assert!(interest > 196.0 && interest < 199.0);
+    }
+
+    #[test]
+    fn test_interest_invoice_zero_days() {
+        let interest = super::InterestInvoiceService::calculate_simple_interest(
+            10000.0, 12.0, 0, 365,
+        );
+        assert_eq!(interest, 0.0);
+    }
+
+    #[test]
+    fn test_interest_invoice_zero_basis() {
+        let interest = super::InterestInvoiceService::calculate_simple_interest(
+            10000.0, 12.0, 60, 0,
+        );
+        assert_eq!(interest, 0.0);
+    }
+
+    #[test]
+    fn test_compound_interest_daily() {
+        // $10,000 at 12% annual for 30 days, daily compounding
+        let interest = super::InterestInvoiceService::calculate_compound_interest_daily(
+            10000.0, 12.0, 30, 365,
+        );
+        // Should be slightly more than simple interest due to compounding
+        let simple = super::InterestInvoiceService::calculate_simple_interest(
+            10000.0, 12.0, 30, 365,
+        );
+        assert!(interest > simple);
+        assert!(interest > 95.0 && interest < 105.0);
+    }
+
+    #[test]
+    fn test_compound_interest_monthly() {
+        // $10,000 at 12% annual for 6 months, monthly compounding
+        let interest = super::InterestInvoiceService::calculate_compound_interest_monthly(
+            10000.0, 12.0, 6,
+        );
+        // 10000 * ((1 + 0.01)^6 - 1) ≈ 615.20
+        assert!(interest > 610.0 && interest < 620.0);
+    }
+
+    #[test]
+    fn test_compound_interest_monthly_zero_months() {
+        let interest = super::InterestInvoiceService::calculate_compound_interest_monthly(
+            10000.0, 12.0, 0,
+        );
+        assert_eq!(interest, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_days_overdue() {
+        let due = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let as_of = chrono::NaiveDate::from_ymd_opt(2025, 2, 1).unwrap();
+        let days = super::InterestInvoiceService::calculate_days_overdue(due, as_of);
+        assert_eq!(days, 31);
+    }
+
+    #[test]
+    fn test_is_overdue_true() {
+        assert!(super::InterestInvoiceService::is_overdue(45, 30));
+    }
+
+    #[test]
+    fn test_is_overdue_false_within_grace() {
+        assert!(!super::InterestInvoiceService::is_overdue(20, 30));
+    }
+
+    #[test]
+    fn test_is_overdue_at_grace_boundary() {
+        assert!(!super::InterestInvoiceService::is_overdue(30, 30));
+    }
+
+    #[test]
+    fn test_apply_interest_limits_within_range() {
+        let result = super::InterestInvoiceService::apply_interest_limits(500.0, 100.0, 1000.0);
+        assert!((result - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_apply_interest_limits_capped_at_max() {
+        let result = super::InterestInvoiceService::apply_interest_limits(1500.0, 100.0, 1000.0);
+        assert!((result - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_apply_interest_limits_below_minimum() {
+        let result = super::InterestInvoiceService::apply_interest_limits(50.0, 100.0, 1000.0);
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_apply_interest_limits_no_max() {
+        let result = super::InterestInvoiceService::apply_interest_limits(5000.0, 100.0, 0.0);
+        assert!((result - 5000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_interest_tax() {
+        let tax = super::InterestInvoiceService::calculate_interest_tax(500.0, 10.0);
+        assert!((tax - 50.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_interest_tax_zero_rate() {
+        let tax = super::InterestInvoiceService::calculate_interest_tax(500.0, 0.0);
+        assert_eq!(tax, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_total_amount_with_tax() {
+        let total = super::InterestInvoiceService::calculate_total_amount(500.0, 50.0);
+        assert!((total - 550.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_total_amount_no_tax() {
+        let total = super::InterestInvoiceService::calculate_total_amount(500.0, 0.0);
+        assert!((total - 500.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Payment Batch Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_payment_batch_definition() {
+        let def = entities::payment_batch_definition();
+        assert_eq!(def.name, "payment_batches");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "formatted"));
+        assert!(wf.states.iter().any(|s| s.name == "confirmed"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_payment_batch_line_definition() {
+        let def = entities::payment_batch_line_definition();
+        assert_eq!(def.name, "payment_batch_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_payment_batch_workflow_transitions() {
+        let def = entities::payment_batch_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "formatted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "formatted" && t.to_state == "confirmed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "confirmed" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "formatted" && t.to_state == "cancelled"));
+    }
+
+    // ========================================================================
+    // Payment Batch Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_batch_statuses_valid() {
+        for s in &["draft", "formatted", "confirmed", "completed", "cancelled"] {
+            assert!(super::VALID_BATCH_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_batch_payment_methods_valid() {
+        for m in &["check", "electronic", "wire", "ach", "swift"] {
+            assert!(super::VALID_BATCH_PAYMENT_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_calculate_batch_total() {
+        let amounts = vec![5000.0, 3000.0, 2000.0, 8000.0];
+        let total = super::PaymentBatchService::calculate_batch_total(&amounts);
+        assert!((total - 18000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_batch_total_empty() {
+        let amounts: Vec<f64> = vec![];
+        let total = super::PaymentBatchService::calculate_batch_total(&amounts);
+        assert_eq!(total, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_total_discount() {
+        let discounts = vec![100.0, 50.0, 200.0];
+        let total = super::PaymentBatchService::calculate_total_discount(&discounts);
+        assert!((total - 350.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_net_batch_amount() {
+        let net = super::PaymentBatchService::calculate_net_batch_amount(18000.0, 350.0);
+        assert!((net - 17650.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_is_within_tolerance_pass() {
+        assert!(super::PaymentBatchService::is_within_tolerance(998.0, 1000.0, 1.0));
+    }
+
+    #[test]
+    fn test_is_within_tolerance_fail() {
+        assert!(!super::PaymentBatchService::is_within_tolerance(980.0, 1000.0, 1.0));
+    }
+
+    #[test]
+    fn test_is_within_tolerance_zero_invoice() {
+        assert!(!super::PaymentBatchService::is_within_tolerance(500.0, 0.0, 1.0));
+    }
+
+    #[test]
+    fn test_validate_batch_totals_valid() {
+        let lines = vec![5000.0, 3000.0, 2000.0];
+        assert!(super::PaymentBatchService::validate_batch_totals(10000.0, &lines, 0.01));
+    }
+
+    #[test]
+    fn test_validate_batch_totals_invalid() {
+        let lines = vec![5000.0, 3000.0, 2000.0];
+        assert!(!super::PaymentBatchService::validate_batch_totals(11000.0, &lines, 0.01));
+    }
+
+    #[test]
+    fn test_count_payments() {
+        let statuses = vec!["selected", "formatted", "removed", "formatted"];
+        let (total, active) = super::PaymentBatchService::count_payments(&statuses);
+        assert_eq!(total, 4);
+        assert_eq!(active, 3); // 3 non-removed
+    }
+
+    // ========================================================================
+    // Revenue Budget Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_revenue_budget_definition() {
+        let def = entities::revenue_budget_definition();
+        assert_eq!(def.name, "revenue_budgets");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+        assert!(wf.states.iter().any(|s| s.name == "closed"));
+    }
+
+    #[test]
+    fn test_revenue_budget_line_definition() {
+        let def = entities::revenue_budget_line_definition();
+        assert_eq!(def.name, "revenue_budget_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_revenue_budget_workflow_transitions() {
+        let def = entities::revenue_budget_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "rejected"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "closed"));
+    }
+
+    // ========================================================================
+    // Revenue Budget Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_revenue_budget_types_valid() {
+        for t in &["annual", "quarterly", "monthly", "rolling"] {
+            assert!(super::VALID_REVENUE_BUDGET_TYPES.contains(t));
+        }
+        assert!(!super::VALID_REVENUE_BUDGET_TYPES.contains(&"weekly"));
+    }
+
+    #[test]
+    fn test_revenue_dimensions_valid() {
+        for d in &["customer", "product", "region", "business_unit", "sales_rep", "total"] {
+            assert!(super::VALID_REVENUE_DIMENSIONS.contains(d));
+        }
+    }
+
+    #[test]
+    fn test_revenue_variance_positive() {
+        let v = super::RevenueBudgetService::calculate_variance(100000.0, 120000.0);
+        assert!((v - 20000.0).abs() < 0.01); // Favorable
+    }
+
+    #[test]
+    fn test_revenue_variance_negative() {
+        let v = super::RevenueBudgetService::calculate_variance(100000.0, 80000.0);
+        assert!((v - (-20000.0)).abs() < 0.01); // Unfavorable
+    }
+
+    #[test]
+    fn test_revenue_variance_percent_favorable() {
+        let pct = super::RevenueBudgetService::calculate_variance_percent(100000.0, 120000.0);
+        assert!((pct - 20.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_revenue_variance_percent_unfavorable() {
+        let pct = super::RevenueBudgetService::calculate_variance_percent(100000.0, 80000.0);
+        assert!((pct - (-20.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_revenue_variance_percent_zero_budget() {
+        let pct = super::RevenueBudgetService::calculate_variance_percent(0.0, 50000.0);
+        assert_eq!(pct, 0.0);
+    }
+
+    #[test]
+    fn test_remaining_budget_normal() {
+        let remaining = super::RevenueBudgetService::calculate_remaining_budget(
+            100000.0, 60000.0, 20000.0,
+        );
+        assert!((remaining - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_remaining_budget_exceeded() {
+        let remaining = super::RevenueBudgetService::calculate_remaining_budget(
+            100000.0, 80000.0, 30000.0,
+        );
+        assert_eq!(remaining, 0.0); // Clamped to zero
+    }
+
+    #[test]
+    fn test_revenue_utilization() {
+        let pct = super::RevenueBudgetService::calculate_utilization(
+            50000.0, 30000.0, 100000.0,
+        );
+        assert!((pct - 80.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_revenue_utilization_zero_budget() {
+        let pct = super::RevenueBudgetService::calculate_utilization(
+            50000.0, 30000.0, 0.0,
+        );
+        assert_eq!(pct, 0.0);
+    }
+
+    #[test]
+    fn test_forecast_accuracy_perfect() {
+        let accuracy = super::RevenueBudgetService::calculate_forecast_accuracy(
+            100000.0, 100000.0,
+        );
+        assert!((accuracy - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_forecast_accuracy_90pct() {
+        let accuracy = super::RevenueBudgetService::calculate_forecast_accuracy(
+            100000.0, 90000.0,
+        );
+        assert!((accuracy - 90.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_forecast_accuracy_both_zero() {
+        let accuracy = super::RevenueBudgetService::calculate_forecast_accuracy(0.0, 0.0);
+        assert_eq!(accuracy, 100.0);
+    }
+
+    #[test]
+    fn test_forecast_accuracy_zero_budget() {
+        let accuracy = super::RevenueBudgetService::calculate_forecast_accuracy(0.0, 50000.0);
+        assert_eq!(accuracy, 0.0);
+    }
+
+    #[test]
+    fn test_distribute_budget_equal_weights() {
+        let weights = vec![1.0; 4];
+        let amounts = super::RevenueBudgetService::distribute_budget_to_periods(
+            120000.0, &weights,
+        );
+        assert_eq!(amounts.len(), 4);
+        for amt in &amounts {
+            assert!((amt - 30000.0).abs() < 0.01);
+        }
+    }
+
+    #[test]
+    fn test_distribute_budget_seasonal_weights() {
+        let weights = vec![1.0, 1.5, 2.0, 1.5, 2.5, 1.5];
+        let amounts = super::RevenueBudgetService::distribute_budget_to_periods(
+            600000.0, &weights,
+        );
+        let total: f64 = amounts.iter().sum();
+        assert!((total - 600000.0).abs() < 0.01);
+        // Q1 (w=1) < Q4 (w=2.5)
+        assert!(amounts[0] < amounts[4]);
+    }
+
+    #[test]
+    fn test_distribute_budget_zero_weights() {
+        let weights = vec![0.0; 4];
+        let amounts = super::RevenueBudgetService::distribute_budget_to_periods(
+            120000.0, &weights,
+        );
+        for amt in &amounts {
+            assert_eq!(*amt, 0.0);
+        }
+    }
+
+    #[test]
+    fn test_rolling_adjustment_on_track() {
+        // Budget: 120k, Actual YTD (6 months): 60k, Remaining: 6 of 12
+        let adj = super::RevenueBudgetService::calculate_rolling_adjustment(
+            120000.0, 60000.0, 6, 12,
+        );
+        // avg_actual = 60k / 6 = 10k/month, forecast = 10k * 12 = 120k
+        // adj = 120k - 120k = 0
+        assert!((adj - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rolling_adjustment_underperforming() {
+        // Budget: 120k, Actual YTD (6 months): 48k, Remaining: 6 of 12
+        let adj = super::RevenueBudgetService::calculate_rolling_adjustment(
+            120000.0, 48000.0, 6, 12,
+        );
+        // avg_actual = 48k / 6 = 8k/month, forecast = 8k * 12 = 96k
+        // adj = 96k - 120k = -24k (underperforming)
+        assert!(adj < 0.0);
+        assert!((adj - (-24000.0)).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Financial Dimension Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_financial_dimension_definition() {
+        let def = entities::financial_dimension_definition();
+        assert_eq!(def.name, "financial_dimensions");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_financial_dimension_value_definition() {
+        let def = entities::financial_dimension_value_definition();
+        assert_eq!(def.name, "financial_dimension_values");
+        assert!(def.workflow.is_none());
+    }
+
+    // ========================================================================
+    // Financial Dimension Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_dimension_types_valid() {
+        for t in &["cost_center", "department", "location", "project",
+                   "product", "customer", "region", "business_unit", "custom"] {
+            assert!(super::VALID_DIMENSION_TYPES.contains(t));
+        }
+        assert!(!super::VALID_DIMENSION_TYPES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_dimension_value_statuses_valid() {
+        for s in &["active", "inactive", "pending"] {
+            assert!(super::VALID_DIMENSION_VALUE_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_build_tree_path_root() {
+        let path = super::FinancialDimensionService::build_tree_path("", "ROOT");
+        assert_eq!(path, "/ROOT");
+    }
+
+    #[test]
+    fn test_build_tree_path_child() {
+        let path = super::FinancialDimensionService::build_tree_path("/ROOT", "CHILD");
+        assert_eq!(path, "/ROOT/CHILD");
+    }
+
+    #[test]
+    fn test_build_tree_path_grandchild() {
+        let path = super::FinancialDimensionService::build_tree_path("/ROOT/CHILD", "GRANDCHILD");
+        assert_eq!(path, "/ROOT/CHILD/GRANDCHILD");
+    }
+
+    #[test]
+    fn test_get_tree_level() {
+        assert_eq!(super::FinancialDimensionService::get_tree_level("/ROOT"), 1);
+        assert_eq!(super::FinancialDimensionService::get_tree_level("/ROOT/CHILD"), 2);
+        assert_eq!(super::FinancialDimensionService::get_tree_level("/A/B/C"), 3);
+        assert_eq!(super::FinancialDimensionService::get_tree_level(""), 0);
+    }
+
+    #[test]
+    fn test_is_descendant_true() {
+        assert!(super::FinancialDimensionService::is_descendant("/A/B", "/A"));
+        assert!(super::FinancialDimensionService::is_descendant("/A/B/C", "/A/B"));
+    }
+
+    #[test]
+    fn test_is_descendant_false_same() {
+        assert!(!super::FinancialDimensionService::is_descendant("/A", "/A"));
+    }
+
+    #[test]
+    fn test_is_descendant_false_unrelated() {
+        assert!(!super::FinancialDimensionService::is_descendant("/B/C", "/A"));
+    }
+
+    #[test]
+    fn test_get_ancestors() {
+        let ancestors = super::FinancialDimensionService::get_ancestors("/A/B/C");
+        assert_eq!(ancestors.len(), 2);
+        assert_eq!(ancestors[0], "/A");
+        assert_eq!(ancestors[1], "/A/B");
+    }
+
+    #[test]
+    fn test_get_ancestors_root() {
+        let ancestors = super::FinancialDimensionService::get_ancestors("/ROOT");
+        assert!(ancestors.is_empty());
+    }
+
+    #[test]
+    fn test_is_value_effective_no_dates() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(super::FinancialDimensionService::is_value_effective(None, None, date));
+    }
+
+    #[test]
+    fn test_is_value_effective_in_range() {
+        let from = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let to = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(super::FinancialDimensionService::is_value_effective(Some(from), Some(to), date));
+    }
+
+    #[test]
+    fn test_is_value_effective_outside_range() {
+        let from = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let to = chrono::NaiveDate::from_ymd_opt(2025, 3, 31).unwrap();
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(!super::FinancialDimensionService::is_value_effective(Some(from), Some(to), date));
+    }
+
+    // ========================================================================
+    // AutoOffset Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_auto_offset_rule_definition() {
+        let def = entities::auto_offset_rule_definition();
+        assert_eq!(def.name, "auto_offset_rules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_auto_offset_workflow_transitions() {
+        let def = entities::auto_offset_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    // ========================================================================
+    // AutoOffset Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_offset_sources_valid() {
+        for s in &["payables", "receivables", "general_ledger", "inventory", "assets"] {
+            assert!(super::VALID_OFFSET_SOURCES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_offset_methods_valid() {
+        for m in &["netting", "full_offset", "proportional"] {
+            assert!(super::VALID_OFFSET_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_clearing_methods_valid() {
+        for m in &["auto", "manual", "scheduled"] {
+            assert!(super::VALID_CLEARING_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_netting_offset_calculation() {
+        let (off_a, off_b) = super::AutoOffsetService::calculate_netting_offset(
+            50000.0, 30000.0, // Entity A: owes 50k, owed 30k => net -20k
+            40000.0, 60000.0, // Entity B: owes 40k, owed 60k => net +20k
+        );
+        // Offset = min(20k, 20k) = 20k
+        assert!((off_a - 20000.0).abs() < 0.01);
+        assert!((off_b - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_netting_offset_asymmetric() {
+        let (off_a, off_b) = super::AutoOffsetService::calculate_netting_offset(
+            60000.0, 20000.0, // Entity A: net -40k
+            10000.0, 30000.0, // Entity B: net +20k
+        );
+        // Offset = min(40k, 20k) = 20k
+        assert!((off_a - 20000.0).abs() < 0.01);
+        assert!((off_b - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_proportional_offset() {
+        let offset = super::AutoOffsetService::calculate_proportional_offset(
+            100000.0, 60.0,
+        );
+        assert!((offset - 60000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_proportional_offset_zero_percentage() {
+        let offset = super::AutoOffsetService::calculate_proportional_offset(
+            100000.0, 0.0,
+        );
+        assert_eq!(offset, 0.0);
+    }
+
+    #[test]
+    fn test_validate_offset_balance_balanced() {
+        assert!(super::AutoOffsetService::validate_offset_balance(10000.0, 10000.0, 0.01));
+    }
+
+    #[test]
+    fn test_validate_offset_balance_within_tolerance() {
+        assert!(super::AutoOffsetService::validate_offset_balance(10000.0, 10000.005, 0.01));
+    }
+
+    #[test]
+    fn test_validate_offset_balance_imbalanced() {
+        assert!(!super::AutoOffsetService::validate_offset_balance(10000.0, 9990.0, 0.01));
+    }
+
+    #[test]
+    fn test_calculate_imbalance_positive() {
+        let imb = super::AutoOffsetService::calculate_imbalance(50000.0, 45000.0);
+        assert!((imb - 5000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_imbalance_negative() {
+        let imb = super::AutoOffsetService::calculate_imbalance(45000.0, 50000.0);
+        assert!((imb - (-5000.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_imbalance_balanced() {
+        let imb = super::AutoOffsetService::calculate_imbalance(50000.0, 50000.0);
+        assert_eq!(imb, 0.0);
+    }
+
+    #[test]
+    fn test_is_rule_effective_no_dates() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(super::AutoOffsetService::is_rule_effective(None, None, date));
+    }
+
+    #[test]
+    fn test_is_rule_effective_in_range() {
+        let from = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let to = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(super::AutoOffsetService::is_rule_effective(Some(from), Some(to), date));
+    }
+
+    #[test]
+    fn test_is_rule_effective_before_start() {
+        let from = chrono::NaiveDate::from_ymd_opt(2025, 7, 1).unwrap();
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(!super::AutoOffsetService::is_rule_effective(Some(from), None, date));
+    }
+
+    #[test]
+    fn test_is_rule_effective_after_end() {
+        let to = chrono::NaiveDate::from_ymd_opt(2025, 3, 31).unwrap();
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(!super::AutoOffsetService::is_rule_effective(None, Some(to), date));
+    }
+
+    // ========================================================================
+    // Grand Total: New Oracle Fusion Feature Entities Build
+    // ========================================================================
+
+    #[test]
+    fn test_new_oracle_fusion_feature_entities_all_build() {
+        let _ = entities::interest_invoice_definition();
+        let _ = entities::interest_invoice_template_definition();
+        let _ = entities::payment_batch_definition();
+        let _ = entities::payment_batch_line_definition();
+        let _ = entities::revenue_budget_definition();
+        let _ = entities::revenue_budget_line_definition();
+        let _ = entities::financial_dimension_definition();
+        let _ = entities::financial_dimension_value_definition();
+        let _ = entities::auto_offset_rule_definition();
+    }
+
+    #[test]
+    fn test_new_interest_features_entity_count() {
+        let new_entities = vec![
+            entities::interest_invoice_definition(),
+            entities::interest_invoice_template_definition(),
+            entities::payment_batch_definition(),
+            entities::payment_batch_line_definition(),
+            entities::revenue_budget_definition(),
+            entities::revenue_budget_line_definition(),
+            entities::financial_dimension_definition(),
+            entities::financial_dimension_value_definition(),
+            entities::auto_offset_rule_definition(),
+        ];
+        assert_eq!(new_entities.len(), 9, "Should have 9 new Oracle Fusion feature entities");
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 9, "All 9 entity names must be unique");
+    }
+
+    #[test]
+    fn test_new_interest_features_workflow_count() {
+        let workflow_entities = vec![
+            entities::interest_invoice_definition(),
+            entities::payment_batch_definition(),
+            entities::revenue_budget_definition(),
+            entities::auto_offset_rule_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 4, "All 4 workflow entities should have workflows");
     }
 }

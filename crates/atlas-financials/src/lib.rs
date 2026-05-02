@@ -66,4 +66,9 @@ pub use services::{
     DepreciationRunService,
     DistributionSetService,
     BudgetOrganizationService,
+    InterestInvoiceService,
+    PaymentBatchService,
+    RevenueBudgetService,
+    FinancialDimensionService,
+    AutoOffsetService,
 };

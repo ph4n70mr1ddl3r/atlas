@@ -109,3 +109,6 @@ mod customer_deposit;
 mod cash_position;
 mod accounting_hub;
 mod financial_controls;
+mod payment_terms;
+mod lockbox;
+mod ar_aging;

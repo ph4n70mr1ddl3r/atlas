@@ -111,6 +111,9 @@ pub mod customer_deposit;
 pub mod cash_position;
 pub mod accounting_hub;
 pub mod financial_controls;
+pub mod payment_terms;
+pub mod lockbox;
+pub mod ar_aging;
 
 pub use schema::*;
 pub use records::*;
@@ -4053,6 +4056,55 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/financial-controls/rules", get(financial_controls::list_control_rules))
         .route("/financial-controls/rules/:code", delete(financial_controls::delete_control_rule))
         .route("/financial-controls/dashboard", get(financial_controls::get_financial_controls_dashboard))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Payment Terms Management (Oracle Fusion: Financials > Payment Terms)
+        // ════════════════════════════════════════════════════════════════════════════════
+        .route("/payment-terms", post(payment_terms::create_term))
+        .route("/payment-terms", get(payment_terms::list_terms))
+        .route("/payment-terms/:id", get(payment_terms::get_term))
+        .route("/payment-terms/:id/activate", post(payment_terms::activate_term))
+        .route("/payment-terms/:id/deactivate", post(payment_terms::deactivate_term))
+        .route("/payment-terms/:id", delete(payment_terms::delete_term))
+        .route("/payment-terms/:term_id/discount-schedules", post(payment_terms::create_discount_schedule))
+        .route("/payment-terms/:term_id/discount-schedules", get(payment_terms::list_discount_schedules))
+        .route("/payment-terms/:term_id/discount-schedules/:schedule_id", delete(payment_terms::delete_discount_schedule))
+        .route("/payment-terms/:term_id/installments", post(payment_terms::create_installment))
+        .route("/payment-terms/:term_id/installments", get(payment_terms::list_installments))
+        .route("/payment-terms/:term_id/installments/:installment_id", delete(payment_terms::delete_installment))
+        .route("/payment-terms/dashboard", get(payment_terms::get_payment_terms_dashboard))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Lockbox Processing (Oracle Fusion: AR > Lockbox)
+        // ════════════════════════════════════════════════════════════════════════════════
+        .route("/lockbox/batches", post(lockbox::create_batch))
+        .route("/lockbox/batches", get(lockbox::list_batches))
+        .route("/lockbox/batches/:id", get(lockbox::get_batch))
+        .route("/lockbox/batches/:id/validate", post(lockbox::validate_batch))
+        .route("/lockbox/batches/:id/apply", post(lockbox::apply_batch))
+        .route("/lockbox/batches/:batch_id/receipts", post(lockbox::create_receipt))
+        .route("/lockbox/batches/:batch_id/receipts", get(lockbox::list_receipts))
+        .route("/lockbox/receipts/:receipt_id/apply", post(lockbox::manual_apply_receipt))
+        .route("/lockbox/receipts/:receipt_id/applications", get(lockbox::list_applications))
+        .route("/lockbox/formats", post(lockbox::create_format))
+        .route("/lockbox/formats", get(lockbox::list_formats))
+        .route("/lockbox/dashboard", get(lockbox::get_lockbox_dashboard))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // AR Aging Analysis (Oracle Fusion: AR > Aging Reports)
+        // ════════════════════════════════════════════════════════════════════════════════
+        .route("/ar-aging/definitions", post(ar_aging::create_definition))
+        .route("/ar-aging/definitions", get(ar_aging::list_definitions))
+        .route("/ar-aging/definitions/:id", get(ar_aging::get_definition))
+        .route("/ar-aging/definitions/:id", delete(ar_aging::delete_definition))
+        .route("/ar-aging/definitions/:def_id/buckets", post(ar_aging::create_bucket))
+        .route("/ar-aging/definitions/:def_id/buckets", get(ar_aging::list_buckets))
+        .route("/ar-aging/snapshots", post(ar_aging::create_snapshot))
+        .route("/ar-aging/snapshots", get(ar_aging::list_snapshots))
+        .route("/ar-aging/snapshots/:id", get(ar_aging::get_snapshot))
+        .route("/ar-aging/snapshots/:snapshot_id/lines", get(ar_aging::list_snapshot_lines))
+        .route("/ar-aging/snapshots/:snapshot_id/summary", get(ar_aging::get_aging_summary))
+        .route("/ar-aging/dashboard", get(ar_aging::get_ar_aging_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -21,6 +21,12 @@ use atlas_core::{
     accounting_hub::PostgresAccountingHubRepository,
     FinancialControlsEngine,
     financial_controls::PostgresFinancialControlsRepository,
+    PaymentTermsEngine,
+    payment_terms::PostgresPaymentTermsRepository,
+    LockboxEngine,
+    lockbox::PostgresLockboxRepository,
+    ArAgingEngine,
+    ar_aging::PostgresArAgingRepository,
     SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
     SecurityEngine, AuditEngine,
     NotificationEngine,
@@ -333,6 +339,9 @@ pub struct AppState {
     pub cash_position_engine: Arc<CashPositionEngine>,
     pub accounting_hub_engine: Arc<AccountingHubEngine>,
     pub financial_controls_engine: Arc<FinancialControlsEngine>,
+    pub payment_terms_engine: Arc<PaymentTermsEngine>,
+    pub lockbox_engine: Arc<LockboxEngine>,
+    pub ar_aging_engine: Arc<ArAgingEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -912,6 +921,21 @@ impl AppState {
             PostgresFinancialControlsRepository::new(db_pool.clone())
         )));
 
+        // Initialize Payment Terms engine
+        let payment_terms_engine = Arc::new(PaymentTermsEngine::new(Arc::new(
+            PostgresPaymentTermsRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Lockbox Processing engine
+        let lockbox_engine = Arc::new(LockboxEngine::new(Arc::new(
+            PostgresLockboxRepository::new(db_pool.clone())
+        )));
+
+        // Initialize AR Aging Analysis engine
+        let ar_aging_engine = Arc::new(ArAgingEngine::new(Arc::new(
+            PostgresArAgingRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1065,6 +1089,9 @@ impl AppState {
             cash_position_engine,
             accounting_hub_engine,
             financial_controls_engine,
+            payment_terms_engine,
+            lockbox_engine,
+            ar_aging_engine,
             event_bus,
             jwt_secret,
         };

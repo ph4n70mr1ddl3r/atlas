@@ -134,6 +134,9 @@ pub mod regulatory_reporting;
 pub mod advance_payment;
 pub mod customer_deposit;
 pub mod cash_position;
+pub mod payment_terms;
+pub mod lockbox;
+pub mod ar_aging;
 
 pub use schema::*;
 pub use workflow::{
@@ -269,6 +272,9 @@ pub use regulatory_reporting::RegulatoryReportingEngine;
 pub use advance_payment::{AdvancePaymentEngine, PostgresAdvancePaymentRepository as PostgresAdvancePaymentRepo};
 pub use customer_deposit::{CustomerDepositEngine, PostgresCustomerDepositRepository as PostgresCustomerDepositRepo};
 pub use cash_position::{CashPositionEngine, PostgresCashPositionRepository as PostgresCashPositionRepo};
+pub use payment_terms::{PaymentTermsEngine, PostgresPaymentTermsRepository as PostgresPaymentTermsRepo};
+pub use lockbox::{LockboxEngine, PostgresLockboxRepository as PostgresLockboxRepo};
+pub use ar_aging::{ArAgingEngine, PostgresArAgingRepository as PostgresArAgingRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

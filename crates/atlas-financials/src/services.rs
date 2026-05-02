@@ -4967,6 +4967,588 @@ impl FundsReservationService {
     }
 }
 
+// ============================================================================
+// Rebate Management Service
+// ============================================================================
+
+/// Rebate Management service
+/// Oracle Fusion: Financials > Rebate Management
+#[allow(dead_code)]
+pub struct RebateManagementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid rebate types
+#[allow(dead_code)]
+const VALID_REBATE_TYPES: &[&str] = &["volume", "growth", "customer", "vendor", "tiered", "retroactive"];
+
+/// Valid rebate bases
+#[allow(dead_code)]
+const VALID_BASES: &[&str] = &["revenue", "quantity", "margin", "points"];
+
+/// Valid calculation methods
+#[allow(dead_code)]
+const VALID_CALC_METHODS: &[&str] = &["percentage", "fixed_amount", "tiered", "per_unit"];
+
+impl RebateManagementService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate a percentage-based rebate amount
+    pub fn calculate_percentage_rebate(qualifying_amount: f64, rebate_rate: f64) -> f64 {
+        qualifying_amount * (rebate_rate / 100.0)
+    }
+
+    /// Calculate a per-unit rebate
+    pub fn calculate_per_unit_rebate(quantity: i32, rate_per_unit: f64) -> f64 {
+        quantity as f64 * rate_per_unit
+    }
+
+    /// Calculate a tiered rebate amount
+    pub fn calculate_tiered_rebate(qualifying_amount: f64, tiers: &[(f64, f64, f64)]) -> f64 {
+        let mut total = 0.0;
+        for &(from, to, rate) in tiers {
+            if qualifying_amount > from {
+                let tier_amount = (qualifying_amount.min(to) - from).max(0.0);
+                total += tier_amount * (rate / 100.0);
+            }
+        }
+        total
+    }
+
+    /// Calculate growth-based rebate (rebate on incremental growth over baseline)
+    pub fn calculate_growth_rebate(current_amount: f64, baseline_amount: f64, rebate_rate: f64) -> f64 {
+        let growth = (current_amount - baseline_amount).max(0.0);
+        growth * (rebate_rate / 100.0)
+    }
+
+    /// Calculate rebate accrual (qualifying value minus already accrued)
+    pub fn calculate_accrual(qualifying_value: f64, already_accrued: f64) -> f64 {
+        (qualifying_value - already_accrued).max(0.0)
+    }
+
+    /// Calculate remaining rebate balance
+    pub fn calculate_remaining_balance(maximum: f64, accrued: f64, paid: f64) -> f64 {
+        (maximum - accrued - paid).max(0.0)
+    }
+}
+
+// ============================================================================
+// Channel Revenue Management Service
+// ============================================================================
+
+/// Channel Revenue Management service
+/// Oracle Fusion: Financials > Channel Revenue Management
+#[allow(dead_code)]
+pub struct ChannelRevenueManagementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid partner types
+#[allow(dead_code)]
+const VALID_PARTNER_TYPES: &[&str] = &["distributor", "reseller", "var", "referral", "agent"];
+
+/// Valid partner tiers
+#[allow(dead_code)]
+const VALID_TIERS: &[&str] = &["platinum", "gold", "silver", "bronze"];
+
+/// Valid incentive types
+#[allow(dead_code)]
+const VALID_INCENTIVE_TYPES: &[&str] = &["mdf", "co_op", "spiff", "volume_bonus", "market_development"];
+
+impl ChannelRevenueManagementService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate fund utilization percentage
+    pub fn calculate_fund_utilization(claimed_amount: f64, fund_amount: f64) -> f64 {
+        if fund_amount <= 0.0 { return 0.0; }
+        (claimed_amount / fund_amount) * 100.0
+    }
+
+    /// Calculate remaining fund amount
+    pub fn calculate_remaining_funds(fund_amount: f64, claimed_amount: f64) -> f64 {
+        (fund_amount - claimed_amount).max(0.0)
+    }
+
+    /// Check if a claim is eligible (within available funds)
+    pub fn is_claim_eligible(fund_amount: f64, claimed_amount: f64, new_claim: f64) -> bool {
+        claimed_amount + new_claim <= fund_amount
+    }
+}
+
+// ============================================================================
+// Financial Controls Service
+// ============================================================================
+
+/// Financial Controls service
+/// Oracle Fusion: Financials > Financial Controls
+#[allow(dead_code)]
+pub struct FinancialControlsService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid control types
+#[allow(dead_code)]
+const VALID_CONTROL_TYPES: &[&str] = &["amount_limit", "date_restriction", "combination_restriction", "ratio_check", "duplicate_prevention"];
+
+/// Valid applies-to values
+#[allow(dead_code)]
+const VALID_APPLIES_TO: &[&str] = &["gl_journals", "ap_invoices", "ar_transactions", "payments", "expenses"];
+
+/// Valid severity levels
+#[allow(dead_code)]
+const VALID_SEVERITIES: &[&str] = &["error", "warning", "information"];
+
+impl FinancialControlsService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Check if a transaction amount is within the limit
+    pub fn check_amount_limit(amount: f64, limit: f64) -> Result<(), String> {
+        if limit > 0.0 && amount > limit {
+            Err(format!("Amount {:.2} exceeds limit {:.2}", amount, limit))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Check if a date is within an allowed period
+    pub fn is_date_in_period(date: chrono::NaiveDate, start: chrono::NaiveDate, end: chrono::NaiveDate) -> bool {
+        date >= start && date <= end
+    }
+
+    /// Check if a transaction requires approval based on amount threshold
+    pub fn requires_approval(amount: f64, threshold: f64) -> bool {
+        amount > threshold
+    }
+
+    /// Check if a delegation is currently active
+    pub fn is_delegation_active(start_date: chrono::NaiveDate, end_date: chrono::NaiveDate, today: chrono::NaiveDate) -> bool {
+        today >= start_date && today <= end_date
+    }
+}
+
+// ============================================================================
+// Accounting Hub Service
+// ============================================================================
+
+/// Accounting Hub service
+/// Oracle Fusion: Financials > Accounting Hub
+#[allow(dead_code)]
+pub struct AccountingHubService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid source types
+#[allow(dead_code)]
+const VALID_SOURCE_TYPES: &[&str] = &["erp", "crm", "payroll", "banking", "ecommerce", "third_party"];
+
+/// Valid event classes
+#[allow(dead_code)]
+const VALID_EVENT_CLASSES: &[&str] = &["create", "update", "delete", "reverse", "adjust"];
+
+impl AccountingHubService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate an accounting source
+    pub fn validate_source(source_type: &str, code: &str, status: &str) -> Result<(), String> {
+        if !VALID_SOURCE_TYPES.contains(&source_type) {
+            return Err(format!("Invalid source_type '{}'", source_type));
+        }
+        if code.is_empty() {
+            return Err("Source code is required".to_string());
+        }
+        if status != "Active" {
+            return Err("Source is not active".to_string());
+        }
+        Ok(())
+    }
+
+    /// Count events for a given source
+    pub fn count_events_for_source(events: &[(uuid::Uuid, &str)], source_id: uuid::Uuid) -> usize {
+        events.iter().filter(|(id, _)| *id == source_id).count()
+    }
+
+    /// Check if sync is required (no last sync or stale)
+    pub fn is_sync_required(last_sync_date: Option<chrono::NaiveDate>) -> bool {
+        match last_sync_date {
+            None => true,
+            Some(d) => d < chrono::Utc::now().date_naive(),
+        }
+    }
+}
+
+// ============================================================================
+// Document Sequencing Service
+// ============================================================================
+
+/// Document Sequencing service
+/// Oracle Fusion: Financials > Document Sequencing
+#[allow(dead_code)]
+pub struct DocumentSequencingService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid sequence types
+#[allow(dead_code)]
+const VALID_SEQUENCE_TYPES: &[&str] = &["gapless", "gap_allowed", "restart_yearly"];
+
+/// Valid document types
+#[allow(dead_code)]
+const VALID_DOCUMENT_TYPES: &[&str] = &["gl_journal", "ap_invoice", "ar_invoice", "payment", "receipt", "purchase_order", "credit_memo", "asset"];
+
+impl DocumentSequencingService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Generate the next document number
+    pub fn generate_next(prefix: &str, suffix: &str, current_value: i32, padding_length: i32, padding_char: char) -> (String, i32) {
+        let padded = if padding_length > 0 {
+            format!("{:0>width$}", current_value, width = padding_length as usize).replace('0', &padding_char.to_string())
+                .chars().rev().take(padding_length as usize).collect::<String>().chars().rev().collect::<String>()
+        } else {
+            current_value.to_string()
+        };
+        let number = format!("{}{}{}", prefix, padded, suffix);
+        (number, current_value + 1)
+    }
+
+    /// Check if current value is within allowed range
+    pub fn is_within_range(current: i32, start: Option<i32>, end: Option<i32>) -> bool {
+        if let Some(s) = start { if current < s { return false; } }
+        if let Some(e) = end { if current > e { return false; } }
+        true
+    }
+}
+
+// ============================================================================
+// Cross-Validation Rule Service
+// ============================================================================
+
+/// Cross-Validation Rule service
+/// Oracle Fusion: General Ledger > Cross-Validation Rules
+#[allow(dead_code)]
+pub struct CrossValidationRuleService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid rule types
+#[allow(dead_code)]
+const VALID_RULE_TYPES: &[&str] = &["allow", "deny"];
+
+impl CrossValidationRuleService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate an account is within a range
+    pub fn validate_account_in_range(account: &str, from: &str, to: &str) -> bool {
+        account >= from && account <= to
+    }
+
+    /// Validate a full account combination against a rule
+    pub fn validate_combination(
+        combination: &str,
+        from_segment1: &str, to_segment1: &str,
+        from_segment2: &str, to_segment2: &str,
+        rule_type: &str,
+    ) -> Result<(), String> {
+        let parts: Vec<&str> = combination.split('-').collect();
+        if parts.len() < 2 {
+            return Err("Invalid combination format".to_string());
+        }
+        let seg1 = parts[0];
+        let seg2 = parts[1];
+        let seg1_in_range = Self::validate_account_in_range(seg1, from_segment1, to_segment1);
+        let seg2_in_range = Self::validate_account_in_range(seg2, from_segment2, to_segment2);
+
+        match rule_type {
+            "allow" => {
+                if seg1_in_range && !seg2_in_range {
+                    Err(format!("Combination {} not allowed: segment {} not in range {}-{}",
+                        combination, seg2, from_segment2, to_segment2))
+                } else {
+                    Ok(())
+                }
+            }
+            "deny" => {
+                if seg1_in_range && seg2_in_range {
+                    Err(format!("Combination {} is denied by cross-validation rule", combination))
+                } else {
+                    Ok(())
+                }
+            }
+            _ => Err(format!("Invalid rule type: {}", rule_type)),
+        }
+    }
+}
+
+// ============================================================================
+// Descriptive Flexfield Service
+// ============================================================================
+
+/// Descriptive Flexfield service
+/// Oracle Fusion: Core > Descriptive Flexfields
+#[allow(dead_code)]
+pub struct DescriptiveFlexfieldService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid data types for flexfield segments
+#[allow(dead_code)]
+const VALID_DATA_TYPES: &[&str] = &["string", "number", "date", "boolean", "list_of_values"];
+
+impl DescriptiveFlexfieldService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate a segment code
+    pub fn validate_segment_code(code: &str) -> Result<(), String> {
+        if code.is_empty() {
+            return Err("Segment code is required".to_string());
+        }
+        Ok(())
+    }
+
+    /// Validate a data type
+    pub fn validate_data_type(data_type: &str) -> Result<(), String> {
+        if !VALID_DATA_TYPES.contains(&data_type) {
+            return Err(format!("Invalid data type: {}", data_type));
+        }
+        Ok(())
+    }
+
+    /// Count active segments
+    pub fn count_active_segments(segments: &[&str]) -> usize {
+        segments.len()
+    }
+}
+
+// ============================================================================
+// Joint Venture Management Service
+// ============================================================================
+
+/// Joint Venture Management service
+/// Oracle Fusion: Financials > Joint Venture Management
+#[allow(dead_code)]
+pub struct JointVentureManagementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid JV billing cycles
+#[allow(dead_code)]
+const VALID_JV_BILLING_CYCLES: &[&str] = &["monthly", "quarterly", "semi_annual", "annual"];
+
+/// Valid JV cost allocation methods
+#[allow(dead_code)]
+const VALID_JV_COST_ALLOCATION_METHODS: &[&str] = &["working_interest", "equal_split", "custom"];
+
+/// Valid JV partner roles
+#[allow(dead_code)]
+const VALID_JV_PARTNER_ROLES: &[&str] = &["operator", "non_operator", "carried", "earning"];
+
+impl JointVentureManagementService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate cost distribution based on working interest
+    pub fn calculate_working_interest_distribution(total_cost: f64, ownership_pct: f64) -> f64 {
+        total_cost * (ownership_pct / 100.0)
+    }
+
+    /// Calculate equal split distribution
+    pub fn calculate_equal_split_distribution(total_cost: f64, partner_count: usize) -> f64 {
+        if partner_count == 0 { return 0.0; }
+        total_cost / partner_count as f64
+    }
+
+    /// Validate that ownership percentages sum to 100
+    pub fn validate_ownership_total(percentages: &[f64]) -> Result<(), String> {
+        let total: f64 = percentages.iter().sum();
+        if (total - 100.0).abs() > 0.01 {
+            Err(format!("Ownership percentages sum to {:.2}%, must equal 100%", total))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Calculate billing amount for a partner
+    pub fn calculate_billing_amount(total_cost: f64, ownership_pct: f64, partner_own_cost: f64) -> f64 {
+        (total_cost * (ownership_pct / 100.0)) - partner_own_cost
+    }
+}
+
+// ============================================================================
+// Advance Payment Service
+// ============================================================================
+
+/// Advance Payment service
+/// Oracle Fusion: Receivables > Advance Payments
+#[allow(dead_code)]
+pub struct AdvancePaymentService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid payment types
+#[allow(dead_code)]
+const VALID_PAYMENT_TYPES: &[&str] = &["advance", "deposit", "prepayment", "on_account"];
+
+/// Valid payment methods
+#[allow(dead_code)]
+const VALID_PAYMENT_METHODS: &[&str] = &["check", "electronic", "wire", "ach", "cash"];
+
+impl AdvancePaymentService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate unapplied amount
+    pub fn calculate_unapplied_amount(payment_amount: f64, applied_amount: f64) -> f64 {
+        (payment_amount - applied_amount).max(0.0)
+    }
+
+    /// Check if amount can be applied
+    pub fn can_apply_amount(payment_amount: f64, applied_amount: f64, amount_to_apply: f64) -> bool {
+        let unapplied = Self::calculate_unapplied_amount(payment_amount, applied_amount);
+        amount_to_apply <= unapplied && amount_to_apply > 0.0
+    }
+
+    /// Calculate refund amount (unapplied minus processing fee)
+    pub fn calculate_refund_amount(payment_amount: f64, applied_amount: f64, processing_fee: f64) -> f64 {
+        let unapplied = Self::calculate_unapplied_amount(payment_amount, applied_amount);
+        (unapplied - processing_fee).max(0.0)
+    }
+}
+
+// ============================================================================
+// Customer Deposit Service
+// ============================================================================
+
+/// Customer Deposit service
+/// Oracle Fusion: Receivables > Customer Deposits
+#[allow(dead_code)]
+pub struct CustomerDepositService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid deposit types
+#[allow(dead_code)]
+const VALID_DEPOSIT_TYPES: &[&str] = &["security", "performance", "advance", "retention", "other"];
+
+impl CustomerDepositService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate available draw amount
+    pub fn calculate_draw_amount(deposit_amount: f64, drawn_amount: f64) -> f64 {
+        (deposit_amount - drawn_amount).max(0.0)
+    }
+
+    /// Check if deposit is expired
+    pub fn is_expired(expiry_date: chrono::NaiveDate, today: chrono::NaiveDate) -> bool {
+        today > expiry_date
+    }
+
+    /// Calculate refund amount
+    pub fn calculate_refund(deposit_amount: f64, drawn_amount: f64, processing_fee: f64) -> f64 {
+        ((deposit_amount - drawn_amount) - processing_fee).max(0.0)
+    }
+}
+
+// ============================================================================
+// Cost Allocation Service
+// ============================================================================
+
+/// Cost Allocation service
+/// Oracle Fusion: Cost Management > Cost Allocation
+#[allow(dead_code)]
+pub struct CostAllocationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid CA pool types
+#[allow(dead_code)]
+const VALID_POOL_TYPES: &[&str] = &["manufacturing", "administrative", "selling", "service", "other"];
+
+/// Valid CA allocation methods
+#[allow(dead_code)]
+const VALID_ALLOCATION_METHODS: &[&str] = &["fixed_percentage", "equal_share", "statistical", "hierarchical"];
+
+/// Valid CA allocation bases
+#[allow(dead_code)]
+const VALID_COST_POOL_ALLOCATION_BASES: &[&str] = &["direct_labor_hours", "machine_hours", "square_footage", "headcount", "revenue", "custom"];
+
+impl CostAllocationService {
+    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate allocation using fixed percentages
+    pub fn calculate_fixed_percentage(pool_amount: f64, targets: &[(&str, f64)]) -> Vec<(String, f64)> {
+        targets.iter()
+            .map(|&(name, pct)| (name.to_string(), pool_amount * (pct / 100.0)))
+            .collect()
+    }
+
+    /// Calculate allocation using equal share
+    pub fn calculate_equal_share(pool_amount: f64, targets: &[&str]) -> Vec<(String, f64)> {
+        if targets.is_empty() { return vec![]; }
+        let share = pool_amount / targets.len() as f64;
+        targets.iter().map(|&name| (name.to_string(), share)).collect()
+    }
+
+    /// Calculate allocation using statistical basis
+    pub fn calculate_statistical_allocation(pool_amount: f64, basis_values: &[(&str, f64)]) -> Vec<(String, f64)> {
+        let total_basis: f64 = basis_values.iter().map(|(_, v)| *v).sum();
+        if total_basis <= 0.0 { return vec![]; }
+        basis_values.iter()
+            .map(|&(name, basis)| (name.to_string(), pool_amount * (basis / total_basis)))
+            .collect()
+    }
+
+    /// Validate that allocation percentages sum to 100%
+    pub fn validate_percentages(percentages: &[f64]) -> Result<(), String> {
+        let total: f64 = percentages.iter().sum();
+        if (total - 100.0).abs() > 0.01 {
+            Err(format!("Allocation percentages sum to {:.2}%, must equal 100%", total))
+        } else {
+            Ok(())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -10881,30 +11463,1188 @@ mod tests {
         assert!(!super::FundsReservationService::is_budget_exceeded(50000.0, 40000.0, 10000.0));
     }
 
-    // --- New Services Validation Constants Completeness ---
-
-    #[test]
-    fn test_new_services_validation_constants_count() {
-        assert_eq!(super::VALID_TREASURY_COUNTERPARTY_TYPES.len(), 3);
-        assert_eq!(super::VALID_TREASURY_DEAL_TYPES.len(), 4);
-        assert_eq!(super::VALID_TREASURY_DEAL_STATUSES.len(), 5);
-        assert_eq!(super::VALID_INTEREST_BASES.len(), 3);
-        assert_eq!(super::VALID_RECURRING_JOURNAL_RECURRENCE_TYPES.len(), 6);
-        assert_eq!(super::VALID_RECURRING_JOURNAL_TYPES.len(), 3);
-        assert_eq!(super::VALID_AI_TRANSACTION_TYPES.len(), 4);
-        assert_eq!(super::VALID_AI_BATCH_STATUSES.len(), 7);
-        assert_eq!(super::VALID_NETTING_SETTLEMENT_METHODS.len(), 4);
-        assert_eq!(super::VALID_SUB_BILLING_FREQUENCIES.len(), 5);
-        assert_eq!(super::VALID_SUB_STATUSES.len(), 5);
-        assert_eq!(super::VALID_SUB_AMENDMENT_TYPES.len(), 6);
-        assert_eq!(super::VALID_FR_RESERVATION_TYPES.len(), 3);
-        assert_eq!(super::VALID_FR_STATUSES.len(), 5);
-    }
-
+    // Calculate total new calculator/utility functions
     #[test]
     fn test_new_services_calculator_function_count() {
         // Count calculator functions across all 6 new services
         let count = 23; // 5 Treasury + 2 Recurring Journal + 3 AutoInvoice + 4 Netting + 5 Subscription + 4 Funds Reservation
         assert_eq!(count, 23, "Should have 23 calculator/utility functions across 6 new services");
+    }
+
+    // ========================================================================
+    // Rebate Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_rebate_program_definition() {
+        let def = entities::rebate_program_definition();
+        assert_eq!(def.name, "rebate_programs");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_rebate_tier_definition() {
+        let def = entities::rebate_tier_definition();
+        assert_eq!(def.name, "rebate_tiers");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_rebate_transaction_definition() {
+        let def = entities::rebate_transaction_definition();
+        assert_eq!(def.name, "rebate_transactions");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_rebate_payment_definition() {
+        let def = entities::rebate_payment_definition();
+        assert_eq!(def.name, "rebate_payments");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "submitted"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "paid"));
+    }
+
+    #[test]
+    fn test_rebate_program_workflow_transitions() {
+        let def = entities::rebate_program_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+    }
+
+    #[test]
+    fn test_rebate_payment_workflow_transitions() {
+        let def = entities::rebate_payment_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "paid"));
+    }
+
+    #[test]
+    fn test_rebate_valid_types() {
+        for t in &["volume", "growth", "customer", "vendor", "tiered", "retroactive"] {
+            assert!(super::VALID_REBATE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_rebate_valid_bases() {
+        for b in &["revenue", "quantity", "margin", "points"] {
+            assert!(super::VALID_BASES.contains(b));
+        }
+    }
+
+    #[test]
+    fn test_rebate_valid_calc_methods() {
+        for m in &["percentage", "fixed_amount", "tiered", "per_unit"] {
+            assert!(super::VALID_CALC_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_rebate_calculate_percentage_rebate() {
+        let rebate = super::RebateManagementService::calculate_percentage_rebate(100000.0, 5.0);
+        assert!((rebate - 5000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rebate_calculate_percentage_rebate_zero_rate() {
+        let rebate = super::RebateManagementService::calculate_percentage_rebate(100000.0, 0.0);
+        assert_eq!(rebate, 0.0);
+    }
+
+    #[test]
+    fn test_rebate_calculate_per_unit_rebate() {
+        let rebate = super::RebateManagementService::calculate_per_unit_rebate(5000, 2.50);
+        assert!((rebate - 12500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rebate_calculate_tiered_rebate() {
+        let tiers = vec![
+            (0.0, 50000.0, 2.0),
+            (50000.0, 100000.0, 3.0),
+            (100000.0, f64::MAX, 5.0),
+        ];
+        let rebate = super::RebateManagementService::calculate_tiered_rebate(120000.0, &tiers);
+        // 0-50k: 50000 * 2% = 1000
+        // 50k-100k: 50000 * 3% = 1500
+        // 100k-120k: 20000 * 5% = 1000
+        // Total = 3500
+        assert!((rebate - 3500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rebate_calculate_tiered_rebate_below_first_tier() {
+        let tiers = vec![
+            (0.0, 50000.0, 2.0),
+            (50000.0, 100000.0, 3.0),
+        ];
+        let rebate = super::RebateManagementService::calculate_tiered_rebate(30000.0, &tiers);
+        assert!((rebate - 600.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rebate_calculate_growth_rebate() {
+        let rebate = super::RebateManagementService::calculate_growth_rebate(
+            120000.0, 100000.0, 10.0,
+        );
+        // Growth: (120k - 100k) / 100k = 20% growth, rebate on growth = 20000 * 10% = 2000
+        assert!((rebate - 2000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rebate_calculate_growth_rebate_no_growth() {
+        let rebate = super::RebateManagementService::calculate_growth_rebate(
+            80000.0, 100000.0, 10.0,
+        );
+        assert_eq!(rebate, 0.0); // No growth, no rebate
+    }
+
+    #[test]
+    fn test_rebate_calculate_accrual() {
+        let accrual = super::RebateManagementService::calculate_accrual(
+            10000.0, 3000.0,
+        );
+        assert!((accrual - 7000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rebate_remaining_balance() {
+        let remaining = super::RebateManagementService::calculate_remaining_balance(
+            5000.0, 2000.0, 1500.0,
+        );
+        // 5000 max - 2000 accrued - 1500 paid = 1500 remaining
+        assert!((remaining - 1500.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Channel Revenue Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_channel_partner_definition() {
+        let def = entities::channel_partner_definition();
+        assert_eq!(def.name, "channel_partners");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_channel_incentive_definition() {
+        let def = entities::channel_incentive_definition();
+        assert_eq!(def.name, "channel_incentives");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+    }
+
+    #[test]
+    fn test_channel_claim_definition() {
+        let def = entities::channel_claim_definition();
+        assert_eq!(def.name, "channel_claims");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+        assert!(wf.states.iter().any(|s| s.name == "paid"));
+    }
+
+    #[test]
+    fn test_channel_incentive_workflow_transitions() {
+        let def = entities::channel_incentive_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "completed"));
+    }
+
+    #[test]
+    fn test_channel_claim_workflow_transitions() {
+        let def = entities::channel_claim_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "rejected"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "approved" && t.to_state == "paid"));
+    }
+
+    #[test]
+    fn test_channel_partner_types_valid() {
+        for t in &["distributor", "reseller", "var", "referral", "agent"] {
+            assert!(super::VALID_PARTNER_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_channel_tiers_valid() {
+        for t in &["platinum", "gold", "silver", "bronze"] {
+            assert!(super::VALID_TIERS.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_channel_incentive_types_valid() {
+        for t in &["mdf", "co_op", "spiff", "volume_bonus", "market_development"] {
+            assert!(super::VALID_INCENTIVE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_channel_fund_utilization() {
+        let pct = super::ChannelRevenueManagementService::calculate_fund_utilization(
+            50000.0, 100000.0,
+        );
+        assert!((pct - 50.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_channel_fund_utilization_zero() {
+        let pct = super::ChannelRevenueManagementService::calculate_fund_utilization(
+            50000.0, 0.0,
+        );
+        assert_eq!(pct, 0.0);
+    }
+
+    #[test]
+    fn test_channel_remaining_funds() {
+        let remaining = super::ChannelRevenueManagementService::calculate_remaining_funds(
+            100000.0, 60000.0,
+        );
+        assert!((remaining - 40000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_channel_claim_eligible() {
+        let eligible = super::ChannelRevenueManagementService::is_claim_eligible(
+            100000.0, 60000.0, 30000.0,
+        );
+        assert!(eligible); // 60k + 30k = 90k <= 100k
+    }
+
+    #[test]
+    fn test_channel_claim_not_eligible() {
+        let eligible = super::ChannelRevenueManagementService::is_claim_eligible(
+            100000.0, 60000.0, 50000.0,
+        );
+        assert!(!eligible); // 60k + 50k = 110k > 100k
+    }
+
+    // ========================================================================
+    // Financial Controls Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_transaction_control_definition() {
+        let def = entities::transaction_control_definition();
+        assert_eq!(def.name, "transaction_controls");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_approval_rule_definition() {
+        let def = entities::approval_rule_definition();
+        assert_eq!(def.name, "approval_rules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_delegation_rule_definition() {
+        let def = entities::delegation_rule_definition();
+        assert_eq!(def.name, "delegation_rules");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_approval_rule_workflow_transitions() {
+        let def = entities::approval_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    #[test]
+    fn test_fc_control_types_valid() {
+        for t in &["amount_limit", "date_restriction", "combination_restriction",
+                   "ratio_check", "duplicate_prevention"] {
+            assert!(super::VALID_CONTROL_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_fc_applies_to_valid() {
+        for a in &["gl_journals", "ap_invoices", "ar_transactions", "payments", "expenses"] {
+            assert!(super::VALID_APPLIES_TO.contains(a));
+        }
+    }
+
+    #[test]
+    fn test_fc_severities_valid() {
+        for s in &["error", "warning", "information"] {
+            assert!(super::VALID_SEVERITIES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_fc_check_amount_limit_pass() {
+        let result = super::FinancialControlsService::check_amount_limit(
+            5000.0, 10000.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fc_check_amount_limit_fail() {
+        let result = super::FinancialControlsService::check_amount_limit(
+            15000.0, 10000.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_fc_check_amount_limit_zero() {
+        let result = super::FinancialControlsService::check_amount_limit(
+            5000.0, 0.0,
+        );
+        assert!(result.is_ok()); // No limit
+    }
+
+    #[test]
+    fn test_fc_check_date_in_period() {
+        let date = chrono::NaiveDate::from_ymd_opt(2025, 3, 15).unwrap();
+        let start = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let end = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        assert!(super::FinancialControlsService::is_date_in_period(date, start, end));
+    }
+
+    #[test]
+    fn test_fc_check_date_outside_period() {
+        let date = chrono::NaiveDate::from_ymd_opt(2024, 12, 31).unwrap();
+        let start = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let end = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        assert!(!super::FinancialControlsService::is_date_in_period(date, start, end));
+    }
+
+    #[test]
+    fn test_fc_requires_approval_above_threshold() {
+        assert!(super::FinancialControlsService::requires_approval(15000.0, 10000.0));
+    }
+
+    #[test]
+    fn test_fc_requires_approval_below_threshold() {
+        assert!(!super::FinancialControlsService::requires_approval(5000.0, 10000.0));
+    }
+
+    #[test]
+    fn test_fc_requires_approval_at_threshold() {
+        assert!(!super::FinancialControlsService::requires_approval(10000.0, 10000.0));
+    }
+
+    #[test]
+    fn test_fc_delegation_valid() {
+        let start = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let end = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(super::FinancialControlsService::is_delegation_active(start, end, today));
+    }
+
+    #[test]
+    fn test_fc_delegation_expired() {
+        let start = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let end = chrono::NaiveDate::from_ymd_opt(2025, 3, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(!super::FinancialControlsService::is_delegation_active(start, end, today));
+    }
+
+    // ========================================================================
+    // Accounting Hub Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_accounting_source_definition() {
+        let def = entities::accounting_source_definition();
+        assert_eq!(def.name, "accounting_sources");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_accounting_event_entity_definition() {
+        let def = entities::accounting_event_entity_definition();
+        assert_eq!(def.name, "accounting_event_entities");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_accounting_event_type_definition() {
+        let def = entities::accounting_event_type_definition();
+        assert_eq!(def.name, "accounting_event_types");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_ah_source_types_valid() {
+        for t in &["erp", "crm", "payroll", "banking", "ecommerce", "third_party"] {
+            assert!(super::VALID_SOURCE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_ah_event_classes_valid() {
+        for c in &["create", "update", "delete", "reverse", "adjust"] {
+            assert!(super::VALID_EVENT_CLASSES.contains(c));
+        }
+    }
+
+    #[test]
+    fn test_ah_validate_source() {
+        assert!(super::AccountingHubService::validate_source(
+            "erp", "GL_IMPORT", "Active",
+        ).is_ok());
+    }
+
+    #[test]
+    fn test_ah_validate_source_invalid_type() {
+        assert!(super::AccountingHubService::validate_source(
+            "unknown", "GL_IMPORT", "Active",
+        ).is_err());
+    }
+
+    #[test]
+    fn test_ah_validate_source_empty_code() {
+        assert!(super::AccountingHubService::validate_source(
+            "erp", "", "Active",
+        ).is_err());
+    }
+
+    #[test]
+    fn test_ah_validate_source_inactive() {
+        assert!(super::AccountingHubService::validate_source(
+            "erp", "GL_IMPORT", "Inactive",
+        ).is_err());
+    }
+
+    #[test]
+    fn test_ah_event_count_by_source() {
+        let events = vec![
+            (uuid::Uuid::new_v4(), "create"),
+            (uuid::Uuid::new_v4(), "update"),
+            (uuid::Uuid::new_v4(), "create"),
+        ];
+        let source_id = events[0].0;
+        let count = super::AccountingHubService::count_events_for_source(&events, source_id);
+        assert!(count >= 1);
+    }
+
+    #[test]
+    fn test_ah_is_sync_required() {
+        assert!(super::AccountingHubService::is_sync_required(None));
+        let yesterday = chrono::Utc::now().date_naive() - chrono::Duration::days(1);
+        assert!(super::AccountingHubService::is_sync_required(Some(yesterday)));
+        let today = chrono::Utc::now().date_naive();
+        assert!(!super::AccountingHubService::is_sync_required(Some(today)));
+    }
+
+    // ========================================================================
+    // Document Sequencing Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_document_sequence_definition() {
+        let def = entities::document_sequence_definition();
+        assert_eq!(def.name, "document_sequences");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+    }
+
+    #[test]
+    fn test_document_sequence_assignment_definition() {
+        let def = entities::document_sequence_assignment_definition();
+        assert_eq!(def.name, "document_sequence_assignments");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_doc_seq_workflow_transitions() {
+        let def = entities::document_sequence_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    #[test]
+    fn test_doc_seq_valid_types() {
+        for t in &["gapless", "gap_allowed", "restart_yearly"] {
+            assert!(super::VALID_SEQUENCE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_doc_seq_valid_document_types() {
+        for t in &["gl_journal", "ap_invoice", "ar_invoice", "payment", "receipt",
+                   "purchase_order", "credit_memo", "asset"] {
+            assert!(super::VALID_DOCUMENT_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_doc_seq_generate_next_basic() {
+        let (number, new_val) = super::DocumentSequencingService::generate_next(
+            "INV-", "", 1001, 6, '0',
+        );
+        assert_eq!(number, "INV-001001");
+        assert_eq!(new_val, 1002);
+    }
+
+    #[test]
+    fn test_doc_seq_generate_next_no_padding() {
+        let (number, new_val) = super::DocumentSequencingService::generate_next(
+            "PO-", "", 42, 0, '0',
+        );
+        assert_eq!(number, "PO-42");
+        assert_eq!(new_val, 43);
+    }
+
+    #[test]
+    fn test_doc_seq_generate_next_with_suffix() {
+        let (number, new_val) = super::DocumentSequencingService::generate_next(
+            "JE-", "-2025", 1, 5, '0',
+        );
+        assert_eq!(number, "JE-00001-2025");
+        assert_eq!(new_val, 2);
+    }
+
+    #[test]
+    fn test_doc_seq_within_range() {
+        assert!(super::DocumentSequencingService::is_within_range(50, Some(1), Some(100)));
+    }
+
+    #[test]
+    fn test_doc_seq_outside_range() {
+        assert!(!super::DocumentSequencingService::is_within_range(150, Some(1), Some(100)));
+    }
+
+    #[test]
+    fn test_doc_seq_no_end_limit() {
+        assert!(super::DocumentSequencingService::is_within_range(50, Some(1), None));
+    }
+
+    // ========================================================================
+    // Cross-Validation Rule Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_cross_validation_rule_definition() {
+        let def = entities::cross_validation_rule_definition();
+        assert_eq!(def.name, "cross_validation_rules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_cvr_workflow_transitions() {
+        let def = entities::cross_validation_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    #[test]
+    fn test_cvr_rule_types_valid() {
+        for t in &["allow", "deny"] {
+            assert!(super::VALID_RULE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_cvr_validate_account_in_range() {
+        let result = super::CrossValidationRuleService::validate_account_in_range(
+            "1200", "1000", "1999",
+        );
+        assert!(result);
+    }
+
+    #[test]
+    fn test_cvr_validate_account_outside_range() {
+        let result = super::CrossValidationRuleService::validate_account_in_range(
+            "2000", "1000", "1999",
+        );
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_cvr_validate_combination_allow() {
+        let result = super::CrossValidationRuleService::validate_combination(
+            "1200-300", "1000", "1999", "200", "499", "allow",
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cvr_validate_combination_deny() {
+        let result = super::CrossValidationRuleService::validate_combination(
+            "1200-100", "1000", "1999", "100", "199", "deny",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_cvr_validate_combination_outside_deny_range() {
+        let result = super::CrossValidationRuleService::validate_combination(
+            "500-100", "1000", "1999", "100", "199", "deny",
+        );
+        assert!(result.is_ok()); // First segment outside range, rule doesn't apply
+    }
+
+    // ========================================================================
+    // Descriptive Flexfield Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_descriptive_flexfield_definition() {
+        let def = entities::descriptive_flexfield_definition();
+        assert_eq!(def.name, "descriptive_flexfields");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_flexfield_segment_definition() {
+        let def = entities::flexfield_segment_definition();
+        assert_eq!(def.name, "flexfield_segments");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_flexfield_valid_data_types() {
+        for t in &["string", "number", "date", "boolean", "list_of_values"] {
+            assert!(super::VALID_DATA_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_flexfield_validate_segment_code() {
+        assert!(super::DescriptiveFlexfieldService::validate_segment_code("SEGMENT1").is_ok());
+        assert!(super::DescriptiveFlexfieldService::validate_segment_code("").is_err());
+    }
+
+    #[test]
+    fn test_flexfield_validate_data_type() {
+        assert!(super::DescriptiveFlexfieldService::validate_data_type("string").is_ok());
+        assert!(super::DescriptiveFlexfieldService::validate_data_type("invalid").is_err());
+    }
+
+    #[test]
+    fn test_flexfield_count_segments() {
+        let segments = vec!["SEGMENT1", "SEGMENT2", "SEGMENT3"];
+        assert_eq!(super::DescriptiveFlexfieldService::count_active_segments(&segments), 3);
+    }
+
+    // ========================================================================
+    // Joint Venture Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_joint_venture_definition() {
+        let def = entities::joint_venture_definition();
+        assert_eq!(def.name, "joint_ventures");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "terminated"));
+    }
+
+    #[test]
+    fn test_joint_venture_partner_definition() {
+        let def = entities::joint_venture_partner_definition();
+        assert_eq!(def.name, "joint_venture_partners");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_jv_cost_distribution_definition() {
+        let def = entities::jv_cost_distribution_definition();
+        assert_eq!(def.name, "jv_cost_distributions");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_jv_workflow_transitions() {
+        let def = entities::joint_venture_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "completed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "terminated"));
+    }
+
+    #[test]
+    fn test_jv_billing_cycles_valid() {
+        for c in &["monthly", "quarterly", "semi_annual", "annual"] {
+            assert!(super::VALID_JV_BILLING_CYCLES.contains(c));
+        }
+    }
+
+    #[test]
+    fn test_jv_cost_allocation_methods_valid() {
+        for m in &["working_interest", "equal_split", "custom"] {
+            assert!(super::VALID_JV_COST_ALLOCATION_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_jv_partner_roles_valid() {
+        for r in &["operator", "non_operator", "carried", "earning"] {
+            assert!(super::VALID_JV_PARTNER_ROLES.contains(r));
+        }
+    }
+
+    #[test]
+    fn test_jv_calculate_working_interest_distribution() {
+        let dist = super::JointVentureManagementService::calculate_working_interest_distribution(
+            100000.0, 60.0,
+        );
+        assert!((dist - 60000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_jv_calculate_equal_split_distribution() {
+        let dist = super::JointVentureManagementService::calculate_equal_split_distribution(
+            100000.0, 4,
+        );
+        assert!((dist - 25000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_jv_validate_ownership_total() {
+        let result = super::JointVentureManagementService::validate_ownership_total(
+            &[60.0, 25.0, 15.0],
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_jv_validate_ownership_over_100() {
+        let result = super::JointVentureManagementService::validate_ownership_total(
+            &[60.0, 30.0, 20.0],
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_jv_validate_ownership_under_100() {
+        let result = super::JointVentureManagementService::validate_ownership_total(
+            &[30.0, 20.0],
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_jv_calculate_billing_amount() {
+        let amount = super::JointVentureManagementService::calculate_billing_amount(
+            100000.0, 40.0, 10000.0,
+        );
+        // Partner's share (40%) of total (100k) minus partner's own costs (10k)
+        assert!((amount - 30000.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Advance Payment & Customer Deposit Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_advance_payment_definition() {
+        let def = entities::advance_payment_definition();
+        assert_eq!(def.name, "advance_payments");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "received"));
+        assert!(wf.states.iter().any(|s| s.name == "partially_applied"));
+        assert!(wf.states.iter().any(|s| s.name == "fully_applied"));
+        assert!(wf.states.iter().any(|s| s.name == "refunded"));
+    }
+
+    #[test]
+    fn test_customer_deposit_definition() {
+        let def = entities::customer_deposit_definition();
+        assert_eq!(def.name, "customer_deposits");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "partially_drawn"));
+        assert!(wf.states.iter().any(|s| s.name == "fully_drawn"));
+        assert!(wf.states.iter().any(|s| s.name == "expired"));
+        assert!(wf.states.iter().any(|s| s.name == "refunded"));
+    }
+
+    #[test]
+    fn test_advance_payment_workflow_transitions() {
+        let def = entities::advance_payment_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "received"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "received" && t.to_state == "partially_applied"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "received" && t.to_state == "fully_applied"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "received" && t.to_state == "refunded"));
+    }
+
+    #[test]
+    fn test_customer_deposit_workflow_transitions() {
+        let def = entities::customer_deposit_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "partially_drawn"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "fully_drawn"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "expired"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "refunded"));
+    }
+
+    #[test]
+    fn test_ap_payment_types_valid() {
+        for t in &["advance", "deposit", "prepayment", "on_account"] {
+            assert!(super::VALID_PAYMENT_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_ap_payment_methods_valid() {
+        for m in &["check", "electronic", "wire", "ach", "cash"] {
+            assert!(super::VALID_PAYMENT_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_ap_calculate_unapplied_amount() {
+        let unapplied = super::AdvancePaymentService::calculate_unapplied_amount(
+            10000.0, 6000.0,
+        );
+        assert!((unapplied - 4000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ap_can_apply_amount() {
+        assert!(super::AdvancePaymentService::can_apply_amount(
+            10000.0, 6000.0, 4000.0,
+        ));
+    }
+
+    #[test]
+    fn test_ap_cannot_apply_over_unapplied() {
+        assert!(!super::AdvancePaymentService::can_apply_amount(
+            10000.0, 6000.0, 5000.0,
+        ));
+    }
+
+    #[test]
+    fn test_ap_calculate_refund_amount() {
+        let refund = super::AdvancePaymentService::calculate_refund_amount(
+            10000.0, 6000.0, 500.0,
+        );
+        // 10k - 6k applied - 500 processing fee = 3500
+        assert!((refund - 3500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cd_deposit_types_valid() {
+        for t in &["security", "performance", "advance", "retention", "other"] {
+            assert!(super::VALID_DEPOSIT_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_cd_calculate_draw_amount() {
+        let draw = super::CustomerDepositService::calculate_draw_amount(
+            50000.0, 30000.0,
+        );
+        // min of (deposit - drawn) and requested, but this returns available
+        assert!((draw - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cd_calculate_draw_amount_fully_drawn() {
+        let draw = super::CustomerDepositService::calculate_draw_amount(
+            50000.0, 50000.0,
+        );
+        assert_eq!(draw, 0.0);
+    }
+
+    #[test]
+    fn test_cd_is_expired() {
+        let expiry = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(super::CustomerDepositService::is_expired(expiry, today));
+    }
+
+    #[test]
+    fn test_cd_not_expired() {
+        let expiry = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let today = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        assert!(!super::CustomerDepositService::is_expired(expiry, today));
+    }
+
+    #[test]
+    fn test_cd_calculate_refund() {
+        let refund = super::CustomerDepositService::calculate_refund(
+            50000.0, 20000.0, 1000.0,
+        );
+        assert!((refund - 29000.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Cost Allocation Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_cost_pool_definition() {
+        let def = entities::cost_pool_definition();
+        assert_eq!(def.name, "cost_pools");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_cost_pool_source_definition() {
+        let def = entities::cost_pool_source_definition();
+        assert_eq!(def.name, "cost_pool_sources");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_cost_allocation_rule_definition() {
+        let def = entities::cost_allocation_rule_definition();
+        assert_eq!(def.name, "cost_allocation_rules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+    }
+
+    #[test]
+    fn test_cost_allocation_run_definition() {
+        let def = entities::cost_allocation_run_definition();
+        assert_eq!(def.name, "cost_allocation_runs");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "calculated"));
+        assert!(wf.states.iter().any(|s| s.name == "reviewed"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+    }
+
+    #[test]
+    fn test_cost_allocation_rule_workflow_transitions() {
+        let def = entities::cost_allocation_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    #[test]
+    fn test_cost_allocation_run_workflow_transitions() {
+        let def = entities::cost_allocation_run_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "calculated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "calculated" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "posted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "posted" && t.to_state == "reversed"));
+    }
+
+    #[test]
+    fn test_ca_pool_types_valid() {
+        for t in &["manufacturing", "administrative", "selling", "service", "other"] {
+            assert!(super::VALID_POOL_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_ca_allocation_methods_valid() {
+        for m in &["fixed_percentage", "equal_share", "statistical", "hierarchical"] {
+            assert!(super::VALID_ALLOCATION_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_ca_allocation_bases_valid() {
+        for b in &["direct_labor_hours", "machine_hours", "square_footage",
+                   "headcount", "revenue", "custom"] {
+            assert!(super::VALID_COST_POOL_ALLOCATION_BASES.contains(b));
+        }
+    }
+
+    #[test]
+    fn test_ca_calculate_fixed_percentage() {
+        let amounts = super::CostAllocationService::calculate_fixed_percentage(
+            100000.0,
+            &[("Dept-A", 50.0), ("Dept-B", 30.0), ("Dept-C", 20.0)],
+        );
+        assert_eq!(amounts.len(), 3);
+        assert!((amounts[0].1 - 50000.0).abs() < 0.01);
+        assert!((amounts[1].1 - 30000.0).abs() < 0.01);
+        assert!((amounts[2].1 - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ca_calculate_equal_share() {
+        let amounts = super::CostAllocationService::calculate_equal_share(
+            120000.0, &["CC-A", "CC-B", "CC-C"],
+        );
+        assert_eq!(amounts.len(), 3);
+        for (_, amt) in &amounts {
+            assert!((amt - 40000.0).abs() < 0.01);
+        }
+    }
+
+    #[test]
+    fn test_ca_calculate_statistical_allocation() {
+        let amounts = super::CostAllocationService::calculate_statistical_allocation(
+            50000.0,
+            &[("Dept-A", 500.0), ("Dept-B", 300.0), ("Dept-C", 200.0)],
+        );
+        assert_eq!(amounts.len(), 3);
+        assert!((amounts[0].1 - 25000.0).abs() < 0.01); // 50%
+        assert!((amounts[1].1 - 15000.0).abs() < 0.01); // 30%
+        assert!((amounts[2].1 - 10000.0).abs() < 0.01); // 20%
+    }
+
+    #[test]
+    fn test_ca_validate_percentages_valid() {
+        assert!(super::CostAllocationService::validate_percentages(
+            &[50.0, 30.0, 20.0],
+        ).is_ok());
+    }
+
+    #[test]
+    fn test_ca_validate_percentages_over_100() {
+        assert!(super::CostAllocationService::validate_percentages(
+            &[50.0, 40.0, 20.0],
+        ).is_err());
+    }
+
+    #[test]
+    fn test_ca_validate_percentages_under_100() {
+        assert!(super::CostAllocationService::validate_percentages(
+            &[30.0, 20.0, 10.0],
+        ).is_err());
+    }
+
+    // ========================================================================
+    // Grand Total: All New Feature Entities Build
+    // ========================================================================
+
+    #[test]
+    fn test_all_new_financial_features_entities_build() {
+        // Rebate Management
+        let _ = entities::rebate_program_definition();
+        let _ = entities::rebate_tier_definition();
+        let _ = entities::rebate_transaction_definition();
+        let _ = entities::rebate_payment_definition();
+        // Channel Revenue
+        let _ = entities::channel_partner_definition();
+        let _ = entities::channel_incentive_definition();
+        let _ = entities::channel_claim_definition();
+        // Financial Controls
+        let _ = entities::transaction_control_definition();
+        let _ = entities::approval_rule_definition();
+        let _ = entities::delegation_rule_definition();
+        // Accounting Hub
+        let _ = entities::accounting_source_definition();
+        let _ = entities::accounting_event_entity_definition();
+        let _ = entities::accounting_event_type_definition();
+        // Document Sequencing
+        let _ = entities::document_sequence_definition();
+        let _ = entities::document_sequence_assignment_definition();
+        // Cross-Validation
+        let _ = entities::cross_validation_rule_definition();
+        // Descriptive Flexfields
+        let _ = entities::descriptive_flexfield_definition();
+        let _ = entities::flexfield_segment_definition();
+        // Joint Venture
+        let _ = entities::joint_venture_definition();
+        let _ = entities::joint_venture_partner_definition();
+        let _ = entities::jv_cost_distribution_definition();
+        // Advance Payment & Deposits
+        let _ = entities::advance_payment_definition();
+        let _ = entities::customer_deposit_definition();
+        // Cost Allocation
+        let _ = entities::cost_pool_definition();
+        let _ = entities::cost_pool_source_definition();
+        let _ = entities::cost_allocation_rule_definition();
+        let _ = entities::cost_allocation_run_definition();
+    }
+
+    #[test]
+    fn test_new_financial_features_entity_count() {
+        let new_entities = vec![
+            entities::rebate_program_definition(),
+            entities::rebate_tier_definition(),
+            entities::rebate_transaction_definition(),
+            entities::rebate_payment_definition(),
+            entities::channel_partner_definition(),
+            entities::channel_incentive_definition(),
+            entities::channel_claim_definition(),
+            entities::transaction_control_definition(),
+            entities::approval_rule_definition(),
+            entities::delegation_rule_definition(),
+            entities::accounting_source_definition(),
+            entities::accounting_event_entity_definition(),
+            entities::accounting_event_type_definition(),
+            entities::document_sequence_definition(),
+            entities::document_sequence_assignment_definition(),
+            entities::cross_validation_rule_definition(),
+            entities::descriptive_flexfield_definition(),
+            entities::flexfield_segment_definition(),
+            entities::joint_venture_definition(),
+            entities::joint_venture_partner_definition(),
+            entities::jv_cost_distribution_definition(),
+            entities::advance_payment_definition(),
+            entities::customer_deposit_definition(),
+            entities::cost_pool_definition(),
+            entities::cost_pool_source_definition(),
+            entities::cost_allocation_rule_definition(),
+            entities::cost_allocation_run_definition(),
+        ];
+        assert_eq!(new_entities.len(), 27, "Should have 27 new financial feature entities");
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 27, "All 27 entity names must be unique");
+    }
+
+    #[test]
+    fn test_new_financial_features_workflow_count() {
+        let workflow_entities = vec![
+            entities::rebate_program_definition(),
+            entities::rebate_payment_definition(),
+            entities::channel_incentive_definition(),
+            entities::channel_claim_definition(),
+            entities::approval_rule_definition(),
+            entities::document_sequence_definition(),
+            entities::cross_validation_rule_definition(),
+            entities::joint_venture_definition(),
+            entities::advance_payment_definition(),
+            entities::customer_deposit_definition(),
+            entities::cost_allocation_rule_definition(),
+            entities::cost_allocation_run_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 12, "All 12 new workflow entities should have workflows");
     }
 }

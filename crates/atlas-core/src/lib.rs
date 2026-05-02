@@ -137,6 +137,9 @@ pub mod cash_position;
 pub mod payment_terms;
 pub mod lockbox;
 pub mod ar_aging;
+pub mod ap_aging;
+pub mod financial_ratio;
+pub mod receipt_write_off;
 
 pub use schema::*;
 pub use workflow::{
@@ -275,6 +278,9 @@ pub use cash_position::{CashPositionEngine, PostgresCashPositionRepository as Po
 pub use payment_terms::{PaymentTermsEngine, PostgresPaymentTermsRepository as PostgresPaymentTermsRepo};
 pub use lockbox::{LockboxEngine, PostgresLockboxRepository as PostgresLockboxRepo};
 pub use ar_aging::{ArAgingEngine, PostgresArAgingRepository as PostgresArAgingRepo};
+pub use ap_aging::{ApAgingEngine, PostgresApAgingRepository as PostgresApAgingRepo};
+pub use financial_ratio::{FinancialRatioEngine, PostgresFinancialRatioRepository as PostgresFinancialRatioRepo};
+pub use receipt_write_off::{ReceiptWriteOffEngine, PostgresReceiptWriteOffRepository as PostgresReceiptWriteOffRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

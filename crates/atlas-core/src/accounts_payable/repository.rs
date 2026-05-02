@@ -171,8 +171,8 @@ impl PostgresAccountsPayableRepository {
 
     fn row_to_invoice(&self, row: &sqlx::postgres::PgRow) -> ApInvoice {
         fn num_to_str(row: &sqlx::postgres::PgRow, col: &str) -> String {
-            let v: Option<serde_json::Value> = row.try_get(col).ok().flatten();
-            v.map(|v| v.to_string().trim_matches('"').to_string()).unwrap_or_else(|| "0".to_string())
+            let s: Option<String> = row.try_get(col).ok().flatten();
+            s.unwrap_or_else(|| "0".to_string())
         }
         ApInvoice {
             id: row.get("id"),
@@ -223,8 +223,8 @@ impl PostgresAccountsPayableRepository {
 
     fn row_to_line(&self, row: &sqlx::postgres::PgRow) -> ApInvoiceLine {
         fn num_to_str(row: &sqlx::postgres::PgRow, col: &str) -> String {
-            let v: Option<serde_json::Value> = row.try_get(col).ok().flatten();
-            v.map(|v| v.to_string().trim_matches('"').to_string()).unwrap_or_else(|| "0".to_string())
+            let s: Option<String> = row.try_get(col).ok().flatten();
+            s.unwrap_or_else(|| "0".to_string())
         }
         ApInvoiceLine {
             id: row.get("id"),
@@ -255,8 +255,8 @@ impl PostgresAccountsPayableRepository {
 
     fn row_to_distribution(&self, row: &sqlx::postgres::PgRow) -> ApInvoiceDistribution {
         fn num_to_str(row: &sqlx::postgres::PgRow, col: &str) -> String {
-            let v: Option<serde_json::Value> = row.try_get(col).ok().flatten();
-            v.map(|v| v.to_string().trim_matches('"').to_string()).unwrap_or_else(|| "0".to_string())
+            let s: Option<String> = row.try_get(col).ok().flatten();
+            s.unwrap_or_else(|| "0".to_string())
         }
         ApInvoiceDistribution {
             id: row.get("id"),
@@ -310,8 +310,8 @@ impl PostgresAccountsPayableRepository {
 
     fn row_to_payment(&self, row: &sqlx::postgres::PgRow) -> ApPayment {
         fn num_to_str(row: &sqlx::postgres::PgRow, col: &str) -> String {
-            let v: Option<serde_json::Value> = row.try_get(col).ok().flatten();
-            v.map(|v| v.to_string().trim_matches('"').to_string()).unwrap_or_else(|| "0".to_string())
+            let s: Option<String> = row.try_get(col).ok().flatten();
+            s.unwrap_or_else(|| "0".to_string())
         }
         ApPayment {
             id: row.get("id"),
@@ -390,16 +390,16 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
                  po_number, receipt_number, source,
                  created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-                    $12, $13, $14, $15::numeric, $16::numeric, $17::numeric,
-                    0, $17::numeric, 0, 0, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+                    $12, $13, $14, $15, $16, $17,
+                    0, $17, 0, 0, $18, $19, $20, $21, $22, $23, $24, $25, $26)
             ON CONFLICT (organization_id, invoice_number) DO UPDATE
                 SET invoice_date = $3, invoice_type = $4, description = $5,
                     supplier_id = $6, supplier_number = $7, supplier_name = $8,
                     supplier_site = $9, invoice_currency_code = $10,
                     payment_currency_code = $11, exchange_rate = $12,
                     exchange_rate_type = $13, exchange_date = $14,
-                    invoice_amount = $15::numeric, tax_amount = $16::numeric,
-                    total_amount = $17::numeric, amount_remaining = $17::numeric,
+                    invoice_amount = $15, tax_amount = $16,
+                    total_amount = $17, amount_remaining = $17,
                     payment_terms = $18, payment_method = $19,
                     payment_due_date = $20, discount_date = $21, gl_date = $22,
                     po_number = $23, receipt_number = $24, source = $25,
@@ -508,8 +508,8 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         let row = sqlx::query(
             r#"
             UPDATE _atlas.ap_invoices
-            SET status = 'paid', amount_paid = $2::numeric,
-                amount_remaining = total_amount - $2::numeric,
+            SET status = 'paid', amount_paid = $2,
+                amount_remaining = total_amount - $2,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
@@ -526,8 +526,8 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         sqlx::query(
             r#"
             UPDATE _atlas.ap_invoices
-            SET invoice_amount = $2::numeric, tax_amount = $3::numeric,
-                total_amount = $4::numeric, amount_remaining = $4::numeric - amount_paid,
+            SET invoice_amount = $2, tax_amount = $3,
+                total_amount = $4, amount_remaining = $4 - amount_paid,
                 updated_at = now()
             WHERE id = $1
             "#,
@@ -568,7 +568,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
                  amount, unit_price, quantity_invoiced, unit_of_measure,
                  po_line_id, po_line_number, product_code,
                  tax_code, tax_amount, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
             "#,
         )
@@ -642,9 +642,9 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
                  project_id, task_id, expenditure_type,
                  tax_code, tax_recoverable, tax_recoverable_amount,
                  accounting_date, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8::numeric,
-                    $9::numeric, $10, $11, $12, $13, $14,
-                    $15, $16, $17, $18, $19, $20::numeric,
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+                    $9, $10, $11, $12, $13, $14,
+                    $15, $16, $17, $18, $19, $20,
                     $21, $22)
             RETURNING *
             "#,
@@ -786,7 +786,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
                  bank_account_id, bank_account_name, payment_document,
                  supplier_id, supplier_number, supplier_name,
                  invoice_ids, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8, $9,
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
                     $10, $11, $12, $13, $14)
             RETURNING *
             "#,

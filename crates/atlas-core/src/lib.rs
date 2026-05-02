@@ -131,6 +131,9 @@ pub mod financial_controls;
 pub mod revenue_management;
 pub mod cash_flow_forecast;
 pub mod regulatory_reporting;
+pub mod advance_payment;
+pub mod customer_deposit;
+pub mod cash_position;
 
 pub use schema::*;
 pub use workflow::{
@@ -263,6 +266,9 @@ pub use financial_controls::{FinancialControlsEngine, PostgresFinancialControlsR
 pub use revenue_management::RevenueManagementEngine;
 pub use cash_flow_forecast::CashFlowForecastEngine;
 pub use regulatory_reporting::RegulatoryReportingEngine;
+pub use advance_payment::{AdvancePaymentEngine, PostgresAdvancePaymentRepository as PostgresAdvancePaymentRepo};
+pub use customer_deposit::{CustomerDepositEngine, PostgresCustomerDepositRepository as PostgresCustomerDepositRepo};
+pub use cash_position::{CashPositionEngine, PostgresCashPositionRepository as PostgresCashPositionRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

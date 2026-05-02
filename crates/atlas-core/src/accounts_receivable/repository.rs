@@ -187,8 +187,8 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                  payment_terms, due_date, gl_date,
                  reference_number, purchase_order, sales_rep, status, notes, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-                    $9::double precision, $10::double precision, $11::double precision,
-                    $11::double precision, $11::double precision,
+                    $9, $10, $11,
+                    $11, $11,
                     $12, $13, $14, $15, $16, $17, 'draft', $18, $19)
             RETURNING *
             "#,
@@ -264,8 +264,8 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         let row = sqlx::query(
             r#"
             UPDATE _atlas.ar_transactions
-            SET amount_due_remaining = $2::double precision,
-                amount_applied = COALESCE($3::double precision, amount_applied),
+            SET amount_due_remaining = $2,
+                amount_applied = COALESCE($3, amount_applied),
                 status = $4,
                 updated_at = now()
             WHERE id = $1
@@ -283,7 +283,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         let row = sqlx::query(
             r#"
             UPDATE _atlas.ar_transactions
-            SET amount_adjusted = $2::double precision,
+            SET amount_adjusted = $2,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
@@ -300,11 +300,11 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         let row = sqlx::query(
             r#"
             UPDATE _atlas.ar_transactions
-            SET entered_amount = $2::double precision,
-                tax_amount = $3::double precision,
-                total_amount = $4::double precision,
-                amount_due_original = $5::double precision,
-                amount_due_remaining = $5::double precision,
+            SET entered_amount = $2,
+                tax_amount = $3,
+                total_amount = $4,
+                amount_due_original = $5,
+                amount_due_remaining = $5,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
@@ -343,7 +343,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                  quantity, unit_price, line_amount, tax_amount,
                  tax_code, revenue_account, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                    $11::double precision, $12::double precision, $13, $14, $15)
+                    $11, $12, $13, $14, $15)
             RETURNING *
             "#,
         )
@@ -393,7 +393,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                 (organization_id, receipt_number, receipt_date, receipt_type, receipt_method,
                  amount, currency_code, customer_id, customer_number, customer_name,
                  reference_number, bank_account_name, check_number, status, notes, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6::double precision, $7, $8, $9, $10,
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, 'draft', $14, $15)
             RETURNING *
             "#,
@@ -476,7 +476,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                  reason_code, reason_description, amount, tax_amount, total_amount,
                  status, notes, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                    $11::double precision, $12::double precision, $13::double precision,
+                    $11, $12, $13,
                     'draft', $14, $15)
             RETURNING *
             "#,
@@ -561,7 +561,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                  adjustment_type, amount, receivable_account, adjustment_account,
                  reason_code, reason_description, status, notes, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-                    $10::double precision, $11, $12, $13, $14, 'draft', $15, $16)
+                    $10, $11, $12, $13, $14, 'draft', $15, $16)
             RETURNING *
             "#,
         )
@@ -700,8 +700,8 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 use sqlx::Row;
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
-    let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    let s: Option<String> = row.try_get(col).ok().flatten();
+    s.unwrap_or_else(|| "0".to_string())
 }
 
 fn row_to_transaction(row: &sqlx::postgres::PgRow) -> ArTransaction {

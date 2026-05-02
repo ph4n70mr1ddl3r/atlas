@@ -94,8 +94,8 @@ impl PostgresGeneralLedgerRepository {
 use sqlx::Row;
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
-    let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    let s: Option<String> = row.try_get(col).ok().flatten();
+    s.unwrap_or_else(|| "0".to_string())
 }
 
 fn row_to_account(row: &sqlx::postgres::PgRow) -> GlAccount {
@@ -334,8 +334,8 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         sqlx::query(
             r#"
             UPDATE _atlas.gl_journal_entries
-            SET total_debit = $2::double precision,
-                total_credit = $3::double precision,
+            SET total_debit = $2,
+                total_credit = $3,
                 is_balanced = $4,
                 updated_at = now()
             WHERE id = $1
@@ -375,8 +375,8 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
                  entered_dr, entered_cr, accounted_dr, accounted_cr,
                  currency_code, exchange_rate, reference, tax_code, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7,
-                    $8::double precision, $9::double precision,
-                    $10::double precision, $11::double precision,
+                    $8, $9,
+                    $10, $11,
                     $12, $13, $14, $15, $16)
             RETURNING *
             "#,

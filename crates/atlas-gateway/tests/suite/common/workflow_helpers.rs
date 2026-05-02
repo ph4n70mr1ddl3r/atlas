@@ -1007,6 +1007,15 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         subscription_engine: Arc::new(atlas_core::SubscriptionEngine::new(Arc::new(
             atlas_core::subscription::PostgresSubscriptionRepository::new(db_pool.clone()),
         ))),
+        financial_consolidation_engine: Arc::new(atlas_core::FinancialConsolidationEngine::new(Arc::new(
+            atlas_core::financial_consolidation::PostgresFinancialConsolidationRepository::new(db_pool.clone()),
+        ))),
+        joint_venture_engine: Arc::new(atlas_core::JointVentureEngine::new(Arc::new(
+            atlas_core::joint_venture::PostgresJointVentureRepository::new(db_pool.clone()),
+        ))),
+        deferred_revenue_engine: Arc::new(atlas_core::DeferredRevenueEngine::new(Arc::new(
+            atlas_core::deferred_revenue::PostgresDeferredRevenueRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

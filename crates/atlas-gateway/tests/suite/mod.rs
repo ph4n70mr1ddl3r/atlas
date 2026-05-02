@@ -98,3 +98,6 @@ mod impairment_management;
 mod bank_account_transfer;
 mod tax_reporting;
 mod subscription;
+mod financial_consolidation;
+mod joint_venture;
+mod deferred_revenue;

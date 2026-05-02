@@ -100,6 +100,9 @@ pub mod impairment_management;
 pub mod bank_account_transfer;
 pub mod tax_reporting;
 pub mod subscription;
+pub mod financial_consolidation;
+pub mod joint_venture;
+pub mod deferred_revenue;
 
 pub use schema::*;
 pub use records::*;
@@ -3901,6 +3904,54 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/subscription/dashboard", get(subscription::get_subscription_dashboard))
+
+        // Financial Consolidation (Oracle Fusion: General Ledger > Financial Consolidation)
+        .route("/financial-consolidation/ledgers", post(financial_consolidation::create_ledger))
+        .route("/financial-consolidation/ledgers", get(financial_consolidation::list_ledgers))
+        .route("/financial-consolidation/ledgers/:code", get(financial_consolidation::get_ledger))
+        .route("/financial-consolidation/ledgers/:ledger_id/entities", post(financial_consolidation::add_entity))
+        .route("/financial-consolidation/ledgers/:ledger_id/entities", get(financial_consolidation::list_entities))
+        .route("/financial-consolidation/scenarios", post(financial_consolidation::create_scenario))
+        .route("/financial-consolidation/scenarios", get(financial_consolidation::list_scenarios))
+        .route("/financial-consolidation/scenarios/:scenario_id/execute", post(financial_consolidation::execute_consolidation))
+        .route("/financial-consolidation/scenarios/:scenario_id/approve", post(financial_consolidation::approve_scenario))
+        .route("/financial-consolidation/scenarios/:scenario_id/post", post(financial_consolidation::post_scenario))
+        .route("/financial-consolidation/scenarios/:scenario_id/reverse", post(financial_consolidation::reverse_scenario))
+        .route("/financial-consolidation/elimination-rules", post(financial_consolidation::create_elimination_rule))
+        .route("/financial-consolidation/elimination-rules", get(financial_consolidation::list_elimination_rules))
+        .route("/financial-consolidation/dashboard", get(financial_consolidation::get_consolidation_dashboard))
+
+        // Joint Venture Management (Oracle Fusion: Financials > Joint Venture Management)
+        .route("/joint-venture/ventures", post(joint_venture::create_venture))
+        .route("/joint-venture/ventures", get(joint_venture::list_ventures))
+        .route("/joint-venture/ventures/:id", get(joint_venture::get_venture))
+        .route("/joint-venture/ventures/:id/activate", post(joint_venture::activate_venture))
+        .route("/joint-venture/ventures/:id/close", post(joint_venture::close_venture))
+        .route("/joint-venture/ventures/:venture_id/partners", post(joint_venture::add_partner))
+        .route("/joint-venture/ventures/:venture_id/partners", get(joint_venture::list_partners))
+        .route("/joint-venture/ventures/:venture_id/afes", post(joint_venture::create_afe))
+        .route("/joint-venture/ventures/:venture_id/afes", get(joint_venture::list_afes))
+        .route("/joint-venture/afes/:id/submit", post(joint_venture::submit_afe))
+        .route("/joint-venture/afes/:id/approve", post(joint_venture::approve_afe))
+        .route("/joint-venture/ventures/:venture_id/cost-distributions", post(joint_venture::create_cost_distribution))
+        .route("/joint-venture/ventures/:venture_id/cost-distributions", get(joint_venture::list_cost_distributions))
+        .route("/joint-venture/cost-distributions/:id/post", post(joint_venture::post_cost_distribution))
+        .route("/joint-venture/dashboard", get(joint_venture::get_joint_venture_dashboard))
+
+        // Deferred Revenue/Cost Management (Oracle Fusion: Revenue Management > Deferral Schedules)
+        .route("/deferred-revenue/templates", post(deferred_revenue::create_template))
+        .route("/deferred-revenue/templates", get(deferred_revenue::list_templates))
+        .route("/deferred-revenue/templates/:code", get(deferred_revenue::get_template))
+        .route("/deferred-revenue/templates/:code", delete(deferred_revenue::delete_template))
+        .route("/deferred-revenue/schedules", post(deferred_revenue::create_schedule))
+        .route("/deferred-revenue/schedules", get(deferred_revenue::list_schedules))
+        .route("/deferred-revenue/schedules/:id", get(deferred_revenue::get_schedule))
+        .route("/deferred-revenue/schedules/:schedule_id/lines", get(deferred_revenue::list_schedule_lines))
+        .route("/deferred-revenue/schedules/recognize", post(deferred_revenue::recognize_pending))
+        .route("/deferred-revenue/schedules/:id/hold", post(deferred_revenue::hold_schedule))
+        .route("/deferred-revenue/schedules/:id/resume", post(deferred_revenue::resume_schedule))
+        .route("/deferred-revenue/schedules/:id/cancel", post(deferred_revenue::cancel_schedule))
+        .route("/deferred-revenue/dashboard", get(deferred_revenue::get_deferred_revenue_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

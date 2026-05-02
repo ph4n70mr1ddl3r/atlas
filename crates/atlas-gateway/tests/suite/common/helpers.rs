@@ -511,6 +511,15 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         subscription_engine: Arc::new(atlas_core::SubscriptionEngine::new(Arc::new(
             atlas_core::subscription::PostgresSubscriptionRepository::new(db_pool.clone()),
         ))),
+        financial_consolidation_engine: Arc::new(atlas_core::FinancialConsolidationEngine::new(Arc::new(
+            atlas_core::financial_consolidation::PostgresFinancialConsolidationRepository::new(db_pool.clone()),
+        ))),
+        joint_venture_engine: Arc::new(atlas_core::JointVentureEngine::new(Arc::new(
+            atlas_core::joint_venture::PostgresJointVentureRepository::new(db_pool.clone()),
+        ))),
+        deferred_revenue_engine: Arc::new(atlas_core::DeferredRevenueEngine::new(Arc::new(
+            atlas_core::deferred_revenue::PostgresDeferredRevenueRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -779,6 +788,28 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.transfer_pricing_transactions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.transfer_pricing_benchmarks").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.transfer_pricing_policies").execute(pool).await.ok();
+    // Clean financial consolidation test data
+    sqlx::query("DELETE FROM _atlas.consolidation_adjustments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_trial_balance").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_scenarios").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_translation_rates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_entities").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_elimination_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_ledgers").execute(pool).await.ok();
+    // Clean joint venture test data
+    sqlx::query("DELETE FROM _atlas.joint_venture_billing_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_billings").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_revenue_distribution_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_revenue_distributions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_cost_distribution_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_cost_distributions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_afes").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_partners").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.joint_ventures").execute(pool).await.ok();
+    // Clean deferred revenue test data
+    sqlx::query("DELETE FROM _atlas.deferral_schedule_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.deferral_schedules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.deferral_templates").execute(pool).await.ok();
     // Clean approval delegation test data
     sqlx::query("DELETE FROM _atlas.approval_delegation_history").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.approval_delegation_rules").execute(pool).await.ok();

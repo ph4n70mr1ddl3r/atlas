@@ -119,6 +119,12 @@ use atlas_core::{
     bank_account_transfer::PostgresBankAccountTransferRepository,
     TaxReportingEngine,
     tax_reporting::PostgresTaxReportingRepository,
+    FinancialConsolidationEngine,
+    financial_consolidation::PostgresFinancialConsolidationRepository,
+    JointVentureEngine,
+    joint_venture::PostgresJointVentureRepository,
+    DeferredRevenueEngine,
+    deferred_revenue::PostgresDeferredRevenueRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -300,6 +306,9 @@ pub struct AppState {
     pub bank_transfer_engine: Arc<BankAccountTransferEngine>,
     pub tax_reporting_engine: Arc<TaxReportingEngine>,
     pub subscription_engine: Arc<SubscriptionEngine>,
+    pub financial_consolidation_engine: Arc<FinancialConsolidationEngine>,
+    pub joint_venture_engine: Arc<JointVentureEngine>,
+    pub deferred_revenue_engine: Arc<DeferredRevenueEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -824,6 +833,21 @@ impl AppState {
             PostgresSubscriptionRepository::new(db_pool.clone())
         )));
 
+        // Initialize Financial Consolidation engine
+        let financial_consolidation_engine = Arc::new(FinancialConsolidationEngine::new(Arc::new(
+            PostgresFinancialConsolidationRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Joint Venture Management engine
+        let joint_venture_engine = Arc::new(JointVentureEngine::new(Arc::new(
+            PostgresJointVentureRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Deferred Revenue/Cost Management engine
+        let deferred_revenue_engine = Arc::new(DeferredRevenueEngine::new(Arc::new(
+            PostgresDeferredRevenueRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -966,6 +990,9 @@ impl AppState {
             bank_transfer_engine,
             tax_reporting_engine,
             subscription_engine,
+            financial_consolidation_engine,
+            joint_venture_engine,
+            deferred_revenue_engine,
             event_bus,
             jwt_secret,
         };

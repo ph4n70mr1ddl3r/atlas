@@ -103,6 +103,14 @@ pub mod subscription;
 pub mod financial_consolidation;
 pub mod joint_venture;
 pub mod deferred_revenue;
+pub mod revenue_management;
+pub mod cash_flow_forecast;
+pub mod regulatory_reporting;
+pub mod advance_payment;
+pub mod customer_deposit;
+pub mod cash_position;
+pub mod accounting_hub;
+pub mod financial_controls;
 
 pub use schema::*;
 pub use records::*;
@@ -3952,6 +3960,99 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/deferred-revenue/schedules/:id/resume", post(deferred_revenue::resume_schedule))
         .route("/deferred-revenue/schedules/:id/cancel", post(deferred_revenue::cancel_schedule))
         .route("/deferred-revenue/dashboard", get(deferred_revenue::get_deferred_revenue_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Revenue Management (ASC 606 / IFRS 15)
+        // ═══════════════════════════════════════════════════════
+        .route("/revenue-management/contracts", post(revenue_management::create_contract))
+        .route("/revenue-management/contracts", get(revenue_management::list_contracts))
+        .route("/revenue-management/contracts/:number", get(revenue_management::get_contract))
+        .route("/revenue-management/contracts/:id/activate", post(revenue_management::activate_contract))
+        .route("/revenue-management/contracts/:id/cancel", post(revenue_management::cancel_contract))
+        .route("/revenue-management/obligations", post(revenue_management::create_obligation))
+        .route("/revenue-management/contracts/:contract_id/obligations", get(revenue_management::list_obligations))
+        .route("/revenue-management/contracts/:contract_id/allocate", post(revenue_management::allocate_transaction_price))
+        .route("/revenue-management/ssp", post(revenue_management::create_ssp))
+        .route("/revenue-management/ssp", get(revenue_management::list_ssps))
+        .route("/revenue-management/obligations/:obligation_id/satisfy", post(revenue_management::satisfy_obligation))
+        .route("/revenue-management/contracts/:contract_id/events", get(revenue_management::list_recognition_events))
+        .route("/revenue-management/dashboard", get(revenue_management::get_revenue_management_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Cash Flow Forecasting
+        // ═══════════════════════════════════════════════════════
+        .route("/cash-flow-forecasts", post(cash_flow_forecast::create_forecast))
+        .route("/cash-flow-forecasts", get(cash_flow_forecast::list_forecasts))
+        .route("/cash-flow-forecasts/:id", get(cash_flow_forecast::get_forecast))
+        .route("/cash-flow-forecasts/:id/activate", post(cash_flow_forecast::activate_forecast))
+        .route("/cash-flow-forecasts/:id/approve", post(cash_flow_forecast::approve_forecast))
+        .route("/cash-flow-forecasts/scenarios", post(cash_flow_forecast::create_scenario))
+        .route("/cash-flow-forecasts/:forecast_id/scenarios", get(cash_flow_forecast::list_scenarios))
+        .route("/cash-flow-forecasts/entries", post(cash_flow_forecast::create_entry))
+        .route("/cash-flow-forecasts/:forecast_id/entries", get(cash_flow_forecast::list_entries))
+        .route("/cash-flow-forecasts/dashboard", get(cash_flow_forecast::get_cash_forecast_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Regulatory Reporting
+        // ═══════════════════════════════════════════════════════
+        .route("/regulatory-templates", post(regulatory_reporting::create_reg_template))
+        .route("/regulatory-templates", get(regulatory_reporting::list_reg_templates))
+        .route("/regulatory-templates/:code", delete(regulatory_reporting::delete_reg_template))
+        .route("/regulatory-reports", post(regulatory_reporting::create_reg_report))
+        .route("/regulatory-reports", get(regulatory_reporting::list_reg_reports))
+        .route("/regulatory-reports/:id/review", post(regulatory_reporting::submit_for_review))
+        .route("/regulatory-reports/:id/approve", post(regulatory_reporting::approve_reg_report))
+        .route("/regulatory-reports/:id/reject", post(regulatory_reporting::reject_reg_report))
+        .route("/regulatory-filings", post(regulatory_reporting::create_filing))
+        .route("/regulatory-filings", get(regulatory_reporting::list_filings))
+        .route("/regulatory-reporting/dashboard", get(regulatory_reporting::get_regulatory_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Advance Payments (Supplier Prepayments)
+        // ═══════════════════════════════════════════════════════
+        .route("/advance-payments", post(advance_payment::create_advance))
+        .route("/advance-payments", get(advance_payment::list_advances))
+        .route("/advance-payments/:id", get(advance_payment::get_advance))
+        .route("/advance-payments/:id/approve", post(advance_payment::approve_advance))
+        .route("/advance-payments/:id/pay", post(advance_payment::pay_advance))
+        .route("/advance-payments/:id/cancel", post(advance_payment::cancel_advance))
+        .route("/advance-payments/apply", post(advance_payment::apply_to_invoice))
+        .route("/advance-payments/dashboard", get(advance_payment::get_advance_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Customer Deposits
+        // ═══════════════════════════════════════════════════════
+        .route("/customer-deposits", post(customer_deposit::create_deposit))
+        .route("/customer-deposits", get(customer_deposit::list_deposits))
+        .route("/customer-deposits/:id", get(customer_deposit::get_deposit))
+        .route("/customer-deposits/:id/receive", post(customer_deposit::receive_deposit))
+        .route("/customer-deposits/:id/refund", post(customer_deposit::refund_deposit))
+        .route("/customer-deposits/:id/cancel", post(customer_deposit::cancel_deposit))
+        .route("/customer-deposits/apply", post(customer_deposit::apply_deposit_to_invoice))
+        .route("/customer-deposits/dashboard", get(customer_deposit::get_deposit_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Cash Position
+        // ═══════════════════════════════════════════════════════
+        .route("/cash-positions", post(cash_position::record_position))
+        .route("/cash-positions", get(cash_position::list_positions))
+        .route("/cash-positions/dashboard", get(cash_position::get_cash_position_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Accounting Hub
+        // ═══════════════════════════════════════════════════════
+        .route("/accounting-hub/rules", post(accounting_hub::create_mapping_rule))
+        .route("/accounting-hub/rules", get(accounting_hub::list_mapping_rules))
+        .route("/accounting-hub/rules/:code", delete(accounting_hub::delete_mapping_rule))
+        .route("/accounting-hub/dashboard", get(accounting_hub::get_accounting_hub_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Financial Controls
+        // ═══════════════════════════════════════════════════════
+        .route("/financial-controls/rules", post(financial_controls::create_control_rule))
+        .route("/financial-controls/rules", get(financial_controls::list_control_rules))
+        .route("/financial-controls/rules/:code", delete(financial_controls::delete_control_rule))
+        .route("/financial-controls/dashboard", get(financial_controls::get_financial_controls_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

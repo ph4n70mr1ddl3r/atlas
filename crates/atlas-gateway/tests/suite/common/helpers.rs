@@ -520,6 +520,30 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         deferred_revenue_engine: Arc::new(atlas_core::DeferredRevenueEngine::new(Arc::new(
             atlas_core::deferred_revenue::PostgresDeferredRevenueRepository::new(db_pool.clone()),
         ))),
+        revenue_management_engine: Arc::new(atlas_core::RevenueManagementEngine::new(Arc::new(
+            atlas_core::revenue_management::PostgresRevenueManagementRepository::new(db_pool.clone()),
+        ))),
+        cash_flow_forecast_engine: Arc::new(atlas_core::CashFlowForecastEngine::new(Arc::new(
+            atlas_core::cash_flow_forecast::PostgresCashFlowForecastRepository::new(db_pool.clone()),
+        ))),
+        regulatory_reporting_engine: Arc::new(atlas_core::RegulatoryReportingEngine::new(Arc::new(
+            atlas_core::regulatory_reporting::PostgresRegulatoryReportingRepository::new(db_pool.clone()),
+        ))),
+        advance_payment_engine: Arc::new(atlas_core::AdvancePaymentEngine::new(Arc::new(
+            atlas_core::advance_payment::PostgresAdvancePaymentRepository::new(db_pool.clone()),
+        ))),
+        customer_deposit_engine: Arc::new(atlas_core::CustomerDepositEngine::new(Arc::new(
+            atlas_core::customer_deposit::PostgresCustomerDepositRepository::new(db_pool.clone()),
+        ))),
+        cash_position_engine: Arc::new(atlas_core::CashPositionEngine::new(Arc::new(
+            atlas_core::cash_position::PostgresCashPositionRepository::new(db_pool.clone()),
+        ))),
+        accounting_hub_engine: Arc::new(atlas_core::AccountingHubEngine::new(Arc::new(
+            atlas_core::accounting_hub::PostgresAccountingHubRepository::new(db_pool.clone()),
+        ))),
+        financial_controls_engine: Arc::new(atlas_core::FinancialControlsEngine::new(Arc::new(
+            atlas_core::financial_controls::PostgresFinancialControlsRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

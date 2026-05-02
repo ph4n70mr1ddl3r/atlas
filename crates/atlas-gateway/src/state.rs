@@ -5,6 +5,22 @@
 use atlas_core::{
     subscription::PostgresSubscriptionRepository,
     SubscriptionEngine,
+    RevenueManagementEngine,
+    revenue_management::PostgresRevenueManagementRepository,
+    CashFlowForecastEngine,
+    cash_flow_forecast::PostgresCashFlowForecastRepository,
+    RegulatoryReportingEngine,
+    regulatory_reporting::PostgresRegulatoryReportingRepository,
+    AdvancePaymentEngine,
+    advance_payment::PostgresAdvancePaymentRepository,
+    CustomerDepositEngine,
+    customer_deposit::PostgresCustomerDepositRepository,
+    CashPositionEngine,
+    cash_position::PostgresCashPositionRepository,
+    AccountingHubEngine,
+    accounting_hub::PostgresAccountingHubRepository,
+    FinancialControlsEngine,
+    financial_controls::PostgresFinancialControlsRepository,
     SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
     SecurityEngine, AuditEngine,
     NotificationEngine,
@@ -309,6 +325,14 @@ pub struct AppState {
     pub financial_consolidation_engine: Arc<FinancialConsolidationEngine>,
     pub joint_venture_engine: Arc<JointVentureEngine>,
     pub deferred_revenue_engine: Arc<DeferredRevenueEngine>,
+    pub revenue_management_engine: Arc<RevenueManagementEngine>,
+    pub cash_flow_forecast_engine: Arc<CashFlowForecastEngine>,
+    pub regulatory_reporting_engine: Arc<RegulatoryReportingEngine>,
+    pub advance_payment_engine: Arc<AdvancePaymentEngine>,
+    pub customer_deposit_engine: Arc<CustomerDepositEngine>,
+    pub cash_position_engine: Arc<CashPositionEngine>,
+    pub accounting_hub_engine: Arc<AccountingHubEngine>,
+    pub financial_controls_engine: Arc<FinancialControlsEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -848,6 +872,46 @@ impl AppState {
             PostgresDeferredRevenueRepository::new(db_pool.clone())
         )));
 
+        // Initialize Revenue Management (ASC 606) engine
+        let revenue_management_engine = Arc::new(RevenueManagementEngine::new(Arc::new(
+            PostgresRevenueManagementRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Cash Flow Forecasting engine
+        let cash_flow_forecast_engine = Arc::new(CashFlowForecastEngine::new(Arc::new(
+            PostgresCashFlowForecastRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Regulatory Reporting engine
+        let regulatory_reporting_engine = Arc::new(RegulatoryReportingEngine::new(Arc::new(
+            PostgresRegulatoryReportingRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Advance Payment engine
+        let advance_payment_engine = Arc::new(AdvancePaymentEngine::new(Arc::new(
+            PostgresAdvancePaymentRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Customer Deposit engine
+        let customer_deposit_engine = Arc::new(CustomerDepositEngine::new(Arc::new(
+            PostgresCustomerDepositRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Cash Position engine
+        let cash_position_engine = Arc::new(CashPositionEngine::new(Arc::new(
+            PostgresCashPositionRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Accounting Hub engine
+        let accounting_hub_engine = Arc::new(AccountingHubEngine::new(Arc::new(
+            PostgresAccountingHubRepository::new(db_pool.clone())
+        )));
+
+        // Initialize Financial Controls engine
+        let financial_controls_engine = Arc::new(FinancialControlsEngine::new(Arc::new(
+            PostgresFinancialControlsRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -993,6 +1057,14 @@ impl AppState {
             financial_consolidation_engine,
             joint_venture_engine,
             deferred_revenue_engine,
+            revenue_management_engine,
+            cash_flow_forecast_engine,
+            regulatory_reporting_engine,
+            advance_payment_engine,
+            customer_deposit_engine,
+            cash_position_engine,
+            accounting_hub_engine,
+            financial_controls_engine,
             event_bus,
             jwt_secret,
         };

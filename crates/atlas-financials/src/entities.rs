@@ -8576,6 +8576,153 @@ pub fn asset_depreciation_schedule_definition() -> EntityDefinition {
         .build()
 }
 
+// ============================================================================
+// Expense Policy Compliance (Oracle Fusion: Expenses > Expense Policies)
+// ============================================================================
+
+/// Expense Policy Rule entity with workflow
+/// Oracle Fusion: Expenses > Policies > Expense Policy Rules
+pub fn expense_policy_rule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("expense_policy_rule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .final_state("archived", "Archived")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .transition("inactive", "active", "reactivate")
+        .transition("inactive", "archived", "archive")
+        .build();
+
+    SchemaBuilder::new("expense_policy_rules", "Expense Policy Rule")
+        .plural_label("Expense Policy Rules")
+        .table_name("fin_expense_policy_rules")
+        .description("Configurable expense policy rules for compliance enforcement")
+        .icon("shield-alt")
+        .required_string("rule_code", "Rule Code")
+        .required_string("name", "Rule Name")
+        .string("description", "Description")
+        .enumeration("rule_type", "Rule Type", vec![
+            "amount_limit", "daily_limit", "category_limit",
+            "receipt_required", "time_restriction", "duplicate_check",
+            "approval_required", "per_diem_override",
+        ])
+        .enumeration("expense_category", "Expense Category", vec![
+            "airfare", "hotel", "meals", "ground_transport",
+            "parking", "fuel", "mileage", "phone",
+            "entertainment", "office_supplies", "training", "other", "all",
+        ])
+        .enumeration("severity", "Severity", vec![
+            "warning", "violation", "block",
+        ])
+        .enumeration("evaluation_scope", "Evaluation Scope", vec![
+            "per_line", "per_day", "per_report", "per_trip",
+        ])
+        .decimal("threshold_amount", "Threshold Amount", 18, 2)
+        .decimal("maximum_amount", "Maximum Amount", 18, 2)
+        .integer("threshold_days", "Threshold (Days)", )
+        .boolean("requires_receipt", "Requires Receipt")
+        .boolean("requires_justification", "Requires Justification")
+        .boolean("is_active", "Active")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .string("applies_to_department", "Department")
+        .string("applies_to_cost_center", "Cost Center")
+        .reference("created_by_id", "Created By", "employees")
+        .workflow(workflow)
+        .build()
+}
+
+/// Expense Compliance Audit entity
+/// Oracle Fusion: Expenses > Audit > Compliance Audits
+pub fn expense_compliance_audit_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("expense_compliance_audit_workflow", "pending")
+        .initial_state("pending", "Pending Review")
+        .working_state("in_review", "In Review")
+        .working_state("escalated", "Escalated")
+        .final_state("cleared", "Cleared")
+        .final_state("action_required", "Action Required")
+        .final_state("rejected", "Rejected")
+        .transition("pending", "in_review", "start_review")
+        .transition("in_review", "cleared", "clear")
+        .transition("in_review", "action_required", "require_action")
+        .transition("in_review", "escalated", "escalate")
+        .transition("escalated", "cleared", "clear")
+        .transition("escalated", "action_required", "require_action")
+        .transition("pending", "rejected", "reject")
+        .build();
+
+    SchemaBuilder::new("expense_compliance_audits", "Expense Compliance Audit")
+        .plural_label("Expense Compliance Audits")
+        .table_name("fin_expense_compliance_audits")
+        .description("Expense report compliance audit results with violation tracking")
+        .icon("clipboard-check")
+        .required_string("audit_number", "Audit Number")
+        .reference("report_id", "Expense Report", "expense_reports")
+        .string("report_number", "Report Number")
+        .reference("employee_id", "Employee", "employees")
+        .string("employee_name", "Employee Name")
+        .reference("department_id", "Department", "departments")
+        .date("audit_date", "Audit Date")
+        .enumeration("audit_trigger", "Audit Trigger", vec![
+            "automatic", "random_sample", "high_amount", "policy_violation", "manual",
+        ])
+        .integer("total_lines", "Total Lines")
+        .integer("violations_count", "Violations Count")
+        .integer("warnings_count", "Warnings Count")
+        .integer("blocks_count", "Blocks Count")
+        .decimal("compliance_score", "Compliance Score (0-100)", 5, 2)
+        .enumeration("risk_level", "Risk Level", vec![
+            "low", "medium", "high", "critical",
+        ])
+        .currency("total_flagged_amount", "Total Flagged Amount", "USD")
+        .currency("total_approved_amount", "Total Approved Amount", "USD")
+        .boolean("requires_manager_review", "Requires Manager Review")
+        .boolean("requires_finance_review", "Requires Finance Review")
+        .enumeration("status", "Status", vec![
+            "pending", "in_review", "escalated", "cleared", "action_required", "rejected",
+        ])
+        .reference("reviewed_by_id", "Reviewed By", "employees")
+        .rich_text("review_notes", "Review Notes")
+        .workflow(workflow)
+        .build()
+}
+
+/// Expense Compliance Violation entity
+/// Oracle Fusion: Expenses > Audit > Violation Details
+pub fn expense_compliance_violation_definition() -> EntityDefinition {
+    SchemaBuilder::new("expense_compliance_violations", "Expense Compliance Violation")
+        .plural_label("Expense Compliance Violations")
+        .table_name("fin_expense_compliance_violations")
+        .description("Individual compliance violations detected during expense policy evaluation")
+        .icon("exclamation-triangle")
+        .reference("audit_id", "Audit", "expense_compliance_audits")
+        .reference("report_id", "Expense Report", "expense_reports")
+        .reference("report_line_id", "Expense Line", "expense_report_lines")
+        .reference("policy_rule_id", "Policy Rule", "expense_policy_rules")
+        .string("rule_code", "Rule Code")
+        .string("rule_name", "Rule Name")
+        .enumeration("rule_type", "Rule Type", vec![
+            "amount_limit", "daily_limit", "category_limit",
+            "receipt_required", "time_restriction", "duplicate_check",
+            "approval_required", "per_diem_override",
+        ])
+        .enumeration("severity", "Severity", vec![
+            "warning", "violation", "block",
+        ])
+        .string("violation_description", "Violation Description")
+        .currency("expense_amount", "Expense Amount", "USD")
+        .currency("threshold_amount", "Threshold Amount", "USD")
+        .decimal("excess_amount", "Excess Amount", 18, 2)
+        .enumeration("resolution_status", "Resolution Status", vec![
+            "open", "justified", "adjusted", "upheld", "escalated",
+        ])
+        .string("justification", "Justification")
+        .reference("resolved_by_id", "Resolved By", "employees")
+        .date("resolution_date", "Resolution Date")
+        .build()
+}
+
 /// Depreciation Schedule Line entity
 /// Oracle Fusion: Fixed Assets > Depreciation Schedule Lines
 pub fn depreciation_schedule_line_definition() -> EntityDefinition {

@@ -153,4 +153,10 @@ pub use services::{
     AccountingEventResult,
     AssetDepreciationScheduleService,
     DepreciationSchedulePeriod,
+    // Expense Policy Compliance Engine
+    ExpensePolicyComplianceService,
+    ExpensePolicyRuleData,
+    ExpenseLineData,
+    PolicyEvaluationResult,
+    ComplianceReport,
 };

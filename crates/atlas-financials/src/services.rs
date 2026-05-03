@@ -14,6 +14,7 @@ use atlas_core::{
     TreasuryEngine, RecurringJournalEngine, AutoInvoiceEngine,
     NettingEngine, SubscriptionEngine, FundsReservationEngine,
 };
+use chrono::Datelike;
 use atlas_core::fixed_assets::FixedAssetEngine;
 use atlas_core::accounts_payable::AccountsPayableEngine;
 use atlas_core::cost_accounting::CostAccountingEngine;
@@ -13031,6 +13032,546 @@ impl AssetDepreciationScheduleService {
             .filter(|p| p.fiscal_year == fiscal_year)
             .map(|p| p.depreciation_amount)
             .sum()
+    }
+}
+
+// ============================================================================
+// Expense Policy Compliance Service
+// ============================================================================
+
+/// Expense Policy Compliance service
+/// Oracle Fusion: Expenses > Policies > Expense Policy Compliance Engine
+///
+/// Handles configuration and enforcement of corporate expense policies including:
+/// - Per-line amount limits by expense category
+/// - Daily aggregate limits
+/// - Receipt requirements based on amount thresholds
+/// - Duplicate expense detection
+/// - Time-based restrictions (e.g., no weekend entertainment)
+/// - Compliance scoring and risk assessment
+#[allow(dead_code)]
+pub struct ExpensePolicyComplianceService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// An expense policy rule for evaluation
+#[derive(Debug, Clone)]
+pub struct ExpensePolicyRuleData {
+    pub rule_code: String,
+    pub rule_type: String,
+    pub expense_category: String,
+    pub severity: String,
+    pub evaluation_scope: String,
+    pub threshold_amount: f64,
+    pub maximum_amount: f64,
+    pub threshold_days: i32,
+    pub requires_receipt: bool,
+    pub requires_justification: bool,
+}
+
+/// A single expense line for evaluation
+#[derive(Debug, Clone)]
+pub struct ExpenseLineData {
+    pub expense_type: String,
+    pub amount: f64,
+    pub currency_code: String,
+    pub expense_date: chrono::NaiveDate,
+    pub has_receipt: bool,
+    pub justification: Option<String>,
+    pub vendor_name: Option<String>,
+}
+
+/// Result of evaluating one rule against one expense line
+#[derive(Debug, Clone)]
+pub struct PolicyEvaluationResult {
+    pub rule_code: String,
+    pub rule_type: String,
+    pub severity: String,
+    pub passed: bool,
+    pub message: String,
+    pub expense_amount: f64,
+    pub threshold: f64,
+    pub excess: f64,
+}
+
+/// Full compliance report for an expense report
+#[derive(Debug, Clone)]
+pub struct ComplianceReport {
+    pub total_lines: usize,
+    pub passed_lines: usize,
+    pub violations: Vec<PolicyEvaluationResult>,
+    pub warnings: Vec<PolicyEvaluationResult>,
+    pub blocks: Vec<PolicyEvaluationResult>,
+    pub compliance_score: f64,
+    pub risk_level: String,
+    pub is_compliant: bool,
+}
+
+/// Valid rule types for expense policy
+const VALID_POLICY_RULE_TYPES: &[&str] = &[
+    "amount_limit", "daily_limit", "category_limit",
+    "receipt_required", "time_restriction", "duplicate_check",
+    "approval_required", "per_diem_override",
+];
+
+/// Valid expense categories
+const VALID_POLICY_CATEGORIES: &[&str] = &[
+    "airfare", "hotel", "meals", "ground_transport",
+    "parking", "fuel", "mileage", "phone",
+    "entertainment", "office_supplies", "training", "other", "all",
+];
+
+/// Valid policy severity levels
+const VALID_POLICY_SEVERITY_LEVELS: &[&str] = &[
+    "warning", "violation", "block",
+];
+
+/// Valid evaluation scopes
+const VALID_EVALUATION_SCOPES: &[&str] = &[
+    "per_line", "per_day", "per_report", "per_trip",
+];
+
+/// Risk level thresholds for compliance score
+const RISK_LOW_THRESHOLD: f64 = 80.0;
+const RISK_MEDIUM_THRESHOLD: f64 = 60.0;
+const RISK_HIGH_THRESHOLD: f64 = 40.0;
+
+impl ExpensePolicyComplianceService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate a policy rule configuration
+    /// Oracle Fusion: Expenses > Policies > Create Rule
+    pub fn validate_policy_rule(
+        rule_code: &str,
+        name: &str,
+        rule_type: &str,
+        expense_category: &str,
+        severity: &str,
+        evaluation_scope: &str,
+        threshold_amount: f64,
+        maximum_amount: f64,
+    ) -> AtlasResult<()> {
+        if rule_code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Rule code and name are required".to_string(),
+            ));
+        }
+        if !VALID_POLICY_RULE_TYPES.contains(&rule_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid rule_type '{}'. Must be one of: {}",
+                rule_type, VALID_POLICY_RULE_TYPES.join(", ")
+            )));
+        }
+        if !VALID_POLICY_CATEGORIES.contains(&expense_category) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid expense_category '{}'. Must be one of: {}",
+                expense_category, VALID_POLICY_CATEGORIES.join(", ")
+            )));
+        }
+        if !VALID_POLICY_SEVERITY_LEVELS.contains(&severity) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid severity '{}'. Must be one of: {}",
+                severity, VALID_POLICY_SEVERITY_LEVELS.join(", ")
+            )));
+        }
+        if !VALID_EVALUATION_SCOPES.contains(&evaluation_scope) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid evaluation_scope '{}'. Must be one of: {}",
+                evaluation_scope, VALID_EVALUATION_SCOPES.join(", ")
+            )));
+        }
+        if rule_type == "amount_limit" && maximum_amount <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Amount limit rules must have a positive maximum_amount".to_string(),
+            ));
+        }
+        if threshold_amount < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Threshold amount cannot be negative".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Evaluate a single expense line against a single policy rule
+    pub fn evaluate_rule(
+        rule: &ExpensePolicyRuleData,
+        line: &ExpenseLineData,
+    ) -> PolicyEvaluationResult {
+        if rule.expense_category != "all" && rule.expense_category != line.expense_type {
+            return PolicyEvaluationResult {
+                rule_code: rule.rule_code.clone(),
+                rule_type: rule.rule_type.clone(),
+                severity: rule.severity.clone(),
+                passed: true,
+                message: "Rule does not apply to this category".to_string(),
+                expense_amount: line.amount,
+                threshold: rule.maximum_amount,
+                excess: 0.0,
+            };
+        }
+
+        match rule.rule_type.as_str() {
+            "amount_limit" => {
+                let passed = line.amount <= rule.maximum_amount;
+                let excess = if passed { 0.0 } else { line.amount - rule.maximum_amount };
+                PolicyEvaluationResult {
+                    rule_code: rule.rule_code.clone(),
+                    rule_type: rule.rule_type.clone(),
+                    severity: rule.severity.clone(),
+                    passed,
+                    message: if passed {
+                        "Amount within policy limit".to_string()
+                    } else {
+                        format!("Amount {:.2} exceeds policy limit of {:.2}", line.amount, rule.maximum_amount)
+                    },
+                    expense_amount: line.amount,
+                    threshold: rule.maximum_amount,
+                    excess,
+                }
+            }
+            "receipt_required" => {
+                let receipt_needed = line.amount >= rule.threshold_amount;
+                let passed = !receipt_needed || line.has_receipt;
+                PolicyEvaluationResult {
+                    rule_code: rule.rule_code.clone(),
+                    rule_type: rule.rule_type.clone(),
+                    severity: rule.severity.clone(),
+                    passed,
+                    message: if passed {
+                        "Receipt requirement satisfied".to_string()
+                    } else {
+                        format!("Receipt required for amount {:.2} (threshold: {:.2})", line.amount, rule.threshold_amount)
+                    },
+                    expense_amount: line.amount,
+                    threshold: rule.threshold_amount,
+                    excess: if passed { 0.0 } else { line.amount },
+                }
+            }
+            "category_limit" => {
+                let passed = line.amount <= rule.maximum_amount;
+                let excess = if passed { 0.0 } else { line.amount - rule.maximum_amount };
+                PolicyEvaluationResult {
+                    rule_code: rule.rule_code.clone(),
+                    rule_type: rule.rule_type.clone(),
+                    severity: rule.severity.clone(),
+                    passed,
+                    message: if passed {
+                        format!("{} amount within limit", rule.expense_category)
+                    } else {
+                        format!(
+                            "{} amount {:.2} exceeds category limit of {:.2}",
+                            rule.expense_category, line.amount, rule.maximum_amount
+                        )
+                    },
+                    expense_amount: line.amount,
+                    threshold: rule.maximum_amount,
+                    excess,
+                }
+            }
+            "time_restriction" => {
+                let dow = line.expense_date.weekday().num_days_from_monday();
+                let is_restricted = rule.threshold_days > 0
+                    && (dow >= 5)
+                    && line.expense_type == "entertainment";
+                let passed = !is_restricted || line.justification.is_some();
+                PolicyEvaluationResult {
+                    rule_code: rule.rule_code.clone(),
+                    rule_type: rule.rule_type.clone(),
+                    severity: rule.severity.clone(),
+                    passed,
+                    message: if passed {
+                        "Time restriction satisfied".to_string()
+                    } else {
+                        "Weekend entertainment requires justification".to_string()
+                    },
+                    expense_amount: line.amount,
+                    threshold: 0.0,
+                    excess: if passed { 0.0 } else { line.amount },
+                }
+            }
+            "duplicate_check" => {
+                PolicyEvaluationResult {
+                    rule_code: rule.rule_code.clone(),
+                    rule_type: rule.rule_type.clone(),
+                    severity: rule.severity.clone(),
+                    passed: true,
+                    message: "Duplicate check evaluated at report level".to_string(),
+                    expense_amount: line.amount,
+                    threshold: 0.0,
+                    excess: 0.0,
+                }
+            }
+            "approval_required" => {
+                let needs_approval = line.amount >= rule.threshold_amount;
+                let passed = !needs_approval || line.justification.is_some();
+                PolicyEvaluationResult {
+                    rule_code: rule.rule_code.clone(),
+                    rule_type: rule.rule_type.clone(),
+                    severity: rule.severity.clone(),
+                    passed,
+                    message: if passed {
+                        "Approval requirement satisfied".to_string()
+                    } else {
+                        format!("Amount {:.2} requires approval justification (threshold: {:.2})", line.amount, rule.threshold_amount)
+                    },
+                    expense_amount: line.amount,
+                    threshold: rule.threshold_amount,
+                    excess: if passed { 0.0 } else { line.amount },
+                }
+            }
+            "per_diem_override" => {
+                let passed = line.amount <= rule.maximum_amount;
+                PolicyEvaluationResult {
+                    rule_code: rule.rule_code.clone(),
+                    rule_type: rule.rule_type.clone(),
+                    severity: rule.severity.clone(),
+                    passed,
+                    message: if passed {
+                        "Within per diem override limit".to_string()
+                    } else {
+                        format!("Amount {:.2} exceeds per diem override of {:.2}", line.amount, rule.maximum_amount)
+                    },
+                    expense_amount: line.amount,
+                    threshold: rule.maximum_amount,
+                    excess: if passed { 0.0 } else { line.amount - rule.maximum_amount },
+                }
+            }
+            "daily_limit" => {
+                PolicyEvaluationResult {
+                    rule_code: rule.rule_code.clone(),
+                    rule_type: rule.rule_type.clone(),
+                    severity: rule.severity.clone(),
+                    passed: true,
+                    message: "Daily limit evaluated at aggregate level".to_string(),
+                    expense_amount: line.amount,
+                    threshold: rule.maximum_amount,
+                    excess: 0.0,
+                }
+            }
+            _ => PolicyEvaluationResult {
+                rule_code: rule.rule_code.clone(),
+                rule_type: rule.rule_type.clone(),
+                severity: rule.severity.clone(),
+                passed: true,
+                message: "Unknown rule type - skipped".to_string(),
+                expense_amount: line.amount,
+                threshold: 0.0,
+                excess: 0.0,
+            },
+        }
+    }
+
+    /// Evaluate daily aggregate limits for a set of expense lines
+    pub fn evaluate_daily_limits(
+        rules: &[ExpensePolicyRuleData],
+        lines: &[ExpenseLineData],
+    ) -> Vec<PolicyEvaluationResult> {
+        let mut results = Vec::new();
+        let daily_rules: Vec<&ExpensePolicyRuleData> = rules
+            .iter()
+            .filter(|r| r.rule_type == "daily_limit")
+            .collect();
+
+        if daily_rules.is_empty() {
+            return results;
+        }
+
+        let mut daily_totals: std::collections::HashMap<chrono::NaiveDate, (f64, usize)> =
+            std::collections::HashMap::new();
+        for line in lines {
+            let entry = daily_totals.entry(line.expense_date).or_insert((0.0, 0));
+            entry.0 += line.amount;
+            entry.1 += 1;
+        }
+
+        for (date, (total, _count)) in &daily_totals {
+            for rule in &daily_rules {
+                if rule.maximum_amount > 0.0 && *total > rule.maximum_amount {
+                    results.push(PolicyEvaluationResult {
+                        rule_code: rule.rule_code.clone(),
+                        rule_type: "daily_limit".to_string(),
+                        severity: rule.severity.clone(),
+                        passed: false,
+                        message: format!(
+                            "Daily total {:.2} on {} exceeds limit of {:.2}",
+                            total, date, rule.maximum_amount
+                        ),
+                        expense_amount: *total,
+                        threshold: rule.maximum_amount,
+                        excess: total - rule.maximum_amount,
+                    });
+                }
+            }
+        }
+
+        results
+    }
+
+    /// Detect duplicate expenses across lines
+    pub fn detect_duplicates(
+        lines: &[ExpenseLineData],
+        amount_tolerance: f64,
+    ) -> Vec<PolicyEvaluationResult> {
+        let mut results = Vec::new();
+        for i in 0..lines.len() {
+            for j in (i + 1)..lines.len() {
+                if lines[i].expense_type == lines[j].expense_type
+                    && lines[i].expense_date == lines[j].expense_date
+                    && (lines[i].amount - lines[j].amount).abs() <= amount_tolerance
+                {
+                    results.push(PolicyEvaluationResult {
+                        rule_code: "DUPLICATE_CHECK".to_string(),
+                        rule_type: "duplicate_check".to_string(),
+                        severity: "warning".to_string(),
+                        passed: false,
+                        message: format!(
+                            "Potential duplicate: {} expense of {:.2} on {}",
+                            lines[i].expense_type, lines[i].amount, lines[i].expense_date
+                        ),
+                        expense_amount: lines[i].amount,
+                        threshold: amount_tolerance,
+                        excess: 0.0,
+                    });
+                }
+            }
+        }
+        results
+    }
+
+    /// Generate a full compliance report for an expense report
+    pub fn generate_compliance_report(
+        rules: &[ExpensePolicyRuleData],
+        lines: &[ExpenseLineData],
+    ) -> ComplianceReport {
+        let mut all_results: Vec<PolicyEvaluationResult> = Vec::new();
+        let mut passed_lines = 0;
+
+        for line in lines {
+            let mut line_passed = true;
+            for rule in rules {
+                let result = Self::evaluate_rule(rule, line);
+                if !result.passed {
+                    line_passed = false;
+                    all_results.push(result);
+                }
+            }
+            if line_passed {
+                passed_lines += 1;
+            }
+        }
+
+        let daily_results = Self::evaluate_daily_limits(rules, lines);
+        all_results.extend(daily_results);
+
+        let dup_results = Self::detect_duplicates(lines, 0.01);
+        all_results.extend(dup_results);
+
+        let violations: Vec<PolicyEvaluationResult> = all_results
+            .iter()
+            .filter(|r| r.severity == "violation")
+            .cloned()
+            .collect();
+        let warnings: Vec<PolicyEvaluationResult> = all_results
+            .iter()
+            .filter(|r| r.severity == "warning")
+            .cloned()
+            .collect();
+        let blocks: Vec<PolicyEvaluationResult> = all_results
+            .iter()
+            .filter(|r| r.severity == "block")
+            .cloned()
+            .collect();
+
+        let total_evaluations = lines.len() * rules.len();
+        let failed_evaluations = all_results.len();
+        let passed_evaluations = total_evaluations.saturating_sub(failed_evaluations);
+
+        let compliance_score = Self::calculate_compliance_score(
+            total_evaluations,
+            passed_evaluations,
+            blocks.len(),
+            violations.len(),
+        );
+
+        let risk_level = Self::determine_risk_level(compliance_score);
+        let is_compliant = blocks.is_empty() && violations.is_empty();
+
+        ComplianceReport {
+            total_lines: lines.len(),
+            passed_lines,
+            violations,
+            warnings,
+            blocks,
+            compliance_score,
+            risk_level,
+            is_compliant,
+        }
+    }
+
+    /// Calculate compliance score (0-100)
+    pub fn calculate_compliance_score(
+        total_evaluations: usize,
+        passed_evaluations: usize,
+        block_count: usize,
+        violation_count: usize,
+    ) -> f64 {
+        if total_evaluations == 0 {
+            return 100.0;
+        }
+        let base_score = (passed_evaluations as f64 / total_evaluations as f64) * 100.0;
+        let block_penalty = block_count as f64 * 10.0;
+        let violation_penalty = violation_count as f64 * 5.0;
+        (base_score - block_penalty - violation_penalty).max(0.0).min(100.0)
+    }
+
+    /// Determine risk level from compliance score
+    pub fn determine_risk_level(compliance_score: f64) -> String {
+        if compliance_score >= RISK_LOW_THRESHOLD {
+            "low".to_string()
+        } else if compliance_score >= RISK_MEDIUM_THRESHOLD {
+            "medium".to_string()
+        } else if compliance_score >= RISK_HIGH_THRESHOLD {
+            "high".to_string()
+        } else {
+            "critical".to_string()
+        }
+    }
+
+    /// Check if an expense report should be flagged for audit based on risk
+    pub fn should_flag_for_audit(report: &ComplianceReport) -> bool {
+        report.risk_level == "high"
+            || report.risk_level == "critical"
+            || !report.blocks.is_empty()
+            || report.compliance_score < RISK_MEDIUM_THRESHOLD
+    }
+
+    /// Calculate total flagged amount from all violations
+    pub fn calculate_total_flagged_amount(report: &ComplianceReport) -> f64 {
+        report.violations.iter()
+            .chain(report.warnings.iter())
+            .chain(report.blocks.iter())
+            .map(|r| r.expense_amount)
+            .sum()
+    }
+
+    /// Get a summary of violations by category
+    pub fn violations_by_category(
+        violations: &[PolicyEvaluationResult],
+    ) -> std::collections::HashMap<String, i32> {
+        let mut counts = std::collections::HashMap::new();
+        for v in violations {
+            *counts.entry(v.rule_type.clone()).or_insert(0) += 1;
+        }
+        counts
     }
 }
 
@@ -27311,5 +27852,1092 @@ mod tests {
         for entity in &non_workflow {
             assert!(entity.workflow.is_none(), "Entity '{}' should NOT have a workflow", entity.name);
         }
+    }
+
+    // ========================================================================
+    // Expense Policy Compliance Engine Tests
+    // ========================================================================
+
+    #[test]
+    fn test_expense_policy_rule_entity() {
+        let def = entities::expense_policy_rule_definition();
+        assert_eq!(def.name, "expense_policy_rules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+        assert!(wf.states.iter().any(|s| s.name == "archived"));
+    }
+
+    #[test]
+    fn test_expense_policy_rule_workflow_transitions() {
+        let def = entities::expense_policy_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "inactive" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "inactive" && t.to_state == "archived"));
+    }
+
+    #[test]
+    fn test_expense_compliance_audit_entity() {
+        let def = entities::expense_compliance_audit_definition();
+        assert_eq!(def.name, "expense_compliance_audits");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "pending");
+        assert!(wf.states.iter().any(|s| s.name == "in_review"));
+        assert!(wf.states.iter().any(|s| s.name == "escalated"));
+        assert!(wf.states.iter().any(|s| s.name == "cleared"));
+        assert!(wf.states.iter().any(|s| s.name == "action_required"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+    }
+
+    #[test]
+    fn test_expense_compliance_audit_workflow_transitions() {
+        let def = entities::expense_compliance_audit_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "in_review"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_review" && t.to_state == "cleared"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_review" && t.to_state == "escalated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "escalated" && t.to_state == "cleared"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "pending" && t.to_state == "rejected"));
+    }
+
+    #[test]
+    fn test_expense_compliance_violation_entity() {
+        let def = entities::expense_compliance_violation_definition();
+        assert_eq!(def.name, "expense_compliance_violations");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_validate_policy_rule_ok() {
+        let result = super::ExpensePolicyComplianceService::validate_policy_rule(
+            "HOTEL-001", "Hotel Limit", "amount_limit",
+            "hotel", "violation", "per_line",
+            0.0, 500.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_policy_rule_empty_code() {
+        let result = super::ExpensePolicyComplianceService::validate_policy_rule(
+            "", "Hotel Limit", "amount_limit",
+            "hotel", "violation", "per_line",
+            0.0, 500.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_policy_rule_empty_name() {
+        let result = super::ExpensePolicyComplianceService::validate_policy_rule(
+            "HOTEL-001", "", "amount_limit",
+            "hotel", "violation", "per_line",
+            0.0, 500.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_policy_rule_invalid_type() {
+        let result = super::ExpensePolicyComplianceService::validate_policy_rule(
+            "R-001", "Rule", "invalid_type",
+            "all", "warning", "per_line",
+            0.0, 100.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_policy_rule_invalid_category() {
+        let result = super::ExpensePolicyComplianceService::validate_policy_rule(
+            "R-001", "Rule", "amount_limit",
+            "invalid_cat", "warning", "per_line",
+            0.0, 100.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_policy_rule_invalid_severity() {
+        let result = super::ExpensePolicyComplianceService::validate_policy_rule(
+            "R-001", "Rule", "amount_limit",
+            "all", "critical", "per_line",
+            0.0, 100.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_policy_rule_invalid_scope() {
+        let result = super::ExpensePolicyComplianceService::validate_policy_rule(
+            "R-001", "Rule", "amount_limit",
+            "all", "warning", "per_transaction",
+            0.0, 100.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_policy_rule_amount_limit_zero_max() {
+        let result = super::ExpensePolicyComplianceService::validate_policy_rule(
+            "R-001", "Rule", "amount_limit",
+            "all", "warning", "per_line",
+            0.0, 0.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_policy_rule_negative_threshold() {
+        let result = super::ExpensePolicyComplianceService::validate_policy_rule(
+            "R-001", "Rule", "receipt_required",
+            "all", "warning", "per_line",
+            -10.0, 0.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_evaluate_rule_amount_limit_passes() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "HOTEL-001".to_string(),
+            rule_type: "amount_limit".to_string(),
+            expense_category: "hotel".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 500.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "hotel".to_string(),
+            amount: 350.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: Some("Hilton".to_string()),
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(result.passed);
+        assert_eq!(result.excess, 0.0);
+    }
+
+    #[test]
+    fn test_evaluate_rule_amount_limit_fails() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "HOTEL-001".to_string(),
+            rule_type: "amount_limit".to_string(),
+            expense_category: "hotel".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 300.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "hotel".to_string(),
+            amount: 450.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: Some("Hilton".to_string()),
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(!result.passed);
+        assert!((result.excess - 150.0).abs() < 0.01);
+        assert!(result.message.contains("exceeds"));
+    }
+
+    #[test]
+    fn test_evaluate_rule_category_mismatch_skips() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "HOTEL-001".to_string(),
+            rule_type: "amount_limit".to_string(),
+            expense_category: "hotel".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 100.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "meals".to_string(),
+            amount: 500.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(result.passed);
+        assert!(result.message.contains("does not apply"));
+    }
+
+    #[test]
+    fn test_evaluate_rule_all_category_applies_to_all_types() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "MAX-ALL".to_string(),
+            rule_type: "amount_limit".to_string(),
+            expense_category: "all".to_string(),
+            severity: "block".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 5000.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "airfare".to_string(),
+            amount: 4500.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(result.passed);
+    }
+
+    #[test]
+    fn test_evaluate_rule_receipt_required_passes_with_receipt() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "RCT-001".to_string(),
+            rule_type: "receipt_required".to_string(),
+            expense_category: "all".to_string(),
+            severity: "warning".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 75.0,
+            maximum_amount: 0.0,
+            threshold_days: 0,
+            requires_receipt: true,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "meals".to_string(),
+            amount: 120.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(result.passed);
+    }
+
+    #[test]
+    fn test_evaluate_rule_receipt_required_fails_without_receipt() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "RCT-001".to_string(),
+            rule_type: "receipt_required".to_string(),
+            expense_category: "all".to_string(),
+            severity: "warning".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 75.0,
+            maximum_amount: 0.0,
+            threshold_days: 0,
+            requires_receipt: true,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "meals".to_string(),
+            amount: 120.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: false,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(!result.passed);
+        assert!(result.message.contains("Receipt required"));
+    }
+
+    #[test]
+    fn test_evaluate_rule_receipt_not_required_below_threshold() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "RCT-001".to_string(),
+            rule_type: "receipt_required".to_string(),
+            expense_category: "all".to_string(),
+            severity: "warning".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 75.0,
+            maximum_amount: 0.0,
+            threshold_days: 0,
+            requires_receipt: true,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "parking".to_string(),
+            amount: 25.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: false,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(result.passed);
+    }
+
+    #[test]
+    fn test_evaluate_rule_time_restriction_weekday_passes() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "TIME-001".to_string(),
+            rule_type: "time_restriction".to_string(),
+            expense_category: "entertainment".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 0.0,
+            threshold_days: 1, // enabled
+            requires_receipt: false,
+            requires_justification: false,
+        };
+        // Wednesday
+        let line = super::ExpenseLineData {
+            expense_type: "entertainment".to_string(),
+            amount: 200.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(), // Wednesday
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(result.passed);
+    }
+
+    #[test]
+    fn test_evaluate_rule_time_restriction_weekend_fails() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "TIME-001".to_string(),
+            rule_type: "time_restriction".to_string(),
+            expense_category: "entertainment".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 0.0,
+            threshold_days: 1,
+            requires_receipt: false,
+            requires_justification: false,
+        };
+        // Saturday
+        let line = super::ExpenseLineData {
+            expense_type: "entertainment".to_string(),
+            amount: 200.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 18).unwrap(), // Saturday
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(!result.passed);
+        assert!(result.message.contains("justification"));
+    }
+
+    #[test]
+    fn test_evaluate_rule_time_restriction_weekend_passes_with_justification() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "TIME-001".to_string(),
+            rule_type: "time_restriction".to_string(),
+            expense_category: "entertainment".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 0.0,
+            threshold_days: 1,
+            requires_receipt: false,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "entertainment".to_string(),
+            amount: 200.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 18).unwrap(), // Saturday
+            has_receipt: true,
+            justification: Some("Client event".to_string()),
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(result.passed);
+    }
+
+    #[test]
+    fn test_evaluate_rule_approval_required_passes() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "APPR-001".to_string(),
+            rule_type: "approval_required".to_string(),
+            expense_category: "all".to_string(),
+            severity: "block".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 1000.0,
+            maximum_amount: 0.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: true,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "airfare".to_string(),
+            amount: 800.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(result.passed);
+    }
+
+    #[test]
+    fn test_evaluate_rule_approval_required_fails_without_justification() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "APPR-001".to_string(),
+            rule_type: "approval_required".to_string(),
+            expense_category: "all".to_string(),
+            severity: "block".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 1000.0,
+            maximum_amount: 0.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: true,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "airfare".to_string(),
+            amount: 1500.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(!result.passed);
+        assert!(result.message.contains("approval justification"));
+    }
+
+    #[test]
+    fn test_evaluate_rule_per_diem_override_passes() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "PERDIEM-001".to_string(),
+            rule_type: "per_diem_override".to_string(),
+            expense_category: "meals".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 75.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "meals".to_string(),
+            amount: 65.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: false,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(result.passed);
+    }
+
+    #[test]
+    fn test_evaluate_rule_per_diem_override_fails() {
+        let rule = super::ExpensePolicyRuleData {
+            rule_code: "PERDIEM-001".to_string(),
+            rule_type: "per_diem_override".to_string(),
+            expense_category: "meals".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 75.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        };
+        let line = super::ExpenseLineData {
+            expense_type: "meals".to_string(),
+            amount: 120.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        };
+        let result = super::ExpensePolicyComplianceService::evaluate_rule(&rule, &line);
+        assert!(!result.passed);
+        assert!((result.excess - 45.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_daily_limits_within_limit() {
+        let rules = vec![super::ExpensePolicyRuleData {
+            rule_code: "DAILY-001".to_string(),
+            rule_type: "daily_limit".to_string(),
+            expense_category: "all".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_day".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 500.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        }];
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap();
+        let lines = vec![
+            super::ExpenseLineData {
+                expense_type: "hotel".to_string(),
+                amount: 200.0,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: None,
+            },
+            super::ExpenseLineData {
+                expense_type: "meals".to_string(),
+                amount: 75.0,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: None,
+            },
+        ];
+        let results = super::ExpensePolicyComplianceService::evaluate_daily_limits(&rules, &lines);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_daily_limits_exceeded() {
+        let rules = vec![super::ExpensePolicyRuleData {
+            rule_code: "DAILY-001".to_string(),
+            rule_type: "daily_limit".to_string(),
+            expense_category: "all".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_day".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 300.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        }];
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap();
+        let lines = vec![
+            super::ExpenseLineData {
+                expense_type: "hotel".to_string(),
+                amount: 250.0,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: None,
+            },
+            super::ExpenseLineData {
+                expense_type: "meals".to_string(),
+                amount: 100.0,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: None,
+            },
+        ];
+        let results = super::ExpensePolicyComplianceService::evaluate_daily_limits(&rules, &lines);
+        assert_eq!(results.len(), 1);
+        assert!(!results[0].passed);
+        assert!(results[0].message.contains("Daily total"));
+        assert!((results[0].expense_amount - 350.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_daily_limits_no_rules() {
+        let lines = vec![super::ExpenseLineData {
+            expense_type: "hotel".to_string(),
+            amount: 500.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        }];
+        let results = super::ExpensePolicyComplianceService::evaluate_daily_limits(&[], &lines);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_detect_duplicates_found() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap();
+        let lines = vec![
+            super::ExpenseLineData {
+                expense_type: "hotel".to_string(),
+                amount: 250.0,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: Some("Hilton".to_string()),
+            },
+            super::ExpenseLineData {
+                expense_type: "hotel".to_string(),
+                amount: 250.0,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: Some("Hilton".to_string()),
+            },
+        ];
+        let results = super::ExpensePolicyComplianceService::detect_duplicates(&lines, 0.01);
+        assert_eq!(results.len(), 1);
+        assert!(!results[0].passed);
+        assert!(results[0].message.contains("Potential duplicate"));
+    }
+
+    #[test]
+    fn test_detect_duplicates_none() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap();
+        let lines = vec![
+            super::ExpenseLineData {
+                expense_type: "hotel".to_string(),
+                amount: 250.0,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: Some("Hilton".to_string()),
+            },
+            super::ExpenseLineData {
+                expense_type: "meals".to_string(),
+                amount: 75.0,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: None,
+            },
+        ];
+        let results = super::ExpensePolicyComplianceService::detect_duplicates(&lines, 0.01);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_detect_duplicates_within_tolerance() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap();
+        let lines = vec![
+            super::ExpenseLineData {
+                expense_type: "meals".to_string(),
+                amount: 50.00,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: None,
+            },
+            super::ExpenseLineData {
+                expense_type: "meals".to_string(),
+                amount: 50.005,
+                currency_code: "USD".to_string(),
+                expense_date: date,
+                has_receipt: true,
+                justification: None,
+                vendor_name: None,
+            },
+        ];
+        let results = super::ExpensePolicyComplianceService::detect_duplicates(&lines, 0.01);
+        assert_eq!(results.len(), 1); // Within tolerance => duplicate
+    }
+
+    #[test]
+    fn test_detect_duplicates_different_dates() {
+        let lines = vec![
+            super::ExpenseLineData {
+                expense_type: "hotel".to_string(),
+                amount: 250.0,
+                currency_code: "USD".to_string(),
+                expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+                has_receipt: true,
+                justification: None,
+                vendor_name: Some("Hilton".to_string()),
+            },
+            super::ExpenseLineData {
+                expense_type: "hotel".to_string(),
+                amount: 250.0,
+                currency_code: "USD".to_string(),
+                expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 16).unwrap(),
+                has_receipt: true,
+                justification: None,
+                vendor_name: Some("Hilton".to_string()),
+            },
+        ];
+        let results = super::ExpensePolicyComplianceService::detect_duplicates(&lines, 0.01);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_compliance_score_perfect() {
+        let score = super::ExpensePolicyComplianceService::calculate_compliance_score(
+            10, 10, 0, 0,
+        );
+        assert!((score - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_compliance_score_zero_evaluations() {
+        let score = super::ExpensePolicyComplianceService::calculate_compliance_score(
+            0, 0, 0, 0,
+        );
+        assert!((score - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_compliance_score_with_blocks() {
+        let score = super::ExpensePolicyComplianceService::calculate_compliance_score(
+            10, 8, 2, 0,
+        );
+        // base = 80.0, block_penalty = 20.0 => 60.0
+        assert!((score - 60.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_compliance_score_with_violations() {
+        let score = super::ExpensePolicyComplianceService::calculate_compliance_score(
+            10, 7, 0, 3,
+        );
+        // base = 70.0, violation_penalty = 15.0 => 55.0
+        assert!((score - 55.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_compliance_score_floor_at_zero() {
+        let score = super::ExpensePolicyComplianceService::calculate_compliance_score(
+            10, 0, 5, 10,
+        );
+        assert!((score - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_risk_level_low() {
+        assert_eq!(super::ExpensePolicyComplianceService::determine_risk_level(95.0), "low");
+        assert_eq!(super::ExpensePolicyComplianceService::determine_risk_level(80.0), "low");
+    }
+
+    #[test]
+    fn test_risk_level_medium() {
+        assert_eq!(super::ExpensePolicyComplianceService::determine_risk_level(70.0), "medium");
+        assert_eq!(super::ExpensePolicyComplianceService::determine_risk_level(60.0), "medium");
+    }
+
+    #[test]
+    fn test_risk_level_high() {
+        assert_eq!(super::ExpensePolicyComplianceService::determine_risk_level(50.0), "high");
+        assert_eq!(super::ExpensePolicyComplianceService::determine_risk_level(40.0), "high");
+    }
+
+    #[test]
+    fn test_risk_level_critical() {
+        assert_eq!(super::ExpensePolicyComplianceService::determine_risk_level(30.0), "critical");
+        assert_eq!(super::ExpensePolicyComplianceService::determine_risk_level(0.0), "critical");
+    }
+
+    #[test]
+    fn test_should_flag_for_audit_high_risk() {
+        let report = super::ComplianceReport {
+            total_lines: 5,
+            passed_lines: 1,
+            violations: vec![],
+            warnings: vec![],
+            blocks: vec![],
+            compliance_score: 35.0,
+            risk_level: "high".to_string(),
+            is_compliant: false,
+        };
+        assert!(super::ExpensePolicyComplianceService::should_flag_for_audit(&report));
+    }
+
+    #[test]
+    fn test_should_flag_for_audit_blocks() {
+        let report = super::ComplianceReport {
+            total_lines: 5,
+            passed_lines: 3,
+            violations: vec![],
+            warnings: vec![],
+            blocks: vec![super::PolicyEvaluationResult {
+                rule_code: "BLOCK-001".to_string(),
+                rule_type: "amount_limit".to_string(),
+                severity: "block".to_string(),
+                passed: false,
+                message: "".to_string(),
+                expense_amount: 5000.0,
+                threshold: 3000.0,
+                excess: 2000.0,
+            }],
+            compliance_score: 90.0,
+            risk_level: "low".to_string(),
+            is_compliant: false,
+        };
+        assert!(super::ExpensePolicyComplianceService::should_flag_for_audit(&report));
+    }
+
+    #[test]
+    fn test_should_not_flag_for_audit_low_risk() {
+        let report = super::ComplianceReport {
+            total_lines: 5,
+            passed_lines: 5,
+            violations: vec![],
+            warnings: vec![],
+            blocks: vec![],
+            compliance_score: 100.0,
+            risk_level: "low".to_string(),
+            is_compliant: true,
+        };
+        assert!(!super::ExpensePolicyComplianceService::should_flag_for_audit(&report));
+    }
+
+    #[test]
+    fn test_total_flagged_amount() {
+        let report = super::ComplianceReport {
+            total_lines: 5,
+            passed_lines: 3,
+            violations: vec![super::PolicyEvaluationResult {
+                rule_code: "V-001".to_string(),
+                rule_type: "amount_limit".to_string(),
+                severity: "violation".to_string(),
+                passed: false,
+                message: "".to_string(),
+                expense_amount: 500.0,
+                threshold: 300.0,
+                excess: 200.0,
+            }],
+            warnings: vec![super::PolicyEvaluationResult {
+                rule_code: "W-001".to_string(),
+                rule_type: "receipt_required".to_string(),
+                severity: "warning".to_string(),
+                passed: false,
+                message: "".to_string(),
+                expense_amount: 120.0,
+                threshold: 75.0,
+                excess: 0.0,
+            }],
+            blocks: vec![],
+            compliance_score: 85.0,
+            risk_level: "low".to_string(),
+            is_compliant: false,
+        };
+        let total = super::ExpensePolicyComplianceService::calculate_total_flagged_amount(&report);
+        assert!((total - 620.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_violations_by_category() {
+        let violations = vec![
+            super::PolicyEvaluationResult {
+                rule_code: "R1".to_string(),
+                rule_type: "amount_limit".to_string(),
+                severity: "violation".to_string(),
+                passed: false,
+                message: "".to_string(),
+                expense_amount: 500.0,
+                threshold: 300.0,
+                excess: 200.0,
+            },
+            super::PolicyEvaluationResult {
+                rule_code: "R2".to_string(),
+                rule_type: "amount_limit".to_string(),
+                severity: "violation".to_string(),
+                passed: false,
+                message: "".to_string(),
+                expense_amount: 600.0,
+                threshold: 300.0,
+                excess: 300.0,
+            },
+            super::PolicyEvaluationResult {
+                rule_code: "R3".to_string(),
+                rule_type: "receipt_required".to_string(),
+                severity: "warning".to_string(),
+                passed: false,
+                message: "".to_string(),
+                expense_amount: 100.0,
+                threshold: 75.0,
+                excess: 0.0,
+            },
+        ];
+        let counts = super::ExpensePolicyComplianceService::violations_by_category(&violations);
+        assert_eq!(*counts.get("amount_limit").unwrap(), 2);
+        assert_eq!(*counts.get("receipt_required").unwrap(), 1);
+        assert_eq!(counts.len(), 2);
+    }
+
+    #[test]
+    fn test_full_compliance_report_fully_compliant() {
+        let rules = vec![super::ExpensePolicyRuleData {
+            rule_code: "MEALS-001".to_string(),
+            rule_type: "amount_limit".to_string(),
+            expense_category: "meals".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 100.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        }];
+        let lines = vec![
+            super::ExpenseLineData {
+                expense_type: "meals".to_string(),
+                amount: 45.0,
+                currency_code: "USD".to_string(),
+                expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+                has_receipt: true,
+                justification: None,
+                vendor_name: None,
+            },
+            super::ExpenseLineData {
+                expense_type: "meals".to_string(),
+                amount: 55.0,
+                currency_code: "USD".to_string(),
+                expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 16).unwrap(),
+                has_receipt: true,
+                justification: None,
+                vendor_name: None,
+            },
+        ];
+        let report = super::ExpensePolicyComplianceService::generate_compliance_report(&rules, &lines);
+        assert!(report.is_compliant);
+        assert_eq!(report.total_lines, 2);
+        assert_eq!(report.passed_lines, 2);
+        assert!(report.violations.is_empty());
+        assert!(report.warnings.is_empty());
+        assert!(report.blocks.is_empty());
+        assert!((report.compliance_score - 100.0).abs() < 0.01);
+        assert_eq!(report.risk_level, "low");
+    }
+
+    #[test]
+    fn test_full_compliance_report_with_violations() {
+        let rules = vec![
+            super::ExpensePolicyRuleData {
+                rule_code: "HOTEL-001".to_string(),
+                rule_type: "amount_limit".to_string(),
+                expense_category: "hotel".to_string(),
+                severity: "violation".to_string(),
+                evaluation_scope: "per_line".to_string(),
+                threshold_amount: 0.0,
+                maximum_amount: 300.0,
+                threshold_days: 0,
+                requires_receipt: false,
+                requires_justification: false,
+            },
+            super::ExpensePolicyRuleData {
+                rule_code: "RCT-001".to_string(),
+                rule_type: "receipt_required".to_string(),
+                expense_category: "all".to_string(),
+                severity: "warning".to_string(),
+                evaluation_scope: "per_line".to_string(),
+                threshold_amount: 75.0,
+                maximum_amount: 0.0,
+                threshold_days: 0,
+                requires_receipt: true,
+                requires_justification: false,
+            },
+        ];
+        let lines = vec![
+            super::ExpenseLineData {
+                expense_type: "hotel".to_string(),
+                amount: 450.0,
+                currency_code: "USD".to_string(),
+                expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+                has_receipt: false,
+                justification: None,
+                vendor_name: Some("Hilton".to_string()),
+            },
+        ];
+        let report = super::ExpensePolicyComplianceService::generate_compliance_report(&rules, &lines);
+        assert!(!report.is_compliant);
+        assert_eq!(report.violations.len(), 1); // amount_limit violation
+        assert_eq!(report.warnings.len(), 1); // receipt_required warning
+        assert!(report.compliance_score < 100.0);
+    }
+
+    #[test]
+    fn test_full_compliance_report_with_blocks() {
+        let rules = vec![super::ExpensePolicyRuleData {
+            rule_code: "BLOCK-001".to_string(),
+            rule_type: "amount_limit".to_string(),
+            expense_category: "all".to_string(),
+            severity: "block".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 5000.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        }];
+        let lines = vec![super::ExpenseLineData {
+            expense_type: "airfare".to_string(),
+            amount: 7500.0,
+            currency_code: "USD".to_string(),
+            expense_date: chrono::NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+            has_receipt: true,
+            justification: None,
+            vendor_name: None,
+        }];
+        let report = super::ExpensePolicyComplianceService::generate_compliance_report(&rules, &lines);
+        assert!(!report.is_compliant);
+        assert_eq!(report.blocks.len(), 1);
+        assert!(super::ExpensePolicyComplianceService::should_flag_for_audit(&report));
+    }
+
+    #[test]
+    fn test_full_compliance_report_empty_lines() {
+        let rules = vec![super::ExpensePolicyRuleData {
+            rule_code: "R-001".to_string(),
+            rule_type: "amount_limit".to_string(),
+            expense_category: "all".to_string(),
+            severity: "violation".to_string(),
+            evaluation_scope: "per_line".to_string(),
+            threshold_amount: 0.0,
+            maximum_amount: 100.0,
+            threshold_days: 0,
+            requires_receipt: false,
+            requires_justification: false,
+        }];
+        let report = super::ExpensePolicyComplianceService::generate_compliance_report(&rules, &[]);
+        assert!(report.is_compliant);
+        assert_eq!(report.total_lines, 0);
+        assert_eq!(report.passed_lines, 0);
+        assert!((report.compliance_score - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_expense_policy_compliance_entities_unique() {
+        let new_entities = vec![
+            entities::expense_policy_rule_definition(),
+            entities::expense_compliance_audit_definition(),
+            entities::expense_compliance_violation_definition(),
+        ];
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 3);
     }
 }

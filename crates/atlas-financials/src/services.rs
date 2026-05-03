@@ -8628,6 +8628,684 @@ impl PrepaymentApplicationService {
     }
 }
 
+// ============================================================================
+// Expense Report Line Service
+// ============================================================================
+
+/// Expense Report Line service
+/// Oracle Fusion: Expenses > Expense Report Lines
+#[allow(dead_code)]
+pub struct ExpenseReportLineService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid expense types
+#[allow(dead_code)]
+const VALID_EXPENSE_TYPES: &[&str] = &[
+    "airfare", "hotel", "meals", "ground_transport",
+    "parking", "fuel", "mileage", "phone",
+    "entertainment", "office_supplies", "training", "other",
+];
+
+/// Expense types requiring receipt above threshold
+#[allow(dead_code)]
+const RECEIPT_REQUIRED_TYPES: &[&str] = &[
+    "airfare", "hotel", "meals", "ground_transport", "entertainment",
+];
+
+/// Default mileage rate (USD per mile)
+const DEFAULT_MILEAGE_RATE: f64 = 0.67;
+
+/// Receipt required threshold (USD)
+const RECEIPT_THRESHOLD: f64 = 75.0;
+
+impl ExpenseReportLineService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate an expense report line
+    /// Oracle Fusion: Expenses > Expense Report Lines > Create
+    pub async fn create_expense_line(
+        &self,
+        report_id: RecordId,
+        expense_type: &str,
+        amount: &str,
+        currency_code: &str,
+        is_personal: bool,
+    ) -> AtlasResult<()> {
+        if !VALID_EXPENSE_TYPES.contains(&expense_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid expense_type '{}'. Must be one of: {}",
+                expense_type, VALID_EXPENSE_TYPES.join(", ")
+            )));
+        }
+        let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Amount must be a valid number".to_string(),
+        ))?;
+        if amt < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Expense amount cannot be negative".to_string(),
+            ));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+
+        info!(
+            "Expense Line: Creating {} expense line for report {} ({:.2} {})",
+            expense_type, report_id, amt, currency_code
+        );
+        Ok(())
+    }
+
+    /// Calculate mileage reimbursement
+    pub fn calculate_mileage_reimbursement(miles: f64, rate: f64) -> f64 {
+        if miles < 0.0 || rate < 0.0 { return 0.0; }
+        miles * rate
+    }
+
+    /// Calculate total report amount from lines
+    pub fn calculate_report_total(lines: &[(f64, bool)]) -> (f64, f64) {
+        // Returns (total_amount, reimbursable_amount)
+        let total: f64 = lines.iter().map(|(amt, _)| *amt).sum();
+        let reimbursable: f64 = lines.iter()
+            .filter(|(_, personal)| !personal)
+            .map(|(amt, _)| *amt)
+            .sum();
+        (total, reimbursable)
+    }
+
+    /// Check if receipt is required for a line
+    pub fn is_receipt_required(expense_type: &str, amount: f64) -> bool {
+        if RECEIPT_REQUIRED_TYPES.contains(&expense_type) {
+            return amount >= RECEIPT_THRESHOLD;
+        }
+        amount >= RECEIPT_THRESHOLD
+    }
+
+    /// Validate expense against corporate policy limits
+    pub fn validate_expense_limit(
+        expense_type: &str,
+        amount: f64,
+        limits: &[(&str, f64)],
+    ) -> AtlasResult<()> {
+        for (limit_type, limit_amount) in limits {
+            if *limit_type == expense_type && amount > *limit_amount {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Expense amount {:.2} exceeds {} limit of {:.2}",
+                    amount, expense_type, limit_amount
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// Calculate per-diem allowance
+    pub fn calculate_per_diem(
+        daily_rate: f64,
+        trip_days: i32,
+        provided_meals: i32,
+        meal_deduction_rate: f64,
+    ) -> f64 {
+        if trip_days <= 0 { return 0.0; }
+        let meal_deductions = (provided_meals as f64) * meal_deduction_rate;
+        let daily_allowance = (daily_rate - meal_deductions).max(0.0);
+        daily_allowance * trip_days as f64
+    }
+}
+
+// ============================================================================
+// Payment Process Request Service
+// ============================================================================
+
+/// Payment Process Request service
+/// Oracle Fusion: Payables > Payment Process Requests
+#[allow(dead_code)]
+pub struct PaymentProcessRequestService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid PPR payment methods
+#[allow(dead_code)]
+const VALID_PPR_PAYMENT_METHODS: &[&str] = &[
+    "check", "electronic", "wire", "ach", "swift", "all",
+];
+
+/// Valid invoice selection criteria
+#[allow(dead_code)]
+const VALID_SELECTION_CRITERIA: &[&str] = &[
+    "due_date", "discount_date", "all_open", "supplier", "pay_group",
+];
+
+impl PaymentProcessRequestService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a payment process request
+    /// Oracle Fusion: Payables > Payments > Payment Process Requests > Create
+    pub async fn create_ppr(
+        &self,
+        request_number: &str,
+        payment_date: chrono::NaiveDate,
+        payment_method: &str,
+        currency_code: &str,
+        selection_criteria: &str,
+        due_from: Option<chrono::NaiveDate>,
+        due_to: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<()> {
+        if request_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Request number is required".to_string(),
+            ));
+        }
+        if !VALID_PPR_PAYMENT_METHODS.contains(&payment_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid payment_method '{}'. Must be one of: {}",
+                payment_method, VALID_PPR_PAYMENT_METHODS.join(", ")
+            )));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        if !VALID_SELECTION_CRITERIA.contains(&selection_criteria) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid selection_criteria '{}'. Must be one of: {}",
+                selection_criteria, VALID_SELECTION_CRITERIA.join(", ")
+            )));
+        }
+        if selection_criteria == "due_date" {
+            if due_from.is_none() || due_to.is_none() {
+                return Err(AtlasError::ValidationFailed(
+                    "Due date range is required for due_date selection criteria".to_string(),
+                ));
+            }
+            if let (Some(from), Some(to)) = (due_from, due_to) {
+                if from > to {
+                    return Err(AtlasError::ValidationFailed(
+                        "Due date from must be before due date to".to_string(),
+                    ));
+                }
+            }
+        }
+
+        info!(
+            "PPR: Creating payment process request '{}' for {} payments on {}",
+            request_number, payment_method, payment_date
+        );
+        Ok(())
+    }
+
+    /// Calculate available discount for early payment
+    pub fn calculate_available_discount(
+        invoice_amount: f64,
+        discount_percentage: f64,
+        payment_date: chrono::NaiveDate,
+        discount_date: chrono::NaiveDate,
+    ) -> f64 {
+        if payment_date <= discount_date {
+            invoice_amount * (discount_percentage / 100.0)
+        } else {
+            0.0
+        }
+    }
+
+    /// Select invoices eligible for payment
+    pub fn select_invoices_for_payment(
+        invoices: &[(f64, chrono::NaiveDate, bool)], // (amount, due_date, is_on_hold)
+        cutoff_date: chrono::NaiveDate,
+        pay_only_when_due: bool,
+    ) -> Vec<usize> {
+        invoices.iter().enumerate()
+            .filter(|(_, (_, due_date, on_hold))| {
+                !on_hold && (!pay_only_when_due || *due_date <= cutoff_date)
+            })
+            .map(|(idx, _)| idx)
+            .collect()
+    }
+
+    /// Calculate total payment amount with discounts
+    pub fn calculate_ppr_totals(
+        invoices: &[(f64, f64)], // (invoice_amount, discount_taken)
+    ) -> (f64, f64, f64) {
+        let total_invoice: f64 = invoices.iter().map(|(amt, _)| *amt).sum();
+        let total_discount: f64 = invoices.iter().map(|(_, disc)| *disc).sum();
+        let total_payment = total_invoice - total_discount;
+        (total_invoice, total_discount, total_payment)
+    }
+}
+
+// ============================================================================
+// Cash Pooling Service
+// ============================================================================
+
+/// Cash Pooling service
+/// Oracle Fusion: Treasury > Cash Pooling
+#[allow(dead_code)]
+pub struct CashPoolingService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid cash pool types
+#[allow(dead_code)]
+const VALID_CASH_POOL_TYPES: &[&str] = &[
+    "concentration", "zero_balancing", "target_balance",
+];
+
+/// Valid cash pool sweep frequencies
+#[allow(dead_code)]
+const VALID_CASH_SWEEP_FREQUENCIES: &[&str] = &[
+    "daily", "weekly", "monthly", "on_demand",
+];
+
+impl CashPoolingService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a cash pool
+    /// Oracle Fusion: Treasury > Cash Pooling > Cash Pools
+    pub async fn create_cash_pool(
+        &self,
+        pool_code: &str,
+        name: &str,
+        pool_type: &str,
+        currency_code: &str,
+        sweep_frequency: &str,
+        target_balance: &str,
+    ) -> AtlasResult<()> {
+        if pool_code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Pool code and name are required".to_string(),
+            ));
+        }
+        if !VALID_CASH_POOL_TYPES.contains(&pool_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid pool_type '{}'. Must be one of: {}",
+                pool_type, VALID_CASH_POOL_TYPES.join(", ")
+            )));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        if !VALID_CASH_SWEEP_FREQUENCIES.contains(&sweep_frequency) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid sweep_frequency '{}'. Must be one of: {}",
+                sweep_frequency, VALID_CASH_SWEEP_FREQUENCIES.join(", ")
+            )));
+        }
+        let _target: f64 = target_balance.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Target balance must be a valid number".to_string(),
+        ))?;
+
+        info!(
+            "Cash Pool: Creating {} pool '{}' ({})",
+            pool_type, pool_code, sweep_frequency
+        );
+        Ok(())
+    }
+
+    /// Calculate concentration sweep amounts
+    /// Moves all available balances from sub-accounts to header account
+    pub fn calculate_concentration_sweeps(
+        sub_accounts: &[(String, f64, f64)], // (account, balance, minimum_balance)
+    ) -> Vec<(String, f64)> {
+        sub_accounts.iter()
+            .map(|(account, balance, minimum)| {
+                let sweep_amount = (*balance - *minimum).max(0.0);
+                (account.clone(), sweep_amount)
+            })
+            .collect()
+    }
+
+    /// Calculate zero-balancing sweep amounts
+    /// Sweeps to bring sub-accounts to zero or target
+    pub fn calculate_zero_balancing_sweeps(
+        sub_accounts: &[(String, f64, f64)], // (account, balance, target)
+    ) -> Vec<(String, f64)> {
+        sub_accounts.iter()
+            .map(|(account, balance, target)| {
+                let sweep_amount = *balance - *target;
+                (account.clone(), sweep_amount)
+            })
+            .collect()
+    }
+
+    /// Calculate target balance sweep amounts
+    pub fn calculate_target_balance_sweeps(
+        accounts: &[(String, f64, f64)], // (account, balance, target)
+    ) -> Vec<(String, f64, String)> {
+        accounts.iter()
+            .map(|(account, balance, target)| {
+                let diff = *balance - *target;
+                let (amount, direction) = if diff > 0.0 {
+                    (diff, "to_header".to_string())
+                } else {
+                    (diff.abs(), "from_header".to_string())
+                };
+                (account.clone(), amount, direction)
+            })
+            .collect()
+    }
+
+    /// Calculate pool position (total balances across all members)
+    pub fn calculate_pool_position(
+        header_balance: f64,
+        sub_account_balances: &[f64],
+    ) -> f64 {
+        header_balance + sub_account_balances.iter().sum::<f64>()
+    }
+
+    /// Validate sweep amount against minimum/maximum limits
+    pub fn validate_sweep_amount(
+        amount: f64,
+        minimum_transfer: f64,
+        maximum_transfer: f64,
+    ) -> AtlasResult<()> {
+        if minimum_transfer > 0.0 && amount < minimum_transfer {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Sweep amount {:.2} is below minimum transfer {:.2}",
+                amount, minimum_transfer
+            )));
+        }
+        if maximum_transfer > 0.0 && amount > maximum_transfer {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Sweep amount {:.2} exceeds maximum transfer {:.2}",
+                amount, maximum_transfer
+            )));
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Statistical Account Service
+// ============================================================================
+
+/// Statistical Account service
+/// Oracle Fusion: General Ledger > Statistical Accounts
+#[allow(dead_code)]
+pub struct StatisticalAccountService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid statistical UOMs
+#[allow(dead_code)]
+const VALID_STATISTICAL_UOMS: &[&str] = &[
+    "headcount", "square_feet", "units", "hours",
+    "kilowatt_hours", "vehicles", "transactions", "other",
+];
+
+/// Valid statistical account categories
+#[allow(dead_code)]
+const VALID_STATISTICAL_CATEGORIES: &[&str] = &[
+    "demographics", "facilities", "production", "sales_metrics", "other",
+];
+
+impl StatisticalAccountService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a statistical account
+    /// Oracle Fusion: General Ledger > Statistical Accounts
+    pub async fn create_statistical_account(
+        &self,
+        account_code: &str,
+        name: &str,
+        unit_of_measure: &str,
+        category: &str,
+    ) -> AtlasResult<()> {
+        if account_code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Account code and name are required".to_string(),
+            ));
+        }
+        if !VALID_STATISTICAL_UOMS.contains(&unit_of_measure) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid unit_of_measure '{}'. Must be one of: {}",
+                unit_of_measure, VALID_STATISTICAL_UOMS.join(", ")
+            )));
+        }
+        if !VALID_STATISTICAL_CATEGORIES.contains(&category) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid category '{}'. Must be one of: {}",
+                category, VALID_STATISTICAL_CATEGORIES.join(", ")
+            )));
+        }
+
+        info!(
+            "Statistical Account: Creating account '{}' ({}) in {}",
+            account_code, unit_of_measure, category
+        );
+        Ok(())
+    }
+
+    /// Calculate average daily balance for a statistical account
+    pub fn calculate_average_daily(
+        daily_quantities: &[f64],
+        days_in_period: i32,
+    ) -> f64 {
+        if days_in_period <= 0 { return 0.0; }
+        daily_quantities.iter().sum::<f64>() / days_in_period as f64
+    }
+
+    /// Calculate period-over-period change
+    pub fn calculate_period_change(
+        current_period: f64,
+        prior_period: f64,
+    ) -> (f64, f64) {
+        let change = current_period - prior_period;
+        let change_pct = if prior_period != 0.0 {
+            (change / prior_period) * 100.0
+        } else if current_period != 0.0 {
+            100.0
+        } else {
+            0.0
+        };
+        (change, change_pct)
+    }
+
+    /// Allocate a statistical total across departments based on proportions
+    pub fn allocate_statistical_total(
+        total: f64,
+        proportions: &[f64],
+    ) -> Vec<f64> {
+        let sum: f64 = proportions.iter().sum();
+        if sum <= 0.0 { return vec![0.0; proportions.len()]; }
+        proportions.iter().map(|p| total * (p / sum)).collect()
+    }
+
+    /// Calculate statistical ratio
+    pub fn calculate_statistical_ratio(
+        numerator: f64,
+        denominator: f64,
+    ) -> f64 {
+        if denominator == 0.0 { return 0.0; }
+        numerator / denominator
+    }
+}
+
+// ============================================================================
+// Asset Split Service
+// ============================================================================
+
+/// Asset Split service
+/// Oracle Fusion: Fixed Assets > Assets > Asset Split
+#[allow(dead_code)]
+pub struct AssetSplitService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+impl AssetSplitService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate that split percentages sum to 100%
+    pub fn validate_split_percentages(percentages: &[f64]) -> AtlasResult<()> {
+        if percentages.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "At least one split line is required".to_string(),
+            ));
+        }
+        let total: f64 = percentages.iter().sum();
+        if (total - 100.0).abs() > 0.01 {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Split percentages must sum to 100%. Got: {:.2}%",
+                total
+            )));
+        }
+        for (i, pct) in percentages.iter().enumerate() {
+            if *pct <= 0.0 {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Split percentage for line {} must be positive. Got: {:.2}%",
+                    i + 1, pct
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// Calculate proportional cost allocation for split
+    pub fn calculate_split_allocation(
+        original_cost: f64,
+        accumulated_depreciation: f64,
+        net_book_value: f64,
+        percentages: &[f64],
+    ) -> Vec<(f64, f64, f64)> {
+        percentages.iter().map(|pct| {
+            let ratio = pct / 100.0;
+            (
+                original_cost * ratio,
+                accumulated_depreciation * ratio,
+                net_book_value * ratio,
+            )
+        }).collect()
+    }
+
+    /// Verify that all split costs balance back to the source
+    pub fn verify_split_balances(
+        source_cost: f64,
+        source_accum_depr: f64,
+        source_nbv: f64,
+        split_lines: &[(f64, f64, f64)], // (cost, accum_depr, nbv)
+    ) -> bool {
+        let total_cost: f64 = split_lines.iter().map(|(c, _, _)| *c).sum();
+        let total_accum_depr: f64 = split_lines.iter().map(|(_, a, _)| *a).sum();
+        let total_nbv: f64 = split_lines.iter().map(|(_, _, n)| *n).sum();
+
+        (total_cost - source_cost).abs() < 0.01
+            && (total_accum_depr - source_accum_depr).abs() < 0.01
+            && (total_nbv - source_nbv).abs() < 0.01
+    }
+}
+
+// ============================================================================
+// Asset Merger Service
+// ============================================================================
+
+/// Asset Merger service
+/// Oracle Fusion: Fixed Assets > Assets > Asset Merger
+#[allow(dead_code)]
+pub struct AssetMergerService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+impl AssetMergerService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate that at least 2 source assets are being merged
+    pub fn validate_merger_sources(source_count: i32) -> AtlasResult<()> {
+        if source_count < 2 {
+            return Err(AtlasError::ValidationFailed(
+                "At least 2 source assets are required for a merger".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Calculate target asset values from source assets
+    pub fn calculate_merger_totals(
+        sources: &[(f64, f64, f64)], // (cost, accum_depr, nbv)
+    ) -> (f64, f64, f64) {
+        let total_cost: f64 = sources.iter().map(|(c, _, _)| *c).sum();
+        let total_accum_depr: f64 = sources.iter().map(|(_, a, _)| *a).sum();
+        let total_nbv: f64 = sources.iter().map(|(_, _, n)| *n).sum();
+        (total_cost, total_accum_depr, total_nbv)
+    }
+
+    /// Verify merger balances (sources sum to target)
+    pub fn verify_merger_balances(
+        target_cost: f64,
+        target_accum_depr: f64,
+        target_nbv: f64,
+        sources: &[(f64, f64, f64)],
+    ) -> bool {
+        let (total_cost, total_accum_depr, total_nbv) = Self::calculate_merger_totals(sources);
+        (total_cost - target_cost).abs() < 0.01
+            && (total_accum_depr - target_accum_depr).abs() < 0.01
+            && (total_nbv - target_nbv).abs() < 0.01
+    }
+
+    /// Calculate remaining useful life for merged asset (weighted average)
+    pub fn calculate_weighted_useful_life(
+        assets: &[(f64, i32)], // (cost, remaining_months)
+    ) -> i32 {
+        let total_cost: f64 = assets.iter().map(|(c, _)| *c).sum();
+        if total_cost <= 0.0 { return 0; }
+        let weighted: f64 = assets.iter()
+            .map(|(cost, months)| cost * *months as f64)
+            .sum();
+        (weighted / total_cost).round() as i32
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -18814,6 +19492,614 @@ mod tests {
             entities::gl_budget_transfer_definition(),
             entities::receipt_write_off_definition(),
             entities::prepayment_application_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 5, "All 5 workflow entities should have workflows");
+    }
+
+    // ========================================================================
+    // Expense Report Line Tests
+    // ========================================================================
+
+    #[test]
+    fn test_expense_report_line_definition() {
+        let def = entities::expense_report_line_definition();
+        assert_eq!(def.name, "expense_report_lines");
+        assert_eq!(def.label, "Expense Report Line");
+        assert!(def.workflow.is_none()); // Lines don't have independent workflow
+    }
+
+    #[test]
+    fn test_expense_line_mileage_calculation() {
+        let miles = 150.0;
+        let rate = 0.67; // default IRS rate
+        let reimbursement = super::ExpenseReportLineService::calculate_mileage_reimbursement(miles, rate);
+        assert!((reimbursement - 100.5_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_expense_line_mileage_zero() {
+        let reimbursement = super::ExpenseReportLineService::calculate_mileage_reimbursement(0.0, 0.67);
+        assert!((reimbursement - 0.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_expense_line_mileage_negative_miles() {
+        let reimbursement = super::ExpenseReportLineService::calculate_mileage_reimbursement(-10.0, 0.67);
+        assert!((reimbursement - 0.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_expense_line_report_total() {
+        let lines = vec![
+            (100.0, false), // reimbursable
+            (50.0, true),   // personal
+            (75.0, false),  // reimbursable
+        ];
+        let (total, reimbursable) = super::ExpenseReportLineService::calculate_report_total(&lines);
+        assert!((total - 225.0_f64).abs() < 0.01);
+        assert!((reimbursable - 175.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_expense_line_receipt_required_high_amount() {
+        assert!(super::ExpenseReportLineService::is_receipt_required("hotel", 200.0));
+    }
+
+    #[test]
+    fn test_expense_line_receipt_not_required_low_amount() {
+        assert!(!super::ExpenseReportLineService::is_receipt_required("hotel", 25.0));
+    }
+
+    #[test]
+    fn test_expense_line_receipt_required_other_type() {
+        // Any type over $75 threshold needs receipt
+        assert!(super::ExpenseReportLineService::is_receipt_required("other", 100.0));
+        assert!(!super::ExpenseReportLineService::is_receipt_required("other", 50.0));
+    }
+
+    #[test]
+    fn test_expense_line_per_diem() {
+        let daily_rate = 100.0;
+        let trip_days = 5;
+        let provided_meals = 3;
+        let meal_deduction = 15.0;
+        let total = super::ExpenseReportLineService::calculate_per_diem(
+            daily_rate, trip_days, provided_meals, meal_deduction,
+        );
+        // (100 - 3*15) * 5 = 55 * 5 = 275
+        assert!((total - 275.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_expense_line_per_diem_zero_days() {
+        let total = super::ExpenseReportLineService::calculate_per_diem(100.0, 0, 0, 15.0);
+        assert!((total - 0.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_expense_line_validate_limit_ok() {
+        let limits = vec![("meals", 200.0_f64)];
+        let result = super::ExpenseReportLineService::validate_expense_limit("meals", 150.0, &limits);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_expense_line_validate_limit_exceeded() {
+        let limits = vec![("meals", 200.0_f64)];
+        let result = super::ExpenseReportLineService::validate_expense_limit("meals", 250.0, &limits);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_expense_line_validate_limit_no_limit_for_type() {
+        let limits = vec![("meals", 200.0_f64)];
+        let result = super::ExpenseReportLineService::validate_expense_limit("hotel", 500.0, &limits);
+        assert!(result.is_ok()); // No limit for hotel
+    }
+
+    // ========================================================================
+    // Payment Process Request Tests
+    // ========================================================================
+
+    #[test]
+    fn test_payment_process_request_definition() {
+        let def = entities::payment_process_request_definition();
+        assert_eq!(def.name, "payment_process_requests");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+        assert!(wf.states.iter().any(|s| s.name == "review"));
+    }
+
+    #[test]
+    fn test_ppr_workflow_transitions() {
+        let def = entities::payment_process_request_definition();
+        let wf = def.workflow.unwrap();
+        // Can submit draft
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "submitted"));
+        // Can format submitted
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "formatted"));
+        // Can complete confirmed
+        assert!(wf.transitions.iter().any(|t| t.from_state == "confirmed" && t.to_state == "completed"));
+        // Can cancel draft
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+        // Review path
+        assert!(wf.transitions.iter().any(|t| t.from_state == "submitted" && t.to_state == "review"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "review" && t.to_state == "formatted"));
+    }
+
+    #[test]
+    fn test_ppr_calculate_available_discount_before_date() {
+        use chrono::NaiveDate;
+        let discount = super::PaymentProcessRequestService::calculate_available_discount(
+            10000.0,
+            2.0,
+            NaiveDate::from_ymd_opt(2024, 1, 10).unwrap(),
+            NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
+        );
+        assert!((discount - 200.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ppr_calculate_available_discount_after_date() {
+        use chrono::NaiveDate;
+        let discount = super::PaymentProcessRequestService::calculate_available_discount(
+            10000.0,
+            2.0,
+            NaiveDate::from_ymd_opt(2024, 1, 20).unwrap(),
+            NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
+        );
+        assert!((discount - 0.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ppr_select_invoices_all_open() {
+        use chrono::NaiveDate;
+        let cutoff = NaiveDate::from_ymd_opt(2024, 3, 1).unwrap();
+        let invoices = vec![
+            (1000.0, NaiveDate::from_ymd_opt(2024, 2, 15).unwrap(), false),
+            (2000.0, NaiveDate::from_ymd_opt(2024, 3, 5).unwrap(), false),
+            (500.0, NaiveDate::from_ymd_opt(2024, 2, 28).unwrap(), true),  // on hold
+        ];
+        let selected = super::PaymentProcessRequestService::select_invoices_for_payment(
+            &invoices, cutoff, false,
+        );
+        assert_eq!(selected.len(), 2); // Excludes on-hold invoice
+        assert_eq!(selected[0], 0);
+        assert_eq!(selected[1], 1);
+    }
+
+    #[test]
+    fn test_ppr_select_invoices_pay_only_when_due() {
+        use chrono::NaiveDate;
+        let cutoff = NaiveDate::from_ymd_opt(2024, 2, 20).unwrap();
+        let invoices = vec![
+            (1000.0, NaiveDate::from_ymd_opt(2024, 2, 15).unwrap(), false), // overdue
+            (2000.0, NaiveDate::from_ymd_opt(2024, 3, 5).unwrap(), false),  // not yet due
+        ];
+        let selected = super::PaymentProcessRequestService::select_invoices_for_payment(
+            &invoices, cutoff, true,
+        );
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0], 0);
+    }
+
+    #[test]
+    fn test_ppr_calculate_totals() {
+        let invoices = vec![
+            (10000.0, 200.0),
+            (5000.0, 100.0),
+            (3000.0, 0.0),
+        ];
+        let (total_invoice, total_discount, total_payment) =
+            super::PaymentProcessRequestService::calculate_ppr_totals(&invoices);
+        assert!((total_invoice - 18000.0_f64).abs() < 0.01);
+        assert!((total_discount - 300.0_f64).abs() < 0.01);
+        assert!((total_payment - 17700.0_f64).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Cash Pooling Tests
+    // ========================================================================
+
+    #[test]
+    fn test_cash_pool_definition() {
+        let def = entities::cash_pool_definition();
+        assert_eq!(def.name, "cash_pools");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_cash_pool_member_definition() {
+        let def = entities::cash_pool_member_definition();
+        assert_eq!(def.name, "cash_pool_members");
+    }
+
+    #[test]
+    fn test_cash_pool_sweep_definition() {
+        let def = entities::cash_pool_sweep_definition();
+        assert_eq!(def.name, "cash_pool_sweeps");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "processed"));
+    }
+
+    #[test]
+    fn test_cash_pool_concentration_sweeps() {
+        let subs = vec![
+            ("ACC001".to_string(), 10000.0, 1000.0),
+            ("ACC002".to_string(), 5000.0, 500.0),
+            ("ACC003".to_string(), 500.0, 1000.0), // Below minimum
+        ];
+        let sweeps = super::CashPoolingService::calculate_concentration_sweeps(&subs);
+        assert_eq!(sweeps.len(), 3);
+        assert!((sweeps[0].1 - 9000.0_f64).abs() < 0.01);
+        assert!((sweeps[1].1 - 4500.0_f64).abs() < 0.01);
+        assert!((sweeps[2].1 - 0.0_f64).abs() < 0.01); // Below minimum
+    }
+
+    #[test]
+    fn test_cash_pool_zero_balancing_sweeps() {
+        let subs = vec![
+            ("ACC001".to_string(), 5000.0, 0.0),
+            ("ACC002".to_string(), 3000.0, 0.0),
+        ];
+        let sweeps = super::CashPoolingService::calculate_zero_balancing_sweeps(&subs);
+        assert!((sweeps[0].1 - 5000.0_f64).abs() < 0.01);
+        assert!((sweeps[1].1 - 3000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cash_pool_target_balance_sweeps() {
+        let accounts = vec![
+            ("ACC001".to_string(), 10000.0, 5000.0), // excess of 5000
+            ("ACC002".to_string(), 2000.0, 5000.0),  // deficit of 3000
+        ];
+        let sweeps = super::CashPoolingService::calculate_target_balance_sweeps(&accounts);
+        assert_eq!(sweeps.len(), 2);
+        assert!((sweeps[0].1 - 5000.0_f64).abs() < 0.01);
+        assert_eq!(sweeps[0].2, "to_header");
+        assert!((sweeps[1].1 - 3000.0_f64).abs() < 0.01);
+        assert_eq!(sweeps[1].2, "from_header");
+    }
+
+    #[test]
+    fn test_cash_pool_position() {
+        let header = 50000.0;
+        let subs = vec![10000.0, 5000.0, 3000.0];
+        let position = super::CashPoolingService::calculate_pool_position(header, &subs);
+        assert!((position - 68000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cash_pool_validate_sweep_ok() {
+        let result = super::CashPoolingService::validate_sweep_amount(5000.0, 1000.0, 10000.0);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cash_pool_validate_sweep_below_min() {
+        let result = super::CashPoolingService::validate_sweep_amount(500.0, 1000.0, 10000.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_cash_pool_validate_sweep_above_max() {
+        let result = super::CashPoolingService::validate_sweep_amount(15000.0, 1000.0, 10000.0);
+        assert!(result.is_err());
+    }
+
+    // ========================================================================
+    // Statistical Account Tests
+    // ========================================================================
+
+    #[test]
+    fn test_statistical_account_definition() {
+        let def = entities::statistical_account_definition();
+        assert_eq!(def.name, "statistical_accounts");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_statistical_journal_entry_definition() {
+        let def = entities::statistical_journal_entry_definition();
+        assert_eq!(def.name, "statistical_journal_entries");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_statistical_average_daily() {
+        let daily = vec![10.0, 20.0, 30.0, 40.0, 50.0];
+        let avg = super::StatisticalAccountService::calculate_average_daily(&daily, 5);
+        assert!((avg - 30.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_statistical_average_daily_zero_days() {
+        let avg = super::StatisticalAccountService::calculate_average_daily(&[100.0], 0);
+        assert!((avg - 0.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_statistical_period_change() {
+        let (change, pct) = super::StatisticalAccountService::calculate_period_change(150.0, 100.0);
+        assert!((change - 50.0_f64).abs() < 0.01);
+        assert!((pct - 50.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_statistical_period_change_decrease() {
+        let (change, pct) = super::StatisticalAccountService::calculate_period_change(80.0, 100.0);
+        assert!((change - (-20.0_f64)).abs() < 0.01);
+        assert!((pct - (-20.0_f64)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_statistical_period_change_zero_prior() {
+        let (change, pct) = super::StatisticalAccountService::calculate_period_change(100.0, 0.0);
+        assert!((change - 100.0_f64).abs() < 0.01);
+        assert!((pct - 100.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_statistical_period_change_both_zero() {
+        let (change, pct) = super::StatisticalAccountService::calculate_period_change(0.0, 0.0);
+        assert!((change - 0.0_f64).abs() < 0.01);
+        assert!((pct - 0.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_statistical_allocate_total() {
+        let total = 1000.0;
+        let proportions = vec![1.0, 2.0, 3.0]; // sums to 6
+        let allocated = super::StatisticalAccountService::allocate_statistical_total(total, &proportions);
+        assert!((allocated[0] - 166.667_f64).abs() < 0.1);
+        assert!((allocated[1] - 333.333_f64).abs() < 0.1);
+        assert!((allocated[2] - 500.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_statistical_allocate_zero_proportions() {
+        let total = 1000.0;
+        let proportions = vec![0.0, 0.0];
+        let allocated = super::StatisticalAccountService::allocate_statistical_total(total, &proportions);
+        assert!((allocated[0] - 0.0_f64).abs() < 0.01);
+        assert!((allocated[1] - 0.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_statistical_ratio() {
+        let ratio = super::StatisticalAccountService::calculate_statistical_ratio(500.0, 1000.0);
+        assert!((ratio - 0.5_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_statistical_ratio_zero_denom() {
+        let ratio = super::StatisticalAccountService::calculate_statistical_ratio(500.0, 0.0);
+        assert!((ratio - 0.0_f64).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Asset Split Tests
+    // ========================================================================
+
+    #[test]
+    fn test_asset_split_definition() {
+        let def = entities::asset_split_definition();
+        assert_eq!(def.name, "asset_splits");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+    }
+
+    #[test]
+    fn test_asset_split_line_definition() {
+        let def = entities::asset_split_line_definition();
+        assert_eq!(def.name, "asset_split_lines");
+    }
+
+    #[test]
+    fn test_asset_split_validate_percentages_ok() {
+        let percentages = vec![40.0, 35.0, 25.0];
+        let result = super::AssetSplitService::validate_split_percentages(&percentages);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_asset_split_validate_percentages_not_100() {
+        let percentages = vec![40.0, 35.0, 20.0]; // 95%
+        let result = super::AssetSplitService::validate_split_percentages(&percentages);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_asset_split_validate_percentages_empty() {
+        let percentages: Vec<f64> = vec![];
+        let result = super::AssetSplitService::validate_split_percentages(&percentages);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_asset_split_validate_percentages_zero() {
+        let percentages = vec![100.0, 0.0];
+        let result = super::AssetSplitService::validate_split_percentages(&percentages);
+        assert!(result.is_err()); // Zero percentage not allowed
+    }
+
+    #[test]
+    fn test_asset_split_calculate_allocation() {
+        let allocations = super::AssetSplitService::calculate_split_allocation(
+            100000.0, // cost
+            40000.0,  // accum depr
+            60000.0,  // nbv
+            &[60.0, 40.0],
+        );
+        assert_eq!(allocations.len(), 2);
+        assert!((allocations[0].0 - 60000.0_f64).abs() < 0.01);
+        assert!((allocations[0].1 - 24000.0_f64).abs() < 0.01);
+        assert!((allocations[0].2 - 36000.0_f64).abs() < 0.01);
+        assert!((allocations[1].0 - 40000.0_f64).abs() < 0.01);
+        assert!((allocations[1].1 - 16000.0_f64).abs() < 0.01);
+        assert!((allocations[1].2 - 24000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_asset_split_verify_balances_ok() {
+        let lines = vec![(60000.0, 24000.0, 36000.0), (40000.0, 16000.0, 24000.0)];
+        assert!(super::AssetSplitService::verify_split_balances(
+            100000.0, 40000.0, 60000.0, &lines,
+        ));
+    }
+
+    #[test]
+    fn test_asset_split_verify_balances_fail() {
+        let lines = vec![(60000.0, 24000.0, 36000.0), (30000.0, 16000.0, 24000.0)];
+        assert!(!super::AssetSplitService::verify_split_balances(
+            100000.0, 40000.0, 60000.0, &lines,
+        ));
+    }
+
+    // ========================================================================
+    // Asset Merger Tests
+    // ========================================================================
+
+    #[test]
+    fn test_asset_merger_definition() {
+        let def = entities::asset_merger_definition();
+        assert_eq!(def.name, "asset_mergers");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+    }
+
+    #[test]
+    fn test_asset_merger_line_definition() {
+        let def = entities::asset_merger_line_definition();
+        assert_eq!(def.name, "asset_merger_lines");
+    }
+
+    #[test]
+    fn test_asset_merger_validate_sources_ok() {
+        let result = super::AssetMergerService::validate_merger_sources(3);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_asset_merger_validate_sources_too_few() {
+        let result = super::AssetMergerService::validate_merger_sources(1);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_asset_merger_calculate_totals() {
+        let sources = vec![
+            (50000.0, 20000.0, 30000.0),
+            (30000.0, 10000.0, 20000.0),
+        ];
+        let (cost, accum, nbv) = super::AssetMergerService::calculate_merger_totals(&sources);
+        assert!((cost - 80000.0_f64).abs() < 0.01);
+        assert!((accum - 30000.0_f64).abs() < 0.01);
+        assert!((nbv - 50000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_asset_merger_verify_balances_ok() {
+        let sources = vec![
+            (50000.0, 20000.0, 30000.0),
+            (30000.0, 10000.0, 20000.0),
+        ];
+        assert!(super::AssetMergerService::verify_merger_balances(
+            80000.0, 30000.0, 50000.0, &sources,
+        ));
+    }
+
+    #[test]
+    fn test_asset_merger_verify_balances_fail() {
+        let sources = vec![
+            (50000.0, 20000.0, 30000.0),
+            (30000.0, 10000.0, 20000.0),
+        ];
+        assert!(!super::AssetMergerService::verify_merger_balances(
+            90000.0, 30000.0, 50000.0, &sources,
+        ));
+    }
+
+    #[test]
+    fn test_asset_merger_weighted_useful_life() {
+        let assets = vec![
+            (50000.0, 36), // 50k, 36 months
+            (30000.0, 60), // 30k, 60 months
+        ];
+        let weighted = super::AssetMergerService::calculate_weighted_useful_life(&assets);
+        // (50000*36 + 30000*60) / 80000 = (1800000 + 1800000) / 80000 = 45
+        assert_eq!(weighted, 45);
+    }
+
+    #[test]
+    fn test_asset_merger_weighted_useful_life_zero_cost() {
+        let assets = vec![(0.0, 36), (0.0, 60)];
+        let weighted = super::AssetMergerService::calculate_weighted_useful_life(&assets);
+        assert_eq!(weighted, 0);
+    }
+
+    // ========================================================================
+    // New Feature Integration Tests
+    // ========================================================================
+
+    #[test]
+    fn test_latest_feature_entities_build() {
+        // Verify all new entity definitions compile and are accessible
+        let _ = entities::expense_report_line_definition();
+        let _ = entities::payment_process_request_definition();
+        let _ = entities::cash_pool_definition();
+        let _ = entities::cash_pool_member_definition();
+        let _ = entities::cash_pool_sweep_definition();
+        let _ = entities::statistical_account_definition();
+        let _ = entities::statistical_journal_entry_definition();
+        let _ = entities::asset_split_definition();
+        let _ = entities::asset_split_line_definition();
+        let _ = entities::asset_merger_definition();
+        let _ = entities::asset_merger_line_definition();
+    }
+
+    #[test]
+    fn test_latest_feature_entity_names_unique() {
+        let new_entities = vec![
+            entities::expense_report_line_definition(),
+            entities::payment_process_request_definition(),
+            entities::cash_pool_definition(),
+            entities::cash_pool_member_definition(),
+            entities::cash_pool_sweep_definition(),
+            entities::statistical_account_definition(),
+            entities::statistical_journal_entry_definition(),
+            entities::asset_split_definition(),
+            entities::asset_split_line_definition(),
+            entities::asset_merger_definition(),
+            entities::asset_merger_line_definition(),
+        ];
+        assert_eq!(new_entities.len(), 11);
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 11, "All 11 new entity names must be unique");
+    }
+
+    #[test]
+    fn test_latest_feature_workflow_count() {
+        let workflow_entities = vec![
+            entities::payment_process_request_definition(),
+            entities::cash_pool_sweep_definition(),
+            entities::statistical_journal_entry_definition(),
+            entities::asset_split_definition(),
+            entities::asset_merger_definition(),
         ];
         let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
         assert_eq!(count, 5, "All 5 workflow entities should have workflows");

@@ -6985,3 +6985,415 @@ pub fn prepayment_application_definition() -> EntityDefinition {
         .workflow(workflow)
         .build()
 }
+
+// ============================================================================
+// Expense Report Lines (Oracle Fusion: Expenses > Expense Report Lines)
+// ============================================================================
+
+/// Expense Report Line entity
+/// Oracle Fusion: Expenses > Expense Report Lines
+pub fn expense_report_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("expense_report_lines", "Expense Report Line")
+        .plural_label("Expense Report Lines")
+        .table_name("fin_expense_report_lines")
+        .description("Individual expense line items within an expense report")
+        .icon("receipt")
+        .reference("report_id", "Expense Report", "expense_reports")
+        .integer("line_number", "Line Number")
+        .date("expense_date", "Expense Date")
+        .enumeration("expense_type", "Expense Type", vec![
+            "airfare", "hotel", "meals", "ground_transport",
+            "parking", "fuel", "mileage", "phone",
+            "entertainment", "office_supplies", "training", "other",
+        ])
+        .string("description", "Description")
+        .string("merchant_name", "Merchant Name")
+        .string("city", "City")
+        .string("country_code", "Country Code")
+        .currency("amount", "Amount", "USD")
+        .currency("tax_amount", "Tax Amount", "USD")
+        .currency("total_amount", "Total Amount", "USD")
+        .string("currency_code", "Currency Code")
+        .string("exchange_rate", "Exchange Rate")
+        .currency("reimbursable_amount", "Reimbursable Amount", "USD")
+        .boolean("is_personal", "Personal Expense")
+        .boolean("is_itemized", "Itemized")
+        .reference("parent_line_id", "Parent Line", "expense_report_lines")
+        .string("cost_center", "Cost Center")
+        .reference("project_id", "Project", "projects")
+        .string("project_number", "Project Number")
+        .reference("department_id", "Department", "departments")
+        .string("gl_account", "GL Account")
+        .string("attendees", "Attendees")
+        .string("business_purpose", "Business Purpose")
+        .reference("corporate_card_transaction_id", "Card Transaction", "corporate_card_transactions")
+        .string("receipt_attachment", "Receipt Attachment")
+        .boolean("receipt_required", "Receipt Required")
+        .boolean("receipt_verified", "Receipt Verified")
+        .build()
+}
+
+// ============================================================================
+// Payment Process Request (Oracle Fusion: Payables > Payment Process Requests)
+// ============================================================================
+
+/// Payment Process Request entity with workflow
+/// Oracle Fusion: Payables > Payments > Payment Process Requests
+pub fn payment_process_request_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("ppr_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("review", "Review Required")
+        .working_state("formatted", "Formatted")
+        .working_state("confirmed", "Confirmed")
+        .final_state("completed", "Completed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "review", "requires_review")
+        .transition("review", "formatted", "approve")
+        .transition("submitted", "formatted", "format")
+        .transition("formatted", "confirmed", "confirm")
+        .transition("confirmed", "completed", "complete")
+        .transition("draft", "cancelled", "cancel")
+        .transition("submitted", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("payment_process_requests", "Payment Process Request")
+        .plural_label("Payment Process Requests")
+        .table_name("fin_payment_process_requests")
+        .description("Batch payment processing request for automatic supplier payment selection")
+        .icon("cogs")
+        .required_string("request_number", "Request Number")
+        .string("description", "Description")
+        .date("request_date", "Request Date")
+        .date("payment_date", "Payment Date")
+        .date("gl_date", "GL Date")
+        .enumeration("payment_method", "Payment Method", vec![
+            "check", "electronic", "wire", "ach", "swift", "all",
+        ])
+        .string("payment_currency_code", "Payment Currency")
+        .string("bank_account_name", "Bank Account")
+        .enumeration("invoice_selection_criteria", "Invoice Selection", vec![
+            "due_date", "discount_date", "all_open", "supplier", "pay_group",
+        ])
+        .date("invoice_due_from", "Invoice Due From")
+        .date("invoice_due_to", "Invoice Due To")
+        .currency("minimum_payment", "Minimum Payment", "USD")
+        .currency("maximum_payment", "Maximum Payment", "USD")
+        .integer("invoice_count", "Invoice Count")
+        .integer("supplier_count", "Supplier Count")
+        .integer("payment_count", "Payment Count")
+        .currency("total_payment_amount", "Total Payment Amount", "USD")
+        .currency("total_discount_taken", "Total Discount Taken", "USD")
+        .currency("total_discount_available", "Total Discount Available", "USD")
+        .boolean("pay_only_when_due", "Pay Only When Due")
+        .boolean("take_available_discounts", "Take Available Discounts")
+        .boolean("include_zero_amount_payments", "Include Zero Amount")
+        .boolean("group_by_supplier", "Group by Supplier")
+        .string("pay_group", "Pay Group")
+        .reference("requested_by_id", "Requested By", "employees")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "review", "formatted", "confirmed", "completed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Cash Pooling (Oracle Fusion: Treasury > Cash Pooling)
+// ============================================================================
+
+/// Cash Pool entity
+/// Oracle Fusion: Treasury > Cash Pooling > Cash Pools
+pub fn cash_pool_definition() -> EntityDefinition {
+    SchemaBuilder::new("cash_pools", "Cash Pool")
+        .plural_label("Cash Pools")
+        .table_name("fin_cash_pools")
+        .description("Cash pool definitions for cash concentration and sweeping")
+        .icon("water")
+        .required_string("pool_code", "Pool Code")
+        .required_string("name", "Pool Name")
+        .string("description", "Description")
+        .enumeration("pool_type", "Pool Type", vec![
+            "concentration", "zero_balancing", "target_balance",
+        ])
+        .enumeration("sweep_frequency", "Sweep Frequency", vec![
+            "daily", "weekly", "monthly", "on_demand",
+        ])
+        .enumeration("sweep_direction", "Sweep Direction", vec![
+            "one_way", "two_way",
+        ])
+        .string("concentration_account", "Concentration Account")
+        .string("currency_code", "Currency Code")
+        .currency("target_balance", "Target Balance", "USD")
+        .currency("minimum_balance", "Minimum Balance", "USD")
+        .currency("maximum_transfer", "Maximum Transfer", "USD")
+        .currency("minimum_transfer", "Minimum Transfer", "USD")
+        .boolean("invest_excess", "Invest Excess")
+        .boolean("fund_deficit", "Fund Deficit")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Cash Pool Member entity
+/// Oracle Fusion: Treasury > Cash Pooling > Pool Members
+pub fn cash_pool_member_definition() -> EntityDefinition {
+    SchemaBuilder::new("cash_pool_members", "Cash Pool Member")
+        .plural_label("Cash Pool Members")
+        .table_name("fin_cash_pool_members")
+        .description("Bank accounts participating in a cash pool")
+        .icon("users")
+        .reference("pool_id", "Cash Pool", "cash_pools")
+        .string("pool_code", "Pool Code")
+        .enumeration("member_type", "Member Type", vec![
+            "header", "sub_account",
+        ])
+        .reference("bank_account_id", "Bank Account", "bank_accounts")
+        .string("bank_account_number", "Bank Account Number")
+        .string("bank_account_name", "Bank Account Name")
+        .string("currency_code", "Currency Code")
+        .integer("priority", "Priority")
+        .enumeration("sweep_method", "Sweep Method", vec![
+            "full", "partial", "threshold",
+        ])
+        .currency("sweep_threshold", "Sweep Threshold", "USD")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Cash Pool Sweep Transaction entity with workflow
+/// Oracle Fusion: Treasury > Cash Pooling > Sweep Transactions
+pub fn cash_pool_sweep_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("cash_pool_sweep_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .final_state("processed", "Processed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "processed", "process")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("cash_pool_sweeps", "Cash Pool Sweep")
+        .plural_label("Cash Pool Sweeps")
+        .table_name("fin_cash_pool_sweeps")
+        .description("Cash sweep transaction between pool accounts")
+        .icon("exchange-alt")
+        .required_string("sweep_number", "Sweep Number")
+        .reference("pool_id", "Cash Pool", "cash_pools")
+        .string("pool_code", "Pool Code")
+        .reference("from_account_id", "From Account", "bank_accounts")
+        .string("from_account_number", "From Account Number")
+        .reference("to_account_id", "To Account", "bank_accounts")
+        .string("to_account_number", "To Account Number")
+        .enumeration("sweep_type", "Sweep Type", vec![
+            "concentration", "funding", "balancing",
+        ])
+        .currency("sweep_amount", "Sweep Amount", "USD")
+        .currency("from_balance_before", "From Balance Before", "USD")
+        .currency("from_balance_after", "From Balance After", "USD")
+        .currency("to_balance_before", "To Balance Before", "USD")
+        .currency("to_balance_after", "To Balance After", "USD")
+        .string("currency_code", "Currency Code")
+        .date("sweep_date", "Sweep Date")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "processed", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Statistical Accounts (Oracle Fusion: General Ledger > Statistical Accounts)
+// ============================================================================
+
+/// Statistical Account entity
+/// Oracle Fusion: General Ledger > Statistical Accounts
+pub fn statistical_account_definition() -> EntityDefinition {
+    SchemaBuilder::new("statistical_accounts", "Statistical Account")
+        .plural_label("Statistical Accounts")
+        .table_name("fin_statistical_accounts")
+        .description("Non-financial statistical accounts for tracking units, headcount, etc.")
+        .icon("chart-line")
+        .required_string("account_code", "Account Code")
+        .required_string("name", "Account Name")
+        .string("description", "Description")
+        .enumeration("unit_of_measure", "Unit of Measure", vec![
+            "headcount", "square_feet", "units", "hours",
+            "kilowatt_hours", "vehicles", "transactions", "other",
+        ])
+        .string("custom_uom", "Custom UOM")
+        .enumeration("account_category", "Category", vec![
+            "demographics", "facilities", "production", "sales_metrics", "other",
+        ])
+        .reference("department_id", "Department", "departments")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Statistical Journal Entry entity with workflow
+/// Oracle Fusion: General Ledger > Statistical Accounts > Statistical Entries
+pub fn statistical_journal_entry_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("statistical_journal_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("posted", "Posted")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "posted", "post")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("statistical_journal_entries", "Statistical Journal Entry")
+        .plural_label("Statistical Journal Entries")
+        .table_name("fin_statistical_journal_entries")
+        .description("Journal entries recording statistical (non-monetary) data")
+        .icon("pencil-alt")
+        .required_string("entry_number", "Entry Number")
+        .reference("statistical_account_id", "Statistical Account", "statistical_accounts")
+        .string("account_code", "Account Code")
+        .date("entry_date", "Entry Date")
+        .string("period", "Period")
+        .decimal("quantity", "Quantity", 18, 4)
+        .string("unit_of_measure", "Unit of Measure")
+        .string("description", "Description")
+        .reference("department_id", "Department", "departments")
+        .reference("project_id", "Project", "projects")
+        .string("cost_center", "Cost Center")
+        .enumeration("entry_type", "Entry Type", vec![
+            "manual", "average_daily", "end_of_period", "allocated",
+        ])
+        .enumeration("status", "Status", vec![
+            "draft", "posted", "cancelled",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Asset Split (Oracle Fusion: Fixed Assets > Asset Split)
+// ============================================================================
+
+/// Asset Split entity with workflow
+/// Oracle Fusion: Fixed Assets > Assets > Asset Split
+pub fn asset_split_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("asset_split_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .final_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .final_state("completed", "Completed")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "completed", "complete")
+        .build();
+
+    SchemaBuilder::new("asset_splits", "Asset Split")
+        .plural_label("Asset Splits")
+        .table_name("fin_asset_splits")
+        .description("Split a single asset into multiple assets with proportional cost allocation")
+        .icon("code-branch")
+        .required_string("split_number", "Split Number")
+        .reference("source_asset_id", "Source Asset", "fixed_assets")
+        .string("source_asset_number", "Source Asset Number")
+        .string("source_asset_name", "Source Asset Name")
+        .date("split_date", "Split Date")
+        .integer("split_count", "Number of Resulting Assets")
+        .currency("source_original_cost", "Source Original Cost", "USD")
+        .currency("source_accumulated_depreciation", "Source Accum Depreciation", "USD")
+        .currency("source_net_book_value", "Source Net Book Value", "USD")
+        .currency("total_split_cost", "Total Split Cost", "USD")
+        .currency("total_split_accum_depr", "Total Split Accum Depr", "USD")
+        .currency("total_split_nbv", "Total Split Net Book Value", "USD")
+        .boolean("costs_balanced", "Costs Balanced")
+        .string("reason", "Reason")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "rejected", "completed",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Asset Split Line entity
+/// Oracle Fusion: Fixed Assets > Assets > Asset Split > Lines
+pub fn asset_split_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("asset_split_lines", "Asset Split Line")
+        .plural_label("Asset Split Lines")
+        .table_name("fin_asset_split_lines")
+        .description("Individual resulting assets from an asset split")
+        .icon("list")
+        .reference("split_id", "Split", "asset_splits")
+        .integer("line_number", "Line Number")
+        .string("new_asset_number", "New Asset Number")
+        .string("new_asset_name", "New Asset Name")
+        .reference("category_id", "Category", "asset_categories")
+        .reference("department_id", "Department", "departments")
+        .decimal("split_percentage", "Split Percentage", 8, 4)
+        .currency("original_cost", "Original Cost", "USD")
+        .currency("accumulated_depreciation", "Accum Depreciation", "USD")
+        .currency("net_book_value", "Net Book Value", "USD")
+        .build()
+}
+
+// ============================================================================
+// Asset Merger (Oracle Fusion: Fixed Assets > Asset Merger)
+// ============================================================================
+
+/// Asset Merger entity with workflow
+/// Oracle Fusion: Fixed Assets > Assets > Asset Merger
+pub fn asset_merger_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("asset_merger_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .final_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .final_state("completed", "Completed")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "completed", "complete")
+        .build();
+
+    SchemaBuilder::new("asset_mergers", "Asset Merger")
+        .plural_label("Asset Mergers")
+        .table_name("fin_asset_mergers")
+        .description("Merge multiple assets into a single asset")
+        .icon("compress-arrows-alt")
+        .required_string("merger_number", "Merger Number")
+        .reference("target_asset_id", "Target Asset", "fixed_assets")
+        .string("target_asset_number", "Target Asset Number")
+        .string("target_asset_name", "Target Asset Name")
+        .date("merger_date", "Merger Date")
+        .integer("source_count", "Number of Source Assets")
+        .currency("target_original_cost", "Target Original Cost", "USD")
+        .currency("target_accumulated_depreciation", "Target Accum Depreciation", "USD")
+        .currency("target_net_book_value", "Target Net Book Value", "USD")
+        .currency("total_source_cost", "Total Source Cost", "USD")
+        .currency("total_source_accum_depr", "Total Source Accum Depr", "USD")
+        .currency("total_source_nbv", "Total Source Net Book Value", "USD")
+        .boolean("costs_balanced", "Costs Balanced")
+        .string("reason", "Reason")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "rejected", "completed",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Asset Merger Line entity
+/// Oracle Fusion: Fixed Assets > Assets > Asset Merger > Lines
+pub fn asset_merger_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("asset_merger_lines", "Asset Merger Line")
+        .plural_label("Asset Merger Lines")
+        .table_name("fin_asset_merger_lines")
+        .description("Source assets being merged into the target asset")
+        .icon("list")
+        .reference("merger_id", "Merger", "asset_mergers")
+        .integer("line_number", "Line Number")
+        .reference("source_asset_id", "Source Asset", "fixed_assets")
+        .string("source_asset_number", "Source Asset Number")
+        .string("source_asset_name", "Source Asset Name")
+        .currency("original_cost", "Original Cost", "USD")
+        .currency("accumulated_depreciation", "Accum Depreciation", "USD")
+        .currency("net_book_value", "Net Book Value", "USD")
+        .build()
+}

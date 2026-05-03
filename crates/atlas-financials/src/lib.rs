@@ -95,4 +95,11 @@ pub use services::{
     FinancialDimensionSetService,
     ReceiptWriteOffService,
     PrepaymentApplicationService,
+    // New Oracle Fusion financial features
+    ExpenseReportLineService,
+    PaymentProcessRequestService,
+    CashPoolingService,
+    StatisticalAccountService,
+    AssetSplitService,
+    AssetMergerService,
 };

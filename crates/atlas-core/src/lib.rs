@@ -151,6 +151,7 @@ pub mod cip_capitalization;
 pub mod available_funds;
 pub mod statistical_accounting;
 pub mod account_hierarchy;
+pub mod suspense_account;
 
 pub use schema::*;
 pub use workflow::{
@@ -303,6 +304,7 @@ pub use cip_capitalization::{CipCapitalizationEngine, PostgresCipCapitalizationR
 pub use available_funds::{AvailableFundsEngine, PostgresAvailableFundsRepository as PostgresAvailableFundsRepo};
 pub use statistical_accounting::{StatisticalAccountingEngine, PostgresStatisticalAccountingRepository as PostgresStatisticalAccountingRepo};
 pub use account_hierarchy::{AccountHierarchyEngine, PostgresAccountHierarchyRepository as PostgresAccountHierarchyRepo};
+pub use suspense_account::{SuspenseAccountEngine, PostgresSuspenseAccountRepository as PostgresSuspenseAccountRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

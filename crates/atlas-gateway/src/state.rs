@@ -41,6 +41,8 @@ use atlas_core::{
     receipt_write_off::PostgresReceiptWriteOffRepository as PostgresReceiptWriteOffRepo,
     PrepaymentApplicationEngine,
     PostgresPrepaymentApplicationRepo,
+    SuspenseAccountEngine,
+    suspense_account::PostgresSuspenseAccountRepository,
     SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
     SecurityEngine, AuditEngine,
     NotificationEngine,
@@ -363,6 +365,7 @@ pub struct AppState {
     pub financial_dimension_set_engine: Arc<FinancialDimensionSetEngine>,
     pub receipt_write_off_engine: Arc<ReceiptWriteOffEngine>,
     pub prepayment_application_engine: Arc<PrepaymentApplicationEngine>,
+    pub suspense_account_engine: Arc<SuspenseAccountEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -992,6 +995,11 @@ impl AppState {
             PostgresPrepaymentApplicationRepo::new(db_pool.clone())
         )));
 
+        // Initialize Suspense Account Processing engine (Oracle Fusion: GL > Suspense Accounts)
+        let suspense_account_engine = Arc::new(SuspenseAccountEngine::new(Arc::new(
+            PostgresSuspenseAccountRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1155,6 +1163,7 @@ impl AppState {
             financial_dimension_set_engine,
             receipt_write_off_engine,
             prepayment_application_engine,
+            suspense_account_engine,
             event_bus,
             jwt_secret,
         };

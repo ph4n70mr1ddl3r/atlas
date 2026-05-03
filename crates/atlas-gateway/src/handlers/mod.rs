@@ -121,6 +121,7 @@ pub mod payment_format;
 pub mod financial_dimension_set;
 pub mod receipt_write_off;
 pub mod prepayment_application;
+pub mod suspense_account;
 
 pub use schema::*;
 pub use records::*;
@@ -4186,6 +4187,40 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/prepayment-applications/:id/confirm", post(prepayment_application::confirm_prepayment))
         .route("/prepayment-applications/:id/cancel", post(prepayment_application::cancel_prepayment))
         .route("/prepayment-applications/dashboard", get(prepayment_application::get_prepayment_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Suspense Account Processing (Oracle Fusion GL > Suspense Accounts)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Suspense Definitions
+        .route("/suspense/definitions", post(suspense_account::create_definition))
+        .route("/suspense/definitions", get(suspense_account::list_definitions))
+        .route("/suspense/definitions/:id", get(suspense_account::get_definition))
+        .route("/suspense/definitions/:id/activate", post(suspense_account::activate_definition))
+        .route("/suspense/definitions/:id/deactivate", post(suspense_account::deactivate_definition))
+        .route("/suspense/definitions/:id", delete(suspense_account::delete_definition))
+
+        // Suspense Entries
+        .route("/suspense/entries", post(suspense_account::create_entry))
+        .route("/suspense/entries", get(suspense_account::list_entries))
+        .route("/suspense/entries/:id", get(suspense_account::get_entry))
+        .route("/suspense/entries/:id/reverse", post(suspense_account::reverse_entry))
+        .route("/suspense/entries/:id/write-off", post(suspense_account::write_off_entry))
+        .route("/suspense/definitions/:def_id/entries", get(suspense_account::list_entries_by_definition))
+
+        // Clearing Batches
+        .route("/suspense/clearing-batches", post(suspense_account::create_clearing_batch))
+        .route("/suspense/clearing-batches", get(suspense_account::list_clearing_batches))
+        .route("/suspense/clearing-batches/:id", get(suspense_account::get_clearing_batch))
+        .route("/suspense/clearing-batches/:batch_id/lines", post(suspense_account::add_clearing_line))
+        .route("/suspense/clearing-batches/:batch_id/lines", get(suspense_account::list_clearing_lines))
+        .route("/suspense/clearing-batches/:id/submit", post(suspense_account::submit_clearing_batch))
+        .route("/suspense/clearing-batches/:id/approve", post(suspense_account::approve_clearing_batch))
+        .route("/suspense/clearing-batches/:id/post", post(suspense_account::post_clearing_batch))
+
+        // Aging & Dashboard
+        .route("/suspense/aging-snapshot", post(suspense_account::create_aging_snapshot))
+        .route("/suspense/dashboard", get(suspense_account::get_suspense_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

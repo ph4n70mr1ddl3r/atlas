@@ -574,6 +574,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         prepayment_application_engine: Arc::new(atlas_core::PrepaymentApplicationEngine::new(Arc::new(
             atlas_core::PostgresPrepaymentApplicationRepo::new(db_pool.clone()),
         ))),
+        suspense_account_engine: Arc::new(atlas_core::SuspenseAccountEngine::new(Arc::new(
+            atlas_core::suspense_account::PostgresSuspenseAccountRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

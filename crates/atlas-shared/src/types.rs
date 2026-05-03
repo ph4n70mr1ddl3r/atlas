@@ -21427,3 +21427,163 @@ pub struct RegulatoryReportingDashboard {
     pub upcoming_filings: i32,
     pub filings_by_authority: serde_json::Value,
 }
+
+
+// ============================================================================
+// Interest Invoice Management (Oracle Fusion: Receivables > Late Charges)
+// ============================================================================
+
+/// Interest rate schedule definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterestRateSchedule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub schedule_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub annual_rate: String,
+    pub compounding_frequency: String,
+    pub charge_type: String,
+    pub grace_period_days: i32,
+    pub minimum_charge: String,
+    pub maximum_charge: Option<String>,
+    pub currency_code: String,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Overdue invoice record
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OverdueInvoice {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub invoice_number: String,
+    pub customer_id: Uuid,
+    pub customer_name: Option<String>,
+    pub original_amount: String,
+    pub outstanding_amount: String,
+    pub due_date: chrono::NaiveDate,
+    pub overdue_days: i32,
+    pub currency_code: String,
+    pub status: String,
+    pub last_interest_date: Option<chrono::NaiveDate>,
+    pub total_interest_charged: String,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Interest calculation run
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterestCalculationRun {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_number: String,
+    pub description: Option<String>,
+    pub calculation_date: chrono::NaiveDate,
+    pub schedule_id: Option<Uuid>,
+    pub total_invoices_processed: i32,
+    pub total_interest_calculated: String,
+    pub currency_code: String,
+    pub status: String,
+    pub generated_by: Option<Uuid>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Individual interest calculation line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterestCalculationLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_id: Uuid,
+    pub overdue_invoice_id: Option<Uuid>,
+    pub invoice_number: String,
+    pub customer_id: Uuid,
+    pub customer_name: Option<String>,
+    pub outstanding_amount: String,
+    pub overdue_days: i32,
+    pub annual_rate_used: String,
+    pub interest_amount: String,
+    pub currency_code: String,
+    pub status: String,
+    pub interest_invoice_id: Option<Uuid>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Interest invoice
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterestInvoice {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub invoice_number: String,
+    pub customer_id: Uuid,
+    pub customer_name: Option<String>,
+    pub calculation_run_id: Option<Uuid>,
+    pub invoice_date: chrono::NaiveDate,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub total_interest_amount: String,
+    pub currency_code: String,
+    pub line_count: i32,
+    pub status: String,
+    pub gl_account_code: Option<String>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub reversed_at: Option<DateTime<Utc>>,
+    pub reversal_invoice_id: Option<Uuid>,
+    pub reference_invoice_number: Option<String>,
+    pub notes: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Interest invoice line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterestInvoiceLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub interest_invoice_id: Uuid,
+    pub calculation_line_id: Option<Uuid>,
+    pub line_number: i32,
+    pub line_type: String,
+    pub description: Option<String>,
+    pub reference_invoice_number: Option<String>,
+    pub overdue_days: Option<i32>,
+    pub outstanding_amount: Option<String>,
+    pub annual_rate_used: Option<String>,
+    pub interest_amount: String,
+    pub currency_code: String,
+    pub gl_account_code: Option<String>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Interest invoice management dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterestInvoiceDashboard {
+    pub total_active_schedules: i32,
+    pub total_overdue_invoices: i32,
+    pub total_overdue_amount: String,
+    pub total_interest_ytd: String,
+    pub total_pending_invoices: i32,
+    pub total_pending_amount: String,
+    pub avg_overdue_days: String,
+}

@@ -163,6 +163,8 @@ use atlas_core::{
     joint_venture::PostgresJointVentureRepository,
     DeferredRevenueEngine,
     deferred_revenue::PostgresDeferredRevenueRepository,
+    InterestInvoiceEngine,
+    interest_invoice::PostgresInterestInvoiceRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -366,6 +368,7 @@ pub struct AppState {
     pub receipt_write_off_engine: Arc<ReceiptWriteOffEngine>,
     pub prepayment_application_engine: Arc<PrepaymentApplicationEngine>,
     pub suspense_account_engine: Arc<SuspenseAccountEngine>,
+    pub interest_invoice_engine: Arc<InterestInvoiceEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1000,6 +1003,11 @@ impl AppState {
             PostgresSuspenseAccountRepository::new(db_pool.clone())
         )));
 
+        // Initialize Interest Invoice Management engine (Oracle Fusion: Receivables > Late Charges)
+        let interest_invoice_engine = Arc::new(InterestInvoiceEngine::new(Arc::new(
+            PostgresInterestInvoiceRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1164,6 +1172,7 @@ impl AppState {
             receipt_write_off_engine,
             prepayment_application_engine,
             suspense_account_engine,
+            interest_invoice_engine,
             event_bus,
             jwt_secret,
         };

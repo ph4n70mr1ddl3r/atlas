@@ -122,6 +122,7 @@ pub mod financial_dimension_set;
 pub mod receipt_write_off;
 pub mod prepayment_application;
 pub mod suspense_account;
+pub mod interest_invoice;
 
 pub use schema::*;
 pub use records::*;
@@ -4221,6 +4222,42 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         // Aging & Dashboard
         .route("/suspense/aging-snapshot", post(suspense_account::create_aging_snapshot))
         .route("/suspense/dashboard", get(suspense_account::get_suspense_dashboard))
+
+        // ═════════════════════════════════════════════════════════════════════════════════
+        // Interest Invoice Management (Oracle Fusion: Receivables > Late Charges)
+        // ═════════════════════════════════════════════════════════════════════════════════
+
+        // Interest Rate Schedules
+        .route("/interest-invoices/schedules", get(interest_invoice::list_schedules))
+        .route("/interest-invoices/schedules", post(interest_invoice::create_schedule))
+        .route("/interest-invoices/schedules/:schedule_code", get(interest_invoice::get_schedule))
+        .route("/interest-invoices/schedules/:id/activate", post(interest_invoice::activate_schedule))
+        .route("/interest-invoices/schedules/:id/deactivate", post(interest_invoice::deactivate_schedule))
+        .route("/interest-invoices/schedules/:schedule_code", delete(interest_invoice::delete_schedule))
+
+        // Overdue Invoices
+        .route("/interest-invoices/overdue", post(interest_invoice::register_overdue_invoice))
+        .route("/interest-invoices/overdue", get(interest_invoice::list_overdue_invoices))
+        .route("/interest-invoices/overdue/:id/close", post(interest_invoice::close_overdue_invoice))
+
+        // Interest Calculation
+        .route("/interest-invoices/calculate", post(interest_invoice::calculate_interest))
+        .route("/interest-invoices/runs", get(interest_invoice::list_calculation_runs))
+        .route("/interest-invoices/runs/:id", get(interest_invoice::get_calculation_run))
+        .route("/interest-invoices/runs/:run_id/lines", get(interest_invoice::list_calculation_lines))
+        .route("/interest-invoices/runs/:id/cancel", post(interest_invoice::cancel_calculation_run))
+
+        // Interest Invoices
+        .route("/interest-invoices/invoices", get(interest_invoice::list_interest_invoices))
+        .route("/interest-invoices/runs/:run_id/generate", post(interest_invoice::generate_interest_invoices))
+        .route("/interest-invoices/invoices/:invoice_number", get(interest_invoice::get_interest_invoice))
+        .route("/interest-invoices/invoices/:id/post", post(interest_invoice::post_interest_invoice))
+        .route("/interest-invoices/invoices/:id/reverse", post(interest_invoice::reverse_interest_invoice))
+        .route("/interest-invoices/invoices/:id/cancel", post(interest_invoice::cancel_interest_invoice))
+        .route("/interest-invoices/invoices/:invoice_id/lines", get(interest_invoice::list_interest_invoice_lines))
+
+        // Dashboard
+        .route("/interest-invoices/dashboard", get(interest_invoice::get_interest_invoice_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

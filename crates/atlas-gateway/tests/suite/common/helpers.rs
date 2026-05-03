@@ -577,6 +577,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         suspense_account_engine: Arc::new(atlas_core::SuspenseAccountEngine::new(Arc::new(
             atlas_core::suspense_account::PostgresSuspenseAccountRepository::new(db_pool.clone()),
         ))),
+        interest_invoice_engine: Arc::new(atlas_core::InterestInvoiceEngine::new(Arc::new(
+            atlas_core::interest_invoice::PostgresInterestInvoiceRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1104,4 +1107,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.fin_receipt_write_offs").execute(pool).await.ok();
     // Prepayment Application
     sqlx::query("DELETE FROM _atlas.fin_prepayment_applications").execute(pool).await.ok();
+    // Interest Invoice Management
+    sqlx::query("DELETE FROM _atlas.interest_invoice_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.interest_invoices").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.interest_calculation_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.interest_calculation_runs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.overdue_invoices").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.interest_rate_schedules").execute(pool).await.ok();
 }

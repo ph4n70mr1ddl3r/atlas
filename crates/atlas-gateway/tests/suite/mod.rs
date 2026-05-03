@@ -120,3 +120,4 @@ mod financial_dimension_set;
 mod receipt_write_off;
 mod prepayment_application;
 mod suspense_account;
+mod interest_invoice;

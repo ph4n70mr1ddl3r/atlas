@@ -544,6 +544,36 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         financial_controls_engine: Arc::new(atlas_core::FinancialControlsEngine::new(Arc::new(
             atlas_core::financial_controls::PostgresFinancialControlsRepository::new(db_pool.clone()),
         ))),
+        payment_terms_engine: Arc::new(atlas_core::PaymentTermsEngine::new(Arc::new(
+            atlas_core::payment_terms::PostgresPaymentTermsRepository::new(db_pool.clone()),
+        ))),
+        lockbox_engine: Arc::new(atlas_core::LockboxEngine::new(Arc::new(
+            atlas_core::lockbox::PostgresLockboxRepository::new(db_pool.clone()),
+        ))),
+        ar_aging_engine: Arc::new(atlas_core::ArAgingEngine::new(Arc::new(
+            atlas_core::ar_aging::PostgresArAgingRepository::new(db_pool.clone()),
+        ))),
+        mass_addition_engine: Arc::new(atlas_core::MassAdditionEngine::new(Arc::new(
+            atlas_core::PostgresMassAdditionRepo::new(db_pool.clone()),
+        ))),
+        asset_reclassification_engine: Arc::new(atlas_core::AssetReclassificationEngine::new(Arc::new(
+            atlas_core::PostgresAssetReclassificationRepo::new(db_pool.clone()),
+        ))),
+        gl_budget_transfer_engine: Arc::new(atlas_core::GlBudgetTransferEngine::new(Arc::new(
+            atlas_core::PostgresGlBudgetTransferRepo::new(db_pool.clone()),
+        ))),
+        payment_format_engine: Arc::new(atlas_core::PaymentFormatEngine::new(Arc::new(
+            atlas_core::PostgresPaymentFormatRepo::new(db_pool.clone()),
+        ))),
+        financial_dimension_set_engine: Arc::new(atlas_core::FinancialDimensionSetEngine::new(Arc::new(
+            atlas_core::PostgresFinancialDimensionSetRepo::new(db_pool.clone()),
+        ))),
+        receipt_write_off_engine: Arc::new(atlas_core::ReceiptWriteOffEngine::new(Arc::new(
+            atlas_core::receipt_write_off::PostgresReceiptWriteOffRepository::new(db_pool.clone()),
+        ))),
+        prepayment_application_engine: Arc::new(atlas_core::PrepaymentApplicationEngine::new(Arc::new(
+            atlas_core::PostgresPrepaymentApplicationRepo::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1056,4 +1086,19 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.journal_import_batches").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.journal_import_column_mappings").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.journal_import_formats").execute(pool).await.ok();
+    // Mass Additions
+    sqlx::query("DELETE FROM _atlas.fin_mass_additions").execute(pool).await.ok();
+    // Asset Reclassification
+    sqlx::query("DELETE FROM _atlas.fin_asset_reclassifications").execute(pool).await.ok();
+    // GL Budget Transfer
+    sqlx::query("DELETE FROM _atlas.fin_gl_budget_transfers").execute(pool).await.ok();
+    // Payment Format
+    sqlx::query("DELETE FROM _atlas.fin_payment_formats").execute(pool).await.ok();
+    // Financial Dimension Set
+    sqlx::query("DELETE FROM _atlas.fin_financial_dimension_set_members").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fin_financial_dimension_sets").execute(pool).await.ok();
+    // Receipt Write-Off
+    sqlx::query("DELETE FROM _atlas.fin_receipt_write_offs").execute(pool).await.ok();
+    // Prepayment Application
+    sqlx::query("DELETE FROM _atlas.fin_prepayment_applications").execute(pool).await.ok();
 }

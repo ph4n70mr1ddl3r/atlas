@@ -114,6 +114,13 @@ pub mod financial_controls;
 pub mod payment_terms;
 pub mod lockbox;
 pub mod ar_aging;
+pub mod mass_additions;
+pub mod asset_reclassification;
+pub mod gl_budget_transfer;
+pub mod payment_format;
+pub mod financial_dimension_set;
+pub mod receipt_write_off;
+pub mod prepayment_application;
 
 pub use schema::*;
 pub use records::*;
@@ -4105,6 +4112,80 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/ar-aging/snapshots/:snapshot_id/lines", get(ar_aging::list_snapshot_lines))
         .route("/ar-aging/snapshots/:snapshot_id/summary", get(ar_aging::get_aging_summary))
         .route("/ar-aging/dashboard", get(ar_aging::get_ar_aging_dashboard))
+
+        // ============================================================================
+        // Mass Additions (Oracle Fusion: Fixed Assets > Mass Additions)
+        // ============================================================================
+        .route("/mass-additions", post(mass_additions::create_mass_addition))
+        .route("/mass-additions", get(mass_additions::list_mass_additions))
+        .route("/mass-additions/:id", get(mass_additions::get_mass_addition))
+        .route("/mass-additions/:id/hold", post(mass_additions::hold_mass_addition))
+        .route("/mass-additions/:id/release", post(mass_additions::release_mass_addition))
+        .route("/mass-additions/:id/reject", post(mass_additions::reject_mass_addition))
+        .route("/mass-additions/:id/merge", post(mass_additions::merge_mass_addition))
+        .route("/mass-additions/:id/convert", post(mass_additions::convert_mass_addition))
+        .route("/mass-additions/dashboard", get(mass_additions::get_mass_addition_dashboard))
+
+        // ============================================================================
+        // Asset Reclassification (Oracle Fusion: Fixed Assets > Reclassification)
+        // ============================================================================
+        .route("/asset-reclassifications", post(asset_reclassification::create_reclassification))
+        .route("/asset-reclassifications", get(asset_reclassification::list_reclassifications))
+        .route("/asset-reclassifications/:id", get(asset_reclassification::get_reclassification))
+        .route("/asset-reclassifications/:id/approve", post(asset_reclassification::approve_reclassification))
+        .route("/asset-reclassifications/:id/complete", post(asset_reclassification::complete_reclassification))
+        .route("/asset-reclassifications/dashboard", get(asset_reclassification::get_reclassification_dashboard))
+
+        // ============================================================================
+        // GL Budget Transfers (Oracle Fusion: General Ledger > Budget Transfers)
+        // ============================================================================
+        .route("/gl-budget-transfers", post(gl_budget_transfer::create_budget_transfer))
+        .route("/gl-budget-transfers", get(gl_budget_transfer::list_budget_transfers))
+        .route("/gl-budget-transfers/:id", get(gl_budget_transfer::get_budget_transfer))
+        .route("/gl-budget-transfers/:id/submit", post(gl_budget_transfer::submit_budget_transfer))
+        .route("/gl-budget-transfers/:id/approve", post(gl_budget_transfer::approve_budget_transfer))
+        .route("/gl-budget-transfers/:id/complete", post(gl_budget_transfer::complete_budget_transfer))
+        .route("/gl-budget-transfers/dashboard", get(gl_budget_transfer::get_budget_transfer_dashboard))
+
+        // ============================================================================
+        // Payment Formats (Oracle Fusion: Payables > Payment Formats)
+        // ============================================================================
+        .route("/payment-formats", post(payment_format::create_payment_format))
+        .route("/payment-formats", get(payment_format::list_payment_formats))
+        .route("/payment-formats/:id", get(payment_format::get_payment_format))
+        .route("/payment-formats/:id/deactivate", post(payment_format::deactivate_payment_format))
+        .route("/payment-formats/:id/activate", post(payment_format::activate_payment_format))
+        .route("/payment-formats/dashboard", get(payment_format::get_payment_format_dashboard))
+
+        // ============================================================================
+        // Financial Dimension Sets (Oracle Fusion: GL > Dimension Sets)
+        // ============================================================================
+        .route("/financial-dimension-sets", post(financial_dimension_set::create_dimension_set))
+        .route("/financial-dimension-sets", get(financial_dimension_set::list_dimension_sets))
+        .route("/financial-dimension-sets/:id", get(financial_dimension_set::get_dimension_set))
+        .route("/financial-dimension-sets/:id/deactivate", post(financial_dimension_set::deactivate_dimension_set))
+        .route("/financial-dimension-sets/dashboard", get(financial_dimension_set::get_dimension_set_dashboard))
+
+        // ============================================================================
+        // Receipt Write-Off (Oracle Fusion: Receivables > Write-Offs)
+        // ============================================================================
+        .route("/receipt-write-offs/reasons", post(receipt_write_off::create_reason))
+        .route("/receipt-write-offs/reasons", get(receipt_write_off::list_reasons))
+        .route("/receipt-write-offs/requests", post(receipt_write_off::create_write_off_request))
+        .route("/receipt-write-offs/requests", get(receipt_write_off::list_write_off_requests))
+        .route("/receipt-write-offs/requests/:id/approve", post(receipt_write_off::approve_write_off_request))
+        .route("/receipt-write-offs/requests/:id/post", post(receipt_write_off::post_write_off_request))
+        .route("/receipt-write-offs/dashboard", get(receipt_write_off::get_write_off_dashboard))
+
+        // ============================================================================
+        // Prepayment Application (Oracle Fusion: Payables > Prepayments)
+        // ============================================================================
+        .route("/prepayment-applications", post(prepayment_application::apply_prepayment))
+        .route("/prepayment-applications", get(prepayment_application::list_prepayments))
+        .route("/prepayment-applications/:id", get(prepayment_application::get_prepayment))
+        .route("/prepayment-applications/:id/confirm", post(prepayment_application::confirm_prepayment))
+        .route("/prepayment-applications/:id/cancel", post(prepayment_application::cancel_prepayment))
+        .route("/prepayment-applications/dashboard", get(prepayment_application::get_prepayment_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -27,6 +27,20 @@ use atlas_core::{
     lockbox::PostgresLockboxRepository,
     ArAgingEngine,
     ar_aging::PostgresArAgingRepository,
+    MassAdditionEngine,
+    PostgresMassAdditionRepo,
+    AssetReclassificationEngine,
+    PostgresAssetReclassificationRepo,
+    GlBudgetTransferEngine,
+    PostgresGlBudgetTransferRepo,
+    PaymentFormatEngine,
+    PostgresPaymentFormatRepo,
+    FinancialDimensionSetEngine,
+    PostgresFinancialDimensionSetRepo,
+    ReceiptWriteOffEngine,
+    receipt_write_off::PostgresReceiptWriteOffRepository as PostgresReceiptWriteOffRepo,
+    PrepaymentApplicationEngine,
+    PostgresPrepaymentApplicationRepo,
     SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
     SecurityEngine, AuditEngine,
     NotificationEngine,
@@ -342,6 +356,13 @@ pub struct AppState {
     pub payment_terms_engine: Arc<PaymentTermsEngine>,
     pub lockbox_engine: Arc<LockboxEngine>,
     pub ar_aging_engine: Arc<ArAgingEngine>,
+    pub mass_addition_engine: Arc<MassAdditionEngine>,
+    pub asset_reclassification_engine: Arc<AssetReclassificationEngine>,
+    pub gl_budget_transfer_engine: Arc<GlBudgetTransferEngine>,
+    pub payment_format_engine: Arc<PaymentFormatEngine>,
+    pub financial_dimension_set_engine: Arc<FinancialDimensionSetEngine>,
+    pub receipt_write_off_engine: Arc<ReceiptWriteOffEngine>,
+    pub prepayment_application_engine: Arc<PrepaymentApplicationEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -936,6 +957,41 @@ impl AppState {
             PostgresArAgingRepository::new(db_pool.clone())
         )));
 
+        // Initialize Mass Additions engine (Oracle Fusion: Fixed Assets > Mass Additions)
+        let mass_addition_engine = Arc::new(MassAdditionEngine::new(Arc::new(
+            PostgresMassAdditionRepo::new(db_pool.clone())
+        )));
+
+        // Initialize Asset Reclassification engine (Oracle Fusion: Fixed Assets > Reclassification)
+        let asset_reclassification_engine = Arc::new(AssetReclassificationEngine::new(Arc::new(
+            PostgresAssetReclassificationRepo::new(db_pool.clone())
+        )));
+
+        // Initialize GL Budget Transfer engine (Oracle Fusion: GL > Budget Transfers)
+        let gl_budget_transfer_engine = Arc::new(GlBudgetTransferEngine::new(Arc::new(
+            PostgresGlBudgetTransferRepo::new(db_pool.clone())
+        )));
+
+        // Initialize Payment Format engine (Oracle Fusion: Payables > Payment Formats)
+        let payment_format_engine = Arc::new(PaymentFormatEngine::new(Arc::new(
+            PostgresPaymentFormatRepo::new(db_pool.clone())
+        )));
+
+        // Initialize Financial Dimension Set engine (Oracle Fusion: GL > Dimension Sets)
+        let financial_dimension_set_engine = Arc::new(FinancialDimensionSetEngine::new(Arc::new(
+            PostgresFinancialDimensionSetRepo::new(db_pool.clone())
+        )));
+
+        // Initialize Receipt Write-Off engine (Oracle Fusion: Receivables > Write-Offs)
+        let receipt_write_off_engine = Arc::new(ReceiptWriteOffEngine::new(Arc::new(
+            PostgresReceiptWriteOffRepo::new(db_pool.clone())
+        )));
+
+        // Initialize Prepayment Application engine (Oracle Fusion: Payables > Prepayments)
+        let prepayment_application_engine = Arc::new(PrepaymentApplicationEngine::new(Arc::new(
+            PostgresPrepaymentApplicationRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1092,6 +1148,13 @@ impl AppState {
             payment_terms_engine,
             lockbox_engine,
             ar_aging_engine,
+            mass_addition_engine,
+            asset_reclassification_engine,
+            gl_budget_transfer_engine,
+            payment_format_engine,
+            financial_dimension_set_engine,
+            receipt_write_off_engine,
+            prepayment_application_engine,
             event_bus,
             jwt_secret,
         };

@@ -169,6 +169,8 @@ use atlas_core::{
     expense_policy_compliance::PostgresExpensePolicyComplianceRepository,
     BankGuaranteeEngine,
     bank_guarantee::PostgresBankGuaranteeRepository,
+    LetterOfCreditEngine,
+    letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -375,6 +377,7 @@ pub struct AppState {
     pub interest_invoice_engine: Arc<InterestInvoiceEngine>,
     pub expense_policy_compliance_engine: Arc<ExpensePolicyComplianceEngine>,
     pub bank_guarantee_engine: Arc<BankGuaranteeEngine>,
+    pub letter_of_credit_engine: Arc<LetterOfCreditEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1024,6 +1027,11 @@ impl AppState {
             PostgresBankGuaranteeRepository::new(db_pool.clone())
         )));
 
+        // Initialize Letter of Credit Management engine (Oracle Fusion: Treasury > Trade Finance > LCs)
+        let letter_of_credit_engine = Arc::new(LetterOfCreditEngine::new(Arc::new(
+            PostgresLetterOfCreditRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1191,6 +1199,7 @@ impl AppState {
             interest_invoice_engine,
             expense_policy_compliance_engine,
             bank_guarantee_engine,
+            letter_of_credit_engine,
             event_bus,
             jwt_secret,
         };

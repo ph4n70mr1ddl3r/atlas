@@ -125,6 +125,7 @@ pub mod suspense_account;
 pub mod interest_invoice;
 pub mod expense_policy_compliance;
 pub mod bank_guarantee;
+pub mod letter_of_credit;
 
 pub use schema::*;
 pub use records::*;
@@ -4305,6 +4306,55 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/bank-guarantees/amendments/:amendment_id/approve", post(bank_guarantee::approve_amendment))
         .route("/bank-guarantees/amendments/:amendment_id/reject", post(bank_guarantee::reject_amendment))
         .route("/bank-guarantees/dashboard", get(bank_guarantee::get_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // Letter of Credit Management (Oracle Fusion: Treasury > Trade Finance > LCs)
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        // LC CRUD
+        .route("/letters-of-credit", get(letter_of_credit::list_lcs))
+        .route("/letters-of-credit", post(letter_of_credit::create_lc))
+        .route("/letters-of-credit/:lc_number", get(letter_of_credit::get_lc))
+        .route("/letters-of-credit/:lc_number", delete(letter_of_credit::delete_lc))
+
+        // LC Lifecycle
+        .route("/letters-of-credit/:id/issue", post(letter_of_credit::issue_lc))
+        .route("/letters-of-credit/:id/advise", post(letter_of_credit::advise_lc))
+        .route("/letters-of-credit/:id/confirm", post(letter_of_credit::confirm_lc))
+        .route("/letters-of-credit/:id/accept", post(letter_of_credit::accept_lc))
+        .route("/letters-of-credit/:id/pay", post(letter_of_credit::pay_lc))
+        .route("/letters-of-credit/:id/cancel", post(letter_of_credit::cancel_lc))
+        .route("/letters-of-credit/process-expired", post(letter_of_credit::process_expired))
+
+        // LC Amendments
+        .route("/letters-of-credit/:lc_id/amendments", get(letter_of_credit::list_amendments))
+        .route("/letters-of-credit/:lc_id/amendments", post(letter_of_credit::create_amendment))
+        .route("/letters-of-credit/amendments/:amendment_id/approve", post(letter_of_credit::approve_amendment))
+        .route("/letters-of-credit/amendments/:amendment_id/reject", post(letter_of_credit::reject_amendment))
+
+        // LC Required Documents
+        .route("/letters-of-credit/:lc_id/required-documents", get(letter_of_credit::list_required_documents))
+        .route("/letters-of-credit/:lc_id/required-documents", post(letter_of_credit::add_required_document))
+        .route("/letters-of-credit/required-documents/:doc_id", delete(letter_of_credit::delete_required_document))
+
+        // LC Shipments
+        .route("/letters-of-credit/:lc_id/shipments", get(letter_of_credit::list_shipments))
+        .route("/letters-of-credit/:lc_id/shipments", post(letter_of_credit::create_shipment))
+        .route("/letters-of-credit/shipments/:shipment_id/:status", post(letter_of_credit::update_shipment_status))
+
+        // LC Presentations
+        .route("/letters-of-credit/:lc_id/presentations", get(letter_of_credit::list_presentations))
+        .route("/letters-of-credit/:lc_id/presentations", post(letter_of_credit::create_presentation))
+        .route("/letters-of-credit/presentations/:presentation_id/accept", post(letter_of_credit::accept_presentation))
+        .route("/letters-of-credit/presentations/:presentation_id/pay", post(letter_of_credit::pay_presentation))
+        .route("/letters-of-credit/presentations/:presentation_id/reject", post(letter_of_credit::reject_presentation))
+
+        // LC Presentation Documents
+        .route("/letters-of-credit/presentations/:presentation_id/documents", get(letter_of_credit::list_presentation_documents))
+        .route("/letters-of-credit/presentations/:presentation_id/documents", post(letter_of_credit::add_presentation_document))
+
+        // LC Dashboard
+        .route("/letters-of-credit/dashboard", get(letter_of_credit::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

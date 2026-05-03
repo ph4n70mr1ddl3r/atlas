@@ -155,6 +155,7 @@ pub mod suspense_account;
 pub mod interest_invoice;
 pub mod expense_policy_compliance;
 pub mod bank_guarantee;
+pub mod letter_of_credit;
 
 pub use schema::*;
 pub use workflow::{
@@ -311,6 +312,7 @@ pub use suspense_account::{SuspenseAccountEngine, PostgresSuspenseAccountReposit
 pub use interest_invoice::{InterestInvoiceEngine, PostgresInterestInvoiceRepository as PostgresInterestInvoiceRepo};
 pub use expense_policy_compliance::{ExpensePolicyComplianceEngine, PostgresExpensePolicyComplianceRepository as PostgresExpensePolicyComplianceRepo};
 pub use bank_guarantee::{BankGuaranteeEngine, PostgresBankGuaranteeRepository as PostgresBankGuaranteeRepo};
+pub use letter_of_credit::{LetterOfCreditEngine, PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

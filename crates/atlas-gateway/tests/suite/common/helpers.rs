@@ -586,6 +586,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         bank_guarantee_engine: Arc::new(atlas_core::BankGuaranteeEngine::new(Arc::new(
             atlas_core::bank_guarantee::PostgresBankGuaranteeRepository::new(db_pool.clone()),
         ))),
+        letter_of_credit_engine: Arc::new(atlas_core::LetterOfCreditEngine::new(Arc::new(
+            atlas_core::letter_of_credit::PostgresLetterOfCreditRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1120,4 +1123,13 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.interest_calculation_runs").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.overdue_invoices").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.interest_rate_schedules").execute(pool).await.ok();
+
+    // Clean letter of credit test data
+    sqlx::query("DELETE FROM _atlas.lc_presentation_documents").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.lc_presentations").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.lc_shipments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.lc_required_documents").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.lc_amendments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.letters_of_credit").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.lc_dashboard_cache").execute(pool).await.ok();
 }

@@ -21785,3 +21785,199 @@ pub struct BankGuaranteeDashboard {
     pub by_type: serde_json::Value,
     pub by_currency: serde_json::Value,
 }
+
+// ============================================================================
+// Letter of Credit Management
+// Oracle Fusion: Treasury > Trade Finance > Letters of Credit
+// ============================================================================
+
+/// Letter of Credit
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LetterOfCredit {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub lc_number: String,
+    pub lc_type: String,
+    pub lc_form: String,
+    pub description: Option<String>,
+    pub applicant_name: String,
+    pub applicant_address: Option<String>,
+    pub applicant_bank_name: String,
+    pub applicant_bank_swift: Option<String>,
+    pub beneficiary_name: String,
+    pub beneficiary_address: Option<String>,
+    pub beneficiary_bank_name: Option<String>,
+    pub beneficiary_bank_swift: Option<String>,
+    pub advising_bank_name: Option<String>,
+    pub advising_bank_swift: Option<String>,
+    pub confirming_bank_name: Option<String>,
+    pub confirming_bank_swift: Option<String>,
+    pub lc_amount: String,
+    pub currency_code: String,
+    pub tolerance_plus: String,
+    pub tolerance_minus: String,
+    pub available_with: Option<String>,
+    pub available_by: String,
+    pub draft_at: Option<String>,
+    pub issue_date: Option<chrono::NaiveDate>,
+    pub expiry_date: chrono::NaiveDate,
+    pub place_of_expiry: Option<String>,
+    pub partial_shipments: String,
+    pub transshipment: String,
+    pub port_of_loading: Option<String>,
+    pub port_of_discharge: Option<String>,
+    pub shipment_period: Option<chrono::NaiveDate>,
+    pub latest_shipment_date: Option<chrono::NaiveDate>,
+    pub goods_description: Option<String>,
+    pub incoterms: Option<String>,
+    pub additional_conditions: Option<String>,
+    pub bank_charges: String,
+    pub status: String,
+    pub amendment_count: i32,
+    pub latest_amendment_number: Option<String>,
+    pub reference_po_number: Option<String>,
+    pub reference_contract_number: Option<String>,
+    pub notes: Option<String>,
+    pub created_by_id: Option<Uuid>,
+    pub approved_by_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// LC Amendment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LcAmendment {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub lc_id: Uuid,
+    pub lc_number: String,
+    pub amendment_number: String,
+    pub amendment_type: String,
+    pub previous_amount: Option<String>,
+    pub new_amount: Option<String>,
+    pub previous_expiry_date: Option<chrono::NaiveDate>,
+    pub new_expiry_date: Option<chrono::NaiveDate>,
+    pub previous_terms: Option<String>,
+    pub new_terms: Option<String>,
+    pub reason: Option<String>,
+    pub bank_reference: Option<String>,
+    pub status: String,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub approved_by_id: Option<Uuid>,
+    pub created_by_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// LC Required Document
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LcRequiredDocument {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub lc_id: Uuid,
+    pub document_type: String,
+    pub document_code: Option<String>,
+    pub description: Option<String>,
+    pub original_copies: i32,
+    pub copy_count: i32,
+    pub is_mandatory: bool,
+    pub special_instructions: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// LC Shipment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LcShipment {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub lc_id: Uuid,
+    pub shipment_number: String,
+    pub vessel_name: Option<String>,
+    pub voyage_number: Option<String>,
+    pub bill_of_lading_number: Option<String>,
+    pub carrier_name: Option<String>,
+    pub port_of_loading: Option<String>,
+    pub port_of_discharge: Option<String>,
+    pub shipment_date: Option<chrono::NaiveDate>,
+    pub expected_arrival_date: Option<chrono::NaiveDate>,
+    pub actual_arrival_date: Option<chrono::NaiveDate>,
+    pub shipping_marks: Option<String>,
+    pub container_numbers: Option<String>,
+    pub goods_description: Option<String>,
+    pub quantity: Option<String>,
+    pub unit_price: Option<String>,
+    pub shipment_amount: String,
+    pub currency_code: String,
+    pub status: String,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// LC Presentation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LcPresentation {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub lc_id: Uuid,
+    pub presentation_number: String,
+    pub shipment_id: Option<Uuid>,
+    pub presentation_date: chrono::NaiveDate,
+    pub presenting_bank_name: Option<String>,
+    pub total_amount: String,
+    pub currency_code: String,
+    pub document_count: i32,
+    pub discrepant: bool,
+    pub discrepancies: Option<String>,
+    pub bank_response: Option<String>,
+    pub response_date: Option<chrono::NaiveDate>,
+    pub payment_due_date: Option<chrono::NaiveDate>,
+    pub payment_date: Option<chrono::NaiveDate>,
+    pub paid_amount: Option<String>,
+    pub status: String,
+    pub notes: Option<String>,
+    pub created_by_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// LC Presentation Document
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LcPresentationDocument {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub presentation_id: Uuid,
+    pub required_document_id: Option<Uuid>,
+    pub document_type: String,
+    pub document_reference: Option<String>,
+    pub description: Option<String>,
+    pub original_copies: i32,
+    pub copy_count: i32,
+    pub is_compliant: bool,
+    pub discrepancies: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// LC Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LcDashboard {
+    pub total_active_lcs: i32,
+    pub total_lc_amount: String,
+    pub total_pending_amendments: i32,
+    pub total_presentations_pending: i32,
+    pub total_discrepant_presentations: i32,
+    pub expiring_within_30_days: i32,
+    pub expiring_within_90_days: i32,
+    pub by_type: serde_json::Value,
+    pub by_currency: serde_json::Value,
+    pub by_status: serde_json::Value,
+}

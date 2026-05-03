@@ -123,3 +123,4 @@ mod suspense_account;
 mod interest_invoice;
 mod expense_policy_compliance;
 mod bank_guarantee;
+mod letter_of_credit;

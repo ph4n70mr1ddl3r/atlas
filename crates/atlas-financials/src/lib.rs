@@ -141,4 +141,16 @@ pub use services::{
     ApprovalLevelDef,
     ApprovalRoutingResult,
     ApprovalAction,
+    // New Oracle Fusion financial features
+    CashFlowStatementService,
+    CashFlowCategory,
+    CashFlowLineItem,
+    CashFlowStatementResult,
+    ReceivableApplicationEngine,
+    ApplicationMatchResult,
+    AccountingEventProcessor,
+    GeneratedJournalLine,
+    AccountingEventResult,
+    AssetDepreciationScheduleService,
+    DepreciationSchedulePeriod,
 };

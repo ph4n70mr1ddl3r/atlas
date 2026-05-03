@@ -12279,6 +12279,761 @@ impl MultiLevelApprovalService {
     }
 }
 
+// ============================================================================
+// Cash Flow Statement Builder Service
+// Oracle Fusion: Financial Reporting > Cash Flow Statements
+// ============================================================================
+
+/// Cash Flow Statement Builder service
+#[allow(dead_code)]
+pub struct CashFlowStatementService;
+
+/// Cash flow category
+#[derive(Debug, Clone, PartialEq)]
+pub enum CashFlowCategory {
+    Operating,
+    Investing,
+    Financing,
+}
+
+/// A single cash flow line item
+#[derive(Debug, Clone)]
+pub struct CashFlowLineItem {
+    pub category: CashFlowCategory,
+    pub description: String,
+    pub amount: f64,
+    pub account_range_from: Option<String>,
+    pub account_range_to: Option<String>,
+    pub is_non_cash: bool,
+    pub display_order: i32,
+}
+
+/// Cash flow statement result
+#[derive(Debug, Clone)]
+pub struct CashFlowStatementResult {
+    pub opening_cash_balance: f64,
+    pub operating_activities: Vec<CashFlowLineItem>,
+    pub investing_activities: Vec<CashFlowLineItem>,
+    pub financing_activities: Vec<CashFlowLineItem>,
+    pub net_operating_cash: f64,
+    pub net_investing_cash: f64,
+    pub net_financing_cash: f64,
+    pub exchange_rate_effect: f64,
+    pub net_change_in_cash: f64,
+    pub closing_cash_balance: f64,
+}
+
+impl CashFlowStatementService {
+    /// Build an indirect method cash flow statement
+    /// Adjusts net income for non-cash items and working capital changes
+    pub fn build_indirect(
+        net_income: f64,
+        depreciation_amortization: f64,
+        gain_on_asset_sale: f64,
+        loss_on_asset_sale: f64,
+        increase_in_receivables: f64,
+        decrease_in_receivables: f64,
+        increase_in_payables: f64,
+        decrease_in_payables: f64,
+        increase_in_inventory: f64,
+        decrease_in_inventory: f64,
+        other_non_cash_adjustments: f64,
+        investing_lines: &[(String, f64)],
+        financing_lines: &[(String, f64)],
+        opening_cash: f64,
+        exchange_rate_effect: f64,
+    ) -> CashFlowStatementResult {
+        // Operating activities
+        let mut operating = Vec::new();
+        let mut order = 0;
+
+        operating.push(CashFlowLineItem {
+            category: CashFlowCategory::Operating,
+            description: "Net Income".to_string(),
+            amount: net_income,
+            account_range_from: None,
+            account_range_to: None,
+            is_non_cash: false,
+            display_order: { order += 1; order },
+        });
+        operating.push(CashFlowLineItem {
+            category: CashFlowCategory::Operating,
+            description: "Depreciation & Amortization".to_string(),
+            amount: depreciation_amortization,
+            account_range_from: None,
+            account_range_to: None,
+            is_non_cash: true,
+            display_order: { order += 1; order },
+        });
+        if gain_on_asset_sale != 0.0 {
+            operating.push(CashFlowLineItem {
+                category: CashFlowCategory::Operating,
+                description: "Gain on Sale of Assets".to_string(),
+                amount: -gain_on_asset_sale, // Deducted from operating
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: true,
+                display_order: { order += 1; order },
+            });
+        }
+        if loss_on_asset_sale != 0.0 {
+            operating.push(CashFlowLineItem {
+                category: CashFlowCategory::Operating,
+                description: "Loss on Sale of Assets".to_string(),
+                amount: loss_on_asset_sale, // Added back to operating
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: true,
+                display_order: { order += 1; order },
+            });
+        }
+        if increase_in_receivables != 0.0 {
+            operating.push(CashFlowLineItem {
+                category: CashFlowCategory::Operating,
+                description: "(Increase) in Accounts Receivable".to_string(),
+                amount: -increase_in_receivables,
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: false,
+                display_order: { order += 1; order },
+            });
+        }
+        if decrease_in_receivables != 0.0 {
+            operating.push(CashFlowLineItem {
+                category: CashFlowCategory::Operating,
+                description: "Decrease in Accounts Receivable".to_string(),
+                amount: decrease_in_receivables,
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: false,
+                display_order: { order += 1; order },
+            });
+        }
+        if increase_in_payables != 0.0 {
+            operating.push(CashFlowLineItem {
+                category: CashFlowCategory::Operating,
+                description: "Increase in Accounts Payable".to_string(),
+                amount: increase_in_payables,
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: false,
+                display_order: { order += 1; order },
+            });
+        }
+        if decrease_in_payables != 0.0 {
+            operating.push(CashFlowLineItem {
+                category: CashFlowCategory::Operating,
+                description: "(Decrease) in Accounts Payable".to_string(),
+                amount: -decrease_in_payables,
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: false,
+                display_order: { order += 1; order },
+            });
+        }
+        if increase_in_inventory != 0.0 {
+            operating.push(CashFlowLineItem {
+                category: CashFlowCategory::Operating,
+                description: "(Increase) in Inventory".to_string(),
+                amount: -increase_in_inventory,
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: false,
+                display_order: { order += 1; order },
+            });
+        }
+        if decrease_in_inventory != 0.0 {
+            operating.push(CashFlowLineItem {
+                category: CashFlowCategory::Operating,
+                description: "Decrease in Inventory".to_string(),
+                amount: decrease_in_inventory,
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: false,
+                display_order: { order += 1; order },
+            });
+        }
+        if other_non_cash_adjustments != 0.0 {
+            operating.push(CashFlowLineItem {
+                category: CashFlowCategory::Operating,
+                description: "Other Non-Cash Adjustments".to_string(),
+                amount: other_non_cash_adjustments,
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: true,
+                display_order: { order += 1; order },
+            });
+        }
+
+        let net_operating: f64 = operating.iter().map(|l| l.amount).sum();
+
+        // Investing activities
+        let investing: Vec<CashFlowLineItem> = investing_lines
+            .iter()
+            .enumerate()
+            .map(|(i, (desc, amt))| CashFlowLineItem {
+                category: CashFlowCategory::Investing,
+                description: desc.clone(),
+                amount: *amt,
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: false,
+                display_order: (i + 1) as i32,
+            })
+            .collect();
+        let net_investing: f64 = investing.iter().map(|l| l.amount).sum();
+
+        // Financing activities
+        let financing: Vec<CashFlowLineItem> = financing_lines
+            .iter()
+            .enumerate()
+            .map(|(i, (desc, amt))| CashFlowLineItem {
+                category: CashFlowCategory::Financing,
+                description: desc.clone(),
+                amount: *amt,
+                account_range_from: None,
+                account_range_to: None,
+                is_non_cash: false,
+                display_order: (i + 1) as i32,
+            })
+            .collect();
+        let net_financing: f64 = financing.iter().map(|l| l.amount).sum();
+
+        let net_change = net_operating + net_investing + net_financing + exchange_rate_effect;
+        let closing_cash = opening_cash + net_change;
+
+        CashFlowStatementResult {
+            opening_cash_balance: opening_cash,
+            operating_activities: operating,
+            investing_activities: investing,
+            financing_activities: financing,
+            net_operating_cash: net_operating,
+            net_investing_cash: net_investing,
+            net_financing_cash: net_financing,
+            exchange_rate_effect,
+            net_change_in_cash: net_change,
+            closing_cash_balance: closing_cash,
+        }
+    }
+
+    /// Calculate cash from operations (indirect method)
+    pub fn calculate_operating_cash_flow(
+        net_income: f64,
+        non_cash_adjustments: f64,
+        working_capital_changes: f64,
+    ) -> f64 {
+        net_income + non_cash_adjustments + working_capital_changes
+    }
+
+    /// Calculate working capital change
+    pub fn calculate_working_capital_change(
+        receivables_change: f64,  // positive = increase
+        payables_change: f64,     // positive = increase
+        inventory_change: f64,    // positive = increase
+    ) -> f64 {
+        // Increase in receivables is an outflow, increase in payables is an inflow
+        -receivables_change + payables_change - inventory_change
+    }
+
+    /// Validate the cash flow statement balances
+    pub fn validate_balance(result: &CashFlowStatementResult) -> bool {
+        let expected_closing = result.opening_cash_balance
+            + result.net_operating_cash
+            + result.net_investing_cash
+            + result.net_financing_cash
+            + result.exchange_rate_effect;
+        (result.closing_cash_balance - expected_closing).abs() < 0.01
+    }
+
+    /// Calculate free cash flow
+    pub fn calculate_free_cash_flow(
+        operating_cash_flow: f64,
+        capital_expenditures: f64,
+    ) -> f64 {
+        operating_cash_flow - capital_expenditures
+    }
+}
+
+// ============================================================================
+// Receivable Application Rules Engine
+// Oracle Fusion: AR > Receipts > Application Rules Engine
+// ============================================================================
+
+/// Receivable Application Rules Engine service
+#[allow(dead_code)]
+pub struct ReceivableApplicationEngine;
+
+/// Application rule match result
+#[derive(Debug, Clone, PartialEq)]
+pub enum ApplicationMatchResult {
+    FullMatch {
+        transaction_id: String,
+        amount_applied: f64,
+    },
+    PartialMatch {
+        transaction_id: String,
+        amount_applied: f64,
+        remaining_receipt: f64,
+        remaining_transaction: f64,
+    },
+    NoMatch {
+        receipt_amount: f64,
+    },
+    OverApplication {
+        transaction_id: String,
+        receipt_amount: f64,
+        transaction_amount: f64,
+        overage: f64,
+    },
+}
+
+#[allow(dead_code)]
+impl ReceivableApplicationEngine {
+    /// Apply a receipt to open transactions using transaction number matching
+    pub fn apply_by_transaction_number(
+        receipt_amount: f64,
+        transactions: &[(String, f64, bool)],  // (number, balance_due, is_matched)
+        target_transaction_number: &str,
+    ) -> ApplicationMatchResult {
+        let txn = transactions.iter().find(|(num, _, _)| num == target_transaction_number);
+        match txn {
+            Some((_, _, true)) => ApplicationMatchResult::NoMatch { receipt_amount },
+            Some((_, balance, _)) => {
+                if (receipt_amount - *balance).abs() < 0.01 {
+                    ApplicationMatchResult::FullMatch {
+                        transaction_id: target_transaction_number.to_string(),
+                        amount_applied: receipt_amount,
+                    }
+                } else if receipt_amount < *balance {
+                    ApplicationMatchResult::PartialMatch {
+                        transaction_id: target_transaction_number.to_string(),
+                        amount_applied: receipt_amount,
+                        remaining_receipt: 0.0,
+                        remaining_transaction: balance - receipt_amount,
+                    }
+                } else {
+                    ApplicationMatchResult::OverApplication {
+                        transaction_id: target_transaction_number.to_string(),
+                        receipt_amount,
+                        transaction_amount: *balance,
+                        overage: receipt_amount - balance,
+                    }
+                }
+            }
+            None => ApplicationMatchResult::NoMatch { receipt_amount },
+        }
+    }
+
+    /// Apply a receipt to the oldest open transactions first (FIFO)
+    pub fn apply_oldest_first(
+        receipt_amount: f64,
+        transactions: &[(String, f64, bool, chrono::NaiveDate)],  // (number, balance, matched, date)
+    ) -> Vec<(String, f64)> {
+        let mut remaining = receipt_amount;
+        let mut applications = Vec::new();
+
+        // Sort by date (oldest first)
+        let mut sorted: Vec<_> = transactions
+            .iter()
+            .filter(|(_, _, matched, _)| !matched)
+            .collect();
+        sorted.sort_by_key(|(_, _, _, date)| *date);
+
+        for (txn_number, balance, _, _) in sorted {
+            if remaining <= 0.0 {
+                break;
+            }
+            let apply = remaining.min(*balance);
+            applications.push((txn_number.clone(), apply));
+            remaining -= apply;
+        }
+
+        applications
+    }
+
+    /// Calculate unapplied amount after application
+    pub fn calculate_unapplied(receipt_amount: f64, applications: &[(String, f64)]) -> f64 {
+        let total_applied: f64 = applications.iter().map(|(_, amt)| *amt).sum();
+        (receipt_amount - total_applied).max(0.0)
+    }
+
+    /// Validate application amounts don't exceed receipt or transaction balances
+    pub fn validate_application(
+        receipt_amount: f64,
+        applications: &[(String, f64)],
+        transaction_balances: &[(String, f64)],
+    ) -> Result<(), String> {
+        let total_applied: f64 = applications.iter().map(|(_, amt)| *amt).sum();
+        if total_applied > receipt_amount + 0.01 {
+            return Err(format!(
+                "Total applied ({:.2}) exceeds receipt amount ({:.2})",
+                total_applied, receipt_amount
+            ));
+        }
+
+        for (txn_id, apply_amt) in applications {
+            if let Some((_, balance)) = transaction_balances.iter().find(|(id, _)| id == txn_id) {
+                if *apply_amt > *balance + 0.01 {
+                    return Err(format!(
+                        "Application ({:.2}) exceeds transaction {} balance ({:.2})",
+                        apply_amt, txn_id, balance
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Calculate on-account amount (unapplied receipt balance)
+    pub fn calculate_on_account(receipt_amount: f64, total_applied: f64) -> f64 {
+        (receipt_amount - total_applied).max(0.0)
+    }
+
+    /// Check if receipt is fully applied
+    pub fn is_fully_applied(receipt_amount: f64, total_applied: f64) -> bool {
+        (receipt_amount - total_applied).abs() < 0.01
+    }
+}
+
+// ============================================================================
+// Accounting Event Processor Service
+// Oracle Fusion: Subledger Accounting > Event Processor
+// ============================================================================
+
+/// Accounting Event Processor service
+#[allow(dead_code)]
+pub struct AccountingEventProcessor;
+
+/// Journal entry line generated from an accounting event
+#[derive(Debug, Clone)]
+pub struct GeneratedJournalLine {
+    pub account_code: String,
+    pub description: String,
+    pub debit_amount: f64,
+    pub credit_amount: f64,
+    pub segment1: String,
+    pub segment2: String,
+    pub segment3: String,
+}
+
+/// Result of processing an accounting event
+#[derive(Debug, Clone)]
+pub struct AccountingEventResult {
+    pub event_code: String,
+    pub entity_type: String,
+    pub journal_lines: Vec<GeneratedJournalLine>,
+    pub total_debits: f64,
+    pub total_credits: f64,
+    pub is_balanced: bool,
+}
+
+#[allow(dead_code)]
+impl AccountingEventProcessor {
+    /// Process a standard AP invoice create event into journal lines
+    pub fn process_ap_invoice_create(
+        invoice_amount: f64,
+        tax_amount: f64,
+        expense_account: &str,
+        tax_account: &str,
+        ap_account: &str,
+        cost_center: &str,
+    ) -> AccountingEventResult {
+        let mut lines = Vec::new();
+
+        // Debit expense account
+        if invoice_amount > 0.0 {
+            lines.push(GeneratedJournalLine {
+                account_code: expense_account.to_string(),
+                description: "AP Invoice Expense".to_string(),
+                debit_amount: invoice_amount,
+                credit_amount: 0.0,
+                segment1: expense_account.to_string(),
+                segment2: cost_center.to_string(),
+                segment3: String::new(),
+            });
+        }
+
+        // Debit tax account
+        if tax_amount > 0.0 {
+            lines.push(GeneratedJournalLine {
+                account_code: tax_account.to_string(),
+                description: "AP Invoice Tax".to_string(),
+                debit_amount: tax_amount,
+                credit_amount: 0.0,
+                segment1: tax_account.to_string(),
+                segment2: cost_center.to_string(),
+                segment3: String::new(),
+            });
+        }
+
+        // Credit AP liability account
+        let total = invoice_amount + tax_amount;
+        lines.push(GeneratedJournalLine {
+            account_code: ap_account.to_string(),
+            description: "AP Invoice Liability".to_string(),
+            debit_amount: 0.0,
+            credit_amount: total,
+            segment1: ap_account.to_string(),
+            segment2: String::new(),
+            segment3: String::new(),
+        });
+
+        let total_debits: f64 = lines.iter().map(|l| l.debit_amount).sum();
+        let total_credits: f64 = lines.iter().map(|l| l.credit_amount).sum();
+
+        AccountingEventResult {
+            event_code: "AP_INVOICE_CREATE".to_string(),
+            entity_type: "invoice".to_string(),
+            is_balanced: (total_debits - total_credits).abs() < 0.01,
+            journal_lines: lines,
+            total_debits,
+            total_credits,
+        }
+    }
+
+    /// Process an AR transaction create event
+    pub fn process_ar_transaction_create(
+        revenue_amount: f64,
+        tax_amount: f64,
+        revenue_account: &str,
+        tax_account: &str,
+        receivable_account: &str,
+        customer_segment: &str,
+    ) -> AccountingEventResult {
+        let mut lines = Vec::new();
+
+        // Debit AR
+        let total = revenue_amount + tax_amount;
+        lines.push(GeneratedJournalLine {
+            account_code: receivable_account.to_string(),
+            description: "AR Receivable".to_string(),
+            debit_amount: total,
+            credit_amount: 0.0,
+            segment1: receivable_account.to_string(),
+            segment2: customer_segment.to_string(),
+            segment3: String::new(),
+        });
+
+        // Credit Revenue
+        lines.push(GeneratedJournalLine {
+            account_code: revenue_account.to_string(),
+            description: "Revenue".to_string(),
+            debit_amount: 0.0,
+            credit_amount: revenue_amount,
+            segment1: revenue_account.to_string(),
+            segment2: String::new(),
+            segment3: String::new(),
+        });
+
+        // Credit Tax Liability
+        if tax_amount > 0.0 {
+            lines.push(GeneratedJournalLine {
+                account_code: tax_account.to_string(),
+                description: "Tax Liability".to_string(),
+                debit_amount: 0.0,
+                credit_amount: tax_amount,
+                segment1: tax_account.to_string(),
+                segment2: String::new(),
+                segment3: String::new(),
+            });
+        }
+
+        let total_debits: f64 = lines.iter().map(|l| l.debit_amount).sum();
+        let total_credits: f64 = lines.iter().map(|l| l.credit_amount).sum();
+
+        AccountingEventResult {
+            event_code: "AR_TRANSACTION_CREATE".to_string(),
+            entity_type: "transaction".to_string(),
+            is_balanced: (total_debits - total_credits).abs() < 0.01,
+            journal_lines: lines,
+            total_debits,
+            total_credits,
+        }
+    }
+
+    /// Validate that a set of journal lines is balanced
+    pub fn validate_balanced(lines: &[GeneratedJournalLine]) -> bool {
+        let total_debits: f64 = lines.iter().map(|l| l.debit_amount).sum();
+        let total_credits: f64 = lines.iter().map(|l| l.credit_amount).sum();
+        (total_debits - total_credits).abs() < 0.01
+    }
+
+    /// Reverse a set of journal lines (swap debits and credits)
+    pub fn reverse_lines(lines: &[GeneratedJournalLine]) -> Vec<GeneratedJournalLine> {
+        lines
+            .iter()
+            .map(|l| GeneratedJournalLine {
+                account_code: l.account_code.clone(),
+                description: format!("Reversal: {}", l.description),
+                debit_amount: l.credit_amount,
+                credit_amount: l.debit_amount,
+                segment1: l.segment1.clone(),
+                segment2: l.segment2.clone(),
+                segment3: l.segment3.clone(),
+            })
+            .collect()
+    }
+}
+
+// ============================================================================
+// Asset Depreciation Schedule Generator
+// Oracle Fusion: Fixed Assets > Depreciation Schedule
+// ============================================================================
+
+/// Asset Depreciation Schedule Generator service
+#[allow(dead_code)]
+pub struct AssetDepreciationScheduleService;
+
+/// A single period in the depreciation schedule
+#[derive(Debug, Clone)]
+pub struct DepreciationSchedulePeriod {
+    pub fiscal_year: i32,
+    pub period_number: i32,
+    pub beginning_nbv: f64,
+    pub depreciation_amount: f64,
+    pub accumulated_depreciation: f64,
+    pub ending_nbv: f64,
+}
+
+#[allow(dead_code)]
+impl AssetDepreciationScheduleService {
+    /// Generate a full straight-line depreciation schedule
+    pub fn generate_straight_line_schedule(
+        original_cost: f64,
+        salvage_value: f64,
+        useful_life_months: i32,
+    ) -> Vec<DepreciationSchedulePeriod> {
+        if useful_life_months <= 0 {
+            return Vec::new();
+        }
+
+        let depreciable_basis = (original_cost - salvage_value).max(0.0);
+        let monthly_depreciation = depreciable_basis / useful_life_months as f64;
+        let mut schedule = Vec::new();
+        let mut accumulated = 0.0;
+        let mut remaining_basis = depreciable_basis;
+
+        let total_years = (useful_life_months + 11) / 12; // Ceiling division
+
+        for year in 1..=total_years {
+            let periods_this_year = if year == total_years {
+                useful_life_months - (total_years - 1) * 12
+            } else {
+                12
+            };
+
+            for period in 1..=periods_this_year {
+                let beginning_nbv = original_cost - accumulated;
+                let dep_amount = monthly_depreciation.min(remaining_basis);
+                accumulated += dep_amount;
+                remaining_basis = (remaining_basis - dep_amount).max(0.0);
+                let ending_nbv = original_cost - accumulated;
+
+                schedule.push(DepreciationSchedulePeriod {
+                    fiscal_year: year,
+                    period_number: period,
+                    beginning_nbv,
+                    depreciation_amount: dep_amount,
+                    accumulated_depreciation: accumulated,
+                    ending_nbv,
+                });
+            }
+        }
+
+        schedule
+    }
+
+    /// Generate a declining balance depreciation schedule
+    pub fn generate_declining_balance_schedule(
+        original_cost: f64,
+        salvage_value: f64,
+        useful_life_months: i32,
+        declining_rate_percent: f64,
+    ) -> Vec<DepreciationSchedulePeriod> {
+        if useful_life_months <= 0 || original_cost <= 0.0 {
+            return Vec::new();
+        }
+
+        let monthly_rate = declining_rate_percent / 100.0 / 12.0;
+        let mut schedule = Vec::new();
+        let mut accumulated = 0.0;
+        let mut current_nbv = original_cost;
+
+        let total_years = (useful_life_months + 11) / 12;
+
+        for year in 1..=total_years {
+            let periods_this_year = if year == total_years {
+                useful_life_months - (total_years - 1) * 12
+            } else {
+                12
+            };
+
+            for period in 1..=periods_this_year {
+                let beginning_nbv = current_nbv;
+                let max_dep = (current_nbv - salvage_value).max(0.0);
+                let dep_amount = (current_nbv * monthly_rate).min(max_dep);
+
+                accumulated += dep_amount;
+                current_nbv = (current_nbv - dep_amount).max(salvage_value);
+
+                schedule.push(DepreciationSchedulePeriod {
+                    fiscal_year: year,
+                    period_number: period,
+                    beginning_nbv,
+                    depreciation_amount: dep_amount,
+                    accumulated_depreciation: accumulated,
+                    ending_nbv: current_nbv,
+                });
+
+                // Stop if we've reached salvage value
+                if (current_nbv - salvage_value).abs() < 0.01 {
+                    return schedule;
+                }
+            }
+        }
+
+        schedule
+    }
+
+    /// Calculate total depreciation for a schedule
+    pub fn calculate_total_depreciation(schedule: &[DepreciationSchedulePeriod]) -> f64 {
+        schedule.iter().map(|p| p.depreciation_amount).sum()
+    }
+
+    /// Validate the schedule (total depreciation should equal depreciable basis)
+    pub fn validate_schedule(
+        schedule: &[DepreciationSchedulePeriod],
+        original_cost: f64,
+        salvage_value: f64,
+        tolerance: f64,
+    ) -> bool {
+        let total_dep = Self::calculate_total_depreciation(schedule);
+        let expected = original_cost - salvage_value;
+        (total_dep - expected).abs() <= tolerance
+    }
+
+    /// Get schedule for a specific fiscal year
+    pub fn get_year_schedule<'a>(
+        schedule: &'a [DepreciationSchedulePeriod],
+        fiscal_year: i32,
+    ) -> Vec<&'a DepreciationSchedulePeriod> {
+        schedule.iter().filter(|p| p.fiscal_year == fiscal_year).collect()
+    }
+
+    /// Calculate annual depreciation for a specific year
+    pub fn calculate_annual_depreciation(
+        schedule: &[DepreciationSchedulePeriod],
+        fiscal_year: i32,
+    ) -> f64 {
+        schedule
+            .iter()
+            .filter(|p| p.fiscal_year == fiscal_year)
+            .map(|p| p.depreciation_amount)
+            .sum()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -25930,6 +26685,631 @@ mod tests {
             assert!(entity.workflow.is_none(),
                 "Entity '{}' should NOT have a workflow",
                 entity.name);
+        }
+    }
+
+    // ========================================================================
+    // Cash Flow Statement Builder Tests
+    // ========================================================================
+
+    #[test]
+    fn test_cash_flow_statement_entity() {
+        let def = entities::cash_flow_statement_definition();
+        assert_eq!(def.name, "cash_flow_statements");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "calculated"));
+        assert!(wf.states.iter().any(|s| s.name == "published"));
+    }
+
+    #[test]
+    fn test_cash_flow_statement_line_entity() {
+        let def = entities::cash_flow_statement_line_definition();
+        assert_eq!(def.name, "cash_flow_statement_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_cash_flow_indirect_method_basic() {
+        let result = super::CashFlowStatementService::build_indirect(
+            150000.0,   // net_income
+            40000.0,    // depreciation
+            0.0,        // gain on sale
+            5000.0,     // loss on sale
+            20000.0,    // increase in receivables
+            0.0,        // decrease in receivables
+            10000.0,    // increase in payables
+            0.0,        // decrease in payables
+            15000.0,    // increase in inventory
+            0.0,        // decrease in inventory
+            0.0,        // other non-cash
+            &[("Purchase of Equipment".to_string(), -80000.0)],
+            &[("Loan Proceeds".to_string(), 50000.0), ("Dividends Paid".to_string(), -20000.0)],
+            100000.0,   // opening cash
+            0.0,        // exchange rate effect
+        );
+        // Net operating = 150k + 40k + 5k - 20k + 10k - 15k = 170k
+        assert!((result.net_operating_cash - 170000.0).abs() < 0.01);
+        // Net investing = -80k
+        assert!((result.net_investing_cash - (-80000.0)).abs() < 0.01);
+        // Net financing = 50k - 20k = 30k
+        assert!((result.net_financing_cash - 30000.0).abs() < 0.01);
+        // Net change = 170k - 80k + 30k = 120k
+        assert!((result.net_change_in_cash - 120000.0).abs() < 0.01);
+        // Closing = 100k + 120k = 220k
+        assert!((result.closing_cash_balance - 220000.0).abs() < 0.01);
+        assert!(super::CashFlowStatementService::validate_balance(&result));
+    }
+
+    #[test]
+    fn test_cash_flow_operating_cash_calculation() {
+        let ocf = super::CashFlowStatementService::calculate_operating_cash_flow(
+            100000.0,  // net income
+            30000.0,   // non-cash adjustments
+            -10000.0,  // working capital changes
+        );
+        assert!((ocf - 120000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cash_flow_working_capital_change() {
+        let wc = super::CashFlowStatementService::calculate_working_capital_change(
+            20000.0,  // receivables increased
+            10000.0,  // payables increased
+            5000.0,   // inventory increased
+        );
+        // -20k + 10k - 5k = -15k
+        assert!((wc - (-15000.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cash_flow_free_cash_flow() {
+        let fcf = super::CashFlowStatementService::calculate_free_cash_flow(
+            200000.0,  // operating cash flow
+            80000.0,   // capex
+        );
+        assert!((fcf - 120000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cash_flow_free_cash_flow_negative() {
+        let fcf = super::CashFlowStatementService::calculate_free_cash_flow(
+            50000.0,  // low operating cash flow
+            80000.0,  // high capex
+        );
+        assert!(fcf < 0.0);
+    }
+
+    #[test]
+    fn test_cash_flow_validate_balanced() {
+        let result = super::CashFlowStatementService::build_indirect(
+            100000.0, 20000.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            &[], &[], 50000.0, 0.0,
+        );
+        assert!(super::CashFlowStatementService::validate_balance(&result));
+    }
+
+    #[test]
+    fn test_cash_flow_workflow_transitions() {
+        let def = entities::cash_flow_statement_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "calculated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "calculated" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "published"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "published" && t.to_state == "archived"));
+    }
+
+    // ========================================================================
+    // Receivable Application Rule Tests
+    // ========================================================================
+
+    #[test]
+    fn test_receivable_application_rule_entity() {
+        let def = entities::receivable_application_rule_definition();
+        assert_eq!(def.name, "receivable_application_rules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_application_full_match() {
+        let result = super::ReceivableApplicationEngine::apply_by_transaction_number(
+            1000.0,
+            &[("INV-001".to_string(), 1000.0, false)],
+            "INV-001",
+        );
+        assert_eq!(result, super::ApplicationMatchResult::FullMatch {
+            transaction_id: "INV-001".to_string(),
+            amount_applied: 1000.0,
+        });
+    }
+
+    #[test]
+    fn test_application_partial_match() {
+        let result = super::ReceivableApplicationEngine::apply_by_transaction_number(
+            500.0,
+            &[("INV-001".to_string(), 1000.0, false)],
+            "INV-001",
+        );
+        assert_eq!(result, super::ApplicationMatchResult::PartialMatch {
+            transaction_id: "INV-001".to_string(),
+            amount_applied: 500.0,
+            remaining_receipt: 0.0,
+            remaining_transaction: 500.0,
+        });
+    }
+
+    #[test]
+    fn test_application_no_match() {
+        let result = super::ReceivableApplicationEngine::apply_by_transaction_number(
+            500.0,
+            &[("INV-001".to_string(), 1000.0, false)],
+            "INV-999",
+        );
+        assert_eq!(result, super::ApplicationMatchResult::NoMatch { receipt_amount: 500.0 });
+    }
+
+    #[test]
+    fn test_application_over_application() {
+        let result = super::ReceivableApplicationEngine::apply_by_transaction_number(
+            1500.0,
+            &[("INV-001".to_string(), 1000.0, false)],
+            "INV-001",
+        );
+        assert_eq!(result, super::ApplicationMatchResult::OverApplication {
+            transaction_id: "INV-001".to_string(),
+            receipt_amount: 1500.0,
+            transaction_amount: 1000.0,
+            overage: 500.0,
+        });
+    }
+
+    #[test]
+    fn test_application_skips_matched() {
+        let result = super::ReceivableApplicationEngine::apply_by_transaction_number(
+            1000.0,
+            &[("INV-001".to_string(), 1000.0, true)],
+            "INV-001",
+        );
+        assert_eq!(result, super::ApplicationMatchResult::NoMatch { receipt_amount: 1000.0 });
+    }
+
+    #[test]
+    fn test_application_oldest_first() {
+        use chrono::NaiveDate;
+        let txns = vec![
+            ("INV-003".to_string(), 500.0, false, NaiveDate::from_ymd_opt(2026, 3, 1).unwrap()),
+            ("INV-001".to_string(), 1000.0, false, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
+            ("INV-002".to_string(), 800.0, false, NaiveDate::from_ymd_opt(2026, 2, 1).unwrap()),
+        ];
+        let applications = super::ReceivableApplicationEngine::apply_oldest_first(1500.0, &txns);
+        assert_eq!(applications.len(), 2);
+        assert_eq!(applications[0].0, "INV-001");
+        assert!((applications[0].1 - 1000.0).abs() < 0.01);
+        assert_eq!(applications[1].0, "INV-002");
+        assert!((applications[1].1 - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_application_oldest_first_full_allocation() {
+        use chrono::NaiveDate;
+        let txns = vec![
+            ("INV-001".to_string(), 300.0, false, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
+            ("INV-002".to_string(), 200.0, false, NaiveDate::from_ymd_opt(2026, 2, 1).unwrap()),
+        ];
+        let applications = super::ReceivableApplicationEngine::apply_oldest_first(500.0, &txns);
+        assert_eq!(applications.len(), 2);
+        let unapplied = super::ReceivableApplicationEngine::calculate_unapplied(500.0, &applications);
+        assert!((unapplied - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_application_validate_ok() {
+        let result = super::ReceivableApplicationEngine::validate_application(
+            1000.0,
+            &[("INV-001".to_string(), 600.0), ("INV-002".to_string(), 400.0)],
+            &[("INV-001".to_string(), 1000.0), ("INV-002".to_string(), 1000.0)],
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_application_validate_exceeds_receipt() {
+        let result = super::ReceivableApplicationEngine::validate_application(
+            500.0,
+            &[("INV-001".to_string(), 600.0)],
+            &[("INV-001".to_string(), 1000.0)],
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_application_validate_exceeds_transaction() {
+        let result = super::ReceivableApplicationEngine::validate_application(
+            1000.0,
+            &[("INV-001".to_string(), 600.0)],
+            &[("INV-001".to_string(), 500.0)],
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_application_on_account() {
+        let on_account = super::ReceivableApplicationEngine::calculate_on_account(1000.0, 700.0);
+        assert!((on_account - 300.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_application_on_account_zero() {
+        let on_account = super::ReceivableApplicationEngine::calculate_on_account(1000.0, 1000.0);
+        assert!((on_account - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_application_is_fully_applied() {
+        assert!(super::ReceivableApplicationEngine::is_fully_applied(1000.0, 1000.0));
+        assert!(!super::ReceivableApplicationEngine::is_fully_applied(1000.0, 500.0));
+    }
+
+    #[test]
+    fn test_application_rule_workflow() {
+        let def = entities::receivable_application_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    // ========================================================================
+    // Accounting Event Processor Tests
+    // ========================================================================
+
+    #[test]
+    fn test_accounting_event_definition_entity() {
+        let def = entities::accounting_event_definition_entity();
+        assert_eq!(def.name, "accounting_event_definitions");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_accounting_event_line_template_entity() {
+        let def = entities::accounting_event_line_template_definition();
+        assert_eq!(def.name, "accounting_event_line_templates");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_event_processor_ap_invoice_create() {
+        let result = super::AccountingEventProcessor::process_ap_invoice_create(
+            10000.0,        // invoice_amount
+            1000.0,        // tax_amount
+            "6000.100",     // expense_account
+            "2100.100",     // tax_account
+            "2000.100",     // ap_account
+            "CC01",         // cost_center
+        );
+        assert_eq!(result.event_code, "AP_INVOICE_CREATE");
+        assert_eq!(result.journal_lines.len(), 3); // expense + tax + AP liability
+        assert!(result.is_balanced);
+        // Total debits: 10000 + 1000 = 11000
+        assert!((result.total_debits - 11000.0).abs() < 0.01);
+        // Total credits: 11000
+        assert!((result.total_credits - 11000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_event_processor_ap_invoice_no_tax() {
+        let result = super::AccountingEventProcessor::process_ap_invoice_create(
+            5000.0, 0.0, "6000.100", "2100.100", "2000.100", "CC01",
+        );
+        assert_eq!(result.journal_lines.len(), 2); // expense + AP liability
+        assert!(result.is_balanced);
+        assert!((result.total_debits - 5000.0).abs() < 0.01);
+        assert!((result.total_credits - 5000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_event_processor_ar_transaction_create() {
+        let result = super::AccountingEventProcessor::process_ar_transaction_create(
+            20000.0,       // revenue_amount
+            2000.0,        // tax_amount
+            "4000.100",     // revenue_account
+            "2100.200",     // tax_account
+            "1200.100",     // receivable_account
+            "CUST01",       // customer_segment
+        );
+        assert_eq!(result.event_code, "AR_TRANSACTION_CREATE");
+        assert_eq!(result.journal_lines.len(), 3); // AR + revenue + tax
+        assert!(result.is_balanced);
+        // Debits: 22000 (AR)
+        assert!((result.total_debits - 22000.0).abs() < 0.01);
+        // Credits: 20000 + 2000 = 22000
+        assert!((result.total_credits - 22000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_event_processor_ar_no_tax() {
+        let result = super::AccountingEventProcessor::process_ar_transaction_create(
+            10000.0, 0.0, "4000.100", "2100.200", "1200.100", "CUST01",
+        );
+        assert_eq!(result.journal_lines.len(), 2); // AR + revenue
+        assert!(result.is_balanced);
+    }
+
+    #[test]
+    fn test_event_processor_validate_balanced() {
+        let lines = vec![
+            super::GeneratedJournalLine {
+                account_code: "1000".to_string(),
+                description: "DR".to_string(),
+                debit_amount: 1000.0,
+                credit_amount: 0.0,
+                segment1: "1000".to_string(),
+                segment2: String::new(),
+                segment3: String::new(),
+            },
+            super::GeneratedJournalLine {
+                account_code: "2000".to_string(),
+                description: "CR".to_string(),
+                debit_amount: 0.0,
+                credit_amount: 1000.0,
+                segment1: "2000".to_string(),
+                segment2: String::new(),
+                segment3: String::new(),
+            },
+        ];
+        assert!(super::AccountingEventProcessor::validate_balanced(&lines));
+    }
+
+    #[test]
+    fn test_event_processor_validate_unbalanced() {
+        let lines = vec![
+            super::GeneratedJournalLine {
+                account_code: "1000".to_string(),
+                description: "DR".to_string(),
+                debit_amount: 1000.0,
+                credit_amount: 0.0,
+                segment1: "1000".to_string(),
+                segment2: String::new(),
+                segment3: String::new(),
+            },
+            super::GeneratedJournalLine {
+                account_code: "2000".to_string(),
+                description: "CR".to_string(),
+                debit_amount: 0.0,
+                credit_amount: 500.0,
+                segment1: "2000".to_string(),
+                segment2: String::new(),
+                segment3: String::new(),
+            },
+        ];
+        assert!(!super::AccountingEventProcessor::validate_balanced(&lines));
+    }
+
+    #[test]
+    fn test_event_processor_reverse_lines() {
+        let lines = vec![
+            super::GeneratedJournalLine {
+                account_code: "1000".to_string(),
+                description: "Debit Entry".to_string(),
+                debit_amount: 1000.0,
+                credit_amount: 0.0,
+                segment1: "1000".to_string(),
+                segment2: String::new(),
+                segment3: String::new(),
+            },
+        ];
+        let reversed = super::AccountingEventProcessor::reverse_lines(&lines);
+        assert_eq!(reversed.len(), 1);
+        assert!((reversed[0].debit_amount - 0.0).abs() < 0.01);
+        assert!((reversed[0].credit_amount - 1000.0).abs() < 0.01);
+        assert!(reversed[0].description.contains("Reversal"));
+    }
+
+    // ========================================================================
+    // Tax Jurisdiction Rule Tests
+    // ========================================================================
+
+    #[test]
+    fn test_tax_jurisdiction_rule_entity() {
+        let def = entities::tax_jurisdiction_rule_definition();
+        assert_eq!(def.name, "tax_jurisdiction_rules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+    }
+
+    #[test]
+    fn test_tax_jurisdiction_rule_workflow() {
+        let def = entities::tax_jurisdiction_rule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "inactive"));
+    }
+
+    // ========================================================================
+    // Asset Depreciation Schedule Tests
+    // ========================================================================
+
+    #[test]
+    fn test_depreciation_schedule_entity() {
+        let def = entities::asset_depreciation_schedule_definition();
+        assert_eq!(def.name, "asset_depreciation_schedules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "generated"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+        assert!(wf.states.iter().any(|s| s.name == "reversed"));
+    }
+
+    #[test]
+    fn test_depreciation_schedule_line_entity() {
+        let def = entities::depreciation_schedule_line_definition();
+        assert_eq!(def.name, "depreciation_schedule_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_straight_line_schedule_generation() {
+        let schedule = super::AssetDepreciationScheduleService::generate_straight_line_schedule(
+            120000.0,   // cost
+            20000.0,    // salvage
+            60,         // 5 years = 60 months
+        );
+        assert_eq!(schedule.len(), 60);
+        // Monthly depreciation = (120k - 20k) / 60 = 1666.67
+        let dep_per_month = (120000.0 - 20000.0) / 60.0;
+        assert!((schedule[0].depreciation_amount - dep_per_month).abs() < 0.01);
+        // Total depreciation should equal depreciable basis
+        assert!(super::AssetDepreciationScheduleService::validate_schedule(&schedule, 120000.0, 20000.0, 1.0));
+        // Ending NBV should equal salvage value
+        assert!((schedule.last().unwrap().ending_nbv - 20000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_straight_line_schedule_zero_useful_life() {
+        let schedule = super::AssetDepreciationScheduleService::generate_straight_line_schedule(
+            100000.0, 0.0, 0,
+        );
+        assert!(schedule.is_empty());
+    }
+
+    #[test]
+    fn test_straight_line_schedule_no_salvage() {
+        let schedule = super::AssetDepreciationScheduleService::generate_straight_line_schedule(
+            60000.0, 0.0, 36,
+        );
+        assert_eq!(schedule.len(), 36);
+        assert!(super::AssetDepreciationScheduleService::validate_schedule(&schedule, 60000.0, 0.0, 0.1));
+        assert!((schedule.last().unwrap().ending_nbv - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_declining_balance_schedule_generation() {
+        let schedule = super::AssetDepreciationScheduleService::generate_declining_balance_schedule(
+            100000.0,   // cost
+            5000.0,     // salvage
+            60,         // 60 months
+            200.0,      // 200% double declining balance
+        );
+        assert!(!schedule.is_empty());
+        // First month depreciation should be higher than straight-line
+        let first_dep = schedule[0].depreciation_amount;
+        let straight_line_dep = 95000.0 / 60.0;
+        assert!(first_dep > straight_line_dep);
+        // NBV should not go below salvage value
+        assert!(schedule.last().unwrap().ending_nbv >= 5000.0 - 0.01);
+    }
+
+    #[test]
+    fn test_declining_balance_zero_cost() {
+        let schedule = super::AssetDepreciationScheduleService::generate_declining_balance_schedule(
+            0.0, 0.0, 60, 200.0,
+        );
+        assert!(schedule.is_empty());
+    }
+
+    #[test]
+    fn test_schedule_total_depreciation() {
+        let schedule = super::AssetDepreciationScheduleService::generate_straight_line_schedule(
+            50000.0, 10000.0, 24,
+        );
+        let total = super::AssetDepreciationScheduleService::calculate_total_depreciation(&schedule);
+        assert!((total - 40000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_schedule_validate() {
+        let schedule = super::AssetDepreciationScheduleService::generate_straight_line_schedule(
+            80000.0, 5000.0, 48,
+        );
+        assert!(super::AssetDepreciationScheduleService::validate_schedule(&schedule, 80000.0, 5000.0, 0.5));
+    }
+
+    #[test]
+    fn test_schedule_annual_depreciation() {
+        let schedule = super::AssetDepreciationScheduleService::generate_straight_line_schedule(
+            120000.0, 20000.0, 60, // 5 years
+        );
+        let year1 = super::AssetDepreciationScheduleService::calculate_annual_depreciation(&schedule, 1);
+        let year2 = super::AssetDepreciationScheduleService::calculate_annual_depreciation(&schedule, 2);
+        // Straight line: same each year
+        let expected_annual = 100000.0 / 5.0;
+        assert!((year1 - expected_annual).abs() < 0.01);
+        assert!((year2 - expected_annual).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_schedule_get_year() {
+        let schedule = super::AssetDepreciationScheduleService::generate_straight_line_schedule(
+            60000.0, 0.0, 24, // 2 years
+        );
+        let year1 = super::AssetDepreciationScheduleService::get_year_schedule(&schedule, 1);
+        let year2 = super::AssetDepreciationScheduleService::get_year_schedule(&schedule, 2);
+        assert_eq!(year1.len(), 12);
+        assert_eq!(year2.len(), 12);
+    }
+
+    #[test]
+    fn test_depreciation_schedule_workflow_transitions() {
+        let def = entities::asset_depreciation_schedule_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "generated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "generated" && t.to_state == "reviewed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "reviewed" && t.to_state == "posted"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "posted" && t.to_state == "reversed"));
+    }
+
+    // ========================================================================
+    // New Feature Entity Uniqueness Tests
+    // ========================================================================
+
+    #[test]
+    fn test_new_financial_feature_entities_unique() {
+        let new_entities = vec![
+            entities::cash_flow_statement_definition(),
+            entities::cash_flow_statement_line_definition(),
+            entities::receivable_application_rule_definition(),
+            entities::accounting_event_definition_entity(),
+            entities::accounting_event_line_template_definition(),
+            entities::tax_jurisdiction_rule_definition(),
+            entities::asset_depreciation_schedule_definition(),
+            entities::depreciation_schedule_line_definition(),
+        ];
+        assert_eq!(new_entities.len(), 8);
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 8, "All 8 new entity names must be unique");
+    }
+
+    #[test]
+    fn test_new_financial_feature_workflows() {
+        let workflow_entities = vec![
+            entities::cash_flow_statement_definition(),
+            entities::receivable_application_rule_definition(),
+            entities::tax_jurisdiction_rule_definition(),
+            entities::asset_depreciation_schedule_definition(),
+        ];
+        for entity in &workflow_entities {
+            assert!(entity.workflow.is_some(), "Entity '{}' should have a workflow", entity.name);
+        }
+    }
+
+    #[test]
+    fn test_new_financial_feature_non_workflows() {
+        let non_workflow = vec![
+            entities::cash_flow_statement_line_definition(),
+            entities::accounting_event_definition_entity(),
+            entities::accounting_event_line_template_definition(),
+            entities::depreciation_schedule_line_definition(),
+        ];
+        for entity in &non_workflow {
+            assert!(entity.workflow.is_none(), "Entity '{}' should NOT have a workflow", entity.name);
         }
     }
 }

@@ -8354,3 +8354,247 @@ pub fn approval_level_definition() -> EntityDefinition {
         .integer("approval_timeout_hours", "Timeout (Hours)")
         .build()
 }
+
+// ============================================================================
+// Cash Flow Statement Builder (Oracle Fusion: GL > Financial Reports > Cash Flow)
+// ============================================================================
+
+/// Cash Flow Statement entity with workflow
+/// Oracle Fusion: Financial Reporting > Cash Flow Statements
+pub fn cash_flow_statement_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("cash_flow_statement_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("calculated", "Calculated")
+        .working_state("reviewed", "Reviewed")
+        .final_state("published", "Published")
+        .final_state("archived", "Archived")
+        .transition("draft", "calculated", "calculate")
+        .transition("calculated", "reviewed", "review")
+        .transition("reviewed", "published", "publish")
+        .transition("published", "archived", "archive")
+        .build();
+
+    SchemaBuilder::new("cash_flow_statements", "Cash Flow Statement")
+        .plural_label("Cash Flow Statements")
+        .table_name("fin_cash_flow_statements")
+        .description("Cash flow statement (direct/indirect method)")
+        .icon("file-invoice-dollar")
+        .required_string("statement_number", "Statement Number")
+        .enumeration("method", "Method", vec!["direct", "indirect"])
+        .enumeration("period_type", "Period Type", vec!["monthly", "quarterly", "yearly"])
+        .date("period_start", "Period Start")
+        .date("period_end", "Period End")
+        .currency("opening_cash_balance", "Opening Cash Balance", "USD")
+        .currency("operating_cash_flow", "Operating Cash Flow", "USD")
+        .currency("investing_cash_flow", "Investing Cash Flow", "USD")
+        .currency("financing_cash_flow", "Financing Cash Flow", "USD")
+        .currency("net_change_in_cash", "Net Change in Cash", "USD")
+        .currency("closing_cash_balance", "Closing Cash Balance", "USD")
+        .currency("exchange_rate_effect", "Exchange Rate Effect", "USD")
+        .reference("prepared_by", "Prepared By", "employees")
+        .reference("reviewed_by", "Reviewed By", "employees")
+        .enumeration("status", "Status", vec!["draft", "calculated", "reviewed", "published", "archived"])
+        .workflow(workflow)
+        .build()
+}
+
+/// Cash Flow Statement Line entity
+/// Oracle Fusion: Financial Reporting > Cash Flow Statement Lines
+pub fn cash_flow_statement_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("cash_flow_statement_lines", "Cash Flow Statement Line")
+        .plural_label("Cash Flow Statement Lines")
+        .table_name("fin_cash_flow_statement_lines")
+        .description("Line items within a cash flow statement")
+        .icon("list")
+        .reference("statement_id", "Statement", "cash_flow_statements")
+        .integer("line_number", "Line Number")
+        .enumeration("category", "Category", vec!["operating", "investing", "financing"])
+        .string("description", "Description")
+        .enumeration("line_type", "Line Type", vec!["header", "detail", "subtotal", "total"])
+        .currency("amount", "Amount", "USD")
+        .string("account_range_from", "Account Range From")
+        .string("account_range_to", "Account Range To")
+        .boolean("is_non_cash", "Non-Cash Item")
+        .integer("display_order", "Display Order")
+        .build()
+}
+
+// ============================================================================
+// Receivable Application Rule (Oracle Fusion: AR > Receipts > Application Rules)
+// ============================================================================
+
+/// Receivable Application Rule entity
+/// Oracle Fusion: Receivables > Application Rules
+pub fn receivable_application_rule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("recv_app_rule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("receivable_application_rules", "Receivable Application Rule")
+        .plural_label("Receivable Application Rules")
+        .table_name("fin_receivable_application_rules")
+        .description("Rules for applying receipts to open receivables")
+        .icon("rule")
+        .required_string("rule_code", "Rule Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("application_method", "Application Method", vec!["transaction_number", "invoice_date", "due_date", "amount_match", "custom"])
+        .enumeration("matching_priority", "Matching Priority", vec!["transaction_number_first", "oldest_first", "largest_first", "custom_order"])
+        .boolean("allow_over_application", "Allow Over-Application")
+        .boolean("allow_under_application", "Allow Under-Application")
+        .boolean("auto_apply_unapplied", "Auto-Apply Unapplied")
+        .currency("over_application_tolerance", "Over-Application Tolerance", "USD")
+        .currency("under_application_tolerance", "Under-Application Tolerance", "USD")
+        .integer("priority", "Priority")
+        .enumeration("status", "Status", vec!["draft", "active", "inactive"])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Accounting Event Processor (Oracle Fusion: SLA > Accounting Event Processor)
+// ============================================================================
+
+/// Accounting Event Definition entity
+/// Oracle Fusion: Subledger Accounting > Event Definitions
+pub fn accounting_event_definition_entity() -> EntityDefinition {
+    SchemaBuilder::new("accounting_event_definitions", "Accounting Event Definition")
+        .plural_label("Accounting Event Definitions")
+        .table_name("fin_accounting_event_definitions")
+        .description("Defines accounting events and their journal entry templates")
+        .icon("bolt")
+        .required_string("event_code", "Event Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("event_class", "Event Class", vec!["create", "update", "cancel", "reverse", "complete"])
+        .enumeration("entity_type", "Entity Type", vec!["invoice", "payment", "receipt", "journal", "asset", "order"])
+        .string("journal_entry_template", "Journal Entry Template")
+        .boolean("requires_manual_review", "Requires Manual Review")
+        .boolean("is_active", "Active")
+        .integer("processing_order", "Processing Order")
+        .build()
+}
+
+/// Accounting Event Line Template entity
+/// Oracle Fusion: Subledger Accounting > Event Line Templates
+pub fn accounting_event_line_template_definition() -> EntityDefinition {
+    SchemaBuilder::new("accounting_event_line_templates", "Accounting Event Line Template")
+        .plural_label("Accounting Event Line Templates")
+        .table_name("fin_accounting_event_line_templates")
+        .description("Journal entry line templates for accounting events")
+        .icon("list")
+        .reference("event_definition_id", "Event Definition", "accounting_event_definitions")
+        .integer("line_number", "Line Number")
+        .string("description", "Description")
+        .enumeration("entry_side", "Entry Side", vec!["debit", "credit"])
+        .string("account_source", "Account Source")
+        .string("amount_source", "Amount Source")
+        .string("segment_rules", "Segment Rules")
+        .boolean("is_tax_line", "Is Tax Line")
+        .build()
+}
+
+// ============================================================================
+// Tax Jurisdiction Rules (Oracle Fusion: Tax > Jurisdiction Rules)
+// ============================================================================
+
+/// Tax Jurisdiction Rule entity
+/// Oracle Fusion: Tax > Jurisdiction Rules
+pub fn tax_jurisdiction_rule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("tax_jurisdiction_rule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("tax_jurisdiction_rules", "Tax Jurisdiction Rule")
+        .plural_label("Tax Jurisdiction Rules")
+        .table_name("fin_tax_jurisdiction_rules")
+        .description("Rules for determining tax jurisdiction based on ship-from/ship-to")
+        .icon("globe")
+        .required_string("rule_code", "Rule Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .string("ship_from_country", "Ship From Country")
+        .string("ship_to_country", "Ship To Country")
+        .string("ship_from_region", "Ship From Region")
+        .string("ship_to_region", "Ship To Region")
+        .string("tax_regime_code", "Tax Regime Code")
+        .string("tax_jurisdiction_code", "Tax Jurisdiction Code")
+        .enumeration("place_of_supply", "Place of Supply", vec!["ship_from", "ship_to", "origin", "destination"])
+        .integer("priority", "Priority")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .enumeration("status", "Status", vec!["draft", "active", "inactive"])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Asset Depreciation Schedule (Oracle Fusion: FA > Depreciation Schedules)
+// ============================================================================
+
+/// Asset Depreciation Schedule entity
+/// Oracle Fusion: Fixed Assets > Depreciation Schedules
+pub fn asset_depreciation_schedule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("depreciation_schedule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("generated", "Generated")
+        .working_state("reviewed", "Reviewed")
+        .final_state("posted", "Posted")
+        .final_state("reversed", "Reversed")
+        .transition("draft", "generated", "generate")
+        .transition("generated", "reviewed", "review")
+        .transition("reviewed", "posted", "post")
+        .transition("posted", "reversed", "reverse")
+        .build();
+
+    SchemaBuilder::new("asset_depreciation_schedules", "Asset Depreciation Schedule")
+        .plural_label("Asset Depreciation Schedules")
+        .table_name("fin_asset_depreciation_schedules")
+        .description("Full depreciation schedule for an asset across its useful life")
+        .icon("calendar-table")
+        .required_string("schedule_number", "Schedule Number")
+        .reference("asset_id", "Asset", "fixed_assets")
+        .reference("book_id", "Book", "asset_books")
+        .enumeration("depreciation_method", "Method", vec!["straight_line", "declining_balance", "sum_of_years_digits", "units_of_production"])
+        .currency("original_cost", "Original Cost", "USD")
+        .currency("salvage_value", "Salvage Value", "USD")
+        .currency("depreciable_basis", "Depreciable Basis", "USD")
+        .integer("useful_life_months", "Useful Life (Months)")
+        .date("in_service_date", "In Service Date")
+        .integer("total_periods", "Total Periods")
+        .currency("total_depreciation", "Total Depreciation", "USD")
+        .enumeration("status", "Status", vec!["draft", "generated", "reviewed", "posted", "reversed"])
+        .workflow(workflow)
+        .build()
+}
+
+/// Depreciation Schedule Line entity
+/// Oracle Fusion: Fixed Assets > Depreciation Schedule Lines
+pub fn depreciation_schedule_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("depreciation_schedule_lines", "Depreciation Schedule Line")
+        .plural_label("Depreciation Schedule Lines")
+        .table_name("fin_depreciation_schedule_lines")
+        .description("Individual period depreciation entries in a schedule")
+        .icon("calendar-day")
+        .reference("schedule_id", "Schedule", "asset_depreciation_schedules")
+        .integer("fiscal_year", "Fiscal Year")
+        .integer("period_number", "Period Number")
+        .date("period_start_date", "Period Start")
+        .date("period_end_date", "Period End")
+        .currency("beginning_net_book_value", "Beginning NBV", "USD")
+        .currency("depreciation_amount", "Depreciation Amount", "USD")
+        .currency("accumulated_depreciation", "Accumulated Depreciation", "USD")
+        .currency("ending_net_book_value", "Ending NBV", "USD")
+        .decimal("depreciation_rate", "Depreciation Rate", 8, 6)
+        .string("gl_account", "GL Account")
+        .enumeration("status", "Status", vec!["planned", "posted", "reversed"])
+        .build()
+}

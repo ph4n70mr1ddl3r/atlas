@@ -124,6 +124,7 @@ pub mod prepayment_application;
 pub mod suspense_account;
 pub mod interest_invoice;
 pub mod expense_policy_compliance;
+pub mod bank_guarantee;
 
 pub use schema::*;
 pub use records::*;
@@ -4283,6 +4284,27 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/expense-compliance/violations/open", get(expense_policy_compliance::list_open_violations))
         // Dashboard
         .route("/expense-compliance/dashboard", get(expense_policy_compliance::get_dashboard))
+
+        // ============================================================================
+        // Bank Guarantee Management (Oracle Fusion: Treasury > Bank Guarantees)
+        // ============================================================================
+        .route("/bank-guarantees", get(bank_guarantee::list_guarantees))
+        .route("/bank-guarantees", post(bank_guarantee::create_guarantee))
+        .route("/bank-guarantes/:guarantee_number", get(bank_guarantee::get_guarantee))
+        .route("/bank-guarantees/:guarantee_number", delete(bank_guarantee::delete_guarantee))
+        .route("/bank-guarantees/:id/submit", post(bank_guarantee::submit_for_approval))
+        .route("/bank-guarantees/:id/approve", post(bank_guarantee::approve_guarantee))
+        .route("/bank-guarantees/:id/issue", post(bank_guarantee::issue_guarantee))
+        .route("/bank-guarantees/:id/activate", post(bank_guarantee::activate_guarantee))
+        .route("/bank-guarantees/:id/invoke", post(bank_guarantee::invoke_guarantee))
+        .route("/bank-guarantees/:id/release", post(bank_guarantee::release_guarantee))
+        .route("/bank-guarantees/:id/cancel", post(bank_guarantee::cancel_guarantee))
+        .route("/bank-guarantees/process-expired", post(bank_guarantee::process_expired))
+        .route("/bank-guarantees/:guarantee_id/amendments", get(bank_guarantee::list_amendments))
+        .route("/bank-guarantees/:guarantee_id/amendments", post(bank_guarantee::create_amendment))
+        .route("/bank-guarantees/amendments/:amendment_id/approve", post(bank_guarantee::approve_amendment))
+        .route("/bank-guarantees/amendments/:amendment_id/reject", post(bank_guarantee::reject_amendment))
+        .route("/bank-guarantees/dashboard", get(bank_guarantee::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

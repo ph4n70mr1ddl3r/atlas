@@ -21697,3 +21697,91 @@ pub struct ExpenseComplianceDashboard {
     pub high_risk_audits: i32,
     pub open_violations: i32,
 }
+
+// ============================================================================
+// Bank Guarantee Management
+// Oracle Fusion: Treasury > Bank Guarantees
+// ============================================================================
+
+/// Bank Guarantee
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankGuarantee {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub guarantee_number: String,
+    pub guarantee_type: String,
+    pub description: Option<String>,
+    pub beneficiary_name: String,
+    pub beneficiary_code: Option<String>,
+    pub applicant_name: String,
+    pub applicant_code: Option<String>,
+    pub issuing_bank_name: String,
+    pub issuing_bank_code: Option<String>,
+    pub bank_account_number: Option<String>,
+    pub guarantee_amount: String,
+    pub currency_code: String,
+    pub margin_percentage: String,
+    pub margin_amount: String,
+    pub commission_rate: String,
+    pub commission_amount: String,
+    pub issue_date: Option<chrono::NaiveDate>,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub claim_expiry_date: Option<chrono::NaiveDate>,
+    pub renewal_date: Option<chrono::NaiveDate>,
+    pub auto_renew: bool,
+    pub reference_contract_number: Option<String>,
+    pub reference_purchase_order: Option<String>,
+    pub purpose: Option<String>,
+    pub collateral_type: Option<String>,
+    pub collateral_amount: Option<String>,
+    pub status: String,
+    pub amendment_count: i32,
+    pub latest_amendment_number: Option<String>,
+    pub created_by_id: Option<Uuid>,
+    pub approved_by_id: Option<Uuid>,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Bank Guarantee Amendment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankGuaranteeAmendment {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub guarantee_id: Uuid,
+    pub guarantee_number: String,
+    pub amendment_number: String,
+    pub amendment_type: String,
+    pub previous_amount: Option<String>,
+    pub new_amount: Option<String>,
+    pub previous_expiry_date: Option<chrono::NaiveDate>,
+    pub new_expiry_date: Option<chrono::NaiveDate>,
+    pub previous_terms: Option<String>,
+    pub new_terms: Option<String>,
+    pub reason: Option<String>,
+    pub status: String,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub approved_by_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Bank Guarantee Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BankGuaranteeDashboard {
+    pub total_guarantees: i32,
+    pub active_guarantees: i32,
+    pub total_guarantee_amount: String,
+    pub total_margin_held: String,
+    pub expiring_within_30_days: i32,
+    pub expiring_within_90_days: i32,
+    pub pending_approval: i32,
+    pub amendments_pending: i32,
+    pub by_type: serde_json::Value,
+    pub by_currency: serde_json::Value,
+}

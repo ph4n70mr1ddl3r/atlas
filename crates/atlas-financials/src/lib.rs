@@ -159,4 +159,6 @@ pub use services::{
     ExpenseLineData,
     PolicyEvaluationResult,
     ComplianceReport,
+    // Bank Guarantee Management
+    BankGuaranteeManagementService,
 };

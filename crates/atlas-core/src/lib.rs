@@ -154,6 +154,7 @@ pub mod account_hierarchy;
 pub mod suspense_account;
 pub mod interest_invoice;
 pub mod expense_policy_compliance;
+pub mod bank_guarantee;
 
 pub use schema::*;
 pub use workflow::{
@@ -309,6 +310,7 @@ pub use account_hierarchy::{AccountHierarchyEngine, PostgresAccountHierarchyRepo
 pub use suspense_account::{SuspenseAccountEngine, PostgresSuspenseAccountRepository as PostgresSuspenseAccountRepo};
 pub use interest_invoice::{InterestInvoiceEngine, PostgresInterestInvoiceRepository as PostgresInterestInvoiceRepo};
 pub use expense_policy_compliance::{ExpensePolicyComplianceEngine, PostgresExpensePolicyComplianceRepository as PostgresExpensePolicyComplianceRepo};
+pub use bank_guarantee::{BankGuaranteeEngine, PostgresBankGuaranteeRepository as PostgresBankGuaranteeRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

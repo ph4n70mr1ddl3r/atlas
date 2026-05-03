@@ -8745,3 +8745,114 @@ pub fn depreciation_schedule_line_definition() -> EntityDefinition {
         .enumeration("status", "Status", vec!["planned", "posted", "reversed"])
         .build()
 }
+
+// ============================================================================
+// Bank Guarantee Management (Oracle Fusion: Treasury > Bank Guarantees)
+// ============================================================================
+
+/// Bank Guarantee entity with lifecycle workflow
+/// Oracle Fusion: Treasury > Bank Guarantees
+pub fn bank_guarantee_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("bank_guarantee_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("pending_approval", "Pending Approval")
+        .working_state("approved", "Approved")
+        .working_state("issued", "Issued")
+        .working_state("active", "Active")
+        .working_state("invoked", "Invoked")
+        .final_state("released", "Released")
+        .final_state("expired", "Expired")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "pending_approval", "submit")
+        .transition("pending_approval", "approved", "approve")
+        .transition("approved", "issued", "issue")
+        .transition("issued", "active", "activate")
+        .transition("active", "invoked", "invoke")
+        .transition("active", "released", "release")
+        .transition("active", "expired", "expire")
+        .transition("invoked", "released", "release")
+        .transition("draft", "cancelled", "cancel")
+        .transition("pending_approval", "cancelled", "cancel")
+        .transition("approved", "cancelled", "cancel")
+        .transition("issued", "cancelled", "cancel")
+        .transition("active", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("bank_guarantees", "Bank Guarantee")
+        .plural_label("Bank Guarantees")
+        .table_name("fin_bank_guarantees")
+        .description("Bank guarantees (bid bonds, performance guarantees, advance payment guarantees)")
+        .icon("shield-alt")
+        .required_string("guarantee_number", "Guarantee Number")
+        .enumeration("guarantee_type", "Type", vec![
+            "bid_bond", "performance_guarantee", "advance_payment_guarantee",
+            "retention_guarantee", "warranty_guarantee", "financial_guarantee",
+            "customs_guarantee", "shipping_guarantee", "other",
+        ])
+        .string("description", "Description")
+        .required_string("beneficiary_name", "Beneficiary")
+        .string("beneficiary_code", "Beneficiary Code")
+        .required_string("applicant_name", "Applicant")
+        .string("applicant_code", "Applicant Code")
+        .required_string("issuing_bank_name", "Issuing Bank")
+        .string("issuing_bank_code", "Bank Code")
+        .string("bank_account_number", "Bank Account")
+        .currency("guarantee_amount", "Guarantee Amount", "USD")
+        .string("currency_code", "Currency")
+        .decimal("margin_percentage", "Margin %", 8, 4)
+        .currency("margin_amount", "Margin Amount", "USD")
+        .decimal("commission_rate", "Commission Rate", 8, 4)
+        .currency("commission_amount", "Commission Amount", "USD")
+        .date("issue_date", "Issue Date")
+        .date("effective_date", "Effective Date")
+        .date("expiry_date", "Expiry Date")
+        .date("claim_expiry_date", "Claim Expiry")
+        .date("renewal_date", "Renewal Date")
+        .boolean("auto_renew", "Auto Renew")
+        .string("reference_contract_number", "Contract Number")
+        .string("reference_purchase_order", "PO Number")
+        .string("purpose", "Purpose")
+        .enumeration("collateral_type", "Collateral Type", vec![
+            "cash_margin", "fixed_deposit", "bank_guarantee",
+            "insurance_policy", "corporate_guarantee", "none",
+        ])
+        .currency("collateral_amount", "Collateral Amount", "USD")
+        .enumeration("status", "Status", vec![
+            "draft", "pending_approval", "approved", "issued",
+            "active", "invoked", "released", "expired", "cancelled",
+        ])
+        .integer("amendment_count", "Amendment Count")
+        .string("latest_amendment_number", "Latest Amendment")
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}
+
+/// Bank Guarantee Amendment entity
+/// Oracle Fusion: Treasury > Bank Guarantees > Amendments
+pub fn bank_guarantee_amendment_definition() -> EntityDefinition {
+    SchemaBuilder::new("bank_guarantee_amendments", "Bank Guarantee Amendment")
+        .plural_label("Bank Guarantee Amendments")
+        .table_name("fin_bank_guarantee_amendments")
+        .description("Amendments to bank guarantees")
+        .icon("edit")
+        .reference("guarantee_id", "Guarantee", "bank_guarantees")
+        .string("guarantee_number", "Guarantee Number")
+        .required_string("amendment_number", "Amendment Number")
+        .enumeration("amendment_type", "Type", vec![
+            "amount_increase", "amount_decrease", "expiry_extension",
+            "expiry_reduction", "beneficiary_change", "terms_change", "other",
+        ])
+        .currency("previous_amount", "Previous Amount", "USD")
+        .currency("new_amount", "New Amount", "USD")
+        .date("previous_expiry_date", "Previous Expiry")
+        .date("new_expiry_date", "New Expiry")
+        .string("previous_terms", "Previous Terms")
+        .string("new_terms", "New Terms")
+        .string("reason", "Reason")
+        .enumeration("status", "Status", vec![
+            "pending_approval", "approved", "rejected", "applied",
+        ])
+        .date("effective_date", "Effective Date")
+        .build()
+}

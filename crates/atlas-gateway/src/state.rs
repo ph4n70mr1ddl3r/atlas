@@ -167,6 +167,8 @@ use atlas_core::{
     interest_invoice::PostgresInterestInvoiceRepository,
     ExpensePolicyComplianceEngine,
     expense_policy_compliance::PostgresExpensePolicyComplianceRepository,
+    BankGuaranteeEngine,
+    bank_guarantee::PostgresBankGuaranteeRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -372,6 +374,7 @@ pub struct AppState {
     pub suspense_account_engine: Arc<SuspenseAccountEngine>,
     pub interest_invoice_engine: Arc<InterestInvoiceEngine>,
     pub expense_policy_compliance_engine: Arc<ExpensePolicyComplianceEngine>,
+    pub bank_guarantee_engine: Arc<BankGuaranteeEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1016,6 +1019,11 @@ impl AppState {
             PostgresExpensePolicyComplianceRepository::new(db_pool.clone())
         )));
 
+        // Initialize Bank Guarantee Management engine (Oracle Fusion: Treasury > Bank Guarantees)
+        let bank_guarantee_engine = Arc::new(BankGuaranteeEngine::new(Arc::new(
+            PostgresBankGuaranteeRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1182,6 +1190,7 @@ impl AppState {
             suspense_account_engine,
             interest_invoice_engine,
             expense_policy_compliance_engine,
+            bank_guarantee_engine,
             event_bus,
             jwt_secret,
         };

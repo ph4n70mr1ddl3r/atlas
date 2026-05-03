@@ -13575,6 +13575,108 @@ impl ExpensePolicyComplianceService {
     }
 }
 
+// ============================================================================
+// Bank Guarantee Management Service
+// ============================================================================
+
+/// Bank Guarantee Management service
+/// Oracle Fusion: Treasury > Bank Guarantees
+#[allow(dead_code)]
+pub struct BankGuaranteeManagementService;
+
+/// Valid bank guarantee types for the service layer
+#[allow(dead_code)]
+const BG_VALID_TYPES: &[&str] = &[
+    "bid_bond", "performance_guarantee", "advance_payment_guarantee",
+    "retention_guarantee", "warranty_guarantee", "financial_guarantee",
+    "customs_guarantee", "shipping_guarantee", "other",
+];
+
+/// Valid bank guarantee statuses for the service layer
+#[allow(dead_code)]
+const BG_VALID_STATUSES: &[&str] = &[
+    "draft", "pending_approval", "approved", "issued",
+    "active", "invoked", "released", "expired", "cancelled",
+];
+
+/// Valid bank guarantee collateral types
+#[allow(dead_code)]
+const BG_VALID_COLLATERAL_TYPES: &[&str] = &[
+    "cash_margin", "fixed_deposit", "bank_guarantee",
+    "insurance_policy", "corporate_guarantee", "none",
+];
+
+/// Valid bank guarantee amendment types
+#[allow(dead_code)]
+const BG_VALID_AMENDMENT_TYPES: &[&str] = &[
+    "amount_increase", "amount_decrease", "expiry_extension",
+    "expiry_reduction", "beneficiary_change", "terms_change", "other",
+];
+
+#[allow(dead_code)]
+impl BankGuaranteeManagementService {
+    /// Create a new bank guarantee service instance
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// Validate guarantee type
+    pub fn validate_guarantee_type(guarantee_type: &str) -> bool {
+        BG_VALID_TYPES.contains(&guarantee_type)
+    }
+
+    /// Validate guarantee status transition
+    pub fn validate_status_transition(current: &str, target: &str) -> bool {
+        match current {
+            "draft" => ["pending_approval", "cancelled"].contains(&target),
+            "pending_approval" => ["approved", "cancelled"].contains(&target),
+            "approved" => ["issued", "cancelled"].contains(&target),
+            "issued" => ["active", "cancelled"].contains(&target),
+            "active" => ["invoked", "released", "expired", "cancelled"].contains(&target),
+            "invoked" => ["released"].contains(&target),
+            _ => false,
+        }
+    }
+
+    /// Validate collateral type
+    pub fn validate_collateral_type(collateral_type: &str) -> bool {
+        BG_VALID_COLLATERAL_TYPES.contains(&collateral_type)
+    }
+
+    /// Validate amendment type
+    pub fn validate_amendment_type(amendment_type: &str) -> bool {
+        BG_VALID_AMENDMENT_TYPES.contains(&amendment_type)
+    }
+
+    /// Calculate margin amount from guarantee amount and margin percentage
+    pub fn calculate_margin_amount(guarantee_amount: f64, margin_percentage: f64) -> f64 {
+        guarantee_amount * margin_percentage / 100.0
+    }
+
+    /// Calculate commission amount from guarantee amount and commission rate
+    pub fn calculate_commission_amount(guarantee_amount: f64, commission_rate: f64) -> f64 {
+        guarantee_amount * commission_rate / 100.0
+    }
+
+    /// Calculate days until expiry
+    pub fn days_until_expiry(
+        expiry_date: chrono::NaiveDate,
+        as_of_date: chrono::NaiveDate,
+    ) -> i64 {
+        (expiry_date - as_of_date).num_days()
+    }
+
+    /// Check if a guarantee is expiring soon
+    pub fn is_expiring_soon(
+        expiry_date: chrono::NaiveDate,
+        as_of_date: chrono::NaiveDate,
+        threshold_days: i64,
+    ) -> bool {
+        let days = Self::days_until_expiry(expiry_date, as_of_date);
+        days >= 0 && days <= threshold_days
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;

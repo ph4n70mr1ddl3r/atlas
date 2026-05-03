@@ -146,6 +146,11 @@ pub mod gl_budget_transfer;
 pub mod payment_format;
 pub mod financial_dimension_set;
 pub mod prepayment_application;
+pub mod asset_retirement;
+pub mod cip_capitalization;
+pub mod available_funds;
+pub mod statistical_accounting;
+pub mod account_hierarchy;
 
 pub use schema::*;
 pub use workflow::{
@@ -293,6 +298,11 @@ pub use gl_budget_transfer::{GlBudgetTransferEngine, PostgresGlBudgetTransferRep
 pub use payment_format::{PaymentFormatEngine, PostgresPaymentFormatRepository as PostgresPaymentFormatRepo};
 pub use financial_dimension_set::{FinancialDimensionSetEngine, PostgresFinancialDimensionSetRepository as PostgresFinancialDimensionSetRepo};
 pub use prepayment_application::{PrepaymentApplicationEngine, PostgresPrepaymentApplicationRepository as PostgresPrepaymentApplicationRepo};
+pub use asset_retirement::{AssetRetirementEngine, PostgresAssetRetirementRepository as PostgresAssetRetirementRepo};
+pub use cip_capitalization::{CipCapitalizationEngine, PostgresCipCapitalizationRepository as PostgresCipCapitalizationRepo};
+pub use available_funds::{AvailableFundsEngine, PostgresAvailableFundsRepository as PostgresAvailableFundsRepo};
+pub use statistical_accounting::{StatisticalAccountingEngine, PostgresStatisticalAccountingRepository as PostgresStatisticalAccountingRepo};
+pub use account_hierarchy::{AccountHierarchyEngine, PostgresAccountHierarchyRepository as PostgresAccountHierarchyRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

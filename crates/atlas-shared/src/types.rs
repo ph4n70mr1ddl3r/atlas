@@ -21981,3 +21981,166 @@ pub struct LcDashboard {
     pub by_currency: serde_json::Value,
     pub by_status: serde_json::Value,
 }
+
+// ============================================================================
+// Hedge Management
+// Oracle Fusion: Treasury > Hedge Management
+// IFRS 9 / ASC 815 Hedge Accounting
+// ============================================================================
+
+/// Derivative Instrument
+/// Oracle Fusion: Treasury > Hedge Management > Derivative Instruments
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DerivativeInstrument {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub instrument_number: String,
+    pub instrument_type: String,
+    pub underlying_type: String,
+    pub underlying_description: Option<String>,
+    pub currency_code: String,
+    pub counter_currency_code: Option<String>,
+    pub notional_amount: String,
+    pub strike_rate: Option<String>,
+    pub forward_rate: Option<String>,
+    pub spot_rate: Option<String>,
+    pub option_type: Option<String>,
+    pub premium_amount: Option<String>,
+    pub trade_date: Option<chrono::NaiveDate>,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub maturity_date: Option<chrono::NaiveDate>,
+    pub settlement_date: Option<chrono::NaiveDate>,
+    pub settlement_type: Option<String>,
+    pub counterparty_name: Option<String>,
+    pub counterparty_reference: Option<String>,
+    pub portfolio_code: Option<String>,
+    pub trading_book: Option<String>,
+    pub accounting_treatment: Option<String>,
+    pub fair_value: Option<String>,
+    pub unrealized_gain_loss: Option<String>,
+    pub realized_gain_loss: Option<String>,
+    pub valuation_method: Option<String>,
+    pub last_valuation_date: Option<chrono::NaiveDate>,
+    pub risk_factor: Option<String>,
+    pub status: String,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+}
+
+/// Hedge Relationship
+/// Oracle Fusion: Treasury > Hedge Management > Hedge Relationships
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HedgeRelationship {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub hedge_id: String,
+    pub hedge_type: String,
+    pub derivative_id: Option<Uuid>,
+    pub derivative_number: Option<String>,
+    pub hedged_item_description: Option<String>,
+    pub hedged_item_id: Option<Uuid>,
+    pub hedged_risk: String,
+    pub hedge_strategy: Option<String>,
+    pub hedged_item_reference: Option<String>,
+    pub hedged_item_currency: Option<String>,
+    pub hedged_amount: String,
+    pub hedge_ratio: Option<String>,
+    pub designated_start_date: Option<chrono::NaiveDate>,
+    pub designated_end_date: Option<chrono::NaiveDate>,
+    pub effectiveness_method: String,
+    pub critical_terms_match: Option<String>,
+    pub prospective_effective: Option<bool>,
+    pub retrospective_effective: Option<bool>,
+    pub hedge_documentation_ref: Option<String>,
+    pub status: String,
+    pub last_effectiveness_test_date: Option<chrono::NaiveDate>,
+    pub last_effectiveness_result: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+}
+
+/// Hedge Effectiveness Test
+/// Oracle Fusion: Treasury > Hedge Management > Effectiveness Testing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HedgeEffectivenessTest {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub hedge_relationship_id: Uuid,
+    pub hedge_id: Option<String>,
+    pub test_type: String,
+    pub effectiveness_method: String,
+    pub test_date: chrono::NaiveDate,
+    pub test_period_start: Option<chrono::NaiveDate>,
+    pub test_period_end: Option<chrono::NaiveDate>,
+    pub derivative_fair_value_change: Option<String>,
+    pub hedged_item_fair_value_change: Option<String>,
+    pub hedge_ratio_result: Option<String>,
+    pub ratio_lower_bound: Option<String>,
+    pub ratio_upper_bound: Option<String>,
+    pub effectiveness_result: String,
+    pub ineffective_amount: Option<String>,
+    pub cumulative_gain_loss: Option<String>,
+    pub regression_r_squared: Option<String>,
+    pub notes: Option<String>,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+}
+
+/// Hedge Documentation
+/// Oracle Fusion: Treasury > Hedge Management > Documentation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HedgeDocumentation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub hedge_relationship_id: Option<Uuid>,
+    pub hedge_id: Option<String>,
+    pub document_number: String,
+    pub hedge_type: String,
+    pub risk_management_objective: Option<String>,
+    pub hedging_strategy_description: Option<String>,
+    pub hedged_item_description: Option<String>,
+    pub hedged_risk_description: Option<String>,
+    pub derivative_description: Option<String>,
+    pub effectiveness_method_description: Option<String>,
+    pub assessment_frequency: Option<String>,
+    pub designation_date: Option<chrono::NaiveDate>,
+    pub documentation_date: Option<chrono::NaiveDate>,
+    pub approval_date: Option<chrono::NaiveDate>,
+    pub approved_by: Option<Uuid>,
+    pub prepared_by: Option<String>,
+    pub status: String,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+}
+
+/// Hedge Management Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HedgeDashboard {
+    pub total_active_derivatives: i32,
+    pub total_notional_amount: String,
+    pub total_active_hedges: i32,
+    pub total_hedged_amount: String,
+    pub total_effective_hedges: i32,
+    pub total_ineffective_hedges: i32,
+    pub total_pending_documentation: i32,
+    pub total_unrealized_gain_loss: String,
+    pub by_instrument_type: serde_json::Value,
+    pub by_hedge_type: serde_json::Value,
+}

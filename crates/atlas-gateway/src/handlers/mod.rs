@@ -126,6 +126,7 @@ pub mod interest_invoice;
 pub mod expense_policy_compliance;
 pub mod bank_guarantee;
 pub mod letter_of_credit;
+pub mod hedge_management;
 
 pub use schema::*;
 pub use records::*;
@@ -4355,6 +4356,46 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // LC Dashboard
         .route("/letters-of-credit/dashboard", get(letter_of_credit::get_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // Hedge Management (Oracle Fusion: Treasury > Hedge Management)
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        // Derivative Instruments
+        .route("/hedge/derivatives", post(hedge_management::create_derivative))
+        .route("/hedge/derivatives", get(hedge_management::list_derivatives))
+        .route("/hedge/derivatives/:instrument_number", get(hedge_management::get_derivative))
+        .route("/hedge/derivatives/:id/activate", post(hedge_management::activate_derivative))
+        .route("/hedge/derivatives/:id/mature", post(hedge_management::mature_derivative))
+        .route("/hedge/derivatives/:id/settle", post(hedge_management::settle_derivative))
+        .route("/hedge/derivatives/:id/cancel", post(hedge_management::cancel_derivative))
+        .route("/hedge/derivatives/:id/valuation", post(hedge_management::update_derivative_valuation))
+        .route("/hedge/derivatives/:instrument_number", delete(hedge_management::delete_derivative))
+
+        // Hedge Relationships
+        .route("/hedge/relationships", post(hedge_management::create_hedge_relationship))
+        .route("/hedge/relationships", get(hedge_management::list_hedge_relationships))
+        .route("/hedge/relationships/:hedge_id", get(hedge_management::get_hedge_relationship))
+        .route("/hedge/relationships/:id/designate", post(hedge_management::designate_hedge))
+        .route("/hedge/relationships/:id/activate", post(hedge_management::activate_hedge))
+        .route("/hedge/relationships/:id/de-designate", post(hedge_management::de_designate_hedge))
+        .route("/hedge/relationships/:id/terminate", post(hedge_management::terminate_hedge))
+        .route("/hedge/relationships/:hedge_id", delete(hedge_management::delete_hedge_relationship))
+
+        // Effectiveness Testing
+        .route("/hedge/effectiveness-tests", post(hedge_management::run_effectiveness_test))
+        .route("/hedge/effectiveness-tests/:id", get(hedge_management::get_effectiveness_test))
+        .route("/hedge/relationships/:hedge_relationship_id/tests", get(hedge_management::list_effectiveness_tests))
+
+        // Documentation
+        .route("/hedge/documentation", post(hedge_management::create_documentation))
+        .route("/hedge/documentation", get(hedge_management::list_documentation))
+        .route("/hedge/documentation/:document_number", get(hedge_management::get_documentation))
+        .route("/hedge/documentation/:id/approve", post(hedge_management::approve_documentation))
+        .route("/hedge/documentation/:document_number", delete(hedge_management::delete_documentation))
+
+        // Dashboard
+        .route("/hedge/dashboard", get(hedge_management::get_hedge_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

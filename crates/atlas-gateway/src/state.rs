@@ -169,6 +169,8 @@ use atlas_core::{
     expense_policy_compliance::PostgresExpensePolicyComplianceRepository,
     BankGuaranteeEngine,
     bank_guarantee::PostgresBankGuaranteeRepository,
+    HedgeManagementEngine,
+    hedge_management::PostgresHedgeManagementRepository,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
@@ -378,6 +380,7 @@ pub struct AppState {
     pub expense_policy_compliance_engine: Arc<ExpensePolicyComplianceEngine>,
     pub bank_guarantee_engine: Arc<BankGuaranteeEngine>,
     pub letter_of_credit_engine: Arc<LetterOfCreditEngine>,
+    pub hedge_management_engine: Arc<HedgeManagementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1032,6 +1035,11 @@ impl AppState {
             PostgresLetterOfCreditRepo::new(db_pool.clone())
         )));
 
+        // Initialize Hedge Management engine (Oracle Fusion: Treasury > Hedge Management)
+        let hedge_management_engine = Arc::new(HedgeManagementEngine::new(Arc::new(
+            atlas_core::hedge_management::PostgresHedgeManagementRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1200,6 +1208,7 @@ impl AppState {
             expense_policy_compliance_engine,
             bank_guarantee_engine,
             letter_of_credit_engine,
+            hedge_management_engine,
             event_bus,
             jwt_secret,
         };

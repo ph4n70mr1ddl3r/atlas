@@ -580,6 +580,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         interest_invoice_engine: Arc::new(atlas_core::InterestInvoiceEngine::new(Arc::new(
             atlas_core::interest_invoice::PostgresInterestInvoiceRepository::new(db_pool.clone()),
         ))),
+        expense_policy_compliance_engine: Arc::new(atlas_core::ExpensePolicyComplianceEngine::new(Arc::new(
+            atlas_core::expense_policy_compliance::PostgresExpensePolicyComplianceRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -123,6 +123,7 @@ pub mod receipt_write_off;
 pub mod prepayment_application;
 pub mod suspense_account;
 pub mod interest_invoice;
+pub mod expense_policy_compliance;
 
 pub use schema::*;
 pub use records::*;
@@ -4258,6 +4259,30 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/interest-invoices/dashboard", get(interest_invoice::get_interest_invoice_dashboard))
+
+        // ========================================================================
+        // Expense Policy Compliance (Oracle Fusion: Expenses > Policies > Compliance)
+        // ========================================================================
+        // Policy Rules
+        .route("/expense-compliance/rules", get(expense_policy_compliance::list_rules))
+        .route("/expense-compliance/rules", post(expense_policy_compliance::create_rule))
+        .route("/expense-compliance/rules/:rule_code", get(expense_policy_compliance::get_rule))
+        .route("/expense-compliance/rules/:id/activate", post(expense_policy_compliance::activate_rule))
+        .route("/expense-compliance/rules/:id/deactivate", post(expense_policy_compliance::deactivate_rule))
+        .route("/expense-compliance/rules/:rule_code", delete(expense_policy_compliance::delete_rule))
+        // Compliance Audits
+        .route("/expense-compliance/audits", get(expense_policy_compliance::list_audits))
+        .route("/expense-compliance/audits", post(expense_policy_compliance::create_audit))
+        .route("/expense-compliance/audits/:id", get(expense_policy_compliance::get_audit))
+        .route("/expense-compliance/audits/:id/evaluate", post(expense_policy_compliance::evaluate_compliance))
+        .route("/expense-compliance/audits/:id/complete", post(expense_policy_compliance::complete_audit_review))
+        .route("/expense-compliance/audits/:id/escalate", post(expense_policy_compliance::escalate_audit))
+        // Violations
+        .route("/expense-compliance/audits/:audit_id/violations", get(expense_policy_compliance::list_violations))
+        .route("/expense-compliance/violations/:id/resolve", post(expense_policy_compliance::resolve_violation))
+        .route("/expense-compliance/violations/open", get(expense_policy_compliance::list_open_violations))
+        // Dashboard
+        .route("/expense-compliance/dashboard", get(expense_policy_compliance::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

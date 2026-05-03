@@ -165,6 +165,8 @@ use atlas_core::{
     deferred_revenue::PostgresDeferredRevenueRepository,
     InterestInvoiceEngine,
     interest_invoice::PostgresInterestInvoiceRepository,
+    ExpensePolicyComplianceEngine,
+    expense_policy_compliance::PostgresExpensePolicyComplianceRepository,
     eventbus::NatsEventBus,
     schema::PostgresSchemaRepository,
     audit::PostgresAuditRepository,
@@ -369,6 +371,7 @@ pub struct AppState {
     pub prepayment_application_engine: Arc<PrepaymentApplicationEngine>,
     pub suspense_account_engine: Arc<SuspenseAccountEngine>,
     pub interest_invoice_engine: Arc<InterestInvoiceEngine>,
+    pub expense_policy_compliance_engine: Arc<ExpensePolicyComplianceEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1008,6 +1011,11 @@ impl AppState {
             PostgresInterestInvoiceRepository::new(db_pool.clone())
         )));
 
+        // Initialize Expense Policy Compliance engine (Oracle Fusion: Expenses > Policies > Compliance)
+        let expense_policy_compliance_engine = Arc::new(ExpensePolicyComplianceEngine::new(Arc::new(
+            PostgresExpensePolicyComplianceRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1173,6 +1181,7 @@ impl AppState {
             prepayment_application_engine,
             suspense_account_engine,
             interest_invoice_engine,
+            expense_policy_compliance_engine,
             event_bus,
             jwt_secret,
         };

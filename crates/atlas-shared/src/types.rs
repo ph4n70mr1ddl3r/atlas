@@ -21587,3 +21587,113 @@ pub struct InterestInvoiceDashboard {
     pub total_pending_amount: String,
     pub avg_overdue_days: String,
 }
+
+// ============================================================================
+// Expense Policy Compliance Engine
+// Oracle Fusion: Expenses > Policies > Expense Policy Compliance
+// ============================================================================
+
+/// Expense policy rule definition
+/// Oracle Fusion: Expenses > Policies > Policy Rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpensePolicyRule {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub rule_code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub rule_type: String,
+    pub expense_category: String,
+    pub severity: String,
+    pub evaluation_scope: String,
+    pub threshold_amount: Option<String>,
+    pub maximum_amount: Option<String>,
+    pub threshold_days: i32,
+    pub requires_receipt: bool,
+    pub requires_justification: bool,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub applies_to_department: Option<String>,
+    pub applies_to_cost_center: Option<String>,
+    pub created_by_id: Option<Uuid>,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Expense compliance audit
+/// Oracle Fusion: Expenses > Audit > Compliance Audits
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpenseComplianceAudit {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub audit_number: String,
+    pub report_id: Uuid,
+    pub report_number: Option<String>,
+    pub employee_id: Option<Uuid>,
+    pub employee_name: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub audit_date: chrono::NaiveDate,
+    pub audit_trigger: String,
+    pub total_lines: i32,
+    pub violations_count: i32,
+    pub warnings_count: i32,
+    pub blocks_count: i32,
+    pub compliance_score: Option<String>,
+    pub risk_level: String,
+    pub total_flagged_amount: Option<String>,
+    pub total_approved_amount: Option<String>,
+    pub requires_manager_review: bool,
+    pub requires_finance_review: bool,
+    pub status: String,
+    pub reviewed_by_id: Option<Uuid>,
+    pub review_notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Expense compliance violation
+/// Oracle Fusion: Expenses > Audit > Violation Details
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpenseComplianceViolation {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub audit_id: Uuid,
+    pub report_id: Uuid,
+    pub report_line_id: Option<Uuid>,
+    pub policy_rule_id: Option<Uuid>,
+    pub rule_code: String,
+    pub rule_name: Option<String>,
+    pub rule_type: String,
+    pub severity: String,
+    pub violation_description: Option<String>,
+    pub expense_amount: Option<String>,
+    pub threshold_amount: Option<String>,
+    pub excess_amount: Option<String>,
+    pub resolution_status: String,
+    pub justification: Option<String>,
+    pub resolved_by_id: Option<Uuid>,
+    pub resolution_date: Option<chrono::NaiveDate>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Expense compliance dashboard summary
+/// Oracle Fusion: Expenses > Audit > Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpenseComplianceDashboard {
+    pub total_active_rules: i32,
+    pub total_audits_period: i32,
+    pub total_violations_period: i32,
+    pub total_warnings_period: i32,
+    pub total_blocks_period: i32,
+    pub avg_compliance_score: String,
+    pub total_flagged_amount: String,
+    pub high_risk_audits: i32,
+    pub open_violations: i32,
+}

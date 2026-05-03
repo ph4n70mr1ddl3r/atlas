@@ -165,4 +165,11 @@ pub use services::{
     HedgeManagementService,
     HedgeEffectivenessTestResult,
     HedgeIneffectivenessResult,
+    // Payment Risk & Fraud Detection
+    PaymentRiskDetectionService,
+    DuplicateDetectionResult,
+    PaymentRiskScore,
+    RiskFactor,
+    VelocityCheckResult,
+    SanctionsMatch,
 };

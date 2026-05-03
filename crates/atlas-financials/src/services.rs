@@ -10108,6 +10108,864 @@ impl CostRateCardService {
     }
 }
 
+// ===========================================================================
+// Customer Statement Generation Service
+// ===========================================================================
+
+/// Customer Statement Generation service
+/// Oracle Fusion: Receivables > Customer Statements
+/// Generates periodic statements summarizing customer account activity
+/// including invoices, payments, credits, adjustments, and outstanding balances.
+#[allow(dead_code)]
+pub struct CustomerStatementService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid statement types
+#[allow(dead_code)]
+const VALID_STATEMENT_TYPES: &[&str] = &[
+    "monthly", "weekly", "on_demand", "final",
+];
+
+/// Valid delivery methods
+#[allow(dead_code)]
+const VALID_DELIVERY_METHODS: &[&str] = &[
+    "email", "print", "portal", "edi",
+];
+
+impl CustomerStatementService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a customer statement
+    /// Oracle Fusion: Receivables > Customer Statements > Create
+    pub async fn create_statement(
+        &self,
+        statement_number: &str,
+        customer_id: RecordId,
+        customer_name: &str,
+        statement_date: chrono::NaiveDate,
+        period_from: chrono::NaiveDate,
+        period_to: chrono::NaiveDate,
+        statement_type: &str,
+        delivery_method: &str,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if statement_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Statement number is required".to_string(),
+            ));
+        }
+        if customer_name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Customer name is required".to_string(),
+            ));
+        }
+        if !VALID_STATEMENT_TYPES.contains(&statement_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid statement_type '{}'. Must be one of: {}",
+                statement_type, VALID_STATEMENT_TYPES.join(", ")
+            )));
+        }
+        if !VALID_DELIVERY_METHODS.contains(&delivery_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid delivery_method '{}'. Must be one of: {}",
+                delivery_method, VALID_DELIVERY_METHODS.join(", ")
+            )));
+        }
+        if period_from >= period_to {
+            return Err(AtlasError::ValidationFailed(
+                "Period from must be before period to".to_string(),
+            ));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+
+        info!(
+            "Customer Statement: Creating {} statement '{}' for {} ({})",
+            statement_type, statement_number, customer_name, currency_code
+        );
+        Ok(())
+    }
+
+    /// Calculate ending balance from statement activity
+    pub fn calculate_ending_balance(
+        beginning_balance: f64,
+        charges: f64,
+        credits: f64,
+        payments: f64,
+    ) -> f64 {
+        beginning_balance + charges - credits - payments
+    }
+
+    /// Calculate total amount due (ending balance + late charges)
+    pub fn calculate_amount_due(ending_balance: f64, late_charges: f64) -> f64 {
+        ending_balance + late_charges
+    }
+
+    /// Calculate days overdue from payment due date
+    pub fn calculate_days_overdue(
+        due_date: chrono::NaiveDate,
+        statement_date: chrono::NaiveDate,
+    ) -> i32 {
+        (statement_date - due_date).num_days().max(0) as i32
+    }
+
+    /// Determine aging bucket for a line item
+    pub fn determine_aging_bucket(days_overdue: i32) -> &'static str {
+        match days_overdue {
+            0 => "current",
+            d if d <= 30 => "1_30",
+            d if d <= 60 => "31_60",
+            d if d <= 90 => "61_90",
+            _ => "91_plus",
+        }
+    }
+
+    /// Calculate statement summary from line items
+    /// Returns (total_charges, total_credits, total_payments, transaction_count)
+    pub fn calculate_statement_summary(
+        lines: &[(String, f64)], // (line_type, amount)
+    ) -> (f64, f64, f64, usize) {
+        let mut charges = 0.0;
+        let mut credits = 0.0;
+        let mut payments = 0.0;
+        for (line_type, amount) in lines {
+            match line_type.as_str() {
+                "invoice" | "charge" => charges += amount,
+                "credit_memo" | "adjustment" => credits += amount,
+                "payment" => payments += amount,
+                _ => {}
+            }
+        }
+        (charges, credits, payments, lines.len())
+    }
+}
+
+// ===========================================================================
+// AutoCash Application Service
+// ===========================================================================
+
+/// AutoCash Application service
+/// Oracle Fusion: Receivables > Receipts > AutoCash
+/// Automatically applies customer payments to open transactions based
+/// on configurable matching rules.
+#[allow(dead_code)]
+pub struct AutoCashApplicationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Result of attempting to match a receipt to an open transaction
+#[derive(Debug, Clone, PartialEq)]
+pub enum AutoCashMatchResult {
+    ExactMatch { transaction_id: String, amount: f64 },
+    PartialMatch { transaction_id: String, receipt_amount: f64, invoice_amount: f64 },
+    NoMatch { reason: String },
+    MultipleMatch { candidate_count: usize },
+}
+
+/// Valid matching priorities
+#[allow(dead_code)]
+const VALID_MATCHING_PRIORITIES: &[&str] = &[
+    "transaction_number", "invoice_number", "purchase_order",
+    "customer_reference", "amount_only",
+];
+
+impl AutoCashApplicationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate an AutoCash rule set
+    /// Oracle Fusion: Receivables > Receipts > AutoCash Rules
+    pub async fn validate_rule_set(
+        &self,
+        code: &str,
+        name: &str,
+        matching_order: &str,
+        tolerance_percent: f64,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Rule set code and name are required".to_string(),
+            ));
+        }
+        if !VALID_MATCHING_PRIORITIES.contains(&matching_order) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid matching_order '{}'. Must be one of: {}",
+                matching_order, VALID_MATCHING_PRIORITIES.join(", ")
+            )));
+        }
+        if tolerance_percent < 0.0 || tolerance_percent > 100.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Tolerance percent must be between 0 and 100".to_string(),
+            ));
+        }
+        info!("AutoCash: Validating rule set '{}' (matching: {})", code, matching_order);
+        Ok(())
+    }
+
+    /// Match a receipt to an open transaction by transaction number
+    pub fn match_by_transaction_number<'a>(
+        receipt_number: &str,
+        receipt_amount: f64,
+        open_transactions: &'a [(String, f64, bool)], // (txn_number, amount, is_matched)
+    ) -> AutoCashMatchResult {
+        let candidates: Vec<_> = open_transactions.iter()
+            .filter(|(num, _, matched)| *num == receipt_number && !matched)
+            .collect();
+
+        if candidates.is_empty() {
+            return AutoCashMatchResult::NoMatch {
+                reason: format!("No open transaction found for number: {}", receipt_number),
+            };
+        }
+        if candidates.len() > 1 {
+            return AutoCashMatchResult::MultipleMatch {
+                candidate_count: candidates.len(),
+            };
+        }
+
+        let (txn_number, txn_amount, _) = candidates[0];
+        if (receipt_amount - txn_amount).abs() < 0.01 {
+            AutoCashMatchResult::ExactMatch {
+                transaction_id: txn_number.clone(),
+                amount: receipt_amount,
+            }
+        } else {
+            AutoCashMatchResult::PartialMatch {
+                transaction_id: txn_number.clone(),
+                receipt_amount,
+                invoice_amount: *txn_amount,
+            }
+        }
+    }
+
+    /// Match a receipt to transactions by amount within tolerance
+    pub fn match_by_amount(
+        receipt_amount: f64,
+        tolerance_amount: f64,
+        open_transactions: &[(String, f64, bool)],
+    ) -> Vec<String> {
+        open_transactions.iter()
+            .filter(|(_, amount, matched)| {
+                !matched && (receipt_amount - amount).abs() <= tolerance_amount
+            })
+            .map(|(num, _, _)| num.clone())
+            .collect()
+    }
+
+    /// Calculate the unapplied amount after application
+    pub fn calculate_unapplied(
+        receipt_amount: f64,
+        applied_amounts: &[f64],
+    ) -> f64 {
+        let total_applied: f64 = applied_amounts.iter().sum();
+        (receipt_amount - total_applied).max(0.0)
+    }
+
+    /// Calculate the over-application amount
+    pub fn calculate_over_application(
+        receipt_amount: f64,
+        applied_amounts: &[f64],
+    ) -> f64 {
+        let total_applied: f64 = applied_amounts.iter().sum();
+        if total_applied > receipt_amount {
+            total_applied - receipt_amount
+        } else {
+            0.0
+        }
+    }
+
+    /// Determine if a chargeback should be created
+    pub fn should_create_chargeback(
+        receipt_amount: f64,
+        invoice_amount: f64,
+        tolerance_percent: f64,
+        chargeback_enabled: bool,
+    ) -> bool {
+        if !chargeback_enabled { return false; }
+        if invoice_amount <= 0.0 { return false; }
+        let shortfall = invoice_amount - receipt_amount;
+        let shortfall_pct = (shortfall / invoice_amount) * 100.0;
+        shortfall > 0.0 && shortfall_pct > tolerance_percent
+    }
+
+    /// Determine if on-account credit should be created for overpayment
+    pub fn should_create_on_account(
+        receipt_amount: f64,
+        invoice_amount: f64,
+        on_account_enabled: bool,
+    ) -> bool {
+        on_account_enabled && receipt_amount > invoice_amount
+    }
+}
+
+// ===========================================================================
+// Revenue Price Profile Service (SSP Management)
+// ===========================================================================
+
+/// Revenue Price Profile service
+/// Oracle Fusion: Revenue Management > Standalone Selling Prices
+/// Manages standalone selling price (SSP) profiles used for ASC 606 / IFRS 15
+/// revenue allocation across performance obligations.
+#[allow(dead_code)]
+pub struct RevenuePriceProfileService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid SSP determination methods
+#[allow(dead_code)]
+const VALID_SSP_METHODS: &[&str] = &[
+    "expected_selling_price", "adjusted_market_assessment",
+    "residual", "cost_plus_margin", "blended",
+];
+
+/// Valid price sources
+#[allow(dead_code)]
+const VALID_PRICE_SOURCES: &[&str] = &[
+    "list_price", "historical_transactions", "market_data", "contractual", "manual",
+];
+
+impl RevenuePriceProfileService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a revenue price profile
+    /// Oracle Fusion: Revenue Management > Standalone Selling Prices > Create
+    pub async fn create_price_profile(
+        &self,
+        code: &str,
+        name: &str,
+        ssp_method: &str,
+        standalone_selling_price: &str,
+        price_source: &str,
+        currency_code: &str,
+        effective_from: chrono::NaiveDate,
+        effective_to: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Profile code and name are required".to_string(),
+            ));
+        }
+        if !VALID_SSP_METHODS.contains(&ssp_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid ssp_method '{}'. Must be one of: {}",
+                ssp_method, VALID_SSP_METHODS.join(", ")
+            )));
+        }
+        let ssp: f64 = standalone_selling_price.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Standalone selling price must be a valid number".to_string(),
+        ))?;
+        if ssp < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Standalone selling price cannot be negative".to_string(),
+            ));
+        }
+        if !VALID_PRICE_SOURCES.contains(&price_source) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid price_source '{}'. Must be one of: {}",
+                price_source, VALID_PRICE_SOURCES.join(", ")
+            )));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        if let Some(to) = effective_to {
+            if to <= effective_from {
+                return Err(AtlasError::ValidationFailed(
+                    "Effective to must be after effective from".to_string(),
+                ));
+            }
+        }
+
+        info!(
+            "Revenue Price Profile: Creating '{}' with SSP {:.2} ({})",
+            code, ssp, ssp_method
+        );
+        Ok(())
+    }
+
+    /// Allocate transaction price across performance obligations using SSP
+    pub fn allocate_by_ssp(
+        total_transaction_price: f64,
+        standalone_prices: &[f64],
+    ) -> Vec<f64> {
+        let total_ssp: f64 = standalone_prices.iter().sum();
+        if total_ssp <= 0.0 {
+            return vec![0.0; standalone_prices.len()];
+        }
+        standalone_prices.iter()
+            .map(|ssp| (ssp / total_ssp) * total_transaction_price)
+            .collect()
+    }
+
+    /// Allocate using residual method (first obligation gets residual)
+    pub fn allocate_by_residual(
+        total_transaction_price: f64,
+        other_obligation_prices: &[f64],
+    ) -> (f64, Vec<f64>) {
+        let total_other_ssp: f64 = other_obligation_prices.iter().sum();
+        let residual = (total_transaction_price - total_other_ssp).max(0.0);
+        (residual, other_obligation_prices.to_vec())
+    }
+
+    /// Calculate SSP using cost-plus-margin method
+    pub fn calculate_cost_plus_margin(
+        cost: f64,
+        margin_percent: f64,
+    ) -> f64 {
+        cost / (1.0 - margin_percent / 100.0)
+    }
+
+    /// Validate that allocated amounts sum to transaction price
+    pub fn validate_allocation(
+        total_transaction_price: f64,
+        allocated_amounts: &[f64],
+        tolerance: f64,
+    ) -> bool {
+        let total_allocated: f64 = allocated_amounts.iter().sum();
+        (total_allocated - total_transaction_price).abs() <= tolerance
+    }
+
+    /// Estimate SSP from historical transactions
+    pub fn estimate_from_historical(
+        historical_prices: &[f64],
+    ) -> f64 {
+        if historical_prices.is_empty() { return 0.0; }
+        let sum: f64 = historical_prices.iter().sum();
+        sum / historical_prices.len() as f64
+    }
+
+    /// Apply discount cap to SSP
+    pub fn apply_discount_cap(
+        ssp: f64,
+        discount_cap_percent: f64,
+        contracted_price: f64,
+    ) -> f64 {
+        let min_price = ssp * (1.0 - discount_cap_percent / 100.0);
+        contracted_price.max(min_price)
+    }
+}
+
+// ===========================================================================
+// Allowance for Doubtful Accounts Service
+// ===========================================================================
+
+/// Allowance for Doubtful Accounts service
+/// Oracle Fusion: Receivables > Credit Management > Bad Debt Provision
+/// Calculates bad debt provisions using various estimation methods
+/// (aging analysis, percentage of sales, specific identification).
+#[allow(dead_code)]
+pub struct DoubtfulAccountAllowanceService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid estimation methods
+#[allow(dead_code)]
+const VALID_ESTIMATION_METHODS: &[&str] = &[
+    "aging_analysis", "percent_of_sales", "specific_identification",
+    "roll_forward", "hybrid",
+];
+
+impl DoubtfulAccountAllowanceService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a doubtful account allowance calculation
+    /// Oracle Fusion: Receivables > Credit Management > Bad Debt Provision
+    pub async fn create_allowance_calculation(
+        &self,
+        calculation_number: &str,
+        estimation_method: &str,
+        period_start: chrono::NaiveDate,
+        period_end: chrono::NaiveDate,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if calculation_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Calculation number is required".to_string(),
+            ));
+        }
+        if !VALID_ESTIMATION_METHODS.contains(&estimation_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid estimation_method '{}'. Must be one of: {}",
+                estimation_method, VALID_ESTIMATION_METHODS.join(", ")
+            )));
+        }
+        if period_start >= period_end {
+            return Err(AtlasError::ValidationFailed(
+                "Period start must be before period end".to_string(),
+            ));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+
+        info!(
+            "Bad Debt Provision: Creating {} calculation '{}' for period {} to {}",
+            estimation_method, calculation_number, period_start, period_end
+        );
+        Ok(())
+    }
+
+    /// Calculate provision using aging analysis method
+    /// Each aging bucket has a different default probability
+    pub fn calculate_aging_provision(
+        aging_balances: &[(f64, f64)], // (balance, provision_percent)
+    ) -> f64 {
+        aging_balances.iter()
+            .map(|(balance, pct)| balance * (pct / 100.0))
+            .sum()
+    }
+
+    /// Calculate provision using percentage of sales method
+    pub fn calculate_percent_of_sales_provision(
+        credit_sales: f64,
+        historical_bad_debt_rate: f64,
+    ) -> f64 {
+        credit_sales * (historical_bad_debt_rate / 100.0)
+    }
+
+    /// Calculate the adjustment to the allowance account
+    /// adjustment = calculated_provision - existing_allowance
+    pub fn calculate_allowance_adjustment(
+        calculated_provision: f64,
+        existing_allowance: f64,
+    ) -> f64 {
+        calculated_provision - existing_allowance
+    }
+
+    /// Calculate roll-forward of allowance
+    /// Beginning + Provision - Write-offs - Recoveries = Ending
+    pub fn calculate_roll_forward(
+        beginning_allowance: f64,
+        new_provision: f64,
+        write_offs: f64,
+        recoveries: f64,
+    ) -> f64 {
+        beginning_allowance + new_provision - write_offs + recoveries
+    }
+
+    /// Calculate net realizable value of AR
+    pub fn calculate_net_realizable_value(
+        total_accounts_receivable: f64,
+        allowance_for_doubtful_accounts: f64,
+    ) -> f64 {
+        (total_accounts_receivable - allowance_for_doubtful_accounts).max(0.0)
+    }
+
+    /// Default aging provision percentages
+    /// (bucket_max_days, default_provision_percent)
+    pub fn default_aging_rates() -> Vec<(i32, f64)> {
+        vec![
+            (0, 0.5),    // Current: 0.5%
+            (30, 2.0),   // 1-30 days: 2%
+            (60, 5.0),   // 31-60 days: 5%
+            (90, 15.0),  // 61-90 days: 15%
+            (120, 25.0), // 91-120 days: 25%
+            (999, 50.0), // 121+ days: 50%
+        ]
+    }
+}
+
+// ===========================================================================
+// Balance Forward Billing Service
+// ===========================================================================
+
+/// Balance Forward Billing service
+/// Oracle Fusion: Receivables > Billing > Balance Forward Billing
+/// Generates consolidated billing documents summarizing all customer
+/// account activity for a billing period.
+#[allow(dead_code)]
+pub struct BalanceForwardBillingService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid BFB billing cycles
+#[allow(dead_code)]
+const VALID_BFB_BILLING_CYCLES: &[&str] = &[
+    "monthly", "biweekly", "weekly", "on_demand",
+];
+
+impl BalanceForwardBillingService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a balance forward bill
+    /// Oracle Fusion: Receivables > Billing > Balance Forward Billing
+    pub async fn create_balance_forward_bill(
+        &self,
+        bill_number: &str,
+        customer_id: RecordId,
+        customer_name: &str,
+        bill_date: chrono::NaiveDate,
+        period_from: chrono::NaiveDate,
+        period_to: chrono::NaiveDate,
+        billing_cycle: &str,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if bill_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Bill number is required".to_string(),
+            ));
+        }
+        if customer_name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Customer name is required".to_string(),
+            ));
+        }
+        if !VALID_BFB_BILLING_CYCLES.contains(&billing_cycle) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid billing_cycle '{}'. Must be one of: {}",
+                billing_cycle, VALID_BFB_BILLING_CYCLES.join(", ")
+            )));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+
+        info!(
+            "Balance Forward Bill: Creating {} bill '{}' for {}",
+            billing_cycle, bill_number, customer_name
+        );
+        Ok(())
+    }
+
+    /// Calculate the balance forward amount
+    pub fn calculate_balance_forward(
+        previous_balance: f64,
+        new_charges: f64,
+        new_credits: f64,
+        payments_received: f64,
+        adjustments: f64,
+    ) -> f64 {
+        previous_balance + new_charges - new_credits - payments_received + adjustments
+    }
+
+    /// Calculate total amount due
+    pub fn calculate_total_due(
+        balance_forward: f64,
+        late_charges: f64,
+    ) -> f64 {
+        balance_forward + late_charges
+    }
+
+    /// Calculate late charges for overdue balances
+    pub fn calculate_late_charges(
+        overdue_balance: f64,
+        annual_rate: f64,
+        days_in_period: i32,
+    ) -> f64 {
+        if overdue_balance <= 0.0 || annual_rate <= 0.0 || days_in_period <= 0 {
+            return 0.0;
+        }
+        overdue_balance * (annual_rate / 100.0) * (days_in_period as f64 / 365.0)
+    }
+
+    /// Calculate the payment due date from bill date and terms
+    pub fn calculate_payment_due_date(
+        bill_date: chrono::NaiveDate,
+        net_due_days: i32,
+    ) -> chrono::NaiveDate {
+        bill_date + chrono::Duration::days(net_due_days as i64)
+    }
+}
+
+// ===========================================================================
+// Asset Capitalization (CIP) Service
+// ===========================================================================
+
+/// Asset Capitalization service for Construction-in-Progress assets
+/// Oracle Fusion: Fixed Assets > Assets > CIP Assets
+/// Manages CIP assets from construction through capitalization to fixed assets.
+#[allow(dead_code)]
+pub struct AssetCapitalizationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid cost types for CIP additions
+#[allow(dead_code)]
+const VALID_CIP_COST_TYPES: &[&str] = &[
+    "material", "labor", "overhead", "professional_fees", "permits", "other",
+];
+
+/// Valid CIP statuses
+#[allow(dead_code)]
+const VALID_CIP_STATUSES: &[&str] = &[
+    "draft", "in_progress", "ready", "capitalized", "cancelled",
+];
+
+impl AssetCapitalizationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Create and validate a CIP asset
+    /// Oracle Fusion: Fixed Assets > Assets > CIP Assets > Create
+    pub async fn create_cip_asset(
+        &self,
+        asset_number: &str,
+        description: &str,
+        estimated_total_cost: &str,
+        construction_start_date: chrono::NaiveDate,
+        category_code: &str,
+        book_code: &str,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if asset_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "CIP asset number is required".to_string(),
+            ));
+        }
+        if description.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "CIP description is required".to_string(),
+            ));
+        }
+        let cost: f64 = estimated_total_cost.parse().map_err(|_| AtlasError::ValidationFailed(
+            "Estimated total cost must be a valid number".to_string(),
+        ))?;
+        if cost <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Estimated total cost must be positive".to_string(),
+            ));
+        }
+        if category_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Target category code is required".to_string(),
+            ));
+        }
+        if book_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Target book code is required".to_string(),
+            ));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+
+        info!(
+            "CIP Asset: Creating '{}' with estimated cost {:.2}",
+            asset_number, cost
+        );
+        Ok(())
+    }
+
+    /// Validate a cost addition to a CIP asset
+    /// Oracle Fusion: Fixed Assets > CIP Assets > Cost Additions
+    pub fn validate_cost_addition(
+        cost_type: &str,
+        amount: f64,
+    ) -> AtlasResult<()> {
+        if !VALID_CIP_COST_TYPES.contains(&cost_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid cost_type '{}'. Must be one of: {}",
+                cost_type, VALID_CIP_COST_TYPES.join(", ")
+            )));
+        }
+        if amount <= 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Cost addition amount must be positive".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Calculate total CIP cost from additions
+    pub fn calculate_total_cip_cost(additions: &[f64]) -> f64 {
+        additions.iter().sum()
+    }
+
+    /// Calculate percentage complete based on costs
+    pub fn calculate_percent_complete(
+        accumulated_cost: f64,
+        estimated_total_cost: f64,
+    ) -> f64 {
+        if estimated_total_cost <= 0.0 { return 0.0; }
+        ((accumulated_cost / estimated_total_cost) * 100.0).min(100.0)
+    }
+
+    /// Check if CIP is ready for capitalization
+    pub fn is_ready_for_capitalization(
+        status: &str,
+        actual_completion_date: Option<chrono::NaiveDate>,
+        has_costs: bool,
+    ) -> bool {
+        status == "ready" && actual_completion_date.is_some() && has_costs
+    }
+
+    /// Calculate capitalization amounts
+    /// Returns (asset_cost, salvage_value, depreciable_basis)
+    pub fn calculate_capitalization_amounts(
+        total_cip_cost: f64,
+        salvage_value: f64,
+    ) -> (f64, f64, f64) {
+        let depreciable_basis = (total_cip_cost - salvage_value).max(0.0);
+        (total_cip_cost, salvage_value, depreciable_basis)
+    }
+
+    /// Calculate variance between estimated and actual cost
+    pub fn calculate_cost_variance(
+        estimated_cost: f64,
+        actual_cost: f64,
+    ) -> f64 {
+        actual_cost - estimated_cost
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -21694,5 +22552,727 @@ mod tests {
         ];
         let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
         assert_eq!(count, 2, "Both 2 workflow entities should have workflows");
+    }
+
+    // ========================================================================
+    // Customer Statement Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_customer_statement_ending_balance() {
+        let ending = super::CustomerStatementService::calculate_ending_balance(
+            1000.0, 500.0, 100.0, 300.0,
+        );
+        assert!((ending - 1100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_customer_statement_ending_balance_zero_beginning() {
+        let ending = super::CustomerStatementService::calculate_ending_balance(
+            0.0, 500.0, 50.0, 200.0,
+        );
+        assert!((ending - 250.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_customer_statement_amount_due() {
+        let due = super::CustomerStatementService::calculate_amount_due(1000.0, 25.0);
+        assert!((due - 1025.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_customer_statement_days_overdue() {
+        use chrono::NaiveDate;
+        let due = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        let stmt = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let days = super::CustomerStatementService::calculate_days_overdue(due, stmt);
+        assert_eq!(days, 30);
+    }
+
+    #[test]
+    fn test_customer_statement_days_overdue_not_yet_due() {
+        use chrono::NaiveDate;
+        let due = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
+        let stmt = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let days = super::CustomerStatementService::calculate_days_overdue(due, stmt);
+        assert_eq!(days, 0);
+    }
+
+    #[test]
+    fn test_customer_statement_aging_bucket() {
+        assert_eq!(super::CustomerStatementService::determine_aging_bucket(0), "current");
+        assert_eq!(super::CustomerStatementService::determine_aging_bucket(15), "1_30");
+        assert_eq!(super::CustomerStatementService::determine_aging_bucket(30), "1_30");
+        assert_eq!(super::CustomerStatementService::determine_aging_bucket(45), "31_60");
+        assert_eq!(super::CustomerStatementService::determine_aging_bucket(75), "61_90");
+        assert_eq!(super::CustomerStatementService::determine_aging_bucket(120), "91_plus");
+    }
+
+    #[test]
+    fn test_customer_statement_summary() {
+        let lines = vec![
+            ("invoice".to_string(), 500.0),
+            ("charge".to_string(), 50.0),
+            ("credit_memo".to_string(), 100.0),
+            ("payment".to_string(), 300.0),
+            ("adjustment".to_string(), 25.0),
+            ("invoice".to_string(), 200.0),
+        ];
+        let (charges, credits, payments, count) =
+            super::CustomerStatementService::calculate_statement_summary(&lines);
+        assert!((charges - 750.0).abs() < 0.01);
+        assert!((credits - 125.0).abs() < 0.01);
+        assert!((payments - 300.0).abs() < 0.01);
+        assert_eq!(count, 6);
+    }
+
+    #[test]
+    fn test_customer_statement_entity() {
+        let def = entities::customer_statement_definition();
+        assert_eq!(def.name, "customer_statements");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "generated"));
+        assert!(wf.states.iter().any(|s| s.name == "sent"));
+    }
+
+    #[test]
+    fn test_customer_statement_line_entity() {
+        let def = entities::customer_statement_line_definition();
+        assert_eq!(def.name, "customer_statement_lines");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_statement_types_valid() {
+        for t in &["monthly", "weekly", "on_demand", "final"] {
+            assert!(super::VALID_STATEMENT_TYPES.contains(t));
+        }
+        assert!(!super::VALID_STATEMENT_TYPES.contains(&"annual"));
+    }
+
+    #[test]
+    fn test_delivery_methods_valid() {
+        for m in &["email", "print", "portal", "edi"] {
+            assert!(super::VALID_DELIVERY_METHODS.contains(m));
+        }
+        assert!(!super::VALID_DELIVERY_METHODS.contains(&"fax"));
+    }
+
+    // ========================================================================
+    // AutoCash Application Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_autocash_exact_match() {
+        let txns = vec![
+            ("INV-001".to_string(), 1000.0, false),
+            ("INV-002".to_string(), 2000.0, false),
+        ];
+        let result = super::AutoCashApplicationService::match_by_transaction_number(
+            "INV-001", 1000.0, &txns,
+        );
+        assert_eq!(result, super::AutoCashMatchResult::ExactMatch {
+            transaction_id: "INV-001".to_string(),
+            amount: 1000.0,
+        });
+    }
+
+    #[test]
+    fn test_autocash_partial_match() {
+        let txns = vec![
+            ("INV-001".to_string(), 1000.0, false),
+        ];
+        let result = super::AutoCashApplicationService::match_by_transaction_number(
+            "INV-001", 900.0, &txns,
+        );
+        assert_eq!(result, super::AutoCashMatchResult::PartialMatch {
+            transaction_id: "INV-001".to_string(),
+            receipt_amount: 900.0,
+            invoice_amount: 1000.0,
+        });
+    }
+
+    #[test]
+    fn test_autocash_no_match() {
+        let txns = vec![
+            ("INV-001".to_string(), 1000.0, false),
+        ];
+        let result = super::AutoCashApplicationService::match_by_transaction_number(
+            "INV-999", 500.0, &txns,
+        );
+        match result {
+            super::AutoCashMatchResult::NoMatch { .. } => {}
+            _ => panic!("Expected NoMatch"),
+        }
+    }
+
+    #[test]
+    fn test_autocash_match_skips_already_matched() {
+        let txns = vec![
+            ("INV-001".to_string(), 1000.0, true), // already matched
+        ];
+        let result = super::AutoCashApplicationService::match_by_transaction_number(
+            "INV-001", 1000.0, &txns,
+        );
+        match result {
+            super::AutoCashMatchResult::NoMatch { .. } => {}
+            _ => panic!("Expected NoMatch for already matched"),
+        }
+    }
+
+    #[test]
+    fn test_autocash_match_by_amount() {
+        let txns = vec![
+            ("INV-001".to_string(), 1000.0, false),
+            ("INV-002".to_string(), 990.0, false),
+            ("INV-003".to_string(), 500.0, false),
+        ];
+        let matches = super::AutoCashApplicationService::match_by_amount(
+            1000.0, 15.0, &txns,
+        );
+        assert_eq!(matches.len(), 2);
+        assert!(matches.contains(&"INV-001".to_string()));
+        assert!(matches.contains(&"INV-002".to_string()));
+    }
+
+    #[test]
+    fn test_autocash_unapplied() {
+        let unapplied = super::AutoCashApplicationService::calculate_unapplied(
+            1000.0, &[300.0, 400.0],
+        );
+        assert!((unapplied - 300.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_autocash_unapplied_fully_applied() {
+        let unapplied = super::AutoCashApplicationService::calculate_unapplied(
+            1000.0, &[500.0, 500.0],
+        );
+        assert_eq!(unapplied, 0.0);
+    }
+
+    #[test]
+    fn test_autocash_over_application() {
+        let over = super::AutoCashApplicationService::calculate_over_application(
+            1000.0, &[600.0, 500.0],
+        );
+        assert!((over - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_autocash_over_application_none() {
+        let over = super::AutoCashApplicationService::calculate_over_application(
+            1000.0, &[400.0, 500.0],
+        );
+        assert_eq!(over, 0.0);
+    }
+
+    #[test]
+    fn test_autocash_should_create_chargeback() {
+        assert!(super::AutoCashApplicationService::should_create_chargeback(
+            800.0, 1000.0, 5.0, true,
+        ));
+        assert!(!super::AutoCashApplicationService::should_create_chargeback(
+            950.0, 1000.0, 5.0, true, // within tolerance
+        ));
+        assert!(!super::AutoCashApplicationService::should_create_chargeback(
+            800.0, 1000.0, 5.0, false, // disabled
+        ));
+    }
+
+    #[test]
+    fn test_autocash_should_create_on_account() {
+        assert!(super::AutoCashApplicationService::should_create_on_account(
+            1200.0, 1000.0, true,
+        ));
+        assert!(!super::AutoCashApplicationService::should_create_on_account(
+            800.0, 1000.0, true,
+        ));
+        assert!(!super::AutoCashApplicationService::should_create_on_account(
+            1200.0, 1000.0, false,
+        ));
+    }
+
+    #[test]
+    fn test_autocash_rule_set_entity() {
+        let def = entities::autocash_rule_set_definition();
+        assert_eq!(def.name, "autocash_rule_sets");
+        assert!(def.workflow.is_some());
+    }
+
+    #[test]
+    fn test_matching_priorities_valid() {
+        for p in &["transaction_number", "invoice_number", "purchase_order",
+                    "customer_reference", "amount_only"] {
+            assert!(super::VALID_MATCHING_PRIORITIES.contains(p));
+        }
+    }
+
+    // ========================================================================
+    // Revenue Price Profile (SSP) Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_ssp_allocation() {
+        let allocated = super::RevenuePriceProfileService::allocate_by_ssp(
+            1000.0, &[600.0, 400.0],
+        );
+        assert_eq!(allocated.len(), 2);
+        assert!((allocated[0] - 600.0).abs() < 0.01);
+        assert!((allocated[1] - 400.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ssp_allocation_proportional() {
+        let allocated = super::RevenuePriceProfileService::allocate_by_ssp(
+            900.0, &[300.0, 200.0, 100.0],
+        );
+        assert_eq!(allocated.len(), 3);
+        assert!((allocated[0] - 450.0).abs() < 0.01);
+        assert!((allocated[1] - 300.0).abs() < 0.01);
+        assert!((allocated[2] - 150.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ssp_allocation_zero_total() {
+        let allocated = super::RevenuePriceProfileService::allocate_by_ssp(
+            1000.0, &[0.0, 0.0],
+        );
+        assert_eq!(allocated, vec![0.0, 0.0]);
+    }
+
+    #[test]
+    fn test_ssp_residual_allocation() {
+        let (residual, others) =
+            super::RevenuePriceProfileService::allocate_by_residual(1000.0, &[300.0, 200.0]);
+        assert!((residual - 500.0).abs() < 0.01);
+        assert_eq!(others.len(), 2);
+    }
+
+    #[test]
+    fn test_ssp_cost_plus_margin() {
+        let ssp = super::RevenuePriceProfileService::calculate_cost_plus_margin(80.0, 20.0);
+        assert!((ssp - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ssp_cost_plus_zero_margin() {
+        let ssp = super::RevenuePriceProfileService::calculate_cost_plus_margin(80.0, 0.0);
+        assert!((ssp - 80.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ssp_validate_allocation() {
+        assert!(super::RevenuePriceProfileService::validate_allocation(
+            1000.0, &[600.0, 400.0], 0.01,
+        ));
+        assert!(!super::RevenuePriceProfileService::validate_allocation(
+            1000.0, &[500.0, 300.0], 0.01,
+        ));
+    }
+
+    #[test]
+    fn test_ssp_estimate_from_historical() {
+        let estimate = super::RevenuePriceProfileService::estimate_from_historical(
+            &[100.0, 110.0, 105.0, 95.0],
+        );
+        assert!((estimate - 102.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ssp_estimate_from_empty() {
+        let estimate = super::RevenuePriceProfileService::estimate_from_historical(&[]);
+        assert_eq!(estimate, 0.0);
+    }
+
+    #[test]
+    fn test_ssp_discount_cap() {
+        let price = super::RevenuePriceProfileService::apply_discount_cap(100.0, 20.0, 85.0);
+        assert!((price - 85.0).abs() < 0.01); // above 80% cap
+
+        let price = super::RevenuePriceProfileService::apply_discount_cap(100.0, 20.0, 75.0);
+        assert!((price - 80.0).abs() < 0.01); // below 80% cap, floored
+    }
+
+    #[test]
+    fn test_revenue_price_profile_entity() {
+        let def = entities::revenue_price_profile_definition();
+        assert_eq!(def.name, "revenue_price_profiles");
+        assert!(def.workflow.is_some());
+    }
+
+    #[test]
+    fn test_ssp_methods_valid() {
+        for m in &["expected_selling_price", "adjusted_market_assessment",
+                    "residual", "cost_plus_margin", "blended"] {
+            assert!(super::VALID_SSP_METHODS.contains(m));
+        }
+        assert!(!super::VALID_SSP_METHODS.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_price_sources_valid() {
+        for s in &["list_price", "historical_transactions", "market_data", "contractual", "manual"] {
+            assert!(super::VALID_PRICE_SOURCES.contains(s));
+        }
+    }
+
+    // ========================================================================
+    // Doubtful Account Allowance Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_aging_provision_calculation() {
+        let balances = vec![
+            (10000.0, 0.5),   // Current: 0.5%
+            (5000.0, 2.0),    // 1-30 days: 2%
+            (3000.0, 5.0),    // 31-60 days: 5%
+            (2000.0, 15.0),   // 61-90 days: 15%
+            (1000.0, 50.0),   // 91+ days: 50%
+        ];
+        let provision = super::DoubtfulAccountAllowanceService::calculate_aging_provision(
+            &balances,
+        );
+        // 10000*0.005 + 5000*0.02 + 3000*0.05 + 2000*0.15 + 1000*0.50
+        // = 50 + 100 + 150 + 300 + 500 = 1100
+        assert!((provision - 1100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_percent_of_sales_provision() {
+        let provision = super::DoubtfulAccountAllowanceService::calculate_percent_of_sales_provision(
+            500000.0, 2.0,
+        );
+        assert!((provision - 10000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_allowance_adjustment_increase() {
+        let adj = super::DoubtfulAccountAllowanceService::calculate_allowance_adjustment(
+            15000.0, 10000.0,
+        );
+        assert!((adj - 5000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_allowance_adjustment_decrease() {
+        let adj = super::DoubtfulAccountAllowanceService::calculate_allowance_adjustment(
+            8000.0, 10000.0,
+        );
+        assert!((adj - (-2000.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_roll_forward() {
+        let ending = super::DoubtfulAccountAllowanceService::calculate_roll_forward(
+            10000.0, 5000.0, 3000.0, 500.0,
+        );
+        assert!((ending - 12500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_net_realizable_value() {
+        let nrv = super::DoubtfulAccountAllowanceService::calculate_net_realizable_value(
+            100000.0, 15000.0,
+        );
+        assert!((nrv - 85000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_net_realizable_value_clamped() {
+        let nrv = super::DoubtfulAccountAllowanceService::calculate_net_realizable_value(
+            5000.0, 10000.0,
+        );
+        assert_eq!(nrv, 0.0);
+    }
+
+    #[test]
+    fn test_default_aging_rates() {
+        let rates = super::DoubtfulAccountAllowanceService::default_aging_rates();
+        assert_eq!(rates.len(), 6);
+        assert_eq!(rates[0], (0, 0.5));
+        assert_eq!(rates[5], (999, 50.0));
+    }
+
+    #[test]
+    fn test_doubtful_account_entity() {
+        let def = entities::doubtful_account_allowance_definition();
+        assert_eq!(def.name, "doubtful_account_allowances");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "calculated"));
+        assert!(wf.states.iter().any(|s| s.name == "reviewed"));
+        assert!(wf.states.iter().any(|s| s.name == "posted"));
+    }
+
+    #[test]
+    fn test_estimation_methods_valid() {
+        for m in &["aging_analysis", "percent_of_sales", "specific_identification",
+                    "roll_forward", "hybrid"] {
+            assert!(super::VALID_ESTIMATION_METHODS.contains(m));
+        }
+        assert!(!super::VALID_ESTIMATION_METHODS.contains(&"unknown"));
+    }
+
+    // ========================================================================
+    // Balance Forward Billing Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_balance_forward_calculation() {
+        let bf = super::BalanceForwardBillingService::calculate_balance_forward(
+            5000.0, 2000.0, 500.0, 1000.0, 100.0,
+        );
+        assert!((bf - 5600.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_balance_forward_no_previous() {
+        let bf = super::BalanceForwardBillingService::calculate_balance_forward(
+            0.0, 1000.0, 100.0, 200.0, 0.0,
+        );
+        assert!((bf - 700.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_total_due() {
+        let due = super::BalanceForwardBillingService::calculate_total_due(5000.0, 50.0);
+        assert!((due - 5050.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_late_charges() {
+        let charges = super::BalanceForwardBillingService::calculate_late_charges(
+            3000.0, 12.0, 30,
+        );
+        // 3000 * 0.12 * (30/365) = 29.59
+        let expected = 3000.0 * 0.12 * (30.0 / 365.0);
+        assert!((charges - expected).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_late_charges_zero_balance() {
+        let charges = super::BalanceForwardBillingService::calculate_late_charges(
+            0.0, 12.0, 30,
+        );
+        assert_eq!(charges, 0.0);
+    }
+
+    #[test]
+    fn test_late_charges_negative_balance() {
+        let charges = super::BalanceForwardBillingService::calculate_late_charges(
+            -500.0, 12.0, 30,
+        );
+        assert_eq!(charges, 0.0);
+    }
+
+    #[test]
+    fn test_payment_due_date() {
+        use chrono::NaiveDate;
+        let bill_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let due = super::BalanceForwardBillingService::calculate_payment_due_date(
+            bill_date, 30,
+        );
+        assert_eq!(due, NaiveDate::from_ymd_opt(2026, 5, 31).unwrap());
+    }
+
+    #[test]
+    fn test_balance_forward_bill_entity() {
+        let def = entities::balance_forward_bill_definition();
+        assert_eq!(def.name, "balance_forward_bills");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "generated"));
+        assert!(wf.states.iter().any(|s| s.name == "sent"));
+        assert!(wf.states.iter().any(|s| s.name == "closed"));
+    }
+
+    #[test]
+    fn test_bfb_billing_cycles_valid() {
+        for c in &["monthly", "biweekly", "weekly", "on_demand"] {
+            assert!(super::VALID_BFB_BILLING_CYCLES.contains(c));
+        }
+        assert!(!super::VALID_BFB_BILLING_CYCLES.contains(&"quarterly"));
+    }
+
+    // ========================================================================
+    // Asset Capitalization (CIP) Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_cip_calculate_total_cost() {
+        let total = super::AssetCapitalizationService::calculate_total_cip_cost(
+            &[10000.0, 5000.0, 3000.0],
+        );
+        assert!((total - 18000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cip_calculate_total_cost_empty() {
+        let total = super::AssetCapitalizationService::calculate_total_cip_cost(&[]);
+        assert_eq!(total, 0.0);
+    }
+
+    #[test]
+    fn test_cip_percent_complete() {
+        let pct = super::AssetCapitalizationService::calculate_percent_complete(
+            75000.0, 100000.0,
+        );
+        assert!((pct - 75.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cip_percent_complete_over_100() {
+        let pct = super::AssetCapitalizationService::calculate_percent_complete(
+            120000.0, 100000.0,
+        );
+        assert_eq!(pct, 100.0);
+    }
+
+    #[test]
+    fn test_cip_percent_complete_zero_estimate() {
+        let pct = super::AssetCapitalizationService::calculate_percent_complete(
+            50000.0, 0.0,
+        );
+        assert_eq!(pct, 0.0);
+    }
+
+    #[test]
+    fn test_cip_ready_for_capitalization() {
+        use chrono::NaiveDate;
+        assert!(super::AssetCapitalizationService::is_ready_for_capitalization(
+            "ready", Some(NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()), true,
+        ));
+        assert!(!super::AssetCapitalizationService::is_ready_for_capitalization(
+            "in_progress", Some(NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()), true,
+        ));
+        assert!(!super::AssetCapitalizationService::is_ready_for_capitalization(
+            "ready", None, true,
+        ));
+        assert!(!super::AssetCapitalizationService::is_ready_for_capitalization(
+            "ready", Some(NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()), false,
+        ));
+    }
+
+    #[test]
+    fn test_cip_capitalization_amounts() {
+        let (cost, salvage, basis) =
+            super::AssetCapitalizationService::calculate_capitalization_amounts(
+                100000.0, 10000.0,
+            );
+        assert!((cost - 100000.0).abs() < 0.01);
+        assert!((salvage - 10000.0).abs() < 0.01);
+        assert!((basis - 90000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cip_capitalization_no_salvage() {
+        let (cost, salvage, basis) =
+            super::AssetCapitalizationService::calculate_capitalization_amounts(
+                100000.0, 0.0,
+            );
+        assert!((cost - 100000.0).abs() < 0.01);
+        assert_eq!(salvage, 0.0);
+        assert!((basis - 100000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cip_cost_variance() {
+        let variance = super::AssetCapitalizationService::calculate_cost_variance(
+            100000.0, 110000.0,
+        );
+        assert!((variance - 10000.0).abs() < 0.01);
+
+        let variance = super::AssetCapitalizationService::calculate_cost_variance(
+            100000.0, 95000.0,
+        );
+        assert!((variance - (-5000.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cip_validate_cost_type() {
+        assert!(super::AssetCapitalizationService::validate_cost_addition("material", 1000.0).is_ok());
+        assert!(super::AssetCapitalizationService::validate_cost_addition("labor", 500.0).is_ok());
+        assert!(super::AssetCapitalizationService::validate_cost_addition("overhead", 200.0).is_ok());
+        assert!(super::AssetCapitalizationService::validate_cost_addition("professional_fees", 1000.0).is_ok());
+        assert!(super::AssetCapitalizationService::validate_cost_addition("permits", 500.0).is_ok());
+        assert!(super::AssetCapitalizationService::validate_cost_addition("other", 100.0).is_ok());
+        assert!(super::AssetCapitalizationService::validate_cost_addition("unknown", 100.0).is_err());
+    }
+
+    #[test]
+    fn test_cip_validate_cost_amount() {
+        assert!(super::AssetCapitalizationService::validate_cost_addition("material", 1000.0).is_ok());
+        assert!(super::AssetCapitalizationService::validate_cost_addition("material", 0.0).is_err());
+        assert!(super::AssetCapitalizationService::validate_cost_addition("material", -100.0).is_err());
+    }
+
+    #[test]
+    fn test_cip_asset_entity() {
+        let def = entities::cip_asset_definition();
+        assert_eq!(def.name, "cip_assets");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "in_progress"));
+        assert!(wf.states.iter().any(|s| s.name == "ready"));
+        assert!(wf.states.iter().any(|s| s.name == "capitalized"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_cip_cost_addition_entity() {
+        let def = entities::cip_cost_addition_definition();
+        assert_eq!(def.name, "cip_cost_additions");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_cip_statuses_valid() {
+        for s in &["draft", "in_progress", "ready", "capitalized", "cancelled"] {
+            assert!(super::VALID_CIP_STATUSES.contains(s));
+        }
+    }
+
+    // ========================================================================
+    // New Feature Entity Uniqueness Tests
+    // ========================================================================
+
+    #[test]
+    fn test_all_new_feature_entities_unique() {
+        let new_entities = vec![
+            entities::customer_statement_definition(),
+            entities::customer_statement_line_definition(),
+            entities::autocash_rule_set_definition(),
+            entities::revenue_price_profile_definition(),
+            entities::doubtful_account_allowance_definition(),
+            entities::balance_forward_bill_definition(),
+            entities::cip_asset_definition(),
+            entities::cip_cost_addition_definition(),
+        ];
+        assert_eq!(new_entities.len(), 8);
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 8, "All 8 new entity names must be unique");
+    }
+
+    #[test]
+    fn test_new_feature_workflows() {
+        let workflow_entities = vec![
+            entities::customer_statement_definition(),
+            entities::autocash_rule_set_definition(),
+            entities::revenue_price_profile_definition(),
+            entities::doubtful_account_allowance_definition(),
+            entities::balance_forward_bill_definition(),
+            entities::cip_asset_definition(),
+        ];
+        for entity in &workflow_entities {
+            assert!(entity.workflow.is_some(),
+                "Entity '{}' should have a workflow",
+                entity.name);
+        }
     }
 }

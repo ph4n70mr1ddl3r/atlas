@@ -114,4 +114,12 @@ pub use services::{
     StatisticalAccountService,
     AssetSplitService,
     AssetMergerService,
+    // New Oracle Fusion financial features
+    CustomerStatementService,
+    AutoCashApplicationService,
+    AutoCashMatchResult,
+    RevenuePriceProfileService,
+    DoubtfulAccountAllowanceService,
+    BalanceForwardBillingService,
+    AssetCapitalizationService,
 };

@@ -8856,3 +8856,216 @@ pub fn bank_guarantee_amendment_definition() -> EntityDefinition {
         .date("effective_date", "Effective Date")
         .build()
 }
+
+// ============================================================================
+// Hedge Management (Oracle Fusion: Treasury > Hedge Management)
+// IFRS 9 / ASC 815 Hedge Accounting
+// ============================================================================
+
+/// Derivative Instrument entity with workflow
+/// Oracle Fusion: Treasury > Hedge Management > Derivative Instruments
+pub fn derivative_instrument_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("derivative_instrument_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .working_state("matured", "Matured")
+        .working_state("terminated", "Terminated Early")
+        .final_state("settled", "Settled")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "active", "activate")
+        .transition("active", "matured", "mature")
+        .transition("active", "terminated", "terminate")
+        .transition("active", "settled", "settle")
+        .transition("matured", "settled", "settle")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("derivative_instruments", "Derivative Instrument")
+        .plural_label("Derivative Instruments")
+        .table_name("fin_derivative_instruments")
+        .description("Derivative instruments: forwards, swaps, options, futures")
+        .icon("exchange-alt")
+        .required_string("instrument_number", "Instrument Number")
+        .enumeration("instrument_type", "Instrument Type", vec![
+            "forward", "swap", "option", "future", "cap", "floor", "collar",
+        ])
+        .enumeration("underlying_type", "Underlying Type", vec![
+            "interest_rate", "foreign_exchange", "commodity", "credit", "equity",
+        ])
+        .string("underlying_description", "Underlying Description")
+        .string("currency_code", "Currency")
+        .string("counter_currency_code", "Counter Currency")
+        .decimal("notional_amount", "Notional Amount", 18, 2)
+        .decimal("strike_rate", "Strike Rate", 12, 6)
+        .decimal("forward_rate", "Forward Rate", 12, 6)
+        .decimal("spot_rate", "Spot Rate", 12, 6)
+        .enumeration("option_type", "Option Type", vec![
+            "call", "put", "straddle", "none",
+        ])
+        .currency("premium_amount", "Premium Amount", "USD")
+        .date("trade_date", "Trade Date")
+        .date("effective_date", "Effective Date")
+        .date("maturity_date", "Maturity Date")
+        .date("settlement_date", "Settlement Date")
+        .enumeration("settlement_type", "Settlement Type", vec![
+            "physical", "cash", "net_cash",
+        ])
+        .string("counterparty_name", "Counterparty")
+        .string("counterparty_reference", "Counterparty Reference")
+        .string("portfolio_code", "Portfolio Code")
+        .string("trading_book", "Trading Book")
+        .enumeration("accounting_treatment", "Accounting Treatment", vec![
+            "trading", "hedge", "available_for_sale",
+        ])
+        .currency("fair_value", "Fair Value", "USD")
+        .currency("unrealized_gain_loss", "Unrealized Gain/Loss", "USD")
+        .currency("realized_gain_loss", "Realized Gain/Loss", "USD")
+        .string("valuation_method", "Valuation Method")
+        .date("last_valuation_date", "Last Valuation Date")
+        .string("risk_factor", "Risk Factor")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "matured", "terminated", "settled", "cancelled",
+        ])
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}
+
+/// Hedge Relationship entity with workflow
+/// Oracle Fusion: Treasury > Hedge Management > Hedge Relationships
+pub fn hedge_relationship_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("hedge_relationship_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("documented", "Documented")
+        .working_state("active", "Active")
+        .working_state("deeffective", "De-designated")
+        .final_state("closed", "Closed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "documented", "document")
+        .transition("documented", "active", "activate")
+        .transition("active", "deeffective", "de_designate")
+        .transition("active", "closed", "close")
+        .transition("deeffective", "closed", "close")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("hedge_relationships", "Hedge Relationship")
+        .plural_label("Hedge Relationships")
+        .table_name("fin_hedge_relationships")
+        .description("Hedge relationships linking derivatives to hedged items (IFRS 9 / ASC 815)")
+        .icon("link")
+        .required_string("hedge_id", "Hedge ID")
+        .enumeration("hedge_type", "Hedge Type", vec![
+            "fair_value", "cash_flow", "net_investment",
+        ])
+        .reference("derivative_id", "Derivative", "derivative_instruments")
+        .string("derivative_number", "Derivative Number")
+        .string("hedged_item_description", "Hedged Item Description")
+        .reference("hedged_item_id", "Hedged Item", "journal_entries")
+        .enumeration("hedged_risk", "Hedged Risk", vec![
+            "interest_rate", "foreign_exchange", "commodity", "credit", "equity",
+        ])
+        .enumeration("hedge_strategy", "Hedge Strategy", vec![
+            "fair_value_hedge", "cash_flow_hedge", "net_investment_hedge",
+        ])
+        .string("hedged_item_reference", "Hedged Item Reference")
+        .string("hedged_item_currency", "Hedged Item Currency")
+        .decimal("hedged_amount", "Hedged Amount", 18, 2)
+        .decimal("hedge_ratio", "Hedge Ratio", 5, 2)
+        .date("designated_start_date", "Designation Start")
+        .date("designated_end_date", "Designation End")
+        .enumeration("effectiveness_method", "Effectiveness Method", vec![
+            "dollar_offset", "regression", "variance_reduction", "scenario",
+        ])
+        .string("critical_terms_match", "Critical Terms Match")
+        .boolean("prospective_effective", "Prospectively Effective")
+        .boolean("retrospective_effective", "Retrospectively Effective")
+        .string("hedge_documentation_ref", "Documentation Reference")
+        .enumeration("status", "Status", vec![
+            "draft", "documented", "active", "deeffective", "closed", "cancelled",
+        ])
+        .date("last_effectiveness_test_date", "Last Effectiveness Test")
+        .string("last_effectiveness_result", "Last Effectiveness Result")
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}
+
+/// Hedge Effectiveness Test entity
+/// Oracle Fusion: Treasury > Hedge Management > Effectiveness Testing
+pub fn hedge_effectiveness_test_definition() -> EntityDefinition {
+    SchemaBuilder::new("hedge_effectiveness_tests", "Hedge Effectiveness Test")
+        .plural_label("Hedge Effectiveness Tests")
+        .table_name("fin_hedge_effectiveness_tests")
+        .description("Effectiveness testing results for hedge relationships")
+        .icon("check-circle")
+        .reference("hedge_relationship_id", "Hedge Relationship", "hedge_relationships")
+        .string("hedge_id", "Hedge ID")
+        .enumeration("test_type", "Test Type", vec![
+            "prospective", "retrospective",
+        ])
+        .enumeration("effectiveness_method", "Effectiveness Method", vec![
+            "dollar_offset", "regression", "variance_reduction", "scenario",
+        ])
+        .date("test_date", "Test Date")
+        .date("test_period_start", "Test Period Start")
+        .date("test_period_end", "Test Period End")
+        .decimal("derivative_fair_value_change", "Derivative FV Change", 18, 2)
+        .decimal("hedged_item_fair_value_change", "Hedged Item FV Change", 18, 2)
+        .decimal("hedge_ratio_result", "Hedge Ratio Result", 5, 4)
+        .decimal("ratio_lower_bound", "Lower Bound (80%)", 5, 2)
+        .decimal("ratio_upper_bound", "Upper Bound (125%)", 5, 2)
+        .enumeration("effectiveness_result", "Result", vec![
+            "effective", "ineffective", "inconclusive",
+        ])
+        .decimal("ineffective_amount", "Ineffective Amount", 18, 2)
+        .decimal("cumulative_gain_loss", "Cumulative Gain/Loss", 18, 2)
+        .string("regression_r_squared", "R-Squared")
+        .string("notes", "Notes")
+        .enumeration("status", "Status", vec![
+            "draft", "completed", "failed",
+        ])
+        .build()
+}
+
+/// Hedge Documentation entity with workflow
+/// Oracle Fusion: Treasury > Hedge Management > Hedge Documentation
+pub fn hedge_documentation_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("hedge_documentation_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("approved", "Approved")
+        .final_state("rejected", "Rejected")
+        .transition("draft", "approved", "approve")
+        .transition("draft", "rejected", "reject")
+        .build();
+
+    SchemaBuilder::new("hedge_documentation", "Hedge Documentation")
+        .plural_label("Hedge Documentation")
+        .table_name("fin_hedge_documentation")
+        .description("Formal hedge documentation required for hedge accounting")
+        .icon("file-contract")
+        .reference("hedge_relationship_id", "Hedge Relationship", "hedge_relationships")
+        .string("hedge_id", "Hedge ID")
+        .required_string("document_number", "Document Number")
+        .enumeration("hedge_type", "Hedge Type", vec![
+            "fair_value", "cash_flow", "net_investment",
+        ])
+        .string("risk_management_objective", "Risk Management Objective")
+        .string("hedging_strategy_description", "Strategy Description")
+        .string("hedged_item_description", "Hedged Item Description")
+        .string("hedged_risk_description", "Hedged Risk Description")
+        .string("derivative_description", "Derivative Description")
+        .string("effectiveness_method_description", "Effectiveness Method")
+        .string("assessment_frequency", "Assessment Frequency")
+        .date("designation_date", "Designation Date")
+        .date("documentation_date", "Documentation Date")
+        .date("approval_date", "Approval Date")
+        .reference("approved_by", "Approved By", "employees")
+        .string("prepared_by", "Prepared By")
+        .enumeration("status", "Status", vec![
+            "draft", "approved", "rejected",
+        ])
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}

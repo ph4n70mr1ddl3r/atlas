@@ -161,4 +161,8 @@ pub use services::{
     ComplianceReport,
     // Bank Guarantee Management
     BankGuaranteeManagementService,
+    // Hedge Management
+    HedgeManagementService,
+    HedgeEffectivenessTestResult,
+    HedgeIneffectivenessResult,
 };

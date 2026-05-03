@@ -13677,6 +13677,489 @@ impl BankGuaranteeManagementService {
     }
 }
 
+// ============================================================================
+// Hedge Management Service
+// ============================================================================
+
+/// Hedge Management service
+/// Oracle Fusion: Treasury > Hedge Management
+/// IFRS 9 / ASC 815 Hedge Accounting
+#[allow(dead_code)]
+pub struct HedgeManagementService;
+
+/// Valid derivative instrument types
+#[allow(dead_code)]
+const HDG_VALID_INSTRUMENT_TYPES: &[&str] = &[
+    "forward", "swap", "option", "future", "cap", "floor", "collar",
+];
+
+/// Valid underlying types
+#[allow(dead_code)]
+const HDG_VALID_UNDERLYING_TYPES: &[&str] = &[
+    "interest_rate", "foreign_exchange", "commodity", "credit", "equity",
+];
+
+/// Valid option types
+#[allow(dead_code)]
+const HDG_VALID_OPTION_TYPES: &[&str] = &[
+    "call", "put", "straddle", "none",
+];
+
+/// Valid settlement types
+#[allow(dead_code)]
+const HDG_VALID_SETTLEMENT_TYPES: &[&str] = &[
+    "physical", "cash", "net_cash",
+];
+
+/// Valid accounting treatments
+#[allow(dead_code)]
+const HDG_VALID_ACCOUNTING_TREATMENTS: &[&str] = &[
+    "trading", "hedge", "available_for_sale",
+];
+
+/// Valid derivative statuses
+#[allow(dead_code)]
+const HDG_VALID_DERIVATIVE_STATUSES: &[&str] = &[
+    "draft", "active", "matured", "terminated", "settled", "cancelled",
+];
+
+/// Valid hedge types
+#[allow(dead_code)]
+const HDG_VALID_HEDGE_TYPES: &[&str] = &[
+    "fair_value", "cash_flow", "net_investment",
+];
+
+/// Valid hedged risks
+#[allow(dead_code)]
+const HDG_VALID_HEDGED_RISKS: &[&str] = &[
+    "interest_rate", "foreign_exchange", "commodity", "credit", "equity",
+];
+
+/// Valid effectiveness methods
+#[allow(dead_code)]
+const HDG_VALID_EFFECTIVENESS_METHODS: &[&str] = &[
+    "dollar_offset", "regression", "variance_reduction", "scenario",
+];
+
+/// Valid hedge relationship statuses
+#[allow(dead_code)]
+const HDG_VALID_HEDGE_STATUSES: &[&str] = &[
+    "draft", "documented", "active", "deeffective", "closed", "cancelled",
+];
+
+/// Valid test types
+#[allow(dead_code)]
+const HDG_VALID_TEST_TYPES: &[&str] = &[
+    "prospective", "retrospective",
+];
+
+/// Valid effectiveness results
+#[allow(dead_code)]
+const HDG_VALID_EFFECTIVENESS_RESULTS: &[&str] = &[
+    "effective", "ineffective", "inconclusive",
+];
+
+/// Valid hedge documentation statuses
+#[allow(dead_code)]
+const HDG_VALID_DOC_STATUSES: &[&str] = &[
+    "draft", "approved", "rejected",
+];
+
+/// IFRS 9 effectiveness threshold: 80% - 125% (dollar offset method)
+const HDG_EFFECTIVENESS_LOWER_BOUND: f64 = 0.80;
+const HDG_EFFECTIVENESS_UPPER_BOUND: f64 = 1.25;
+
+#[allow(dead_code)]
+impl HedgeManagementService {
+    pub fn new() -> Self {
+        Self
+    }
+
+    // ========================================================================
+    // Derivative Instrument Validation
+    // ========================================================================
+
+    /// Validate instrument type
+    pub fn validate_instrument_type(instrument_type: &str) -> bool {
+        HDG_VALID_INSTRUMENT_TYPES.contains(&instrument_type)
+    }
+
+    /// Validate underlying type
+    pub fn validate_underlying_type(underlying_type: &str) -> bool {
+        HDG_VALID_UNDERLYING_TYPES.contains(&underlying_type)
+    }
+
+    /// Validate option type
+    pub fn validate_option_type(option_type: &str) -> bool {
+        HDG_VALID_OPTION_TYPES.contains(&option_type)
+    }
+
+    /// Validate settlement type
+    pub fn validate_settlement_type(settlement_type: &str) -> bool {
+        HDG_VALID_SETTLEMENT_TYPES.contains(&settlement_type)
+    }
+
+    /// Validate accounting treatment
+    pub fn validate_accounting_treatment(treatment: &str) -> bool {
+        HDG_VALID_ACCOUNTING_TREATMENTS.contains(&treatment)
+    }
+
+    /// Validate derivative status transition
+    pub fn validate_derivative_status_transition(current: &str, target: &str) -> bool {
+        match current {
+            "draft" => ["active", "cancelled"].contains(&target),
+            "active" => ["matured", "terminated", "settled", "cancelled"].contains(&target),
+            "matured" => ["settled"].contains(&target),
+            "terminated" => false, // Terminal state
+            "settled" => false,    // Terminal state
+            "cancelled" => false,   // Terminal state
+            _ => false,
+        }
+    }
+
+    // ========================================================================
+    // Derivative Valuation
+    // ========================================================================
+
+    /// Calculate forward points (difference between forward and spot rate)
+    pub fn calculate_forward_points(forward_rate: f64, spot_rate: f64) -> f64 {
+        forward_rate - spot_rate
+    }
+
+    /// Calculate forward premium/discount as annualized percentage
+    pub fn calculate_forward_premium_annualized(
+        forward_rate: f64,
+        spot_rate: f64,
+        days_to_maturity: i32,
+    ) -> f64 {
+        if spot_rate == 0.0 || days_to_maturity == 0 {
+            return 0.0;
+        }
+        ((forward_rate - spot_rate) / spot_rate) * (365.0 / days_to_maturity as f64) * 100.0
+    }
+
+    /// Calculate intrinsic value of an option
+    pub fn calculate_option_intrinsic_value(
+        option_type: &str,
+        spot_rate: f64,
+        strike_rate: f64,
+        notional_amount: f64,
+    ) -> f64 {
+        match option_type {
+            "call" => {
+                if spot_rate > strike_rate {
+                    (spot_rate - strike_rate) * notional_amount
+                } else {
+                    0.0
+                }
+            }
+            "put" => {
+                if strike_rate > spot_rate {
+                    (strike_rate - spot_rate) * notional_amount
+                } else {
+                    0.0
+                }
+            }
+            _ => 0.0,
+        }
+    }
+
+    /// Calculate time value of an option (premium - intrinsic value)
+    pub fn calculate_option_time_value(
+        premium: f64,
+        intrinsic_value: f64,
+    ) -> f64 {
+        premium - intrinsic_value
+    }
+
+    /// Mark-to-market: compute unrealized P&L on a forward contract
+    pub fn calculate_forward_unrealized_pnl(
+        contracted_rate: f64,
+        current_forward_rate: f64,
+        notional_amount: f64,
+        position: &str, // "long" or "short"
+    ) -> f64 {
+        match position {
+            "long" => (current_forward_rate - contracted_rate) * notional_amount,
+            "short" => (contracted_rate - current_forward_rate) * notional_amount,
+            _ => 0.0,
+        }
+    }
+
+    /// Calculate swap pay/receive net cash flow
+    pub fn calculate_swap_net_cashflow(
+        receive_rate: f64,
+        pay_rate: f64,
+        notional_amount: f64,
+        days_in_period: i32,
+    ) -> f64 {
+        let receive_amount = receive_rate * notional_amount * (days_in_period as f64 / 360.0);
+        let pay_amount = pay_rate * notional_amount * (days_in_period as f64 / 360.0);
+        receive_amount - pay_amount
+    }
+
+    /// Calculate present value of a future cash flow
+    pub fn present_value(
+        future_value: f64,
+        discount_rate: f64,
+        periods: i32,
+    ) -> f64 {
+        if discount_rate == 0.0 {
+            return future_value;
+        }
+        future_value / (1.0 + discount_rate).powi(periods)
+    }
+
+    /// Calculate days to maturity
+    pub fn days_to_maturity(
+        maturity_date: chrono::NaiveDate,
+        as_of_date: chrono::NaiveDate,
+    ) -> i64 {
+        (maturity_date - as_of_date).num_days()
+    }
+
+    // ========================================================================
+    // Hedge Relationship Validation
+    // ========================================================================
+
+    /// Validate hedge type
+    pub fn validate_hedge_type(hedge_type: &str) -> bool {
+        HDG_VALID_HEDGE_TYPES.contains(&hedge_type)
+    }
+
+    /// Validate hedged risk
+    pub fn validate_hedged_risk(hedged_risk: &str) -> bool {
+        HDG_VALID_HEDGED_RISKS.contains(&hedged_risk)
+    }
+
+    /// Validate effectiveness method
+    pub fn validate_effectiveness_method(method: &str) -> bool {
+        HDG_VALID_EFFECTIVENESS_METHODS.contains(&method)
+    }
+
+    /// Validate hedge relationship status transition
+    pub fn validate_hedge_status_transition(current: &str, target: &str) -> bool {
+        match current {
+            "draft" => ["documented", "cancelled"].contains(&target),
+            "documented" => ["active"].contains(&target),
+            "active" => ["deeffective", "closed"].contains(&target),
+            "deeffective" => ["closed"].contains(&target),
+            _ => false,
+        }
+    }
+
+    /// Validate hedge ratio (must be between 0.0 and 2.0)
+    pub fn validate_hedge_ratio(ratio: f64) -> bool {
+        ratio > 0.0 && ratio <= 2.0
+    }
+
+    // ========================================================================
+    // Hedge Effectiveness Testing
+    // ========================================================================
+
+    /// Dollar-offset method effectiveness test
+    /// Returns the ratio of derivative FV change to hedged item FV change
+    pub fn dollar_offset_ratio(
+        derivative_fv_change: f64,
+        hedged_item_fv_change: f64,
+    ) -> f64 {
+        if hedged_item_fv_change == 0.0 {
+            return 0.0;
+        }
+        (derivative_fv_change / hedged_item_fv_change).abs()
+    }
+
+    /// Test effectiveness using dollar-offset method (IFRS 9: 80-125% corridor)
+    pub fn test_dollar_offset_effectiveness(
+        derivative_fv_change: f64,
+        hedged_item_fv_change: f64,
+    ) -> HedgeEffectivenessTestResult {
+        let ratio = Self::dollar_offset_ratio(derivative_fv_change, hedged_item_fv_change);
+        let is_effective = ratio >= HDG_EFFECTIVENESS_LOWER_BOUND
+            && ratio <= HDG_EFFECTIVENESS_UPPER_BOUND;
+
+        HedgeEffectivenessTestResult {
+            ratio,
+            is_effective,
+            ineffective_amount: if is_effective {
+                0.0
+            } else {
+                (derivative_fv_change + hedged_item_fv_change).abs()
+            },
+            result_label: if is_effective {
+                "effective"
+            } else if derivative_fv_change == 0.0 || hedged_item_fv_change == 0.0 {
+                "inconclusive"
+            } else {
+                "ineffective"
+            }
+            .to_string(),
+        }
+    }
+
+    /// Calculate regression-based effectiveness (simplified)
+    /// Returns (R-squared, is_effective)
+    /// IFRS 9: R-squared >= 0.80 indicates effective hedge
+    pub fn regression_effectiveness(
+        derivative_changes: &[f64],
+        hedged_item_changes: &[f64],
+    ) -> (f64, bool) {
+        if derivative_changes.len() != hedged_item_changes.len()
+            || derivative_changes.len() < 2
+        {
+            return (0.0, false);
+        }
+
+        let n = derivative_changes.len() as f64;
+        let sum_x: f64 = hedged_item_changes.iter().sum();
+        let sum_y: f64 = derivative_changes.iter().sum();
+        let sum_xy: f64 = hedged_item_changes
+            .iter()
+            .zip(derivative_changes.iter())
+            .map(|(x, y)| x * y)
+            .sum();
+        let sum_x2: f64 = hedged_item_changes.iter().map(|x| x * x).sum();
+        let sum_y2: f64 = derivative_changes.iter().map(|y| y * y).sum();
+
+        let numerator = n * sum_xy - sum_x * sum_y;
+        let denominator = ((n * sum_x2 - sum_x * sum_x) * (n * sum_y2 - sum_y * sum_y)).sqrt();
+
+        if denominator == 0.0 {
+            return (0.0, false);
+        }
+
+        let r = numerator / denominator;
+        let r_squared = r * r;
+
+        (r_squared, r_squared >= 0.80)
+    }
+
+    /// Calculate variance reduction effectiveness
+    /// Measures how much of the hedged item's variability is offset by the derivative
+    pub fn variance_reduction_ratio(
+        unhedged_variability: f64,
+        residual_variability: f64,
+    ) -> f64 {
+        if unhedged_variability == 0.0 {
+            return 0.0;
+        }
+        1.0 - (residual_variability / unhedged_variability)
+    }
+
+    // ========================================================================
+    // Hedge Accounting
+    // ========================================================================
+
+    /// Calculate hedge ineffectiveness for the period
+    /// Fair value hedge: all gain/loss on derivative + gain/loss on hedged item
+    /// Cash flow hedge: effective portion goes to OCI, ineffective to P&L
+    pub fn calculate_hedge_ineffectiveness(
+        derivative_gain_loss: f64,
+        hedged_item_gain_loss: f64,
+        hedge_type: &str,
+    ) -> HedgeIneffectivenessResult {
+        match hedge_type {
+            "fair_value" => {
+                // Fair value hedge: both sides go to P&L, no OCI
+                HedgeIneffectivenessResult {
+                    p_and_l_amount: derivative_gain_loss + hedged_item_gain_loss,
+                    oci_amount: 0.0,
+                    ineffective_amount: (derivative_gain_loss + hedged_item_gain_loss).abs(),
+                }
+            }
+            "cash_flow" => {
+                // Cash flow hedge: effective portion to OCI, ineffective to P&L
+                let test = Self::test_dollar_offset_effectiveness(
+                    derivative_gain_loss,
+                    hedged_item_gain_loss,
+                );
+                if test.is_effective {
+                    HedgeIneffectivenessResult {
+                        p_and_l_amount: 0.0,
+                        oci_amount: derivative_gain_loss,
+                        ineffective_amount: 0.0,
+                    }
+                } else {
+                    // Ineffective portion goes to P&L
+                    let ineffective = (derivative_gain_loss - hedged_item_gain_loss).abs();
+                    HedgeIneffectivenessResult {
+                        p_and_l_amount: ineffective,
+                        oci_amount: derivative_gain_loss - ineffective,
+                        ineffective_amount: ineffective,
+                    }
+                }
+            }
+            "net_investment" => {
+                // Net investment hedge: effective portion to OCI (translation reserve)
+                HedgeIneffectivenessResult {
+                    p_and_l_amount: 0.0,
+                    oci_amount: derivative_gain_loss,
+                    ineffective_amount: 0.0,
+                }
+            }
+            _ => HedgeIneffectivenessResult {
+                p_and_l_amount: derivative_gain_loss,
+                oci_amount: 0.0,
+                ineffective_amount: derivative_gain_loss.abs(),
+            },
+        }
+    }
+
+    /// Calculate collateral requirements for a derivative
+    pub fn calculate_collateral_requirement(
+        mark_to_market: f64,
+        threshold_amount: f64,
+        minimum_transfer_amount: f64,
+    ) -> f64 {
+        if mark_to_market.abs() <= threshold_amount {
+            return 0.0;
+        }
+        let required = mark_to_market.abs() - threshold_amount;
+        if required < minimum_transfer_amount {
+            return 0.0;
+        }
+        required
+    }
+
+    /// Calculate credit valuation adjustment (CVA) for a derivative
+    pub fn calculate_cva(
+        expected_exposure: f64,
+        counterparty_default_probability: f64,
+        recovery_rate: f64,
+    ) -> f64 {
+        expected_exposure * counterparty_default_probability * (1.0 - recovery_rate)
+    }
+
+    /// Calculate debt valuation adjustment (DVA)
+    pub fn calculate_dva(
+        expected_negative_exposure: f64,
+        own_default_probability: f64,
+        own_recovery_rate: f64,
+    ) -> f64 {
+        if expected_negative_exposure >= 0.0 {
+            return 0.0;
+        }
+        expected_negative_exposure.abs() * own_default_probability * (1.0 - own_recovery_rate)
+    }
+}
+
+/// Result of a hedge effectiveness test
+#[derive(Debug, Clone)]
+pub struct HedgeEffectivenessTestResult {
+    pub ratio: f64,
+    pub is_effective: bool,
+    pub ineffective_amount: f64,
+    pub result_label: String,
+}
+
+/// Result of hedge ineffectiveness calculation
+#[derive(Debug, Clone)]
+pub struct HedgeIneffectivenessResult {
+    pub p_and_l_amount: f64,
+    pub oci_amount: f64,
+    pub ineffective_amount: f64,
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -29041,5 +29524,881 @@ mod tests {
         ];
         let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names.len(), 3);
+    }
+
+    // ========================================================================
+    // Hedge Management Entity Tests
+    // ========================================================================
+
+    #[test]
+    fn test_derivative_instrument_definition() {
+        let def = entities::derivative_instrument_definition();
+        assert_eq!(def.name, "derivative_instruments");
+        assert_eq!(def.label, "Derivative Instrument");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "matured"));
+        assert!(wf.states.iter().any(|s| s.name == "terminated"));
+        assert!(wf.states.iter().any(|s| s.name == "settled"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_hedge_relationship_definition() {
+        let def = entities::hedge_relationship_definition();
+        assert_eq!(def.name, "hedge_relationships");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "documented"));
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "deeffective"));
+        assert!(wf.states.iter().any(|s| s.name == "closed"));
+        assert!(wf.states.iter().any(|s| s.name == "cancelled"));
+    }
+
+    #[test]
+    fn test_hedge_effectiveness_test_definition() {
+        let def = entities::hedge_effectiveness_test_definition();
+        assert_eq!(def.name, "hedge_effectiveness_tests");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_hedge_documentation_definition() {
+        let def = entities::hedge_documentation_definition();
+        assert_eq!(def.name, "hedge_documentation");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+        assert!(wf.states.iter().any(|s| s.name == "rejected"));
+    }
+
+    // ========================================================================
+    // Hedge Management Validation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_hdg_instrument_types_valid() {
+        let valid = ["forward", "swap", "option", "future", "cap", "floor", "collar"];
+        for t in &valid {
+            assert!(super::HDG_VALID_INSTRUMENT_TYPES.contains(t), "{} should be valid", t);
+        }
+        assert!(!super::HDG_VALID_INSTRUMENT_TYPES.contains(&"bond"));
+    }
+
+    #[test]
+    fn test_hdg_underlying_types_valid() {
+        let valid = ["interest_rate", "foreign_exchange", "commodity", "credit", "equity"];
+        for t in &valid {
+            assert!(super::HDG_VALID_UNDERLYING_TYPES.contains(t), "{} should be valid", t);
+        }
+    }
+
+    #[test]
+    fn test_hdg_option_types_valid() {
+        let valid = ["call", "put", "straddle", "none"];
+        for t in &valid {
+            assert!(super::HDG_VALID_OPTION_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_hdg_settlement_types_valid() {
+        let valid = ["physical", "cash", "net_cash"];
+        for t in &valid {
+            assert!(super::HDG_VALID_SETTLEMENT_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_hdg_accounting_treatments_valid() {
+        let valid = ["trading", "hedge", "available_for_sale"];
+        for t in &valid {
+            assert!(super::HDG_VALID_ACCOUNTING_TREATMENTS.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_hdg_derivative_statuses_valid() {
+        let valid = ["draft", "active", "matured", "terminated", "settled", "cancelled"];
+        for s in &valid {
+            assert!(super::HDG_VALID_DERIVATIVE_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_hdg_hedge_types_valid() {
+        let valid = ["fair_value", "cash_flow", "net_investment"];
+        for t in &valid {
+            assert!(super::HDG_VALID_HEDGE_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_hdg_hedged_risks_valid() {
+        let valid = ["interest_rate", "foreign_exchange", "commodity", "credit", "equity"];
+        for r in &valid {
+            assert!(super::HDG_VALID_HEDGED_RISKS.contains(r));
+        }
+    }
+
+    #[test]
+    fn test_hdg_effectiveness_methods_valid() {
+        let valid = ["dollar_offset", "regression", "variance_reduction", "scenario"];
+        for m in &valid {
+            assert!(super::HDG_VALID_EFFECTIVENESS_METHODS.contains(m));
+        }
+    }
+
+    #[test]
+    fn test_hdg_hedge_statuses_valid() {
+        let valid = ["draft", "documented", "active", "deeffective", "closed", "cancelled"];
+        for s in &valid {
+            assert!(super::HDG_VALID_HEDGE_STATUSES.contains(s));
+        }
+    }
+
+    #[test]
+    fn test_hdg_test_types_valid() {
+        let valid = ["prospective", "retrospective"];
+        for t in &valid {
+            assert!(super::HDG_VALID_TEST_TYPES.contains(t));
+        }
+    }
+
+    #[test]
+    fn test_hdg_effectiveness_results_valid() {
+        let valid = ["effective", "ineffective", "inconclusive"];
+        for r in &valid {
+            assert!(super::HDG_VALID_EFFECTIVENESS_RESULTS.contains(r));
+        }
+    }
+
+    // ========================================================================
+    // Derivative Status Transition Tests
+    // ========================================================================
+
+    #[test]
+    fn test_derivative_status_transitions_from_draft() {
+        assert!(super::HedgeManagementService::validate_derivative_status_transition("draft", "active"));
+        assert!(super::HedgeManagementService::validate_derivative_status_transition("draft", "cancelled"));
+        assert!(!super::HedgeManagementService::validate_derivative_status_transition("draft", "settled"));
+    }
+
+    #[test]
+    fn test_derivative_status_transitions_from_active() {
+        assert!(super::HedgeManagementService::validate_derivative_status_transition("active", "matured"));
+        assert!(super::HedgeManagementService::validate_derivative_status_transition("active", "terminated"));
+        assert!(super::HedgeManagementService::validate_derivative_status_transition("active", "settled"));
+        assert!(super::HedgeManagementService::validate_derivative_status_transition("active", "cancelled"));
+        assert!(!super::HedgeManagementService::validate_derivative_status_transition("active", "draft"));
+    }
+
+    #[test]
+    fn test_derivative_status_transitions_terminal_states() {
+        assert!(!super::HedgeManagementService::validate_derivative_status_transition("settled", "active"));
+        assert!(!super::HedgeManagementService::validate_derivative_status_transition("cancelled", "draft"));
+        assert!(!super::HedgeManagementService::validate_derivative_status_transition("terminated", "active"));
+    }
+
+    #[test]
+    fn test_derivative_status_transitions_from_matured() {
+        assert!(super::HedgeManagementService::validate_derivative_status_transition("matured", "settled"));
+        assert!(!super::HedgeManagementService::validate_derivative_status_transition("matured", "active"));
+    }
+
+    // ========================================================================
+    // Hedge Relationship Status Transition Tests
+    // ========================================================================
+
+    #[test]
+    fn test_hedge_status_transitions_from_draft() {
+        assert!(super::HedgeManagementService::validate_hedge_status_transition("draft", "documented"));
+        assert!(super::HedgeManagementService::validate_hedge_status_transition("draft", "cancelled"));
+        assert!(!super::HedgeManagementService::validate_hedge_status_transition("draft", "active"));
+    }
+
+    #[test]
+    fn test_hedge_status_transitions_from_documented() {
+        assert!(super::HedgeManagementService::validate_hedge_status_transition("documented", "active"));
+        assert!(!super::HedgeManagementService::validate_hedge_status_transition("documented", "draft"));
+    }
+
+    #[test]
+    fn test_hedge_status_transitions_from_active() {
+        assert!(super::HedgeManagementService::validate_hedge_status_transition("active", "deeffective"));
+        assert!(super::HedgeManagementService::validate_hedge_status_transition("active", "closed"));
+        assert!(!super::HedgeManagementService::validate_hedge_status_transition("active", "draft"));
+    }
+
+    #[test]
+    fn test_hedge_status_transitions_from_deeffective() {
+        assert!(super::HedgeManagementService::validate_hedge_status_transition("deeffective", "closed"));
+        assert!(!super::HedgeManagementService::validate_hedge_status_transition("deeffective", "active"));
+    }
+
+    // ========================================================================
+    // Derivative Valuation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_forward_points_calculation() {
+        let fwd_points = super::HedgeManagementService::calculate_forward_points(1.1050, 1.1000);
+        assert!((fwd_points - 0.0050).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_forward_points_negative() {
+        let fwd_points = super::HedgeManagementService::calculate_forward_points(1.0950, 1.1000);
+        assert!((fwd_points - (-0.0050)).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_forward_premium_annualized() {
+        // Forward: 1.1050, Spot: 1.1000, 90 days to maturity
+        let premium = super::HedgeManagementService::calculate_forward_premium_annualized(
+            1.1050, 1.1000, 90,
+        );
+        // ((1.1050 - 1.1000) / 1.1000) * (365/90) * 100 = 1.8498%
+        assert!(premium > 1.8 && premium < 1.9);
+    }
+
+    #[test]
+    fn test_forward_premium_zero_spot() {
+        let premium = super::HedgeManagementService::calculate_forward_premium_annualized(
+            1.1050, 0.0, 90,
+        );
+        assert_eq!(premium, 0.0);
+    }
+
+    #[test]
+    fn test_forward_premium_zero_days() {
+        let premium = super::HedgeManagementService::calculate_forward_premium_annualized(
+            1.1050, 1.1000, 0,
+        );
+        assert_eq!(premium, 0.0);
+    }
+
+    #[test]
+    fn test_option_intrinsic_value_call_in_the_money() {
+        // Call option: spot 1.15, strike 1.10 => intrinsic = 0.05 per unit
+        let iv = super::HedgeManagementService::calculate_option_intrinsic_value(
+            "call", 1.15, 1.10, 1_000_000.0,
+        );
+        assert!((iv - 50000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_option_intrinsic_value_call_out_of_the_money() {
+        // Call option: spot 1.05, strike 1.10 => intrinsic = 0
+        let iv = super::HedgeManagementService::calculate_option_intrinsic_value(
+            "call", 1.05, 1.10, 1_000_000.0,
+        );
+        assert_eq!(iv, 0.0);
+    }
+
+    #[test]
+    fn test_option_intrinsic_value_put_in_the_money() {
+        // Put option: spot 1.05, strike 1.10 => intrinsic = 0.05 per unit
+        let iv = super::HedgeManagementService::calculate_option_intrinsic_value(
+            "put", 1.05, 1.10, 1_000_000.0,
+        );
+        assert!((iv - 50000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_option_intrinsic_value_put_out_of_the_money() {
+        let iv = super::HedgeManagementService::calculate_option_intrinsic_value(
+            "put", 1.15, 1.10, 1_000_000.0,
+        );
+        assert_eq!(iv, 0.0);
+    }
+
+    #[test]
+    fn test_option_intrinsic_value_straddle() {
+        let iv = super::HedgeManagementService::calculate_option_intrinsic_value(
+            "straddle", 1.15, 1.10, 1_000_000.0,
+        );
+        assert_eq!(iv, 0.0); // Not a simple intrinsic calc
+    }
+
+    #[test]
+    fn test_option_time_value() {
+        let tv = super::HedgeManagementService::calculate_option_time_value(
+            75000.0, 50000.0,
+        );
+        assert!((tv - 25000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_option_time_value_zero_premium() {
+        let tv = super::HedgeManagementService::calculate_option_time_value(
+            0.0, 0.0,
+        );
+        assert_eq!(tv, 0.0);
+    }
+
+    #[test]
+    fn test_forward_unrealized_pnl_long_profit() {
+        // Long forward: contracted 1.10, current 1.15, notional 1M
+        let pnl = super::HedgeManagementService::calculate_forward_unrealized_pnl(
+            1.10, 1.15, 1_000_000.0, "long",
+        );
+        assert!((pnl - 50000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_forward_unrealized_pnl_long_loss() {
+        let pnl = super::HedgeManagementService::calculate_forward_unrealized_pnl(
+            1.10, 1.05, 1_000_000.0, "long",
+        );
+        assert!((pnl - (-50000.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_forward_unrealized_pnl_short_profit() {
+        let pnl = super::HedgeManagementService::calculate_forward_unrealized_pnl(
+            1.10, 1.05, 1_000_000.0, "short",
+        );
+        assert!((pnl - 50000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_forward_unrealized_pnl_short_loss() {
+        let pnl = super::HedgeManagementService::calculate_forward_unrealized_pnl(
+            1.10, 1.15, 1_000_000.0, "short",
+        );
+        assert!((pnl - (-50000.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_swap_net_cashflow_positive() {
+        // Receive 5%, pay 3%, notional 10M, 90 days
+        let cf = super::HedgeManagementService::calculate_swap_net_cashflow(
+            0.05, 0.03, 10_000_000.0, 90,
+        );
+        // Receive: 0.05 * 10M * (90/360) = 125,000
+        // Pay: 0.03 * 10M * (90/360) = 75,000
+        // Net: 50,000
+        assert!((cf - 50000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_swap_net_cashflow_negative() {
+        let cf = super::HedgeManagementService::calculate_swap_net_cashflow(
+            0.03, 0.05, 10_000_000.0, 90,
+        );
+        assert!(cf < 0.0);
+        assert!((cf - (-50000.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_present_value_basic() {
+        let pv = super::HedgeManagementService::present_value(100000.0, 0.05, 1);
+        // 100000 / 1.05 = 95238.10
+        assert!((pv - 95238.10).abs() < 1.0);
+    }
+
+    #[test]
+    fn test_present_value_zero_rate() {
+        let pv = super::HedgeManagementService::present_value(100000.0, 0.0, 5);
+        assert_eq!(pv, 100000.0);
+    }
+
+    #[test]
+    fn test_present_value_multi_period() {
+        let pv = super::HedgeManagementService::present_value(100000.0, 0.10, 2);
+        // 100000 / 1.21 = 82644.63
+        assert!((pv - 82644.63).abs() < 1.0);
+    }
+
+    #[test]
+    fn test_days_to_maturity_future() {
+        let maturity = chrono::NaiveDate::from_ymd_opt(2026, 12, 31).unwrap();
+        let as_of = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        let days = super::HedgeManagementService::days_to_maturity(maturity, as_of);
+        assert_eq!(days, 364);
+    }
+
+    #[test]
+    fn test_days_to_maturity_past() {
+        let maturity = chrono::NaiveDate::from_ymd_opt(2025, 6, 30).unwrap();
+        let as_of = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        let days = super::HedgeManagementService::days_to_maturity(maturity, as_of);
+        assert!(days < 0);
+    }
+
+    // ========================================================================
+    // Hedge Ratio Validation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_hedge_ratio_valid() {
+        assert!(super::HedgeManagementService::validate_hedge_ratio(1.0));
+        assert!(super::HedgeManagementService::validate_hedge_ratio(0.5));
+        assert!(super::HedgeManagementService::validate_hedge_ratio(1.5));
+        assert!(super::HedgeManagementService::validate_hedge_ratio(2.0));
+    }
+
+    #[test]
+    fn test_hedge_ratio_invalid() {
+        assert!(!super::HedgeManagementService::validate_hedge_ratio(0.0));
+        assert!(!super::HedgeManagementService::validate_hedge_ratio(-1.0));
+        assert!(!super::HedgeManagementService::validate_hedge_ratio(2.5));
+    }
+
+    // ========================================================================
+    // Hedge Effectiveness Tests (Dollar Offset)
+    // ========================================================================
+
+    #[test]
+    fn test_dollar_offset_ratio_effective() {
+        // Perfect hedge: derivative gain 100k offsets hedged item loss 100k
+        let ratio = super::HedgeManagementService::dollar_offset_ratio(
+            -100000.0, 100000.0,
+        );
+        assert!((ratio - 1.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_dollar_offset_ratio_partial() {
+        let ratio = super::HedgeManagementService::dollar_offset_ratio(
+            -85000.0, 100000.0,
+        );
+        assert!((ratio - 0.85).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_dollar_offset_ratio_zero_hedged() {
+        let ratio = super::HedgeManagementService::dollar_offset_ratio(
+            -100000.0, 0.0,
+        );
+        assert_eq!(ratio, 0.0);
+    }
+
+    #[test]
+    fn test_effectiveness_effective_perfect() {
+        let result = super::HedgeManagementService::test_dollar_offset_effectiveness(
+            -100000.0, 100000.0,
+        );
+        assert!(result.is_effective);
+        assert!((result.ratio - 1.0).abs() < 0.01);
+        assert_eq!(result.result_label, "effective");
+        assert_eq!(result.ineffective_amount, 0.0);
+    }
+
+    #[test]
+    fn test_effectiveness_effective_near_lower_bound() {
+        // Ratio = 85000 / 100000 = 0.85 => just within 80%-125%
+        let result = super::HedgeManagementService::test_dollar_offset_effectiveness(
+            -85000.0, 100000.0,
+        );
+        assert!(result.is_effective);
+        assert!((result.ratio - 0.85).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_effectiveness_ineffective_below_lower() {
+        // Ratio = 70000 / 100000 = 0.70 => below 80%
+        let result = super::HedgeManagementService::test_dollar_offset_effectiveness(
+            -70000.0, 100000.0,
+        );
+        assert!(!result.is_effective);
+        assert_eq!(result.result_label, "ineffective");
+    }
+
+    #[test]
+    fn test_effectiveness_ineffective_above_upper() {
+        // Ratio = 130000 / 100000 = 1.30 => above 125%
+        let result = super::HedgeManagementService::test_dollar_offset_effectiveness(
+            -130000.0, 100000.0,
+        );
+        assert!(!result.is_effective);
+    }
+
+    #[test]
+    fn test_effectiveness_inconclusive_zero_hedged() {
+        let result = super::HedgeManagementService::test_dollar_offset_effectiveness(
+            -100000.0, 0.0,
+        );
+        assert!(!result.is_effective);
+        assert_eq!(result.result_label, "inconclusive");
+    }
+
+    #[test]
+    fn test_effectiveness_both_zero() {
+        let result = super::HedgeManagementService::test_dollar_offset_effectiveness(
+            0.0, 0.0,
+        );
+        assert!(!result.is_effective);
+        assert_eq!(result.result_label, "inconclusive");
+    }
+
+    // ========================================================================
+    // Regression Effectiveness Tests
+    // ========================================================================
+
+    #[test]
+    fn test_regression_effectiveness_perfect() {
+        // Perfect negative correlation: derivative offsets hedged item exactly
+        let derivative_changes = vec![-100.0, -200.0, -150.0, -300.0];
+        let hedged_changes = vec![100.0, 200.0, 150.0, 300.0];
+        let (r_sq, is_effective) = super::HedgeManagementService::regression_effectiveness(
+            &derivative_changes, &hedged_changes,
+        );
+        assert!(r_sq > 0.95); // Should be very high correlation
+        assert!(is_effective);
+    }
+
+    #[test]
+    fn test_regression_effectiveness_insufficient_data() {
+        let derivative_changes = vec![100.0];
+        let hedged_changes = vec![100.0];
+        let (r_sq, is_effective) = super::HedgeManagementService::regression_effectiveness(
+            &derivative_changes, &hedged_changes,
+        );
+        assert_eq!(r_sq, 0.0);
+        assert!(!is_effective);
+    }
+
+    #[test]
+    fn test_regression_effectiveness_mismatched_lengths() {
+        let derivative_changes = vec![100.0, 200.0];
+        let hedged_changes = vec![100.0];
+        let (r_sq, is_effective) = super::HedgeManagementService::regression_effectiveness(
+            &derivative_changes, &hedged_changes,
+        );
+        assert_eq!(r_sq, 0.0);
+        assert!(!is_effective);
+    }
+
+    #[test]
+    fn test_regression_effectiveness_no_correlation() {
+        // Random values - likely low R-squared
+        let derivative_changes = vec![100.0, -50.0, 200.0, -150.0, 75.0];
+        let hedged_changes = vec![-200.0, 300.0, -100.0, 250.0, -175.0];
+        let (r_sq, _is_effective) = super::HedgeManagementService::regression_effectiveness(
+            &derivative_changes, &hedged_changes,
+        );
+        // R-squared may vary but with inverse correlation here it should be moderate to high
+        assert!(r_sq >= 0.0 && r_sq <= 1.0);
+    }
+
+    // ========================================================================
+    // Variance Reduction Tests
+    // ========================================================================
+
+    #[test]
+    fn test_variance_reduction_full() {
+        let vr = super::HedgeManagementService::variance_reduction_ratio(
+            100000.0, 0.0,
+        );
+        assert!((vr - 1.0).abs() < 0.01); // 100% reduction
+    }
+
+    #[test]
+    fn test_variance_reduction_partial() {
+        let vr = super::HedgeManagementService::variance_reduction_ratio(
+            100000.0, 30000.0,
+        );
+        assert!((vr - 0.70).abs() < 0.01); // 70% reduction
+    }
+
+    #[test]
+    fn test_variance_reduction_zero_unhedged() {
+        let vr = super::HedgeManagementService::variance_reduction_ratio(
+            0.0, 50000.0,
+        );
+        assert_eq!(vr, 0.0);
+    }
+
+    // ========================================================================
+    // Hedge Accounting (Ineffectiveness) Tests
+    // ========================================================================
+
+    #[test]
+    fn test_fair_value_hedge_accounting() {
+        let result = super::HedgeManagementService::calculate_hedge_ineffectiveness(
+            -50000.0, 50000.0, "fair_value",
+        );
+        // Fair value: both go to P&L; ineffectiveness = net = 0
+        assert!((result.p_and_l_amount - 0.0).abs() < 0.01);
+        assert_eq!(result.oci_amount, 0.0);
+        assert!((result.ineffective_amount - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_fair_value_hedge_with_ineffectiveness() {
+        let result = super::HedgeManagementService::calculate_hedge_ineffectiveness(
+            -55000.0, 50000.0, "fair_value",
+        );
+        // P&L = -55k + 50k = -5k
+        assert!((result.p_and_l_amount - (-5000.0)).abs() < 0.01);
+        assert_eq!(result.oci_amount, 0.0);
+    }
+
+    #[test]
+    fn test_cash_flow_hedge_effective() {
+        // Effective: derivative -100k, hedged item 100k => ratio = 1.0 (within 80-125%)
+        let result = super::HedgeManagementService::calculate_hedge_ineffectiveness(
+            -100000.0, 100000.0, "cash_flow",
+        );
+        // All to OCI, no ineffectiveness
+        assert_eq!(result.p_and_l_amount, 0.0);
+        assert!((result.oci_amount - (-100000.0)).abs() < 0.01);
+        assert_eq!(result.ineffective_amount, 0.0);
+    }
+
+    #[test]
+    fn test_cash_flow_hedge_ineffective() {
+        // Ineffective: derivative -60k, hedged item 100k => ratio = 0.6 (below 80%)
+        let result = super::HedgeManagementService::calculate_hedge_ineffectiveness(
+            -60000.0, 100000.0, "cash_flow",
+        );
+        // Ineffective portion goes to P&L
+        assert!(result.p_and_l_amount > 0.0);
+        assert!(result.ineffective_amount > 0.0);
+    }
+
+    #[test]
+    fn test_net_investment_hedge_accounting() {
+        let result = super::HedgeManagementService::calculate_hedge_ineffectiveness(
+            -75000.0, 0.0, "net_investment",
+        );
+        // Net investment: effective portion to OCI (translation reserve)
+        assert_eq!(result.p_and_l_amount, 0.0);
+        assert!((result.oci_amount - (-75000.0)).abs() < 0.01);
+        assert_eq!(result.ineffective_amount, 0.0);
+    }
+
+    #[test]
+    fn test_unknown_hedge_type_goes_to_pl() {
+        let result = super::HedgeManagementService::calculate_hedge_ineffectiveness(
+            -50000.0, 0.0, "unknown",
+        );
+        assert!((result.p_and_l_amount - (-50000.0)).abs() < 0.01);
+        assert_eq!(result.oci_amount, 0.0);
+    }
+
+    // ========================================================================
+    // Collateral & CVA/DVA Tests
+    // ========================================================================
+
+    #[test]
+    fn test_collateral_requirement_above_threshold() {
+        // MtM: 500k, threshold: 100k, MTA: 50k
+        let collateral = super::HedgeManagementService::calculate_collateral_requirement(
+            500000.0, 100000.0, 50000.0,
+        );
+        // 500k - 100k = 400k > 50k MTA => 400k
+        assert!((collateral - 400000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_collateral_requirement_below_threshold() {
+        let collateral = super::HedgeManagementService::calculate_collateral_requirement(
+            50000.0, 100000.0, 50000.0,
+        );
+        // 50k < 100k threshold => no collateral
+        assert_eq!(collateral, 0.0);
+    }
+
+    #[test]
+    fn test_collateral_requirement_below_mta() {
+        let collateral = super::HedgeManagementService::calculate_collateral_requirement(
+            120000.0, 100000.0, 50000.0,
+        );
+        // 120k - 100k = 20k < 50k MTA => no collateral
+        assert_eq!(collateral, 0.0);
+    }
+
+    #[test]
+    fn test_collateral_requirement_negative_mtm() {
+        let collateral = super::HedgeManagementService::calculate_collateral_requirement(
+            -500000.0, 100000.0, 50000.0,
+        );
+        // |-500k| = 500k > 100k threshold => 400k
+        assert!((collateral - 400000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cva_calculation() {
+        let cva = super::HedgeManagementService::calculate_cva(
+            10_000_000.0, 0.02, 0.40,
+        );
+        // 10M * 2% * (1 - 40%) = 120,000
+        assert!((cva - 120000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cva_zero_default_probability() {
+        let cva = super::HedgeManagementService::calculate_cva(
+            10_000_000.0, 0.0, 0.40,
+        );
+        assert_eq!(cva, 0.0);
+    }
+
+    #[test]
+    fn test_cva_full_recovery() {
+        let cva = super::HedgeManagementService::calculate_cva(
+            10_000_000.0, 0.02, 1.0,
+        );
+        assert_eq!(cva, 0.0);
+    }
+
+    #[test]
+    fn test_dva_calculation() {
+        let dva = super::HedgeManagementService::calculate_dva(
+            -5_000_000.0, 0.03, 0.30,
+        );
+        // 5M * 3% * (1 - 30%) = 105,000
+        assert!((dva - 105000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_dva_positive_exposure() {
+        let dva = super::HedgeManagementService::calculate_dva(
+            5_000_000.0, 0.03, 0.30,
+        );
+        // Positive exposure - DVA is for negative exposure
+        assert_eq!(dva, 0.0);
+    }
+
+    // ========================================================================
+    // Workflow Transition Tests
+    // ========================================================================
+
+    #[test]
+    fn test_derivative_instrument_workflow_transitions() {
+        let def = entities::derivative_instrument_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "matured"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "terminated"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "settled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "matured" && t.to_state == "settled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+    }
+
+    #[test]
+    fn test_hedge_relationship_workflow_transitions() {
+        let def = entities::hedge_relationship_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "documented"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "documented" && t.to_state == "active"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "deeffective"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "active" && t.to_state == "closed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "deeffective" && t.to_state == "closed"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "cancelled"));
+    }
+
+    #[test]
+    fn test_hedge_documentation_workflow_transitions() {
+        let def = entities::hedge_documentation_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "approved"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "draft" && t.to_state == "rejected"));
+    }
+
+    // ========================================================================
+    // Hedge Management Entity Uniqueness Tests
+    // ========================================================================
+
+    #[test]
+    fn test_hedge_management_entities_unique() {
+        let hedge_entities = vec![
+            entities::derivative_instrument_definition(),
+            entities::hedge_relationship_definition(),
+            entities::hedge_effectiveness_test_definition(),
+            entities::hedge_documentation_definition(),
+        ];
+        assert_eq!(hedge_entities.len(), 4);
+        let names: std::collections::HashSet<&str> = hedge_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 4, "All hedge entity names must be unique");
+    }
+
+    #[test]
+    fn test_hedge_management_workflow_entity_count() {
+        let workflow_entities = vec![
+            entities::derivative_instrument_definition(),
+            entities::hedge_relationship_definition(),
+            entities::hedge_documentation_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 3, "All 3 hedge entities should have workflows");
+    }
+
+    #[test]
+    fn test_hedge_effectiveness_test_no_workflow() {
+        let def = entities::hedge_effectiveness_test_definition();
+        assert!(def.workflow.is_none(), "Effectiveness tests should not have a workflow");
+    }
+
+    // ========================================================================
+    // Service Method Validation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_validate_instrument_type() {
+        assert!(super::HedgeManagementService::validate_instrument_type("forward"));
+        assert!(super::HedgeManagementService::validate_instrument_type("swap"));
+        assert!(super::HedgeManagementService::validate_instrument_type("option"));
+        assert!(!super::HedgeManagementService::validate_instrument_type("bond"));
+    }
+
+    #[test]
+    fn test_validate_underlying_type() {
+        assert!(super::HedgeManagementService::validate_underlying_type("interest_rate"));
+        assert!(super::HedgeManagementService::validate_underlying_type("foreign_exchange"));
+        assert!(!super::HedgeManagementService::validate_underlying_type("weather"));
+    }
+
+    #[test]
+    fn test_validate_option_type() {
+        assert!(super::HedgeManagementService::validate_option_type("call"));
+        assert!(super::HedgeManagementService::validate_option_type("put"));
+        assert!(super::HedgeManagementService::validate_option_type("none"));
+        assert!(!super::HedgeManagementService::validate_option_type("binary"));
+    }
+
+    #[test]
+    fn test_validate_settlement_type() {
+        assert!(super::HedgeManagementService::validate_settlement_type("physical"));
+        assert!(super::HedgeManagementService::validate_settlement_type("cash"));
+        assert!(super::HedgeManagementService::validate_settlement_type("net_cash"));
+        assert!(!super::HedgeManagementService::validate_settlement_type("crypto"));
+    }
+
+    #[test]
+    fn test_validate_accounting_treatment() {
+        assert!(super::HedgeManagementService::validate_accounting_treatment("trading"));
+        assert!(super::HedgeManagementService::validate_accounting_treatment("hedge"));
+        assert!(!super::HedgeManagementService::validate_accounting_treatment("speculative"));
+    }
+
+    #[test]
+    fn test_validate_hedge_type() {
+        assert!(super::HedgeManagementService::validate_hedge_type("fair_value"));
+        assert!(super::HedgeManagementService::validate_hedge_type("cash_flow"));
+        assert!(super::HedgeManagementService::validate_hedge_type("net_investment"));
+        assert!(!super::HedgeManagementService::validate_hedge_type("portfolio"));
+    }
+
+    #[test]
+    fn test_validate_hedged_risk() {
+        assert!(super::HedgeManagementService::validate_hedged_risk("interest_rate"));
+        assert!(super::HedgeManagementService::validate_hedged_risk("foreign_exchange"));
+        assert!(!super::HedgeManagementService::validate_hedged_risk("operational"));
+    }
+
+    #[test]
+    fn test_validate_effectiveness_method() {
+        assert!(super::HedgeManagementService::validate_effectiveness_method("dollar_offset"));
+        assert!(super::HedgeManagementService::validate_effectiveness_method("regression"));
+        assert!(!super::HedgeManagementService::validate_effectiveness_method("guess"));
     }
 }

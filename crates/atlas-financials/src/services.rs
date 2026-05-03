@@ -10966,6 +10966,1319 @@ impl AssetCapitalizationService {
     }
 }
 
+// ============================================================================
+// Invoice Tolerance Matching Service
+// ============================================================================
+
+/// Invoice Tolerance Matching service
+/// Oracle Fusion: Payables > Invoice Matching > Tolerance Rules
+#[allow(dead_code)]
+pub struct InvoiceToleranceMatchingService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid match types for invoice matching
+#[allow(dead_code)]
+const VALID_MATCH_TYPES: &[&str] = &["two_way", "three_way", "four_way"];
+
+/// Valid tolerance types
+#[allow(dead_code)]
+const VALID_TOLERANCE_TYPES: &[&str] = &["quantity", "price", "amount"];
+
+/// Valid tolerance bases
+#[allow(dead_code)]
+const VALID_TOLERANCE_BASES: &[&str] = &["percentage", "absolute", "percentage_or_absolute"];
+
+/// Valid violation actions
+#[allow(dead_code)]
+const VALID_VIOLATION_ACTIONS: &[&str] = &[
+    "reject", "hold", "warning", "approve_with_notification",
+];
+
+/// Result of a match comparison
+#[derive(Debug, Clone, PartialEq)]
+pub enum MatchResult {
+    Matched,
+    WithinTolerance { variance: f64, variance_pct: f64 },
+    OutsideTolerance { variance: f64, variance_pct: f64 },
+}
+
+/// Full match outcome for an invoice line
+#[derive(Debug, Clone)]
+pub struct InvoiceMatchOutcome {
+    pub match_type: String,
+    pub quantity_match: MatchResult,
+    pub price_match: MatchResult,
+    pub overall_result: String,
+    pub holds: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+impl InvoiceToleranceMatchingService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate a tolerance rule definition
+    pub fn validate_tolerance_rule(
+        code: &str,
+        name: &str,
+        match_type: &str,
+        tolerance_type: &str,
+        tolerance_basis: &str,
+        tolerance_percentage: f64,
+        tolerance_amount: f64,
+    ) -> AtlasResult<()> {
+        if code.is_empty() {
+            return Err(AtlasError::ValidationFailed("Code is required".to_string()));
+        }
+        if name.is_empty() {
+            return Err(AtlasError::ValidationFailed("Name is required".to_string()));
+        }
+        if !VALID_MATCH_TYPES.contains(&match_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid match_type '{}'. Must be one of: {}",
+                match_type, VALID_MATCH_TYPES.join(", ")
+            )));
+        }
+        if !VALID_TOLERANCE_TYPES.contains(&tolerance_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid tolerance_type '{}'. Must be one of: {}",
+                tolerance_type, VALID_TOLERANCE_TYPES.join(", ")
+            )));
+        }
+        if !VALID_TOLERANCE_BASES.contains(&tolerance_basis) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid tolerance_basis '{}'. Must be one of: {}",
+                tolerance_basis, VALID_TOLERANCE_BASES.join(", ")
+            )));
+        }
+        if tolerance_percentage < 0.0 || tolerance_percentage > 100.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Tolerance percentage must be between 0 and 100".to_string(),
+            ));
+        }
+        if tolerance_amount < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Tolerance amount must be non-negative".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Compare actual vs ordered with tolerance
+    /// Returns MatchResult with variance information
+    pub fn compare_with_tolerance(
+        actual: f64,
+        expected: f64,
+        tolerance_pct: f64,
+        tolerance_abs: f64,
+        basis: &str,
+    ) -> MatchResult {
+        if expected == 0.0 && actual == 0.0 {
+            return MatchResult::Matched;
+        }
+        let variance = actual - expected;
+        let variance_pct = if expected != 0.0 {
+            (variance.abs() / expected.abs()) * 100.0
+        } else {
+            if actual != 0.0 { f64::MAX } else { 0.0 }
+        };
+
+        if variance.abs() < 0.001 {
+            return MatchResult::Matched;
+        }
+
+        let within_tolerance = match basis {
+            "percentage" => variance_pct <= tolerance_pct,
+            "absolute" => variance.abs() <= tolerance_abs,
+            "percentage_or_absolute" => variance_pct <= tolerance_pct || variance.abs() <= tolerance_abs,
+            _ => variance_pct <= tolerance_pct,
+        };
+
+        if within_tolerance {
+            MatchResult::WithinTolerance { variance, variance_pct }
+        } else {
+            MatchResult::OutsideTolerance { variance, variance_pct }
+        }
+    }
+
+    /// Perform full 2-way match (Invoice vs PO)
+    pub fn perform_two_way_match(
+        invoiced_qty: f64,
+        ordered_qty: f64,
+        invoiced_price: f64,
+        ordered_price: f64,
+        qty_tolerance_pct: f64,
+        price_tolerance_pct: f64,
+    ) -> InvoiceMatchOutcome {
+        let qty_match = Self::compare_with_tolerance(
+            invoiced_qty, ordered_qty, qty_tolerance_pct, 0.0, "percentage",
+        );
+        let price_match = Self::compare_with_tolerance(
+            invoiced_price, ordered_price, price_tolerance_pct, 0.0, "percentage",
+        );
+
+        let mut holds = Vec::new();
+        let mut warnings = Vec::new();
+
+        Self::collect_match_issues(&qty_match, "quantity", &mut holds, &mut warnings);
+        Self::collect_match_issues(&price_match, "price", &mut holds, &mut warnings);
+
+        let overall_result = if holds.is_empty() { "matched" } else { "failed" }.to_string();
+
+        InvoiceMatchOutcome {
+            match_type: "two_way".to_string(),
+            quantity_match: qty_match,
+            price_match,
+            overall_result,
+            holds,
+            warnings,
+        }
+    }
+
+    /// Perform full 3-way match (Invoice vs PO vs Receipt)
+    pub fn perform_three_way_match(
+        invoiced_qty: f64,
+        ordered_qty: f64,
+        received_qty: f64,
+        invoiced_price: f64,
+        ordered_price: f64,
+        qty_tolerance_pct: f64,
+        price_tolerance_pct: f64,
+    ) -> InvoiceMatchOutcome {
+        let mut outcome = Self::perform_two_way_match(
+            invoiced_qty, ordered_qty, invoiced_price, ordered_price,
+            qty_tolerance_pct, price_tolerance_pct,
+        );
+        outcome.match_type = "three_way".to_string();
+
+        // Also check invoiced vs received
+        let receipt_match = Self::compare_with_tolerance(
+            invoiced_qty, received_qty, qty_tolerance_pct, 0.0, "percentage",
+        );
+        Self::collect_match_issues(&receipt_match, "receipt_quantity", &mut outcome.holds, &mut outcome.warnings);
+
+        outcome.overall_result = if outcome.holds.is_empty() { "matched" } else { "failed" }.to_string();
+        outcome
+    }
+
+    /// Perform full 4-way match (Invoice vs PO vs Receipt vs Accepted)
+    pub fn perform_four_way_match(
+        invoiced_qty: f64,
+        ordered_qty: f64,
+        received_qty: f64,
+        accepted_qty: f64,
+        invoiced_price: f64,
+        ordered_price: f64,
+        qty_tolerance_pct: f64,
+        price_tolerance_pct: f64,
+    ) -> InvoiceMatchOutcome {
+        let mut outcome = Self::perform_three_way_match(
+            invoiced_qty, ordered_qty, received_qty,
+            invoiced_price, ordered_price,
+            qty_tolerance_pct, price_tolerance_pct,
+        );
+        outcome.match_type = "four_way".to_string();
+
+        // Also check invoiced vs accepted
+        let accepted_match = Self::compare_with_tolerance(
+            invoiced_qty, accepted_qty, qty_tolerance_pct, 0.0, "percentage",
+        );
+        Self::collect_match_issues(&accepted_match, "accepted_quantity", &mut outcome.holds, &mut outcome.warnings);
+
+        outcome.overall_result = if outcome.holds.is_empty() { "matched" } else { "failed" }.to_string();
+        outcome
+    }
+
+    /// Collect match issues into holds/warnings
+    fn collect_match_issues(
+        result: &MatchResult,
+        dimension: &str,
+        holds: &mut Vec<String>,
+        warnings: &mut Vec<String>,
+    ) {
+        match result {
+            MatchResult::Matched => {}
+            MatchResult::WithinTolerance { variance, variance_pct } => {
+                warnings.push(format!(
+                    "{} within tolerance: variance={:.2} ({:.1}%)",
+                    dimension, variance, variance_pct
+                ));
+            }
+            MatchResult::OutsideTolerance { variance, variance_pct } => {
+                holds.push(format!(
+                    "{} outside tolerance: variance={:.2} ({:.1}%)",
+                    dimension, variance, variance_pct
+                ));
+            }
+        }
+    }
+
+    /// Calculate quantity variance amount in currency
+    pub fn calculate_quantity_variance_amount(
+        invoiced_qty: f64,
+        ordered_qty: f64,
+        unit_price: f64,
+    ) -> f64 {
+        (invoiced_qty - ordered_qty) * unit_price
+    }
+
+    /// Calculate price variance amount in currency
+    pub fn calculate_price_variance_amount(
+        invoiced_price: f64,
+        ordered_price: f64,
+        quantity: f64,
+    ) -> f64 {
+        (invoiced_price - ordered_price) * quantity
+    }
+}
+
+// ============================================================================
+// Payment Maturity & Discount Service
+// ============================================================================
+
+/// Payment Maturity & Discount service
+/// Oracle Fusion: Payables > Payment Terms > Discount Calculation
+#[allow(dead_code)]
+pub struct PaymentMaturityDiscountService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid discount basis types
+#[allow(dead_code)]
+const VALID_DISCOUNT_BASES: &[&str] = &[
+    "invoice_date", "goods_received_date", "invoice_received_date",
+];
+
+/// Payment maturity calculation result
+#[derive(Debug, Clone)]
+pub struct PaymentMaturityResult {
+    pub maturity_date: chrono::NaiveDate,
+    pub discount_due_date: Option<chrono::NaiveDate>,
+    pub discount_available: f64,
+    pub net_payment_amount: f64,
+    pub discount_eligible: bool,
+    pub days_until_maturity: i64,
+}
+
+/// Discount tier for tiered discount schedules
+#[derive(Debug, Clone)]
+pub struct DiscountTier {
+    pub days_from: i32,
+    pub days_to: i32,
+    pub discount_pct: f64,
+}
+
+impl PaymentMaturityDiscountService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate the maturity (due) date based on payment terms
+    pub fn calculate_maturity_date(
+        base_date: chrono::NaiveDate,
+        net_days: i32,
+        basis: &str,
+        goods_received_date: Option<chrono::NaiveDate>,
+        invoice_received_date: Option<chrono::NaiveDate>,
+    ) -> chrono::NaiveDate {
+        let effective_date = match basis {
+            "goods_received_date" => goods_received_date.unwrap_or(base_date),
+            "invoice_received_date" => invoice_received_date.unwrap_or(base_date),
+            _ => base_date,
+        };
+        effective_date + chrono::Duration::days(net_days as i64)
+    }
+
+    /// Calculate the discount due date
+    pub fn calculate_discount_due_date(
+        base_date: chrono::NaiveDate,
+        discount_days: i32,
+        basis: &str,
+        goods_received_date: Option<chrono::NaiveDate>,
+        invoice_received_date: Option<chrono::NaiveDate>,
+    ) -> chrono::NaiveDate {
+        let effective_date = match basis {
+            "goods_received_date" => goods_received_date.unwrap_or(base_date),
+            "invoice_received_date" => invoice_received_date.unwrap_or(base_date),
+            _ => base_date,
+        };
+        effective_date + chrono::Duration::days(discount_days as i64)
+    }
+
+    /// Calculate discount amount
+    pub fn calculate_discount_amount(
+        invoice_amount: f64,
+        discount_pct: f64,
+        discount_on_partial: bool,
+        paid_amount: f64,
+    ) -> f64 {
+        let base = if discount_on_partial { paid_amount } else { invoice_amount };
+        base * (discount_pct / 100.0)
+    }
+
+    /// Determine the best discount tier from a tiered schedule
+    pub fn determine_discount_tier(
+        days_since_basis: i32,
+        tiers: &[DiscountTier],
+    ) -> Option<&DiscountTier> {
+        tiers.iter().find(|t| days_since_basis >= t.days_from && days_since_basis <= t.days_to)
+    }
+
+    /// Calculate net payment amount after discount
+    pub fn calculate_net_payment(
+        invoice_amount: f64,
+        discount_amount: f64,
+    ) -> f64 {
+        (invoice_amount - discount_amount).max(0.0)
+    }
+
+    /// Check if a discount is still eligible given a reference date
+    pub fn is_discount_eligible(
+        reference_date: chrono::NaiveDate,
+        discount_due_date: chrono::NaiveDate,
+    ) -> bool {
+        reference_date <= discount_due_date
+    }
+
+    /// Calculate days until maturity from a reference date
+    pub fn calculate_days_until_maturity(
+        reference_date: chrono::NaiveDate,
+        maturity_date: chrono::NaiveDate,
+    ) -> i64 {
+        (maturity_date - reference_date).num_days()
+    }
+
+    /// Full maturity calculation
+    pub fn calculate_payment_maturity(
+        invoice_date: chrono::NaiveDate,
+        invoice_amount: f64,
+        net_days: i32,
+        discount_days: Option<i32>,
+        discount_pct: f64,
+        basis: &str,
+        goods_received_date: Option<chrono::NaiveDate>,
+        invoice_received_date: Option<chrono::NaiveDate>,
+        reference_date: chrono::NaiveDate,
+    ) -> PaymentMaturityResult {
+        let maturity_date = Self::calculate_maturity_date(
+            invoice_date, net_days, basis, goods_received_date, invoice_received_date,
+        );
+
+        let discount_due_date = discount_days.map(|days| {
+            Self::calculate_discount_due_date(
+                invoice_date, days, basis, goods_received_date, invoice_received_date,
+            )
+        });
+
+        let discount_eligible = discount_due_date
+            .map(|ddd| Self::is_discount_eligible(reference_date, ddd))
+            .unwrap_or(false);
+
+        let discount_available = if discount_eligible {
+            invoice_amount * (discount_pct / 100.0)
+        } else {
+            0.0
+        };
+
+        let net_payment_amount = Self::calculate_net_payment(invoice_amount, discount_available);
+        let days_until_maturity = Self::calculate_days_until_maturity(reference_date, maturity_date);
+
+        PaymentMaturityResult {
+            maturity_date,
+            discount_due_date,
+            discount_available,
+            net_payment_amount,
+            discount_eligible,
+            days_until_maturity,
+        }
+    }
+
+    /// Validate a discount schedule
+    pub fn validate_discount_schedule(
+        code: &str,
+        net_days: i32,
+        discount_pct: f64,
+    ) -> AtlasResult<()> {
+        if code.is_empty() {
+            return Err(AtlasError::ValidationFailed("Code is required".to_string()));
+        }
+        if net_days <= 0 {
+            return Err(AtlasError::ValidationFailed("Net days must be positive".to_string()));
+        }
+        if discount_pct < 0.0 || discount_pct > 100.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Discount percentage must be between 0 and 100".to_string(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Supplier Bank Account Validation Service
+// ============================================================================
+
+/// Supplier Bank Account Validation service
+/// Oracle Fusion: Payables > Suppliers > Bank Accounts
+#[allow(dead_code)]
+pub struct SupplierBankValidationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid account types
+#[allow(dead_code)]
+const VALID_ACCOUNT_TYPES: &[&str] = &["checking", "savings", "other"];
+
+/// Bank account validation result
+#[derive(Debug, Clone)]
+pub struct BankValidationResult {
+    pub is_valid: bool,
+    pub errors: Vec<String>,
+    pub warnings: Vec<String>,
+    pub iban_valid: Option<bool>,
+    pub routing_valid: Option<bool>,
+    pub swift_valid: Option<bool>,
+}
+
+impl SupplierBankValidationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate IBAN format and checksum
+    pub fn validate_iban(iban: &str) -> (bool, Option<String>) {
+        let cleaned: String = iban.chars().filter(|c| !c.is_whitespace()).collect();
+        if cleaned.len() < 5 {
+            return (false, Some("IBAN must be at least 5 characters".to_string()));
+        }
+        // Check first 2 chars are letters (country code)
+        if !cleaned.chars().take(2).all(|c| c.is_ascii_alphabetic()) {
+            return (false, Some("IBAN must start with 2-letter country code".to_string()));
+        }
+        // Check chars 3-4 are digits (check digits)
+        let check_digits: String = cleaned.chars().skip(2).take(2).collect();
+        if !check_digits.chars().all(|c| c.is_ascii_digit()) {
+            return (false, Some("IBAN check digits (positions 3-4) must be numeric".to_string()));
+        }
+        // Check remaining chars are alphanumeric
+        if !cleaned.chars().skip(4).all(|c| c.is_ascii_alphanumeric()) {
+            return (false, Some("IBAN body must be alphanumeric".to_string()));
+        }
+
+        // Mod-97 checksum validation
+        // Move first 4 chars to end, convert letters to numbers (A=10, B=11, ...)
+        let rearranged = format!("{}{}", &cleaned[4..], &cleaned[..4]);
+        let numeric_string: String = rearranged.chars().map(|c| {
+            if c.is_ascii_digit() {
+                c.to_string()
+            } else {
+                format!("{:02}", (c.to_ascii_uppercase() as u32) - ('A' as u32) + 10)
+            }
+        }).collect();
+
+        if let Ok(number) = numeric_string.parse::<u128>() {
+            if number % 97 != 1 {
+                return (false, Some("IBAN checksum validation failed (mod-97)".to_string()));
+            }
+        } else {
+            return (false, Some("IBAN is too long for checksum validation".to_string()));
+        }
+
+        (true, None)
+    }
+
+    /// Validate ABA routing number (US)
+    pub fn validate_routing_number(routing: &str) -> (bool, Option<String>) {
+        let cleaned: String = routing.chars().filter(|c| c.is_ascii_digit()).collect();
+        if cleaned.len() != 9 {
+            return (false, Some("US routing number must be exactly 9 digits".to_string()));
+        }
+        // ABA checksum: (3*d1 + 7*d2 + d3 + 3*d4 + 7*d5 + d6 + 3*d7 + 7*d8 + d9) % 10 == 0
+        let digits: Vec<u32> = cleaned.chars().map(|c| c.to_digit(10).unwrap()).collect();
+        let checksum = 3 * digits[0] + 7 * digits[1] + digits[2]
+            + 3 * digits[3] + 7 * digits[4] + digits[5]
+            + 3 * digits[6] + 7 * digits[7] + digits[8];
+        if checksum % 10 != 0 {
+            return (false, Some("Routing number checksum validation failed".to_string()));
+        }
+        (true, None)
+    }
+
+    /// Validate SWIFT/BIC code
+    pub fn validate_swift_bic(swift: &str) -> (bool, Option<String>) {
+        let cleaned: String = swift.chars().filter(|c| !c.is_whitespace()).collect();
+        if cleaned.len() != 8 && cleaned.len() != 11 {
+            return (false, Some("SWIFT/BIC must be 8 or 11 characters".to_string()));
+        }
+        // First 4: bank code (letters)
+        if !cleaned.chars().take(4).all(|c| c.is_ascii_alphabetic()) {
+            return (false, Some("SWIFT/BIC bank code (first 4 chars) must be letters".to_string()));
+        }
+        // Chars 5-6: country code (letters)
+        if !cleaned.chars().skip(4).take(2).all(|c| c.is_ascii_alphabetic()) {
+            return (false, Some("SWIFT/BIC country code (chars 5-6) must be letters".to_string()));
+        }
+        // Chars 7-8: location code (alphanumeric)
+        if !cleaned.chars().skip(6).take(2).all(|c| c.is_ascii_alphanumeric()) {
+            return (false, Some("SWIFT/BIC location code (chars 7-8) must be alphanumeric".to_string()));
+        }
+        (true, None)
+    }
+
+    /// Full bank account validation
+    pub fn validate_bank_account(
+        account_number: &str,
+        iban: Option<&str>,
+        routing_number: Option<&str>,
+        swift_bic: Option<&str>,
+        currency_code: &str,
+    ) -> BankValidationResult {
+        let mut errors = Vec::new();
+        let mut warnings = Vec::new();
+        let mut iban_valid = None;
+        let mut routing_valid = None;
+        let mut swift_valid = None;
+
+        // Account number must be present
+        if account_number.is_empty() {
+            errors.push("Account number is required".to_string());
+        }
+
+        // Currency code must be present
+        if currency_code.is_empty() {
+            errors.push("Currency code is required".to_string());
+        }
+
+        // Validate IBAN if provided
+        if let Some(iban) = iban {
+            if !iban.is_empty() {
+                let (valid, msg) = Self::validate_iban(iban);
+                iban_valid = Some(valid);
+                if !valid {
+                    errors.push(format!("IBAN validation failed: {}", msg.unwrap_or_default()));
+                }
+            }
+        }
+
+        // Validate routing number if provided
+        if let Some(routing) = routing_number {
+            if !routing.is_empty() {
+                let (valid, msg) = Self::validate_routing_number(routing);
+                routing_valid = Some(valid);
+                if !valid {
+                    errors.push(format!("Routing number validation failed: {}", msg.unwrap_or_default()));
+                }
+            }
+        }
+
+        // Validate SWIFT/BIC if provided
+        if let Some(swift) = swift_bic {
+            if !swift.is_empty() {
+                let (valid, msg) = Self::validate_swift_bic(swift);
+                swift_valid = Some(valid);
+                if !valid {
+                    errors.push(format!("SWIFT/BIC validation failed: {}", msg.unwrap_or_default()));
+                }
+            }
+        }
+
+        // Warning if no identifiers provided at all
+        if iban.is_none() && routing_number.is_none() && swift_bic.is_none() {
+            warnings.push("No bank identifiers (IBAN, routing, SWIFT) provided".to_string());
+        }
+
+        BankValidationResult {
+            is_valid: errors.is_empty(),
+            errors,
+            warnings,
+            iban_valid,
+            routing_valid,
+            swift_valid,
+        }
+    }
+
+    /// Normalize IBAN (remove spaces, uppercase)
+    pub fn normalize_iban(iban: &str) -> String {
+        iban.chars()
+            .filter(|c| !c.is_whitespace())
+            .map(|c| c.to_ascii_uppercase())
+            .collect()
+    }
+}
+
+// ============================================================================
+// Automatic Tax Determination Service
+// ============================================================================
+
+/// Automatic Tax Determination service
+/// Oracle Fusion: Tax > Determination Engine
+#[allow(dead_code)]
+pub struct AutomaticTaxDeterminationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid classification types
+#[allow(dead_code)]
+const VALID_CLASSIFICATION_TYPES: &[&str] = &[
+    "product", "customer", "transaction", "location",
+];
+
+/// Tax determination result
+#[derive(Debug, Clone)]
+pub struct TaxDeterminationResult {
+    pub tax_regime_code: String,
+    pub tax_code: String,
+    pub tax_rate: f64,
+    pub taxable_amount: f64,
+    pub tax_amount: f64,
+    pub is_exempt: bool,
+    pub exemption_reason: Option<String>,
+    pub recovery_eligible: bool,
+    pub recovery_rate: f64,
+}
+
+/// Tax rule for determination
+#[derive(Debug, Clone)]
+pub struct TaxRule {
+    pub priority: i32,
+    pub product_classification: Option<String>,
+    pub customer_classification: Option<String>,
+    pub ship_from: Option<String>,
+    pub ship_to: Option<String>,
+    pub transaction_type: Option<String>,
+    pub tax_regime_code: String,
+    pub tax_code: String,
+    pub tax_rate: f64,
+    pub threshold_amount: f64,
+    pub is_recovery_eligible: bool,
+    pub recovery_rate: f64,
+}
+
+impl AutomaticTaxDeterminationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate a tax classification
+    pub fn validate_classification(
+        code: &str,
+        name: &str,
+        classification_type: &str,
+        default_rate: f64,
+    ) -> AtlasResult<()> {
+        if code.is_empty() {
+            return Err(AtlasError::ValidationFailed("Classification code is required".to_string()));
+        }
+        if name.is_empty() {
+            return Err(AtlasError::ValidationFailed("Classification name is required".to_string()));
+        }
+        if !VALID_CLASSIFICATION_TYPES.contains(&classification_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid classification_type '{}'. Must be one of: {}",
+                classification_type, VALID_CLASSIFICATION_TYPES.join(", ")
+            )));
+        }
+        if default_rate < 0.0 || default_rate > 100.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Default rate must be between 0 and 100".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Calculate tax amount from rate and base
+    pub fn calculate_tax_amount(
+        taxable_amount: f64,
+        tax_rate: f64,
+        is_exempt: bool,
+    ) -> f64 {
+        if is_exempt { 0.0 } else { taxable_amount * (tax_rate / 100.0) }
+    }
+
+    /// Calculate recovery amount
+    pub fn calculate_recovery_amount(
+        tax_amount: f64,
+        recovery_rate: f64,
+    ) -> f64 {
+        tax_amount * (recovery_rate / 100.0)
+    }
+
+    /// Find the best matching tax rule from a set of rules
+    pub fn find_matching_rule<'a>(
+        rules: &'a [TaxRule],
+        product_classification: Option<&str>,
+        customer_classification: Option<&str>,
+        ship_from: Option<&str>,
+        ship_to: Option<&str>,
+        transaction_type: Option<&str>,
+        amount: f64,
+    ) -> Option<&'a TaxRule> {
+        let mut best_match: Option<&'a TaxRule> = None;
+        let mut best_score = -1;
+
+        for rule in rules {
+            // Check threshold
+            if rule.threshold_amount > 0.0 && amount < rule.threshold_amount {
+                continue;
+            }
+
+            let mut score = 0;
+            let mut matches = true;
+
+            if let Some(ref rc) = rule.product_classification {
+                if let Some(pc) = product_classification {
+                    if rc == pc { score += 4; } else { matches = false; }
+                }
+            }
+
+            if let Some(ref rc) = rule.customer_classification {
+                if let Some(cc) = customer_classification {
+                    if rc == cc { score += 4; } else { matches = false; }
+                }
+            }
+
+            if let Some(ref rf) = rule.ship_from {
+                if let Some(sf) = ship_from {
+                    if rf == sf { score += 2; } else { matches = false; }
+                }
+            }
+
+            if let Some(ref rt) = rule.ship_to {
+                if let Some(st) = ship_to {
+                    if rt == st { score += 2; } else { matches = false; }
+                }
+            }
+
+            if let Some(ref rt) = rule.transaction_type {
+                if let Some(tt) = transaction_type {
+                    if rt == tt { score += 1; } else { matches = false; }
+                }
+            }
+
+            if matches && score > best_score {
+                best_score = score;
+                best_match = Some(rule);
+            }
+        }
+
+        best_match
+    }
+
+    /// Determine tax for a transaction line
+    pub fn determine_tax(
+        rules: &[TaxRule],
+        product_classification: Option<&str>,
+        customer_classification: Option<&str>,
+        ship_from: Option<&str>,
+        ship_to: Option<&str>,
+        transaction_type: Option<&str>,
+        line_amount: f64,
+        is_exempt: bool,
+        exemption_reason: Option<&str>,
+    ) -> TaxDeterminationResult {
+        let rule = Self::find_matching_rule(
+            rules,
+            product_classification,
+            customer_classification,
+            ship_from,
+            ship_to,
+            transaction_type,
+            line_amount,
+        );
+
+        match rule {
+            Some(r) => {
+                let tax_amount = Self::calculate_tax_amount(line_amount, r.tax_rate, is_exempt);
+                let recovery_amount = if r.is_recovery_eligible {
+                    Self::calculate_recovery_amount(tax_amount, r.recovery_rate)
+                } else {
+                    0.0
+                };
+                TaxDeterminationResult {
+                    tax_regime_code: r.tax_regime_code.clone(),
+                    tax_code: r.tax_code.clone(),
+                    tax_rate: r.tax_rate,
+                    taxable_amount: line_amount,
+                    tax_amount,
+                    is_exempt,
+                    exemption_reason: exemption_reason.map(|s| s.to_string()),
+                    recovery_eligible: r.is_recovery_eligible,
+                    recovery_rate: if r.is_recovery_eligible { r.recovery_rate } else { 0.0 },
+                }
+            }
+            None => TaxDeterminationResult {
+                tax_regime_code: String::new(),
+                tax_code: String::new(),
+                tax_rate: 0.0,
+                taxable_amount: line_amount,
+                tax_amount: 0.0,
+                is_exempt: true,
+                exemption_reason: exemption_reason.map(|s| s.to_string())
+                    .or_else(|| Some("No matching tax rule found".to_string())),
+                recovery_eligible: false,
+                recovery_rate: 0.0,
+            },
+        }
+    }
+
+    /// Calculate total tax for multiple lines
+    pub fn calculate_total_tax(results: &[TaxDeterminationResult]) -> f64 {
+        results.iter().map(|r| r.tax_amount).sum()
+    }
+
+    /// Calculate total taxable amount
+    pub fn calculate_total_taxable(results: &[TaxDeterminationResult]) -> f64 {
+        results.iter().map(|r| r.taxable_amount).sum()
+    }
+}
+
+// ============================================================================
+// Financial Transaction Purging & Archiving Service
+// ============================================================================
+
+/// Financial Transaction Purging & Archiving service
+/// Oracle Fusion: General Ledger > Archive & Purge
+#[allow(dead_code)]
+pub struct TransactionPurgeArchiveService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid entity types for archiving
+#[allow(dead_code)]
+const VALID_ARCHIVE_ENTITY_TYPES: &[&str] = &[
+    "journal_entry", "ap_invoice", "ap_payment", "ar_transaction",
+    "ar_receipt", "fixed_asset", "expense_report",
+];
+
+/// Valid archive actions
+#[allow(dead_code)]
+const VALID_ARCHIVE_ACTIONS: &[&str] = &[
+    "move_to_archive", "compress", "mark_as_archived",
+];
+
+/// Archive policy evaluation result
+#[derive(Debug, Clone)]
+pub struct ArchiveEligibility {
+    pub entity_type: String,
+    pub is_eligible: bool,
+    pub reason: String,
+    pub age_days: i64,
+    pub action: String,
+}
+
+/// Archive run statistics
+#[derive(Debug, Clone)]
+pub struct ArchiveRunStatistics {
+    pub records_scanned: i64,
+    pub records_archived: i64,
+    pub records_purged: i64,
+    pub records_failed: i64,
+    pub records_skipped: i64,
+    pub total_amount_archived: f64,
+}
+
+impl TransactionPurgeArchiveService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate an archive policy
+    pub fn validate_archive_policy(
+        code: &str,
+        name: &str,
+        entity_type: &str,
+        retention_days: i32,
+        archive_after_days: i32,
+        purge_after_days: i32,
+        action: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() {
+            return Err(AtlasError::ValidationFailed("Policy code is required".to_string()));
+        }
+        if name.is_empty() {
+            return Err(AtlasError::ValidationFailed("Policy name is required".to_string()));
+        }
+        if !VALID_ARCHIVE_ENTITY_TYPES.contains(&entity_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid entity_type '{}'. Must be one of: {}",
+                entity_type, VALID_ARCHIVE_ENTITY_TYPES.join(", ")
+            )));
+        }
+        if retention_days <= 0 {
+            return Err(AtlasError::ValidationFailed(
+                "Retention days must be positive".to_string(),
+            ));
+        }
+        if archive_after_days <= retention_days {
+            return Err(AtlasError::ValidationFailed(
+                "Archive after days must be greater than retention days".to_string(),
+            ));
+        }
+        if purge_after_days <= archive_after_days {
+            return Err(AtlasError::ValidationFailed(
+                "Purge after days must be greater than archive after days".to_string(),
+            ));
+        }
+        if !VALID_ARCHIVE_ACTIONS.contains(&action) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid archive_action '{}'. Must be one of: {}",
+                action, VALID_ARCHIVE_ACTIONS.join(", ")
+            )));
+        }
+        Ok(())
+    }
+
+    /// Check if a record is eligible for archival
+    pub fn check_archive_eligibility(
+        entity_type: &str,
+        record_date: chrono::NaiveDate,
+        reference_date: chrono::NaiveDate,
+        is_posted: bool,
+        retention_days: i32,
+        archive_after_days: i32,
+    ) -> ArchiveEligibility {
+        let age_days = (reference_date - record_date).num_days();
+
+        let (is_eligible, reason, action) = if !is_posted {
+            (false, "Record is not posted - cannot archive".to_string(), "none".to_string())
+        } else if age_days < i64::from(retention_days) {
+            (false, format!("Within retention period ({} days remaining)", i64::from(retention_days) - age_days), "none".to_string())
+        } else if age_days >= i64::from(archive_after_days) {
+            (true, "Eligible for archival".to_string(), "archive".to_string())
+        } else {
+            (false, "Within archive-after grace period".to_string(), "none".to_string())
+        };
+
+        ArchiveEligibility {
+            entity_type: entity_type.to_string(),
+            is_eligible,
+            reason,
+            age_days,
+            action,
+        }
+    }
+
+    /// Check if a record is eligible for purging
+    pub fn check_purge_eligibility(
+        entity_type: &str,
+        record_date: chrono::NaiveDate,
+        reference_date: chrono::NaiveDate,
+        is_archived: bool,
+        purge_after_days: i32,
+    ) -> ArchiveEligibility {
+        let age_days = (reference_date - record_date).num_days();
+
+        let (is_eligible, reason, action) = if !is_archived {
+            (false, "Record must be archived before purging".to_string(), "none".to_string())
+        } else if age_days >= i64::from(purge_after_days) {
+            (true, "Eligible for purge".to_string(), "purge".to_string())
+        } else {
+            (false, "Not yet eligible for purge".to_string(), "none".to_string())
+        };
+
+        ArchiveEligibility {
+            entity_type: entity_type.to_string(),
+            is_eligible,
+            reason,
+            age_days,
+            action,
+        }
+    }
+
+    /// Calculate archive run statistics
+    pub fn calculate_run_statistics(
+        scanned: i64,
+        archived: i64,
+        purged: i64,
+        failed: i64,
+        skipped: i64,
+        amounts: &[f64],
+    ) -> ArchiveRunStatistics {
+        let total_amount_archived: f64 = amounts.iter().sum();
+        ArchiveRunStatistics {
+            records_scanned: scanned,
+            records_archived: archived,
+            records_purged: purged,
+            records_failed: failed,
+            records_skipped: skipped,
+            total_amount_archived: total_amount_archived,
+        }
+    }
+
+    /// Validate archive run consistency
+    pub fn validate_run_statistics(stats: &ArchiveRunStatistics) -> AtlasResult<()> {
+        let processed = stats.records_archived + stats.records_purged + stats.records_failed + stats.records_skipped;
+        if processed != stats.records_scanned {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Run statistics inconsistent: scanned={} but processed={}",
+                stats.records_scanned, processed
+            )));
+        }
+        Ok(())
+    }
+
+    /// Calculate the cutoff date for an archive policy
+    pub fn calculate_cutoff_date(
+        reference_date: chrono::NaiveDate,
+        archive_after_days: i32,
+    ) -> chrono::NaiveDate {
+        reference_date - chrono::Duration::days(i64::from(archive_after_days))
+    }
+}
+
+// ============================================================================
+// Multi-Level Approval Engine Service
+// ============================================================================
+
+/// Multi-Level Approval Engine service
+/// Oracle Fusion: Workflow > Approval Hierarchy
+#[allow(dead_code)]
+pub struct MultiLevelApprovalService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid document types for approval
+#[allow(dead_code)]
+const VALID_APPROVAL_DOC_TYPES: &[&str] = &[
+    "journal_entry", "ap_invoice", "ap_payment", "ar_credit_memo",
+    "purchase_order", "expense_report", "budget_transfer",
+];
+
+/// Valid approval methods
+#[allow(dead_code)]
+const VALID_APPROVAL_METHODS: &[&str] = &[
+    "parallel", "serial", "first_responder",
+];
+
+/// Valid timeout actions
+#[allow(dead_code)]
+const VALID_TIMEOUT_ACTIONS: &[&str] = &[
+    "escalate", "auto_approve", "auto_reject",
+];
+
+/// Approval level definition
+#[derive(Debug, Clone)]
+pub struct ApprovalLevelDef {
+    pub level_number: i32,
+    pub level_name: String,
+    pub min_amount: f64,
+    pub max_amount: f64,
+    pub approver_role: String,
+    pub can_reject: bool,
+    pub can_return: bool,
+}
+
+/// Routing result
+#[derive(Debug, Clone)]
+pub struct ApprovalRoutingResult {
+    pub document_type: String,
+    pub document_amount: f64,
+    pub required_levels: Vec<ApprovalLevelDef>,
+    pub is_auto_approved: bool,
+    pub auto_approve_reason: Option<String>,
+}
+
+/// Approval action result
+#[derive(Debug, Clone, PartialEq)]
+pub enum ApprovalAction {
+    Approved,
+    Rejected { reason: String },
+    Returned { reason: String },
+    Escalated,
+    TimedOut,
+}
+
+impl MultiLevelApprovalService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate an approval hierarchy definition
+    pub fn validate_hierarchy(
+        code: &str,
+        name: &str,
+        document_type: &str,
+        max_levels: i32,
+        approval_method: &str,
+        timeout_hours: i32,
+        timeout_action: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() {
+            return Err(AtlasError::ValidationFailed("Code is required".to_string()));
+        }
+        if name.is_empty() {
+            return Err(AtlasError::ValidationFailed("Name is required".to_string()));
+        }
+        if !VALID_APPROVAL_DOC_TYPES.contains(&document_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid document_type '{}'. Must be one of: {}",
+                document_type, VALID_APPROVAL_DOC_TYPES.join(", ")
+            )));
+        }
+        if max_levels <= 0 {
+            return Err(AtlasError::ValidationFailed(
+                "Max levels must be positive".to_string(),
+            ));
+        }
+        if !VALID_APPROVAL_METHODS.contains(&approval_method) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid approval_method '{}'. Must be one of: {}",
+                approval_method, VALID_APPROVAL_METHODS.join(", ")
+            )));
+        }
+        if timeout_hours < 0 {
+            return Err(AtlasError::ValidationFailed(
+                "Timeout hours must be non-negative".to_string(),
+            ));
+        }
+        if !VALID_TIMEOUT_ACTIONS.contains(&timeout_action) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid timeout_action '{}'. Must be one of: {}",
+                timeout_action, VALID_TIMEOUT_ACTIONS.join(", ")
+            )));
+        }
+        Ok(())
+    }
+
+    /// Route a document to the appropriate approval levels
+    pub fn route_for_approval(
+        document_type: &str,
+        document_amount: f64,
+        levels: &[ApprovalLevelDef],
+        auto_approve_within_limit: bool,
+    ) -> ApprovalRoutingResult {
+        // Find all levels that this document amount falls into
+        let required_levels: Vec<ApprovalLevelDef> = levels.iter()
+            .filter(|l| document_amount >= l.min_amount)
+            .cloned()
+            .collect();
+
+        // If auto-approve is enabled and no levels are required
+        let is_auto_approved = auto_approve_within_limit && required_levels.is_empty();
+        let auto_approve_reason = if is_auto_approved {
+            Some(format!(
+                "Auto-approved: amount {:.2} is below all approval thresholds",
+                document_amount
+            ))
+        } else if required_levels.is_empty() {
+            Some("No approval levels configured".to_string())
+        } else {
+            None
+        };
+
+        ApprovalRoutingResult {
+            document_type: document_type.to_string(),
+            document_amount,
+            required_levels,
+            is_auto_approved,
+            auto_approve_reason,
+        }
+    }
+
+    /// Validate that approval levels are properly ordered
+    pub fn validate_approval_levels(levels: &[ApprovalLevelDef]) -> AtlasResult<()> {
+        if levels.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "At least one approval level is required".to_string(),
+            ));
+        }
+
+        for (i, level) in levels.iter().enumerate() {
+            if level.min_amount < 0.0 {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Level {}: min_amount cannot be negative", level.level_number
+                )));
+            }
+            if level.max_amount <= level.min_amount {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Level {}: max_amount must be greater than min_amount", level.level_number
+                )));
+            }
+            // Check ordering (levels should be sorted by min_amount ascending)
+            if i > 0 && level.min_amount < levels[i - 1].min_amount {
+                return Err(AtlasError::ValidationFailed(
+                    "Approval levels must be ordered by ascending min_amount".to_string(),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Calculate the current approval progress
+    pub fn calculate_approval_progress(
+        total_levels: i32,
+        completed_levels: i32,
+    ) -> f64 {
+        if total_levels == 0 { return 100.0; }
+        (completed_levels as f64 / total_levels as f64 * 100.0).min(100.0)
+    }
+
+    /// Determine timeout action
+    pub fn determine_timeout_action(
+        hours_elapsed: i32,
+        timeout_hours: i32,
+        timeout_action: &str,
+    ) -> ApprovalAction {
+        if hours_elapsed < timeout_hours {
+            return ApprovalAction::TimedOut;
+        }
+        match timeout_action {
+            "auto_approve" => ApprovalAction::Approved,
+            "auto_reject" => ApprovalAction::Rejected {
+                reason: "Auto-rejected due to approval timeout".to_string(),
+            },
+            _ => ApprovalAction::Escalated,
+        }
+    }
+
+    /// Get the next approval level after the current one
+    pub fn get_next_level<'a>(
+        levels: &'a [ApprovalLevelDef],
+        current_level: i32,
+    ) -> Option<&'a ApprovalLevelDef> {
+        levels.iter().find(|l| l.level_number > current_level)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -23272,6 +24585,1350 @@ mod tests {
         for entity in &workflow_entities {
             assert!(entity.workflow.is_some(),
                 "Entity '{}' should have a workflow",
+                entity.name);
+        }
+    }
+
+    // ========================================================================
+    // Invoice Tolerance Matching Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_invoice_tolerance_entity() {
+        let def = entities::invoice_tolerance_definition();
+        assert_eq!(def.name, "invoice_tolerances");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "inactive"));
+    }
+
+    #[test]
+    fn test_invoice_match_result_entity() {
+        let def = entities::invoice_match_result_definition();
+        assert_eq!(def.name, "invoice_match_results");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_tolerance_validate_ok() {
+        let result = super::InvoiceToleranceMatchingService::validate_tolerance_rule(
+            "TOL-01", "Standard Tolerance", "two_way", "quantity", "percentage", 5.0, 100.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_tolerance_validate_empty_code() {
+        let result = super::InvoiceToleranceMatchingService::validate_tolerance_rule(
+            "", "Name", "two_way", "quantity", "percentage", 5.0, 100.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tolerance_validate_empty_name() {
+        let result = super::InvoiceToleranceMatchingService::validate_tolerance_rule(
+            "TOL-01", "", "two_way", "quantity", "percentage", 5.0, 100.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tolerance_validate_invalid_match_type() {
+        let result = super::InvoiceToleranceMatchingService::validate_tolerance_rule(
+            "TOL-01", "Name", "invalid", "quantity", "percentage", 5.0, 100.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tolerance_validate_invalid_tolerance_type() {
+        let result = super::InvoiceToleranceMatchingService::validate_tolerance_rule(
+            "TOL-01", "Name", "two_way", "invalid", "percentage", 5.0, 100.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tolerance_validate_negative_pct() {
+        let result = super::InvoiceToleranceMatchingService::validate_tolerance_rule(
+            "TOL-01", "Name", "two_way", "quantity", "percentage", -5.0, 100.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_compare_matched() {
+        let result = super::InvoiceToleranceMatchingService::compare_with_tolerance(
+            100.0, 100.0, 5.0, 10.0, "percentage",
+        );
+        assert_eq!(result, super::MatchResult::Matched);
+    }
+
+    #[test]
+    fn test_compare_within_tolerance_pct() {
+        let result = super::InvoiceToleranceMatchingService::compare_with_tolerance(
+            102.0, 100.0, 5.0, 0.0, "percentage",
+        );
+        match result {
+            super::MatchResult::WithinTolerance { variance, variance_pct } => {
+                assert!((variance - 2.0).abs() < 0.01);
+                assert!((variance_pct - 2.0).abs() < 0.01);
+            }
+            _ => panic!("Expected WithinTolerance"),
+        }
+    }
+
+    #[test]
+    fn test_compare_outside_tolerance() {
+        let result = super::InvoiceToleranceMatchingService::compare_with_tolerance(
+            110.0, 100.0, 5.0, 0.0, "percentage",
+        );
+        match result {
+            super::MatchResult::OutsideTolerance { variance, variance_pct } => {
+                assert!((variance - 10.0).abs() < 0.01);
+                assert!((variance_pct - 10.0).abs() < 0.01);
+            }
+            _ => panic!("Expected OutsideTolerance"),
+        }
+    }
+
+    #[test]
+    fn test_compare_within_tolerance_abs() {
+        let result = super::InvoiceToleranceMatchingService::compare_with_tolerance(
+            104.0, 100.0, 0.0, 10.0, "absolute",
+        );
+        assert!(matches!(result, super::MatchResult::WithinTolerance { .. }));
+    }
+
+    #[test]
+    fn test_compare_outside_tolerance_abs() {
+        let result = super::InvoiceToleranceMatchingService::compare_with_tolerance(
+            115.0, 100.0, 0.0, 10.0, "absolute",
+        );
+        assert!(matches!(result, super::MatchResult::OutsideTolerance { .. }));
+    }
+
+    #[test]
+    fn test_compare_either_basis() {
+        // 5% of 100 is 5, abs tolerance is 10 - within either
+        let result = super::InvoiceToleranceMatchingService::compare_with_tolerance(
+            108.0, 100.0, 5.0, 10.0, "percentage_or_absolute",
+        );
+        assert!(matches!(result, super::MatchResult::WithinTolerance { .. }));
+    }
+
+    #[test]
+    fn test_compare_zero_expected() {
+        let result = super::InvoiceToleranceMatchingService::compare_with_tolerance(
+            0.0, 0.0, 5.0, 10.0, "percentage",
+        );
+        assert_eq!(result, super::MatchResult::Matched);
+    }
+
+    #[test]
+    fn test_two_way_match_success() {
+        let outcome = super::InvoiceToleranceMatchingService::perform_two_way_match(
+            100.0, 100.0,  // qty matched
+            50.0, 50.0,    // price matched
+            5.0, 5.0,      // tolerances
+        );
+        assert_eq!(outcome.match_type, "two_way");
+        assert_eq!(outcome.overall_result, "matched");
+        assert!(outcome.holds.is_empty());
+    }
+
+    #[test]
+    fn test_two_way_match_qty_hold() {
+        let outcome = super::InvoiceToleranceMatchingService::perform_two_way_match(
+            120.0, 100.0,  // qty 20% over
+            50.0, 50.0,    // price matched
+            5.0, 5.0,      // tolerances
+        );
+        assert_eq!(outcome.overall_result, "failed");
+        assert!(!outcome.holds.is_empty());
+    }
+
+    #[test]
+    fn test_three_way_match() {
+        let outcome = super::InvoiceToleranceMatchingService::perform_three_way_match(
+            100.0, 100.0, 100.0,  // invoiced, ordered, received
+            50.0, 50.0,           // prices
+            5.0, 5.0,             // tolerances
+        );
+        assert_eq!(outcome.match_type, "three_way");
+        assert_eq!(outcome.overall_result, "matched");
+    }
+
+    #[test]
+    fn test_three_way_match_receipt_variance() {
+        let outcome = super::InvoiceToleranceMatchingService::perform_three_way_match(
+            110.0, 100.0, 100.0,  // invoiced > ordered/received
+            50.0, 50.0,           // prices
+            5.0, 5.0,             // tolerances
+        );
+        assert_eq!(outcome.overall_result, "failed");
+        // Should have holds for quantity vs PO and quantity vs receipt
+    }
+
+    #[test]
+    fn test_four_way_match_success() {
+        let outcome = super::InvoiceToleranceMatchingService::perform_four_way_match(
+            100.0, 100.0, 100.0, 100.0,  // invoiced, ordered, received, accepted
+            50.0, 50.0,                   // prices
+            5.0, 5.0,                     // tolerances
+        );
+        assert_eq!(outcome.match_type, "four_way");
+        assert_eq!(outcome.overall_result, "matched");
+    }
+
+    #[test]
+    fn test_four_way_match_accepted_variance() {
+        let outcome = super::InvoiceToleranceMatchingService::perform_four_way_match(
+            100.0, 100.0, 100.0, 90.0,  // invoiced > accepted
+            50.0, 50.0,                   // prices
+            5.0, 5.0,                     // tolerances
+        );
+        assert_eq!(outcome.overall_result, "failed");
+    }
+
+    #[test]
+    fn test_quantity_variance_amount() {
+        let variance = super::InvoiceToleranceMatchingService::calculate_quantity_variance_amount(
+            110.0, 100.0, 50.0,
+        );
+        assert!((variance - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_price_variance_amount() {
+        let variance = super::InvoiceToleranceMatchingService::calculate_price_variance_amount(
+            55.0, 50.0, 100.0,
+        );
+        assert!((variance - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_match_types_valid() {
+        for mt in super::VALID_MATCH_TYPES {
+            assert!(super::VALID_MATCH_TYPES.contains(mt));
+        }
+        assert!(!super::VALID_MATCH_TYPES.contains(&"one_way"));
+    }
+
+    // ========================================================================
+    // Payment Maturity & Discount Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_payment_discount_schedule_entity() {
+        let def = entities::payment_discount_schedule_definition();
+        assert_eq!(def.name, "payment_discount_schedules");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+    }
+
+    #[test]
+    fn test_payment_maturity_entity() {
+        let def = entities::payment_maturity_definition();
+        assert_eq!(def.name, "payment_maturities");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_calculate_maturity_date_invoice_basis() {
+        use chrono::NaiveDate;
+        let invoice_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let maturity = super::PaymentMaturityDiscountService::calculate_maturity_date(
+            invoice_date, 30, "invoice_date", None, None,
+        );
+        assert_eq!(maturity, NaiveDate::from_ymd_opt(2026, 5, 31).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_maturity_date_goods_received_basis() {
+        use chrono::NaiveDate;
+        let invoice_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let goods_received = NaiveDate::from_ymd_opt(2026, 5, 10).unwrap();
+        let maturity = super::PaymentMaturityDiscountService::calculate_maturity_date(
+            invoice_date, 30, "goods_received_date", Some(goods_received), None,
+        );
+        assert_eq!(maturity, NaiveDate::from_ymd_opt(2026, 6, 9).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_discount_due_date() {
+        use chrono::NaiveDate;
+        let invoice_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let discount_date = super::PaymentMaturityDiscountService::calculate_discount_due_date(
+            invoice_date, 10, "invoice_date", None, None,
+        );
+        assert_eq!(discount_date, NaiveDate::from_ymd_opt(2026, 5, 11).unwrap());
+    }
+
+    #[test]
+    fn test_calculate_discount_amount_full() {
+        let discount = super::PaymentMaturityDiscountService::calculate_discount_amount(
+            10000.0, 2.0, false, 0.0,
+        );
+        assert!((discount - 200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_discount_amount_partial() {
+        let discount = super::PaymentMaturityDiscountService::calculate_discount_amount(
+            10000.0, 2.0, true, 5000.0,
+        );
+        assert!((discount - 100.0).abs() < 0.01); // 2% of 5000 (partial payment)
+    }
+
+    #[test]
+    fn test_calculate_net_payment() {
+        let net = super::PaymentMaturityDiscountService::calculate_net_payment(
+            10000.0, 200.0,
+        );
+        assert!((net - 9800.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_net_payment_no_overpay() {
+        let net = super::PaymentMaturityDiscountService::calculate_net_payment(
+            100.0, 200.0,
+        );
+        assert_eq!(net, 0.0);
+    }
+
+    #[test]
+    fn test_discount_eligible() {
+        use chrono::NaiveDate;
+        let ref_date = NaiveDate::from_ymd_opt(2026, 5, 5).unwrap();
+        let discount_date = NaiveDate::from_ymd_opt(2026, 5, 10).unwrap();
+        assert!(super::PaymentMaturityDiscountService::is_discount_eligible(ref_date, discount_date));
+    }
+
+    #[test]
+    fn test_discount_not_eligible_expired() {
+        use chrono::NaiveDate;
+        let ref_date = NaiveDate::from_ymd_opt(2026, 5, 15).unwrap();
+        let discount_date = NaiveDate::from_ymd_opt(2026, 5, 10).unwrap();
+        assert!(!super::PaymentMaturityDiscountService::is_discount_eligible(ref_date, discount_date));
+    }
+
+    #[test]
+    fn test_days_until_maturity() {
+        use chrono::NaiveDate;
+        let ref_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let maturity = NaiveDate::from_ymd_opt(2026, 5, 31).unwrap();
+        assert_eq!(
+            super::PaymentMaturityDiscountService::calculate_days_until_maturity(ref_date, maturity),
+            30,
+        );
+    }
+
+    #[test]
+    fn test_determine_discount_tier() {
+        let tiers = vec![
+            super::DiscountTier { days_from: 1, days_to: 10, discount_pct: 2.0 },
+            super::DiscountTier { days_from: 11, days_to: 20, discount_pct: 1.0 },
+        ];
+        let tier = super::PaymentMaturityDiscountService::determine_discount_tier(5, &tiers);
+        assert!(tier.is_some());
+        assert!((tier.unwrap().discount_pct - 2.0).abs() < 0.01);
+
+        let tier2 = super::PaymentMaturityDiscountService::determine_discount_tier(15, &tiers);
+        assert!(tier2.is_some());
+        assert!((tier2.unwrap().discount_pct - 1.0).abs() < 0.01);
+
+        let tier3 = super::PaymentMaturityDiscountService::determine_discount_tier(25, &tiers);
+        assert!(tier3.is_none());
+    }
+
+    #[test]
+    fn test_full_maturity_calculation() {
+        use chrono::NaiveDate;
+        let invoice_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let reference_date = NaiveDate::from_ymd_opt(2026, 5, 5).unwrap();
+        let result = super::PaymentMaturityDiscountService::calculate_payment_maturity(
+            invoice_date, 10000.0, 30,
+            Some(10), 2.0,
+            "invoice_date", None, None,
+            reference_date,
+        );
+        assert_eq!(result.maturity_date, NaiveDate::from_ymd_opt(2026, 5, 31).unwrap());
+        assert_eq!(result.discount_due_date, Some(NaiveDate::from_ymd_opt(2026, 5, 11).unwrap()));
+        assert!(result.discount_eligible);
+        assert!((result.discount_available - 200.0).abs() < 0.01);
+        assert!((result.net_payment_amount - 9800.0).abs() < 0.01);
+        assert_eq!(result.days_until_maturity, 26);
+    }
+
+    #[test]
+    fn test_full_maturity_no_discount() {
+        use chrono::NaiveDate;
+        let invoice_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let reference_date = NaiveDate::from_ymd_opt(2026, 5, 15).unwrap();
+        let result = super::PaymentMaturityDiscountService::calculate_payment_maturity(
+            invoice_date, 10000.0, 30,
+            Some(10), 2.0,
+            "invoice_date", None, None,
+            reference_date,
+        );
+        assert!(!result.discount_eligible);
+        assert!((result.discount_available - 0.0).abs() < 0.01);
+        assert!((result.net_payment_amount - 10000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_validate_discount_schedule_ok() {
+        let result = super::PaymentMaturityDiscountService::validate_discount_schedule(
+            "NET30", 30, 2.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_discount_schedule_empty_code() {
+        let result = super::PaymentMaturityDiscountService::validate_discount_schedule(
+            "", 30, 2.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_discount_schedule_negative_net_days() {
+        let result = super::PaymentMaturityDiscountService::validate_discount_schedule(
+            "NET30", -5, 2.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_discount_schedule_invalid_pct() {
+        let result = super::PaymentMaturityDiscountService::validate_discount_schedule(
+            "NET30", 30, 150.0,
+        );
+        assert!(result.is_err());
+    }
+
+    // ========================================================================
+    // Supplier Bank Account Validation Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_supplier_bank_account_entity() {
+        let def = entities::supplier_bank_account_definition();
+        assert_eq!(def.name, "supplier_bank_accounts");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "pending_verification");
+        assert!(wf.states.iter().any(|s| s.name == "verified"));
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+    }
+
+    #[test]
+    fn test_validate_iban_valid() {
+        // Valid GB IBAN: GB82 WEST 1234 5698 7654 32
+        let (valid, msg) = super::SupplierBankValidationService::validate_iban("GB82WEST12345698765432");
+        assert!(valid);
+        assert!(msg.is_none());
+    }
+
+    #[test]
+    fn test_validate_iban_with_spaces() {
+        let (valid, _) = super::SupplierBankValidationService::validate_iban("GB82 WEST 1234 5698 7654 32");
+        assert!(valid);
+    }
+
+    #[test]
+    fn test_validate_iban_too_short() {
+        let (valid, msg) = super::SupplierBankValidationService::validate_iban("GB12");
+        assert!(!valid);
+        assert!(msg.is_some());
+    }
+
+    #[test]
+    fn test_validate_iban_bad_country() {
+        let (valid, msg) = super::SupplierBankValidationService::validate_iban("12123456789012345678");
+        assert!(!valid);
+        assert!(msg.is_some());
+    }
+
+    #[test]
+    fn test_validate_iban_bad_check_digits() {
+        let (valid, _) = super::SupplierBankValidationService::validate_iban("GB00WEST12345698765432");
+        assert!(!valid);
+    }
+
+    #[test]
+    fn test_validate_routing_number_valid() {
+        // Valid ABA routing: 021000021 (JPMorgan Chase)
+        let (valid, msg) = super::SupplierBankValidationService::validate_routing_number("021000021");
+        assert!(valid);
+        assert!(msg.is_none());
+    }
+
+    #[test]
+    fn test_validate_routing_number_wrong_length() {
+        let (valid, msg) = super::SupplierBankValidationService::validate_routing_number("1234567890");
+        assert!(!valid);
+        assert!(msg.is_some());
+    }
+
+    #[test]
+    fn test_validate_routing_number_bad_checksum() {
+        let (valid, msg) = super::SupplierBankValidationService::validate_routing_number("123456789");
+        assert!(!valid);
+        assert!(msg.is_some());
+    }
+
+    #[test]
+    fn test_validate_swift_bic_valid_8() {
+        let (valid, msg) = super::SupplierBankValidationService::validate_swift_bic("CHASUS33");
+        assert!(valid);
+        assert!(msg.is_none());
+    }
+
+    #[test]
+    fn test_validate_swift_bic_valid_11() {
+        let (valid, msg) = super::SupplierBankValidationService::validate_swift_bic("CHASUS33XXX");
+        assert!(valid);
+        assert!(msg.is_none());
+    }
+
+    #[test]
+    fn test_validate_swift_bic_wrong_length() {
+        let (valid, msg) = super::SupplierBankValidationService::validate_swift_bic("CHAS");
+        assert!(!valid);
+        assert!(msg.is_some());
+    }
+
+    #[test]
+    fn test_validate_swift_bic_bad_bank_code() {
+        let (valid, msg) = super::SupplierBankValidationService::validate_swift_bic("1234US33");
+        assert!(!valid);
+        assert!(msg.is_some());
+    }
+
+    #[test]
+    fn test_full_bank_validation_valid() {
+        let result = super::SupplierBankValidationService::validate_bank_account(
+            "12345678",
+            Some("GB82WEST12345698765432"),
+            Some("021000021"),
+            Some("CHASUS33"),
+            "USD",
+        );
+        assert!(result.is_valid);
+        assert!(result.errors.is_empty());
+        assert_eq!(result.iban_valid, Some(true));
+        assert_eq!(result.routing_valid, Some(true));
+        assert_eq!(result.swift_valid, Some(true));
+    }
+
+    #[test]
+    fn test_full_bank_validation_no_account() {
+        let result = super::SupplierBankValidationService::validate_bank_account(
+            "", None, None, None, "",
+        );
+        assert!(!result.is_valid);
+        assert!(!result.errors.is_empty());
+        assert!(!result.warnings.is_empty());
+    }
+
+    #[test]
+    fn test_full_bank_validation_bad_iban() {
+        let result = super::SupplierBankValidationService::validate_bank_account(
+            "12345678",
+            Some("INVALID"),
+            None, None, "USD",
+        );
+        assert!(!result.is_valid);
+        assert_eq!(result.iban_valid, Some(false));
+    }
+
+    #[test]
+    fn test_normalize_iban() {
+        let normalized = super::SupplierBankValidationService::normalize_iban("gb82 west 1234 5698 7654 32");
+        assert_eq!(normalized, "GB82WEST12345698765432");
+    }
+
+    // ========================================================================
+    // Automatic Tax Determination Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_tax_classification_entity() {
+        let def = entities::tax_classification_definition();
+        assert_eq!(def.name, "tax_classifications");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+    }
+
+    #[test]
+    fn test_auto_tax_determination_rule_entity() {
+        let def = entities::auto_tax_determination_rule_definition();
+        assert_eq!(def.name, "auto_tax_determination_rules");
+        assert!(def.workflow.is_some());
+    }
+
+    #[test]
+    fn test_validate_classification_ok() {
+        let result = super::AutomaticTaxDeterminationService::validate_classification(
+            "TAX-STD", "Standard Rated", "product", 20.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_classification_empty_code() {
+        let result = super::AutomaticTaxDeterminationService::validate_classification(
+            "", "Name", "product", 20.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_classification_invalid_type() {
+        let result = super::AutomaticTaxDeterminationService::validate_classification(
+            "TAX-STD", "Name", "invalid", 20.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_classification_bad_rate() {
+        let result = super::AutomaticTaxDeterminationService::validate_classification(
+            "TAX-STD", "Name", "product", 150.0,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_calculate_tax_amount_normal() {
+        let tax = super::AutomaticTaxDeterminationService::calculate_tax_amount(
+            1000.0, 20.0, false,
+        );
+        assert!((tax - 200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_tax_amount_exempt() {
+        let tax = super::AutomaticTaxDeterminationService::calculate_tax_amount(
+            1000.0, 20.0, true,
+        );
+        assert_eq!(tax, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_recovery_amount() {
+        let recovery = super::AutomaticTaxDeterminationService::calculate_recovery_amount(
+            200.0, 50.0,
+        );
+        assert!((recovery - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_find_matching_rule() {
+        let rules = vec![
+            super::TaxRule {
+                priority: 1,
+                product_classification: Some("standard".to_string()),
+                customer_classification: Some("domestic".to_string()),
+                ship_from: Some("US".to_string()),
+                ship_to: Some("US".to_string()),
+                transaction_type: Some("sale".to_string()),
+                tax_regime_code: "US-FED".to_string(),
+                tax_code: "STANDARD".to_string(),
+                tax_rate: 10.0,
+                threshold_amount: 0.0,
+                is_recovery_eligible: false,
+                recovery_rate: 0.0,
+            },
+            super::TaxRule {
+                priority: 2,
+                product_classification: Some("exempt".to_string()),
+                customer_classification: None,
+                ship_from: None,
+                ship_to: None,
+                transaction_type: None,
+                tax_regime_code: "US-FED".to_string(),
+                tax_code: "EXEMPT".to_string(),
+                tax_rate: 0.0,
+                threshold_amount: 0.0,
+                is_recovery_eligible: false,
+                recovery_rate: 0.0,
+            },
+        ];
+
+        // Match standard product
+        let rule = super::AutomaticTaxDeterminationService::find_matching_rule(
+            &rules,
+            Some("standard"), Some("domestic"),
+            Some("US"), Some("US"),
+            Some("sale"), 1000.0,
+        );
+        assert!(rule.is_some());
+        assert_eq!(rule.unwrap().tax_code, "STANDARD");
+
+        // No match for unknown product
+        let rule2 = super::AutomaticTaxDeterminationService::find_matching_rule(
+            &rules,
+            Some("unknown"), Some("domestic"),
+            Some("US"), Some("US"),
+            Some("sale"), 1000.0,
+        );
+        assert!(rule2.is_none());
+    }
+
+    #[test]
+    fn test_find_matching_rule_threshold() {
+        let rules = vec![
+            super::TaxRule {
+                priority: 1,
+                product_classification: Some("luxury".to_string()),
+                customer_classification: None,
+                ship_from: None,
+                ship_to: None,
+                transaction_type: None,
+                tax_regime_code: "US-FED".to_string(),
+                tax_code: "LUXURY".to_string(),
+                tax_rate: 20.0,
+                threshold_amount: 1000.0, // Only applies above $1000
+                is_recovery_eligible: false,
+                recovery_rate: 0.0,
+            },
+        ];
+
+        // Below threshold - no match
+        let rule = super::AutomaticTaxDeterminationService::find_matching_rule(
+            &rules, Some("luxury"), None, None, None, None, 500.0,
+        );
+        assert!(rule.is_none());
+
+        // Above threshold - match
+        let rule2 = super::AutomaticTaxDeterminationService::find_matching_rule(
+            &rules, Some("luxury"), None, None, None, None, 1500.0,
+        );
+        assert!(rule2.is_some());
+    }
+
+    #[test]
+    fn test_determine_tax_with_rule() {
+        let rules = vec![
+            super::TaxRule {
+                priority: 1,
+                product_classification: Some("standard".to_string()),
+                customer_classification: None,
+                ship_from: None,
+                ship_to: None,
+                transaction_type: None,
+                tax_regime_code: "US-FED".to_string(),
+                tax_code: "STANDARD".to_string(),
+                tax_rate: 10.0,
+                threshold_amount: 0.0,
+                is_recovery_eligible: true,
+                recovery_rate: 50.0,
+            },
+        ];
+
+        let result = super::AutomaticTaxDeterminationService::determine_tax(
+            &rules,
+            Some("standard"), None, None, None, None,
+            1000.0, false, None,
+        );
+        assert_eq!(result.tax_code, "STANDARD");
+        assert!((result.tax_amount - 100.0).abs() < 0.01);
+        assert!(!result.is_exempt);
+        assert!(result.recovery_eligible);
+        assert!((result.recovery_rate - 50.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_determine_tax_exempt() {
+        let result = super::AutomaticTaxDeterminationService::determine_tax(
+            &[], None, None, None, None, None,
+            1000.0, true, Some("Government entity"),
+        );
+        assert!(result.is_exempt);
+        assert_eq!(result.tax_amount, 0.0);
+        assert_eq!(result.exemption_reason, Some("Government entity".to_string()));
+    }
+
+    #[test]
+    fn test_determine_tax_no_rules() {
+        let result = super::AutomaticTaxDeterminationService::determine_tax(
+            &[], None, None, None, None, None,
+            1000.0, false, None,
+        );
+        assert!(result.is_exempt);
+        assert_eq!(result.tax_amount, 0.0);
+    }
+
+    #[test]
+    fn test_total_tax() {
+        let results = vec![
+            super::TaxDeterminationResult {
+                tax_regime_code: "US".to_string(), tax_code: "STD".to_string(),
+                tax_rate: 10.0, taxable_amount: 1000.0, tax_amount: 100.0,
+                is_exempt: false, exemption_reason: None,
+                recovery_eligible: false, recovery_rate: 0.0,
+            },
+            super::TaxDeterminationResult {
+                tax_regime_code: "US".to_string(), tax_code: "STATE".to_string(),
+                tax_rate: 5.0, taxable_amount: 1000.0, tax_amount: 50.0,
+                is_exempt: false, exemption_reason: None,
+                recovery_eligible: false, recovery_rate: 0.0,
+            },
+        ];
+        let total = super::AutomaticTaxDeterminationService::calculate_total_tax(&results);
+        assert!((total - 150.0).abs() < 0.01);
+
+        let total_taxable = super::AutomaticTaxDeterminationService::calculate_total_taxable(&results);
+        assert!((total_taxable - 2000.0).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Financial Transaction Purging & Archiving Tests
+    // ========================================================================
+
+    #[test]
+    fn test_archive_policy_entity() {
+        let def = entities::archive_policy_definition();
+        assert_eq!(def.name, "archive_policies");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+    }
+
+    #[test]
+    fn test_archive_run_entity() {
+        let def = entities::archive_run_definition();
+        assert_eq!(def.name, "archive_runs");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "completed"));
+        assert!(wf.states.iter().any(|s| s.name == "reversed"));
+    }
+
+    #[test]
+    fn test_validate_archive_policy_ok() {
+        let result = super::TransactionPurgeArchiveService::validate_archive_policy(
+            "ARCH-01", "Standard Archive", "journal_entry",
+            365, 730, 1825, "move_to_archive",
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_archive_policy_empty_code() {
+        let result = super::TransactionPurgeArchiveService::validate_archive_policy(
+            "", "Name", "journal_entry", 365, 730, 1825, "move_to_archive",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_archive_policy_invalid_entity() {
+        let result = super::TransactionPurgeArchiveService::validate_archive_policy(
+            "ARCH-01", "Name", "invalid", 365, 730, 1825, "move_to_archive",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_archive_policy_bad_days() {
+        // archive_after <= retention
+        let result = super::TransactionPurgeArchiveService::validate_archive_policy(
+            "ARCH-01", "Name", "journal_entry", 365, 365, 1825, "move_to_archive",
+        );
+        assert!(result.is_err());
+
+        // purge_after <= archive_after
+        let result2 = super::TransactionPurgeArchiveService::validate_archive_policy(
+            "ARCH-01", "Name", "journal_entry", 365, 730, 730, "move_to_archive",
+        );
+        assert!(result2.is_err());
+    }
+
+    #[test]
+    fn test_validate_archive_policy_invalid_action() {
+        let result = super::TransactionPurgeArchiveService::validate_archive_policy(
+            "ARCH-01", "Name", "journal_entry", 365, 730, 1825, "delete",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_archive_eligibility_eligible() {
+        use chrono::NaiveDate;
+        let record_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let reference_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let eligibility = super::TransactionPurgeArchiveService::check_archive_eligibility(
+            "journal_entry", record_date, reference_date, true, 365, 730,
+        );
+        assert!(eligibility.is_eligible);
+        assert_eq!(eligibility.action, "archive");
+        assert!(eligibility.age_days > 730);
+    }
+
+    #[test]
+    fn test_archive_eligibility_not_posted() {
+        use chrono::NaiveDate;
+        let record_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let reference_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let eligibility = super::TransactionPurgeArchiveService::check_archive_eligibility(
+            "journal_entry", record_date, reference_date, false, 365, 730,
+        );
+        assert!(!eligibility.is_eligible);
+    }
+
+    #[test]
+    fn test_archive_eligibility_within_retention() {
+        use chrono::NaiveDate;
+        let record_date = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        let reference_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let eligibility = super::TransactionPurgeArchiveService::check_archive_eligibility(
+            "journal_entry", record_date, reference_date, true, 365, 730,
+        );
+        assert!(!eligibility.is_eligible);
+    }
+
+    #[test]
+    fn test_purge_eligibility_ok() {
+        use chrono::NaiveDate;
+        let record_date = NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
+        let reference_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let eligibility = super::TransactionPurgeArchiveService::check_purge_eligibility(
+            "journal_entry", record_date, reference_date, true, 1825,
+        );
+        assert!(eligibility.is_eligible);
+        assert_eq!(eligibility.action, "purge");
+    }
+
+    #[test]
+    fn test_purge_eligibility_not_archived() {
+        use chrono::NaiveDate;
+        let record_date = NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
+        let reference_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let eligibility = super::TransactionPurgeArchiveService::check_purge_eligibility(
+            "journal_entry", record_date, reference_date, false, 1825,
+        );
+        assert!(!eligibility.is_eligible);
+    }
+
+    #[test]
+    fn test_purge_eligibility_too_recent() {
+        use chrono::NaiveDate;
+        let record_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let reference_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let eligibility = super::TransactionPurgeArchiveService::check_purge_eligibility(
+            "journal_entry", record_date, reference_date, true, 3650,
+        );
+        assert!(!eligibility.is_eligible);
+    }
+
+    #[test]
+    fn test_calculate_run_statistics() {
+        let amounts = vec![10000.0, 20000.0, 15000.0];
+        let stats = super::TransactionPurgeArchiveService::calculate_run_statistics(
+            100, 40, 30, 5, 25, &amounts,
+        );
+        assert_eq!(stats.records_scanned, 100);
+        assert_eq!(stats.records_archived, 40);
+        assert_eq!(stats.records_purged, 30);
+        assert_eq!(stats.records_failed, 5);
+        assert_eq!(stats.records_skipped, 25);
+        assert!((stats.total_amount_archived - 45000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_validate_run_statistics_ok() {
+        let stats = super::ArchiveRunStatistics {
+            records_scanned: 100,
+            records_archived: 40,
+            records_purged: 30,
+            records_failed: 5,
+            records_skipped: 25,
+            total_amount_archived: 45000.0,
+        };
+        assert!(super::TransactionPurgeArchiveService::validate_run_statistics(&stats).is_ok());
+    }
+
+    #[test]
+    fn test_validate_run_statistics_inconsistent() {
+        let stats = super::ArchiveRunStatistics {
+            records_scanned: 100,
+            records_archived: 40,
+            records_purged: 30,
+            records_failed: 5,
+            records_skipped: 20, // 40+30+5+20=95 != 100
+            total_amount_archived: 45000.0,
+        };
+        assert!(super::TransactionPurgeArchiveService::validate_run_statistics(&stats).is_err());
+    }
+
+    #[test]
+    fn test_calculate_cutoff_date() {
+        use chrono::NaiveDate;
+        let reference = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let cutoff = super::TransactionPurgeArchiveService::calculate_cutoff_date(reference, 730);
+        assert_eq!(cutoff, NaiveDate::from_ymd_opt(2024, 5, 1).unwrap());
+    }
+
+    // ========================================================================
+    // Multi-Level Approval Engine Tests
+    // ========================================================================
+
+    #[test]
+    fn test_approval_hierarchy_entity() {
+        let def = entities::approval_hierarchy_definition();
+        assert_eq!(def.name, "approval_hierarchies");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+    }
+
+    #[test]
+    fn test_approval_level_entity() {
+        let def = entities::approval_level_definition();
+        assert_eq!(def.name, "approval_levels");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_validate_hierarchy_ok() {
+        let result = super::MultiLevelApprovalService::validate_hierarchy(
+            "APR-01", "Standard Approval", "ap_invoice", 3,
+            "serial", 48, "escalate",
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_hierarchy_empty_code() {
+        let result = super::MultiLevelApprovalService::validate_hierarchy(
+            "", "Name", "ap_invoice", 3, "serial", 48, "escalate",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_hierarchy_invalid_doc_type() {
+        let result = super::MultiLevelApprovalService::validate_hierarchy(
+            "APR-01", "Name", "invalid", 3, "serial", 48, "escalate",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_hierarchy_zero_levels() {
+        let result = super::MultiLevelApprovalService::validate_hierarchy(
+            "APR-01", "Name", "ap_invoice", 0, "serial", 48, "escalate",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_hierarchy_invalid_method() {
+        let result = super::MultiLevelApprovalService::validate_hierarchy(
+            "APR-01", "Name", "ap_invoice", 3, "invalid", 48, "escalate",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_hierarchy_invalid_timeout_action() {
+        let result = super::MultiLevelApprovalService::validate_hierarchy(
+            "APR-01", "Name", "ap_invoice", 3, "serial", 48, "invalid",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_route_for_approval_auto_approve() {
+        let levels = vec![
+            super::ApprovalLevelDef {
+                level_number: 1, level_name: "Manager".to_string(),
+                min_amount: 1000.0, max_amount: 10000.0,
+                approver_role: "manager".to_string(),
+                can_reject: true, can_return: true,
+            },
+        ];
+        let result = super::MultiLevelApprovalService::route_for_approval(
+            "ap_invoice", 500.0, &levels, true,
+        );
+        assert!(result.is_auto_approved);
+        assert!(result.required_levels.is_empty());
+    }
+
+    #[test]
+    fn test_route_for_approval_requires_approval() {
+        let levels = vec![
+            super::ApprovalLevelDef {
+                level_number: 1, level_name: "Manager".to_string(),
+                min_amount: 1000.0, max_amount: 10000.0,
+                approver_role: "manager".to_string(),
+                can_reject: true, can_return: true,
+            },
+            super::ApprovalLevelDef {
+                level_number: 2, level_name: "Director".to_string(),
+                min_amount: 10000.0, max_amount: 100000.0,
+                approver_role: "director".to_string(),
+                can_reject: true, can_return: true,
+            },
+        ];
+        let result = super::MultiLevelApprovalService::route_for_approval(
+            "ap_invoice", 15000.0, &levels, true,
+        );
+        assert!(!result.is_auto_approved);
+        assert_eq!(result.required_levels.len(), 2);
+    }
+
+    #[test]
+    fn test_route_for_approval_single_level() {
+        let levels = vec![
+            super::ApprovalLevelDef {
+                level_number: 1, level_name: "Manager".to_string(),
+                min_amount: 1000.0, max_amount: 10000.0,
+                approver_role: "manager".to_string(),
+                can_reject: true, can_return: true,
+            },
+        ];
+        let result = super::MultiLevelApprovalService::route_for_approval(
+            "ap_invoice", 5000.0, &levels, true,
+        );
+        assert!(!result.is_auto_approved);
+        assert_eq!(result.required_levels.len(), 1);
+        assert_eq!(result.required_levels[0].level_name, "Manager");
+    }
+
+    #[test]
+    fn test_route_for_approval_no_auto_approve() {
+        let levels = vec![
+            super::ApprovalLevelDef {
+                level_number: 1, level_name: "Manager".to_string(),
+                min_amount: 1000.0, max_amount: 10000.0,
+                approver_role: "manager".to_string(),
+                can_reject: true, can_return: true,
+            },
+        ];
+        let result = super::MultiLevelApprovalService::route_for_approval(
+            "ap_invoice", 500.0, &levels, false,
+        );
+        // Not auto-approved because auto_approve_within_limit is false
+        assert!(!result.is_auto_approved);
+    }
+
+    #[test]
+    fn test_validate_approval_levels_ok() {
+        let levels = vec![
+            super::ApprovalLevelDef {
+                level_number: 1, level_name: "Manager".to_string(),
+                min_amount: 0.0, max_amount: 10000.0,
+                approver_role: "manager".to_string(),
+                can_reject: true, can_return: true,
+            },
+            super::ApprovalLevelDef {
+                level_number: 2, level_name: "Director".to_string(),
+                min_amount: 10000.0, max_amount: 100000.0,
+                approver_role: "director".to_string(),
+                can_reject: true, can_return: true,
+            },
+        ];
+        assert!(super::MultiLevelApprovalService::validate_approval_levels(&levels).is_ok());
+    }
+
+    #[test]
+    fn test_validate_approval_levels_empty() {
+        assert!(super::MultiLevelApprovalService::validate_approval_levels(&[]).is_err());
+    }
+
+    #[test]
+    fn test_validate_approval_levels_negative_min() {
+        let levels = vec![
+            super::ApprovalLevelDef {
+                level_number: 1, level_name: "Manager".to_string(),
+                min_amount: -100.0, max_amount: 10000.0,
+                approver_role: "manager".to_string(),
+                can_reject: true, can_return: true,
+            },
+        ];
+        assert!(super::MultiLevelApprovalService::validate_approval_levels(&levels).is_err());
+    }
+
+    #[test]
+    fn test_validate_approval_levels_max_le_min() {
+        let levels = vec![
+            super::ApprovalLevelDef {
+                level_number: 1, level_name: "Manager".to_string(),
+                min_amount: 10000.0, max_amount: 10000.0,
+                approver_role: "manager".to_string(),
+                can_reject: true, can_return: true,
+            },
+        ];
+        assert!(super::MultiLevelApprovalService::validate_approval_levels(&levels).is_err());
+    }
+
+    #[test]
+    fn test_validate_approval_levels_unordered() {
+        let levels = vec![
+            super::ApprovalLevelDef {
+                level_number: 2, level_name: "Director".to_string(),
+                min_amount: 10000.0, max_amount: 100000.0,
+                approver_role: "director".to_string(),
+                can_reject: true, can_return: true,
+            },
+            super::ApprovalLevelDef {
+                level_number: 1, level_name: "Manager".to_string(),
+                min_amount: 0.0, max_amount: 10000.0,
+                approver_role: "manager".to_string(),
+                can_reject: true, can_return: true,
+            },
+        ];
+        assert!(super::MultiLevelApprovalService::validate_approval_levels(&levels).is_err());
+    }
+
+    #[test]
+    fn test_approval_progress() {
+        let pct = super::MultiLevelApprovalService::calculate_approval_progress(3, 2);
+        assert!((pct - 66.67).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_approval_progress_zero_levels() {
+        let pct = super::MultiLevelApprovalService::calculate_approval_progress(0, 0);
+        assert_eq!(pct, 100.0);
+    }
+
+    #[test]
+    fn test_approval_progress_complete() {
+        let pct = super::MultiLevelApprovalService::calculate_approval_progress(3, 3);
+        assert_eq!(pct, 100.0);
+    }
+
+    #[test]
+    fn test_timeout_action_escalate() {
+        let action = super::MultiLevelApprovalService::determine_timeout_action(
+            50, 48, "escalate",
+        );
+        assert_eq!(action, super::ApprovalAction::Escalated);
+    }
+
+    #[test]
+    fn test_timeout_action_auto_approve() {
+        let action = super::MultiLevelApprovalService::determine_timeout_action(
+            50, 48, "auto_approve",
+        );
+        assert_eq!(action, super::ApprovalAction::Approved);
+    }
+
+    #[test]
+    fn test_timeout_action_auto_reject() {
+        let action = super::MultiLevelApprovalService::determine_timeout_action(
+            50, 48, "auto_reject",
+        );
+        match action {
+            super::ApprovalAction::Rejected { reason } => {
+                assert!(reason.contains("timeout"));
+            }
+            _ => panic!("Expected Rejected"),
+        }
+    }
+
+    #[test]
+    fn test_timeout_not_yet() {
+        let action = super::MultiLevelApprovalService::determine_timeout_action(
+            24, 48, "escalate",
+        );
+        assert_eq!(action, super::ApprovalAction::TimedOut);
+    }
+
+    #[test]
+    fn test_get_next_level() {
+        let levels = vec![
+            super::ApprovalLevelDef {
+                level_number: 1, level_name: "Manager".to_string(),
+                min_amount: 0.0, max_amount: 10000.0,
+                approver_role: "manager".to_string(),
+                can_reject: true, can_return: true,
+            },
+            super::ApprovalLevelDef {
+                level_number: 2, level_name: "Director".to_string(),
+                min_amount: 10000.0, max_amount: 100000.0,
+                approver_role: "director".to_string(),
+                can_reject: true, can_return: true,
+            },
+        ];
+        let next = super::MultiLevelApprovalService::get_next_level(&levels, 1);
+        assert!(next.is_some());
+        assert_eq!(next.unwrap().level_number, 2);
+
+        let none = super::MultiLevelApprovalService::get_next_level(&levels, 2);
+        assert!(none.is_none());
+    }
+
+    // ========================================================================
+    // New Feature Entity Uniqueness & Integration Tests
+    // ========================================================================
+
+    #[test]
+    fn test_all_six_new_feature_entities_unique() {
+        let new_entities = vec![
+            entities::invoice_tolerance_definition(),
+            entities::invoice_match_result_definition(),
+            entities::payment_discount_schedule_definition(),
+            entities::payment_maturity_definition(),
+            entities::supplier_bank_account_definition(),
+            entities::tax_classification_definition(),
+            entities::auto_tax_determination_rule_definition(),
+            entities::archive_policy_definition(),
+            entities::archive_run_definition(),
+            entities::approval_hierarchy_definition(),
+            entities::approval_level_definition(),
+        ];
+        assert_eq!(new_entities.len(), 11);
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 11, "All 11 new entity names must be unique");
+    }
+
+    #[test]
+    fn test_six_new_features_workflow_entities() {
+        let workflow_entities = vec![
+            entities::invoice_tolerance_definition(),
+            entities::payment_discount_schedule_definition(),
+            entities::supplier_bank_account_definition(),
+            entities::tax_classification_definition(),
+            entities::auto_tax_determination_rule_definition(),
+            entities::archive_policy_definition(),
+            entities::archive_run_definition(),
+            entities::approval_hierarchy_definition(),
+        ];
+        for entity in &workflow_entities {
+            assert!(entity.workflow.is_some(),
+                "Entity '{}' should have a workflow",
+                entity.name);
+        }
+    }
+
+    #[test]
+    fn test_six_new_features_non_workflow_entities() {
+        let non_workflow = vec![
+            entities::invoice_match_result_definition(),
+            entities::payment_maturity_definition(),
+            entities::approval_level_definition(),
+        ];
+        for entity in &non_workflow {
+            assert!(entity.workflow.is_none(),
+                "Entity '{}' should NOT have a workflow",
                 entity.name);
         }
     }

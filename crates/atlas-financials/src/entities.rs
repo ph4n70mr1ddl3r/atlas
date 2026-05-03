@@ -7939,3 +7939,418 @@ pub fn cost_rate_card_definition() -> EntityDefinition {
         .workflow(workflow)
         .build()
 }
+
+// ============================================================================
+// Invoice Tolerance Matching
+// ============================================================================
+
+/// Invoice Tolerance entity
+/// Oracle Fusion: Payables > Invoice Matching > Tolerance Rules
+pub fn invoice_tolerance_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("invoice_tolerance_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("invoice_tolerances", "Invoice Tolerance")
+        .plural_label("Invoice Tolerances")
+        .table_name("fin_invoice_tolerances")
+        .description("Tolerance rules for matching invoices to purchase orders")
+        .icon("check-double")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .enumeration("match_type", "Match Type", vec![
+            "two_way", "three_way", "four_way",
+        ])
+        .enumeration("tolerance_type", "Tolerance Type", vec![
+            "quantity", "price", "amount",
+        ])
+        .enumeration("tolerance_basis", "Tolerance Basis", vec![
+            "percentage", "absolute", "percentage_or_absolute",
+        ])
+        .decimal("tolerance_percentage", "Tolerance %", 5, 2)
+        .currency("tolerance_amount", "Tolerance Amount", "USD")
+        .string("currency_code", "Currency")
+        .enumeration("action_on_violation", "Action on Violation", vec![
+            "reject", "hold", "warning", "approve_with_notification",
+        ])
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Invoice Match Result entity
+/// Oracle Fusion: Payables > Invoice Matching > Match Results
+pub fn invoice_match_result_definition() -> EntityDefinition {
+    SchemaBuilder::new("invoice_match_results", "Invoice Match Result")
+        .plural_label("Invoice Match Results")
+        .table_name("fin_invoice_match_results")
+        .description("Results of matching invoices against purchase orders and receipts")
+        .icon("exchange-alt")
+        .reference("invoice_id", "Invoice", "ap_invoices")
+        .reference("invoice_line_id", "Invoice Line", "ap_invoice_lines")
+        .reference("purchase_order_id", "Purchase Order", "purchase_orders")
+        .reference("po_line_id", "PO Line", "purchase_order_lines")
+        .reference("receipt_id", "Receipt", "receiving_transactions")
+        .enumeration("match_type", "Match Type", vec![
+            "two_way", "three_way", "four_way",
+        ])
+        .enumeration("match_status", "Match Status", vec![
+            "matched", "within_tolerance", "outside_tolerance", "failed",
+        ])
+        .decimal("invoiced_quantity", "Invoiced Qty", 18, 4)
+        .decimal("ordered_quantity", "Ordered Qty", 18, 4)
+        .decimal("received_quantity", "Received Qty", 18, 4)
+        .decimal("accepted_quantity", "Accepted Qty", 18, 4)
+        .currency("invoiced_price", "Invoiced Price", "USD")
+        .currency("ordered_price", "Ordered Price", "USD")
+        .currency("quantity_variance", "Qty Variance", "USD")
+        .currency("price_variance", "Price Variance", "USD")
+        .decimal("quantity_variance_pct", "Qty Variance %", 5, 2)
+        .decimal("price_variance_pct", "Price Variance %", 5, 2)
+        .string("hold_type", "Hold Type")
+        .string("hold_reason", "Hold Reason")
+        .boolean("auto_approved", "Auto Approved")
+        .build()
+}
+
+// ============================================================================
+// Payment Maturity & Discount
+// ============================================================================
+
+/// Payment Discount Schedule entity
+/// Oracle Fusion: Payables > Payment Terms > Discount Schedules
+pub fn payment_discount_schedule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("payment_discount_schedule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("payment_discount_schedules", "Payment Discount Schedule")
+        .plural_label("Payment Discount Schedules")
+        .table_name("fin_payment_discount_schedules")
+        .description("Discount schedules defining early payment discount tiers")
+        .icon("percent")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .integer("discount_days_from", "Discount Days From")
+        .integer("discount_days_to", "Discount Days To")
+        .decimal("discount_percentage", "Discount %", 5, 2)
+        .integer("net_days", "Net Days")
+        .enumeration("discount_basis", "Discount Basis", vec![
+            "invoice_date", "goods_received_date", "invoice_received_date",
+        ])
+        .boolean("discount_on_partial_payment", "Discount on Partial")
+        .boolean("allow_multiple_discounts", "Allow Multiple Discounts")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Payment Maturity entity
+/// Oracle Fusion: Payables > Payments > Maturity Calculation
+pub fn payment_maturity_definition() -> EntityDefinition {
+    SchemaBuilder::new("payment_maturities", "Payment Maturity")
+        .plural_label("Payment Maturities")
+        .table_name("fin_payment_maturities")
+        .description("Calculated payment maturity dates and discount information")
+        .icon("calendar-check")
+        .reference("invoice_id", "Invoice", "ap_invoices")
+        .reference("payment_term_id", "Payment Term", "payment_terms")
+        .reference("discount_schedule_id", "Discount Schedule", "payment_discount_schedules")
+        .date("invoice_date", "Invoice Date")
+        .date("goods_received_date", "Goods Received Date")
+        .date("invoice_received_date", "Invoice Received Date")
+        .date("maturity_date", "Maturity Date")
+        .date("discount_due_date", "Discount Due Date")
+        .currency("invoice_amount", "Invoice Amount", "USD")
+        .currency("discount_available", "Discount Available", "USD")
+        .currency("discount_taken", "Discount Taken", "USD")
+        .currency("net_payment_amount", "Net Payment Amount", "USD")
+        .boolean("discount_eligible", "Discount Eligible")
+        .boolean("discount_expired", "Discount Expired")
+        .integer("days_until_maturity", "Days Until Maturity")
+        .build()
+}
+
+// ============================================================================
+// Supplier Bank Account Validation
+// ============================================================================
+
+/// Supplier Bank Account entity
+/// Oracle Fusion: Payables > Suppliers > Bank Accounts
+pub fn supplier_bank_account_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("supplier_bank_account_workflow", "pending_verification")
+        .initial_state("pending_verification", "Pending Verification")
+        .working_state("verified", "Verified")
+        .working_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("pending_verification", "verified", "verify")
+        .transition("verified", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .transition("pending_verification", "inactive", "reject")
+        .build();
+
+    SchemaBuilder::new("supplier_bank_accounts", "Supplier Bank Account")
+        .plural_label("Supplier Bank Accounts")
+        .table_name("fin_supplier_bank_accounts")
+        .description("Bank account details for supplier payments with validation")
+        .icon("university")
+        .reference("supplier_id", "Supplier", "suppliers")
+        .reference("supplier_site_id", "Supplier Site", "supplier_sites")
+        .enumeration("account_type", "Account Type", vec![
+            "checking", "savings", "other",
+        ])
+        .string("bank_name", "Bank Name")
+        .string("bank_branch_name", "Branch Name")
+        .string("bank_code", "Bank Code")
+        .string("branch_code", "Branch Code")
+        .string("account_number", "Account Number")
+        .string("account_holder_name", "Account Holder")
+        .string("iban", "IBAN")
+        .string("swift_bic", "SWIFT/BIC")
+        .string("routing_number", "Routing Number")
+        .string("currency_code", "Currency")
+        .boolean("is_primary", "Primary Account")
+        .string("verification_reference", "Verification Reference")
+        .date("verified_date", "Verified Date")
+        .string("validation_status", "Validation Status")
+        .string("validation_message", "Validation Message")
+        .enumeration("status", "Status", vec![
+            "pending_verification", "verified", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Automatic Tax Determination
+// ============================================================================
+
+/// Tax Classification entity
+/// Oracle Fusion: Tax > Tax Classification
+pub fn tax_classification_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("tax_classification_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("tax_classifications", "Tax Classification")
+        .plural_label("Tax Classifications")
+        .table_name("fin_tax_classifications")
+        .description("Tax classification codes for automatic tax determination")
+        .icon("tags")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .enumeration("classification_type", "Type", vec![
+            "product", "customer", "transaction", "location",
+        ])
+        .string("tax_regime_code", "Tax Regime")
+        .string("tax_code", "Tax Code")
+        .decimal("default_rate", "Default Rate %", 5, 2)
+        .boolean("taxable", "Taxable")
+        .boolean("exempt", "Exempt")
+        .string("exemption_certificate", "Exemption Certificate")
+        .string("description", "Description")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Tax Determination Rule entity
+/// Oracle Fusion: Tax > Determination Rules
+pub fn auto_tax_determination_rule_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("auto_tax_determination_rule_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("auto_tax_determination_rules", "Auto Tax Determination Rule")
+        .plural_label("Auto Tax Determination Rules")
+        .table_name("fin_auto_tax_determination_rules")
+        .description("Rules for automatically determining tax on transactions")
+        .icon("cogs")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .integer("priority", "Priority")
+        .string("product_classification", "Product Classification")
+        .string("customer_classification", "Customer Classification")
+        .string("ship_from_location", "Ship-From Location")
+        .string("ship_to_location", "Ship-To Location")
+        .string("transaction_type", "Transaction Type")
+        .string("tax_regime_code", "Tax Regime")
+        .string("tax_code", "Tax Code")
+        .decimal("tax_rate", "Tax Rate %", 5, 2)
+        .decimal("threshold_amount", "Threshold Amount", 18, 2)
+        .boolean("is_recovery_eligible", "Recovery Eligible")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Financial Transaction Purging & Archiving
+// ============================================================================
+
+/// Archive Policy entity
+/// Oracle Fusion: General Ledger > Archive & Purge
+pub fn archive_policy_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("archive_policy_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("archive_policies", "Archive Policy")
+        .plural_label("Archive Policies")
+        .table_name("fin_archive_policies")
+        .description("Policies for archiving and purging financial transactions")
+        .icon("archive")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .enumeration("entity_type", "Entity Type", vec![
+            "journal_entry", "ap_invoice", "ap_payment", "ar_transaction",
+            "ar_receipt", "fixed_asset", "expense_report",
+        ])
+        .integer("retention_days", "Retention Days")
+        .integer("archive_after_days", "Archive After Days")
+        .integer("purge_after_days", "Purge After Days")
+        .enumeration("archive_action", "Archive Action", vec![
+            "move_to_archive", "compress", "mark_as_archived",
+        ])
+        .boolean("require_approval", "Require Approval")
+        .boolean("create_audit_record", "Create Audit Record")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Archive Run entity
+/// Oracle Fusion: General Ledger > Archive & Purge > Runs
+pub fn archive_run_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("archive_run_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("in_progress", "In Progress")
+        .working_state("completed", "Completed")
+        .final_state("failed", "Failed")
+        .final_state("reversed", "Reversed")
+        .transition("draft", "in_progress", "start")
+        .transition("in_progress", "completed", "complete")
+        .transition("in_progress", "failed", "fail")
+        .transition("completed", "reversed", "reverse")
+        .build();
+
+    SchemaBuilder::new("archive_runs", "Archive Run")
+        .plural_label("Archive Runs")
+        .table_name("fin_archive_runs")
+        .description("Execution runs of archive/purge policies")
+        .icon("play-circle")
+        .reference("policy_id", "Policy", "archive_policies")
+        .required_string("run_number", "Run Number")
+        .date("run_date", "Run Date")
+        .date("cutoff_date", "Cutoff Date")
+        .integer("records_scanned", "Records Scanned")
+        .integer("records_archived", "Records Archived")
+        .integer("records_purged", "Records Purged")
+        .integer("records_failed", "Records Failed")
+        .integer("records_skipped", "Records Skipped")
+        .currency("total_amount_archived", "Total Amount Archived", "USD")
+        .string("error_message", "Error Message")
+        .rich_text("summary", "Summary")
+        .enumeration("status", "Status", vec![
+            "draft", "in_progress", "completed", "failed", "reversed",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Multi-Level Approval Engine
+// ============================================================================
+
+/// Approval Hierarchy entity
+/// Oracle Fusion: Workflow > Approval Hierarchy
+pub fn approval_hierarchy_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("approval_hierarchy_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("approval_hierarchies", "Approval Hierarchy")
+        .plural_label("Approval Hierarchies")
+        .table_name("fin_approval_hierarchies")
+        .description("Hierarchical approval rules based on amount thresholds")
+        .icon("sitemap")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .enumeration("document_type", "Document Type", vec![
+            "journal_entry", "ap_invoice", "ap_payment", "ar_credit_memo",
+            "purchase_order", "expense_report", "budget_transfer",
+        ])
+        .integer("max_levels", "Max Levels")
+        .boolean("auto_approve_within_limit", "Auto-Approve Within Limit")
+        .boolean("allow_delegation", "Allow Delegation")
+        .boolean("require_all_levels", "Require All Levels")
+        .enumeration("approval_method", "Approval Method", vec![
+            "parallel", "serial", "first_responder",
+        ])
+        .integer("timeout_hours", "Timeout (Hours)")
+        .enumeration("timeout_action", "Timeout Action", vec![
+            "escalate", "auto_approve", "auto_reject",
+        ])
+        .enumeration("status", "Status", vec![
+            "draft", "active", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Approval Level entity
+/// Oracle Fusion: Workflow > Approval Levels
+pub fn approval_level_definition() -> EntityDefinition {
+    SchemaBuilder::new("approval_levels", "Approval Level")
+        .plural_label("Approval Levels")
+        .table_name("fin_approval_levels")
+        .description("Individual levels within an approval hierarchy")
+        .icon("layer-group")
+        .reference("hierarchy_id", "Hierarchy", "approval_hierarchies")
+        .integer("level_number", "Level Number")
+        .string("level_name", "Level Name")
+        .currency("min_amount", "Min Amount", "USD")
+        .currency("max_amount", "Max Amount", "USD")
+        .reference("approver_id", "Approver", "employees")
+        .string("approver_role", "Approver Role")
+        .reference("delegate_id", "Delegate", "employees")
+        .boolean("can_reject", "Can Reject")
+        .boolean("can_return", "Can Return")
+        .integer("approval_timeout_hours", "Timeout (Hours)")
+        .build()
+}

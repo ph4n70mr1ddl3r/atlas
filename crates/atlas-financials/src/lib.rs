@@ -72,6 +72,18 @@ pub use services::{
     FinancialDimensionService,
     AutoOffsetService,
     // New Oracle Fusion financial features
+    DunningLetterService,
+    DunningSummary,
+    RevenueWaterfallService,
+    WaterfallPeriod,
+    WaterfallReport,
+    WaterfallLineItem,
+    SubledgerReconciliationService,
+    ReconciliationResult,
+    ReconciliationReport,
+    CostRateCardService,
+    RateCardEntry,
+    // New Oracle Fusion financial features
     LandedCostManagementService,
     CurrencyRevaluationService,
     GLAllocationService,

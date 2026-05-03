@@ -9306,9 +9306,814 @@ impl AssetMergerService {
     }
 }
 
+// ===========================================================================
+// Dunning Letter Generation Service
+// ===========================================================================
+
+/// Dunning Letter Generation service
+/// Oracle Fusion: Receivables > Dunning Letter Generation
+/// Generates escalating dunning letters for overdue customer invoices.
+/// Supports configurable dunning levels, letter templates, and automatic
+/// escalation based on days overdue.
+#[allow(dead_code)]
+pub struct DunningLetterService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid dunning letter statuses
+#[allow(dead_code)]
+const VALID_DUNNING_LETTER_STATUSES: &[&str] = &[
+    "draft", "sent", "acknowledged", "disputed", "cancelled",
+];
+
+/// Valid dunning escalation actions
+#[allow(dead_code)]
+const VALID_DUNNING_ACTIONS: &[&str] = &[
+    "send_letter", "phone_call", "email", "suspend_shipments",
+    "place_credit_hold", "refer_to_collections", "legal_action",
+];
+
+impl DunningLetterService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate days overdue for an invoice
+    pub fn calculate_days_overdue(
+        due_date: chrono::NaiveDate,
+        as_of_date: chrono::NaiveDate,
+    ) -> i32 {
+        (as_of_date - due_date).num_days() as i32
+    }
+
+    /// Determine the dunning level based on days overdue
+    /// Returns (level_number, level_name)
+    pub fn determine_dunning_level(
+        days_overdue: i32,
+        level_thresholds: &[(i32, &str)], // (days_threshold, level_name) sorted ascending
+    ) -> (i32, String) {
+        let mut level = 0;
+        let mut level_name = "none".to_string();
+        for (i, &(threshold, name)) in level_thresholds.iter().enumerate() {
+            if days_overdue >= threshold {
+                level = (i + 1) as i32;
+                level_name = name.to_string();
+            }
+        }
+        (level, level_name)
+    }
+
+    /// Calculate total overdue amount for a customer
+    pub fn calculate_total_overdue(
+        invoices: &[(f64, chrono::NaiveDate, bool)], // (amount, due_date, is_paid)
+        as_of_date: chrono::NaiveDate,
+    ) -> f64 {
+        invoices.iter()
+            .filter(|(_, _, paid)| !paid)
+            .filter(|(_, due, _)| *due < as_of_date)
+            .map(|(amt, _, _)| *amt)
+            .sum()
+    }
+
+    /// Calculate late payment charges (interest on overdue balance)
+    pub fn calculate_late_payment_charge(
+        overdue_amount: f64,
+        annual_rate: f64,
+        days_overdue: i32,
+    ) -> f64 {
+        if days_overdue <= 0 || annual_rate <= 0.0 {
+            return 0.0;
+        }
+        overdue_amount * (annual_rate / 100.0) * (days_overdue as f64 / 365.0)
+    }
+
+    /// Check if a customer should be escalated to the next dunning level
+    pub fn should_escalate(
+        current_level: i32,
+        days_overdue: i32,
+        next_level_threshold: i32,
+        has_dispute: bool,
+    ) -> bool {
+        if has_dispute {
+            return false;
+        }
+        days_overdue >= next_level_threshold && current_level < 10
+    }
+
+    /// Calculate dunning score for prioritization (0-100)
+    /// Higher score = higher priority
+    pub fn calculate_dunning_score(
+        days_overdue: i32,
+        overdue_amount: f64,
+        credit_limit: f64,
+        previous_dunning_level: i32,
+        has_dispute: bool,
+    ) -> f64 {
+        let mut score = 0.0;
+        // Days overdue component (0-40 points)
+        score += (days_overdue.min(180) as f64 / 180.0 * 40.0).min(40.0);
+        // Amount component (0-30 points)
+        let utilization = if credit_limit > 0.0 {
+            (overdue_amount / credit_limit * 100.0).min(100.0)
+        } else {
+            0.0
+        };
+        score += utilization / 100.0 * 30.0;
+        // Previous dunning level component (0-20 points)
+        score += (previous_dunning_level as f64 / 5.0 * 20.0).min(20.0);
+        // Dispute penalty (-10 points)
+        if has_dispute {
+            score -= 10.0;
+        }
+        score.max(0.0).min(100.0)
+    }
+
+    /// Generate a dunning summary for a customer
+    pub fn generate_dunning_summary(
+        customer_id: RecordId,
+        customer_name: &str,
+        invoices: &[(String, f64, chrono::NaiveDate, bool)], // (inv_num, amount, due_date, is_paid)
+        as_of_date: chrono::NaiveDate,
+        level_thresholds: &[(i32, &str)],
+    ) -> DunningSummary {
+        let overdue_invoices: Vec<&(String, f64, chrono::NaiveDate, bool)> = invoices.iter()
+            .filter(|(_, _, _, paid)| !paid)
+            .filter(|(_, _, due, _)| *due < as_of_date)
+            .collect();
+
+        let total_overdue: f64 = overdue_invoices.iter().map(|(_, amt, _, _)| *amt).sum();
+        let max_days_overdue = overdue_invoices.iter()
+            .map(|(_, _, due, _)| (as_of_date - *due).num_days() as i32)
+            .max()
+            .unwrap_or(0);
+
+        let (level, level_name) = Self::determine_dunning_level(max_days_overdue, level_thresholds);
+
+        DunningSummary {
+            customer_id,
+            customer_name: customer_name.to_string(),
+            total_overdue,
+            overdue_invoice_count: overdue_invoices.len(),
+            max_days_overdue,
+            dunning_level: level,
+            dunning_level_name: level_name,
+            as_of_date,
+        }
+    }
+
+    /// Validate a dunning letter creation request
+    pub fn validate_dunning_letter(
+        customer_name: &str,
+        letter_level: i32,
+        status: &str,
+    ) -> AtlasResult<()> {
+        if customer_name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Customer name is required".to_string(),
+            ));
+        }
+        if letter_level < 1 || letter_level > 10 {
+            return Err(AtlasError::ValidationFailed(
+                "Letter level must be between 1 and 10".to_string(),
+            ));
+        }
+        if !VALID_DUNNING_LETTER_STATUSES.contains(&status) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid status '{}'. Must be one of: {}",
+                status, VALID_DUNNING_LETTER_STATUSES.join(", ")
+            )));
+        }
+        Ok(())
+    }
+}
+
+/// Dunning summary for a customer
+#[derive(Debug, Clone)]
+pub struct DunningSummary {
+    pub customer_id: RecordId,
+    pub customer_name: String,
+    pub total_overdue: f64,
+    pub overdue_invoice_count: usize,
+    pub max_days_overdue: i32,
+    pub dunning_level: i32,
+    pub dunning_level_name: String,
+    pub as_of_date: chrono::NaiveDate,
+}
+
+// ===========================================================================
+// Revenue Waterfall Analysis Service
+// ===========================================================================
+
+/// Revenue Waterfall Analysis service
+/// Oracle Fusion: Revenue Management > Revenue Waterfall
+/// Provides waterfall analysis showing how deferred revenue flows through
+/// future periods, critical for ASC 606 / IFRS 15 revenue forecasting.
+#[allow(dead_code)]
+pub struct RevenueWaterfallService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// A single waterfall period
+#[derive(Debug, Clone)]
+pub struct WaterfallPeriod {
+    pub period_name: String,
+    pub beginning_deferred: f64,
+    pub new_deferrals: f64,
+    pub recognized: f64,
+    pub reclassifications: f64,
+    pub ending_deferred: f64,
+}
+
+/// Complete waterfall report
+#[derive(Debug, Clone)]
+pub struct WaterfallReport {
+    pub periods: Vec<WaterfallPeriod>,
+    pub total_beginning_deferred: f64,
+    pub total_new_deferrals: f64,
+    pub total_recognized: f64,
+    pub total_reclassifications: f64,
+    pub total_ending_deferred: f64,
+}
+
+/// Waterfall line item for a specific contract/obligation
+#[derive(Debug, Clone)]
+pub struct WaterfallLineItem {
+    pub contract_id: RecordId,
+    pub contract_number: String,
+    pub customer_name: String,
+    pub total_transaction_price: f64,
+    pub recognized_to_date: f64,
+    pub deferred_balance: f64,
+    pub scheduled_recognition: Vec<(String, f64)>, // (period, amount)
+}
+
+impl RevenueWaterfallService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Calculate ending deferred balance for a single period
+    /// Formula: Beginning + New Deferrals - Recognized +/- Reclassifications
+    pub fn calculate_period_ending(
+        beginning_deferred: f64,
+        new_deferrals: f64,
+        recognized: f64,
+        reclassifications: f64,
+    ) -> f64 {
+        beginning_deferred + new_deferrals - recognized + reclassifications
+    }
+
+    /// Build a waterfall report from period data
+    pub fn build_waterfall_report(
+        period_names: &[&str],
+        beginning_deferred: f64,
+        new_deferrals: &[f64],
+        recognition_schedule: &[f64],
+        reclassifications: &[f64],
+    ) -> WaterfallReport {
+        let n = period_names.len().min(new_deferrals.len())
+            .min(recognition_schedule.len()).min(reclassifications.len());
+
+        let mut periods = Vec::with_capacity(n);
+        let mut current_beginning = beginning_deferred;
+        let mut total_new = 0.0;
+        let mut total_recognized = 0.0;
+        let mut total_reclass = 0.0;
+
+        for i in 0..n {
+            let ending = Self::calculate_period_ending(
+                current_beginning,
+                new_deferrals[i],
+                recognition_schedule[i],
+                reclassifications[i],
+            );
+            total_new += new_deferrals[i];
+            total_recognized += recognition_schedule[i];
+            total_reclass += reclassifications[i];
+
+            periods.push(WaterfallPeriod {
+                period_name: period_names[i].to_string(),
+                beginning_deferred: current_beginning,
+                new_deferrals: new_deferrals[i],
+                recognized: recognition_schedule[i],
+                reclassifications: reclassifications[i],
+                ending_deferred: ending,
+            });
+            current_beginning = ending;
+        }
+
+        WaterfallReport {
+            total_beginning_deferred: beginning_deferred,
+            total_new_deferrals: total_new,
+            total_recognized: total_recognized,
+            total_reclassifications: total_reclass,
+            total_ending_deferred: current_beginning,
+            periods,
+        }
+    }
+
+    /// Calculate straight-line recognition schedule
+    /// Distributes total amount evenly across periods
+    pub fn calculate_straight_line_schedule(
+        total_amount: f64,
+        number_of_periods: i32,
+    ) -> Vec<f64> {
+        if number_of_periods <= 0 || total_amount <= 0.0 {
+            return vec![0.0; number_of_periods.max(0) as usize];
+        }
+        let per_period = total_amount / number_of_periods as f64;
+        vec![per_period; number_of_periods as usize]
+    }
+
+    /// Calculate ratable recognition based on days in each period
+    pub fn calculate_ratable_schedule(
+        total_amount: f64,
+        period_days: &[i32],
+    ) -> Vec<f64> {
+        let total_days: i32 = period_days.iter().sum();
+        if total_days <= 0 {
+            return vec![0.0; period_days.len()];
+        }
+        period_days.iter()
+            .map(|days| total_amount * (*days as f64 / total_days as f64))
+            .collect()
+    }
+
+    /// Validate waterfall report balance
+    /// Beginning Deferred + New Deferrals - Recognized + Reclassifications = Ending Deferred
+    pub fn validate_waterfall_balance(report: &WaterfallReport) -> bool {
+        let calculated_ending = report.total_beginning_deferred
+            + report.total_new_deferrals
+            - report.total_recognized
+            + report.total_reclassifications;
+        (calculated_ending - report.total_ending_deferred).abs() < 0.01
+    }
+
+    /// Calculate remaining deferred revenue
+    pub fn calculate_remaining_deferred(
+        total_contract_value: f64,
+        recognized_to_date: f64,
+    ) -> f64 {
+        (total_contract_value - recognized_to_date).max(0.0)
+    }
+
+    /// Calculate percentage of revenue recognized
+    pub fn calculate_recognition_percentage(
+        recognized: f64,
+        total: f64,
+    ) -> f64 {
+        if total <= 0.0 { return 0.0; }
+        (recognized / total) * 100.0
+    }
+
+    /// Forecast future revenue from deferred balance
+    pub fn forecast_revenue_from_deferred(
+        deferred_balance: f64,
+        remaining_periods: i32,
+        recognition_pattern: &str, // "straight_line", "front_loaded", "back_loaded"
+    ) -> Vec<f64> {
+        if remaining_periods <= 0 || deferred_balance <= 0.0 {
+            return vec![];
+        }
+        let n = remaining_periods as f64;
+        match recognition_pattern {
+            "straight_line" => vec![deferred_balance / n; remaining_periods as usize],
+            "front_loaded" => {
+                // More revenue in earlier periods (declining geometric series)
+                let ratio: f64 = 0.8; // each period is 80% of the previous
+                let sum: f64 = (0..remaining_periods)
+                    .map(|i| ratio.powi(i))
+                    .sum();
+                (0..remaining_periods)
+                    .map(|i| deferred_balance * ratio.powi(i) / sum)
+                    .collect()
+            }
+            "back_loaded" => {
+                // More revenue in later periods (increasing geometric series)
+                let ratio: f64 = 1.25; // each period is 125% of the previous
+                let factors: Vec<f64> = (0..remaining_periods)
+                    .map(|i| ratio.powi(i - remaining_periods + 1))
+                    .collect();
+                let sum: f64 = factors.iter().sum();
+                factors.iter().map(|f| deferred_balance * f / sum).collect()
+            }
+            _ => vec![deferred_balance / n; remaining_periods as usize],
+        }
+    }
+}
+
+// ===========================================================================
+// Subledger Reconciliation Service
+// ===========================================================================
+
+/// Subledger Reconciliation service
+/// Oracle Fusion: General Ledger > Subledger Reconciliation
+/// Reconciles subledger balances (AP, AR, FA) against GL control accounts.
+/// Identifies discrepancies between subledger detail and GL summary balances.
+#[allow(dead_code)]
+pub struct SubledgerReconciliationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid subledger types for reconciliation
+#[allow(dead_code)]
+const VALID_SUBLEDGER_TYPES: &[&str] = &[
+    "accounts_payable", "accounts_receivable", "fixed_assets",
+    "inventory", "project_costing", "expenses",
+];
+
+/// Valid reconciliation statuses
+#[allow(dead_code)]
+const VALID_RECON_STATUSES: &[&str] = &[
+    "draft", "in_progress", "reconciled", "has_exceptions", "approved",
+];
+
+/// Reconciliation result for a single subledger
+#[derive(Debug, Clone)]
+pub struct ReconciliationResult {
+    pub subledger_type: String,
+    pub gl_account: String,
+    pub gl_balance: f64,
+    pub subledger_balance: f64,
+    pub difference: f64,
+    pub is_balanced: bool,
+    pub exception_count: usize,
+}
+
+/// Complete reconciliation report
+#[derive(Debug, Clone)]
+pub struct ReconciliationReport {
+    pub results: Vec<ReconciliationResult>,
+    pub total_exceptions: usize,
+    pub total_difference: f64,
+    pub is_fully_reconciled: bool,
+    pub reconciled_at: chrono::NaiveDate,
+}
+
+impl SubledgerReconciliationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate a subledger type
+    pub fn validate_subledger_type(subledger_type: &str) -> AtlasResult<()> {
+        if !VALID_SUBLEDGER_TYPES.contains(&subledger_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid subledger_type '{}'. Must be one of: {}",
+                subledger_type, VALID_SUBLEDGER_TYPES.join(", ")
+            )));
+        }
+        Ok(())
+    }
+
+    /// Validate reconciliation status
+    pub fn validate_recon_status(status: &str) -> AtlasResult<()> {
+        if !VALID_RECON_STATUSES.contains(&status) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid reconciliation status '{}'. Must be one of: {}",
+                status, VALID_RECON_STATUSES.join(", ")
+            )));
+        }
+        Ok(())
+    }
+
+    /// Reconcile a single subledger balance against GL
+    pub fn reconcile_subledger(
+        subledger_type: &str,
+        gl_account: &str,
+        gl_balance: f64,
+        subledger_balance: f64,
+        tolerance: f64,
+    ) -> ReconciliationResult {
+        let difference = gl_balance - subledger_balance;
+        let is_balanced = difference.abs() <= tolerance;
+        ReconciliationResult {
+            subledger_type: subledger_type.to_string(),
+            gl_account: gl_account.to_string(),
+            gl_balance,
+            subledger_balance,
+            difference,
+            is_balanced,
+            exception_count: if is_balanced { 0 } else { 1 },
+        }
+    }
+
+    /// Build a full reconciliation report
+    pub fn build_reconciliation_report(
+        results: Vec<ReconciliationResult>,
+        reconciled_at: chrono::NaiveDate,
+    ) -> ReconciliationReport {
+        let total_exceptions: usize = results.iter()
+            .filter(|r| !r.is_balanced)
+            .map(|r| r.exception_count)
+            .sum();
+        let total_difference: f64 = results.iter()
+            .filter(|r| !r.is_balanced)
+            .map(|r| r.difference)
+            .sum();
+        let is_fully_reconciled = results.iter().all(|r| r.is_balanced);
+
+        ReconciliationReport {
+            results,
+            total_exceptions,
+            total_difference,
+            is_fully_reconciled,
+            reconciled_at,
+        }
+    }
+
+    /// Identify potential reconciliation exceptions
+    /// Returns a list of (description, amount) tuples
+    pub fn identify_exceptions(
+        gl_balance: f64,
+        subledger_balance: f64,
+        outstanding_journals: f64,
+        unposted_transactions: f64,
+        intercompany_imbalance: f64,
+    ) -> Vec<(String, f64)> {
+        let mut exceptions = Vec::new();
+        let difference = gl_balance - subledger_balance;
+
+        if outstanding_journals.abs() > 0.01 {
+            exceptions.push((
+                "Outstanding unposted journals".to_string(),
+                outstanding_journals,
+            ));
+        }
+        if unposted_transactions.abs() > 0.01 {
+            exceptions.push((
+                "Unposted subledger transactions".to_string(),
+                unposted_transactions,
+            ));
+        }
+        if intercompany_imbalance.abs() > 0.01 {
+            exceptions.push((
+                "Intercompany imbalance".to_string(),
+                intercompany_imbalance,
+            ));
+        }
+
+        let explained: f64 = exceptions.iter().map(|(_, amt)| *amt).sum();
+        let unexplained = difference - explained;
+        if unexplained.abs() > 0.01 {
+            exceptions.push((
+                "Unexplained difference".to_string(),
+                unexplained,
+            ));
+        }
+
+        exceptions
+    }
+
+    /// Calculate AP subledger balance from outstanding invoices
+    pub fn calculate_ap_subledger_balance(
+        invoices: &[(f64, &str)], // (amount, status)
+    ) -> f64 {
+        invoices.iter()
+            .filter(|(_, status)| *status != "cancelled" && *status != "paid")
+            .map(|(amt, _)| *amt)
+            .sum()
+    }
+
+    /// Calculate AR subledger balance from open transactions
+    pub fn calculate_ar_subledger_balance(
+        transactions: &[(f64, &str)], // (amount, status)
+    ) -> f64 {
+        transactions.iter()
+            .filter(|(_, status)| *status == "open" || *status == "complete")
+            .map(|(amt, _)| *amt)
+            .sum()
+    }
+
+    /// Calculate the tolerance threshold
+    pub fn calculate_tolerance(materiality: f64, tolerance_percent: f64) -> f64 {
+        materiality * (tolerance_percent / 100.0)
+    }
+}
+
+// ===========================================================================
+// Cost Rate Card Service
+// ===========================================================================
+
+/// Cost Rate Card Management service
+/// Oracle Fusion: Cost Management > Cost Rate Cards
+/// Manages labor, machine, and overhead rates used in product costing.
+/// Supports effective-dated rates with cost element assignments.
+#[allow(dead_code)]
+pub struct CostRateCardService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid rate card types
+#[allow(dead_code)]
+const VALID_RATE_CARD_TYPES: &[&str] = &[
+    "labor", "machine", "overhead", "subcontracting", "burden",
+];
+
+/// Valid rate basis types
+#[allow(dead_code)]
+const VALID_RATE_BASIS: &[&str] = &[
+    "per_hour", "per_unit", "per_day", "percentage", "fixed_amount",
+];
+
+/// Valid rate change reasons
+#[allow(dead_code)]
+const VALID_RATE_CHANGE_REASONS: &[&str] = &[
+    "annual_review", "market_adjustment", "contract_renewal",
+    "cost_increase", "efficiency_improvement", "other",
+];
+
+/// A single rate card entry
+#[derive(Debug, Clone)]
+pub struct RateCardEntry {
+    pub rate_card_code: String,
+    pub cost_element: String,
+    pub rate: f64,
+    pub rate_basis: String,
+    pub currency_code: String,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+}
+
+impl CostRateCardService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Validate a rate card creation
+    pub fn validate_rate_card(
+        code: &str,
+        name: &str,
+        card_type: &str,
+        rate_basis: &str,
+        rate: f64,
+        currency_code: &str,
+    ) -> AtlasResult<()> {
+        if code.is_empty() || name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Rate card code and name are required".to_string(),
+            ));
+        }
+        if !VALID_RATE_CARD_TYPES.contains(&card_type) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid card_type '{}'. Must be one of: {}",
+                card_type, VALID_RATE_CARD_TYPES.join(", ")
+            )));
+        }
+        if !VALID_RATE_BASIS.contains(&rate_basis) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid rate_basis '{}'. Must be one of: {}",
+                rate_basis, VALID_RATE_BASIS.join(", ")
+            )));
+        }
+        if rate < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Rate must be non-negative".to_string(),
+            ));
+        }
+        if currency_code.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Get the effective rate for a given date
+    pub fn get_effective_rate(
+        entries: &[RateCardEntry],
+        cost_element: &str,
+        as_of_date: chrono::NaiveDate,
+    ) -> Option<f64> {
+        entries.iter()
+            .filter(|e| e.cost_element == cost_element)
+            .filter(|e| e.effective_from <= as_of_date)
+            .filter(|e| e.effective_to.is_none() || e.effective_to.unwrap() >= as_of_date)
+            .max_by_key(|e| e.effective_from)
+            .map(|e| e.rate)
+    }
+
+    /// Calculate cost using a rate card
+    pub fn calculate_cost(
+        rate: f64,
+        quantity: f64,
+        rate_basis: &str,
+    ) -> f64 {
+        match rate_basis {
+            "per_hour" | "per_unit" | "per_day" => rate * quantity,
+            "percentage" => rate * quantity / 100.0,
+            "fixed_amount" => rate,
+            _ => 0.0,
+        }
+    }
+
+    /// Calculate total cost across multiple rate card entries
+    pub fn calculate_total_cost(
+        entries: &[(f64, f64, &str)], // (rate, quantity, rate_basis)
+    ) -> f64 {
+        entries.iter()
+            .map(|(rate, qty, basis)| Self::calculate_cost(*rate, *qty, basis))
+            .sum()
+    }
+
+    /// Calculate rate change percentage
+    pub fn calculate_rate_change(
+        old_rate: f64,
+        new_rate: f64,
+    ) -> f64 {
+        if old_rate <= 0.0 { return 0.0; }
+        ((new_rate - old_rate) / old_rate) * 100.0
+    }
+
+    /// Create a new rate card version
+    pub fn create_new_version(
+        current: &RateCardEntry,
+        new_rate: f64,
+        effective_from: chrono::NaiveDate,
+    ) -> (RateCardEntry, RateCardEntry) {
+        // Close the current entry
+        let closed = RateCardEntry {
+            effective_to: Some(
+                effective_from - chrono::Duration::days(1)
+            ),
+            ..current.clone()
+        };
+        // Create new entry
+        let new = RateCardEntry {
+            rate: new_rate,
+            effective_from,
+            effective_to: None,
+            ..current.clone()
+        };
+        (closed, new)
+    }
+
+    /// Validate that rate card entries have no gaps in effective dates
+    pub fn validate_no_date_gaps(
+        entries: &[(chrono::NaiveDate, Option<chrono::NaiveDate>)],
+    ) -> Result<(), String> {
+        if entries.is_empty() { return Ok(()); }
+        let mut sorted: Vec<_> = entries.to_vec();
+        sorted.sort_by_key(|(from, _)| *from);
+
+        for i in 1..sorted.len() {
+            let prev_end = sorted[i - 1].1;
+            let curr_start = sorted[i].0;
+            if let Some(end) = prev_end {
+                let expected_next = end + chrono::Duration::days(1);
+                if curr_start > expected_next {
+                    return Err(format!(
+                        "Gap in rate card dates: {} to {}",
+                        end, curr_start
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Calculate blended rate across multiple rate periods
+    pub fn calculate_blended_rate(
+        entries: &[(f64, i32)], // (rate, days_in_period)
+    ) -> f64 {
+        let total_days: i32 = entries.iter().map(|(_, days)| *days).sum();
+        if total_days <= 0 { return 0.0; }
+        entries.iter()
+            .map(|(rate, days)| rate * *days as f64)
+            .sum::<f64>() / total_days as f64
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
+    use atlas_shared::RecordId;
+    use std::sync::Arc;
+    use atlas_core::{SchemaEngine, WorkflowEngine, ValidationEngine};
 
     // ========================================================================
     // General Ledger Entity Tests
@@ -20103,5 +20908,791 @@ mod tests {
         ];
         let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
         assert_eq!(count, 5, "All 5 workflow entities should have workflows");
+    }
+
+    // ========================================================================
+    // Dunning Letter Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_dunning_letter_template_definition() {
+        let def = entities::dunning_letter_template_definition();
+        assert_eq!(def.name, "dunning_letter_templates");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_new_features_dunning_letter_definition() {
+        let def = entities::dunning_letter_definition();
+        assert_eq!(def.name, "dunning_letters");
+        // Existing dunning letter entity does not have workflow
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_dunning_days_overdue() {
+        use chrono::NaiveDate;
+        let due = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
+        let as_of = NaiveDate::from_ymd_opt(2026, 4, 15).unwrap();
+        let days = super::DunningLetterService::calculate_days_overdue(due, as_of);
+        assert_eq!(days, 45);
+    }
+
+    #[test]
+    fn test_dunning_days_overdue_not_overdue() {
+        use chrono::NaiveDate;
+        let due = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+        let as_of = NaiveDate::from_ymd_opt(2026, 4, 15).unwrap();
+        let days = super::DunningLetterService::calculate_days_overdue(due, as_of);
+        assert!(days < 0);
+    }
+
+    #[test]
+    fn test_dunning_determine_level() {
+        let thresholds = vec![(1, "reminder"), (15, "first_notice"), (30, "second_notice"), (60, "final_notice")];
+        let (lvl, name) = super::DunningLetterService::determine_dunning_level(5, &thresholds);
+        assert_eq!(lvl, 1);
+        assert_eq!(name, "reminder");
+
+        let (lvl, name) = super::DunningLetterService::determine_dunning_level(20, &thresholds);
+        assert_eq!(lvl, 2);
+        assert_eq!(name, "first_notice");
+
+        let (lvl, name) = super::DunningLetterService::determine_dunning_level(45, &thresholds);
+        assert_eq!(lvl, 3);
+        assert_eq!(name, "second_notice");
+
+        let (lvl, name) = super::DunningLetterService::determine_dunning_level(90, &thresholds);
+        assert_eq!(lvl, 4);
+        assert_eq!(name, "final_notice");
+    }
+
+    #[test]
+    fn test_dunning_determine_level_not_overdue() {
+        let thresholds = vec![(1, "reminder"), (15, "first_notice")];
+        let (lvl, name) = super::DunningLetterService::determine_dunning_level(0, &thresholds);
+        assert_eq!(lvl, 0);
+        assert_eq!(name, "none");
+    }
+
+    #[test]
+    fn test_dunning_calculate_total_overdue() {
+        use chrono::NaiveDate;
+        let as_of = NaiveDate::from_ymd_opt(2026, 4, 15).unwrap();
+        let invoices = vec![
+            (1000.0, NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(), false), // overdue, unpaid
+            (2000.0, NaiveDate::from_ymd_opt(2026, 2, 15).unwrap(), false), // overdue, unpaid
+            (500.0, NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(), false),   // not yet due
+            (300.0, NaiveDate::from_ymd_opt(2026, 3, 10).unwrap(), true),   // paid
+        ];
+        let total = super::DunningLetterService::calculate_total_overdue(&invoices, as_of);
+        assert!((total - 3000.0_f64).abs() < 0.01); // Only first two
+    }
+
+    #[test]
+    fn test_dunning_calculate_late_payment_charge() {
+        let charge = super::DunningLetterService::calculate_late_payment_charge(
+            10000.0, 12.0, 30,
+        );
+        // 10000 * 0.12 * 30/365 = 98.63
+        assert!((charge - 98.63_f64).abs() < 1.0);
+    }
+
+    #[test]
+    fn test_dunning_calculate_late_payment_charge_zero_rate() {
+        let charge = super::DunningLetterService::calculate_late_payment_charge(
+            10000.0, 0.0, 30,
+        );
+        assert!((charge - 0.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_dunning_should_escalate() {
+        assert!(super::DunningLetterService::should_escalate(1, 30, 30, false));
+    }
+
+    #[test]
+    fn test_dunning_should_not_escalate_disputed() {
+        assert!(!super::DunningLetterService::should_escalate(1, 30, 30, true));
+    }
+
+    #[test]
+    fn test_dunning_should_not_escalate_not_yet() {
+        assert!(!super::DunningLetterService::should_escalate(1, 15, 30, false));
+    }
+
+    #[test]
+    fn test_dunning_score() {
+        let score = super::DunningLetterService::calculate_dunning_score(
+            60, 5000.0, 10000.0, 2, false,
+        );
+        assert!(score > 0.0 && score <= 100.0);
+    }
+
+    #[test]
+    fn test_dunning_score_high_priority() {
+        let score = super::DunningLetterService::calculate_dunning_score(
+            180, 9000.0, 10000.0, 4, false,
+        );
+        assert!(score > 70.0); // High priority
+    }
+
+    #[test]
+    fn test_dunning_score_disputed_lower() {
+        let score_normal = super::DunningLetterService::calculate_dunning_score(
+            60, 5000.0, 10000.0, 2, false,
+        );
+        let score_disputed = super::DunningLetterService::calculate_dunning_score(
+            60, 5000.0, 10000.0, 2, true,
+        );
+        assert!(score_disputed < score_normal);
+    }
+
+    #[test]
+    fn test_dunning_generate_summary() {
+        use chrono::NaiveDate;
+        let as_of = NaiveDate::from_ymd_opt(2026, 4, 15).unwrap();
+        let thresholds = vec![(1, "reminder"), (30, "first_notice")];
+        let invoices = vec![
+            ("INV-001".to_string(), 1000.0, NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(), false),
+            ("INV-002".to_string(), 2000.0, NaiveDate::from_ymd_opt(2026, 2, 15).unwrap(), false),
+            ("INV-003".to_string(), 500.0, NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(), false),
+        ];
+        let summary = super::DunningLetterService::generate_dunning_summary(
+            RecordId::new_v4(), "Acme Corp", &invoices, as_of, &thresholds,
+        );
+        assert_eq!(summary.customer_name, "Acme Corp");
+        assert!((summary.total_overdue - 3000.0_f64).abs() < 0.01);
+        assert_eq!(summary.overdue_invoice_count, 2);
+        assert_eq!(summary.dunning_level, 2); // first_notice (max 59 days overdue)
+        assert_eq!(summary.dunning_level_name, "first_notice");
+    }
+
+    #[test]
+    fn test_dunning_validate_letter_ok() {
+        let result = super::DunningLetterService::validate_dunning_letter("Acme Corp", 2, "draft");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_dunning_validate_letter_bad_level() {
+        let result = super::DunningLetterService::validate_dunning_letter("Acme Corp", 0, "draft");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_dunning_validate_letter_bad_status() {
+        let result = super::DunningLetterService::validate_dunning_letter("Acme Corp", 2, "unknown");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_dunning_validate_letter_empty_customer() {
+        let result = super::DunningLetterService::validate_dunning_letter("", 2, "draft");
+        assert!(result.is_err());
+    }
+
+    // ========================================================================
+    // Revenue Waterfall Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_revenue_waterfall_report_definition() {
+        let def = entities::revenue_waterfall_report_definition();
+        assert_eq!(def.name, "revenue_waterfall_reports");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_revenue_waterfall_line_definition() {
+        let def = entities::revenue_waterfall_line_definition();
+        assert_eq!(def.name, "revenue_waterfall_lines");
+    }
+
+    #[test]
+    fn test_waterfall_calculate_period_ending() {
+        let ending = super::RevenueWaterfallService::calculate_period_ending(
+            100000.0, // beginning deferred
+            50000.0,  // new deferrals
+            30000.0,  // recognized
+            0.0,      // reclassifications
+        );
+        assert!((ending - 120000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_waterfall_calculate_period_ending_with_reclass() {
+        let ending = super::RevenueWaterfallService::calculate_period_ending(
+            100000.0,
+            50000.0,
+            30000.0,
+            -5000.0, // reclassification out
+        );
+        assert!((ending - 115000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_waterfall_build_report() {
+        let report = super::RevenueWaterfallService::build_waterfall_report(
+            &["Q1", "Q2", "Q3", "Q4"],
+            100000.0,
+            &[50000.0, 60000.0, 40000.0, 30000.0],
+            &[40000.0, 50000.0, 45000.0, 35000.0],
+            &[0.0, 0.0, 0.0, 0.0],
+        );
+        assert_eq!(report.periods.len(), 4);
+        assert!((report.total_beginning_deferred - 100000.0_f64).abs() < 0.01);
+        assert!((report.total_new_deferrals - 180000.0_f64).abs() < 0.01);
+        assert!((report.total_recognized - 170000.0_f64).abs() < 0.01);
+        // Q1: 100k + 50k - 40k = 110k
+        assert!((report.periods[0].ending_deferred - 110000.0_f64).abs() < 0.01);
+        // Q2: 110k + 60k - 50k = 120k
+        assert!((report.periods[1].ending_deferred - 120000.0_f64).abs() < 0.01);
+        // Q3: 120k + 40k - 45k = 115k
+        assert!((report.periods[2].ending_deferred - 115000.0_f64).abs() < 0.01);
+        // Q4: 115k + 30k - 35k = 110k
+        assert!((report.periods[3].ending_deferred - 110000.0_f64).abs() < 0.01);
+        assert!((report.total_ending_deferred - 110000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_waterfall_validate_balance() {
+        let report = super::RevenueWaterfallService::build_waterfall_report(
+            &["Q1"],
+            100000.0,
+            &[50000.0],
+            &[40000.0],
+            &[0.0],
+        );
+        assert!(super::RevenueWaterfallService::validate_waterfall_balance(&report));
+    }
+
+    #[test]
+    fn test_waterfall_straight_line_schedule() {
+        let schedule = super::RevenueWaterfallService::calculate_straight_line_schedule(
+            120000.0, 12,
+        );
+        assert_eq!(schedule.len(), 12);
+        assert!((schedule[0] - 10000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_waterfall_straight_line_schedule_zero_periods() {
+        let schedule = super::RevenueWaterfallService::calculate_straight_line_schedule(
+            100000.0, 0,
+        );
+        assert!(schedule.is_empty());
+    }
+
+    #[test]
+    fn test_waterfall_ratable_schedule() {
+        let schedule = super::RevenueWaterfallService::calculate_ratable_schedule(
+            120000.0, &[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31], // days per month
+        );
+        assert_eq!(schedule.len(), 12);
+        let total: f64 = schedule.iter().sum();
+        assert!((total - 120000.0_f64).abs() < 0.01);
+        // January (31 days) should be more than February (28 days)
+        assert!(schedule[0] > schedule[1]);
+    }
+
+    #[test]
+    fn test_waterfall_remaining_deferred() {
+        let remaining = super::RevenueWaterfallService::calculate_remaining_deferred(
+            100000.0, 65000.0,
+        );
+        assert!((remaining - 35000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_waterfall_recognition_percentage() {
+        let pct = super::RevenueWaterfallService::calculate_recognition_percentage(
+            65000.0, 100000.0,
+        );
+        assert!((pct - 65.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_waterfall_forecast_straight_line() {
+        let forecast = super::RevenueWaterfallService::forecast_revenue_from_deferred(
+            120000.0, 12, "straight_line",
+        );
+        assert_eq!(forecast.len(), 12);
+        let total: f64 = forecast.iter().sum();
+        assert!((total - 120000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_waterfall_forecast_front_loaded() {
+        let forecast = super::RevenueWaterfallService::forecast_revenue_from_deferred(
+            100000.0, 4, "front_loaded",
+        );
+        assert_eq!(forecast.len(), 4);
+        assert!(forecast[0] > forecast[1]); // First period is highest
+        assert!(forecast[1] > forecast[2]);
+    }
+
+    #[test]
+    fn test_waterfall_forecast_back_loaded() {
+        let forecast = super::RevenueWaterfallService::forecast_revenue_from_deferred(
+            100000.0, 4, "back_loaded",
+        );
+        assert_eq!(forecast.len(), 4);
+        assert!(forecast[3] > forecast[2]); // Last period is highest
+    }
+
+    #[test]
+    fn test_waterfall_forecast_zero_balance() {
+        let forecast = super::RevenueWaterfallService::forecast_revenue_from_deferred(
+            0.0, 12, "straight_line",
+        );
+        assert!(forecast.is_empty());
+    }
+
+    // ========================================================================
+    // Subledger Reconciliation Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_subledger_reconciliation_definition() {
+        let def = entities::subledger_reconciliation_definition();
+        assert_eq!(def.name, "subledger_reconciliations");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "reconciled"));
+        assert!(wf.states.iter().any(|s| s.name == "approved"));
+    }
+
+    #[test]
+    fn test_recon_validate_subledger_type_ok() {
+        assert!(super::SubledgerReconciliationService::validate_subledger_type("accounts_payable").is_ok());
+        assert!(super::SubledgerReconciliationService::validate_subledger_type("accounts_receivable").is_ok());
+        assert!(super::SubledgerReconciliationService::validate_subledger_type("fixed_assets").is_ok());
+    }
+
+    #[test]
+    fn test_recon_validate_subledger_type_invalid() {
+        assert!(super::SubledgerReconciliationService::validate_subledger_type("invalid").is_err());
+    }
+
+    #[test]
+    fn test_recon_validate_status_ok() {
+        for status in &["draft", "in_progress", "reconciled", "has_exceptions", "approved"] {
+            assert!(super::SubledgerReconciliationService::validate_recon_status(status).is_ok());
+        }
+    }
+
+    #[test]
+    fn test_recon_validate_status_invalid() {
+        assert!(super::SubledgerReconciliationService::validate_recon_status("unknown").is_err());
+    }
+
+    #[test]
+    fn test_recon_reconcile_subledger_balanced() {
+        let result = super::SubledgerReconciliationService::reconcile_subledger(
+            "accounts_payable",
+            "2000.100",
+            50000.0,
+            50000.0,
+            0.01,
+        );
+        assert!(result.is_balanced);
+        assert!((result.difference - 0.0_f64).abs() < 0.01);
+        assert_eq!(result.exception_count, 0);
+    }
+
+    #[test]
+    fn test_recon_reconcile_subledger_within_tolerance() {
+        let result = super::SubledgerReconciliationService::reconcile_subledger(
+            "accounts_payable",
+            "2000.100",
+            50000.0,
+            49999.50,
+            1.0, // $1 tolerance
+        );
+        assert!(result.is_balanced);
+    }
+
+    #[test]
+    fn test_recon_reconcile_subledger_imbalanced() {
+        let result = super::SubledgerReconciliationService::reconcile_subledger(
+            "accounts_receivable",
+            "1200.100",
+            80000.0,
+            75000.0,
+            0.01,
+        );
+        assert!(!result.is_balanced);
+        assert!((result.difference - 5000.0_f64).abs() < 0.01);
+        assert_eq!(result.exception_count, 1);
+    }
+
+    #[test]
+    fn test_recon_build_report_all_balanced() {
+        use chrono::NaiveDate;
+        let date = NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
+        let results = vec![
+            super::SubledgerReconciliationService::reconcile_subledger(
+                "accounts_payable", "2000", 50000.0, 50000.0, 0.01,
+            ),
+            super::SubledgerReconciliationService::reconcile_subledger(
+                "accounts_receivable", "1200", 80000.0, 80000.0, 0.01,
+            ),
+        ];
+        let report = super::SubledgerReconciliationService::build_reconciliation_report(results, date);
+        assert!(report.is_fully_reconciled);
+        assert_eq!(report.total_exceptions, 0);
+    }
+
+    #[test]
+    fn test_recon_build_report_with_exceptions() {
+        use chrono::NaiveDate;
+        let date = NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
+        let results = vec![
+            super::SubledgerReconciliationService::reconcile_subledger(
+                "accounts_payable", "2000", 50000.0, 50000.0, 0.01,
+            ),
+            super::SubledgerReconciliationService::reconcile_subledger(
+                "accounts_receivable", "1200", 80000.0, 75000.0, 0.01,
+            ),
+        ];
+        let report = super::SubledgerReconciliationService::build_reconciliation_report(results, date);
+        assert!(!report.is_fully_reconciled);
+        assert_eq!(report.total_exceptions, 1);
+        assert!((report.total_difference - 5000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_recon_identify_exceptions() {
+        let exceptions = super::SubledgerReconciliationService::identify_exceptions(
+            50000.0,  // gl_balance
+            45000.0,  // subledger_balance
+            3000.0,   // outstanding_journals
+            1500.0,   // unposted_transactions
+            0.0,      // intercompany_imbalance
+        );
+        assert_eq!(exceptions.len(), 3); // journals + unposted + unexplained
+        let total: f64 = exceptions.iter().map(|(_, amt)| *amt).sum();
+        assert!((total - 5000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_recon_identify_exceptions_fully_explained() {
+        let exceptions = super::SubledgerReconciliationService::identify_exceptions(
+            50000.0,
+            45000.0,
+            3000.0,
+            2000.0,
+            0.0,
+        );
+        assert_eq!(exceptions.len(), 2); // journals + unposted (no unexplained)
+    }
+
+    #[test]
+    fn test_recon_ap_subledger_balance() {
+        let invoices = vec![
+            (10000.0, "approved"),
+            (5000.0, "approved"),
+            (3000.0, "paid"),
+            (2000.0, "cancelled"),
+        ];
+        let balance = super::SubledgerReconciliationService::calculate_ap_subledger_balance(
+            &invoices,
+        );
+        assert!((balance - 15000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_recon_ar_subledger_balance() {
+        let transactions = vec![
+            (10000.0, "open"),
+            (5000.0, "complete"),
+            (3000.0, "closed"),
+            (2000.0, "cancelled"),
+        ];
+        let balance = super::SubledgerReconciliationService::calculate_ar_subledger_balance(
+            &transactions,
+        );
+        assert!((balance - 15000.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_recon_calculate_tolerance() {
+        let tol = super::SubledgerReconciliationService::calculate_tolerance(100000.0, 0.5);
+        assert!((tol - 500.0_f64).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Cost Rate Card Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_cost_rate_card_definition() {
+        let def = entities::cost_rate_card_definition();
+        assert_eq!(def.name, "cost_rate_cards");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "draft");
+        assert!(wf.states.iter().any(|s| s.name == "active"));
+        assert!(wf.states.iter().any(|s| s.name == "superseded"));
+    }
+
+    #[test]
+    fn test_rate_card_validate_ok() {
+        let result = super::CostRateCardService::validate_rate_card(
+            "LABOR-01", "Senior Developer Rate", "labor", "per_hour", 150.0, "USD",
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_rate_card_validate_empty_code() {
+        let result = super::CostRateCardService::validate_rate_card(
+            "", "Senior Developer Rate", "labor", "per_hour", 150.0, "USD",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_rate_card_validate_empty_name() {
+        let result = super::CostRateCardService::validate_rate_card(
+            "LABOR-01", "", "labor", "per_hour", 150.0, "USD",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_rate_card_validate_invalid_type() {
+        let result = super::CostRateCardService::validate_rate_card(
+            "LABOR-01", "Rate", "invalid", "per_hour", 150.0, "USD",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_rate_card_validate_invalid_basis() {
+        let result = super::CostRateCardService::validate_rate_card(
+            "LABOR-01", "Rate", "labor", "invalid", 150.0, "USD",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_rate_card_validate_negative_rate() {
+        let result = super::CostRateCardService::validate_rate_card(
+            "LABOR-01", "Rate", "labor", "per_hour", -10.0, "USD",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_rate_card_validate_empty_currency() {
+        let result = super::CostRateCardService::validate_rate_card(
+            "LABOR-01", "Rate", "labor", "per_hour", 150.0, "",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_rate_card_get_effective_rate() {
+        use chrono::NaiveDate;
+        let entries = vec![
+            super::RateCardEntry {
+                rate_card_code: "LABOR-01".to_string(),
+                cost_element: "labor".to_string(),
+                rate: 100.0,
+                rate_basis: "per_hour".to_string(),
+                currency_code: "USD".to_string(),
+                effective_from: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                effective_to: Some(NaiveDate::from_ymd_opt(2026, 6, 30).unwrap()),
+            },
+            super::RateCardEntry {
+                rate_card_code: "LABOR-01".to_string(),
+                cost_element: "labor".to_string(),
+                rate: 120.0,
+                rate_basis: "per_hour".to_string(),
+                currency_code: "USD".to_string(),
+                effective_from: NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
+                effective_to: None,
+            },
+        ];
+        let rate_jan = super::CostRateCardService::get_effective_rate(
+            &entries, "labor", NaiveDate::from_ymd_opt(2026, 3, 15).unwrap(),
+        );
+        assert_eq!(rate_jan, Some(100.0));
+
+        let rate_aug = super::CostRateCardService::get_effective_rate(
+            &entries, "labor", NaiveDate::from_ymd_opt(2026, 8, 15).unwrap(),
+        );
+        assert_eq!(rate_aug, Some(120.0));
+
+        let rate_2025 = super::CostRateCardService::get_effective_rate(
+            &entries, "labor", NaiveDate::from_ymd_opt(2025, 6, 15).unwrap(),
+        );
+        assert_eq!(rate_2025, None);
+    }
+
+    #[test]
+    fn test_rate_card_calculate_cost_per_hour() {
+        let cost = super::CostRateCardService::calculate_cost(150.0, 8.0, "per_hour");
+        assert!((cost - 1200.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rate_card_calculate_cost_per_unit() {
+        let cost = super::CostRateCardService::calculate_cost(25.0, 100.0, "per_unit");
+        assert!((cost - 2500.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rate_card_calculate_cost_percentage() {
+        let cost = super::CostRateCardService::calculate_cost(15.0, 10000.0, "percentage");
+        assert!((cost - 1500.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rate_card_calculate_cost_fixed_amount() {
+        let cost = super::CostRateCardService::calculate_cost(500.0, 10.0, "fixed_amount");
+        assert!((cost - 500.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rate_card_calculate_total_cost() {
+        let entries = vec![
+            (150.0, 8.0, "per_hour"),   // 1200
+            (25.0, 100.0, "per_unit"),   // 2500
+            (500.0, 1.0, "fixed_amount"), // 500
+        ];
+        let total = super::CostRateCardService::calculate_total_cost(&entries);
+        assert!((total - 4200.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rate_card_calculate_rate_change() {
+        let change = super::CostRateCardService::calculate_rate_change(100.0, 120.0);
+        assert!((change - 20.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rate_card_calculate_rate_change_decrease() {
+        let change = super::CostRateCardService::calculate_rate_change(100.0, 80.0);
+        assert!((change - (-20.0_f64)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rate_card_calculate_rate_change_zero_old() {
+        let change = super::CostRateCardService::calculate_rate_change(0.0, 100.0);
+        assert!((change - 0.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rate_card_create_new_version() {
+        use chrono::NaiveDate;
+        let current = super::RateCardEntry {
+            rate_card_code: "LABOR-01".to_string(),
+            cost_element: "labor".to_string(),
+            rate: 100.0,
+            rate_basis: "per_hour".to_string(),
+            currency_code: "USD".to_string(),
+            effective_from: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
+        };
+        let new_from = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
+        let (closed, new) = super::CostRateCardService::create_new_version(&current, 120.0, new_from);
+        assert_eq!(closed.effective_to, Some(NaiveDate::from_ymd_opt(2026, 6, 30).unwrap()));
+        assert!((closed.rate - 100.0_f64).abs() < 0.01);
+        assert_eq!(new.effective_from, new_from);
+        assert!(new.effective_to.is_none());
+        assert!((new.rate - 120.0_f64).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rate_card_validate_no_date_gaps_ok() {
+        use chrono::NaiveDate;
+        let entries = vec![
+            (NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), Some(NaiveDate::from_ymd_opt(2026, 6, 30).unwrap())),
+            (NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(), Some(NaiveDate::from_ymd_opt(2026, 12, 31).unwrap())),
+        ];
+        assert!(super::CostRateCardService::validate_no_date_gaps(&entries).is_ok());
+    }
+
+    #[test]
+    fn test_rate_card_validate_date_gap() {
+        use chrono::NaiveDate;
+        let entries = vec![
+            (NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), Some(NaiveDate::from_ymd_opt(2026, 3, 31).unwrap())),
+            (NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(), Some(NaiveDate::from_ymd_opt(2026, 12, 31).unwrap())),
+        ];
+        assert!(super::CostRateCardService::validate_no_date_gaps(&entries).is_err());
+    }
+
+    #[test]
+    fn test_rate_card_validate_no_gaps_open_end() {
+        use chrono::NaiveDate;
+        let entries = vec![
+            (NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), Some(NaiveDate::from_ymd_opt(2026, 6, 30).unwrap())),
+            (NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(), None),
+        ];
+        assert!(super::CostRateCardService::validate_no_date_gaps(&entries).is_ok());
+    }
+
+    #[test]
+    fn test_rate_card_blended_rate() {
+        let entries = vec![
+            (100.0, 90),  // Q1-Q2: 90 days at $100
+            (120.0, 92),  // Q3-Q4: 92 days at $120
+            (110.0, 90),  // H1: 90 days at $110
+        ];
+        let blended = super::CostRateCardService::calculate_blended_rate(&entries);
+        // (100*90 + 120*92 + 110*90) / (90+92+90) = (9000+11040+9900)/272 = 29940/272 = 110.07
+        assert!((blended - 110.07_f64).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_rate_card_blended_rate_zero_days() {
+        let blended = super::CostRateCardService::calculate_blended_rate(&[]);
+        assert!((blended - 0.0_f64).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // New Feature Integration Tests
+    // ========================================================================
+
+    #[test]
+    fn test_new_feature_entities_build() {
+        // Verify all new entity definitions compile and are accessible
+        let _ = entities::dunning_letter_template_definition();
+        let _ = entities::dunning_letter_definition();
+        let _ = entities::revenue_waterfall_report_definition();
+        let _ = entities::revenue_waterfall_line_definition();
+        let _ = entities::subledger_reconciliation_definition();
+        let _ = entities::cost_rate_card_definition();
+    }
+
+    #[test]
+    fn test_new_feature_entity_names_unique() {
+        let new_entities = vec![
+            entities::dunning_letter_template_definition(),
+            entities::dunning_letter_definition(),
+            entities::revenue_waterfall_report_definition(),
+            entities::revenue_waterfall_line_definition(),
+            entities::subledger_reconciliation_definition(),
+            entities::cost_rate_card_definition(),
+        ];
+        assert_eq!(new_entities.len(), 6);
+        let names: std::collections::HashSet<&str> = new_entities.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names.len(), 6, "All 6 new entity names must be unique");
+    }
+
+    #[test]
+    fn test_new_features_workflow_count() {
+        let workflow_entities = vec![
+            entities::dunning_letter_definition(),
+            entities::subledger_reconciliation_definition(),
+            entities::cost_rate_card_definition(),
+        ];
+        let count = workflow_entities.iter().filter(|e| e.workflow.is_some()).count();
+        assert_eq!(count, 2, "Both 2 workflow entities should have workflows");
     }
 }

@@ -7397,3 +7397,174 @@ pub fn asset_merger_line_definition() -> EntityDefinition {
         .currency("net_book_value", "Net Book Value", "USD")
         .build()
 }
+
+// ===========================================================================
+// Dunning Letter Entities
+// ===========================================================================
+
+/// Dunning Letter Template entity
+/// Oracle Fusion: Receivables > Dunning > Templates
+pub fn dunning_letter_template_definition() -> EntityDefinition {
+    SchemaBuilder::new("dunning_letter_templates", "Dunning Template")
+        .plural_label("Dunning Letter Templates")
+        .table_name("fin_dunning_letter_templates")
+        .description("Templates for generating dunning letters")
+        .icon("file-alt")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .integer("dunning_level", "Dunning Level")
+        .enumeration("communication_method", "Communication Method", vec![
+            "email", "letter", "sms",
+        ])
+        .string("subject_line", "Subject Line")
+        .rich_text("body_template", "Body Template")
+        .integer("days_overdue_threshold", "Days Overdue Threshold")
+        .boolean("include_finance_charges", "Include Finance Charges")
+        .boolean("include_all_open_invoices", "All Open Invoices")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ===========================================================================
+// Revenue Waterfall Entities
+// ===========================================================================
+
+/// Revenue Waterfall Report entity
+/// Oracle Fusion: Revenue Management > Waterfall Reports
+pub fn revenue_waterfall_report_definition() -> EntityDefinition {
+    SchemaBuilder::new("revenue_waterfall_reports", "Revenue Waterfall")
+        .plural_label("Revenue Waterfall Reports")
+        .table_name("fin_revenue_waterfall_reports")
+        .description("Revenue waterfall analysis showing deferred revenue roll-forward")
+        .icon("chart-bar")
+        .required_string("report_name", "Report Name")
+        .date("from_date", "From Date")
+        .date("to_date", "To Date")
+        .enumeration("period_type", "Period Type", vec![
+            "monthly", "quarterly", "yearly",
+        ])
+        .currency("beginning_deferred", "Beginning Deferred", "USD")
+        .currency("new_deferrals", "New Deferrals", "USD")
+        .currency("recognized", "Recognized", "USD")
+        .currency("reclassifications", "Reclassifications", "USD")
+        .currency("ending_deferred", "Ending Deferred", "USD")
+        .string("currency_code", "Currency")
+        .date("generated_at", "Generated At")
+        .build()
+}
+
+/// Revenue Waterfall Line entity
+/// Oracle Fusion: Revenue Management > Waterfall Lines
+pub fn revenue_waterfall_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("revenue_waterfall_lines", "Waterfall Line")
+        .plural_label("Revenue Waterfall Lines")
+        .table_name("fin_revenue_waterfall_lines")
+        .description("Individual lines in a revenue waterfall report")
+        .icon("list")
+        .reference("report_id", "Report", "revenue_waterfall_reports")
+        .reference("contract_id", "Contract", "revenue_contracts")
+        .string("contract_number", "Contract Number")
+        .string("customer_name", "Customer Name")
+        .string("period_name", "Period")
+        .currency("beginning_deferred", "Beginning Deferred", "USD")
+        .currency("new_deferrals", "New Deferrals", "USD")
+        .currency("recognized", "Recognized", "USD")
+        .currency("reclassifications", "Reclassifications", "USD")
+        .currency("ending_deferred", "Ending Deferred", "USD")
+        .build()
+}
+
+// ===========================================================================
+// Subledger Reconciliation Entities
+// ===========================================================================
+
+/// Subledger Reconciliation entity with workflow
+/// Oracle Fusion: General Ledger > Reconciliation
+pub fn subledger_reconciliation_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("subledger_recon_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("in_progress", "In Progress")
+        .working_state("has_exceptions", "Has Exceptions")
+        .working_state("reconciled", "Reconciled")
+        .final_state("approved", "Approved")
+        .transition("draft", "in_progress", "start")
+        .transition("in_progress", "reconciled", "reconcile")
+        .transition("in_progress", "has_exceptions", "flag_exceptions")
+        .transition("has_exceptions", "reconciled", "resolve_exceptions")
+        .transition("reconciled", "approved", "approve")
+        .build();
+
+    SchemaBuilder::new("subledger_reconciliations", "Subledger Reconciliation")
+        .plural_label("Subledger Reconciliations")
+        .table_name("fin_subledger_reconciliations")
+        .description("Reconciliation of subledger balances to GL control accounts")
+        .icon("check-double")
+        .required_string("reconciliation_number", "Reconciliation Number")
+        .enumeration("subledger_type", "Subledger Type", vec![
+            "accounts_payable", "accounts_receivable", "fixed_assets",
+            "inventory", "project_costing", "expenses",
+        ])
+        .string("gl_account", "GL Control Account")
+        .currency("gl_balance", "GL Balance", "USD")
+        .currency("subledger_balance", "Subledger Balance", "USD")
+        .currency("difference", "Difference", "USD")
+        .currency("tolerance", "Tolerance", "USD")
+        .boolean("is_balanced", "Balanced")
+        .integer("exception_count", "Exceptions")
+        .date("reconciliation_date", "Reconciliation Date")
+        .string("accounting_period", "Accounting Period")
+        .enumeration("status", "Status", vec![
+            "draft", "in_progress", "reconciled", "has_exceptions", "approved",
+        ])
+        .reference("approved_by", "Approved By", "employees")
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}
+
+// ===========================================================================
+// Cost Rate Card Entities
+// ===========================================================================
+
+/// Cost Rate Card entity
+/// Oracle Fusion: Cost Management > Rate Cards
+pub fn cost_rate_card_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("cost_rate_card_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .final_state("superseded", "Superseded")
+        .final_state("inactive", "Inactive")
+        .transition("draft", "active", "activate")
+        .transition("active", "superseded", "supersede")
+        .transition("active", "inactive", "deactivate")
+        .build();
+
+    SchemaBuilder::new("cost_rate_cards", "Cost Rate Card")
+        .plural_label("Cost Rate Cards")
+        .table_name("fin_cost_rate_cards")
+        .description("Cost rate cards for labor, machine, and overhead rates")
+        .icon("id-card")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("card_type", "Card Type", vec![
+            "labor", "machine", "overhead", "subcontracting", "burden",
+        ])
+        .string("cost_element", "Cost Element")
+        .enumeration("rate_basis", "Rate Basis", vec![
+            "per_hour", "per_unit", "per_day", "percentage", "fixed_amount",
+        ])
+        .decimal("rate", "Rate", 18, 6)
+        .string("currency_code", "Currency")
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .integer("version", "Version")
+        .reference("previous_version_id", "Previous Version", "cost_rate_cards")
+        .string("change_reason", "Change Reason")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "superseded", "inactive",
+        ])
+        .workflow(workflow)
+        .build()
+}

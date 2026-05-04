@@ -128,7 +128,9 @@ pub trait CipCapitalizationRepository: Send + Sync {
 }
 
 /// PostgreSQL stub implementation
-pub struct PostgresCipCapitalizationRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresCipCapitalizationRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresCipCapitalizationRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
@@ -315,11 +317,13 @@ impl CipCapitalizationEngine {
         }
         info!("Capitalizing CIP asset as {} -> {}", cap.capitalization_number, capitalized_asset_number);
         let asset_id = Uuid::new_v4();
-        let mut cap = self.repository.set_capitalized_asset(id, asset_id, capitalized_asset_number).await?;
-        cap = self.repository.update_status(id, "capitalized", None).await?;
+        let _ = self.repository.set_capitalized_asset(id, asset_id, capitalized_asset_number).await?;
+        let _ = self.repository.update_status(id, "capitalized", None).await?;
         if let Some(batch_id) = gl_batch_id {
-            cap = self.repository.mark_posted(id, batch_id).await?;
+            let _ = self.repository.mark_posted(id, batch_id).await?;
         }
+        let cap = self.repository.get(id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {} not found", id)))?;
         Ok(cap)
     }
 

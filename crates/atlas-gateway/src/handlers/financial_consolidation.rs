@@ -22,7 +22,7 @@ use crate::AppState;
 use crate::handlers::auth::Claims;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::error;
 
 // ============================================================================
 // Ledger Management
@@ -307,7 +307,7 @@ pub async fn create_elimination_rule(
 }
 
 pub async fn list_elimination_rules(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

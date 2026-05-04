@@ -17,7 +17,7 @@ use crate::AppState;
 use crate::handlers::auth::Claims;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::error;
 
 // ============================================================================
 // Joint Venture CRUD
@@ -312,7 +312,7 @@ pub async fn create_cost_distribution(
         Err(e) => {
             let msg = e.to_string();
             error!("Failed to create cost distribution: {}", msg);
-            let body = Json(serde_json::json!({"error": msg}));
+            let _body = Json(serde_json::json!({"error": msg}));
             Err(match e {
                 atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,

@@ -13,7 +13,7 @@ use crate::AppState;
 use crate::handlers::auth::Claims;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::error;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateTransferTypeRequest {

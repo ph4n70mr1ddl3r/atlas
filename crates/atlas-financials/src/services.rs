@@ -4213,9 +4213,11 @@ const VALID_TREASURY_COUNTERPARTY_TYPES: &[&str] = &["bank", "financial_institut
 const VALID_TREASURY_DEAL_TYPES: &[&str] = &["investment", "borrowing", "fx_spot", "fx_forward"];
 
 /// Valid deal statuses
+#[allow(dead_code)]
 const VALID_TREASURY_DEAL_STATUSES: &[&str] = &["draft", "authorized", "settled", "matured", "cancelled"];
 
 /// Valid interest bases
+#[allow(dead_code)]
 const VALID_INTEREST_BASES: &[&str] = &["actual_360", "actual_365", "30_360"];
 
 impl TreasuryService {
@@ -4503,6 +4505,7 @@ const VALID_AI_TRANSACTION_TYPES: &[&str] = &[
 ];
 
 /// Valid AutoInvoice batch statuses
+#[allow(dead_code)]
 const VALID_AI_BATCH_STATUSES: &[&str] = &[
     "pending", "validating", "validated", "processing", "completed", "failed", "cancelled",
 ];
@@ -4590,6 +4593,7 @@ pub struct NettingService {
 }
 
 /// Valid netting agreement types
+#[allow(dead_code)]
 const VALID_NETTING_AGREEMENT_TYPES: &[&str] = &["bilateral", "multilateral"];
 
 /// Valid netting settlement methods
@@ -4728,11 +4732,13 @@ const VALID_SUB_BILLING_FREQUENCIES: &[&str] = &[
 ];
 
 /// Valid subscription statuses
+#[allow(dead_code)]
 const VALID_SUB_STATUSES: &[&str] = &[
     "draft", "active", "suspended", "cancelled", "expired",
 ];
 
 /// Valid amendment types
+#[allow(dead_code)]
 const VALID_SUB_AMENDMENT_TYPES: &[&str] = &[
     "price_change", "quantity_change", "add_on", "remove_on", "renewal", "cancellation",
 ];
@@ -4874,9 +4880,11 @@ pub struct FundsReservationService {
 }
 
 /// Valid reservation types
+#[allow(dead_code)]
 const VALID_FR_RESERVATION_TYPES: &[&str] = &["obligation", "commitment", "pre_encumbrance"];
 
 /// Valid reservation statuses
+#[allow(dead_code)]
 const VALID_FR_STATUSES: &[&str] = &[
     "draft", "active", "consumed", "released", "cancelled",
 ];
@@ -6232,11 +6240,11 @@ impl MemoLineService {
     pub async fn create_memo_line(
         &self,
         name: &str,
-        description: &str,
+        _description: &str,
         line_type: &str,
         unit_price: &str,
         uom_code: &str,
-        tax_code: Option<&str>,
+        _tax_code: Option<&str>,
         revenue_account: &str,
     ) -> AtlasResult<()> {
         if name.is_empty() {
@@ -6617,7 +6625,7 @@ impl RevenueBudgetService {
             return 0.0;
         }
         let elapsed_periods = total_periods - remaining_periods;
-        let remaining_budget = original_budget - actual_ytd;
+        let _remaining_budget = original_budget - actual_ytd;
         let average_actual = if elapsed_periods > 0 {
             actual_ytd / elapsed_periods as f64
         } else {
@@ -6998,7 +7006,7 @@ impl CurrencyRevaluationService {
         from_currency: &str,
         to_currency: &str,
         rate_type: &str,
-        revaluation_date: chrono::NaiveDate,
+        _revaluation_date: chrono::NaiveDate,
     ) -> AtlasResult<()> {
         if revaluation_name.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -7944,13 +7952,13 @@ impl MassAdditionService {
         &self,
         mass_addition_number: &str,
         invoice_number: &str,
-        description: &str,
+        _description: &str,
         cost: &str,
-        category_code: Option<&str>,
-        book_code: Option<&str>,
+        _category_code: Option<&str>,
+        _book_code: Option<&str>,
         asset_type: &str,
-        depreciation_method: Option<&str>,
-        useful_life_months: Option<i32>,
+        _depreciation_method: Option<&str>,
+        _useful_life_months: Option<i32>,
     ) -> AtlasResult<()> {
         if mass_addition_number.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -8091,7 +8099,7 @@ impl AssetReclassificationService {
         asset_number: &str,
         reclassification_type: &str,
         reason: &str,
-        effective_date: chrono::NaiveDate,
+        _effective_date: chrono::NaiveDate,
     ) -> AtlasResult<()> {
         if reclassification_number.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -8321,7 +8329,7 @@ impl PaymentFormatService {
         code: &str,
         name: &str,
         format_type: &str,
-        payment_method: &str,
+        _payment_method: &str,
         currency_code: &str,
     ) -> AtlasResult<()> {
         if code.is_empty() || name.is_empty() {
@@ -8657,6 +8665,7 @@ const RECEIPT_REQUIRED_TYPES: &[&str] = &[
 ];
 
 /// Default mileage rate (USD per mile)
+#[allow(dead_code)]
 const DEFAULT_MILEAGE_RATE: f64 = 0.67;
 
 /// Receipt required threshold (USD)
@@ -8679,7 +8688,7 @@ impl ExpenseReportLineService {
         expense_type: &str,
         amount: &str,
         currency_code: &str,
-        is_personal: bool,
+        _is_personal: bool,
     ) -> AtlasResult<()> {
         if !VALID_EXPENSE_TYPES.contains(&expense_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -10150,9 +10159,9 @@ impl CustomerStatementService {
     pub async fn create_statement(
         &self,
         statement_number: &str,
-        customer_id: RecordId,
+        _customer_id: RecordId,
         customer_name: &str,
-        statement_date: chrono::NaiveDate,
+        _statement_date: chrono::NaiveDate,
         period_from: chrono::NaiveDate,
         period_to: chrono::NaiveDate,
         statement_type: &str,
@@ -10740,11 +10749,11 @@ impl BalanceForwardBillingService {
     pub async fn create_balance_forward_bill(
         &self,
         bill_number: &str,
-        customer_id: RecordId,
+        _customer_id: RecordId,
         customer_name: &str,
-        bill_date: chrono::NaiveDate,
-        period_from: chrono::NaiveDate,
-        period_to: chrono::NaiveDate,
+        _bill_date: chrono::NaiveDate,
+        _period_from: chrono::NaiveDate,
+        _period_to: chrono::NaiveDate,
         billing_cycle: &str,
         currency_code: &str,
     ) -> AtlasResult<()> {
@@ -10859,7 +10868,7 @@ impl AssetCapitalizationService {
         asset_number: &str,
         description: &str,
         estimated_total_cost: &str,
-        construction_start_date: chrono::NaiveDate,
+        _construction_start_date: chrono::NaiveDate,
         category_code: &str,
         book_code: &str,
         currency_code: &str,
@@ -11816,7 +11825,7 @@ impl AutomaticTaxDeterminationService {
         match rule {
             Some(r) => {
                 let tax_amount = Self::calculate_tax_amount(line_amount, r.tax_rate, is_exempt);
-                let recovery_amount = if r.is_recovery_eligible {
+                let _recovery_amount = if r.is_recovery_eligible {
                     Self::calculate_recovery_amount(tax_amount, r.recovery_rate)
                 } else {
                     0.0

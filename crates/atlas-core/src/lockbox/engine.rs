@@ -7,8 +7,11 @@ use tracing::info;
 use uuid::Uuid;
 
 const VALID_BATCH_STATUSES: &[&str] = &["imported", "validated", "applied", "partial", "error", "completed"];
+#[allow(dead_code)]
 const VALID_RECEIPT_STATUSES: &[&str] = &["unapplied", "applied", "partial", "on_account", "error"];
+#[allow(dead_code)]
 const VALID_APPLICATION_STATUSES: &[&str] = &["applied", "unapplied", "reversed"];
+#[allow(dead_code)]
 const VALID_MATCH_TYPES: &[&str] = &["invoice_number", "customer", "auto", "manual"];
 const VALID_FORMAT_TYPES: &[&str] = &["BAI2", "MT940", "OFX", "custom"];
 

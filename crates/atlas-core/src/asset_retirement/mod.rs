@@ -98,7 +98,9 @@ pub trait AssetRetirementRepository: Send + Sync {
 }
 
 /// PostgreSQL stub implementation
-pub struct PostgresAssetRetirementRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresAssetRetirementRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresAssetRetirementRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

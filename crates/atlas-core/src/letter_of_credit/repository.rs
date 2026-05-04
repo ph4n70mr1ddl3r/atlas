@@ -11,7 +11,7 @@ use atlas_shared::{
 use async_trait::async_trait;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
+// chrono::DateTime, chrono::Utc used implicitly via sqlx::FromRow
 
 /// Repository trait for letter of credit data storage
 #[async_trait]

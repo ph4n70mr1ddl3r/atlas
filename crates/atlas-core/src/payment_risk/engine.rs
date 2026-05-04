@@ -280,7 +280,7 @@ impl PaymentRiskEngine {
 
         // Auto-generate alert number
         let seq = self.repo.get_next_alert_sequence(org_id).await.unwrap_or(1);
-        let alert_number = format!("FA-{:06}", seq);
+        let _alert_number = format!("FA-{:06}", seq);
 
         let params = FraudAlertCreateParams {
             org_id,
@@ -303,11 +303,7 @@ impl PaymentRiskEngine {
             created_by,
         };
 
-        // We need to override the alert number - use a direct approach
-        // The repo create_fraud_alert generates the number from the sequence
-        let mut alert = self.repo.create_fraud_alert(&params).await?;
-        // The alert_number is set by the database trigger or we set it here
-        // For now, we rely on the sequence in the repo
+        let alert = self.repo.create_fraud_alert(&params).await?;
         Ok(alert)
     }
 
@@ -395,7 +391,7 @@ impl PaymentRiskEngine {
         }
 
         let seq = self.repo.get_next_screening_sequence(org_id).await.unwrap_or(1);
-        let screening_id = format!("SC-{:06}", seq);
+        let _screening_id = format!("SC-{:06}", seq);
 
         let params = SanctionsScreeningCreateParams {
             org_id,
@@ -468,7 +464,7 @@ impl PaymentRiskEngine {
         info!("Creating risk assessment for supplier '{}' org {}", supplier_name, org_id);
 
         let seq = self.repo.get_next_assessment_sequence(org_id).await.unwrap_or(1);
-        let assessment_number = format!("RA-{:06}", seq);
+        let _assessment_number = format!("RA-{:06}", seq);
 
         let params = SupplierRiskAssessmentCreateParams {
             org_id,

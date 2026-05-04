@@ -9,6 +9,7 @@ use uuid::Uuid;
 const VALID_ENTRY_TYPES: &[&str] = &["auto", "manual"];
 const VALID_ENTRY_STATUSES: &[&str] = &["open", "cleared", "written_off", "reversed"];
 const VALID_BATCH_STATUSES: &[&str] = &["draft", "submitted", "approved", "posted", "reversed"];
+#[allow(dead_code)]
 const VALID_DEFINITION_STATUSES: &[&str] = &["active", "inactive"];
 
 pub struct SuspenseAccountEngine { repository: Arc<dyn SuspenseAccountRepository> }

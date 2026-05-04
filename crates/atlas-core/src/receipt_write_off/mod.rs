@@ -142,7 +142,9 @@ pub trait ReceiptWriteOffRepository: Send + Sync {
 }
 
 /// PostgreSQL implementation
-pub struct PostgresReceiptWriteOffRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresReceiptWriteOffRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresReceiptWriteOffRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

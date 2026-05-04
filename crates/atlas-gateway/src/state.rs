@@ -170,9 +170,9 @@ use atlas_core::{
     BankGuaranteeEngine,
     bank_guarantee::PostgresBankGuaranteeRepository,
     HedgeManagementEngine,
-    hedge_management::PostgresHedgeManagementRepository,
+    // PostgresHedgeManagementRepository re-exported via hedge_management module
     PaymentRiskEngine,
-    payment_risk::PostgresPaymentRiskRepository,
+    // PostgresPaymentRiskRepository re-exported via payment_risk module
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,

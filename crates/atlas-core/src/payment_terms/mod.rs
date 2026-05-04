@@ -89,7 +89,9 @@ pub trait PaymentTermsRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PaymentTermDashboard>;
 }
 
-pub struct PostgresPaymentTermsRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresPaymentTermsRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresPaymentTermsRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

@@ -102,7 +102,9 @@ pub trait CashFlowStatementRepository: Send + Sync {
 }
 
 /// PostgreSQL stub
-pub struct PostgresCashFlowStatementRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresCashFlowStatementRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresCashFlowStatementRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

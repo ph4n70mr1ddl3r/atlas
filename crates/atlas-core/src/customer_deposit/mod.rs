@@ -116,7 +116,9 @@ pub trait CustomerDepositRepository: Send + Sync {
 }
 
 /// PostgreSQL implementation (stub)
-pub struct PostgresCustomerDepositRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresCustomerDepositRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresCustomerDepositRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

@@ -127,7 +127,9 @@ pub trait CashPositionRepository: Send + Sync {
 }
 
 /// PostgreSQL implementation (stub)
-pub struct PostgresCashPositionRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresCashPositionRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresCashPositionRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

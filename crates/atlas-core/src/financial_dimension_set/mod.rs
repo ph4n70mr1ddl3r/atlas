@@ -86,7 +86,9 @@ pub trait FinancialDimensionSetRepository: Send + Sync {
 }
 
 /// PostgreSQL stub implementation
-pub struct PostgresFinancialDimensionSetRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresFinancialDimensionSetRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresFinancialDimensionSetRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

@@ -46,7 +46,9 @@ pub trait RegulatoryReportingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RegReportingDashboard>;
 }
 
-pub struct PostgresRegulatoryReportingRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresRegulatoryReportingRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresRegulatoryReportingRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

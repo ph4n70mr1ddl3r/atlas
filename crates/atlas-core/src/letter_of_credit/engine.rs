@@ -28,6 +28,7 @@ const VALID_LC_FORMS: &[&str] = &[
 ];
 
 /// Valid LC statuses
+#[allow(dead_code)]
 const VALID_STATUSES: &[&str] = &[
     "draft", "issued", "advised", "confirmed", "accepted",
     "paid", "expired", "cancelled",
@@ -41,6 +42,7 @@ const VALID_AMENDMENT_TYPES: &[&str] = &[
 ];
 
 /// Valid amendment statuses
+#[allow(dead_code)]
 const VALID_AMENDMENT_STATUSES: &[&str] = &[
     "draft", "pending_approval", "approved", "rejected", "applied",
 ];
@@ -51,6 +53,7 @@ const VALID_SHIPMENT_STATUSES: &[&str] = &[
 ];
 
 /// Valid presentation statuses
+#[allow(dead_code)]
 const VALID_PRESENTATION_STATUSES: &[&str] = &[
     "submitted", "under_review", "compliant", "discrepant",
     "accepted", "paid", "rejected", "returned",

@@ -147,7 +147,9 @@ pub trait SuspenseAccountRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<SuspenseDashboard>;
 }
 
-pub struct PostgresSuspenseAccountRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresSuspenseAccountRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresSuspenseAccountRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

@@ -685,7 +685,7 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
     // ========================================================================
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<InterestInvoiceDashboard> {
-        use serde_json::Value;
+        // (no external imports needed)
         let row = sqlx::query(
             r#"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_schedules,

@@ -392,7 +392,7 @@ impl ExpensePolicyComplianceEngine {
         let mut warnings_count = 0i32;
         let mut blocks_count = 0i32;
         let mut total_flagged = 0.0_f64;
-        let mut total_approved = 10000.0_f64; // simulated baseline
+        let total_approved = 10000.0_f64; // simulated baseline
 
         // For each active rule that matches, we evaluate a simulated scenario
         let simulated_expense_amount = 250.0_f64;

@@ -21,6 +21,7 @@ use tracing::info;
 
 const VALID_HIERARCHY_TYPES: &[&str] = &["account", "cost_center", "entity", "product", "project", "intercompany", "custom"];
 const VALID_NODE_TYPES: &[&str] = &["root", "summary", "detail"];
+#[allow(dead_code)]
 const VALID_STATUSES: &[&str] = &["draft", "active", "inactive"];
 
 // ============================================================================
@@ -100,7 +101,9 @@ pub trait AccountHierarchyRepository: Send + Sync {
 }
 
 /// PostgreSQL stub
-pub struct PostgresAccountHierarchyRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresAccountHierarchyRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresAccountHierarchyRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

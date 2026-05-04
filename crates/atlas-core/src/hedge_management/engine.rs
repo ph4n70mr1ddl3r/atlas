@@ -55,6 +55,7 @@ const VALID_EFFECTIVENESS_METHODS: &[&str] = &[
 ];
 
 // Valid effectiveness results
+#[allow(dead_code)]
 const VALID_EFFECTIVENESS_RESULTS: &[&str] = &[
     "effective", "ineffective", "pending",
 ];
@@ -65,11 +66,13 @@ const VALID_TEST_TYPES: &[&str] = &[
 ];
 
 // Valid test statuses
+#[allow(dead_code)]
 const VALID_TEST_STATUSES: &[&str] = &[
     "draft", "completed", "failed",
 ];
 
 // Valid documentation statuses
+#[allow(dead_code)]
 const VALID_DOC_STATUSES: &[&str] = &[
     "draft", "approved", "rejected",
 ];

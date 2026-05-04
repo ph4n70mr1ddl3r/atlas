@@ -129,7 +129,9 @@ pub trait ApAgingRepository: Send + Sync {
 }
 
 /// PostgreSQL implementation
-pub struct PostgresApAgingRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresApAgingRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresApAgingRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

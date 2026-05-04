@@ -282,7 +282,7 @@ impl AccountingHubEngine {
 
                 // Store the determined accounting method
                 if let Some(mid) = method_id {
-                    let event = self.repository.get_accounting_event(event_id).await?
+                    let _event = self.repository.get_accounting_event(event_id).await?
                         .ok_or_else(|| AtlasError::EntityNotFound(
                             format!("Accounting event {} not found", event_id)
                         ))?;

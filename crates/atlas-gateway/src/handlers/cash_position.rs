@@ -3,7 +3,7 @@
 //! Oracle Fusion: Financials > Treasury > Cash Position
 
 use axum::{
-    extract::{State, Path, Query},
+    extract::{State, Query},
     Json,
     http::StatusCode,
     Extension,

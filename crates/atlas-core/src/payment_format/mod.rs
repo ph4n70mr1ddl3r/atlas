@@ -85,7 +85,9 @@ pub trait PaymentFormatRepository: Send + Sync {
 }
 
 /// PostgreSQL stub implementation
-pub struct PostgresPaymentFormatRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresPaymentFormatRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresPaymentFormatRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
@@ -236,7 +238,7 @@ impl PaymentFormatEngine {
 
     /// Delete a payment format (soft delete)
     pub async fn delete(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        let pf = self.repository.get_by_code(org_id, code).await?
+        let _pf = self.repository.get_by_code(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment format '{}' not found", code)))?;
 
         info!("Deleting payment format {}", code);

@@ -41,7 +41,9 @@ pub trait CashFlowForecastRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CashForecastDashboard>;
 }
 
-pub struct PostgresCashFlowForecastRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresCashFlowForecastRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresCashFlowForecastRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

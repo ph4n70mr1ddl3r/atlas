@@ -508,7 +508,7 @@ impl SubscriptionEngine {
         }
 
         // Generate revenue schedule (ASC 606)
-        let revenue_lines = self.generate_revenue_schedule(&sub, &inserted_billing_lines)?;;
+        let revenue_lines = self.generate_revenue_schedule(&sub, &inserted_billing_lines)?;
         for line in &revenue_lines {
             self.repository
                 .create_revenue_line(

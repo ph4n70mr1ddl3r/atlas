@@ -22,6 +22,7 @@ use tracing::info;
 const VALID_CHECK_RESULTS: &[&str] = &["pass", "warning", "fail", "advisory"];
 const VALID_OVERRIDE_STATUSES: &[&str] = &["pending", "approved", "rejected", "expired"];
 const VALID_TOLERANCE_LEVELS: &[&str] = &["none", "absolute", "percent"];
+#[allow(dead_code)]
 const VALID_FUND_TYPES: &[&str] = &["budget", "encumbrance", "actual", "available"];
 
 // ============================================================================
@@ -117,7 +118,9 @@ pub trait AvailableFundsRepository: Send + Sync {
 }
 
 /// PostgreSQL stub implementation
-pub struct PostgresAvailableFundsRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresAvailableFundsRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresAvailableFundsRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

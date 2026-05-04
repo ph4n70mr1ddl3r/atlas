@@ -100,7 +100,9 @@ fn row_to_risk(row: &sqlx::postgres::PgRow) -> ClmRisk {
     ClmRisk { id: row.try_get("id").unwrap_or_default(), organization_id: row.try_get("organization_id").unwrap_or_default(), contract_id: row.try_get("contract_id").unwrap_or_default(), risk_category: row.try_get("risk_category").unwrap_or_default(), risk_description: row.try_get("risk_description").unwrap_or_default(), probability: row.try_get("probability").unwrap_or_else(|_| "medium".to_string()), impact: row.try_get("impact").unwrap_or_else(|_| "medium".to_string()), mitigation_strategy: row.try_get("mitigation_strategy").unwrap_or_default(), residual_risk: row.try_get("residual_risk").unwrap_or_default(), owner_id: row.try_get("owner_id").unwrap_or_default(), status: row.try_get("status").unwrap_or_else(|_| "identified".to_string()), metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})), assessed_by: row.try_get("assessed_by").unwrap_or_default(), created_at: row.try_get("created_at").unwrap_or(chrono::Utc::now()), updated_at: row.try_get("updated_at").unwrap_or(chrono::Utc::now()) }
 }
 
-pub struct PostgresContractLifecycleRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresContractLifecycleRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresContractLifecycleRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 fn check_del(r: sqlx::postgres::PgQueryResult, l: &str, id: &str) -> AtlasResult<()> {

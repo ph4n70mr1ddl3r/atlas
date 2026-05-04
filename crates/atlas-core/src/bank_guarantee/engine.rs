@@ -34,6 +34,7 @@ const VALID_AMENDMENT_TYPES: &[&str] = &[
 ];
 
 /// Valid amendment statuses
+#[allow(dead_code)]
 const VALID_AMENDMENT_STATUSES: &[&str] = &[
     "draft", "pending_approval", "approved", "rejected", "applied",
 ];

@@ -18,6 +18,7 @@ const VALID_STATUSES: &[&str] = &[
     "draft", "approved", "paid", "partially_applied", "fully_applied", "cancelled",
 ];
 
+#[allow(dead_code)]
 const VALID_APPLICATION_STATUSES: &[&str] = &[
     "applied", "unapplied", "reversed",
 ];

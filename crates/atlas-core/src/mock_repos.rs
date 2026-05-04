@@ -6802,7 +6802,7 @@ impl crate::accounting_hub::AccountingHubRepository for MockAccountingHubReposit
         source_event_id: &str, payload: serde_json::Value, transaction_attributes: serde_json::Value,
         accounting_method_id: Option<Uuid>, status: &str, event_date: chrono::NaiveDate,
         accounting_date: Option<chrono::NaiveDate>, currency_code: &str, total_amount: Option<&str>,
-        description: Option<&str>, created_by: Option<Uuid>,
+        description: Option<&str>, _created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::AccountingEvent> {
         Ok(atlas_shared::AccountingEvent {
             id: Uuid::new_v4(), organization_id: org_id,

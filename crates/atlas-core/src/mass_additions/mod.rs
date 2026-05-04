@@ -118,7 +118,9 @@ pub trait MassAdditionRepository: Send + Sync {
 }
 
 /// PostgreSQL stub implementation
-pub struct PostgresMassAdditionRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresMassAdditionRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresMassAdditionRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

@@ -3,7 +3,7 @@
 //! Oracle Fusion Cloud ERP: Financials > General Ledger > Inflation Adjustment
 
 use axum::{
-    extract::{State, Path, Query},
+    extract::{State, Path},
     Json,
     http::StatusCode,
     Extension,
@@ -13,7 +13,7 @@ use crate::AppState;
 use crate::handlers::auth::Claims;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::error;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateIndexRequest {

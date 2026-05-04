@@ -145,7 +145,9 @@ pub trait RevenueManagementRepository: Send + Sync {
 }
 
 /// PostgreSQL implementation
-pub struct PostgresRevenueManagementRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresRevenueManagementRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresRevenueManagementRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 // PostgreSQL implementation would go here - placeholder for compilation

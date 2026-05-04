@@ -129,7 +129,9 @@ pub trait LockboxRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<LockboxDashboard>;
 }
 
-pub struct PostgresLockboxRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresLockboxRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresLockboxRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

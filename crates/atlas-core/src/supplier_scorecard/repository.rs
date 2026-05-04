@@ -53,7 +53,9 @@ pub trait ScorecardRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<SupplierScorecardDashboard>;
 }
 
-pub struct PostgresScorecardRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresScorecardRepository { #[allow(dead_code)]
+    pool: PgPool }
 
 impl PostgresScorecardRepository {
     pub fn new(pool: PgPool) -> Self { Self { pool } }

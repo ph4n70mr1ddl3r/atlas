@@ -15,6 +15,7 @@ const VALID_OBLIGATION_TYPES: &[&str] = &["goods", "services", "license", "bundl
 const VALID_SATISFACTION_METHODS: &[&str] = &["point_in_time", "over_time"];
 const VALID_RECOGNITION_PATTERNS: &[&str] = &["straight_line", "percentage_of_completion", "output_method", "input_method"];
 const VALID_SSP_METHODS: &[&str] = &["observed", "adjusted_market", "expected_cost_plus_margin", "residual"];
+#[allow(dead_code)]
 const VALID_EVENT_TYPES: &[&str] = &["satisfaction", "partial_satisfaction", "adjustment", "reversal"];
 
 pub struct RevenueManagementEngine {

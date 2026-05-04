@@ -38,6 +38,7 @@ const VALID_SCHEDULE_STATUSES: &[&str] = &[
 ];
 
 /// Valid line statuses
+#[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &[
     "pending", "recognized", "reversed", "on_hold",
 ];

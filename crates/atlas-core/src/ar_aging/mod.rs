@@ -128,7 +128,9 @@ pub trait ArAgingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ArAgingDashboard>;
 }
 
-pub struct PostgresArAgingRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresArAgingRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresArAgingRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

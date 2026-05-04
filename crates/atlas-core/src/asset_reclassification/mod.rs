@@ -108,7 +108,9 @@ pub trait AssetReclassificationRepository: Send + Sync {
 }
 
 /// PostgreSQL stub implementation
-pub struct PostgresAssetReclassificationRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresAssetReclassificationRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresAssetReclassificationRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
@@ -152,7 +154,7 @@ impl AssetReclassificationEngine {
         from_asset_type: Option<&str>,
         from_depreciation_method: Option<&str>,
         from_useful_life_months: Option<i32>,
-        from_asset_account_code: Option<&str>,
+        _from_asset_account_code: Option<&str>,
         to_category_code: Option<&str>,
         to_asset_type: Option<&str>,
         to_depreciation_method: Option<&str>,

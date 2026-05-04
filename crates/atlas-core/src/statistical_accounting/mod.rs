@@ -127,7 +127,9 @@ pub trait StatisticalAccountingRepository: Send + Sync {
 }
 
 /// PostgreSQL stub
-pub struct PostgresStatisticalAccountingRepository { pool: PgPool }
+#[allow(dead_code)]
+pub struct PostgresStatisticalAccountingRepository { #[allow(dead_code)]
+    pool: PgPool }
 impl PostgresStatisticalAccountingRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]

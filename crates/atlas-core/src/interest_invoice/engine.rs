@@ -30,6 +30,7 @@ const VALID_SCHEDULE_STATUSES: &[&str] = &["active", "inactive"];
 const VALID_OVERDUE_STATUSES: &[&str] = &["open", "paid", "closed", "disputed"];
 
 /// Valid calculation run statuses
+#[allow(dead_code)]
 const VALID_RUN_STATUSES: &[&str] = &["draft", "calculated", "invoiced", "posted", "cancelled"];
 
 /// Valid interest invoice statuses

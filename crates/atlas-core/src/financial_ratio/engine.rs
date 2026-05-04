@@ -15,9 +15,11 @@ const VALID_UNITS: &[&str] = &[
 const VALID_SNAPSHOT_STATUSES: &[&str] = &[
     "draft", "calculated", "approved", "archived",
 ];
+#[allow(dead_code)]
 const VALID_TREND_DIRECTIONS: &[&str] = &[
     "improving", "declining", "stable",
 ];
+#[allow(dead_code)]
 const VALID_STATUS_FLAGS: &[&str] = &[
     "above_benchmark", "below_benchmark", "at_benchmark", "no_benchmark", "critical", "warning", "normal",
 ];
@@ -206,7 +208,7 @@ impl FinancialRatioEngine {
             return Err(AtlasError::ValidationFailed(format!("Invalid category '{}'", category)));
         }
         let num: f64 = numerator_value.parse().map_err(|_| AtlasError::ValidationFailed("Invalid numerator".into()))?;
-        let denom: f64 = denominator_value.parse().map_err(|_| AtlasError::ValidationFailed("Invalid denominator".into()))?;
+        let _denom: f64 = denominator_value.parse().map_err(|_| AtlasError::ValidationFailed("Invalid denominator".into()))?;
         if num < 0.0 {
             return Err(AtlasError::ValidationFailed("Numerator must be non-negative".into()));
         }

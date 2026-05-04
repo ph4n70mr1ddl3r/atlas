@@ -163,6 +163,7 @@ dependencies = [
  "atlas-core",
  "atlas-shared",
  "chrono",
+ "serde",
  "serde_json",
  "tracing",
  "uuid",

@@ -157,6 +157,7 @@ pub mod expense_policy_compliance;
 pub mod bank_guarantee;
 pub mod letter_of_credit;
 pub mod hedge_management;
+pub mod payment_risk;
 
 pub use schema::*;
 pub use workflow::{
@@ -315,6 +316,7 @@ pub use expense_policy_compliance::{ExpensePolicyComplianceEngine, PostgresExpen
 pub use bank_guarantee::{BankGuaranteeEngine, PostgresBankGuaranteeRepository as PostgresBankGuaranteeRepo};
 pub use letter_of_credit::{LetterOfCreditEngine, PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo};
 pub use hedge_management::{HedgeManagementEngine, repository::PostgresHedgeManagementRepository as PostgresHedgeManagementRepo};
+pub use payment_risk::{PaymentRiskEngine, repository::PostgresPaymentRiskRepository as PostgresPaymentRiskRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

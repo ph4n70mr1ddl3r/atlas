@@ -127,6 +127,7 @@ pub mod expense_policy_compliance;
 pub mod bank_guarantee;
 pub mod letter_of_credit;
 pub mod hedge_management;
+pub mod payment_risk;
 
 pub use schema::*;
 pub use records::*;
@@ -4396,6 +4397,27 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/hedge/dashboard", get(hedge_management::get_hedge_dashboard))
+
+        // Payment Risk & Fraud Detection
+        .route("/payment-risk/profiles", post(payment_risk::create_risk_profile))
+        .route("/payment-risk/profiles", get(payment_risk::list_risk_profiles))
+        .route("/payment-risk/profiles/:code", get(payment_risk::get_risk_profile))
+        .route("/payment-risk/profiles/:id/activate", post(payment_risk::set_risk_profile_active))
+        .route("/payment-risk/profiles/:code", delete(payment_risk::delete_risk_profile))
+        .route("/payment-risk/alerts", post(payment_risk::create_fraud_alert))
+        .route("/payment-risk/alerts", get(payment_risk::list_fraud_alerts))
+        .route("/payment-risk/alerts/:alert_number", get(payment_risk::get_fraud_alert))
+        .route("/payment-risk/alerts/:id/transition", post(payment_risk::transition_fraud_alert))
+        .route("/payment-risk/alerts/:id/assign", post(payment_risk::assign_fraud_alert))
+        .route("/payment-risk/screening", post(payment_risk::create_screening_result))
+        .route("/payment-risk/screening", get(payment_risk::list_screening_results))
+        .route("/payment-risk/screening/:screening_id", get(payment_risk::get_screening_result))
+        .route("/payment-risk/screening/:id/review", post(payment_risk::review_screening_result))
+        .route("/payment-risk/assessments", post(payment_risk::create_assessment))
+        .route("/payment-risk/assessments", get(payment_risk::list_assessments))
+        .route("/payment-risk/assessments/:assessment_number", get(payment_risk::get_assessment))
+        .route("/payment-risk/assessments/:id/transition", post(payment_risk::transition_assessment))
+        .route("/payment-risk/assessments/:assessment_number", delete(payment_risk::delete_assessment))
 
         .layer(middleware::from_fn(auth_middleware))
 }

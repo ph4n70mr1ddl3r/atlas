@@ -21,7 +21,7 @@ impl ArAgingEngine {
         if !VALID_AGING_BASES.contains(&aging_basis) {
             return Err(AtlasError::ValidationFailed(format!("Invalid aging_basis '{}'", aging_basis)));
         }
-        if num_buckets < 1 || num_buckets > 20 {
+        if !(1..=20).contains(&num_buckets) {
             return Err(AtlasError::ValidationFailed("Number of buckets must be 1-20".into()));
         }
         if self.repository.get_definition(org_id, code).await?.is_some() {

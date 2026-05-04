@@ -701,7 +701,7 @@ impl TimeAndLaborEngine {
 
         // Recent cards (last 10)
         let mut recent = all_cards.clone();
-        recent.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        recent.sort_by_key(|b| std::cmp::Reverse(b.created_at));
         recent.truncate(10);
 
         Ok(TimeAndLaborDashboard {

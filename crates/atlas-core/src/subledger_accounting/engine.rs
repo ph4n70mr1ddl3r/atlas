@@ -302,21 +302,18 @@ impl SubledgerAccountingEngine {
         for (key, expected) in obj {
             if let Some(actual) = attributes.get(key) {
                 match expected {
-                    serde_json::Value::String(s) => {
-                        if actual.as_str().unwrap_or("") != s.as_str() {
+                    serde_json::Value::String(s)
+                        if actual.as_str().unwrap_or("") != s.as_str() => {
                             return false;
                         }
-                    }
-                    serde_json::Value::Number(n) => {
-                        if actual.as_f64().unwrap_or(0.0) != n.as_f64().unwrap_or(0.0) {
+                    serde_json::Value::Number(n)
+                        if actual.as_f64().unwrap_or(0.0) != n.as_f64().unwrap_or(0.0) => {
                             return false;
                         }
-                    }
-                    serde_json::Value::Bool(b) => {
-                        if actual.as_bool().unwrap_or(false) != *b {
+                    serde_json::Value::Bool(b)
+                        if actual.as_bool().unwrap_or(false) != *b => {
                             return false;
                         }
-                    }
                     _ => {}
                 }
             } else {

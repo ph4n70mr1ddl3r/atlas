@@ -19,7 +19,7 @@ impl CashFlowForecastEngine {
     pub async fn create_forecast(&self, org_id: Uuid, forecast_number: &str, name: &str, description: Option<&str>, forecast_horizon: &str, periods_out: i32, start_date: chrono::NaiveDate, end_date: chrono::NaiveDate, base_currency_code: &str, opening_balance: &str, created_by: Option<Uuid>) -> AtlasResult<CashForecast> {
         if forecast_number.is_empty() || name.is_empty() { return Err(AtlasError::ValidationFailed("Forecast number and name required".into())); }
         if !VALID_HORIZONS.contains(&forecast_horizon) { return Err(AtlasError::ValidationFailed(format!("Invalid horizon '{}'", forecast_horizon))); }
-        if periods_out < 1 || periods_out > 120 { return Err(AtlasError::ValidationFailed("Periods out must be 1-120".into())); }
+        if !(1..=120).contains(&periods_out) { return Err(AtlasError::ValidationFailed("Periods out must be 1-120".into())); }
         if end_date <= start_date { return Err(AtlasError::ValidationFailed("End date must be after start".into())); }
         let bal: f64 = opening_balance.parse().map_err(|_| AtlasError::ValidationFailed("Invalid balance".into()))?;
         if bal < 0.0 { return Err(AtlasError::ValidationFailed("Balance must be non-negative".into())); }
@@ -58,7 +58,7 @@ impl CashFlowForecastEngine {
         if name.is_empty() { return Err(AtlasError::ValidationFailed("Name required".into())); }
         if !VALID_SCENARIO_TYPES.contains(&st) { return Err(AtlasError::ValidationFailed(format!("Invalid scenario_type '{}'", st))); }
         let factor: f64 = af.parse().unwrap_or(0.0);
-        if factor < 0.0 || factor > 10.0 { return Err(AtlasError::ValidationFailed("Factor must be 0.0-10.0".into())); }
+        if !(0.0..=10.0).contains(&factor) { return Err(AtlasError::ValidationFailed("Factor must be 0.0-10.0".into())); }
         self.repository.create_scenario(org_id, fid, sn, name, desc, st, af).await
     }
     pub async fn list_scenarios(&self, fid: Uuid) -> AtlasResult<Vec<CashScenario>> { self.repository.list_scenarios(fid).await }
@@ -69,7 +69,7 @@ impl CashFlowForecastEngine {
         let a: f64 = amt.parse().map_err(|_| AtlasError::ValidationFailed("Invalid amount".into()))?;
         if a < 0.0 { return Err(AtlasError::ValidationFailed("Amount must be non-negative".into())); }
         let p: f64 = prob.parse().map_err(|_| AtlasError::ValidationFailed("Invalid probability".into()))?;
-        if p < 0.0 || p > 1.0 { return Err(AtlasError::ValidationFailed("Probability must be 0.0-1.0".into())); }
+        if !(0.0..=1.0).contains(&p) { return Err(AtlasError::ValidationFailed("Probability must be 0.0-1.0".into())); }
         if pe < ps { return Err(AtlasError::ValidationFailed("End must be after start".into())); }
         self.repository.create_entry(org_id, fid, sid, pn, ps, pe, cat, dir, amt, prob, man, desc).await
     }

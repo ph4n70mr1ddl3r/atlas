@@ -845,7 +845,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
         let inspection_pass_rate = if completed_inspections > 0 {
             let passing = ins_rows.iter().filter(|r| {
                 let pct: Option<f64> = r.try_get("score_pct").unwrap_or(None);
-                pct.map_or(false, |p| p >= 80.0)
+                pct.is_some_and(|p| p >= 80.0)
             }).count() as f64;
             (passing / completed_inspections as f64) * 100.0
         } else {
@@ -866,7 +866,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             let s: String = r.try_get("status").unwrap_or_default();
             let due: Option<chrono::NaiveDate> = r.try_get("due_date").unwrap_or(None);
             s != "completed" && s != "closed" && s != "cancelled"
-                && due.map_or(false, |d| d < chrono::Utc::now().date_naive())
+                && due.is_some_and(|d| d < chrono::Utc::now().date_naive())
         }).count() as i64;
 
         Ok(HealthSafetyDashboard {

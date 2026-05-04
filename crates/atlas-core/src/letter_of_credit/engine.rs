@@ -151,7 +151,7 @@ impl LetterOfCreditEngine {
         }
 
         // Check uniqueness
-        if let Some(_) = self.repository.get_lc_by_number(org_id, lc_number).await? {
+        if self.repository.get_lc_by_number(org_id, lc_number).await?.is_some() {
             return Err(AtlasError::ValidationFailed(format!("LC number already exists: {}", lc_number)));
         }
 

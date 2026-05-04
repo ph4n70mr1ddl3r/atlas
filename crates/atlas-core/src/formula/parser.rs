@@ -426,11 +426,10 @@ pub fn extract_dependencies(node: &AstNode) -> Vec<String> {
     
     fn collect(node: &AstNode, deps: &mut Vec<String>) {
         match node {
-            AstNode::Field(name) => {
-                if !deps.contains(name) {
+            AstNode::Field(name)
+                if !deps.contains(name) => {
                     deps.push(name.clone());
                 }
-            }
             AstNode::BinaryOp { left, right, .. } => {
                 collect(left, deps);
                 collect(right, deps);

@@ -118,7 +118,7 @@ impl FinancialStatementEngine {
         }
 
         // Check uniqueness
-        if let Some(_) = self.repository.get_definition_by_code(org_id, code).await? {
+        if self.repository.get_definition_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(
                 format!("Report definition code '{}' already exists", code)
             ));

@@ -119,7 +119,7 @@ impl ProjectResourceManagementEngine {
         }
 
         if let Some(hw) = available_hours_per_week {
-            if hw < 0.0 || hw > 168.0 {
+            if !(0.0..=168.0).contains(&hw) {
                 return Err(AtlasError::ValidationFailed(
                     "Available hours per week must be between 0 and 168".to_string(),
                 ));

@@ -369,16 +369,14 @@ impl AccountingHubEngine {
         for (key, expected) in obj {
             let actual = Self::extract_value(payload, key);
             match (actual, expected) {
-                (Some(a), serde_json::Value::String(s)) => {
-                    if a.as_str().unwrap_or("") != s.as_str() {
+                (Some(a), serde_json::Value::String(s))
+                    if a.as_str().unwrap_or("") != s.as_str() => {
                         return false;
                     }
-                }
-                (Some(a), serde_json::Value::Number(n)) => {
-                    if a.as_f64().unwrap_or(0.0) != n.as_f64().unwrap_or(0.0) {
+                (Some(a), serde_json::Value::Number(n))
+                    if a.as_f64().unwrap_or(0.0) != n.as_f64().unwrap_or(0.0) => {
                         return false;
                     }
-                }
                 (None, _) => return false,
                 _ => {}
             }

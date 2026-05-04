@@ -666,30 +666,27 @@ impl DescriptiveFlexfieldEngine {
     /// Validate a value against a data type
     pub fn validate_data_type(value: &str, data_type: &str, segment_name: &str) -> AtlasResult<()> {
         match data_type {
-            "number" => {
-                if value.parse::<f64>().is_err() {
+            "number"
+                if value.parse::<f64>().is_err() => {
                     return Err(AtlasError::ValidationFailed(format!(
                         "Segment '{}' requires a numeric value, got '{}'", segment_name, value
                     )));
                 }
-            }
-            "date" => {
-                if chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d").is_err() {
+            "date"
+                if chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d").is_err() => {
                     return Err(AtlasError::ValidationFailed(format!(
                         "Segment '{}' requires a date value (YYYY-MM-DD), got '{}'", segment_name, value
                     )));
                 }
-            }
-            "datetime" => {
+            "datetime"
                 // Accept ISO 8601 formats
                 if value.parse::<chrono::DateTime<chrono::Utc>>().is_err()
                     && value.parse::<chrono::NaiveDateTime>().is_err()
-                {
+                => {
                     return Err(AtlasError::ValidationFailed(format!(
                         "Segment '{}' requires a datetime value, got '{}'", segment_name, value
                     )));
                 }
-            }
             _ => { /* any value is valid */ }
         }
         Ok(())

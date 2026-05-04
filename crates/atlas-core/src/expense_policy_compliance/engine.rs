@@ -73,7 +73,7 @@ pub fn calculate_compliance_score(
     // Each warning costs 3 points
     score -= (warnings_count as f64) * 3.0;
 
-    score.max(0.0).min(100.0)
+    score.clamp(0.0, 100.0)
 }
 
 /// Determine risk level from compliance score
@@ -381,8 +381,8 @@ impl ExpensePolicyComplianceEngine {
         if rules.is_empty() {
             // No active rules, mark as completed with perfect score
             return self.repository.update_audit_results(
-                audit_id, 0, 0, 0, 0, &"100.00".to_string(), "low",
-                &"0.00".to_string(), &"0.00".to_string(), false, false,
+                audit_id, 0, 0, 0, 0, "100.00", "low",
+                "0.00", "0.00", false, false,
             ).await;
         }
 
@@ -424,12 +424,11 @@ impl ExpensePolicyComplianceEngine {
                         excess = exc;
                     }
                 }
-                "receipt_required" => {
-                    if rule.requires_receipt && simulated_expense_amount > 75.0 {
+                "receipt_required"
+                    if rule.requires_receipt && simulated_expense_amount > 75.0 => {
                         violated = true;
                         violation_desc = format!("Receipt required for expenses over 75.00, got {:.2}", simulated_expense_amount);
                     }
-                }
                 "daily_limit" | "category_limit" => {
                     if let Some(max_str) = &rule.maximum_amount {
                         if let Ok(max) = max_str.parse::<f64>() {

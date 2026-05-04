@@ -735,7 +735,7 @@ impl ReceivingEngine {
             }
         }
         let mut supplier_vec: Vec<_> = supplier_counts.into_iter().collect();
-        supplier_vec.sort_by(|a, b| b.1.cmp(&a.1));
+        supplier_vec.sort_by_key(|b| std::cmp::Reverse(b.1));
         supplier_vec.truncate(5);
         let top_suppliers: serde_json::Value = supplier_vec.into_iter()
             .map(|(name, count)| serde_json::json!({"supplier_name": name, "receipt_count": count}))
@@ -743,7 +743,7 @@ impl ReceivingEngine {
 
         // Recent receipts
         let mut recent = receipts.clone();
-        recent.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        recent.sort_by_key(|b| std::cmp::Reverse(b.created_at));
         recent.truncate(5);
         let recent_receipts: serde_json::Value = recent.iter().map(|r| serde_json::json!({
             "id": r.id,

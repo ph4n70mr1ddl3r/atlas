@@ -1271,11 +1271,10 @@ impl TransportationManagementEngine {
             "delivered" if current_status == "in_transit" || current_status == "at_destination" || current_status == "out_for_delivery" => {
                 let _ = self.repository.update_shipment_status(shipment_id, "delivered").await;
             }
-            "exception" => {
-                if current_status != "delivered" && current_status != "cancelled" {
+            "exception"
+                if current_status != "delivered" && current_status != "cancelled" => {
                     let _ = self.repository.update_shipment_status(shipment_id, "exception").await;
                 }
-            }
             _ => {}
         }
         Ok(())

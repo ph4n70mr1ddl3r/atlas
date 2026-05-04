@@ -621,7 +621,7 @@ impl LoyaltyManagementEngine {
 
         // Adjust member points
         let member = self.repository.get_member(txn.member_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Member not found")))?;
+            .ok_or_else(|| AtlasError::EntityNotFound("Member not found".to_string()))?;
         let new_current = member.current_points - txn.points;
         self.repository.update_member_points(txn.member_id, new_current, member.lifetime_points).await?;
 

@@ -467,13 +467,12 @@ impl BankGuaranteeEngine {
         }
 
         // Validate expiry amendments
-        if amendment_type == "expiry_extension" || amendment_type == "expiry_reduction" {
-            if previous_expiry_date.is_none() || new_expiry_date.is_none() {
+        if (amendment_type == "expiry_extension" || amendment_type == "expiry_reduction")
+            && (previous_expiry_date.is_none() || new_expiry_date.is_none()) {
                 return Err(AtlasError::ValidationFailed(
                     "Expiry amendments require both previous and new expiry dates".to_string(),
                 ));
             }
-        }
 
         let amendment_number = format!("AMD-{}-{:03}", guarantee.guarantee_number, guarantee.amendment_count + 1);
 
@@ -571,15 +570,15 @@ impl BankGuaranteeEngine {
 
         let today = chrono::Utc::now().date_naive();
         let expiring_30 = all.iter().filter(|g| {
-            g.status == "active" && g.expiry_date.map_or(false, |d| {
+            g.status == "active" && g.expiry_date.is_some_and(|d| {
                 let diff = (d - today).num_days();
-                diff >= 0 && diff <= 30
+                (0..=30).contains(&diff)
             })
         }).count() as i32;
         let expiring_90 = all.iter().filter(|g| {
-            g.status == "active" && g.expiry_date.map_or(false, |d| {
+            g.status == "active" && g.expiry_date.is_some_and(|d| {
                 let diff = (d - today).num_days();
-                diff >= 0 && diff <= 90
+                (0..=90).contains(&diff)
             })
         }).count() as i32;
 

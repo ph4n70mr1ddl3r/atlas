@@ -427,12 +427,7 @@ impl DeferredRevenueEngine {
             }
             "yearly" => {
                 let years = end.year() - start.year();
-                // If end date is later in the year than start date, count the boundary year
-                if end.month() > start.month() || (end.month() == start.month() && end.day() >= start.day()) {
-                    years.max(1)
-                } else {
-                    years.max(1)
-                }
+                years.max(1)
             }
             _ => 1,
         }
@@ -457,9 +452,8 @@ impl DeferredRevenueEngine {
 
         let mut lines = Vec::new();
         let mut current_start = start_date;
-        let mut line_num = 1;
 
-        for period_idx in 0..periods {
+        for (line_num, period_idx) in (1..).zip(0..periods) {
             let current_end = Self::next_period_end(current_start, end_date, period_type);
 
             let days_in_period = (current_end - current_start).num_days() as i32 + 1;
@@ -503,7 +497,6 @@ impl DeferredRevenueEngine {
             ).await?;
 
             lines.push(line);
-            line_num += 1;
 
             // Move to next period
             current_start = current_end + chrono::Duration::days(1);

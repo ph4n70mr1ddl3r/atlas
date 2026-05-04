@@ -73,27 +73,24 @@ impl ApprovalDelegationEngine {
 
         // Validate that type-specific fields are populated
         match request.delegation_type.as_str() {
-            "by_category" => {
-                if array_is_empty(&request.categories) {
+            "by_category"
+                if array_is_empty(&request.categories) => {
                     return Err(AtlasError::ValidationFailed(
                         "categories must be a non-empty array for delegation_type 'by_category'".to_string(),
                     ));
                 }
-            }
-            "by_role" => {
-                if array_is_empty(&request.roles) {
+            "by_role"
+                if array_is_empty(&request.roles) => {
                     return Err(AtlasError::ValidationFailed(
                         "roles must be a non-empty array for delegation_type 'by_role'".to_string(),
                     ));
                 }
-            }
-            "by_entity" => {
-                if array_is_empty(&request.entity_types) {
+            "by_entity"
+                if array_is_empty(&request.entity_types) => {
                     return Err(AtlasError::ValidationFailed(
                         "entity_types must be a non-empty array for delegation_type 'by_entity'".to_string(),
                     ));
                 }
-            }
             _ => {}
         }
 

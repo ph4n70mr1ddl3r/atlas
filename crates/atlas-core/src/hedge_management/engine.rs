@@ -87,7 +87,7 @@ pub fn calculate_dollar_offset_effectiveness(
         return (0.0, false);
     }
     let ratio = (derivative_fair_value_change / hedged_item_fair_value_change).abs();
-    let is_effective = ratio >= 0.80 && ratio <= 1.25;
+    let is_effective = (0.80..=1.25).contains(&ratio);
     (ratio, is_effective)
 }
 

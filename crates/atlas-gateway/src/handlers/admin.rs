@@ -196,22 +196,20 @@ pub async fn get_config_value(
     let parts: Vec<&str> = key.split('.').collect();
     
     match parts.first() {
-        Some(&"entity") => {
-            if parts.len() >= 2 {
+        Some(&"entity")
+            if parts.len() >= 2 => {
                 let entity_name = parts[1];
                 if let Some(entity) = state.schema_engine.get_entity(entity_name) {
                     return Ok(Json(serde_json::to_value(entity).unwrap_or_default()));
                 }
             }
-        }
-        Some(&"workflow") => {
-            if parts.len() >= 2 {
+        Some(&"workflow")
+            if parts.len() >= 2 => {
                 let workflow_name = parts[1];
                 if let Some(workflow) = state.workflow_engine.get_workflow(workflow_name).await {
                     return Ok(Json(serde_json::to_value(workflow).unwrap_or_default()));
                 }
             }
-        }
         _ => {}
     }
     

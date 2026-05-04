@@ -2934,13 +2934,13 @@ impl WithholdingTaxService {
             // Partially past threshold
             let excess = total_ytd - threshold_amount;
             let taxable_portion = excess.min(taxable_amount);
-            return taxable_portion * (rate_percentage / 100.0);
+            taxable_portion * (rate_percentage / 100.0)
         } else {
             // Per-invoice threshold
             if taxable_amount <= threshold_amount {
                 return 0.0;
             }
-            return taxable_amount * (rate_percentage / 100.0);
+            taxable_amount * (rate_percentage / 100.0)
         }
     }
 
@@ -3636,7 +3636,7 @@ impl TaxFilingService {
             "quarterly" => {
                 if !(1..=4).contains(&period_number) { return None; }
                 let start_month = ((period_number - 1) * 3 + 1) as u32;
-                let end_month = (start_month + 2) as u32;
+                let end_month = start_month + 2;
                 let start = chrono::NaiveDate::from_ymd_opt(year, start_month, 1)?;
                 let end = if end_month == 12 {
                     chrono::NaiveDate::from_ymd_opt(year, 12, 31)?
@@ -6711,8 +6711,8 @@ impl FinancialDimensionService {
         value_to: Option<chrono::NaiveDate>,
         check_date: chrono::NaiveDate,
     ) -> bool {
-        let after_from = value_from.map_or(true, |f| check_date >= f);
-        let before_to = value_to.map_or(true, |t| check_date <= t);
+        let after_from = value_from.is_none_or(|f| check_date >= f);
+        let before_to = value_to.is_none_or(|t| check_date <= t);
         after_from && before_to
     }
 }
@@ -6802,8 +6802,8 @@ impl AutoOffsetService {
         effective_to: Option<chrono::NaiveDate>,
         transaction_date: chrono::NaiveDate,
     ) -> bool {
-        let after_from = effective_from.map_or(true, |f| transaction_date >= f);
-        let before_to = effective_to.map_or(true, |t| transaction_date <= t);
+        let after_from = effective_from.is_none_or(|f| transaction_date >= f);
+        let before_to = effective_to.is_none_or(|t| transaction_date <= t);
         after_from && before_to
     }
 }
@@ -9441,7 +9441,7 @@ impl DunningLetterService {
         if has_dispute {
             score -= 10.0;
         }
-        score.max(0.0).min(100.0)
+        score.clamp(0.0, 100.0)
     }
 
     /// Generate a dunning summary for a customer
@@ -9488,7 +9488,7 @@ impl DunningLetterService {
                 "Customer name is required".to_string(),
             ));
         }
-        if letter_level < 1 || letter_level > 10 {
+        if !(1..=10).contains(&letter_level) {
             return Err(AtlasError::ValidationFailed(
                 "Letter level must be between 1 and 10".to_string(),
             ));
@@ -9627,7 +9627,7 @@ impl RevenueWaterfallService {
         WaterfallReport {
             total_beginning_deferred: beginning_deferred,
             total_new_deferrals: total_new,
-            total_recognized: total_recognized,
+            total_recognized,
             total_reclassifications: total_reclass,
             total_ending_deferred: current_beginning,
             periods,
@@ -10322,7 +10322,7 @@ impl AutoCashApplicationService {
                 matching_order, VALID_MATCHING_PRIORITIES.join(", ")
             )));
         }
-        if tolerance_percent < 0.0 || tolerance_percent > 100.0 {
+        if !(0.0..=100.0).contains(&tolerance_percent) {
             return Err(AtlasError::ValidationFailed(
                 "Tolerance percent must be between 0 and 100".to_string(),
             ));
@@ -10332,10 +10332,10 @@ impl AutoCashApplicationService {
     }
 
     /// Match a receipt to an open transaction by transaction number
-    pub fn match_by_transaction_number<'a>(
+    pub fn match_by_transaction_number(
         receipt_number: &str,
         receipt_amount: f64,
-        open_transactions: &'a [(String, f64, bool)], // (txn_number, amount, is_matched)
+        open_transactions: &[(String, f64, bool)], // (txn_number, amount, is_matched)
     ) -> AutoCashMatchResult {
         let candidates: Vec<_> = open_transactions.iter()
             .filter(|(num, _, matched)| *num == receipt_number && !matched)
@@ -11069,7 +11069,7 @@ impl InvoiceToleranceMatchingService {
                 tolerance_basis, VALID_TOLERANCE_BASES.join(", ")
             )));
         }
-        if tolerance_percentage < 0.0 || tolerance_percentage > 100.0 {
+        if !(0.0..=100.0).contains(&tolerance_percentage) {
             return Err(AtlasError::ValidationFailed(
                 "Tolerance percentage must be between 0 and 100".to_string(),
             ));
@@ -11429,7 +11429,7 @@ impl PaymentMaturityDiscountService {
         if net_days <= 0 {
             return Err(AtlasError::ValidationFailed("Net days must be positive".to_string()));
         }
-        if discount_pct < 0.0 || discount_pct > 100.0 {
+        if !(0.0..=100.0).contains(&discount_pct) {
             return Err(AtlasError::ValidationFailed(
                 "Discount percentage must be between 0 and 100".to_string(),
             ));
@@ -11528,7 +11528,7 @@ impl SupplierBankValidationService {
         let checksum = 3 * digits[0] + 7 * digits[1] + digits[2]
             + 3 * digits[3] + 7 * digits[4] + digits[5]
             + 3 * digits[6] + 7 * digits[7] + digits[8];
-        if checksum % 10 != 0 {
+        if !checksum.is_multiple_of(10) {
             return (false, Some("Routing number checksum validation failed".to_string()));
         }
         (true, None)
@@ -11714,7 +11714,7 @@ impl AutomaticTaxDeterminationService {
                 classification_type, VALID_CLASSIFICATION_TYPES.join(", ")
             )));
         }
-        if default_rate < 0.0 || default_rate > 100.0 {
+        if !(0.0..=100.0).contains(&default_rate) {
             return Err(AtlasError::ValidationFailed(
                 "Default rate must be between 0 and 100".to_string(),
             ));
@@ -12043,7 +12043,7 @@ impl TransactionPurgeArchiveService {
             records_purged: purged,
             records_failed: failed,
             records_skipped: skipped,
-            total_amount_archived: total_amount_archived,
+            total_amount_archived,
         }
     }
 
@@ -12281,10 +12281,10 @@ impl MultiLevelApprovalService {
     }
 
     /// Get the next approval level after the current one
-    pub fn get_next_level<'a>(
-        levels: &'a [ApprovalLevelDef],
+    pub fn get_next_level(
+        levels: &[ApprovalLevelDef],
         current_level: i32,
-    ) -> Option<&'a ApprovalLevelDef> {
+    ) -> Option<&ApprovalLevelDef> {
         levels.iter().find(|l| l.level_number > current_level)
     }
 }
@@ -13024,10 +13024,10 @@ impl AssetDepreciationScheduleService {
     }
 
     /// Get schedule for a specific fiscal year
-    pub fn get_year_schedule<'a>(
-        schedule: &'a [DepreciationSchedulePeriod],
+    pub fn get_year_schedule(
+        schedule: &[DepreciationSchedulePeriod],
         fiscal_year: i32,
-    ) -> Vec<&'a DepreciationSchedulePeriod> {
+    ) -> Vec<&DepreciationSchedulePeriod> {
         schedule.iter().filter(|p| p.fiscal_year == fiscal_year).collect()
     }
 
@@ -13539,7 +13539,7 @@ impl ExpensePolicyComplianceService {
         let base_score = (passed_evaluations as f64 / total_evaluations as f64) * 100.0;
         let block_penalty = block_count as f64 * 10.0;
         let violation_penalty = violation_count as f64 * 5.0;
-        (base_score - block_penalty - violation_penalty).max(0.0).min(100.0)
+        (base_score - block_penalty - violation_penalty).clamp(0.0, 100.0)
     }
 
     /// Determine risk level from compliance score
@@ -13621,6 +13621,12 @@ const BG_VALID_AMENDMENT_TYPES: &[&str] = &[
     "amount_increase", "amount_decrease", "expiry_extension",
     "expiry_reduction", "beneficiary_change", "terms_change", "other",
 ];
+
+impl Default for BankGuaranteeManagementService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[allow(dead_code)]
 impl BankGuaranteeManagementService {
@@ -13779,6 +13785,12 @@ const HDG_EFFECTIVENESS_LOWER_BOUND: f64 = 0.80;
 const HDG_EFFECTIVENESS_UPPER_BOUND: f64 = 1.25;
 
 #[allow(dead_code)]
+impl Default for HedgeManagementService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HedgeManagementService {
     pub fn new() -> Self {
         Self
@@ -13855,20 +13867,14 @@ impl HedgeManagementService {
         notional_amount: f64,
     ) -> f64 {
         match option_type {
-            "call" => {
-                if spot_rate > strike_rate {
+            "call"
+                if spot_rate > strike_rate => {
                     (spot_rate - strike_rate) * notional_amount
-                } else {
-                    0.0
                 }
-            }
-            "put" => {
-                if strike_rate > spot_rate {
+            "put"
+                if strike_rate > spot_rate => {
                     (strike_rate - spot_rate) * notional_amount
-                } else {
-                    0.0
                 }
-            }
             _ => 0.0,
         }
     }
@@ -13984,8 +13990,7 @@ impl HedgeManagementService {
         hedged_item_fv_change: f64,
     ) -> HedgeEffectivenessTestResult {
         let ratio = Self::dollar_offset_ratio(derivative_fv_change, hedged_item_fv_change);
-        let is_effective = ratio >= HDG_EFFECTIVENESS_LOWER_BOUND
-            && ratio <= HDG_EFFECTIVENESS_UPPER_BOUND;
+        let is_effective = (HDG_EFFECTIVENESS_LOWER_BOUND..=HDG_EFFECTIVENESS_UPPER_BOUND).contains(&ratio);
 
         HedgeEffectivenessTestResult {
             ratio,

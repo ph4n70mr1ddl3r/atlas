@@ -103,7 +103,7 @@ impl GeneralLedgerEngine {
         }
 
         // Check uniqueness
-        if let Some(_) = self.repository.get_account_by_code(org_id, account_code).await? {
+        if self.repository.get_account_by_code(org_id, account_code).await?.is_some() {
             return Err(AtlasError::Conflict(
                 format!("Account code '{}' already exists", account_code)
             ));

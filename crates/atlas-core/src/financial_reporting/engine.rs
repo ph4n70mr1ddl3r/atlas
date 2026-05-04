@@ -344,27 +344,24 @@ impl FinancialReportingEngine {
 
         // Validate date parameters based on report type
         match template.report_type.as_str() {
-            "trial_balance" => {
-                if as_of_date.is_none() {
+            "trial_balance"
+                if as_of_date.is_none() => {
                     return Err(AtlasError::ValidationFailed(
                         "Trial balance requires as_of_date".to_string(),
                     ));
                 }
-            }
-            "income_statement" | "cash_flow" => {
-                if period_from.is_none() || period_to.is_none() {
+            "income_statement" | "cash_flow"
+                if (period_from.is_none() || period_to.is_none()) => {
                     return Err(AtlasError::ValidationFailed(
                         "Income statement / cash flow requires period_from and period_to".to_string(),
                     ));
                 }
-            }
-            "balance_sheet" => {
-                if as_of_date.is_none() {
+            "balance_sheet"
+                if as_of_date.is_none() => {
                     return Err(AtlasError::ValidationFailed(
                         "Balance sheet requires as_of_date".to_string(),
                     ));
                 }
-            }
             _ => {}
         }
 

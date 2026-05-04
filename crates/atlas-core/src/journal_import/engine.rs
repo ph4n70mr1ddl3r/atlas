@@ -495,7 +495,7 @@ impl JournalImportEngine {
             let row_credit: f64;
 
             // Validate account code
-            if row.account_code.is_none() || row.account_code.as_ref().map_or(true, |s| s.is_empty()) {
+            if row.account_code.is_none() || row.account_code.as_ref().is_none_or(|s| s.is_empty()) {
                 row_errors.push(JournalImportError {
                     row_number: row.row_number,
                     field: "account_code".to_string(),
@@ -566,9 +566,7 @@ impl JournalImportEngine {
                 error_count += 1;
                 errors.extend(row_errors);
 
-                let first_error = errors.iter()
-                    .filter(|e| e.row_number == row.row_number)
-                    .next();
+                let first_error = errors.iter().find(|e| e.row_number == row.row_number);
 
                 self.repository.update_row(
                     row.id, None, None, None, None,
@@ -586,10 +584,8 @@ impl JournalImportEngine {
         let format = self.repository.get_format(batch.format_id).await?;
         let max_errors = format.map_or(100, |f| f.max_errors_allowed);
 
-        let new_status = if error_count == 0 {
+        let new_status = if error_count <= max_errors {
             "validated"
-        } else if error_count <= max_errors {
-            "validated" // Still valid if under max errors
         } else {
             "failed"
         };
@@ -721,7 +717,7 @@ impl JournalImportEngine {
     ) -> Vec<JournalImportError> {
         let mut errors = Vec::new();
 
-        if account_code.is_none() || account_code.map_or(true, |s| s.is_empty()) {
+        if account_code.is_none() || account_code.is_none_or(|s| s.is_empty()) {
             errors.push(JournalImportError {
                 row_number: 0,
                 field: "account_code".to_string(),

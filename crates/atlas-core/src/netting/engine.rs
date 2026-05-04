@@ -147,7 +147,7 @@ impl NettingEngine {
         }
 
         // Check uniqueness
-        if let Some(_) = self.repository.get_agreement_by_number(org_id, agreement_number).await? {
+        if self.repository.get_agreement_by_number(org_id, agreement_number).await?.is_some() {
             return Err(AtlasError::Conflict(
                 format!("Agreement number '{}' already exists", agreement_number)
             ));

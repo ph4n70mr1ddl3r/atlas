@@ -19,11 +19,11 @@ impl PaymentTermsEngine {
         if term_code.is_empty() || name.is_empty() {
             return Err(AtlasError::ValidationFailed("Term code and name are required".into()));
         }
-        if base_due_days < 0 || base_due_days > 365 {
+        if !(0..=365).contains(&base_due_days) {
             return Err(AtlasError::ValidationFailed("Base due days must be 0-365".into()));
         }
         if let Some(cutoff) = due_date_cutoff_day {
-            if cutoff < 1 || cutoff > 31 {
+            if !(1..=31).contains(&cutoff) {
                 return Err(AtlasError::ValidationFailed("Cutoff day must be 1-31".into()));
             }
         }
@@ -31,7 +31,7 @@ impl PaymentTermsEngine {
             return Err(AtlasError::ValidationFailed(format!("Invalid term_type '{}'", term_type)));
         }
         let discount: f64 = default_discount_percent.parse().map_err(|_| AtlasError::ValidationFailed("Invalid discount percent".into()))?;
-        if discount < 0.0 || discount > 100.0 {
+        if !(0.0..=100.0).contains(&discount) {
             return Err(AtlasError::ValidationFailed("Discount percent must be 0-100".into()));
         }
         if self.repository.get_term(org_id, term_code).await?.is_some() {
@@ -79,14 +79,14 @@ impl PaymentTermsEngine {
     pub async fn create_discount_schedule(&self, org_id: Uuid, term_id: Uuid, discount_percent: &str, discount_days: i32, discount_day_of_month: Option<i32>, discount_basis: &str, display_order: i32) -> AtlasResult<PaymentTermDiscountSchedule> {
         self.repository.get_term_by_id(term_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {} not found", term_id)))?;
         let discount: f64 = discount_percent.parse().map_err(|_| AtlasError::ValidationFailed("Invalid discount percent".into()))?;
-        if discount < 0.0 || discount > 100.0 {
+        if !(0.0..=100.0).contains(&discount) {
             return Err(AtlasError::ValidationFailed("Discount percent must be 0-100".into()));
         }
-        if discount_days < 0 || discount_days > 365 {
+        if !(0..=365).contains(&discount_days) {
             return Err(AtlasError::ValidationFailed("Discount days must be 0-365".into()));
         }
         if let Some(dom) = discount_day_of_month {
-            if dom < 1 || dom > 31 {
+            if !(1..=31).contains(&dom) {
                 return Err(AtlasError::ValidationFailed("Day of month must be 1-31".into()));
             }
         }
@@ -118,10 +118,10 @@ impl PaymentTermsEngine {
             return Err(AtlasError::ValidationFailed("Percentage must be > 0 and <= 100".into()));
         }
         let disc: f64 = discount_percent.parse().map_err(|_| AtlasError::ValidationFailed("Invalid discount percent".into()))?;
-        if disc < 0.0 || disc > 100.0 {
+        if !(0.0..=100.0).contains(&disc) {
             return Err(AtlasError::ValidationFailed("Discount percent must be 0-100".into()));
         }
-        if discount_days < 0 || discount_days > 365 {
+        if !(0..=365).contains(&discount_days) {
             return Err(AtlasError::ValidationFailed("Discount days must be 0-365".into()));
         }
         self.repository.create_installment(org_id, term_id, installment_number, due_days_offset, percentage, discount_percent, discount_days).await

@@ -742,7 +742,7 @@ impl LandedCostEngine {
 
         // Recent charges
         let mut recent = charges.clone();
-        recent.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        recent.sort_by_key(|b| std::cmp::Reverse(b.created_at));
         recent.truncate(5);
         let recent_charges: serde_json::Value = recent.iter().map(|c| serde_json::json!({
             "id": c.id,

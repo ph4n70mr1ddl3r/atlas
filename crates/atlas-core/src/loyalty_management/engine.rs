@@ -1074,11 +1074,8 @@ mod tests {
 
     #[test]
     fn test_calculate_points_round() {
-        let engine_setup = || -> LoyaltyManagementEngine {
-            // We can't easily create an engine without a repo, so just test the math directly
-            unimplemented!()
-        };
-        // Test rounding methods manually
+        // Verify rounding methods used by the engine for point calculation.
+        // No engine instance needed – this is purely a math sanity check.
         let raw = 99.5_f64;
         assert!((raw.round() - 100.0).abs() < 0.01);
         assert!((raw.floor() - 99.0).abs() < 0.01);

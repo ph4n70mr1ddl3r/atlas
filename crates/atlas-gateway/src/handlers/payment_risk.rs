@@ -16,7 +16,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::AppState;
-use crate::handlers::auth::{Claims, parse_uuid};
+use crate::handlers::auth::Claims;
 
 // ============================================================================
 // Query Parameters
@@ -76,10 +76,7 @@ pub async fn create_risk_profile(
     Extension(claims): Extension<Claims>,
     Json(body): Json<Value>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     let code = body["code"].as_str().unwrap_or("").to_string();
     let name = body["name"].as_str().unwrap_or("").to_string();
@@ -106,7 +103,7 @@ pub async fn create_risk_profile(
         body["auto_block_high"].as_bool().unwrap_or(false),
         body["effective_from"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
         body["effective_to"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
-        parse_uuid(&claims.sub).ok(),
+        claims.user_uuid_json().ok(),
     ).await {
         Ok(profile) => Ok((StatusCode::CREATED, Json(serde_json::to_value(profile).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -120,10 +117,7 @@ pub async fn get_risk_profile(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     match state.payment_risk_engine.get_risk_profile(org_id, &code).await {
         Ok(Some(profile)) => Ok(Json(serde_json::to_value(profile).unwrap_or(Value::Null))),
@@ -139,10 +133,7 @@ pub async fn list_risk_profiles(
     Extension(claims): Extension<Claims>,
     Query(params): Query<RiskProfileListQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     match state.payment_risk_engine.list_risk_profiles(
         org_id, params.profile_type.as_deref(), params.is_active,
@@ -174,10 +165,7 @@ pub async fn delete_risk_profile(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     match state.payment_risk_engine.delete_risk_profile(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -196,10 +184,7 @@ pub async fn create_fraud_alert(
     Extension(claims): Extension<Claims>,
     Json(body): Json<Value>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     let alert_type = body["alert_type"].as_str().unwrap_or("").to_string();
     let severity = body["severity"].as_str().unwrap_or("").to_string();
@@ -225,7 +210,7 @@ pub async fn create_fraud_alert(
         body["assigned_to"].as_str(),
         body["assigned_team"].as_str(),
         body["related_alert_ids"].as_str(),
-        parse_uuid(&claims.sub).ok(),
+        claims.user_uuid_json().ok(),
     ).await {
         Ok(alert) => Ok((StatusCode::CREATED, Json(serde_json::to_value(alert).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -239,10 +224,7 @@ pub async fn get_fraud_alert(
     Extension(claims): Extension<Claims>,
     Path(alert_number): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     match state.payment_risk_engine.get_fraud_alert(org_id, &alert_number).await {
         Ok(Some(alert)) => Ok(Json(serde_json::to_value(alert).unwrap_or(Value::Null))),
@@ -258,10 +240,7 @@ pub async fn list_fraud_alerts(
     Extension(claims): Extension<Claims>,
     Query(params): Query<FraudAlertListQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     match state.payment_risk_engine.list_fraud_alerts(
         org_id, params.status.as_deref(), params.alert_type.as_deref(), params.severity.as_deref(),
@@ -279,7 +258,7 @@ pub async fn transition_fraud_alert(
     Path(id): Path<Uuid>,
     Json(body): Json<StatusTransitionBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let resolved_by = parse_uuid(&claims.sub).ok();
+    let resolved_by = claims.user_uuid_json().ok();
     match state.payment_risk_engine.transition_fraud_alert(
         id, &body.status, body.resolution_notes.as_deref(), resolved_by,
     ).await {
@@ -315,10 +294,7 @@ pub async fn create_screening_result(
     Extension(claims): Extension<Claims>,
     Json(body): Json<Value>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     let screening_type = body["screening_type"].as_str().unwrap_or("").to_string();
     let screened_list = body["screened_list"].as_str().unwrap_or("").to_string();
@@ -341,7 +317,7 @@ pub async fn create_screening_result(
         body["sanctions_list_program"].as_str(),
         body["match_details"].as_str(),
         body["action_taken"].as_str(),
-        parse_uuid(&claims.sub).ok(),
+        claims.user_uuid_json().ok(),
     ).await {
         Ok(result) => Ok((StatusCode::CREATED, Json(serde_json::to_value(result).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -355,10 +331,7 @@ pub async fn get_screening_result(
     Extension(claims): Extension<Claims>,
     Path(screening_id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     match state.payment_risk_engine.get_screening_result(org_id, &screening_id).await {
         Ok(Some(result)) => Ok(Json(serde_json::to_value(result).unwrap_or(Value::Null))),
@@ -374,10 +347,7 @@ pub async fn list_screening_results(
     Extension(claims): Extension<Claims>,
     Query(params): Query<ScreeningListQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     let supplier_id = params.supplier_id.as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
@@ -417,10 +387,7 @@ pub async fn create_assessment(
     Extension(claims): Extension<Claims>,
     Json(body): Json<Value>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     let supplier_id = match body["supplier_id"].as_str().and_then(|s| Uuid::parse_str(s).ok()) {
         Some(id) => id,
@@ -452,7 +419,7 @@ pub async fn create_assessment(
         body["assessed_by"].as_str(),
         body["findings"].as_str(),
         body["recommendations"].as_str(),
-        parse_uuid(&claims.sub).ok(),
+        claims.user_uuid_json().ok(),
     ).await {
         Ok(assessment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(assessment).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -466,10 +433,7 @@ pub async fn get_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_number): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     match state.payment_risk_engine.get_assessment(org_id, &assessment_number).await {
         Ok(Some(assessment)) => Ok(Json(serde_json::to_value(assessment).unwrap_or(Value::Null))),
@@ -485,10 +449,7 @@ pub async fn list_assessments(
     Extension(claims): Extension<Claims>,
     Query(params): Query<AssessmentListQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     let supplier_id = params.supplier_id.as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
@@ -522,10 +483,7 @@ pub async fn delete_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_number): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
-    let org_id = match Uuid::parse_str(&claims.org_id) {
-        Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
-    };
+    let org_id = claims.org_uuid_json()?;
 
     match state.payment_risk_engine.delete_assessment(org_id, &assessment_number).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),

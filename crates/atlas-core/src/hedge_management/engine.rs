@@ -78,7 +78,13 @@ const VALID_DOC_STATUSES: &[&str] = &[
 ];
 
 /// Calculate effectiveness using the dollar-offset method.
-/// Returns (ratio, is_effective) where effectiveness requires 0.80 <= ratio <= 1.25
+/// Returns (ratio, is_effective) where effectiveness requires 0.80 <= ratio <= 1.25.
+///
+/// # Panics / Precision
+///
+/// Uses `f64` arithmetic which is acceptable for the ratio calculation itself.
+/// Callers should pass values that are already rounded to the desired
+/// precision (e.g. 2 decimal places for currency amounts).
 pub fn calculate_dollar_offset_effectiveness(
     derivative_fair_value_change: f64,
     hedged_item_fair_value_change: f64,
@@ -87,6 +93,8 @@ pub fn calculate_dollar_offset_effectiveness(
         return (0.0, false);
     }
     let ratio = (derivative_fair_value_change / hedged_item_fair_value_change).abs();
+    // Round to 6 decimal places to avoid floating-point noise at the boundaries
+    let ratio = (ratio * 1_000_000.0).round() / 1_000_000.0;
     let is_effective = (0.80..=1.25).contains(&ratio);
     (ratio, is_effective)
 }

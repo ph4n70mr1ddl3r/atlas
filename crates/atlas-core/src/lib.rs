@@ -158,6 +158,7 @@ pub mod bank_guarantee;
 pub mod letter_of_credit;
 pub mod hedge_management;
 pub mod payment_risk;
+pub mod tax_registration;
 
 pub use schema::*;
 pub use workflow::{
@@ -317,6 +318,7 @@ pub use bank_guarantee::{BankGuaranteeEngine, PostgresBankGuaranteeRepository as
 pub use letter_of_credit::{LetterOfCreditEngine, PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo};
 pub use hedge_management::{HedgeManagementEngine, repository::PostgresHedgeManagementRepository as PostgresHedgeManagementRepo};
 pub use payment_risk::{PaymentRiskEngine, repository::PostgresPaymentRiskRepository as PostgresPaymentRiskRepo};
+pub use tax_registration::{TaxRegistrationEngine, PostgresTaxRegistrationRepository as PostgresTaxRegistrationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

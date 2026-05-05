@@ -9263,3 +9263,64 @@ pub fn supplier_risk_assessment_definition() -> EntityDefinition {
         .workflow(workflow)
         .build()
 }
+
+// ============================================================================
+// Tax Registration Management (Oracle Fusion: Financials > Tax > Tax Registrations)
+// ============================================================================
+
+/// Tax Registration entity with workflow
+/// Oracle Fusion: Tax > Tax Registrations (Enhanced)
+pub fn tax_registration_enhanced_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("tax_registration_workflow", "pending")
+        .initial_state("pending", "Pending")
+        .working_state("active", "Active")
+        .working_state("suspended", "Suspended")
+        .final_state("deregistered", "Deregistered")
+        .final_state("expired", "Expired")
+        .transition("pending", "active", "activate")
+        .transition("active", "suspended", "suspend")
+        .transition("active", "deregistered", "deregister")
+        .transition("active", "expired", "expire")
+        .transition("suspended", "active", "reactivate")
+        .transition("suspended", "deregistered", "deregister")
+        .build();
+
+    SchemaBuilder::new("tax_registrations", "Tax Registration")
+        .plural_label("Tax Registrations")
+        .table_name("fin_tax_registrations")
+        .description("Tax registration numbers for legal entities and third parties across jurisdictions")
+        .icon("id-card")
+        .required_string("registration_number", "Registration Number")
+        .enumeration("registration_type", "Registration Type", vec![
+            "tin", "vat", "gst", "ein", "sst", "pan", "cst",
+            "sales_tax", "withholding_tax", "excise", "customs", "other",
+        ])
+        .enumeration("tax_purpose", "Tax Purpose", vec![
+            "input_tax", "output_tax", "both", "reporting_only",
+            "withholding", "reverse_charge", "intracommunity",
+        ])
+        .enumeration("party_type", "Party Type", vec![
+            "first_party", "third_party",
+        ])
+        .reference("party_id", "Party", "parties")
+        .string("party_name", "Party Name")
+        .required_string("jurisdiction_code", "Jurisdiction Code")
+        .required_string("country_code", "Country Code")
+        .string("state_code", "State Code")
+        .enumeration("status", "Status", vec![
+            "active", "suspended", "deregistered", "expired", "pending",
+        ])
+        .date("effective_from", "Effective From")
+        .date("effective_to", "Effective To")
+        .boolean("is_default", "Default")
+        .string("reporting_name", "Reporting Name")
+        .reference("legal_entity_id", "Legal Entity", "legal_entities")
+        .enumeration("validation_status", "Validation Status", vec![
+            "pending", "validated", "failed", "not_applicable",
+        ])
+        .enumeration("source", "Source", vec![
+            "manual", "import", "integration", "migration",
+        ])
+        .workflow(workflow)
+        .build()
+}

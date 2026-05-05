@@ -22129,6 +22129,72 @@ pub struct HedgeDocumentation {
     pub updated_by: Option<Uuid>,
 }
 
+// ============================================================================
+// Tax Registration Management (Oracle Fusion Tax > Tax Registrations)
+// ============================================================================
+
+/// Tax Registration
+/// Oracle Fusion equivalent: Financials > Tax > Tax Registrations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxRegistration {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    /// The taxpayer identification number (e.g., VAT number, EIN, GSTIN)
+    pub registration_number: String,
+    /// Type of registration (tin, vat, gst, ein, sst, pan, cst, sales_tax, withholding_tax, excise, customs, other)
+    pub registration_type: String,
+    /// Tax purpose of this registration (input_tax, output_tax, both, reporting_only, withholding, reverse_charge, intracommunity)
+    pub tax_purpose: String,
+    /// Whether this is a first-party (own entity) or third-party registration
+    pub party_type: String,
+    /// Reference to the party (legal entity or supplier/customer)
+    pub party_id: Option<Uuid>,
+    pub party_name: Option<String>,
+    /// Tax jurisdiction code (e.g., "US-FED", "EU-DE", "IN-GST")
+    pub jurisdiction_code: String,
+    /// ISO 3166-1 alpha-2 country code
+    pub country_code: String,
+    /// Optional state/province code
+    pub state_code: Option<String>,
+    /// Status: active, suspended, deregistered, expired, pending
+    pub status: String,
+    /// When this registration became/becomes effective
+    pub effective_from: chrono::NaiveDate,
+    /// When this registration expires/expired (None = indefinite)
+    pub effective_to: Option<chrono::NaiveDate>,
+    /// Whether this is the default registration for this jurisdiction/type
+    pub is_default: bool,
+    /// Name used for tax reporting (may differ from legal name)
+    pub reporting_name: Option<String>,
+    /// Legal entity this registration belongs to
+    pub legal_entity_id: Option<Uuid>,
+    /// Validation status of the registration number
+    pub validation_status: String,
+    /// When the registration was last validated
+    pub last_validated_at: Option<DateTime<Utc>>,
+    /// How this registration was created (manual, import, integration, migration)
+    pub source: String,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Tax Registration Summary for dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxRegistrationSummary {
+    pub organization_id: Uuid,
+    pub total_registrations: i32,
+    pub active_registrations: i32,
+    pub suspended_registrations: i32,
+    pub expired_registrations: i32,
+    pub pending_registrations: i32,
+    pub first_party_count: i32,
+    pub third_party_count: i32,
+    pub jurisdictions_covered: i32,
+}
+
 /// Hedge Management Dashboard Summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

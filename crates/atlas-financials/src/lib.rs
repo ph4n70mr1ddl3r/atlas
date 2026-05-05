@@ -172,4 +172,6 @@ pub use services::{
     RiskFactor,
     VelocityCheckResult,
     SanctionsMatch,
+    // Tax Registration Management
+    TaxRegistrationManagementService,
 };

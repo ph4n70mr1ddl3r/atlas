@@ -592,6 +592,12 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         hedge_management_engine: Arc::new(atlas_core::HedgeManagementEngine::new(Arc::new(
             atlas_core::hedge_management::PostgresHedgeManagementRepository::new(db_pool.clone()),
         ))),
+        cash_concentration_engine: Arc::new(atlas_core::CashConcentrationEngine::new(Arc::new(
+            atlas_core::cash_concentration::PostgresCashConcentrationRepository::new(db_pool.clone()),
+        ))),
+        payment_risk_engine: Arc::new(atlas_core::PaymentRiskEngine::new(Arc::new(
+            atlas_core::payment_risk::PostgresPaymentRiskRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

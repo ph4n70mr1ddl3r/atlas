@@ -159,6 +159,7 @@ pub mod letter_of_credit;
 pub mod hedge_management;
 pub mod payment_risk;
 pub mod tax_registration;
+pub mod cash_concentration;
 
 pub use schema::*;
 pub use workflow::{
@@ -319,6 +320,7 @@ pub use letter_of_credit::{LetterOfCreditEngine, PostgresLetterOfCreditRepositor
 pub use hedge_management::{HedgeManagementEngine, repository::PostgresHedgeManagementRepository as PostgresHedgeManagementRepo};
 pub use payment_risk::{PaymentRiskEngine, repository::PostgresPaymentRiskRepository as PostgresPaymentRiskRepo};
 pub use tax_registration::{TaxRegistrationEngine, PostgresTaxRegistrationRepository as PostgresTaxRegistrationRepo};
+pub use cash_concentration::{CashConcentrationEngine, PostgresCashConcentrationRepository as PostgresCashConcentrationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

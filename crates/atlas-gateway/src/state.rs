@@ -173,6 +173,8 @@ use atlas_core::{
     // PostgresHedgeManagementRepository re-exported via hedge_management module
     PaymentRiskEngine,
     // PostgresPaymentRiskRepository re-exported via payment_risk module
+    CashConcentrationEngine,
+    cash_concentration::PostgresCashConcentrationRepository,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
@@ -384,6 +386,7 @@ pub struct AppState {
     pub letter_of_credit_engine: Arc<LetterOfCreditEngine>,
     pub hedge_management_engine: Arc<HedgeManagementEngine>,
     pub payment_risk_engine: Arc<PaymentRiskEngine>,
+    pub cash_concentration_engine: Arc<CashConcentrationEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1048,6 +1051,11 @@ impl AppState {
             atlas_core::payment_risk::PostgresPaymentRiskRepository::new(db_pool.clone())
         )));
 
+        // Initialize Cash Concentration / Pooling engine (Oracle Fusion: Treasury > Cash Pooling)
+        let cash_concentration_engine = Arc::new(CashConcentrationEngine::new(Arc::new(
+            PostgresCashConcentrationRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1218,6 +1226,7 @@ impl AppState {
             letter_of_credit_engine,
             hedge_management_engine,
             payment_risk_engine,
+            cash_concentration_engine,
             event_bus,
             jwt_secret,
         };

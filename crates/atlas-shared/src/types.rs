@@ -22210,3 +22210,151 @@ pub struct HedgeDashboard {
     pub by_instrument_type: serde_json::Value,
     pub by_hedge_type: serde_json::Value,
 }
+
+// ============================================================================
+// Cash Concentration / Pooling Types (Oracle Fusion: Treasury > Cash Pooling)
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashPool {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub pool_code: String,
+    pub pool_name: String,
+    pub pool_type: String,
+    pub concentration_account_id: Option<Uuid>,
+    pub concentration_account_name: Option<String>,
+    pub currency_code: String,
+    pub status: String,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub termination_date: Option<chrono::NaiveDate>,
+    pub sweep_frequency: Option<String>,
+    pub sweep_time: Option<String>,
+    pub minimum_transfer_amount: Option<String>,
+    pub maximum_transfer_amount: Option<String>,
+    pub target_balance: Option<String>,
+    pub interest_allocation_method: Option<String>,
+    pub interest_rate: Option<String>,
+    pub description: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashPoolParticipant {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub pool_id: Uuid,
+    pub participant_code: String,
+    pub bank_account_id: Option<Uuid>,
+    pub bank_account_name: Option<String>,
+    pub bank_name: Option<String>,
+    pub account_number: Option<String>,
+    pub participant_type: String,
+    pub sweep_direction: String,
+    pub priority: Option<i32>,
+    pub minimum_balance: Option<String>,
+    pub maximum_balance: Option<String>,
+    pub threshold_amount: Option<String>,
+    pub current_balance: Option<String>,
+    pub status: String,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub termination_date: Option<chrono::NaiveDate>,
+    pub entity_id: Option<Uuid>,
+    pub entity_name: Option<String>,
+    pub description: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashPoolSweepRule {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub pool_id: Uuid,
+    pub rule_code: String,
+    pub rule_name: String,
+    pub sweep_type: String,
+    pub participant_id: Option<Uuid>,
+    pub direction: String,
+    pub trigger_condition: Option<String>,
+    pub threshold_amount: Option<String>,
+    pub target_balance: Option<String>,
+    pub minimum_transfer: Option<String>,
+    pub maximum_transfer: Option<String>,
+    pub priority: Option<i32>,
+    pub is_active: Option<bool>,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub termination_date: Option<chrono::NaiveDate>,
+    pub description: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashPoolSweepRun {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub pool_id: Uuid,
+    pub run_number: String,
+    pub run_date: chrono::NaiveDate,
+    pub run_type: String,
+    pub status: String,
+    pub total_swept_amount: Option<String>,
+    pub total_transactions: Option<i32>,
+    pub successful_transactions: Option<i32>,
+    pub failed_transactions: Option<i32>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub initiated_by: Option<Uuid>,
+    pub notes: Option<String>,
+    pub error_message: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashPoolSweepRunLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub sweep_run_id: Uuid,
+    pub pool_id: Uuid,
+    pub participant_id: Uuid,
+    pub participant_code: Option<String>,
+    pub bank_account_name: Option<String>,
+    pub sweep_rule_id: Option<Uuid>,
+    pub direction: String,
+    pub pre_sweep_balance: Option<String>,
+    pub sweep_amount: Option<String>,
+    pub post_sweep_balance: Option<String>,
+    pub status: String,
+    pub reference_number: Option<String>,
+    pub error_message: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashPoolDashboard {
+    pub total_pools: i32,
+    pub active_pools: i32,
+    pub total_participants: i32,
+    pub total_concentrated_balance: String,
+    pub total_swept_today: String,
+    pub pending_sweeps: i32,
+    pub by_pool_type: serde_json::Value,
+    pub by_currency: serde_json::Value,
+}

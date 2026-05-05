@@ -128,6 +128,7 @@ pub mod bank_guarantee;
 pub mod letter_of_credit;
 pub mod hedge_management;
 pub mod payment_risk;
+pub mod cash_concentration;
 
 pub use schema::*;
 pub use records::*;
@@ -4418,6 +4419,38 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/payment-risk/assessments/:assessment_number", get(payment_risk::get_assessment))
         .route("/payment-risk/assessments/:id/transition", post(payment_risk::transition_assessment))
         .route("/payment-risk/assessments/:assessment_number", delete(payment_risk::delete_assessment))
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // Cash Concentration / Pooling (Oracle Fusion: Treasury > Cash Pooling)
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        // Cash Pools
+        .route("/cash-pooling/pools", post(cash_concentration::create_pool))
+        .route("/cash-pooling/pools", get(cash_concentration::list_pools))
+        .route("/cash-pooling/pools/:pool_code", get(cash_concentration::get_pool))
+        .route("/cash-pooling/pools/:id/activate", post(cash_concentration::activate_pool))
+        .route("/cash-pooling/pools/:id/suspend", post(cash_concentration::suspend_pool))
+        .route("/cash-pooling/pools/:id/close", post(cash_concentration::close_pool))
+        .route("/cash-pooling/pools/:pool_code", delete(cash_concentration::delete_pool))
+
+        // Participants
+        .route("/cash-pooling/pools/:pool_id/participants", post(cash_concentration::add_participant))
+        .route("/cash-pooling/pools/:pool_id/participants", get(cash_concentration::list_participants))
+        .route("/cash-pooling/pools/:pool_id/participants/:participant_code", delete(cash_concentration::remove_participant))
+
+        // Sweep Rules
+        .route("/cash-pooling/pools/:pool_id/rules", post(cash_concentration::create_sweep_rule))
+        .route("/cash-pooling/pools/:pool_id/rules", get(cash_concentration::list_sweep_rules))
+        .route("/cash-pooling/pools/:pool_id/rules/:rule_code", delete(cash_concentration::delete_sweep_rule))
+
+        // Sweep Execution
+        .route("/cash-pooling/pools/:pool_id/sweep", post(cash_concentration::execute_sweep))
+        .route("/cash-pooling/sweeps/:id", get(cash_concentration::get_sweep_run))
+        .route("/cash-pooling/pools/:pool_id/sweeps", get(cash_concentration::list_sweep_runs))
+        .route("/cash-pooling/sweeps/:sweep_run_id/lines", get(cash_concentration::list_sweep_run_lines))
+
+        // Dashboard
+        .route("/cash-pooling/dashboard", get(cash_concentration::get_cash_pooling_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

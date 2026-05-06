@@ -42,12 +42,6 @@ const VALID_SWEEP_TYPES: &[&str] = &[
 // Valid run types
 const VALID_RUN_TYPES: &[&str] = &["scheduled", "manual", "automatic"];
 
-// Valid run statuses
-#[allow(dead_code)]
-const VALID_RUN_STATUSES: &[&str] = &[
-    "pending", "in_progress", "completed", "partially_completed", "failed", "cancelled",
-];
-
 // Valid line statuses
 #[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &["pending", "completed", "failed", "skipped"];
@@ -140,23 +134,34 @@ impl CashConcentrationEngine {
                 )));
             }
         }
-        if let Some(min_amt) = minimum_transfer_amount {
-            let min_val: f64 = min_amt.parse().map_err(|_| AtlasError::ValidationFailed(
+        let min_val: Option<f64> = minimum_transfer_amount
+            .map(|s| s.parse().map_err(|_| AtlasError::ValidationFailed(
                 "Minimum transfer amount must be a valid number".to_string(),
-            ))?;
-            if min_val < 0.0 {
+            )))
+            .transpose()?;
+        if let Some(v) = min_val {
+            if v < 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Minimum transfer amount cannot be negative".to_string(),
                 ));
             }
         }
-        if let Some(max_amt) = maximum_transfer_amount {
-            let max_val: f64 = max_amt.parse().map_err(|_| AtlasError::ValidationFailed(
+        let max_val: Option<f64> = maximum_transfer_amount
+            .map(|s| s.parse().map_err(|_| AtlasError::ValidationFailed(
                 "Maximum transfer amount must be a valid number".to_string(),
-            ))?;
-            if max_val < 0.0 {
+            )))
+            .transpose()?;
+        if let Some(v) = max_val {
+            if v < 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Maximum transfer amount cannot be negative".to_string(),
+                ));
+            }
+        }
+        if let (Some(min), Some(max)) = (min_val, max_val) {
+            if min > max {
+                return Err(AtlasError::ValidationFailed(
+                    "Minimum transfer amount cannot exceed maximum transfer amount".to_string(),
                 ));
             }
         }
@@ -165,6 +170,14 @@ impl CashConcentrationEngine {
                 "Invalid currency code '{}'. Must be one of: {}",
                 currency_code, VALID_CURRENCY_CODES.join(", ")
             )));
+        }
+        // Validate effective_date <= termination_date
+        if let (Some(eff), Some(term)) = (effective_date, termination_date) {
+            if eff > term {
+                return Err(AtlasError::ValidationFailed(
+                    "Effective date cannot be after termination date".to_string(),
+                ));
+            }
         }
 
         info!("Creating cash pool {} for org {}", pool_code, org_id);
@@ -369,7 +382,13 @@ impl CashConcentrationEngine {
     }
 
     /// List participants for a pool
-    pub async fn list_participants(&self, pool_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<atlas_shared::CashPoolParticipant>> {
+    pub async fn list_participants(&self, pool_id: Uuid, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<atlas_shared::CashPoolParticipant>> {
+        // Verify pool belongs to org
+        let pool = self.repository.get_pool_by_id(pool_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {} not found", pool_id)))?;
+        if pool.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+        }
         if let Some(s) = status {
             if !VALID_PARTICIPANT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
@@ -382,7 +401,14 @@ impl CashConcentrationEngine {
     }
 
     /// Remove a participant from a pool
-    pub async fn remove_participant(&self, pool_id: Uuid, participant_code: &str) -> AtlasResult<()> {
+    pub async fn remove_participant(&self, pool_id: Uuid, participant_code: &str, org_id: Uuid) -> AtlasResult<()> {
+        // Verify pool belongs to org
+        let pool = self.repository.get_pool_by_id(pool_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {} not found", pool_id)))?;
+        if pool.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+        }
+
         let participant = self.repository.get_participant(pool_id, participant_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
                 "Participant {} not found in pool", participant_code
@@ -402,10 +428,18 @@ impl CashConcentrationEngine {
         &self,
         participant_id: Uuid,
         new_balance: &str,
+        org_id: Uuid,
     ) -> AtlasResult<atlas_shared::CashPoolParticipant> {
         let _bal: f64 = new_balance.parse().map_err(|_| AtlasError::ValidationFailed(
             "Balance must be a valid number".to_string(),
         ))?;
+
+        // Verify ownership: fetch participant and check org_id
+        let participant = self.repository.get_participant_by_id(participant_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Participant {} not found", participant_id)))?;
+        if participant.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to update this participant".to_string()));
+        }
 
         self.repository.update_participant_balance(participant_id, new_balance).await
     }
@@ -478,12 +512,24 @@ impl CashConcentrationEngine {
     }
 
     /// List sweep rules for a pool
-    pub async fn list_sweep_rules(&self, pool_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRule>> {
+    pub async fn list_sweep_rules(&self, pool_id: Uuid, org_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRule>> {
+        // Verify pool belongs to org
+        let pool = self.repository.get_pool_by_id(pool_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {} not found", pool_id)))?;
+        if pool.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+        }
         self.repository.list_sweep_rules(pool_id).await
     }
 
     /// Delete a sweep rule
-    pub async fn delete_sweep_rule(&self, pool_id: Uuid, rule_code: &str) -> AtlasResult<()> {
+    pub async fn delete_sweep_rule(&self, pool_id: Uuid, rule_code: &str, org_id: Uuid) -> AtlasResult<()> {
+        // Verify pool belongs to org
+        let pool = self.repository.get_pool_by_id(pool_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {} not found", pool_id)))?;
+        if pool.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+        }
         info!("Deleting sweep rule {} from pool", rule_code);
         self.repository.delete_sweep_rule(pool_id, rule_code).await
     }
@@ -562,7 +608,26 @@ impl CashConcentrationEngine {
                     total_swept += swept;
                     successful += 1;
                 }
-                Err(_) => {
+                Err(e) => {
+                    tracing::warn!(
+                        "Sweep failed for participant {}: {}",
+                        participant.participant_code, e
+                    );
+                    // Record the failure as a sweep run line for auditability
+                    let _ = self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
+                        organization_id: org_id,
+                        sweep_run_id: run.id,
+                        pool_id,
+                        participant_id: participant.id,
+                        participant_code: Some(participant.participant_code.clone()),
+                        bank_account_name: participant.bank_account_name.clone(),
+                        sweep_rule_id: None,
+                        direction: "debit".to_string(),
+                        pre_sweep_balance: participant.current_balance.clone(),
+                        sweep_amount: "0.00".to_string(),
+                        post_sweep_balance: participant.current_balance.clone(),
+                        status: "failed".to_string(),
+                    }).await;
                     failed += 1;
                 }
             }
@@ -590,17 +655,34 @@ impl CashConcentrationEngine {
     }
 
     /// Get a sweep run
-    pub async fn get_sweep_run(&self, id: Uuid) -> AtlasResult<Option<atlas_shared::CashPoolSweepRun>> {
-        self.repository.get_sweep_run(id).await
+    pub async fn get_sweep_run(&self, id: Uuid, org_id: Uuid) -> AtlasResult<Option<atlas_shared::CashPoolSweepRun>> {
+        let run = self.repository.get_sweep_run(id).await?;
+        if let Some(r) = &run {
+            if r.organization_id != org_id {
+                return Err(AtlasError::Forbidden("Not authorized to access this sweep run".to_string()));
+            }
+        }
+        Ok(run)
     }
 
     /// List sweep runs for a pool
-    pub async fn list_sweep_runs(&self, pool_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRun>> {
+    pub async fn list_sweep_runs(&self, pool_id: Uuid, org_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRun>> {
+        // Verify pool belongs to org
+        let pool = self.repository.get_pool_by_id(pool_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {} not found", pool_id)))?;
+        if pool.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+        }
         self.repository.list_sweep_runs(pool_id).await
     }
 
     /// List sweep run lines for a run
-    pub async fn list_sweep_run_lines(&self, sweep_run_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRunLine>> {
+    pub async fn list_sweep_run_lines(&self, sweep_run_id: Uuid, org_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRunLine>> {
+        let run = self.repository.get_sweep_run(sweep_run_id).await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Sweep run {} not found", sweep_run_id)))?;
+        if run.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this sweep run".to_string()));
+        }
         self.repository.list_sweep_run_lines(sweep_run_id).await
     }
 

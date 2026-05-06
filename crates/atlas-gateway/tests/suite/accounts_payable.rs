@@ -594,7 +594,7 @@ async fn test_list_payments() {
 
     let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
-    assert!(result["data"].as_array().unwrap().is_empty() || result["data"].as_array().unwrap().len() >= 0);
+    assert!(result["data"].as_array().unwrap().is_empty());
 }
 
 // ============================================================================

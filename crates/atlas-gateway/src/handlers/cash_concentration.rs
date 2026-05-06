@@ -241,11 +241,15 @@ pub async fn add_participant(
 /// List participants
 pub async fn list_participants(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path(pool_id): Path<Uuid>,
     Query(params): Query<ParticipantListQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.list_participants(pool_id, params.status.as_deref()).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+    match state.cash_concentration_engine.list_participants(pool_id, org_id, params.status.as_deref()).await {
         Ok(participants) => Ok(Json(json!({"data": participants}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -255,10 +259,14 @@ pub async fn list_participants(
 /// Remove a participant
 pub async fn remove_participant(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path((pool_id, participant_code)): Path<(Uuid, String)>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.remove_participant(pool_id, &participant_code).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+    match state.cash_concentration_engine.remove_participant(pool_id, &participant_code, org_id).await {
         Ok(()) => Ok(Json(json!({"message": "Participant removed"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -311,10 +319,14 @@ pub async fn create_sweep_rule(
 /// List sweep rules
 pub async fn list_sweep_rules(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path(pool_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.list_sweep_rules(pool_id).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+    match state.cash_concentration_engine.list_sweep_rules(pool_id, org_id).await {
         Ok(rules) => Ok(Json(json!({"data": rules}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -324,10 +336,14 @@ pub async fn list_sweep_rules(
 /// Delete a sweep rule
 pub async fn delete_sweep_rule(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path((pool_id, rule_code)): Path<(Uuid, String)>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.delete_sweep_rule(pool_id, &rule_code).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+    match state.cash_concentration_engine.delete_sweep_rule(pool_id, &rule_code, org_id).await {
         Ok(()) => Ok(Json(json!({"message": "Sweep rule deleted"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -368,10 +384,14 @@ pub async fn execute_sweep(
 /// Get a sweep run
 pub async fn get_sweep_run(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.get_sweep_run(id).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+    match state.cash_concentration_engine.get_sweep_run(id, org_id).await {
         Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Sweep run not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -382,10 +402,14 @@ pub async fn get_sweep_run(
 /// List sweep runs for a pool
 pub async fn list_sweep_runs(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path(pool_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.list_sweep_runs(pool_id).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+    match state.cash_concentration_engine.list_sweep_runs(pool_id, org_id).await {
         Ok(runs) => Ok(Json(json!({"data": runs}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -395,10 +419,14 @@ pub async fn list_sweep_runs(
 /// List sweep run lines
 pub async fn list_sweep_run_lines(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path(sweep_run_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.list_sweep_run_lines(sweep_run_id).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+    match state.cash_concentration_engine.list_sweep_run_lines(sweep_run_id, org_id).await {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

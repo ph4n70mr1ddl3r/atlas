@@ -25,6 +25,7 @@ pub trait CashConcentrationRepository: Send + Sync {
     // Participants
     async fn create_participant(&self, params: &ParticipantCreateParams) -> AtlasResult<CashPoolParticipant>;
     async fn get_participant(&self, pool_id: Uuid, participant_code: &str) -> AtlasResult<Option<CashPoolParticipant>>;
+    async fn get_participant_by_id(&self, id: Uuid) -> AtlasResult<Option<CashPoolParticipant>>;
     async fn list_participants(&self, pool_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CashPoolParticipant>>;
     async fn update_participant_status(&self, id: Uuid, status: &str) -> AtlasResult<CashPoolParticipant>;
     async fn update_participant_balance(&self, id: Uuid, balance: &str) -> AtlasResult<CashPoolParticipant>;
@@ -404,6 +405,16 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
             "SELECT * FROM _atlas.cash_pool_participants WHERE pool_id=$1 AND participant_code=$2"
         )
         .bind(pool_id).bind(participant_code)
+        .fetch_optional(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row.map(|r| row_to_participant(&r)))
+    }
+
+    async fn get_participant_by_id(&self, id: Uuid) -> AtlasResult<Option<CashPoolParticipant>> {
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.cash_pool_participants WHERE id=$1"
+        )
+        .bind(id)
         .fetch_optional(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_participant(&r)))

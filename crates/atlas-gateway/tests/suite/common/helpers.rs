@@ -598,6 +598,12 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         payment_risk_engine: Arc::new(atlas_core::PaymentRiskEngine::new(Arc::new(
             atlas_core::payment_risk::PostgresPaymentRiskRepository::new(db_pool.clone()),
         ))),
+        customer_statement_engine: Arc::new(atlas_core::CustomerStatementEngine::new(Arc::new(
+            atlas_core::customer_statement::PostgresCustomerStatementRepository::new(db_pool.clone()),
+        ))),
+        remittance_batch_engine: Arc::new(atlas_core::RemittanceBatchEngine::new(Arc::new(
+            atlas_core::remittance_batch::PostgresRemittanceBatchRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

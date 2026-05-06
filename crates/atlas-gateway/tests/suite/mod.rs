@@ -129,3 +129,4 @@ mod hedge_management;
 mod payment_risk;
 mod cash_concentration;
 mod customer_statement;
+mod remittance_batch;

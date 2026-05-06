@@ -130,6 +130,7 @@ pub mod hedge_management;
 pub mod payment_risk;
 pub mod cash_concentration;
 pub mod customer_statement;
+pub mod remittance_batch;
 
 pub use schema::*;
 pub use records::*;
@@ -4470,6 +4471,24 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/customer-statements/:statement_id/lines", get(customer_statement::list_statement_lines))
         .route("/customer-statements/:statement_id/lines/:line_id", delete(customer_statement::remove_statement_line))
         .route("/customer-statements/dashboard", get(customer_statement::get_statement_summary))
+
+        // Remittance Batches (Oracle Fusion: AR > Receipts > Remittance Batches)
+        .route("/remittance-batches", post(remittance_batch::create_batch))
+        .route("/remittance-batches", get(remittance_batch::list_batches))
+        .route("/remittance-batches/number/:batch_number", get(remittance_batch::get_batch_by_number))
+        .route("/remittance-batches/:id", get(remittance_batch::get_batch))
+        .route("/remittance-batches/:id/approve", post(remittance_batch::approve_batch))
+        .route("/remittance-batches/:id/format", post(remittance_batch::format_batch))
+        .route("/remittance-batches/:id/transmit", post(remittance_batch::transmit_batch))
+        .route("/remittance-batches/:id/confirm", post(remittance_batch::confirm_batch))
+        .route("/remittance-batches/:id/settle", post(remittance_batch::settle_batch))
+        .route("/remittance-batches/:id/reverse", post(remittance_batch::reverse_batch))
+        .route("/remittance-batches/:id/cancel", post(remittance_batch::cancel_batch))
+        .route("/remittance-batches/:batch_id/receipts", post(remittance_batch::add_receipt))
+        .route("/remittance-batches/:batch_id/receipts", get(remittance_batch::list_batch_receipts))
+        .route("/remittance-batches/:batch_id/receipts/:receipt_id", delete(remittance_batch::remove_receipt))
+        .route("/remittance-batches/:id/advice", post(remittance_batch::mark_advice_sent))
+        .route("/remittance-batches/dashboard", get(remittance_batch::get_batch_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

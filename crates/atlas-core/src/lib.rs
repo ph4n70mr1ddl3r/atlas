@@ -161,6 +161,7 @@ pub mod payment_risk;
 pub mod tax_registration;
 pub mod cash_concentration;
 pub mod customer_statement;
+pub mod remittance_batch;
 
 pub use schema::*;
 pub use workflow::{
@@ -323,6 +324,7 @@ pub use payment_risk::{PaymentRiskEngine, repository::PostgresPaymentRiskReposit
 pub use tax_registration::{TaxRegistrationEngine, PostgresTaxRegistrationRepository as PostgresTaxRegistrationRepo};
 pub use cash_concentration::{CashConcentrationEngine, PostgresCashConcentrationRepository as PostgresCashConcentrationRepo};
 pub use customer_statement::{CustomerStatementEngine, PostgresCustomerStatementRepository as PostgresCustomerStatementRepo};
+pub use remittance_batch::{RemittanceBatchEngine, PostgresRemittanceBatchRepository as PostgresRemittanceBatchRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

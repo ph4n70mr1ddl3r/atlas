@@ -177,6 +177,8 @@ use atlas_core::{
     cash_concentration::PostgresCashConcentrationRepository,
     CustomerStatementEngine,
     customer_statement::PostgresCustomerStatementRepository,
+    RemittanceBatchEngine,
+    remittance_batch::PostgresRemittanceBatchRepository,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
@@ -390,6 +392,7 @@ pub struct AppState {
     pub payment_risk_engine: Arc<PaymentRiskEngine>,
     pub cash_concentration_engine: Arc<CashConcentrationEngine>,
     pub customer_statement_engine: Arc<CustomerStatementEngine>,
+    pub remittance_batch_engine: Arc<RemittanceBatchEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1064,6 +1067,11 @@ impl AppState {
             PostgresCustomerStatementRepository::new(db_pool.clone())
         )));
 
+        // Initialize Remittance Batch engine (Oracle Fusion: AR > Receipts > Remittance Batches)
+        let remittance_batch_engine = Arc::new(RemittanceBatchEngine::new(Arc::new(
+            PostgresRemittanceBatchRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1236,6 +1244,7 @@ impl AppState {
             payment_risk_engine,
             cash_concentration_engine,
             customer_statement_engine,
+            remittance_batch_engine,
             event_bus,
             jwt_secret,
         };

@@ -22435,3 +22435,83 @@ pub struct CustomerStatementSummary {
     pub by_billing_cycle: serde_json::Value,
     pub by_currency: serde_json::Value,
 }
+
+// ============================================================================
+// Remittance Batch Types (Oracle Fusion: AR > Receipts > Remittance Batches)
+// ============================================================================
+
+/// Remittance Batch
+/// Oracle Fusion equivalent: Receivables > Receipts > Automatic Receipts > Remittance Batches
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemittanceBatch {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_number: String,
+    pub batch_name: Option<String>,
+    pub bank_account_id: Option<Uuid>,
+    pub bank_account_name: Option<String>,
+    pub bank_name: Option<String>,
+    pub remittance_method: String,
+    pub currency_code: String,
+    pub batch_date: chrono::NaiveDate,
+    pub gl_date: Option<chrono::NaiveDate>,
+    pub receipt_currency_code: Option<String>,
+    pub exchange_rate_type: Option<String>,
+    pub status: String,
+    pub total_amount: String,
+    pub receipt_count: i32,
+    pub format_program: Option<String>,
+    pub format_date: Option<DateTime<Utc>>,
+    pub transmission_date: Option<DateTime<Utc>>,
+    pub confirmation_date: Option<DateTime<Utc>>,
+    pub settlement_date: Option<DateTime<Utc>>,
+    pub reversal_date: Option<DateTime<Utc>>,
+    pub reference_number: Option<String>,
+    pub remittance_advice_sent: Option<bool>,
+    pub remittance_advice_date: Option<DateTime<Utc>>,
+    pub notes: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// Remittance Batch Receipt
+/// Individual receipt included in a remittance batch
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemittanceBatchReceipt {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub batch_id: Uuid,
+    pub receipt_id: Uuid,
+    pub receipt_number: Option<String>,
+    pub customer_id: Option<Uuid>,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub receipt_date: Option<chrono::NaiveDate>,
+    pub receipt_amount: String,
+    pub applied_amount: String,
+    pub receipt_method: Option<String>,
+    pub currency_code: String,
+    pub exchange_rate: Option<String>,
+    pub status: String,
+    pub display_order: i32,
+    pub metadata: serde_json::Value,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// Remittance Batch Dashboard Summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemittanceBatchSummary {
+    pub total_batches: i32,
+    pub draft_count: i32,
+    pub approved_count: i32,
+    pub settled_count: i32,
+    pub total_amount: String,
+    pub total_receipts: i32,
+    pub by_status: serde_json::Value,
+    pub by_currency: serde_json::Value,
+}

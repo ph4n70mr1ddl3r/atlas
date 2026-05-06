@@ -14847,19 +14847,19 @@ impl TaxRegistrationManagementService {
     /// Oracle Fusion: Tax > Tax Registrations > Create First-Party
     pub async fn create_first_party_registration(
         &self,
-        legal_entity_id: RecordId,
+        _legal_entity_id: RecordId,
         legal_entity_name: &str,
         registration_number: &str,
         registration_type: &str,
-        tax_purpose: &str,
-        jurisdiction_code: &str,
+        _tax_purpose: &str,
+        _jurisdiction_code: &str,
         country_code: &str,
-        state_code: Option<&str>,
-        effective_from: chrono::NaiveDate,
-        effective_to: Option<chrono::NaiveDate>,
-        is_default: bool,
-        reporting_name: Option<&str>,
-        created_by: Option<RecordId>,
+        _state_code: Option<&str>,
+        _effective_from: chrono::NaiveDate,
+        _effective_to: Option<chrono::NaiveDate>,
+        _is_default: bool,
+        _reporting_name: Option<&str>,
+        _created_by: Option<RecordId>,
     ) -> AtlasResult<()> {
         info!(
             "Tax Reg: Creating first-party {} registration '{}' for {} in {}",
@@ -14884,16 +14884,16 @@ impl TaxRegistrationManagementService {
     /// Oracle Fusion: Tax > Tax Registrations > Create Third-Party
     pub async fn create_third_party_registration(
         &self,
-        party_id: RecordId,
+        _party_id: RecordId,
         party_name: &str,
         registration_number: &str,
         registration_type: &str,
-        tax_purpose: &str,
-        jurisdiction_code: &str,
+        _tax_purpose: &str,
+        _jurisdiction_code: &str,
         country_code: &str,
-        state_code: Option<&str>,
-        effective_from: chrono::NaiveDate,
-        created_by: Option<RecordId>,
+        _state_code: Option<&str>,
+        _effective_from: chrono::NaiveDate,
+        _created_by: Option<RecordId>,
     ) -> AtlasResult<()> {
         info!(
             "Tax Reg: Creating third-party {} registration '{}' for {} ({})",

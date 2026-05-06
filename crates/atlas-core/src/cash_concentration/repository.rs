@@ -577,12 +577,12 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
     async fn get_latest_run_number(&self, org_id: Uuid) -> AtlasResult<i32> {
         let row = sqlx::query(
-            "SELECT COUNT(*) as cnt FROM _atlas.cash_pool_sweep_runs WHERE organization_id=$1"
+            "SELECT COALESCE(MAX(CAST(SUBSTRING(run_number FROM 7) AS INT)), 0) as max_num FROM _atlas.cash_pool_sweep_runs WHERE organization_id=$1"
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        let count: i64 = row.try_get("cnt").unwrap_or(0);
-        Ok(count as i32)
+        let max_num: i64 = row.try_get("max_num").unwrap_or(0);
+        Ok(max_num as i32)
     }
 
     // ========================================================================
@@ -593,8 +593,7 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
         let pool_row = sqlx::query(
             r#"SELECT
                 COUNT(*) as total,
-                COUNT(*) FILTER (WHERE status = 'active') as active,
-                COALESCE(SUM(CASE WHEN status = 'active' THEN 0 ELSE 0 END), 0)::text as concentrated
+                COUNT(*) FILTER (WHERE status = 'active') as active
             FROM _atlas.cash_pools WHERE organization_id = $1"#,
         )
         .bind(org_id).fetch_one(&self.pool).await

@@ -122,10 +122,15 @@ pub async fn list_pools(
 /// Activate a cash pool
 pub async fn activate_pool(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.activate_pool(id).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+
+    match state.cash_concentration_engine.activate_pool(id, org_id).await {
         Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -135,10 +140,15 @@ pub async fn activate_pool(
 /// Suspend a cash pool
 pub async fn suspend_pool(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.suspend_pool(id).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+
+    match state.cash_concentration_engine.suspend_pool(id, org_id).await {
         Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -148,10 +158,15 @@ pub async fn suspend_pool(
 /// Close a cash pool
 pub async fn close_pool(
     State(state): State<Arc<AppState>>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.cash_concentration_engine.close_pool(id).await {
+    let org_id = match Uuid::parse_str(&claims.org_id) {
+        Ok(id) => id,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+    };
+
+    match state.cash_concentration_engine.close_pool(id, org_id).await {
         Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

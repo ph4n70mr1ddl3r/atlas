@@ -43,6 +43,7 @@ const VALID_SWEEP_TYPES: &[&str] = &[
 const VALID_RUN_TYPES: &[&str] = &["scheduled", "manual", "automatic"];
 
 // Valid run statuses
+#[allow(dead_code)]
 const VALID_RUN_STATUSES: &[&str] = &[
     "pending", "in_progress", "completed", "partially_completed", "failed", "cancelled",
 ];
@@ -50,6 +51,12 @@ const VALID_RUN_STATUSES: &[&str] = &[
 // Valid line statuses
 #[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &["pending", "completed", "failed", "skipped"];
+
+// Valid currency codes (common treasury currencies)
+const VALID_CURRENCY_CODES: &[&str] = &[
+    "USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "SGD", "HKD",
+    "SEK", "NOK", "DKK", "INR", "CNY", "KRW", "BRL", "MXN", "ZAR", "AED",
+];
 
 /// Calculate the sweep amount for a zero-balance sweep.
 /// Returns the amount to sweep from the source account to the concentration account.
@@ -133,6 +140,16 @@ impl CashConcentrationEngine {
                 )));
             }
         }
+        if let Some(min_amt) = minimum_transfer_amount {
+            let min_val: f64 = min_amt.parse().map_err(|_| AtlasError::ValidationFailed(
+                "Minimum transfer amount must be a valid number".to_string(),
+            ))?;
+            if min_val < 0.0 {
+                return Err(AtlasError::ValidationFailed(
+                    "Minimum transfer amount cannot be negative".to_string(),
+                ));
+            }
+        }
         if let Some(max_amt) = maximum_transfer_amount {
             let max_val: f64 = max_amt.parse().map_err(|_| AtlasError::ValidationFailed(
                 "Maximum transfer amount must be a valid number".to_string(),
@@ -142,6 +159,12 @@ impl CashConcentrationEngine {
                     "Maximum transfer amount cannot be negative".to_string(),
                 ));
             }
+        }
+        if !VALID_CURRENCY_CODES.contains(&currency_code) {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid currency code '{}'. Must be one of: {}",
+                currency_code, VALID_CURRENCY_CODES.join(", ")
+            )));
         }
 
         info!("Creating cash pool {} for org {}", pool_code, org_id);
@@ -201,9 +224,13 @@ impl CashConcentrationEngine {
     }
 
     /// Activate a cash pool
-    pub async fn activate_pool(&self, id: Uuid) -> AtlasResult<atlas_shared::CashPool> {
+    pub async fn activate_pool(&self, id: Uuid, org_id: Uuid) -> AtlasResult<atlas_shared::CashPool> {
         let pool = self.repository.get_pool_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Cash pool {} not found", id)))?;
+
+        if pool.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+        }
 
         if pool.status != "draft" && pool.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -217,9 +244,13 @@ impl CashConcentrationEngine {
     }
 
     /// Suspend a cash pool
-    pub async fn suspend_pool(&self, id: Uuid) -> AtlasResult<atlas_shared::CashPool> {
+    pub async fn suspend_pool(&self, id: Uuid, org_id: Uuid) -> AtlasResult<atlas_shared::CashPool> {
         let pool = self.repository.get_pool_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Cash pool {} not found", id)))?;
+
+        if pool.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+        }
 
         if pool.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -233,9 +264,13 @@ impl CashConcentrationEngine {
     }
 
     /// Close a cash pool
-    pub async fn close_pool(&self, id: Uuid) -> AtlasResult<atlas_shared::CashPool> {
+    pub async fn close_pool(&self, id: Uuid, org_id: Uuid) -> AtlasResult<atlas_shared::CashPool> {
         let pool = self.repository.get_pool_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Cash pool {} not found", id)))?;
+
+        if pool.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+        }
 
         if pool.status == "closed" {
             return Err(AtlasError::WorkflowError("Pool is already closed".to_string()));
@@ -515,115 +550,21 @@ impl CashConcentrationEngine {
 
         // Process each participant
         for participant in &participants {
-            // Find applicable rule for this participant
-            let rule = active_rules.iter().find(|r| {
-                r.participant_id == Some(participant.id) || r.participant_id.is_none()
-            });
-
-            let current_bal: f64 = participant.current_balance
-                .as_ref()
-                .and_then(|b| b.parse().ok())
-                .unwrap_or(0.0);
-
-            let min_bal: f64 = participant.minimum_balance
-                .as_ref()
-                .and_then(|b| b.parse().ok())
-                .unwrap_or(0.0);
-
-            let sweep_amount = if let Some(r) = rule {
-                match r.sweep_type.as_str() {
-                    "zero_balance" => calculate_zero_balance_sweep(current_bal, min_bal),
-                    "target_balance" => {
-                        let target: f64 = r.target_balance
-                            .as_ref()
-                            .and_then(|t| t.parse().ok())
-                            .unwrap_or(min_bal);
-                        calculate_target_balance_sweep(current_bal, target)
-                    },
-                    "threshold" => {
-                        let threshold: f64 = r.threshold_amount
-                            .as_ref()
-                            .and_then(|t| t.parse().ok())
-                            .unwrap_or(0.0);
-                        calculate_threshold_sweep(current_bal, threshold, min_bal)
-                    },
-                    "excess_balance" => {
-                        let max_bal: f64 = participant.maximum_balance
-                            .as_ref()
-                            .and_then(|b| b.parse().ok())
-                            .unwrap_or(f64::MAX);
-                        if current_bal > max_bal {
-                            current_bal - max_bal
-                        } else {
-                            0.0
-                        }
-                    },
-                    _ => 0.0,
-                }
-            } else {
-                // Default: zero-balance sweep
-                calculate_zero_balance_sweep(current_bal, min_bal)
-            };
-
-            // Apply minimum transfer amount from pool config
-            let pool_min: f64 = pool.minimum_transfer_amount
-                .as_ref()
-                .and_then(|m| m.parse().ok())
-                .unwrap_or(0.0);
-            if sweep_amount > 0.0 && sweep_amount < pool_min {
-                continue; // Skip: below minimum transfer
-            }
-
-            // Apply maximum transfer amount
-            let pool_max: f64 = pool.maximum_transfer_amount
-                .as_ref()
-                .and_then(|m| m.parse().ok())
-                .unwrap_or(f64::MAX);
-            let sweep_amount = if sweep_amount > pool_max { pool_max } else { sweep_amount };
+            let result = self.process_participant_sweep(
+                org_id, pool_id, run.id, participant, &active_rules,
+                pool.minimum_transfer_amount.as_deref(),
+                pool.maximum_transfer_amount.as_deref(),
+            ).await;
 
             total_txns += 1;
-
-            if sweep_amount > 0.0 {
-                let post_balance = current_bal - sweep_amount;
-
-                self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
-                    organization_id: org_id,
-                    sweep_run_id: run.id,
-                    pool_id,
-                    participant_id: participant.id,
-                    participant_code: Some(participant.participant_code.clone()),
-                    bank_account_name: participant.bank_account_name.clone(),
-                    sweep_rule_id: rule.map(|r| r.id),
-                    direction: "debit".to_string(),
-                    pre_sweep_balance: Some(format!("{:.2}", current_bal)),
-                    sweep_amount: format!("{:.2}", sweep_amount),
-                    post_sweep_balance: Some(format!("{:.2}", post_balance)),
-                    status: "completed".to_string(),
-                }).await?;
-
-                // Update participant balance
-                self.repository.update_participant_balance(
-                    participant.id, &format!("{:.2}", post_balance),
-                ).await?;
-
-                total_swept += sweep_amount;
-                successful += 1;
-            } else {
-                // Skip: nothing to sweep
-                self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
-                    organization_id: org_id,
-                    sweep_run_id: run.id,
-                    pool_id,
-                    participant_id: participant.id,
-                    participant_code: Some(participant.participant_code.clone()),
-                    bank_account_name: participant.bank_account_name.clone(),
-                    sweep_rule_id: rule.map(|r| r.id),
-                    direction: "debit".to_string(),
-                    pre_sweep_balance: Some(format!("{:.2}", current_bal)),
-                    sweep_amount: "0.00".to_string(),
-                    post_sweep_balance: Some(format!("{:.2}", current_bal)),
-                    status: "skipped".to_string(),
-                }).await?;
+            match result {
+                Ok(swept) => {
+                    total_swept += swept;
+                    successful += 1;
+                }
+                Err(_) => {
+                    failed += 1;
+                }
             }
         }
 
@@ -664,9 +605,13 @@ impl CashConcentrationEngine {
     }
 
     /// Cancel a sweep run (only if pending)
-    pub async fn cancel_sweep_run(&self, id: Uuid) -> AtlasResult<atlas_shared::CashPoolSweepRun> {
+    pub async fn cancel_sweep_run(&self, id: Uuid, org_id: Uuid) -> AtlasResult<atlas_shared::CashPoolSweepRun> {
         let run = self.repository.get_sweep_run(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Sweep run {} not found", id)))?;
+
+        if run.organization_id != org_id {
+            return Err(AtlasError::Forbidden("Not authorized to access this sweep run".to_string()));
+        }
 
         if run.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
@@ -677,6 +622,145 @@ impl CashConcentrationEngine {
 
         info!("Cancelled sweep run {}", run.run_number);
         self.repository.update_sweep_run_status(id, "cancelled", None, None, None, None).await
+    }
+
+    // ========================================================================
+    // Internal Helpers
+    // ========================================================================
+
+    /// Process a single participant's sweep within a run.
+    /// Returns Ok(sweep_amount) on success, Err on failure.
+    async fn process_participant_sweep(
+        &self,
+        org_id: Uuid,
+        pool_id: Uuid,
+        run_id: Uuid,
+        participant: &atlas_shared::CashPoolParticipant,
+        active_rules: &[&atlas_shared::CashPoolSweepRule],
+        pool_min_transfer: Option<&str>,
+        pool_max_transfer: Option<&str>,
+    ) -> AtlasResult<f64> {
+        // Find applicable rule for this participant
+        let rule = active_rules.iter().find(|r| {
+            r.participant_id == Some(participant.id) || r.participant_id.is_none()
+        });
+
+        let current_bal: f64 = participant.current_balance
+            .as_ref()
+            .and_then(|b| b.parse().ok())
+            .unwrap_or(0.0);
+
+        let min_bal: f64 = participant.minimum_balance
+            .as_ref()
+            .and_then(|b| b.parse().ok())
+            .unwrap_or(0.0);
+
+        let sweep_amount = if let Some(r) = rule {
+            match r.sweep_type.as_str() {
+                "zero_balance" => calculate_zero_balance_sweep(current_bal, min_bal),
+                "target_balance" => {
+                    let target: f64 = r.target_balance
+                        .as_ref()
+                        .and_then(|t| t.parse().ok())
+                        .unwrap_or(min_bal);
+                    calculate_target_balance_sweep(current_bal, target)
+                },
+                "threshold" => {
+                    let threshold: f64 = r.threshold_amount
+                        .as_ref()
+                        .and_then(|t| t.parse().ok())
+                        .unwrap_or(0.0);
+                    calculate_threshold_sweep(current_bal, threshold, min_bal)
+                },
+                "excess_balance" => {
+                    let max_bal: f64 = participant.maximum_balance
+                        .as_ref()
+                        .and_then(|b| b.parse().ok())
+                        .unwrap_or(f64::MAX);
+                    if current_bal > max_bal {
+                        current_bal - max_bal
+                    } else {
+                        0.0
+                    }
+                },
+                _ => 0.0,
+            }
+        } else {
+            // Default: zero-balance sweep
+            calculate_zero_balance_sweep(current_bal, min_bal)
+        };
+
+        // Apply minimum transfer amount from pool config
+        let pool_min: f64 = pool_min_transfer
+            .and_then(|m| m.parse().ok())
+            .unwrap_or(0.0);
+        if sweep_amount > 0.0 && sweep_amount < pool_min {
+            // Below minimum transfer - record as skipped
+            self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
+                organization_id: org_id,
+                sweep_run_id: run_id,
+                pool_id,
+                participant_id: participant.id,
+                participant_code: Some(participant.participant_code.clone()),
+                bank_account_name: participant.bank_account_name.clone(),
+                sweep_rule_id: rule.map(|r| r.id),
+                direction: "debit".to_string(),
+                pre_sweep_balance: Some(format!("{:.2}", current_bal)),
+                sweep_amount: "0.00".to_string(),
+                post_sweep_balance: Some(format!("{:.2}", current_bal)),
+                status: "skipped".to_string(),
+            }).await?;
+            return Ok(0.0);
+        }
+
+        // Apply maximum transfer amount
+        let pool_max: f64 = pool_max_transfer
+            .and_then(|m| m.parse().ok())
+            .unwrap_or(f64::MAX);
+        let sweep_amount = if sweep_amount > pool_max { pool_max } else { sweep_amount };
+
+        if sweep_amount > 0.0 {
+            let post_balance = current_bal - sweep_amount;
+
+            self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
+                organization_id: org_id,
+                sweep_run_id: run_id,
+                pool_id,
+                participant_id: participant.id,
+                participant_code: Some(participant.participant_code.clone()),
+                bank_account_name: participant.bank_account_name.clone(),
+                sweep_rule_id: rule.map(|r| r.id),
+                direction: "debit".to_string(),
+                pre_sweep_balance: Some(format!("{:.2}", current_bal)),
+                sweep_amount: format!("{:.2}", sweep_amount),
+                post_sweep_balance: Some(format!("{:.2}", post_balance)),
+                status: "completed".to_string(),
+            }).await?;
+
+            // Update participant balance
+            self.repository.update_participant_balance(
+                participant.id, &format!("{:.2}", post_balance),
+            ).await?;
+
+            Ok(sweep_amount)
+        } else {
+            // Nothing to sweep - record as skipped
+            self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
+                organization_id: org_id,
+                sweep_run_id: run_id,
+                pool_id,
+                participant_id: participant.id,
+                participant_code: Some(participant.participant_code.clone()),
+                bank_account_name: participant.bank_account_name.clone(),
+                sweep_rule_id: rule.map(|r| r.id),
+                direction: "debit".to_string(),
+                pre_sweep_balance: Some(format!("{:.2}", current_bal)),
+                sweep_amount: "0.00".to_string(),
+                post_sweep_balance: Some(format!("{:.2}", current_bal)),
+                status: "skipped".to_string(),
+            }).await?;
+            Ok(0.0)
+        }
     }
 
     // ========================================================================

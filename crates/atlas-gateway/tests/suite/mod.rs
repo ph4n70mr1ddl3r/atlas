@@ -128,3 +128,4 @@ mod hedge_management;
 #[cfg(feature = "integration-test")]
 mod payment_risk;
 mod cash_concentration;
+mod customer_statement;

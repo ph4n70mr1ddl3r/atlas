@@ -22358,3 +22358,80 @@ pub struct CashPoolDashboard {
     pub by_pool_type: serde_json::Value,
     pub by_currency: serde_json::Value,
 }
+
+// ============================================================================
+// Customer Statement / Balance Forward Billing Types (Oracle Fusion: AR > Billing)
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomerStatement {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub statement_number: String,
+    pub customer_id: Uuid,
+    pub customer_number: Option<String>,
+    pub customer_name: Option<String>,
+    pub statement_date: chrono::NaiveDate,
+    pub billing_period_from: chrono::NaiveDate,
+    pub billing_period_to: chrono::NaiveDate,
+    pub billing_cycle: String,
+    pub opening_balance: String,
+    pub total_charges: String,
+    pub total_payments: String,
+    pub total_credits: String,
+    pub total_adjustments: String,
+    pub closing_balance: String,
+    pub amount_due: String,
+    pub aging_current: String,
+    pub aging_1_30: String,
+    pub aging_31_60: String,
+    pub aging_61_90: String,
+    pub aging_91_120: String,
+    pub aging_121_plus: String,
+    pub currency_code: String,
+    pub delivery_method: Option<String>,
+    pub delivery_email: Option<String>,
+    pub status: String,
+    pub generated_at: Option<DateTime<Utc>>,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub viewed_at: Option<DateTime<Utc>>,
+    pub notes: Option<String>,
+    pub previous_statement_id: Option<Uuid>,
+    pub created_by: Option<Uuid>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomerStatementLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub statement_id: Uuid,
+    pub line_type: String,
+    pub transaction_id: Option<Uuid>,
+    pub transaction_number: Option<String>,
+    pub transaction_date: Option<chrono::NaiveDate>,
+    pub due_date: Option<chrono::NaiveDate>,
+    pub original_amount: Option<String>,
+    pub amount: String,
+    pub running_balance: Option<String>,
+    pub description: Option<String>,
+    pub reference_type: Option<String>,
+    pub reference_id: Option<Uuid>,
+    pub display_order: i32,
+    pub metadata: serde_json::Value,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomerStatementSummary {
+    pub total_statements: i32,
+    pub draft_count: i32,
+    pub sent_count: i32,
+    pub total_amount_outstanding: String,
+    pub by_billing_cycle: serde_json::Value,
+    pub by_currency: serde_json::Value,
+}

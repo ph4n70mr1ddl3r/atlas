@@ -129,6 +129,7 @@ pub mod letter_of_credit;
 pub mod hedge_management;
 pub mod payment_risk;
 pub mod cash_concentration;
+pub mod customer_statement;
 
 pub use schema::*;
 pub use records::*;
@@ -4451,6 +4452,24 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/cash-pooling/dashboard", get(cash_concentration::get_cash_pooling_dashboard))
+
+        // ========================================================================
+        // Customer Statement / Balance Forward Billing (Oracle Fusion: AR > Billing)
+        // ========================================================================
+        .route("/customer-statements", post(customer_statement::create_statement))
+        .route("/customer-statements", get(customer_statement::list_statements))
+        .route("/customer-statements/number/:statement_number", get(customer_statement::get_statement_by_number))
+        .route("/customer-statements/:id", get(customer_statement::get_statement))
+        .route("/customer-statements/:id/generate", post(customer_statement::generate_statement))
+        .route("/customer-statements/:id/send", post(customer_statement::send_statement))
+        .route("/customer-statements/:id/view", post(customer_statement::mark_viewed))
+        .route("/customer-statements/:id/archive", post(customer_statement::archive_statement))
+        .route("/customer-statements/:id/cancel", post(customer_statement::cancel_statement))
+        .route("/customer-statements/:id/resend", post(customer_statement::resend_statement))
+        .route("/customer-statements/:statement_id/lines", post(customer_statement::add_statement_line))
+        .route("/customer-statements/:statement_id/lines", get(customer_statement::list_statement_lines))
+        .route("/customer-statements/:statement_id/lines/:line_id", delete(customer_statement::remove_statement_line))
+        .route("/customer-statements/dashboard", get(customer_statement::get_statement_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

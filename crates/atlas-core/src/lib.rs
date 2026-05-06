@@ -160,6 +160,7 @@ pub mod hedge_management;
 pub mod payment_risk;
 pub mod tax_registration;
 pub mod cash_concentration;
+pub mod customer_statement;
 
 pub use schema::*;
 pub use workflow::{
@@ -321,6 +322,7 @@ pub use hedge_management::{HedgeManagementEngine, repository::PostgresHedgeManag
 pub use payment_risk::{PaymentRiskEngine, repository::PostgresPaymentRiskRepository as PostgresPaymentRiskRepo};
 pub use tax_registration::{TaxRegistrationEngine, PostgresTaxRegistrationRepository as PostgresTaxRegistrationRepo};
 pub use cash_concentration::{CashConcentrationEngine, PostgresCashConcentrationRepository as PostgresCashConcentrationRepo};
+pub use customer_statement::{CustomerStatementEngine, PostgresCustomerStatementRepository as PostgresCustomerStatementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

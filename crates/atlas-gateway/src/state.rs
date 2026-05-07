@@ -183,6 +183,8 @@ use atlas_core::{
     chargeback_management::PostgresChargebackManagementRepository as PostgresChargebackManagementRepo,
     ProfitabilityAnalysisEngine,
     profitability_analysis::PostgresProfitabilityAnalysisRepository as PostgresProfitabilityAnalysisRepo,
+    RecurringInvoiceEngine,
+    recurring_invoice::PostgresRecurringInvoiceRepository as PostgresRecurringInvoiceRepo,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
@@ -399,6 +401,7 @@ pub struct AppState {
     pub remittance_batch_engine: Arc<RemittanceBatchEngine>,
     pub chargeback_engine: Arc<ChargebackManagementEngine>,
     pub profitability_engine: Arc<ProfitabilityAnalysisEngine>,
+    pub recurring_invoice_engine: Arc<RecurringInvoiceEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1088,6 +1091,11 @@ impl AppState {
             PostgresProfitabilityAnalysisRepo::new(db_pool.clone())
         )));
 
+        // Initialize Recurring Invoice engine (Oracle Fusion: Financials > Payables > Recurring Invoices)
+        let recurring_invoice_engine = Arc::new(RecurringInvoiceEngine::new(Arc::new(
+            PostgresRecurringInvoiceRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1263,6 +1271,7 @@ impl AppState {
             remittance_batch_engine,
             chargeback_engine,
             profitability_engine,
+            recurring_invoice_engine,
             event_bus,
             jwt_secret,
         };

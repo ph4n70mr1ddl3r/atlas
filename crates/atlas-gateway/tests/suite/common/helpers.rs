@@ -610,6 +610,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         profitability_engine: Arc::new(atlas_core::ProfitabilityAnalysisEngine::new(Arc::new(
             atlas_core::profitability_analysis::PostgresProfitabilityAnalysisRepository::new(db_pool.clone()),
         ))),
+        recurring_invoice_engine: Arc::new(atlas_core::RecurringInvoiceEngine::new(Arc::new(
+            atlas_core::recurring_invoice::PostgresRecurringInvoiceRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1159,4 +1162,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.profitability_runs").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.profitability_segments").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.profitability_templates").execute(pool).await.ok();
+    // Clean recurring invoice test data
+    sqlx::query("DELETE FROM _atlas.recurring_invoice_generation_log").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.recurring_invoice_generations").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.recurring_invoice_template_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.recurring_invoice_templates").execute(pool).await.ok();
 }

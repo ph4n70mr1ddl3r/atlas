@@ -133,6 +133,7 @@ pub mod customer_statement;
 pub mod remittance_batch;
 pub mod chargeback_management;
 pub mod profitability_analysis;
+pub mod recurring_invoice;
 
 pub use schema::*;
 pub use records::*;
@@ -4531,6 +4532,21 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/profitability/templates/:code", delete(profitability_analysis::delete_template))
         // Dashboard
         .route("/profitability/dashboard", get(profitability_analysis::get_dashboard))
+
+        // ========================================================================
+        // Recurring Invoice Management (Oracle Fusion: Payables > Recurring Invoices)
+        // ========================================================================
+        .route("/recurring-invoices", post(recurring_invoice::create_template))
+        .route("/recurring-invoices", get(recurring_invoice::list_templates))
+        .route("/recurring-invoices/number/:template_number", delete(recurring_invoice::delete_template))
+        .route("/recurring-invoices/:id", get(recurring_invoice::get_template))
+        .route("/recurring-invoices/:id/transition", post(recurring_invoice::transition_template))
+        .route("/recurring-invoices/:template_id/lines", post(recurring_invoice::add_template_line))
+        .route("/recurring-invoices/:template_id/lines", get(recurring_invoice::list_template_lines))
+        .route("/recurring-invoices/:template_id/lines/:line_id", delete(recurring_invoice::remove_template_line))
+        .route("/recurring-invoices/:template_id/generate", post(recurring_invoice::generate_invoice))
+        .route("/recurring-invoices/generations", get(recurring_invoice::list_generations))
+        .route("/recurring-invoices/dashboard", get(recurring_invoice::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

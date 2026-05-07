@@ -1106,6 +1106,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         profitability_engine: Arc::new(atlas_core::ProfitabilityAnalysisEngine::new(Arc::new(
             atlas_core::profitability_analysis::PostgresProfitabilityAnalysisRepository::new(db_pool.clone()),
         ))),
+        recurring_invoice_engine: Arc::new(atlas_core::RecurringInvoiceEngine::new(Arc::new(
+            atlas_core::recurring_invoice::PostgresRecurringInvoiceRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

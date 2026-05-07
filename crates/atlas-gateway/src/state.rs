@@ -179,6 +179,8 @@ use atlas_core::{
     customer_statement::PostgresCustomerStatementRepository,
     RemittanceBatchEngine,
     remittance_batch::PostgresRemittanceBatchRepository,
+    ChargebackManagementEngine,
+    chargeback_management::PostgresChargebackManagementRepository as PostgresChargebackManagementRepo,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
@@ -393,6 +395,7 @@ pub struct AppState {
     pub cash_concentration_engine: Arc<CashConcentrationEngine>,
     pub customer_statement_engine: Arc<CustomerStatementEngine>,
     pub remittance_batch_engine: Arc<RemittanceBatchEngine>,
+    pub chargeback_engine: Arc<ChargebackManagementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1072,6 +1075,11 @@ impl AppState {
             PostgresRemittanceBatchRepository::new(db_pool.clone())
         )));
 
+        // Initialize Chargeback Management engine (Oracle Fusion: Receivables > Chargebacks)
+        let chargeback_engine = Arc::new(ChargebackManagementEngine::new(Arc::new(
+            PostgresChargebackManagementRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1245,6 +1253,7 @@ impl AppState {
             cash_concentration_engine,
             customer_statement_engine,
             remittance_batch_engine,
+            chargeback_engine,
             event_bus,
             jwt_secret,
         };

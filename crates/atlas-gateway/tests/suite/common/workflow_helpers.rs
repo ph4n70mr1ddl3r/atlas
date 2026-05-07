@@ -1100,6 +1100,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         remittance_batch_engine: Arc::new(atlas_core::RemittanceBatchEngine::new(Arc::new(
             atlas_core::remittance_batch::PostgresRemittanceBatchRepository::new(db_pool.clone()),
         ))),
+        chargeback_engine: Arc::new(atlas_core::ChargebackManagementEngine::new(Arc::new(
+            atlas_core::chargeback_management::PostgresChargebackManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

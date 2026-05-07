@@ -131,6 +131,7 @@ pub mod payment_risk;
 pub mod cash_concentration;
 pub mod customer_statement;
 pub mod remittance_batch;
+pub mod chargeback_management;
 
 pub use schema::*;
 pub use records::*;
@@ -4489,6 +4490,21 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/remittance-batches/:batch_id/receipts/:receipt_id", delete(remittance_batch::remove_receipt))
         .route("/remittance-batches/:id/advice", post(remittance_batch::mark_advice_sent))
         .route("/remittance-batches/dashboard", get(remittance_batch::get_batch_summary))
+
+        // Chargebacks (Oracle Fusion: Receivables > Chargebacks)
+        .route("/chargebacks", post(chargeback_management::create_chargeback))
+        .route("/chargebacks", get(chargeback_management::list_chargebacks))
+        .route("/chargebacks/number/:number", get(chargeback_management::get_chargeback_by_number))
+        .route("/chargebacks/number/:number", delete(chargeback_management::delete_chargeback))
+        .route("/chargebacks/:id", get(chargeback_management::get_chargeback))
+        .route("/chargebacks/:id/transition", post(chargeback_management::transition_chargeback))
+        .route("/chargebacks/:id/assign", post(chargeback_management::assign_chargeback))
+        .route("/chargebacks/:id/notes", put(chargeback_management::update_notes))
+        .route("/chargebacks/:chargeback_id/lines", post(chargeback_management::add_line))
+        .route("/chargebacks/:chargeback_id/lines", get(chargeback_management::list_lines))
+        .route("/chargebacks/:chargeback_id/lines/:line_id", delete(chargeback_management::remove_line))
+        .route("/chargebacks/:chargeback_id/activities", get(chargeback_management::list_activities))
+        .route("/chargebacks/dashboard", get(chargeback_management::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

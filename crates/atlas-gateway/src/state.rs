@@ -181,6 +181,8 @@ use atlas_core::{
     remittance_batch::PostgresRemittanceBatchRepository,
     ChargebackManagementEngine,
     chargeback_management::PostgresChargebackManagementRepository as PostgresChargebackManagementRepo,
+    ProfitabilityAnalysisEngine,
+    profitability_analysis::PostgresProfitabilityAnalysisRepository as PostgresProfitabilityAnalysisRepo,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
@@ -396,6 +398,7 @@ pub struct AppState {
     pub customer_statement_engine: Arc<CustomerStatementEngine>,
     pub remittance_batch_engine: Arc<RemittanceBatchEngine>,
     pub chargeback_engine: Arc<ChargebackManagementEngine>,
+    pub profitability_engine: Arc<ProfitabilityAnalysisEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1080,6 +1083,11 @@ impl AppState {
             PostgresChargebackManagementRepo::new(db_pool.clone())
         )));
 
+        // Initialize Profitability Analysis engine (Oracle Fusion: Financials > Profitability Analysis)
+        let profitability_engine = Arc::new(ProfitabilityAnalysisEngine::new(Arc::new(
+            PostgresProfitabilityAnalysisRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1254,6 +1262,7 @@ impl AppState {
             customer_statement_engine,
             remittance_batch_engine,
             chargeback_engine,
+            profitability_engine,
             event_bus,
             jwt_secret,
         };

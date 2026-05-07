@@ -132,6 +132,7 @@ pub mod cash_concentration;
 pub mod customer_statement;
 pub mod remittance_batch;
 pub mod chargeback_management;
+pub mod profitability_analysis;
 
 pub use schema::*;
 pub use records::*;
@@ -4505,6 +4506,31 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/chargebacks/:chargeback_id/lines/:line_id", delete(chargeback_management::remove_line))
         .route("/chargebacks/:chargeback_id/activities", get(chargeback_management::list_activities))
         .route("/chargebacks/dashboard", get(chargeback_management::get_dashboard))
+
+        // ========================================================================
+        // Profitability Analysis (Oracle Fusion: Financials > Profitability Analysis)
+        // ========================================================================
+        // Segments
+        .route("/profitability/segments", post(profitability_analysis::create_segment))
+        .route("/profitability/segments", get(profitability_analysis::list_segments))
+        .route("/profitability/segments/:id", get(profitability_analysis::get_segment))
+        .route("/profitability/segments/code/:code", delete(profitability_analysis::delete_segment))
+        // Runs
+        .route("/profitability/runs", post(profitability_analysis::create_run))
+        .route("/profitability/runs", get(profitability_analysis::list_runs))
+        .route("/profitability/runs/:id", get(profitability_analysis::get_run))
+        .route("/profitability/runs/:id/transition", post(profitability_analysis::transition_run))
+        .route("/profitability/runs/number/:run_number", delete(profitability_analysis::delete_run))
+        // Run Lines
+        .route("/profitability/runs/:run_id/lines", post(profitability_analysis::add_run_line))
+        .route("/profitability/runs/:run_id/lines", get(profitability_analysis::list_run_lines))
+        .route("/profitability/runs/:run_id/lines/:line_id", delete(profitability_analysis::remove_run_line))
+        // Templates
+        .route("/profitability/templates", post(profitability_analysis::create_template))
+        .route("/profitability/templates", get(profitability_analysis::list_templates))
+        .route("/profitability/templates/:code", delete(profitability_analysis::delete_template))
+        // Dashboard
+        .route("/profitability/dashboard", get(profitability_analysis::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

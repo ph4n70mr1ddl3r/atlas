@@ -131,3 +131,4 @@ mod cash_concentration;
 mod customer_statement;
 mod remittance_batch;
 mod chargeback_management;
+mod profitability_analysis;

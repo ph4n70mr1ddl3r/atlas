@@ -607,6 +607,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         chargeback_engine: Arc::new(atlas_core::ChargebackManagementEngine::new(Arc::new(
             atlas_core::chargeback_management::PostgresChargebackManagementRepository::new(db_pool.clone()),
         ))),
+        profitability_engine: Arc::new(atlas_core::ProfitabilityAnalysisEngine::new(Arc::new(
+            atlas_core::profitability_analysis::PostgresProfitabilityAnalysisRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1150,4 +1153,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.lc_amendments").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.letters_of_credit").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.lc_dashboard_cache").execute(pool).await.ok();
+
+    // Clean profitability analysis test data
+    sqlx::query("DELETE FROM _atlas.profitability_run_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.profitability_runs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.profitability_segments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.profitability_templates").execute(pool).await.ok();
 }

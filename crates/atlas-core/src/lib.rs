@@ -163,6 +163,7 @@ pub mod cash_concentration;
 pub mod customer_statement;
 pub mod remittance_batch;
 pub mod chargeback_management;
+pub mod profitability_analysis;
 pub mod payment_process_request;
 
 pub use schema::*;
@@ -328,6 +329,7 @@ pub use cash_concentration::{CashConcentrationEngine, PostgresCashConcentrationR
 pub use customer_statement::{CustomerStatementEngine, PostgresCustomerStatementRepository as PostgresCustomerStatementRepo};
 pub use remittance_batch::{RemittanceBatchEngine, PostgresRemittanceBatchRepository as PostgresRemittanceBatchRepo};
 pub use chargeback_management::{ChargebackManagementEngine, PostgresChargebackManagementRepository as PostgresChargebackManagementRepo};
+pub use profitability_analysis::{ProfitabilityAnalysisEngine, PostgresProfitabilityAnalysisRepository as PostgresProfitabilityAnalysisRepo};
 pub use payment_process_request::{PaymentProcessRequestEngine, PostgresPprRepository as PostgresPaymentProcessRequestRepo};
 
 mod mock_repos;

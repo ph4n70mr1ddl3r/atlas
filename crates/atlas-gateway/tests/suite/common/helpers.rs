@@ -616,6 +616,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         payment_settlement_engine: Arc::new(atlas_core::PaymentSettlementEngine::new(Arc::new(
             atlas_core::payment_settlement::PostgresPaymentSettlementRepository::new(db_pool.clone()),
         ))),
+        payment_process_request_engine: Arc::new(atlas_core::PaymentProcessRequestEngine::new(Arc::new(
+            atlas_core::payment_process_request::PostgresPaymentProcessRequestRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

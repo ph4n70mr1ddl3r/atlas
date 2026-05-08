@@ -135,6 +135,7 @@ pub mod chargeback_management;
 pub mod profitability_analysis;
 pub mod recurring_invoice;
 pub mod payment_settlement;
+pub mod payment_process_request;
 
 pub use schema::*;
 pub use records::*;
@@ -4566,6 +4567,25 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/settlements/:batch_id/lines/:line_id", delete(payment_settlement::remove_line))
         .route("/settlements/:batch_id/activities", get(payment_settlement::list_activities))
         .route("/settlements/dashboard", get(payment_settlement::get_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Payment Process Requests (Oracle Fusion: Payables > Payment Process Requests)
+        // ═══════════════════════════════════════════════════════
+        .route("/payment-process-requests", post(payment_process_request::create_request))
+        .route("/payment-process-requests", get(payment_process_request::list_requests))
+        .route("/payment-process-requests/number/:number", get(payment_process_request::get_request_by_number))
+        .route("/payment-process-requests/number/:number", delete(payment_process_request::delete_request))
+        .route("/payment-process-requests/:id", get(payment_process_request::get_request))
+        .route("/payment-process-requests/:id/submit", post(payment_process_request::submit_request))
+        .route("/payment-process-requests/:id/complete-selection", post(payment_process_request::complete_selection))
+        .route("/payment-process-requests/:id/format", post(payment_process_request::format_payments))
+        .route("/payment-process-requests/:id/confirm", post(payment_process_request::confirm_payments))
+        .route("/payment-process-requests/:id/cancel", post(payment_process_request::cancel_request))
+        .route("/payment-process-requests/:ppr_id/documents", post(payment_process_request::add_document))
+        .route("/payment-process-requests/:ppr_id/documents", get(payment_process_request::list_documents))
+        .route("/payment-process-requests/:ppr_id/documents/:doc_id", delete(payment_process_request::remove_document))
+        .route("/payment-process-requests/:ppr_id/activities", get(payment_process_request::list_activities))
+        .route("/payment-process-requests/dashboard", get(payment_process_request::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

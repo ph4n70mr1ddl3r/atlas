@@ -1109,6 +1109,12 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         recurring_invoice_engine: Arc::new(atlas_core::RecurringInvoiceEngine::new(Arc::new(
             atlas_core::recurring_invoice::PostgresRecurringInvoiceRepository::new(db_pool.clone()),
         ))),
+        payment_settlement_engine: Arc::new(atlas_core::PaymentSettlementEngine::new(Arc::new(
+            atlas_core::payment_settlement::PostgresPaymentSettlementRepository::new(db_pool.clone()),
+        ))),
+        payment_process_request_engine: Arc::new(atlas_core::PaymentProcessRequestEngine::new(Arc::new(
+            atlas_core::payment_process_request::PostgresPaymentProcessRequestRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

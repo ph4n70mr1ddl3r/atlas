@@ -189,6 +189,8 @@ use atlas_core::{
     payment_settlement::PostgresPaymentSettlementRepository as PostgresPaymentSettlementRepo,
     PaymentProcessRequestEngine,
     payment_process_request::PostgresPaymentProcessRequestRepository,
+    InvoiceBatchEngine,
+    invoice_batch::PostgresInvoiceBatchRepository,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
@@ -408,6 +410,7 @@ pub struct AppState {
     pub recurring_invoice_engine: Arc<RecurringInvoiceEngine>,
     pub payment_settlement_engine: Arc<PaymentSettlementEngine>,
     pub payment_process_request_engine: Arc<PaymentProcessRequestEngine>,
+    pub invoice_batch_engine: Arc<InvoiceBatchEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1112,6 +1115,11 @@ impl AppState {
             PostgresPaymentProcessRequestRepository::new(db_pool.clone())
         )));
 
+        // Initialize Invoice Batch engine (Oracle Fusion: Financials > Payables > Invoice Batches)
+        let invoice_batch_engine = Arc::new(InvoiceBatchEngine::new(Arc::new(
+            PostgresInvoiceBatchRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1290,6 +1298,7 @@ impl AppState {
             recurring_invoice_engine,
             payment_settlement_engine,
             payment_process_request_engine,
+            invoice_batch_engine,
             event_bus,
             jwt_secret,
         };

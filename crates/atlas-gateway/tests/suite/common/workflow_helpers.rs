@@ -1115,6 +1115,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         payment_process_request_engine: Arc::new(atlas_core::PaymentProcessRequestEngine::new(Arc::new(
             atlas_core::payment_process_request::PostgresPaymentProcessRequestRepository::new(db_pool.clone()),
         ))),
+        invoice_batch_engine: Arc::new(atlas_core::InvoiceBatchEngine::new(Arc::new(
+            atlas_core::invoice_batch::PostgresInvoiceBatchRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

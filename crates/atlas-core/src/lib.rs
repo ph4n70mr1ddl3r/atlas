@@ -167,6 +167,7 @@ pub mod profitability_analysis;
 pub mod recurring_invoice;
 pub mod payment_settlement;
 pub mod payment_process_request;
+pub mod invoice_batch;
 
 pub use schema::*;
 pub use workflow::{
@@ -335,6 +336,7 @@ pub use profitability_analysis::{ProfitabilityAnalysisEngine, PostgresProfitabil
 pub use recurring_invoice::{RecurringInvoiceEngine, PostgresRecurringInvoiceRepository as PostgresRecurringInvoiceRepo};
 pub use payment_settlement::{PaymentSettlementEngine, PostgresPaymentSettlementRepository as PostgresPaymentSettlementRepo};
 pub use payment_process_request::{PaymentProcessRequestEngine, PostgresPaymentProcessRequestRepository};
+pub use invoice_batch::{InvoiceBatchEngine, PostgresInvoiceBatchRepository};
 
 mod mock_repos;
 pub use mock_repos::*;

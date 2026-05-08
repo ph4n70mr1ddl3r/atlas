@@ -619,6 +619,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         payment_process_request_engine: Arc::new(atlas_core::PaymentProcessRequestEngine::new(Arc::new(
             atlas_core::payment_process_request::PostgresPaymentProcessRequestRepository::new(db_pool.clone()),
         ))),
+        invoice_batch_engine: Arc::new(atlas_core::InvoiceBatchEngine::new(Arc::new(
+            atlas_core::invoice_batch::PostgresInvoiceBatchRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1173,4 +1176,8 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.recurring_invoice_generations").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.recurring_invoice_template_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.recurring_invoice_templates").execute(pool).await.ok();
+
+    // Clean AP invoice batch test data
+    sqlx::query("DELETE FROM _atlas.ap_invoice_batch_activities").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_batches").execute(pool).await.ok();
 }

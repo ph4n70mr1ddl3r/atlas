@@ -136,6 +136,7 @@ pub mod profitability_analysis;
 pub mod recurring_invoice;
 pub mod payment_settlement;
 pub mod payment_process_request;
+pub mod invoice_batch;
 
 pub use schema::*;
 pub use records::*;
@@ -4586,6 +4587,24 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/payment-process-requests/:ppr_id/documents/:doc_id", delete(payment_process_request::remove_document))
         .route("/payment-process-requests/:ppr_id/activities", get(payment_process_request::list_activities))
         .route("/payment-process-requests/dashboard", get(payment_process_request::get_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // AP Invoice Batch Processing (Oracle Fusion: Payables > Invoice Batches)
+        // ═══════════════════════════════════════════════════════════════════════════════
+        .route("/invoice-batches", post(invoice_batch::create_batch))
+        .route("/invoice-batches", get(invoice_batch::list_batches))
+        .route("/invoice-batches/number/:number", get(invoice_batch::get_batch_by_number))
+        .route("/invoice-batches/number/:number", delete(invoice_batch::delete_batch))
+        .route("/invoice-batches/:id", get(invoice_batch::get_batch))
+        .route("/invoice-batches/:id/submit", post(invoice_batch::submit_batch))
+        .route("/invoice-batches/:id/approve", post(invoice_batch::approve_batch))
+        .route("/invoice-batches/:id/post", post(invoice_batch::post_batch))
+        .route("/invoice-batches/:id/cancel", post(invoice_batch::cancel_batch))
+        .route("/invoice-batches/:id/invoices", post(invoice_batch::add_invoice))
+        .route("/invoice-batches/:id/invoices", delete(invoice_batch::remove_invoice))
+        .route("/invoice-batches/:id/validate", post(invoice_batch::validate_batch))
+        .route("/invoice-batches/:id/activities", get(invoice_batch::list_activities))
+        .route("/invoice-batches/dashboard", get(invoice_batch::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

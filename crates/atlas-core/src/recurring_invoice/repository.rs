@@ -735,6 +735,19 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
+        let upcoming_count: i64 = sqlx::query_scalar(
+            r#"SELECT COUNT(*)
+            FROM _atlas.recurring_invoice_templates t
+            WHERE t.organization_id = $1
+                AND t.status = 'active'
+                AND t.next_generation_date IS NOT NULL
+                AND t.next_generation_date <= CURRENT_DATE + INTERVAL '30 days'"#
+        )
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+
         let upcoming = sqlx::query_as::<_, UpcomingInvoice>(
             r#"SELECT
                 t.id as template_id,
@@ -760,7 +773,7 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let upcoming_count = upcoming.len() as i64;
+        let upcoming_count = upcoming_count;
 
         #[derive(sqlx::FromRow)]
         struct RecurrenceRow { recurrence_type: String, count: Option<i64> }

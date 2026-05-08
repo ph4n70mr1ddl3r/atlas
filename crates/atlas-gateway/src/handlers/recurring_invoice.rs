@@ -37,7 +37,10 @@ pub async fn create_template(
     Extension(claims): Extension<Claims>,
     Json(body): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
+    let org_id = match parse_uuid(&claims.org_id) {
+        Ok(id) => id,
+        Err(e) => return e.into_response(),
+    };
     let user_id = claims.sub.parse().ok();
 
     let template_number = body["templateNumber"].as_str().unwrap_or("").to_string();
@@ -117,7 +120,10 @@ pub async fn list_templates(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListQuery>,
 ) -> impl IntoResponse {
-    let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
+    let org_id = match parse_uuid(&claims.org_id) {
+        Ok(id) => id,
+        Err(e) => return e.into_response(),
+    };
     let supplier_id = query.supplier_id.as_ref().and_then(|s| s.parse().ok());
     match state.recurring_invoice_engine.list_templates(
         org_id,
@@ -162,7 +168,10 @@ pub async fn delete_template(
     Extension(claims): Extension<Claims>,
     Path(template_number): Path<String>,
 ) -> impl IntoResponse {
-    let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
+    let org_id = match parse_uuid(&claims.org_id) {
+        Ok(id) => id,
+        Err(e) => return e.into_response(),
+    };
     match state.recurring_invoice_engine.delete_template(org_id, &template_number).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
@@ -180,7 +189,10 @@ pub async fn add_template_line(
     Path(template_id): Path<Uuid>,
     Json(body): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
+    let org_id = match parse_uuid(&claims.org_id) {
+        Ok(id) => id,
+        Err(e) => return e.into_response(),
+    };
 
     let line_type = body["lineType"].as_str().unwrap_or("item").to_string();
     let description = body["description"].as_str().map(|s| s.to_string());
@@ -283,7 +295,10 @@ pub async fn list_generations(
     Extension(claims): Extension<Claims>,
     Query(query): Query<GenerationListQuery>,
 ) -> impl IntoResponse {
-    let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
+    let org_id = match parse_uuid(&claims.org_id) {
+        Ok(id) => id,
+        Err(e) => return e.into_response(),
+    };
     let template_id = query.template_id.as_ref().and_then(|s| s.parse().ok());
     match state.recurring_invoice_engine.list_generations(
         org_id,
@@ -310,7 +325,10 @@ pub async fn get_dashboard(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> impl IntoResponse {
-    let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
+    let org_id = match parse_uuid(&claims.org_id) {
+        Ok(id) => id,
+        Err(e) => return e.into_response(),
+    };
     match state.recurring_invoice_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Json(serde_json::to_value(dashboard).unwrap()).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),

@@ -118,6 +118,11 @@ impl RecurringInvoiceEngine {
                 "Payment due days must be non-negative".to_string(),
             ));
         }
+        if days_in_advance < 0 {
+            return Err(AtlasError::ValidationFailed(
+                "Days in advance must be non-negative".to_string(),
+            ));
+        }
         if let Some(to) = effective_to {
             if to <= effective_from {
                 return Err(AtlasError::ValidationFailed(
@@ -133,6 +138,13 @@ impl RecurringInvoiceEngine {
             }
         }
 
+        if let Some(gen_day) = generation_day {
+            if gen_day < 1 {
+                return Err(AtlasError::ValidationFailed(
+                    "Generation day must be at least 1".to_string(),
+                ));
+            }
+        }
         let params = TemplateCreateParams {
             template_number: template_number.to_string(),
             template_name: template_name.to_string(),
@@ -282,6 +294,18 @@ impl RecurringInvoiceEngine {
         if amount < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Amount cannot be negative".to_string(),
+            ));
+        }
+
+        if quantity < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Quantity cannot be negative".to_string(),
+            ));
+        }
+
+        if tax_amount < 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Tax amount cannot be negative".to_string(),
             ));
         }
 
@@ -532,28 +556,16 @@ impl RecurringInvoiceEngine {
                 next
             }
             "quarterly" => {
-                let mut next = current_date;
-                for _ in 0..(i * 3) {
-                    next = next.checked_add_months(chrono::Months::new(1))
-                        .unwrap_or(next);
-                }
-                next
+                current_date.checked_add_months(chrono::Months::new(i * 3))
+                    .unwrap_or(current_date)
             }
             "semi_annual" => {
-                let mut next = current_date;
-                for _ in 0..(i * 6) {
-                    next = next.checked_add_months(chrono::Months::new(1))
-                        .unwrap_or(next);
-                }
-                next
+                current_date.checked_add_months(chrono::Months::new(i * 6))
+                    .unwrap_or(current_date)
             }
             "annual" => {
-                let mut next = current_date;
-                for _ in 0..(i * 12) {
-                    next = next.checked_add_months(chrono::Months::new(1))
-                        .unwrap_or(next);
-                }
-                next
+                current_date.checked_add_months(chrono::Months::new(i * 12))
+                    .unwrap_or(current_date)
             }
             _ => current_date,
         }

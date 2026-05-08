@@ -625,6 +625,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         withholding_tax_engine: Arc::new(atlas_core::WithholdingTaxEngine::new(Arc::new(
             atlas_core::withholding_tax::PostgresWithholdingTaxRepository::new(db_pool.clone()),
         ))),
+        tax_registration_engine: Arc::new(atlas_core::TaxRegistrationEngine::new(Arc::new(
+            atlas_core::tax_registration::PostgresTaxRegistrationRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1191,4 +1194,8 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.withholding_tax_group_members").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.withholding_tax_groups").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.withholding_tax_codes").execute(pool).await.ok();
+
+    // Clean tax registration test data
+    sqlx::query("DELETE FROM _atlas.tax_registration_activities").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.tax_registrations").execute(pool).await.ok();
 }

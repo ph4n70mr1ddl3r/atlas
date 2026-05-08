@@ -1121,6 +1121,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         withholding_tax_engine: Arc::new(atlas_core::WithholdingTaxEngine::new(Arc::new(
             atlas_core::withholding_tax::PostgresWithholdingTaxRepository::new(db_pool.clone()),
         ))),
+        tax_registration_engine: Arc::new(atlas_core::TaxRegistrationEngine::new(Arc::new(
+            atlas_core::tax_registration::PostgresTaxRegistrationRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

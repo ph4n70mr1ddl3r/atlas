@@ -138,6 +138,7 @@ pub mod payment_settlement;
 pub mod payment_process_request;
 pub mod invoice_batch;
 pub mod withholding_tax;
+pub mod tax_registration;
 
 pub use schema::*;
 pub use records::*;
@@ -4646,6 +4647,20 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/withholding-tax/dashboard", get(withholding_tax::get_withholding_dashboard))
+
+        // ============================================================================
+        // Tax Registration Management (Oracle Fusion: Tax > Tax Registrations)
+        // ============================================================================
+        .route("/tax-registrations", post(tax_registration::create_registration))
+        .route("/tax-registrations", get(tax_registration::list_registrations))
+        .route("/tax-registrations/number/:number", get(tax_registration::get_registration_by_number))
+        .route("/tax-registrations/:id", get(tax_registration::get_registration))
+        .route("/tax-registrations/:id/activate", post(tax_registration::activate_registration))
+        .route("/tax-registrations/:id/suspend", post(tax_registration::suspend_registration))
+        .route("/tax-registrations/:id/reactivate", post(tax_registration::reactivate_registration))
+        .route("/tax-registrations/:id/deregister", post(tax_registration::deregister))
+        .route("/tax-registrations/:id/validate", post(tax_registration::validate_registration))
+        .route("/tax-registrations/dashboard", get(tax_registration::get_summary))
 
         .layer(middleware::from_fn(auth_middleware))
 }

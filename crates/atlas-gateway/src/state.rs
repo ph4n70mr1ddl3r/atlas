@@ -193,6 +193,8 @@ use atlas_core::{
     invoice_batch::PostgresInvoiceBatchRepository,
     WithholdingTaxEngine,
     withholding_tax::PostgresWithholdingTaxRepository,
+    TaxRegistrationEngine,
+    tax_registration::PostgresTaxRegistrationRepository as PostgresTaxRegistrationRepo,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
@@ -414,6 +416,7 @@ pub struct AppState {
     pub payment_process_request_engine: Arc<PaymentProcessRequestEngine>,
     pub invoice_batch_engine: Arc<InvoiceBatchEngine>,
     pub withholding_tax_engine: Arc<WithholdingTaxEngine>,
+    pub tax_registration_engine: Arc<TaxRegistrationEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1128,6 +1131,11 @@ impl AppState {
             PostgresWithholdingTaxRepository::new(db_pool.clone())
         )));
 
+        // Initialize Tax Registration engine (Oracle Fusion: Financials > Tax > Tax Registrations)
+        let tax_registration_engine = Arc::new(TaxRegistrationEngine::new(Arc::new(
+            PostgresTaxRegistrationRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1308,6 +1316,7 @@ impl AppState {
             payment_process_request_engine,
             invoice_batch_engine,
             withholding_tax_engine,
+            tax_registration_engine,
             event_bus,
             jwt_secret,
         };

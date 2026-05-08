@@ -136,3 +136,4 @@ mod recurring_invoice;
 mod payment_settlement;
 mod payment_process_request;
 mod invoice_batch;
+mod withholding_tax;

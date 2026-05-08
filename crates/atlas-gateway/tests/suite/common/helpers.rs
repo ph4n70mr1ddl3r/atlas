@@ -622,6 +622,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         invoice_batch_engine: Arc::new(atlas_core::InvoiceBatchEngine::new(Arc::new(
             atlas_core::invoice_batch::PostgresInvoiceBatchRepository::new(db_pool.clone()),
         ))),
+        withholding_tax_engine: Arc::new(atlas_core::WithholdingTaxEngine::new(Arc::new(
+            atlas_core::withholding_tax::PostgresWithholdingTaxRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1180,4 +1183,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     // Clean AP invoice batch test data
     sqlx::query("DELETE FROM _atlas.ap_invoice_batch_activities").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.ap_invoice_batches").execute(pool).await.ok();
+
+    // Clean withholding tax test data
+    sqlx::query("DELETE FROM _atlas.withholding_tax_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.withholding_certificates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supplier_withholding_assignments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.withholding_tax_group_members").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.withholding_tax_groups").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.withholding_tax_codes").execute(pool).await.ok();
 }

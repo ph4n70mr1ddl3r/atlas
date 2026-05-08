@@ -1118,6 +1118,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         invoice_batch_engine: Arc::new(atlas_core::InvoiceBatchEngine::new(Arc::new(
             atlas_core::invoice_batch::PostgresInvoiceBatchRepository::new(db_pool.clone()),
         ))),
+        withholding_tax_engine: Arc::new(atlas_core::WithholdingTaxEngine::new(Arc::new(
+            atlas_core::withholding_tax::PostgresWithholdingTaxRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

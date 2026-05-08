@@ -137,6 +137,7 @@ pub mod recurring_invoice;
 pub mod payment_settlement;
 pub mod payment_process_request;
 pub mod invoice_batch;
+pub mod withholding_tax;
 
 pub use schema::*;
 pub use records::*;
@@ -4605,6 +4606,46 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/invoice-batches/:id/validate", post(invoice_batch::validate_batch))
         .route("/invoice-batches/:id/activities", get(invoice_batch::list_activities))
         .route("/invoice-batches/dashboard", get(invoice_batch::get_dashboard))
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Withholding Tax Management (Oracle Fusion: Financials > Payables > Withholding Tax)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Tax Codes
+        .route("/withholding-tax/codes", post(withholding_tax::create_tax_code))
+        .route("/withholding-tax/codes", get(withholding_tax::list_tax_codes))
+        .route("/withholding-tax/codes/:code", get(withholding_tax::get_tax_code))
+        .route("/withholding-tax/codes/:code", delete(withholding_tax::delete_tax_code))
+
+        // Tax Groups
+        .route("/withholding-tax/groups", post(withholding_tax::create_tax_group))
+        .route("/withholding-tax/groups", get(withholding_tax::list_tax_groups))
+        .route("/withholding-tax/groups/:code", get(withholding_tax::get_tax_group))
+        .route("/withholding-tax/groups/:code", delete(withholding_tax::delete_tax_group))
+
+        // Supplier Assignments
+        .route("/withholding-tax/suppliers/assign", post(withholding_tax::assign_supplier))
+        .route("/withholding-tax/suppliers", get(withholding_tax::list_supplier_assignments))
+        .route("/withholding-tax/suppliers/:supplier_id", get(withholding_tax::get_supplier_assignment))
+        .route("/withholding-tax/suppliers/:id", delete(withholding_tax::remove_supplier_assignment))
+
+        // Withholding Computation
+        .route("/withholding-tax/compute", post(withholding_tax::compute_withholding))
+
+        // Withholding Lines
+        .route("/withholding-tax/lines/payment/:payment_id", get(withholding_tax::get_withholding_lines_by_payment))
+        .route("/withholding-tax/lines/remit", post(withholding_tax::remit_withholding))
+
+        // Certificates
+        .route("/withholding-tax/certificates", post(withholding_tax::generate_certificate))
+        .route("/withholding-tax/certificates", get(withholding_tax::list_certificates))
+        .route("/withholding-tax/certificates/number/:number", get(withholding_tax::get_certificate_by_number))
+        .route("/withholding-tax/certificates/:id", get(withholding_tax::get_certificate))
+        .route("/withholding-tax/certificates/:id/issue", post(withholding_tax::issue_certificate))
+        .route("/withholding-tax/certificates/:id/cancel", post(withholding_tax::cancel_certificate))
+
+        // Dashboard
+        .route("/withholding-tax/dashboard", get(withholding_tax::get_withholding_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

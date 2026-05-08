@@ -134,6 +134,7 @@ pub mod remittance_batch;
 pub mod chargeback_management;
 pub mod profitability_analysis;
 pub mod recurring_invoice;
+pub mod payment_settlement;
 
 pub use schema::*;
 pub use records::*;
@@ -4547,6 +4548,24 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/recurring-invoices/:template_id/generate", post(recurring_invoice::generate_invoice))
         .route("/recurring-invoices/generations", get(recurring_invoice::list_generations))
         .route("/recurring-invoices/dashboard", get(recurring_invoice::get_dashboard))
+
+        // ========================================================================
+        // Payment Settlement & Clearing (Oracle Fusion: Payables > Settlement)
+        // ========================================================================
+        .route("/settlements", post(payment_settlement::create_batch))
+        .route("/settlements", get(payment_settlement::list_batches))
+        .route("/settlements/number/:number", get(payment_settlement::get_batch_by_number))
+        .route("/settlements/number/:number", delete(payment_settlement::delete_batch))
+        .route("/settlements/:id", get(payment_settlement::get_batch))
+        .route("/settlements/:id/submit", post(payment_settlement::submit_batch))
+        .route("/settlements/:id/approve", post(payment_settlement::approve_batch))
+        .route("/settlements/:id/settle", post(payment_settlement::settle_batch))
+        .route("/settlements/:id/cancel", post(payment_settlement::cancel_batch))
+        .route("/settlements/:batch_id/lines", post(payment_settlement::add_line))
+        .route("/settlements/:batch_id/lines", get(payment_settlement::list_lines))
+        .route("/settlements/:batch_id/lines/:line_id", delete(payment_settlement::remove_line))
+        .route("/settlements/:batch_id/activities", get(payment_settlement::list_activities))
+        .route("/settlements/dashboard", get(payment_settlement::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

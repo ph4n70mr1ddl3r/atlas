@@ -166,6 +166,7 @@ pub mod chargeback_management;
 pub mod profitability_analysis;
 pub mod payment_process_request;
 pub mod recurring_invoice;
+pub mod payment_settlement;
 
 pub use schema::*;
 pub use workflow::{
@@ -333,6 +334,7 @@ pub use chargeback_management::{ChargebackManagementEngine, PostgresChargebackMa
 pub use profitability_analysis::{ProfitabilityAnalysisEngine, PostgresProfitabilityAnalysisRepository as PostgresProfitabilityAnalysisRepo};
 pub use payment_process_request::{PaymentProcessRequestEngine, PostgresPprRepository as PostgresPaymentProcessRequestRepo};
 pub use recurring_invoice::{RecurringInvoiceEngine, PostgresRecurringInvoiceRepository as PostgresRecurringInvoiceRepo};
+pub use payment_settlement::{PaymentSettlementEngine, PostgresPaymentSettlementRepository as PostgresPaymentSettlementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

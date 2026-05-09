@@ -93,7 +93,7 @@ impl AutoOffsetEngine {
             }
         }
         // Check duplicate
-        if let Some(existing) = self.repository.get_template_by_code(org_id, template_code).await? {
+        if let Some(_existing) = self.repository.get_template_by_code(org_id, template_code).await? {
             return Err(AtlasError::Conflict(format!(
                 "Offset template code '{}' already exists", template_code
             )));

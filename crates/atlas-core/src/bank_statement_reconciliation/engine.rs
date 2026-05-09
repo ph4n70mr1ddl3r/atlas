@@ -17,7 +17,7 @@
 use atlas_shared::AtlasResult;
 use super::BankStatementReconciliationRepository;
 use std::sync::Arc;
-use tracing::info;
+// tracing macros used when adding logging in future
 
 // ============================================================================
 // Constants — Valid values for validation
@@ -172,7 +172,7 @@ impl BankStatementReconciliationEngine {
         system_transactions: &[(f64, &str, Option<&str>, Option<chrono::NaiveDate>)],
     ) -> Vec<(usize, f64)> {
         let mut matches = Vec::new();
-        for (i, (sys_amount, txn_type, _ref, _date)) in system_transactions.iter().enumerate() {
+        for (i, (sys_amount, _txn_type, _ref, _date)) in system_transactions.iter().enumerate() {
             if *sys_amount > 0.0 {
                 let pct_diff = ((statement_amount - sys_amount).abs() / *sys_amount) * 100.0;
                 if pct_diff <= tolerance_pct {
@@ -247,7 +247,7 @@ impl BankStatementReconciliationEngine {
         // Intersection: present in both sets
         amount_matches
             .into_iter()
-            .filter(|(idx, score)| ref_matches.contains(idx))
+            .filter(|(idx, _score)| ref_matches.contains(idx))
             .collect()
     }
 

@@ -151,6 +151,7 @@ pub mod asset_retirement;
 pub mod cip_capitalization;
 pub mod available_funds;
 pub mod statistical_accounting;
+pub mod receivables_factoring;
 pub mod account_hierarchy;
 pub mod suspense_account;
 pub mod interest_invoice;
@@ -327,6 +328,7 @@ pub use asset_retirement::{AssetRetirementEngine, PostgresAssetRetirementReposit
 pub use cip_capitalization::{CipCapitalizationEngine, PostgresCipCapitalizationRepository as PostgresCipCapitalizationRepo};
 pub use available_funds::{AvailableFundsEngine, PostgresAvailableFundsRepository as PostgresAvailableFundsRepo};
 pub use statistical_accounting::{StatisticalAccountingEngine, PostgresStatisticalAccountingRepository as PostgresStatisticalAccountingRepo};
+pub use receivables_factoring::{ReceivablesFactoringEngine, PostgresReceivablesFactoringRepository as PostgresReceivablesFactoringRepo};
 pub use account_hierarchy::{AccountHierarchyEngine, PostgresAccountHierarchyRepository as PostgresAccountHierarchyRepo};
 pub use suspense_account::{SuspenseAccountEngine, PostgresSuspenseAccountRepository as PostgresSuspenseAccountRepo};
 pub use interest_invoice::{InterestInvoiceEngine, PostgresInterestInvoiceRepository as PostgresInterestInvoiceRepo};

@@ -1133,8 +1133,23 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         distribution_set_engine: Arc::new(atlas_core::DistributionSetEngine::new(Arc::new(
             atlas_core::distribution_set::PostgresDistributionSetRepository::new(db_pool.clone()),
         ))),
+        third_party_payment_engine: Arc::new(atlas_core::ThirdPartyPaymentEngine::new(Arc::new(
+            atlas_core::third_party_payment::PostgresThirdPartyPaymentRepository::new(db_pool.clone()),
+        ))),
         cash_flow_statement_engine: Arc::new(atlas_core::CashFlowStatementEngine::new(Arc::new(
             atlas_core::cash_flow_statement::PostgresCashFlowStatementRepository::new(db_pool.clone()),
+        ))),
+        auto_offset_engine: Arc::new(atlas_core::AutoOffsetEngine::new(Arc::new(
+            atlas_core::auto_offset::PostgresAutoOffsetRepository::new(db_pool.clone()),
+        ))),
+        average_balance_engine: Arc::new(atlas_core::AverageBalanceEngine::new(Arc::new(
+            atlas_core::average_balance::PostgresAverageBalanceRepository::new(db_pool.clone()),
+        ))),
+        statistical_accounting_engine: Arc::new(atlas_core::StatisticalAccountingEngine::new(Arc::new(
+            atlas_core::statistical_accounting::PostgresStatisticalAccountingRepository::new(db_pool.clone()),
+        ))),
+        receivables_factoring_engine: Arc::new(atlas_core::ReceivablesFactoringEngine::new(Arc::new(
+            atlas_core::receivables_factoring::PostgresReceivablesFactoringRepository::new(db_pool.clone()),
         ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),

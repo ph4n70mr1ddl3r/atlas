@@ -14983,6 +14983,8 @@ const VALID_BS_MATCH_STRATEGIES: &[&str] = &[
 ];
 
 /// Valid line match statuses
+/// Valid line match statuses
+#[allow(dead_code)]
 const VALID_BS_LINE_STATUSES: &[&str] = &[
     "unmatched", "matched", "partially_matched",
     "exception", "manually_matched", "excluded",
@@ -15042,7 +15044,7 @@ impl BankStatementReconciliationService {
     pub async fn import_statement(
         &self,
         statement_number: &str,
-        bank_account_id: &str,
+        _bank_account_id: &str,
         bank_account_number: &str,
         currency_code: &str,
         statement_date: chrono::NaiveDate,

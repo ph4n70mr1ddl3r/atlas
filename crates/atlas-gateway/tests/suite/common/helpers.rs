@@ -652,6 +652,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         statistical_accounting_engine: Arc::new(atlas_core::StatisticalAccountingEngine::new(Arc::new(
             atlas_core::statistical_accounting::PostgresStatisticalAccountingRepository::new(db_pool.clone()),
         ))),
+        receivables_factoring_engine: Arc::new(atlas_core::ReceivablesFactoringEngine::new(Arc::new(
+            atlas_core::receivables_factoring::PostgresReceivablesFactoringRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -10,6 +10,8 @@ use atlas_core::{
     average_balance::PostgresAverageBalanceRepository as PostgresAverageBalanceRepo,
     StatisticalAccountingEngine,
     statistical_accounting::PostgresStatisticalAccountingRepository as PostgresStatisticalAccountingRepo,
+    ReceivablesFactoringEngine,
+    receivables_factoring::PostgresReceivablesFactoringRepository as PostgresReceivablesFactoringRepo,
     AutoOffsetEngine,
     auto_offset::PostgresAutoOffsetRepository as PostgresAutoOffsetRepo,
     subscription::PostgresSubscriptionRepository,
@@ -439,6 +441,7 @@ pub struct AppState {
     pub cash_flow_statement_engine: Arc<CashFlowStatementEngine>,
     pub average_balance_engine: Arc<AverageBalanceEngine>,
     pub statistical_accounting_engine: Arc<StatisticalAccountingEngine>,
+    pub receivables_factoring_engine: Arc<ReceivablesFactoringEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1198,6 +1201,11 @@ impl AppState {
             PostgresStatisticalAccountingRepo::new(db_pool.clone())
         )));
 
+        // Initialize Receivables Factoring engine (Oracle Fusion: Treasury > Receivables Factoring)
+        let receivables_factoring_engine = Arc::new(ReceivablesFactoringEngine::new(Arc::new(
+            PostgresReceivablesFactoringRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1386,6 +1394,7 @@ impl AppState {
             auto_offset_engine,
             average_balance_engine,
             statistical_accounting_engine,
+            receivables_factoring_engine,
             cash_flow_statement_engine,
             event_bus,
             jwt_secret,

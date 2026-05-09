@@ -147,6 +147,7 @@ pub mod third_party_payment;
 pub mod auto_offset;
 pub mod average_balance;
 pub mod statistical_accounting;
+pub mod receivables_factoring;
 
 pub use schema::*;
 pub use records::*;
@@ -4840,6 +4841,48 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/statistical-accounting/dashboard", get(statistical_accounting::get_dashboard))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Receivables Factoring (Oracle Fusion: Treasury > Receivables Factoring)
+        // ════════════════════════════════════════════════════════════════════════════════
+
+        // Factor Companies
+        .route("/factoring/factor-companies", post(receivables_factoring::create_factor_company))
+        .route("/factoring/factor-companies", get(receivables_factoring::list_factor_companies))
+        .route("/factoring/factor-companies/code/:code", get(receivables_factoring::get_factor_company_by_code))
+        .route("/factoring/factor-companies/:id", get(receivables_factoring::get_factor_company))
+        .route("/factoring/factor-companies/:id/deactivate", post(receivables_factoring::deactivate_factor_company))
+        .route("/factoring/factor-companies/:id/activate", post(receivables_factoring::activate_factor_company))
+
+        // Factoring Agreements
+        .route("/factoring/agreements", post(receivables_factoring::create_agreement))
+        .route("/factoring/agreements", get(receivables_factoring::list_agreements))
+        .route("/factoring/agreements/:id", get(receivables_factoring::get_agreement))
+        .route("/factoring/agreements/:id/activate", post(receivables_factoring::activate_agreement))
+        .route("/factoring/agreements/:id/suspend", post(receivables_factoring::suspend_agreement))
+        .route("/factoring/agreements/:id/terminate", post(receivables_factoring::terminate_agreement))
+
+        // Factoring Requests
+        .route("/factoring/requests", post(receivables_factoring::create_factoring_request))
+        .route("/factoring/requests", get(receivables_factoring::list_factoring_requests))
+        .route("/factoring/requests/:id", get(receivables_factoring::get_factoring_request))
+        .route("/factoring/requests/:id/submit", post(receivables_factoring::submit_factoring_request))
+        .route("/factoring/requests/:id/approve", post(receivables_factoring::approve_factoring_request))
+        .route("/factoring/requests/:id/fund", post(receivables_factoring::fund_factoring_request))
+        .route("/factoring/requests/:id/settle", post(receivables_factoring::settle_factoring_request))
+        .route("/factoring/requests/:id/cancel", post(receivables_factoring::cancel_factoring_request))
+
+        // Request Lines
+        .route("/factoring/requests/:request_id/lines", post(receivables_factoring::add_request_line))
+        .route("/factoring/requests/:request_id/lines", get(receivables_factoring::list_request_lines))
+
+        // Settlements
+        .route("/factoring/settlements", post(receivables_factoring::create_settlement))
+        .route("/factoring/settlements", get(receivables_factoring::list_settlements))
+        .route("/factoring/settlements/:id/process", post(receivables_factoring::process_settlement))
+
+        // Dashboard
+        .route("/factoring/dashboard", get(receivables_factoring::get_factoring_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

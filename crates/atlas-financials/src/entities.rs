@@ -9455,3 +9455,206 @@ pub fn statistical_entry_definition() -> EntityDefinition {
         .workflow(workflow)
         .build()
 }
+
+// ============================================================================
+// Receivables Factoring (Oracle Fusion: Financials > Treasury > Receivables Factoring)
+// ============================================================================
+
+/// Factor Company entity
+/// Oracle Fusion: Treasury > Receivables Factoring > Factor Companies
+pub fn factor_company_definition() -> EntityDefinition {
+    SchemaBuilder::new("factor_companies", "Factor Company")
+        .plural_label("Factor Companies")
+        .table_name("financials.factor_companies")
+        .description("Financial institutions that purchase receivables at a discount")
+        .icon("landmark")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .string("contact_name", "Contact Name")
+        .string("contact_email", "Contact Email")
+        .string("contact_phone", "Contact Phone")
+        .string("bank_name", "Bank Name")
+        .string("bank_account_number", "Bank Account Number")
+        .decimal("default_advance_rate", "Default Advance Rate", 5, 4)
+        .decimal("default_fee_rate", "Default Fee Rate", 5, 4)
+        .enumeration("default_recourse_type", "Default Recourse Type", vec![
+            "recourse", "non_recourse",
+        ])
+        .currency("minimum_invoice_amount", "Minimum Invoice Amount", "USD")
+        .currency("maximum_invoice_amount", "Maximum Invoice Amount", "USD")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Factoring Agreement entity with workflow
+/// Oracle Fusion: Treasury > Receivables Factoring > Agreements
+pub fn factoring_agreement_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("factoring_agreement_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("active", "Active")
+        .working_state("suspended", "Suspended")
+        .final_state("expired", "Expired")
+        .final_state("terminated", "Terminated")
+        .transition("draft", "active", "activate")
+        .transition("active", "suspended", "suspend")
+        .transition("suspended", "active", "reactivate")
+        .transition("active", "terminated", "terminate")
+        .transition("suspended", "terminated", "terminate")
+        .build();
+
+    SchemaBuilder::new("factoring_agreements", "Factoring Agreement")
+        .plural_label("Factoring Agreements")
+        .table_name("financials.factoring_agreements")
+        .description("Master factoring agreements with factor companies")
+        .icon("file-contract")
+        .required_string("agreement_number", "Agreement Number")
+        .reference("factor_company_id", "Factor Company", "factor_companies")
+        .required_string("agreement_name", "Agreement Name")
+        .string("description", "Description")
+        .enumeration("agreement_type", "Agreement Type", vec![
+            "spot", "bulk", "maturity", "undisclosed",
+        ])
+        .enumeration("recourse_type", "Recourse Type", vec![
+            "recourse", "non_recourse",
+        ])
+        .decimal("advance_rate", "Advance Rate", 5, 4)
+        .decimal("factoring_fee_rate", "Factoring Fee Rate", 5, 4)
+        .decimal("late_fee_rate", "Late Fee Rate", 5, 4)
+        .decimal("reserve_rate", "Reserve Rate", 5, 4)
+        .currency("minimum_fee", "Minimum Fee", "USD")
+        .string("currency_code", "Currency")
+        .date("start_date", "Start Date")
+        .date("end_date", "End Date")
+        .currency("credit_limit", "Credit Limit", "USD")
+        .currency("total_factored_amount", "Total Factored", "USD")
+        .currency("total_advance_amount", "Total Advances", "USD")
+        .currency("total_fee_amount", "Total Fees", "USD")
+        .currency("total_reserve_amount", "Total Reserves", "USD")
+        .currency("total_settled_amount", "Total Settled", "USD")
+        .enumeration("status", "Status", vec![
+            "draft", "active", "suspended", "expired", "terminated",
+        ])
+        .workflow(workflow)
+        .build()
+}
+
+/// Factoring Request entity with workflow
+/// Oracle Fusion: Treasury > Receivables Factoring > Requests
+pub fn factoring_request_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("factoring_request_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .working_state("submitted", "Submitted")
+        .working_state("approved", "Approved")
+        .working_state("funded", "Funded")
+        .working_state("partially_settled", "Partially Settled")
+        .final_state("settled", "Settled")
+        .final_state("cancelled", "Cancelled")
+        .final_state("rejected", "Rejected")
+        .transition("draft", "submitted", "submit")
+        .transition("submitted", "approved", "approve")
+        .transition("submitted", "rejected", "reject")
+        .transition("approved", "funded", "fund")
+        .transition("funded", "partially_settled", "partial_settle")
+        .transition("funded", "settled", "settle")
+        .transition("partially_settled", "settled", "settle")
+        .transition("draft", "cancelled", "cancel")
+        .transition("submitted", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("factoring_requests", "Factoring Request")
+        .plural_label("Factoring Requests")
+        .table_name("financials.factoring_requests")
+        .description("Requests to factor batches of receivables")
+        .icon("file-invoice-dollar")
+        .required_string("request_number", "Request Number")
+        .reference("agreement_id", "Agreement", "factoring_agreements")
+        .date("request_date", "Request Date")
+        .date("funding_date", "Funding Date")
+        .date("settlement_date", "Settlement Date")
+        .currency("total_invoice_amount", "Total Invoice Amount", "USD")
+        .currency("eligible_amount", "Eligible Amount", "USD")
+        .decimal("advance_rate", "Advance Rate", 5, 4)
+        .currency("advance_amount", "Advance Amount", "USD")
+        .decimal("factoring_fee_rate", "Fee Rate", 5, 4)
+        .currency("factoring_fee_amount", "Fee Amount", "USD")
+        .decimal("reserve_rate", "Reserve Rate", 5, 4)
+        .currency("reserve_amount", "Reserve Amount", "USD")
+        .enumeration("recourse_type", "Recourse Type", vec![
+            "recourse", "non_recourse",
+        ])
+        .string("currency_code", "Currency")
+        .enumeration("status", "Status", vec![
+            "draft", "submitted", "approved", "funded", "partially_settled", "settled", "cancelled", "rejected",
+        ])
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}
+
+/// Factoring Request Line entity
+/// Oracle Fusion: Treasury > Receivables Factoring > Request Lines
+pub fn factoring_request_line_definition() -> EntityDefinition {
+    SchemaBuilder::new("factoring_request_lines", "Factoring Request Line")
+        .plural_label("Factoring Request Lines")
+        .table_name("financials.factoring_request_lines")
+        .description("Individual receivable lines within a factoring request")
+        .icon("list")
+        .reference("request_id", "Request", "factoring_requests")
+        .integer("line_number", "Line Number")
+        .reference("transaction_id", "Transaction", "ar_transactions")
+        .string("transaction_number", "Transaction Number")
+        .reference("customer_id", "Customer", "customers")
+        .string("customer_number", "Customer Number")
+        .string("customer_name", "Customer Name")
+        .date("invoice_date", "Invoice Date")
+        .date("invoice_due_date", "Invoice Due Date")
+        .currency("invoice_amount", "Invoice Amount", "USD")
+        .currency("eligible_amount", "Eligible Amount", "USD")
+        .integer("days_outstanding", "Days Outstanding")
+        .integer("days_overdue", "Days Overdue")
+        .currency("advance_amount", "Advance Amount", "USD")
+        .currency("factoring_fee_amount", "Fee Amount", "USD")
+        .currency("reserve_amount", "Reserve Amount", "USD")
+        .currency("settlement_amount", "Settlement Amount", "USD")
+        .boolean("is_eligible", "Eligible")
+        .string("exclusion_reason", "Exclusion Reason")
+        .enumeration("status", "Status", vec![
+            "pending", "funded", "settled", "chargeback", "excluded",
+        ])
+        .build()
+}
+
+/// Factoring Settlement entity with workflow
+/// Oracle Fusion: Treasury > Receivables Factoring > Settlements
+pub fn factoring_settlement_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("factoring_settlement_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("processed", "Processed")
+        .final_state("cancelled", "Cancelled")
+        .transition("draft", "processed", "process")
+        .transition("draft", "cancelled", "cancel")
+        .build();
+
+    SchemaBuilder::new("factoring_settlements", "Factoring Settlement")
+        .plural_label("Factoring Settlements")
+        .table_name("financials.factoring_settlements")
+        .description("Settlement records when customers pay the factor")
+        .icon("money-check-alt")
+        .required_string("settlement_number", "Settlement Number")
+        .reference("agreement_id", "Agreement", "factoring_agreements")
+        .reference("request_id", "Request", "factoring_requests")
+        .date("settlement_date", "Settlement Date")
+        .currency("total_settled", "Total Settled", "USD")
+        .currency("total_reserve_released", "Reserve Released", "USD")
+        .currency("total_chargebacks", "Chargebacks", "USD")
+        .currency("total_late_fees", "Late Fees", "USD")
+        .currency("net_to_customer", "Net to Customer", "USD")
+        .string("currency_code", "Currency")
+        .enumeration("status", "Status", vec![
+            "draft", "processed", "cancelled",
+        ])
+        .rich_text("notes", "Notes")
+        .workflow(workflow)
+        .build()
+}

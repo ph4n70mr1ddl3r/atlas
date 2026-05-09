@@ -71,7 +71,7 @@ impl DistributionSetEngine {
         }
 
         // Check for duplicate code
-        if let Some(existing) = self.repository.get_set_by_code(org_id, set_code).await? {
+        if let Some(_existing) = self.repository.get_set_by_code(org_id, set_code).await? {
             return Err(AtlasError::Conflict(format!(
                 "Distribution set code '{}' already exists", set_code
             )));

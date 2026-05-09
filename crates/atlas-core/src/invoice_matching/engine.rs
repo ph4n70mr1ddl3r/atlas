@@ -170,7 +170,8 @@ impl InvoiceMatchingEngine {
             }
         }
 
-        let mut inspection_var: f64 = 0.0;
+        #[allow(unused_assignments)]
+        let mut inspection_var: f64 = 0.0; // assigned in four_way branch
         let mut inspection_var_pct: f64 = 0.0;
         if m.match_type == "four_way" {
             if let Some(ref insp_amt_str) = m.inspection_amount {

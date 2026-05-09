@@ -6,6 +6,8 @@ use atlas_core::{
     CashFlowStatementEngine,
     ThirdPartyPaymentEngine,
     third_party_payment::PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo,
+    AutoOffsetEngine,
+    auto_offset::PostgresAutoOffsetRepository as PostgresAutoOffsetRepo,
     subscription::PostgresSubscriptionRepository,
     SubscriptionEngine,
     RevenueManagementEngine,
@@ -429,6 +431,7 @@ pub struct AppState {
     pub invoice_matching_engine: Arc<InvoiceMatchingEngine>,
     pub distribution_set_engine: Arc<DistributionSetEngine>,
     pub third_party_payment_engine: Arc<ThirdPartyPaymentEngine>,
+    pub auto_offset_engine: Arc<AutoOffsetEngine>,
     pub cash_flow_statement_engine: Arc<CashFlowStatementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
@@ -1174,6 +1177,11 @@ impl AppState {
             PostgresThirdPartyPaymentRepo::new(db_pool.clone())
         )));
 
+        // Initialize Automatic Offsets engine (Oracle Fusion: GL > Automatic Offsets)
+        let auto_offset_engine = Arc::new(AutoOffsetEngine::new(Arc::new(
+            PostgresAutoOffsetRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1359,6 +1367,7 @@ impl AppState {
             invoice_matching_engine,
             distribution_set_engine,
             third_party_payment_engine,
+            auto_offset_engine,
             cash_flow_statement_engine,
             event_bus,
             jwt_secret,

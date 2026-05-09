@@ -172,6 +172,7 @@ pub mod invoice_batch;
 pub mod doubtful_account_allowance;
 pub mod invoice_matching;
 pub mod distribution_set;
+pub mod auto_offset;
 pub mod bank_statement_reconciliation;
 pub mod third_party_payment;
 
@@ -346,6 +347,7 @@ pub use invoice_batch::{InvoiceBatchEngine, PostgresInvoiceBatchRepository};
 pub use doubtful_account_allowance::{DoubtfulAccountAllowanceEngine, PostgresDoubtfulAccountAllowanceRepository as PostgresDoubtfulAccountAllowanceRepo};
 pub use invoice_matching::{InvoiceMatchingEngine, PostgresInvoiceMatchingRepository};
 pub use distribution_set::{DistributionSetEngine, PostgresDistributionSetRepository};
+pub use auto_offset::{AutoOffsetEngine, PostgresAutoOffsetRepository as PostgresAutoOffsetRepo};
 pub use cash_flow_statement::CashFlowStatementEngine;
 pub use bank_statement_reconciliation::{BankStatementReconciliationEngine, PostgresBankStatementReconciliationRepository as PostgresBankStatementReconciliationRepo};
 pub use third_party_payment::{ThirdPartyPaymentEngine, PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo};

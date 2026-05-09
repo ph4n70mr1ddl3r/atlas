@@ -22742,3 +22742,138 @@ pub struct DistributionSetDashboard {
     pub amount_sets: i32,
     pub avg_usage_per_set: Option<String>,
 }
+
+// ============================================================================
+// Automatic Offsets (Intercompany Balancing)
+// Oracle Fusion: Financials > General Ledger > Automatic Offsets
+// ============================================================================
+
+/// Automatic Offset Template
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoOffsetTemplate {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_code: String,
+    pub template_name: String,
+    pub description: Option<String>,
+    pub balancing_segment: String,
+    pub intercompany_segment: Option<String>,
+    pub generation_method: String,
+    pub default_offset_account: String,
+    pub default_offset_account_description: Option<String>,
+    pub enable_intra_entity: bool,
+    pub intra_entity_account: Option<String>,
+    pub is_active: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// Automatic Offset Template Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoOffsetTemplateLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub template_id: Uuid,
+    pub line_number: i32,
+    pub balancing_segment_value: String,
+    pub due_to_account: String,
+    pub due_to_account_description: Option<String>,
+    pub due_from_account: String,
+    pub due_from_account_description: Option<String>,
+    pub clearing_account: Option<String>,
+    pub priority: i32,
+    pub metadata: serde_json::Value,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// Automatic Offset Generation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoOffsetGeneration {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub generation_number: String,
+    pub template_id: Uuid,
+    pub source_type: String,
+    pub source_id: Option<Uuid>,
+    pub source_number: Option<String>,
+    pub fiscal_year: i32,
+    pub period_name: String,
+    pub generation_date: chrono::NaiveDate,
+    pub currency_code: String,
+    pub total_source_lines: i32,
+    pub balancing_segments_affected: i32,
+    pub total_offset_lines: i32,
+    pub total_debit_amount: f64,
+    pub total_credit_amount: f64,
+    pub status: String,
+    pub gl_batch_id: Option<Uuid>,
+    pub posted_by: Option<Uuid>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub reversed_by: Option<Uuid>,
+    pub reversed_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// Automatic Offset Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoOffsetLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub generation_id: Uuid,
+    pub line_number: i32,
+    pub from_segment_value: String,
+    pub to_segment_value: String,
+    pub offset_type: String,
+    pub account_code: String,
+    pub account_description: Option<String>,
+    pub amount: f64,
+    pub currency_code: String,
+    pub status: String,
+    pub metadata: serde_json::Value,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// Automatic Offset Activity
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoOffsetActivity {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub generation_id: Uuid,
+    pub line_id: Option<Uuid>,
+    pub activity_type: String,
+    pub description: Option<String>,
+    pub old_status: Option<String>,
+    pub new_status: Option<String>,
+    pub performed_by: Option<Uuid>,
+    pub performed_by_name: Option<String>,
+    pub details: serde_json::Value,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
+/// Automatic Offset Dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoOffsetDashboard {
+    pub total_templates: i32,
+    pub active_templates: i32,
+    pub total_generations: i32,
+    pub generated_count: i32,
+    pub posted_count: i32,
+    pub reversed_count: i32,
+    pub total_offset_lines: i32,
+    pub total_offset_amount: f64,
+}

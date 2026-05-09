@@ -178,4 +178,6 @@ pub use services::{
     BankStatementReconciliationService,
     ReconciliationSummary,
     BankReconciliationDashboard,
+    // Automatic Offsets (Intercompany Balancing)
+    AutomaticOffsetService,
 };

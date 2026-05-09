@@ -144,6 +144,7 @@ pub mod invoice_matching;
 pub mod distribution_set;
 pub mod cash_flow_statement;
 pub mod third_party_payment;
+pub mod auto_offset;
 
 pub use schema::*;
 pub use records::*;
@@ -4749,6 +4750,38 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/third-party-payments/lines", post(third_party_payment::add_line))
         .route("/third-party-payments/:id/lines", get(third_party_payment::list_lines))
         .route("/third-party-payments/lines/:line_id", delete(third_party_payment::remove_line))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Automatic Offsets (Intercompany Balancing) (Oracle Fusion GL > Automatic Offsets)
+        // ════════════════════════════════════════════════════════════════════════════════
+
+        // Offset Templates
+        .route("/auto-offsets/templates", post(auto_offset::create_offset_template))
+        .route("/auto-offsets/templates", get(auto_offset::list_offset_templates))
+        .route("/auto-offsets/templates/:id", get(auto_offset::get_offset_template))
+        .route("/auto-offsets/templates/:id/activate", post(auto_offset::activate_offset_template))
+        .route("/auto-offsets/templates/:id/deactivate", post(auto_offset::deactivate_offset_template))
+        .route("/auto-offsets/templates/:id", delete(auto_offset::delete_offset_template))
+
+        // Template Lines
+        .route("/auto-offsets/templates/:template_id/lines", post(auto_offset::add_offset_template_line))
+        .route("/auto-offsets/templates/:template_id/lines", get(auto_offset::list_offset_template_lines))
+        .route("/auto-offsets/template-lines/:line_id", delete(auto_offset::delete_offset_template_line))
+
+        // Offset Generation
+        .route("/auto-offsets/generate", post(auto_offset::generate_offsets))
+        .route("/auto-offsets/generations", get(auto_offset::list_offset_generations))
+        .route("/auto-offsets/generations/:id", get(auto_offset::get_offset_generation))
+        .route("/auto-offsets/generations/:id/post", post(auto_offset::post_offset_generation))
+        .route("/auto-offsets/generations/:id/reverse", post(auto_offset::reverse_offset_generation))
+        .route("/auto-offsets/generations/:id/cancel", post(auto_offset::cancel_offset_generation))
+
+        // Offset Lines & Activities
+        .route("/auto-offsets/generations/:generation_id/lines", get(auto_offset::list_offset_lines))
+        .route("/auto-offsets/generations/:generation_id/activities", get(auto_offset::list_offset_activities))
+
+        // Dashboard
+        .route("/auto-offsets/dashboard", get(auto_offset::get_auto_offset_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

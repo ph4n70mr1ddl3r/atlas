@@ -33553,3 +33553,179 @@ mod tests {
         assert!((dashboard.avg_match_rate - 70.0).abs() < 0.01);
     }
 }
+
+// ============================================================================
+// Automatic Offsets Service (Intercompany Balancing)
+// ============================================================================
+
+/// Automatic Offsets Service
+/// Oracle Fusion: Financials > General Ledger > Automatic Offsets
+#[allow(dead_code)]
+pub struct AutomaticOffsetService;
+
+impl AutomaticOffsetService {
+    /// Calculate the net imbalance per balancing segment from journal lines
+    /// Returns a map of segment_value -> net_amount (positive = debit surplus, negative = credit surplus)
+    pub fn calculate_segment_imbalances(
+        lines: &[(&str, f64, f64)], // (segment_value, debit, credit)
+    ) -> std::collections::HashMap<String, f64> {
+        let mut balances = std::collections::HashMap::new();
+        for (seg, debit, credit) in lines {
+            let net = debit - credit;
+            *balances.entry(seg.to_string()).or_insert(0.0) += net;
+        }
+        balances
+    }
+
+    /// Determine if offsets are needed (any individual segment is imbalanced)
+    pub fn offsets_needed(imbalances: &std::collections::HashMap<String, f64>) -> bool {
+        // If ANY individual segment has a non-zero net, offsets are needed
+        // (even if the total across all segments sums to zero)
+        imbalances.values().any(|v| v.abs() > 0.001)
+    }
+
+    /// Calculate the offset entries needed to balance all segments
+    /// Returns a list of (from_segment, to_segment, offset_type, amount)
+    pub fn calculate_offset_entries(
+        imbalances: &std::collections::HashMap<String, f64>,
+    ) -> Vec<(String, String, String, f64)> {
+        let mut entries = Vec::new();
+        let mut surplus_segments: Vec<(&String, f64)> = Vec::new();
+        let mut deficit_segments: Vec<(&String, f64)> = Vec::new();
+
+        for (seg, balance) in imbalances {
+            if *balance > 0.001 {
+                surplus_segments.push((seg, *balance));
+            } else if *balance < -0.001 {
+                deficit_segments.push((seg, balance.abs()));
+            }
+        }
+
+        // Match surplus to deficit
+        let mut surplus_idx = 0;
+        let mut deficit_idx = 0;
+        let mut remaining_surplus = if surplus_segments.is_empty() { 0.0 } else { surplus_segments[0].1 };
+        let mut remaining_deficit = if deficit_segments.is_empty() { 0.0 } else { deficit_segments[0].1 };
+
+        while surplus_idx < surplus_segments.len() && deficit_idx < deficit_segments.len() {
+            let offset_amount = if remaining_surplus < remaining_deficit {
+                remaining_surplus
+            } else {
+                remaining_deficit
+            };
+
+            if offset_amount > 0.001 {
+                // Due-to: surplus segment owes deficit segment
+                entries.push((
+                    surplus_segments[surplus_idx].0.clone(),
+                    deficit_segments[deficit_idx].0.clone(),
+                    "due_to".to_string(),
+                    offset_amount,
+                ));
+                // Due-from: deficit segment receives from surplus segment
+                entries.push((
+                    deficit_segments[deficit_idx].0.clone(),
+                    surplus_segments[surplus_idx].0.clone(),
+                    "due_from".to_string(),
+                    offset_amount,
+                ));
+            }
+
+            remaining_surplus -= offset_amount;
+            remaining_deficit -= offset_amount;
+
+            if remaining_surplus < 0.001 && surplus_idx + 1 < surplus_segments.len() {
+                surplus_idx += 1;
+                remaining_surplus = surplus_segments[surplus_idx].1;
+            }
+            if remaining_deficit < 0.001 && deficit_idx + 1 < deficit_segments.len() {
+                deficit_idx += 1;
+                remaining_deficit = deficit_segments[deficit_idx].1;
+            }
+
+            // Safety break
+            if remaining_surplus < 0.001 && remaining_deficit < 0.001 {
+                break;
+            }
+            if surplus_idx >= surplus_segments.len() || deficit_idx >= deficit_segments.len() {
+                break;
+            }
+        }
+
+        entries
+    }
+}
+
+#[cfg(test)]
+mod auto_offset_tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_segment_imbalances_single_entity() {
+        let lines = vec![
+            ("ENT-01", 1000.0, 0.0),
+            ("ENT-01", 0.0, 1000.0),
+        ];
+        let imbalances = AutomaticOffsetService::calculate_segment_imbalances(&lines);
+        assert!(!AutomaticOffsetService::offsets_needed(&imbalances));
+    }
+
+    #[test]
+    fn test_calculate_segment_imbalances_multi_entity() {
+        let lines = vec![
+            ("ENT-01", 5000.0, 0.0),
+            ("ENT-02", 0.0, 5000.0),
+        ];
+        let imbalances = AutomaticOffsetService::calculate_segment_imbalances(&lines);
+        assert!(AutomaticOffsetService::offsets_needed(&imbalances));
+        assert_eq!(imbalances.get("ENT-01").unwrap(), &5000.0);
+        assert_eq!(imbalances.get("ENT-02").unwrap(), &-5000.0);
+    }
+
+    #[test]
+    fn test_calculate_offset_entries_simple() {
+        let mut imbalances = std::collections::HashMap::new();
+        imbalances.insert("ENT-01".to_string(), 5000.0);
+        imbalances.insert("ENT-02".to_string(), -5000.0);
+
+        let entries = AutomaticOffsetService::calculate_offset_entries(&imbalances);
+        assert_eq!(entries.len(), 2); // due-to + due-from
+
+        let due_to = entries.iter().find(|(from, to, t, _)| from == "ENT-01" && to == "ENT-02" && t == "due_to").unwrap();
+        assert!((due_to.3 - 5000.0).abs() < 0.01);
+
+        let due_from = entries.iter().find(|(from, to, t, _)| from == "ENT-02" && to == "ENT-01" && t == "due_from").unwrap();
+        assert!((due_from.3 - 5000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_calculate_offset_entries_three_entities() {
+        let mut imbalances = std::collections::HashMap::new();
+        imbalances.insert("ENT-01".to_string(), 8000.0);
+        imbalances.insert("ENT-02".to_string(), -3000.0);
+        imbalances.insert("ENT-03".to_string(), -5000.0);
+
+        let entries = AutomaticOffsetService::calculate_offset_entries(&imbalances);
+        // Should have pairs to cover 3000 + 5000 = 8000
+        assert_eq!(entries.len(), 4); // 2 due-to + 2 due-from pairs
+
+        // Total due_to amounts should equal total due_from amounts
+        let total_due_to: f64 = entries.iter().filter(|(_, _, t, _)| t == "due_to").map(|(_, _, _, a)| *a).sum();
+        let total_due_from: f64 = entries.iter().filter(|(_, _, t, _)| t == "due_from").map(|(_, _, _, a)| *a).sum();
+        assert!((total_due_to - total_due_from).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_no_offsets_when_balanced() {
+        let lines = vec![
+            ("ENT-01", 3000.0, 0.0),
+            ("ENT-02", 2000.0, 0.0),
+            ("ENT-01", 0.0, 3000.0),
+            ("ENT-02", 0.0, 2000.0),
+        ];
+        let imbalances = AutomaticOffsetService::calculate_segment_imbalances(&lines);
+        assert!(!AutomaticOffsetService::offsets_needed(&imbalances));
+        let entries = AutomaticOffsetService::calculate_offset_entries(&imbalances);
+        assert!(entries.is_empty());
+    }
+}

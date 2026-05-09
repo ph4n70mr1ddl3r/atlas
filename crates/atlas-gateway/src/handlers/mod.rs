@@ -143,6 +143,7 @@ pub mod doubtful_account_allowance;
 pub mod invoice_matching;
 pub mod distribution_set;
 pub mod cash_flow_statement;
+pub mod third_party_payment;
 
 pub use schema::*;
 pub use records::*;
@@ -4732,6 +4733,22 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/cash-flow-statements/:statement_id/lines", post(cash_flow_statement::add_cash_flow_line))
         .route("/cash-flow-statements/:statement_id/lines", get(cash_flow_statement::list_cash_flow_lines))
         .route("/cash-flow-statements/lines/:line_id", delete(cash_flow_statement::remove_cash_flow_line))
+
+        // Third-Party Payment routes
+        .route("/third-party-payments", post(third_party_payment::create_payment))
+        .route("/third-party-payments", get(third_party_payment::list_payments))
+        .route("/third-party-payments/dashboard", get(third_party_payment::get_dashboard))
+        .route("/third-party-payments/:id", get(third_party_payment::get_payment))
+        .route("/third-party-payments/:id/submit", post(third_party_payment::submit_payment))
+        .route("/third-party-payments/:id/approve", post(third_party_payment::approve_payment))
+        .route("/third-party-payments/:id/reject", post(third_party_payment::reject_payment))
+        .route("/third-party-payments/:id/hold", post(third_party_payment::place_on_hold))
+        .route("/third-party-payments/:id/release", post(third_party_payment::release_hold))
+        .route("/third-party-payments/:id/pay", post(third_party_payment::record_payment))
+        .route("/third-party-payments/:id/cancel", post(third_party_payment::cancel_payment))
+        .route("/third-party-payments/lines", post(third_party_payment::add_line))
+        .route("/third-party-payments/:id/lines", get(third_party_payment::list_lines))
+        .route("/third-party-payments/lines/:line_id", delete(third_party_payment::remove_line))
 
         .layer(middleware::from_fn(auth_middleware))
 }

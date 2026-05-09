@@ -637,6 +637,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         distribution_set_engine: Arc::new(atlas_core::DistributionSetEngine::new(Arc::new(
             atlas_core::distribution_set::PostgresDistributionSetRepository::new(db_pool.clone()),
         ))),
+        third_party_payment_engine: Arc::new(atlas_core::ThirdPartyPaymentEngine::new(Arc::new(
+            atlas_core::third_party_payment::PostgresThirdPartyPaymentRepository::new(db_pool.clone()),
+        ))),
         cash_flow_statement_engine: Arc::new(atlas_core::CashFlowStatementEngine::new(Arc::new(
             atlas_core::cash_flow_statement::PostgresCashFlowStatementRepository::new(db_pool.clone()),
         ))),

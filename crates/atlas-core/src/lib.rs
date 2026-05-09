@@ -173,6 +173,7 @@ pub mod doubtful_account_allowance;
 pub mod invoice_matching;
 pub mod distribution_set;
 pub mod bank_statement_reconciliation;
+pub mod third_party_payment;
 
 pub use schema::*;
 pub use workflow::{
@@ -347,6 +348,7 @@ pub use invoice_matching::{InvoiceMatchingEngine, PostgresInvoiceMatchingReposit
 pub use distribution_set::{DistributionSetEngine, PostgresDistributionSetRepository};
 pub use cash_flow_statement::CashFlowStatementEngine;
 pub use bank_statement_reconciliation::{BankStatementReconciliationEngine, PostgresBankStatementReconciliationRepository as PostgresBankStatementReconciliationRepo};
+pub use third_party_payment::{ThirdPartyPaymentEngine, PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

@@ -646,6 +646,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         cash_flow_statement_engine: Arc::new(atlas_core::CashFlowStatementEngine::new(Arc::new(
             atlas_core::cash_flow_statement::PostgresCashFlowStatementRepository::new(db_pool.clone()),
         ))),
+        average_balance_engine: Arc::new(atlas_core::AverageBalanceEngine::new(Arc::new(
+            atlas_core::average_balance::PostgresAverageBalanceRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

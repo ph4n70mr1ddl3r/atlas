@@ -6,6 +6,8 @@ use atlas_core::{
     CashFlowStatementEngine,
     ThirdPartyPaymentEngine,
     third_party_payment::PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo,
+    AverageBalanceEngine,
+    average_balance::PostgresAverageBalanceRepository as PostgresAverageBalanceRepo,
     AutoOffsetEngine,
     auto_offset::PostgresAutoOffsetRepository as PostgresAutoOffsetRepo,
     subscription::PostgresSubscriptionRepository,
@@ -433,6 +435,7 @@ pub struct AppState {
     pub third_party_payment_engine: Arc<ThirdPartyPaymentEngine>,
     pub auto_offset_engine: Arc<AutoOffsetEngine>,
     pub cash_flow_statement_engine: Arc<CashFlowStatementEngine>,
+    pub average_balance_engine: Arc<AverageBalanceEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1182,6 +1185,11 @@ impl AppState {
             PostgresAutoOffsetRepo::new(db_pool.clone())
         )));
 
+        // Initialize Average Balance Processing engine (Oracle Fusion: GL > Average Balances)
+        let average_balance_engine = Arc::new(AverageBalanceEngine::new(Arc::new(
+            PostgresAverageBalanceRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1368,6 +1376,7 @@ impl AppState {
             distribution_set_engine,
             third_party_payment_engine,
             auto_offset_engine,
+            average_balance_engine,
             cash_flow_statement_engine,
             event_bus,
             jwt_secret,

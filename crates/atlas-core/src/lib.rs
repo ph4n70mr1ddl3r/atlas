@@ -175,6 +175,7 @@ pub mod distribution_set;
 pub mod auto_offset;
 pub mod bank_statement_reconciliation;
 pub mod third_party_payment;
+pub mod average_balance;
 
 pub use schema::*;
 pub use workflow::{
@@ -351,6 +352,7 @@ pub use auto_offset::{AutoOffsetEngine, PostgresAutoOffsetRepository as Postgres
 pub use cash_flow_statement::CashFlowStatementEngine;
 pub use bank_statement_reconciliation::{BankStatementReconciliationEngine, PostgresBankStatementReconciliationRepository as PostgresBankStatementReconciliationRepo};
 pub use third_party_payment::{ThirdPartyPaymentEngine, PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo};
+pub use average_balance::{AverageBalanceEngine, PostgresAverageBalanceRepository as PostgresAverageBalanceRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

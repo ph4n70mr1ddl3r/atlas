@@ -143,4 +143,5 @@ mod invoice_matching;
 mod distribution_set;
 mod third_party_payment;
 mod auto_offset;
+mod average_balance;
 mod cash_flow_statement;

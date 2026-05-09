@@ -145,6 +145,7 @@ pub mod distribution_set;
 pub mod cash_flow_statement;
 pub mod third_party_payment;
 pub mod auto_offset;
+pub mod average_balance;
 
 pub use schema::*;
 pub use records::*;
@@ -4782,6 +4783,37 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/auto-offsets/dashboard", get(auto_offset::get_auto_offset_dashboard))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Average Balance Processing (Oracle Fusion GL > Average Balances)
+        // ════════════════════════════════════════════════════════════════════════════════
+
+        // Books
+        .route("/avg-balance/books", post(average_balance::create_book))
+        .route("/avg-balance/books", get(average_balance::list_books))
+        .route("/avg-balance/books/:id", get(average_balance::get_book))
+        .route("/avg-balance/books/:id/activate", post(average_balance::activate_book))
+        .route("/avg-balance/books/:id/deactivate", post(average_balance::deactivate_book))
+        .route("/avg-balance/books/:id", delete(average_balance::delete_book))
+
+        // Book Accounts
+        .route("/avg-balance/books/:book_id/accounts", post(average_balance::add_account))
+        .route("/avg-balance/books/:book_id/accounts", get(average_balance::list_accounts))
+        .route("/avg-balance/accounts/:account_id", delete(average_balance::remove_account))
+
+        // Daily Balances
+        .route("/avg-balance/books/:book_id/daily-balances", post(average_balance::upsert_daily_balance))
+        .route("/avg-balance/books/:book_id/daily-balances", get(average_balance::list_daily_balances))
+
+        // Calculations
+        .route("/avg-balance/books/:book_id/calculate", post(average_balance::calculate_average_balance))
+        .route("/avg-balance/calculations/:id", get(average_balance::get_calculation))
+        .route("/avg-balance/books/:book_id/calculations", get(average_balance::list_calculations))
+        .route("/avg-balance/calculations/:id/approve", post(average_balance::approve_calculation))
+        .route("/avg-balance/calculations/:id/post", post(average_balance::post_calculation))
+
+        // Dashboard
+        .route("/avg-balance/dashboard", get(average_balance::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

@@ -141,6 +141,7 @@ pub mod withholding_tax;
 pub mod tax_registration;
 pub mod doubtful_account_allowance;
 pub mod invoice_matching;
+pub mod distribution_set;
 
 pub use schema::*;
 pub use records::*;
@@ -4703,6 +4704,20 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/invoice-matches/lines", post(invoice_matching::add_match_line))
         .route("/invoice-matches/:id/lines", get(invoice_matching::list_match_lines))
         .route("/invoice-matches/lines/:line_id/override", post(invoice_matching::override_match_line))
+
+        // Distribution Sets (Oracle Fusion: Financials > Payables > Distribution Sets)
+        .route("/distribution-sets", post(distribution_set::create_distribution_set))
+        .route("/distribution-sets", get(distribution_set::list_distribution_sets))
+        .route("/distribution-sets/dashboard", get(distribution_set::get_distribution_set_dashboard))
+        .route("/distribution-sets/usage", get(distribution_set::list_distribution_set_usage))
+        .route("/distribution-sets/:id", get(distribution_set::get_distribution_set))
+        .route("/distribution-sets/:id/activate", post(distribution_set::activate_distribution_set))
+        .route("/distribution-sets/:id/deactivate", post(distribution_set::deactivate_distribution_set))
+        .route("/distribution-sets/:id", delete(distribution_set::delete_distribution_set))
+        .route("/distribution-sets/:set_id/lines", post(distribution_set::add_distribution_line))
+        .route("/distribution-sets/:set_id/lines", get(distribution_set::list_distribution_lines))
+        .route("/distribution-sets/lines/:line_id", delete(distribution_set::remove_distribution_line))
+        .route("/distribution-sets/:set_id/apply", post(distribution_set::apply_to_invoice))
 
         .layer(middleware::from_fn(auth_middleware))
 }

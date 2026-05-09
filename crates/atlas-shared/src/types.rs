@@ -22653,3 +22653,92 @@ pub struct DoubtfulAccountDashboard {
     pub total_outstanding_ar: String,
     pub overall_provision_rate: String,
 }
+
+// ============================================================================
+// Distribution Set Types (Oracle Fusion: Payables > Distribution Sets)
+// ============================================================================
+
+/// Distribution Set header
+/// Oracle Fusion equivalent: Financials > Payables > Setup > Distribution Sets
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DistributionSet {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub set_code: String,
+    pub set_name: String,
+    pub description: Option<String>,
+    pub distribution_type: String,
+    pub currency_code: String,
+    pub total_percentage: String,
+    pub total_amount: Option<String>,
+    pub status: String,
+    pub is_default: bool,
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub usage_count: i32,
+    pub last_used_at: Option<DateTime<Utc>>,
+    pub metadata: serde_json::Value,
+    pub created_by: Option<Uuid>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// Distribution Set Line
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DistributionSetLine {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub distribution_set_id: Uuid,
+    pub line_number: i32,
+    pub account_combination: String,
+    pub account_description: Option<String>,
+    pub segment1: Option<String>,
+    pub segment2: Option<String>,
+    pub segment3: Option<String>,
+    pub segment4: Option<String>,
+    pub segment5: Option<String>,
+    pub percentage: String,
+    pub amount: Option<String>,
+    pub description: Option<String>,
+    pub cost_center: Option<String>,
+    pub department: Option<String>,
+    pub project_code: Option<String>,
+    pub is_active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// Distribution Set Usage Log entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DistributionSetUsage {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub distribution_set_id: Uuid,
+    pub set_code: String,
+    pub target_entity_type: String,
+    pub target_entity_id: Uuid,
+    pub target_entity_number: Option<String>,
+    pub applied_by: Option<Uuid>,
+    pub applied_at: DateTime<Utc>,
+    pub line_count: i32,
+    pub total_amount: Option<String>,
+    pub metadata: serde_json::Value,
+}
+
+/// Distribution Set Dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DistributionSetDashboard {
+    pub total_sets: i32,
+    pub active_sets: i32,
+    pub inactive_sets: i32,
+    pub default_sets: i32,
+    pub total_usages: i32,
+    pub percentage_sets: i32,
+    pub amount_sets: i32,
+    pub avg_usage_per_set: Option<String>,
+}

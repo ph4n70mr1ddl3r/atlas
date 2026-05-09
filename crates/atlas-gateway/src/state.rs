@@ -197,7 +197,9 @@ use atlas_core::{
     DoubtfulAccountAllowanceEngine,
     tax_registration::PostgresTaxRegistrationRepository as PostgresTaxRegistrationRepo,
     InvoiceMatchingEngine,
+    DistributionSetEngine,
     invoice_matching::PostgresInvoiceMatchingRepository,
+    distribution_set::PostgresDistributionSetRepository,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
     eventbus::NatsEventBus,
@@ -422,6 +424,7 @@ pub struct AppState {
     pub tax_registration_engine: Arc<TaxRegistrationEngine>,
     pub doubtful_account_engine: Arc<DoubtfulAccountAllowanceEngine>,
     pub invoice_matching_engine: Arc<InvoiceMatchingEngine>,
+    pub distribution_set_engine: Arc<DistributionSetEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1151,6 +1154,11 @@ impl AppState {
             PostgresInvoiceMatchingRepository::new(db_pool.clone())
         )));
 
+        // Initialize Distribution Set engine (Oracle Fusion: Financials > Payables > Distribution Sets)
+        let distribution_set_engine = Arc::new(DistributionSetEngine::new(Arc::new(
+            PostgresDistributionSetRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1334,6 +1342,7 @@ impl AppState {
             tax_registration_engine,
             doubtful_account_engine,
             invoice_matching_engine,
+            distribution_set_engine,
             event_bus,
             jwt_secret,
         };

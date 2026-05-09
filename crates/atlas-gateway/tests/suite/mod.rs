@@ -140,3 +140,4 @@ mod withholding_tax;
 mod tax_registration;
 mod doubtful_account_allowance;
 mod invoice_matching;
+mod distribution_set;

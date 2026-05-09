@@ -169,6 +169,7 @@ pub mod payment_settlement;
 pub mod payment_process_request;
 pub mod invoice_batch;
 pub mod doubtful_account_allowance;
+pub mod invoice_matching;
 
 pub use schema::*;
 pub use workflow::{
@@ -339,6 +340,7 @@ pub use payment_settlement::{PaymentSettlementEngine, PostgresPaymentSettlementR
 pub use payment_process_request::{PaymentProcessRequestEngine, PostgresPaymentProcessRequestRepository};
 pub use invoice_batch::{InvoiceBatchEngine, PostgresInvoiceBatchRepository};
 pub use doubtful_account_allowance::{DoubtfulAccountAllowanceEngine, PostgresDoubtfulAccountAllowanceRepository as PostgresDoubtfulAccountAllowanceRepo};
+pub use invoice_matching::{InvoiceMatchingEngine, PostgresInvoiceMatchingRepository};
 
 mod mock_repos;
 pub use mock_repos::*;

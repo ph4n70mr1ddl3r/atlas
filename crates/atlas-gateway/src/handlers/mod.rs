@@ -140,6 +140,7 @@ pub mod invoice_batch;
 pub mod withholding_tax;
 pub mod tax_registration;
 pub mod doubtful_account_allowance;
+pub mod invoice_matching;
 
 pub use schema::*;
 pub use records::*;
@@ -4689,6 +4690,19 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/doubtful-account-provision-runs/:id/activities", get(doubtful_account_allowance::list_run_activities))
         // Dashboard
         .route("/doubtful-account/dashboard", get(doubtful_account_allowance::get_dashboard))
+
+        // Invoice Matching (Oracle Fusion: Financials > Payables > Invoice Matching)
+        .route("/invoice-matches", post(invoice_matching::create_match))
+        .route("/invoice-matches", get(invoice_matching::list_matches))
+        .route("/invoice-matches/dashboard", get(invoice_matching::get_invoice_matching_dashboard))
+        .route("/invoice-matches/:id", get(invoice_matching::get_match))
+        .route("/invoice-matches/:id/hold", post(invoice_matching::hold_match))
+        .route("/invoice-matches/:id/override", post(invoice_matching::override_match))
+        .route("/invoice-matches/:id/confirm", post(invoice_matching::confirm_match))
+        .route("/invoice-matches/:id/cancel", post(invoice_matching::cancel_match))
+        .route("/invoice-matches/lines", post(invoice_matching::add_match_line))
+        .route("/invoice-matches/:id/lines", get(invoice_matching::list_match_lines))
+        .route("/invoice-matches/lines/:line_id/override", post(invoice_matching::override_match_line))
 
         .layer(middleware::from_fn(auth_middleware))
 }

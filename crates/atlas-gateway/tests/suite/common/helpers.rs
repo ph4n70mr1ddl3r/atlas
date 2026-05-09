@@ -634,6 +634,12 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         invoice_matching_engine: Arc::new(atlas_core::InvoiceMatchingEngine::new(Arc::new(
             atlas_core::invoice_matching::PostgresInvoiceMatchingRepository::new(db_pool.clone()),
         ))),
+        distribution_set_engine: Arc::new(atlas_core::DistributionSetEngine::new(Arc::new(
+            atlas_core::distribution_set::PostgresDistributionSetRepository::new(db_pool.clone()),
+        ))),
+        cash_flow_statement_engine: Arc::new(atlas_core::CashFlowStatementEngine::new(Arc::new(
+            atlas_core::cash_flow_statement::PostgresCashFlowStatementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

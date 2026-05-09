@@ -3,6 +3,7 @@
 //! Shared state for all request handlers.
 
 use atlas_core::{
+    cash_flow_statement::CashFlowStatementEngine,
     subscription::PostgresSubscriptionRepository,
     SubscriptionEngine,
     RevenueManagementEngine,
@@ -425,6 +426,7 @@ pub struct AppState {
     pub doubtful_account_engine: Arc<DoubtfulAccountAllowanceEngine>,
     pub invoice_matching_engine: Arc<InvoiceMatchingEngine>,
     pub distribution_set_engine: Arc<DistributionSetEngine>,
+    pub cash_flow_statement_engine: Arc<CashFlowStatementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1159,6 +1161,11 @@ impl AppState {
             PostgresDistributionSetRepository::new(db_pool.clone())
         )));
 
+        // Initialize Cash Flow Statement engine (Oracle Fusion: GL > Financial Reports > Cash Flow Statements)
+        let cash_flow_statement_engine = Arc::new(CashFlowStatementEngine::new(Arc::new(
+            atlas_core::cash_flow_statement::PostgresCashFlowStatementRepository::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1343,6 +1350,7 @@ impl AppState {
             doubtful_account_engine,
             invoice_matching_engine,
             distribution_set_engine,
+            cash_flow_statement_engine,
             event_bus,
             jwt_secret,
         };

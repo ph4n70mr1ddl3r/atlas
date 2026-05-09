@@ -142,6 +142,7 @@ pub mod tax_registration;
 pub mod doubtful_account_allowance;
 pub mod invoice_matching;
 pub mod distribution_set;
+pub mod cash_flow_statement;
 
 pub use schema::*;
 pub use records::*;
@@ -4718,6 +4719,19 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/distribution-sets/:set_id/lines", get(distribution_set::list_distribution_lines))
         .route("/distribution-sets/lines/:line_id", delete(distribution_set::remove_distribution_line))
         .route("/distribution-sets/:set_id/apply", post(distribution_set::apply_to_invoice))
+
+        // Cash Flow Statement routes
+        .route("/cash-flow-statements", post(cash_flow_statement::create_cash_flow_statement))
+        .route("/cash-flow-statements", get(cash_flow_statement::list_cash_flow_statements))
+        .route("/cash-flow-statements/dashboard", get(cash_flow_statement::get_cash_flow_statement_dashboard))
+        .route("/cash-flow-statements/:id", get(cash_flow_statement::get_cash_flow_statement))
+        .route("/cash-flow-statements/:id/calculate", post(cash_flow_statement::calculate_cash_flow_statement))
+        .route("/cash-flow-statements/:id/review", post(cash_flow_statement::review_cash_flow_statement))
+        .route("/cash-flow-statements/:id/publish", post(cash_flow_statement::publish_cash_flow_statement))
+        .route("/cash-flow-statements/:id/archive", post(cash_flow_statement::archive_cash_flow_statement))
+        .route("/cash-flow-statements/:statement_id/lines", post(cash_flow_statement::add_cash_flow_line))
+        .route("/cash-flow-statements/:statement_id/lines", get(cash_flow_statement::list_cash_flow_lines))
+        .route("/cash-flow-statements/lines/:line_id", delete(cash_flow_statement::remove_cash_flow_line))
 
         .layer(middleware::from_fn(auth_middleware))
 }

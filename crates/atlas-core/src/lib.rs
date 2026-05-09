@@ -130,6 +130,7 @@ pub mod accounting_hub;
 pub mod financial_controls;
 pub mod revenue_management;
 pub mod cash_flow_forecast;
+pub mod cash_flow_statement;
 pub mod regulatory_reporting;
 pub mod advance_payment;
 pub mod customer_deposit;
@@ -344,6 +345,7 @@ pub use invoice_batch::{InvoiceBatchEngine, PostgresInvoiceBatchRepository};
 pub use doubtful_account_allowance::{DoubtfulAccountAllowanceEngine, PostgresDoubtfulAccountAllowanceRepository as PostgresDoubtfulAccountAllowanceRepo};
 pub use invoice_matching::{InvoiceMatchingEngine, PostgresInvoiceMatchingRepository};
 pub use distribution_set::{DistributionSetEngine, PostgresDistributionSetRepository};
+pub use cash_flow_statement::CashFlowStatementEngine;
 pub use bank_statement_reconciliation::{BankStatementReconciliationEngine, PostgresBankStatementReconciliationRepository as PostgresBankStatementReconciliationRepo};
 
 mod mock_repos;

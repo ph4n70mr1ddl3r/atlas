@@ -22515,3 +22515,141 @@ pub struct RemittanceBatchSummary {
     pub by_status: serde_json::Value,
     pub by_currency: serde_json::Value,
 }
+
+// ============================================================================
+// Doubtful Account Allowance / Bad Debt Provision
+// Oracle Fusion: Receivables > Collections > Allowance for Doubtful Accounts
+// ============================================================================
+
+/// Provision Policy definition
+/// Defines the method and parameters for calculating the allowance for doubtful accounts.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DoubtfulAccountPolicy {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub policy_code: String,
+    pub policy_name: String,
+    pub description: Option<String>,
+    /// Calculation method: aging_based, percentage_based, specific_identification
+    pub calculation_method: String,
+    /// Flat percentage for percentage_based method
+    pub flat_percentage: String,
+    /// GL account for provision credit (Allowance for Doubtful Accounts)
+    pub default_provision_account: Option<String>,
+    /// GL account for provision debit (Bad Debt Expense)
+    pub default_expense_account: Option<String>,
+    pub currency_code: String,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub is_active: bool,
+    pub status: String,
+    pub aging_buckets: Vec<AgingBucketDefinition>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Aging bucket definition within a provision policy
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgingBucketDefinition {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub policy_id: Uuid,
+    pub bucket_name: String,
+    /// Start of aging range in days (inclusive)
+    pub from_days: i32,
+    /// End of aging range in days (inclusive), None = unlimited
+    pub to_days: Option<i32>,
+    /// Percentage of outstanding balance to provision
+    pub provision_percentage: String,
+    pub display_order: i32,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Provision Run - records each execution of the provision calculation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProvisionRun {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_number: String,
+    pub policy_id: Uuid,
+    pub policy_code: String,
+    pub run_date: chrono::NaiveDate,
+    /// The date for which the provision is calculated
+    pub as_of_date: chrono::NaiveDate,
+    pub calculation_method: String,
+    /// draft, calculated, posted, reversed, cancelled
+    pub status: String,
+    pub total_outstanding_amount: String,
+    pub total_provision_amount: String,
+    pub total_prior_provision: String,
+    pub incremental_provision: String,
+    pub currency_code: String,
+    pub journal_batch_id: Option<Uuid>,
+    pub journal_entry_number: Option<String>,
+    pub description: Option<String>,
+    pub customer_count: i32,
+    pub transaction_count: i32,
+    pub posted_by: Option<Uuid>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Provision Run Detail - line-level detail per aging bucket
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProvisionRunDetail {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_id: Uuid,
+    pub bucket_id: Option<Uuid>,
+    pub bucket_name: String,
+    pub from_days: i32,
+    pub to_days: Option<i32>,
+    pub provision_percentage: String,
+    pub outstanding_amount: String,
+    pub transaction_count: i32,
+    pub customer_count: i32,
+    pub provision_amount: String,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Provision Run Activity - audit trail entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProvisionRunActivity {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub run_id: Option<Uuid>,
+    pub policy_id: Option<Uuid>,
+    pub action: String,
+    pub description: Option<String>,
+    pub performed_by: Option<Uuid>,
+    pub performed_at: DateTime<Utc>,
+    pub old_status: Option<String>,
+    pub new_status: Option<String>,
+    pub metadata: Option<serde_json::Value>,
+}
+
+/// Dashboard summary for Doubtful Account Allowance
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DoubtfulAccountDashboard {
+    pub organization_id: Uuid,
+    pub total_policies: i32,
+    pub active_policies: i32,
+    pub total_runs: i32,
+    pub draft_runs: i32,
+    pub posted_runs: i32,
+    pub latest_provision_amount: String,
+    pub latest_run_date: Option<String>,
+    pub total_outstanding_ar: String,
+    pub overall_provision_rate: String,
+}

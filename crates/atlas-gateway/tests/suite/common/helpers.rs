@@ -628,6 +628,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         tax_registration_engine: Arc::new(atlas_core::TaxRegistrationEngine::new(Arc::new(
             atlas_core::tax_registration::PostgresTaxRegistrationRepository::new(db_pool.clone()),
         ))),
+        doubtful_account_engine: Arc::new(atlas_core::DoubtfulAccountAllowanceEngine::new(Arc::new(
+            atlas_core::doubtful_account_allowance::PostgresDoubtfulAccountAllowanceRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

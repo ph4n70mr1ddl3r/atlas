@@ -139,6 +139,7 @@ pub mod payment_process_request;
 pub mod invoice_batch;
 pub mod withholding_tax;
 pub mod tax_registration;
+pub mod doubtful_account_allowance;
 
 pub use schema::*;
 pub use records::*;
@@ -4628,7 +4629,7 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/withholding-tax/suppliers/assign", post(withholding_tax::assign_supplier))
         .route("/withholding-tax/suppliers", get(withholding_tax::list_supplier_assignments))
         .route("/withholding-tax/suppliers/:supplier_id", get(withholding_tax::get_supplier_assignment))
-        .route("/withholding-tax/suppliers/:id", delete(withholding_tax::remove_supplier_assignment))
+        .route("/withholding-tax/suppliers/:supplier_id", delete(withholding_tax::remove_supplier_assignment))
 
         // Withholding Computation
         .route("/withholding-tax/compute", post(withholding_tax::compute_withholding))
@@ -4661,6 +4662,33 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/tax-registrations/:id/deregister", post(tax_registration::deregister))
         .route("/tax-registrations/:id/validate", post(tax_registration::validate_registration))
         .route("/tax-registrations/dashboard", get(tax_registration::get_summary))
+
+        // ============================================================================
+        // Doubtful Account Allowance (Oracle Fusion: Receivables > Collections > Allowance for Doubtful Accounts)
+        // ============================================================================
+        // Policies
+        .route("/doubtful-account-policies", post(doubtful_account_allowance::create_policy))
+        .route("/doubtful-account-policies", get(doubtful_account_allowance::list_policies))
+        .route("/doubtful-account-policies/code/:code", get(doubtful_account_allowance::get_policy_by_code))
+        .route("/doubtful-account-policies/:id", get(doubtful_account_allowance::get_policy))
+        .route("/doubtful-account-policies/:id/deactivate", post(doubtful_account_allowance::deactivate_policy))
+        .route("/doubtful-account-policies/:id/reactivate", post(doubtful_account_allowance::reactivate_policy))
+        // Aging Buckets
+        .route("/doubtful-account-policies/:policy_id/aging-buckets", post(doubtful_account_allowance::create_aging_bucket))
+        .route("/doubtful-account-policies/:policy_id/aging-buckets", get(doubtful_account_allowance::list_aging_buckets))
+        // Provision Runs
+        .route("/doubtful-account-provision-runs", post(doubtful_account_allowance::create_provision_run))
+        .route("/doubtful-account-provision-runs", get(doubtful_account_allowance::list_provision_runs))
+        .route("/doubtful-account-provision-runs/number/:number", get(doubtful_account_allowance::get_provision_run_by_number))
+        .route("/doubtful-account-provision-runs/:id", get(doubtful_account_allowance::get_provision_run))
+        .route("/doubtful-account-provision-runs/:id/calculate", post(doubtful_account_allowance::calculate_provision))
+        .route("/doubtful-account-provision-runs/:id/post", post(doubtful_account_allowance::post_provision))
+        .route("/doubtful-account-provision-runs/:id/reverse", post(doubtful_account_allowance::reverse_provision))
+        .route("/doubtful-account-provision-runs/:id/cancel", post(doubtful_account_allowance::cancel_provision))
+        .route("/doubtful-account-provision-runs/:id/details", get(doubtful_account_allowance::list_provision_details))
+        .route("/doubtful-account-provision-runs/:id/activities", get(doubtful_account_allowance::list_run_activities))
+        // Dashboard
+        .route("/doubtful-account/dashboard", get(doubtful_account_allowance::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

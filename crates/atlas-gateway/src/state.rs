@@ -194,6 +194,7 @@ use atlas_core::{
     WithholdingTaxEngine,
     withholding_tax::PostgresWithholdingTaxRepository,
     TaxRegistrationEngine,
+    DoubtfulAccountAllowanceEngine,
     tax_registration::PostgresTaxRegistrationRepository as PostgresTaxRegistrationRepo,
     LetterOfCreditEngine,
     letter_of_credit::PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo,
@@ -417,6 +418,7 @@ pub struct AppState {
     pub invoice_batch_engine: Arc<InvoiceBatchEngine>,
     pub withholding_tax_engine: Arc<WithholdingTaxEngine>,
     pub tax_registration_engine: Arc<TaxRegistrationEngine>,
+    pub doubtful_account_engine: Arc<DoubtfulAccountAllowanceEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1136,6 +1138,11 @@ impl AppState {
             PostgresTaxRegistrationRepo::new(db_pool.clone())
         )));
 
+        // Initialize Doubtful Account Allowance engine (Oracle Fusion: Receivables > Collections > Allowance for Doubtful Accounts)
+        let doubtful_account_engine = Arc::new(DoubtfulAccountAllowanceEngine::new(Arc::new(
+            atlas_core::PostgresDoubtfulAccountAllowanceRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1317,6 +1324,7 @@ impl AppState {
             invoice_batch_engine,
             withholding_tax_engine,
             tax_registration_engine,
+            doubtful_account_engine,
             event_bus,
             jwt_secret,
         };

@@ -174,4 +174,8 @@ pub use services::{
     SanctionsMatch,
     // Tax Registration Management
     TaxRegistrationManagementService,
+    // Bank Statement Auto-Reconciliation
+    BankStatementReconciliationService,
+    ReconciliationSummary,
+    BankReconciliationDashboard,
 };

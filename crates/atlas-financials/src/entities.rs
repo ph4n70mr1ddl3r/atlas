@@ -9324,3 +9324,70 @@ pub fn tax_registration_enhanced_definition() -> EntityDefinition {
         .workflow(workflow)
         .build()
 }
+
+// ============================================================================
+// Reconciliation Matching Rules & Exceptions
+// (supplements existing bank_statement and bank_statement_line definitions)
+// ============================================================================
+
+/// Reconciliation Matching Rule entity
+/// Oracle Fusion: Cash Management > Bank Statements > Matching Rules
+pub fn reconciliation_matching_rule_definition() -> EntityDefinition {
+    SchemaBuilder::new("reconciliation_matching_rules", "Reconciliation Matching Rule")
+        .plural_label("Reconciliation Matching Rules")
+        .table_name("fin_reconciliation_matching_rules")
+        .description("Configurable matching rules for auto-reconciliation")
+        .icon("settings")
+        .required_string("rule_name", "Rule Name")
+        .string("rule_description", "Description")
+        .integer("priority", "Priority")
+        .enumeration("match_strategy", "Match Strategy", vec![
+            "exact_amount", "amount_tolerance", "reference_match",
+            "date_range", "combined_amount_reference", "combined_amount_date",
+            "fuzzy_match",
+        ])
+        .json("match_criteria", "Match Criteria")
+        .json("target_transaction_types", "Target Transaction Types")
+        .boolean("is_active", "Active")
+        .boolean("auto_apply", "Auto Apply")
+        .build()
+}
+
+/// Reconciliation Exception entity
+/// Oracle Fusion: Cash Management > Bank Statements > Exceptions
+pub fn reconciliation_exception_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("reconciliation_exception_workflow", "open")
+        .initial_state("open", "Open")
+        .working_state("in_review", "In Review")
+        .final_state("resolved_matched", "Resolved - Matched")
+        .final_state("resolved_write_off", "Resolved - Write Off")
+        .final_state("resolved_excluded", "Resolved - Excluded")
+        .final_state("resolved_adjustment", "Resolved - Adjustment")
+        .transition("open", "in_review", "review")
+        .transition("in_review", "resolved_matched", "resolve_matched")
+        .transition("in_review", "resolved_write_off", "resolve_write_off")
+        .transition("in_review", "resolved_excluded", "resolve_excluded")
+        .transition("in_review", "resolved_adjustment", "resolve_adjustment")
+        .transition("open", "resolved_matched", "resolve_matched")
+        .build();
+
+    SchemaBuilder::new("reconciliation_exceptions", "Reconciliation Exception")
+        .plural_label("Reconciliation Exceptions")
+        .table_name("fin_reconciliation_exceptions")
+        .description("Exceptions from bank statement auto-reconciliation")
+        .icon("alert-triangle")
+        .reference("statement_id", "Statement", "bank_statements")
+        .reference("statement_line_id", "Statement Line", "bank_statement_lines")
+        .enumeration("exception_type", "Exception Type", vec![
+            "unmatched", "multiple_match", "amount_mismatch",
+            "date_out_of_range",
+        ])
+        .string("exception_reason", "Exception Reason")
+        .enumeration("resolution_status", "Resolution Status", vec![
+            "open", "resolved_matched", "resolved_write_off",
+            "resolved_excluded", "resolved_adjustment",
+        ])
+        .string("resolution_notes", "Resolution Notes")
+        .workflow(workflow)
+        .build()
+}

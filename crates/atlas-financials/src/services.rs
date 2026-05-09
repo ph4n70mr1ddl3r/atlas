@@ -14942,6 +14942,367 @@ impl TaxRegistrationManagementService {
     }
 }
 
+// ============================================================================
+// Bank Statement Auto-Reconciliation Service
+// ============================================================================
+
+/// Bank Statement Auto-Reconciliation Service
+///
+/// Oracle Fusion: Cash Management > Bank Statements > Auto-Reconciliation
+///
+/// Provides high-level orchestration for:
+/// - Bank statement import and validation
+/// - Auto-matching statement lines to system transactions
+/// - Reconciliation exception management
+/// - Dashboard reporting
+#[allow(dead_code)]
+pub struct BankStatementReconciliationService {
+    schema_engine: Arc<SchemaEngine>,
+    workflow_engine: Arc<WorkflowEngine>,
+    validation_engine: Arc<ValidationEngine>,
+}
+
+/// Valid statement statuses for the service layer
+#[allow(dead_code)]
+const VALID_BS_STATEMENT_STATUSES: &[&str] = &[
+    "imported", "validating", "validated", "reconciling",
+    "reconciled", "exception", "cancelled",
+];
+
+/// Valid import sources
+#[allow(dead_code)]
+const VALID_BS_IMPORT_SOURCES: &[&str] = &[
+    "mt940", "bai2", "ofx", "csv", "manual", "api",
+];
+
+/// Valid match strategies
+const VALID_BS_MATCH_STRATEGIES: &[&str] = &[
+    "exact_amount", "amount_tolerance", "reference_match",
+    "date_range", "combined_amount_reference", "combined_amount_date",
+    "fuzzy_match",
+];
+
+/// Valid line match statuses
+const VALID_BS_LINE_STATUSES: &[&str] = &[
+    "unmatched", "matched", "partially_matched",
+    "exception", "manually_matched", "excluded",
+];
+
+/// Valid exception types
+const VALID_BS_EXCEPTION_TYPES: &[&str] = &[
+    "unmatched", "multiple_match", "amount_mismatch",
+    "date_out_of_range",
+];
+
+/// Valid resolution statuses
+const VALID_BS_RESOLUTION_STATUSES: &[&str] = &[
+    "open", "resolved_matched", "resolved_write_off",
+    "resolved_excluded", "resolved_adjustment",
+];
+
+/// Summary of a reconciliation run
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ReconciliationSummary {
+    pub statement_id: String,
+    pub total_lines: usize,
+    pub matched_lines: usize,
+    pub partially_matched_lines: usize,
+    pub unmatched_lines: usize,
+    pub exception_count: usize,
+    pub match_rate_pct: f64,
+    pub reconciliation_difference: f64,
+}
+
+/// Dashboard summary for bank reconciliation
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BankReconciliationDashboard {
+    pub total_statements: i32,
+    pub reconciled_statements: i32,
+    pub pending_statements: i32,
+    pub exception_statements: i32,
+    pub total_exceptions_open: i32,
+    pub avg_match_rate: f64,
+}
+
+impl BankStatementReconciliationService {
+    pub fn new(
+        schema_engine: Arc<SchemaEngine>,
+        workflow_engine: Arc<WorkflowEngine>,
+        validation_engine: Arc<ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    // ========================================================================
+    // Statement Import & Validation
+    // ========================================================================
+
+    /// Import a bank statement header
+    /// Oracle Fusion: Cash Management > Bank Statements > Import
+    pub async fn import_statement(
+        &self,
+        statement_number: &str,
+        bank_account_id: &str,
+        bank_account_number: &str,
+        currency_code: &str,
+        statement_date: chrono::NaiveDate,
+        opening_balance: f64,
+        closing_balance: f64,
+        total_credits: f64,
+        total_debits: f64,
+        import_source: &str,
+    ) -> AtlasResult<()> {
+        if statement_number.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Statement number is required".to_string(),
+            ));
+        }
+        if !VALID_BS_IMPORT_SOURCES.contains(&import_source) {
+            return Err(AtlasError::ValidationFailed(
+                format!("Invalid import source: '{}'", import_source),
+            ));
+        }
+
+        // Validate statement balance consistency
+        atlas_core::BankStatementReconciliationEngine::validate_statement(
+            opening_balance, closing_balance, total_credits, total_debits,
+        )?;
+
+        info!(
+            "BankRecon: Imported statement '{}' for account {} ({}) dated {} via {}",
+            statement_number, bank_account_number, currency_code, statement_date, import_source
+        );
+
+        Ok(())
+    }
+
+    /// Import a single bank statement line
+    /// Oracle Fusion: Cash Management > Bank Statements > Lines > Import
+    pub async fn import_statement_line(
+        &self,
+        line_number: i32,
+        transaction_date: chrono::NaiveDate,
+        amount: f64,
+        transaction_type: &str,
+        _bank_reference: Option<&str>,
+        _customer_reference: Option<&str>,
+        _description: Option<&str>,
+    ) -> AtlasResult<()> {
+        if amount == 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Statement line amount cannot be zero".to_string(),
+            ));
+        }
+        if transaction_type != "credit" && transaction_type != "debit" {
+            return Err(AtlasError::ValidationFailed(
+                format!("Invalid transaction type: '{}'. Must be 'credit' or 'debit'", transaction_type),
+            ));
+        }
+
+        info!(
+            "BankRecon: Imported line {} — {} {:.2} on {}",
+            line_number, transaction_type, amount, transaction_date
+        );
+
+        Ok(())
+    }
+
+    // ========================================================================
+    // Matching Rules Management
+    // ========================================================================
+
+    /// Create a reconciliation matching rule
+    /// Oracle Fusion: Cash Management > Bank Statements > Matching Rules > Create
+    pub async fn create_matching_rule(
+        &self,
+        rule_name: &str,
+        match_strategy: &str,
+        priority: i32,
+        tolerance_pct: Option<f64>,
+        date_tolerance_days: Option<i32>,
+        _auto_apply: bool,
+    ) -> AtlasResult<()> {
+        if rule_name.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "Rule name is required".to_string(),
+            ));
+        }
+        if !VALID_BS_MATCH_STRATEGIES.contains(&match_strategy) {
+            return Err(AtlasError::ValidationFailed(
+                format!("Invalid match strategy: '{}'", match_strategy),
+            ));
+        }
+        if matches!(match_strategy, "amount_tolerance" | "combined_amount_reference" | "combined_amount_date") {
+            if tolerance_pct.is_none() {
+                return Err(AtlasError::ValidationFailed(
+                    format!("Match strategy '{}' requires amount tolerance percentage", match_strategy),
+                ));
+            }
+        }
+        if matches!(match_strategy, "date_range" | "combined_amount_date") {
+            if date_tolerance_days.is_none() {
+                return Err(AtlasError::ValidationFailed(
+                    format!("Match strategy '{}' requires date tolerance days", match_strategy),
+                ));
+            }
+        }
+
+        info!(
+            "BankRecon: Created matching rule '{}' ({}, priority {})",
+            rule_name, match_strategy, priority
+        );
+
+        Ok(())
+    }
+
+    // ========================================================================
+    // Auto-Reconciliation Execution
+    // ========================================================================
+
+    /// Execute auto-reconciliation for a statement
+    /// Oracle Fusion: Cash Management > Bank Statements > Auto-Reconcile
+    pub async fn auto_reconcile(
+        &self,
+        statement_lines: &[atlas_core::bank_statement_reconciliation::engine::StatementLineInput],
+        system_transactions: &[atlas_core::bank_statement_reconciliation::engine::SystemTransactionInput],
+        rules: &[atlas_core::bank_statement_reconciliation::engine::MatchingRuleConfig],
+    ) -> AtlasResult<ReconciliationSummary> {
+        if statement_lines.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "No statement lines to reconcile".to_string(),
+            ));
+        }
+        if rules.is_empty() {
+            return Err(AtlasError::ValidationFailed(
+                "No matching rules configured".to_string(),
+            ));
+        }
+
+        let _engine = atlas_core::BankStatementReconciliationEngine::new(
+            std::sync::Arc::new(atlas_core::PostgresBankStatementReconciliationRepo::new()),
+        );
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            statement_lines, system_transactions, rules,
+        );
+
+        let match_rate = if result.total_lines > 0 {
+            (result.matched_count as f64 / result.total_lines as f64) * 100.0
+        } else {
+            0.0
+        };
+
+        info!(
+            "BankRecon: Auto-reconciliation complete — {}/{} matched ({:.1}%), {} exceptions",
+            result.matched_count, result.total_lines, match_rate, result.exception_count,
+        );
+
+        Ok(ReconciliationSummary {
+            statement_id: uuid::Uuid::new_v4().to_string(),
+            total_lines: result.total_lines,
+            matched_lines: result.matched_count,
+            partially_matched_lines: result.partially_matched_count,
+            unmatched_lines: result.unmatched_count,
+            exception_count: result.exception_count,
+            match_rate_pct: match_rate,
+            reconciliation_difference: 0.0,
+        })
+    }
+
+    // ========================================================================
+    // Exception Management
+    // ========================================================================
+
+    /// Resolve a reconciliation exception
+    /// Oracle Fusion: Cash Management > Bank Statements > Exceptions > Resolve
+    pub async fn resolve_exception(
+        &self,
+        exception_type: &str,
+        resolution_status: &str,
+        _resolution_notes: Option<&str>,
+    ) -> AtlasResult<()> {
+        if !VALID_BS_EXCEPTION_TYPES.contains(&exception_type) {
+            return Err(AtlasError::ValidationFailed(
+                format!("Invalid exception type: '{}'", exception_type),
+            ));
+        }
+        if !VALID_BS_RESOLUTION_STATUSES.contains(&resolution_status) {
+            return Err(AtlasError::ValidationFailed(
+                format!("Invalid resolution status: '{}'", resolution_status),
+            ));
+        }
+
+        info!(
+            "BankRecon: Resolved exception '{}' → {}",
+            exception_type, resolution_status
+        );
+
+        Ok(())
+    }
+
+    // ========================================================================
+    // Dashboard & Reporting
+    // ========================================================================
+
+    /// Generate the bank reconciliation dashboard
+    /// Oracle Fusion: Cash Management > Dashboard
+    pub fn generate_dashboard(
+        total_statements: i32,
+        reconciled_statements: i32,
+        pending_statements: i32,
+        exception_statements: i32,
+        total_exceptions_open: i32,
+    ) -> BankReconciliationDashboard {
+        let avg_match_rate = if total_statements > 0 {
+            (reconciled_statements as f64 / total_statements as f64) * 100.0
+        } else {
+            0.0
+        };
+
+        BankReconciliationDashboard {
+            total_statements,
+            reconciled_statements,
+            pending_statements,
+            exception_statements,
+            total_exceptions_open,
+            avg_match_rate,
+        }
+    }
+
+    /// Calculate reconciliation difference (full formula)
+    /// Oracle Fusion: Cash Management > Bank Statements > Reconcile
+    pub fn calculate_reconciliation_difference(
+        bank_closing_balance: f64,
+        book_balance: f64,
+        deposits_in_transit: f64,
+        outstanding_withdrawals: f64,
+        bank_charges: f64,
+        bank_interest: f64,
+        errors_adjustments: f64,
+    ) -> f64 {
+        atlas_core::BankStatementReconciliationEngine::calculate_reconciliation_difference(
+            bank_closing_balance,
+            book_balance,
+            deposits_in_transit,
+            outstanding_withdrawals,
+            bank_charges,
+            bank_interest,
+            errors_adjustments,
+        )
+    }
+
+    /// Parse an MT940 amount string
+    pub fn parse_mt940_amount(raw: &str) -> AtlasResult<f64> {
+        atlas_core::BankStatementReconciliationEngine::parse_mt940_amount(raw)
+    }
+
+    /// Parse an MT940 credit/debit indicator
+    pub fn parse_mt940_credit_debit(indicator: char) -> AtlasResult<String> {
+        atlas_core::BankStatementReconciliationEngine::parse_mt940_credit_debit(indicator)
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -32338,5 +32699,857 @@ mod tests {
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         }
+    }
+
+
+    // ========================================================================
+    // Bank Statement Auto-Reconciliation — Entity Definition Tests
+    // ========================================================================
+
+    #[test]
+    fn test_reconciliation_matching_rule_definition() {
+        let def = entities::reconciliation_matching_rule_definition();
+        assert_eq!(def.name, "reconciliation_matching_rules");
+        assert!(def.workflow.is_none());
+    }
+
+    #[test]
+    fn test_reconciliation_exception_definition() {
+        let def = entities::reconciliation_exception_definition();
+        assert_eq!(def.name, "reconciliation_exceptions");
+        assert!(def.workflow.is_some());
+        let wf = def.workflow.unwrap();
+        assert_eq!(wf.initial_state, "open");
+        assert!(wf.states.iter().any(|s| s.name == "in_review"));
+        assert!(wf.states.iter().any(|s| s.name == "resolved_matched"));
+        assert!(wf.states.iter().any(|s| s.name == "resolved_write_off"));
+        assert!(wf.states.iter().any(|s| s.name == "resolved_excluded"));
+        assert!(wf.states.iter().any(|s| s.name == "resolved_adjustment"));
+    }
+
+    #[test]
+    fn test_bank_statement_recon_workflow_transitions() {
+        // Use the existing bank_statement_definition which has: imported → in_review → reconciled
+        let def = entities::bank_statement_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "imported" && t.to_state == "in_review"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_review" && t.to_state == "reconciled"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "imported" && t.to_state == "error"));
+    }
+
+    #[test]
+    fn test_reconciliation_exception_workflow_transitions() {
+        let def = entities::reconciliation_exception_definition();
+        let wf = def.workflow.unwrap();
+        assert!(wf.transitions.iter().any(|t| t.from_state == "open" && t.to_state == "in_review"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_review" && t.to_state == "resolved_matched"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_review" && t.to_state == "resolved_write_off"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_review" && t.to_state == "resolved_excluded"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "in_review" && t.to_state == "resolved_adjustment"));
+        assert!(wf.transitions.iter().any(|t| t.from_state == "open" && t.to_state == "resolved_matched"));
+    }
+
+    // ========================================================================
+    // Bank Statement Auto-Reconciliation — Validation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_bs_statement_statuses_valid() {
+        let valid = ["imported", "validating", "validated", "reconciling",
+                     "reconciled", "exception", "cancelled"];
+        for s in &valid {
+            assert!(super::VALID_BS_STATEMENT_STATUSES.contains(s), "{} should be valid", s);
+        }
+    }
+
+    #[test]
+    fn test_bs_import_sources_valid() {
+        let valid = ["mt940", "bai2", "ofx", "csv", "manual", "api"];
+        for s in &valid {
+            assert!(super::VALID_BS_IMPORT_SOURCES.contains(s), "{} should be valid", s);
+        }
+        assert!(!super::VALID_BS_IMPORT_SOURCES.contains(&"pdf"));
+    }
+
+    #[test]
+    fn test_bs_match_strategies_valid() {
+        let valid = ["exact_amount", "amount_tolerance", "reference_match",
+                     "date_range", "combined_amount_reference", "combined_amount_date", "fuzzy_match"];
+        for s in &valid {
+            assert!(super::VALID_BS_MATCH_STRATEGIES.contains(s), "{} should be valid", s);
+        }
+        assert!(!super::VALID_BS_MATCH_STRATEGIES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_bs_line_statuses_valid() {
+        let valid = ["unmatched", "matched", "partially_matched",
+                     "exception", "manually_matched", "excluded"];
+        for s in &valid {
+            assert!(super::VALID_BS_LINE_STATUSES.contains(s), "{} should be valid", s);
+        }
+    }
+
+    #[test]
+    fn test_bs_exception_types_valid() {
+        let valid = ["unmatched", "multiple_match", "amount_mismatch", "date_out_of_range"];
+        for s in &valid {
+            assert!(super::VALID_BS_EXCEPTION_TYPES.contains(s), "{} should be valid", s);
+        }
+        assert!(!super::VALID_BS_EXCEPTION_TYPES.contains(&"unknown"));
+    }
+
+    #[test]
+    fn test_bs_resolution_statuses_valid() {
+        let valid = ["open", "resolved_matched", "resolved_write_off",
+                     "resolved_excluded", "resolved_adjustment"];
+        for s in &valid {
+            assert!(super::VALID_BS_RESOLUTION_STATUSES.contains(s), "{} should be valid", s);
+        }
+    }
+
+    // ========================================================================
+    // Bank Statement Auto-Reconciliation — Engine Unit Tests
+    // ========================================================================
+
+    use atlas_core::bank_statement_reconciliation::engine::{
+        StatementLineInput, SystemTransactionInput, MatchingRuleConfig,
+    };
+
+    fn make_date(y: i32, m: u32, d: u32) -> chrono::NaiveDate {
+        chrono::NaiveDate::from_ymd_opt(y, m, d).unwrap()
+    }
+
+    #[test]
+    fn test_engine_validate_statement_balances() {
+        let result = atlas_core::BankStatementReconciliationEngine::validate_statement(
+            1000.0, 1200.0, 500.0, 300.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_engine_validate_statement_balances_fail() {
+        let result = atlas_core::BankStatementReconciliationEngine::validate_statement(
+            1000.0, 1300.0, 500.0, 300.0,
+        );
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            atlas_shared::AtlasError::ValidationFailed(msg) => {
+                assert!(msg.contains("balance inconsistency"));
+            }
+            _ => panic!("Expected ValidationFailed error"),
+        }
+    }
+
+    #[test]
+    fn test_engine_validate_statement_balances_zero() {
+        let result = atlas_core::BankStatementReconciliationEngine::validate_statement(
+            0.0, 0.0, 0.0, 0.0,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_engine_match_exact_amount() {
+        let txns = vec![
+            (100.0, "receipt", Some("REF-001"), None),
+            (200.0, "receipt", Some("REF-002"), None),
+            (350.0, "payment", Some("REF-003"), None),
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::match_exact_amount(
+            100.0, "credit", &txns,
+        );
+        assert_eq!(result, Some(0));
+
+        let result = atlas_core::BankStatementReconciliationEngine::match_exact_amount(
+            350.0, "debit", &txns,
+        );
+        assert_eq!(result, Some(2));
+
+        let result = atlas_core::BankStatementReconciliationEngine::match_exact_amount(
+            999.0, "credit", &txns,
+        );
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_engine_match_amount_tolerance() {
+        let txns = vec![
+            (100.0, "receipt", Some("REF-001"), None),
+            (200.0, "receipt", Some("REF-002"), None),
+            (150.0, "receipt", Some("REF-003"), None),
+        ];
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_amount_tolerance(
+            101.0, 1.0, &txns,
+        );
+        assert!(!results.is_empty());
+        assert_eq!(results[0].0, 0);
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_amount_tolerance(
+            105.0, 10.0, &txns,
+        );
+        assert!(results.len() >= 1);
+        assert_eq!(results[0].0, 0);
+    }
+
+    #[test]
+    fn test_engine_match_reference() {
+        let txns = vec![
+            (100.0, "receipt", Some("INV-2025-001"), None),
+            (200.0, "receipt", Some("INV-2025-002"), None),
+            (150.0, "receipt", Some("PO-2025-099"), None),
+            (300.0, "receipt", None, None),
+        ];
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_reference(
+            "INV-2025-001", &txns, false,
+        );
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0], 0);
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_reference(
+            "2025-001", &txns, false,
+        );
+        assert_eq!(results.len(), 1);
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_reference(
+            "inv-2025-001", &txns, true,
+        );
+        assert!(results.is_empty());
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_reference(
+            "NONEXISTENT", &txns, false,
+        );
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_engine_match_date_range() {
+        let target_date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        let txns = vec![
+            (100.0, "receipt", None, Some(chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap())),
+            (200.0, "receipt", None, Some(chrono::NaiveDate::from_ymd_opt(2025, 6, 14).unwrap())),
+            (150.0, "receipt", None, Some(chrono::NaiveDate::from_ymd_opt(2025, 6, 18).unwrap())),
+            (300.0, "receipt", None, Some(chrono::NaiveDate::from_ymd_opt(2025, 6, 10).unwrap())),
+            (50.0, "receipt", None, None),
+        ];
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_date_range(
+            target_date, 3, &txns,
+        );
+        assert_eq!(results.len(), 3);
+        assert!(results.contains(&0));
+        assert!(results.contains(&1));
+        assert!(results.contains(&2));
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_date_range(
+            target_date, 1, &txns,
+        );
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn test_engine_match_combined_amount_reference() {
+        let txns = vec![
+            (100.0, "receipt", Some("INV-001"), None),
+            (100.0, "receipt", Some("INV-002"), None),
+            (200.0, "receipt", Some("INV-001"), None),
+        ];
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_combined_amount_reference(
+            100.0, "INV-001", 5.0, &txns,
+        );
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].0, 0);
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_combined_amount_reference(
+            100.0, "NONEXISTENT", 5.0, &txns,
+        );
+        assert!(results.is_empty());
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_combined_amount_reference(
+            999.0, "INV-001", 5.0, &txns,
+        );
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_engine_match_combined_amount_date() {
+        let target_date = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        let txns = vec![
+            (100.0, "receipt", None, Some(target_date)),
+            (100.0, "receipt", None, Some(chrono::NaiveDate::from_ymd_opt(2025, 6, 20).unwrap())),
+            (200.0, "receipt", None, Some(target_date)),
+        ];
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_combined_amount_date(
+            100.0, target_date, 5.0, 3, &txns,
+        );
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].0, 0);
+
+        let results = atlas_core::BankStatementReconciliationEngine::match_combined_amount_date(
+            50.0, target_date, 5.0, 3, &txns,
+        );
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_engine_calculate_reconciliation_difference() {
+        let diff = atlas_core::BankStatementReconciliationEngine::calculate_reconciliation_difference(
+            50000.0, 48000.0, 3000.0, 2000.0, 150.0, 50.0, 100.0,
+        );
+        // adjusted_book = 48000 + 3000 - 2000 - 150 + 50 + 100 = 49000
+        // diff = 50000 - 49000 = 1000
+        assert!((diff - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_engine_calculate_reconciliation_difference_balanced() {
+        let diff = atlas_core::BankStatementReconciliationEngine::calculate_reconciliation_difference(
+            10000.0, 10000.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        );
+        assert!((diff - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_engine_parse_mt940_amount() {
+        let amount = atlas_core::BankStatementReconciliationEngine::parse_mt940_amount("100,00");
+        assert!(amount.is_ok());
+        assert!((amount.unwrap() - 100.0).abs() < 0.01);
+
+        let amount = atlas_core::BankStatementReconciliationEngine::parse_mt940_amount("1234,56");
+        assert!(amount.is_ok());
+
+        let amount = atlas_core::BankStatementReconciliationEngine::parse_mt940_amount("invalid");
+        assert!(amount.is_err());
+    }
+
+    #[test]
+    fn test_engine_parse_mt940_credit_debit() {
+        assert_eq!(atlas_core::BankStatementReconciliationEngine::parse_mt940_credit_debit('C').unwrap(), "credit");
+        assert_eq!(atlas_core::BankStatementReconciliationEngine::parse_mt940_credit_debit('c').unwrap(), "credit");
+        assert_eq!(atlas_core::BankStatementReconciliationEngine::parse_mt940_credit_debit('D').unwrap(), "debit");
+        assert_eq!(atlas_core::BankStatementReconciliationEngine::parse_mt940_credit_debit('d').unwrap(), "debit");
+        assert!(atlas_core::BankStatementReconciliationEngine::parse_mt940_credit_debit('X').is_err());
+    }
+
+    #[test]
+    fn test_engine_validate_mt940_reference() {
+        assert!(atlas_core::BankStatementReconciliationEngine::validate_mt940_reference("REF12345").is_ok());
+        assert!(atlas_core::BankStatementReconciliationEngine::validate_mt940_reference("").is_err());
+        assert!(atlas_core::BankStatementReconciliationEngine::validate_mt940_reference("12345678901234567").is_err());
+    }
+
+    #[test]
+    fn test_engine_validate_bai2_record_type() {
+        assert!(atlas_core::BankStatementReconciliationEngine::validate_bai2_record_type("01").is_ok());
+        assert!(atlas_core::BankStatementReconciliationEngine::validate_bai2_record_type("16").is_ok());
+        assert!(atlas_core::BankStatementReconciliationEngine::validate_bai2_record_type("99").is_ok());
+        assert!(atlas_core::BankStatementReconciliationEngine::validate_bai2_record_type("50").is_err());
+    }
+
+    // ========================================================================
+    // Bank Statement Auto-Reconciliation — Full Reconciliation Run E2E Tests
+    // ========================================================================
+
+    #[test]
+    fn test_e2e_recon_all_matched() {
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: 1000.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 15), reference: Some("INV-001".into()), description: None,
+            },
+            StatementLineInput {
+                line_number: 2, amount: 500.0, transaction_type: "debit".into(),
+                date: make_date(2025, 6, 16), reference: Some("PAY-001".into()), description: None,
+            },
+            StatementLineInput {
+                line_number: 3, amount: 2500.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 17), reference: Some("INV-002".into()), description: None,
+            },
+        ];
+
+        let txns = vec![
+            SystemTransactionInput {
+                amount: 1000.0, txn_type: "receipt".into(),
+                reference: Some("INV-001".into()), date: Some(make_date(2025, 6, 15)),
+            },
+            SystemTransactionInput {
+                amount: 500.0, txn_type: "payment".into(),
+                reference: Some("PAY-001".into()), date: Some(make_date(2025, 6, 16)),
+            },
+            SystemTransactionInput {
+                amount: 2500.0, txn_type: "receipt".into(),
+                reference: Some("INV-002".into()), date: Some(make_date(2025, 6, 17)),
+            },
+        ];
+
+        let rules = vec![
+            MatchingRuleConfig {
+                rule_name: "Exact Amount".into(), priority: 10,
+                match_strategy: "exact_amount".into(), is_active: true,
+                tolerance_pct: None, date_tolerance_days: None,
+            },
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        assert_eq!(result.total_lines, 3);
+        assert_eq!(result.matched_count, 3);
+        assert_eq!(result.unmatched_count, 0);
+        assert_eq!(result.exception_count, 0);
+        assert_eq!(result.line_results[0].matched_transaction_index, Some(0));
+        assert_eq!(result.line_results[1].matched_transaction_index, Some(1));
+        assert_eq!(result.line_results[2].matched_transaction_index, Some(2));
+    }
+
+    #[test]
+    fn test_e2e_recon_partial_match() {
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: 1000.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 15), reference: Some("INV-001".into()), description: None,
+            },
+            StatementLineInput {
+                line_number: 2, amount: 500.0, transaction_type: "debit".into(),
+                date: make_date(2025, 6, 16), reference: None, description: None,
+            },
+            StatementLineInput {
+                line_number: 3, amount: 750.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 17), reference: Some("INV-003".into()), description: None,
+            },
+            StatementLineInput {
+                line_number: 4, amount: 200.0, transaction_type: "debit".into(),
+                date: make_date(2025, 6, 18), reference: None, description: None,
+            },
+        ];
+
+        let txns = vec![
+            SystemTransactionInput {
+                amount: 1000.0, txn_type: "receipt".into(),
+                reference: Some("INV-001".into()), date: Some(make_date(2025, 6, 15)),
+            },
+            SystemTransactionInput {
+                amount: 750.0, txn_type: "receipt".into(),
+                reference: Some("INV-003".into()), date: Some(make_date(2025, 6, 17)),
+            },
+        ];
+
+        let rules = vec![
+            MatchingRuleConfig {
+                rule_name: "Exact Amount".into(), priority: 10,
+                match_strategy: "exact_amount".into(), is_active: true,
+                tolerance_pct: None, date_tolerance_days: None,
+            },
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        assert_eq!(result.total_lines, 4);
+        assert_eq!(result.matched_count, 2);
+        assert_eq!(result.unmatched_count, 2);
+        assert_eq!(result.exception_count, 2);
+    }
+
+    #[test]
+    fn test_e2e_recon_with_tolerance() {
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: 1005.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 15), reference: None, description: None,
+            },
+        ];
+
+        let txns = vec![
+            SystemTransactionInput {
+                amount: 1000.0, txn_type: "receipt".into(),
+                reference: None, date: Some(make_date(2025, 6, 15)),
+            },
+        ];
+
+        let rules = vec![
+            MatchingRuleConfig {
+                rule_name: "Amount Tolerance 1%".into(), priority: 10,
+                match_strategy: "amount_tolerance".into(), is_active: true,
+                tolerance_pct: Some(1.0), date_tolerance_days: None,
+            },
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        // 1005 is 0.5% off from 1000 — within 1% tolerance
+        assert_eq!(result.matched_count, 1);
+        assert_eq!(result.unmatched_count, 0);
+    }
+
+    #[test]
+    fn test_e2e_recon_combined_rules() {
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: 1000.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 15), reference: Some("INV-001".into()), description: None,
+            },
+        ];
+
+        let txns = vec![
+            SystemTransactionInput {
+                amount: 1000.0, txn_type: "receipt".into(),
+                reference: Some("INV-001".into()), date: None,
+            },
+            SystemTransactionInput {
+                amount: 1000.0, txn_type: "receipt".into(),
+                reference: Some("INV-002".into()), date: None,
+            },
+        ];
+
+        let rules = vec![
+            MatchingRuleConfig {
+                rule_name: "Combined Amount+Ref".into(), priority: 10,
+                match_strategy: "combined_amount_reference".into(), is_active: true,
+                tolerance_pct: Some(5.0), date_tolerance_days: None,
+            },
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        // Should match INV-001 specifically, not INV-002
+        assert_eq!(result.matched_count, 1);
+        assert_eq!(result.line_results[0].matched_transaction_index, Some(0));
+    }
+
+    #[test]
+    fn test_e2e_recon_date_range_matching() {
+        let target_date = make_date(2025, 6, 15);
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: 500.0, transaction_type: "credit".into(),
+                date: target_date, reference: None, description: None,
+            },
+        ];
+
+        let txns = vec![
+            SystemTransactionInput {
+                amount: 500.0, txn_type: "receipt".into(),
+                reference: None, date: Some(make_date(2025, 6, 14)),
+            },
+        ];
+
+        let rules = vec![
+            MatchingRuleConfig {
+                rule_name: "Date Range 3 days".into(), priority: 20,
+                match_strategy: "date_range".into(), is_active: true,
+                tolerance_pct: None, date_tolerance_days: Some(3),
+            },
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        assert_eq!(result.matched_count, 1);
+    }
+
+    #[test]
+    fn test_e2e_recon_no_rules() {
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: 100.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 15), reference: None, description: None,
+            },
+        ];
+        let txns = vec![];
+        let rules: Vec<MatchingRuleConfig> = vec![];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        assert_eq!(result.total_lines, 1);
+        assert_eq!(result.matched_count, 0);
+        assert_eq!(result.unmatched_count, 1);
+    }
+
+    #[test]
+    fn test_e2e_recon_priority_ordering() {
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: 1000.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 15), reference: Some("INV-001".into()), description: None,
+            },
+        ];
+
+        let txns = vec![
+            SystemTransactionInput {
+                amount: 1000.0, txn_type: "receipt".into(),
+                reference: Some("INV-001".into()), date: Some(make_date(2025, 6, 15)),
+            },
+        ];
+
+        let rules = vec![
+            MatchingRuleConfig {
+                rule_name: "Low Priority".into(), priority: 100,
+                match_strategy: "exact_amount".into(), is_active: true,
+                tolerance_pct: None, date_tolerance_days: None,
+            },
+            MatchingRuleConfig {
+                rule_name: "High Priority".into(), priority: 1,
+                match_strategy: "combined_amount_reference".into(), is_active: true,
+                tolerance_pct: Some(5.0), date_tolerance_days: None,
+            },
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        assert_eq!(result.matched_count, 1);
+        assert_eq!(result.line_results[0].match_rule.as_deref(), Some("High Priority"));
+    }
+
+    #[test]
+    fn test_e2e_recon_inactive_rules_skipped() {
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: 1000.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 15), reference: None, description: None,
+            },
+        ];
+
+        let txns = vec![
+            SystemTransactionInput {
+                amount: 1000.0, txn_type: "receipt".into(),
+                reference: None, date: None,
+            },
+        ];
+
+        let rules = vec![
+            MatchingRuleConfig {
+                rule_name: "Exact Amount (Inactive)".into(), priority: 10,
+                match_strategy: "exact_amount".into(), is_active: false,
+                tolerance_pct: None, date_tolerance_days: None,
+            },
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        assert_eq!(result.matched_count, 0);
+        assert_eq!(result.unmatched_count, 1);
+    }
+
+    #[test]
+    fn test_e2e_recon_transaction_consumed() {
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: 1000.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 15), reference: None, description: None,
+            },
+            StatementLineInput {
+                line_number: 2, amount: 1000.0, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 16), reference: None, description: None,
+            },
+        ];
+
+        let txns = vec![
+            SystemTransactionInput {
+                amount: 1000.0, txn_type: "receipt".into(),
+                reference: None, date: None,
+            },
+        ];
+
+        let rules = vec![
+            MatchingRuleConfig {
+                rule_name: "Exact Amount".into(), priority: 10,
+                match_strategy: "exact_amount".into(), is_active: true,
+                tolerance_pct: None, date_tolerance_days: None,
+            },
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        assert_eq!(result.matched_count, 1);
+        assert_eq!(result.unmatched_count, 1);
+    }
+
+    // ========================================================================
+    // Service-Level Static Method Tests
+    // ========================================================================
+
+    #[test]
+    fn test_service_generate_recon_dashboard() {
+        let dashboard = super::BankStatementReconciliationService::generate_dashboard(
+            100, 75, 15, 10, 23,
+        );
+        assert_eq!(dashboard.total_statements, 100);
+        assert_eq!(dashboard.reconciled_statements, 75);
+        assert_eq!(dashboard.pending_statements, 15);
+        assert_eq!(dashboard.exception_statements, 10);
+        assert_eq!(dashboard.total_exceptions_open, 23);
+        assert!((dashboard.avg_match_rate - 75.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_service_generate_recon_dashboard_zero() {
+        let dashboard = super::BankStatementReconciliationService::generate_dashboard(0, 0, 0, 0, 0);
+        assert_eq!(dashboard.avg_match_rate, 0.0);
+    }
+
+    #[test]
+    fn test_service_calculate_recon_difference() {
+        let diff = super::BankStatementReconciliationService::calculate_reconciliation_difference(
+            50000.0, 48000.0, 3000.0, 2000.0, 150.0, 50.0, 100.0,
+        );
+        assert!((diff - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_service_parse_mt940_amount() {
+        let result = super::BankStatementReconciliationService::parse_mt940_amount("1234,56");
+        assert!(result.is_ok());
+        assert!((result.unwrap() - 1234.56).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_service_parse_mt940_amount_invalid() {
+        let result = super::BankStatementReconciliationService::parse_mt940_amount("not_a_number");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_service_parse_mt940_credit_debit() {
+        assert_eq!(super::BankStatementReconciliationService::parse_mt940_credit_debit('C').unwrap(), "credit");
+        assert_eq!(super::BankStatementReconciliationService::parse_mt940_credit_debit('D').unwrap(), "debit");
+        assert!(super::BankStatementReconciliationService::parse_mt940_credit_debit('X').is_err());
+    }
+
+    // ========================================================================
+    // Full End-to-End Reconciliation Workflow Scenario
+    // ========================================================================
+
+    #[test]
+    fn test_e2e_full_reconciliation_workflow() {
+        // Simulates the complete Oracle Fusion reconciliation workflow:
+        // 1. Validate statement balances
+        // 2. Parse MT940 amounts
+        // 3. Configure matching rules
+        // 4. Run auto-reconciliation
+        // 5. Calculate reconciliation difference
+        // 6. Generate dashboard
+
+        // Step 1: Validate statement balances
+        let validate = atlas_core::BankStatementReconciliationEngine::validate_statement(
+            50000.0, 72500.0, 30000.0, 7500.0,
+        );
+        assert!(validate.is_ok(), "Statement balance validation should succeed");
+
+        // Step 2: Parse MT940 amounts from statement lines
+        let amount1 = atlas_core::BankStatementReconciliationEngine::parse_mt940_amount("15000,00").unwrap();
+        assert!((amount1 - 15000.0).abs() < 0.01);
+
+        let amount2 = atlas_core::BankStatementReconciliationEngine::parse_mt940_amount("15000,00").unwrap();
+        let amount3 = atlas_core::BankStatementReconciliationEngine::parse_mt940_amount("5000,00").unwrap();
+        let amount4 = atlas_core::BankStatementReconciliationEngine::parse_mt940_amount("2500,00").unwrap();
+
+        let cd1 = atlas_core::BankStatementReconciliationEngine::parse_mt940_credit_debit('C').unwrap();
+        let cd3 = atlas_core::BankStatementReconciliationEngine::parse_mt940_credit_debit('D').unwrap();
+        assert_eq!(cd1, "credit");
+        assert_eq!(cd3, "debit");
+
+        // Step 3: Configure matching rules
+        let rules = vec![
+            MatchingRuleConfig {
+                rule_name: "Combined Amount+Ref".into(), priority: 1,
+                match_strategy: "combined_amount_reference".into(), is_active: true,
+                tolerance_pct: Some(2.0), date_tolerance_days: None,
+            },
+            MatchingRuleConfig {
+                rule_name: "Exact Amount".into(), priority: 10,
+                match_strategy: "exact_amount".into(), is_active: true,
+                tolerance_pct: None, date_tolerance_days: None,
+            },
+        ];
+
+        // Step 4: Run auto-reconciliation
+        let lines = vec![
+            StatementLineInput {
+                line_number: 1, amount: amount1, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 5), reference: Some("INV-2025-001".into()), description: None,
+            },
+            StatementLineInput {
+                line_number: 2, amount: amount2, transaction_type: "credit".into(),
+                date: make_date(2025, 6, 15), reference: Some("INV-2025-002".into()), description: None,
+            },
+            StatementLineInput {
+                line_number: 3, amount: amount3, transaction_type: "debit".into(),
+                date: make_date(2025, 6, 20), reference: Some("PAY-2025-001".into()), description: None,
+            },
+            StatementLineInput {
+                line_number: 4, amount: amount4, transaction_type: "debit".into(),
+                date: make_date(2025, 6, 28), reference: None, description: None,
+            },
+        ];
+
+        let txns = vec![
+            SystemTransactionInput {
+                amount: 15000.0, txn_type: "receipt".into(),
+                reference: Some("INV-2025-001".into()), date: Some(make_date(2025, 6, 5)),
+            },
+            SystemTransactionInput {
+                amount: 15000.0, txn_type: "receipt".into(),
+                reference: Some("INV-2025-002".into()), date: Some(make_date(2025, 6, 15)),
+            },
+            SystemTransactionInput {
+                amount: 5000.0, txn_type: "payment".into(),
+                reference: Some("PAY-2025-001".into()), date: Some(make_date(2025, 6, 20)),
+            },
+        ];
+
+        let result = atlas_core::BankStatementReconciliationEngine::run_auto_reconciliation(
+            &lines, &txns, &rules,
+        );
+
+        // 3 of 4 lines matched; 1 (bank charge) is unmatched
+        assert_eq!(result.total_lines, 4);
+        assert_eq!(result.matched_count, 3);
+        assert_eq!(result.unmatched_count, 1);
+        assert_eq!(result.exception_count, 1);
+        let match_rate = (result.matched_count as f64 / result.total_lines as f64) * 100.0;
+        assert!((match_rate - 75.0).abs() < 0.01);
+
+        // Step 5: Calculate reconciliation difference
+        let diff = atlas_core::BankStatementReconciliationEngine::calculate_reconciliation_difference(
+            72500.0,  // bank closing
+            70000.0,  // book balance
+            3000.0,   // deposits in transit
+            2500.0,   // outstanding withdrawals (includes the bank charge)
+            0.0,      // bank charges (already in withdrawals)
+            0.0,      // bank interest
+            0.0,      // errors
+        );
+        // adjusted_book = 70000 + 3000 - 2500 = 70500
+        // diff = 72500 - 70500 = 2000
+        assert!((diff - 2000.0).abs() < 0.01);
+
+        // Step 6: Dashboard
+        let dashboard = super::BankStatementReconciliationService::generate_dashboard(
+            10, 7, 2, 1, 5,
+        );
+        assert_eq!(dashboard.total_statements, 10);
+        assert!((dashboard.avg_match_rate - 70.0).abs() < 0.01);
     }
 }

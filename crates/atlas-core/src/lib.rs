@@ -171,6 +171,7 @@ pub mod invoice_batch;
 pub mod doubtful_account_allowance;
 pub mod invoice_matching;
 pub mod distribution_set;
+pub mod bank_statement_reconciliation;
 
 pub use schema::*;
 pub use workflow::{
@@ -343,6 +344,7 @@ pub use invoice_batch::{InvoiceBatchEngine, PostgresInvoiceBatchRepository};
 pub use doubtful_account_allowance::{DoubtfulAccountAllowanceEngine, PostgresDoubtfulAccountAllowanceRepository as PostgresDoubtfulAccountAllowanceRepo};
 pub use invoice_matching::{InvoiceMatchingEngine, PostgresInvoiceMatchingRepository};
 pub use distribution_set::{DistributionSetEngine, PostgresDistributionSetRepository};
+pub use bank_statement_reconciliation::{BankStatementReconciliationEngine, PostgresBankStatementReconciliationRepository as PostgresBankStatementReconciliationRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

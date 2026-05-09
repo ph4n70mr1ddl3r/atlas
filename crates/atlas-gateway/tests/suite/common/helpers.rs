@@ -649,6 +649,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         average_balance_engine: Arc::new(atlas_core::AverageBalanceEngine::new(Arc::new(
             atlas_core::average_balance::PostgresAverageBalanceRepository::new(db_pool.clone()),
         ))),
+        statistical_accounting_engine: Arc::new(atlas_core::StatisticalAccountingEngine::new(Arc::new(
+            atlas_core::statistical_accounting::PostgresStatisticalAccountingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1219,4 +1222,10 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     // Clean tax registration test data
     sqlx::query("DELETE FROM _atlas.tax_registration_activities").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.tax_registrations").execute(pool).await.ok();
-}
+
+    // Clean statistical accounting test data
+    sqlx::query("DELETE FROM financials.statistical_entry_audit").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.statistical_balances").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.statistical_entries").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.statistical_units").execute(pool).await.ok();
+} 

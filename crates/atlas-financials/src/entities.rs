@@ -9391,3 +9391,67 @@ pub fn reconciliation_exception_definition() -> EntityDefinition {
         .workflow(workflow)
         .build()
 }
+
+// ============================================================================
+// Statistical Accounting (Oracle Fusion: Financials > GL > Statistical Accounting)
+// ============================================================================
+
+/// Statistical Unit entity
+/// Oracle Fusion: General Ledger > Statistical Accounting > Units
+pub fn statistical_unit_definition() -> EntityDefinition {
+    SchemaBuilder::new("statistical_units", "Statistical Unit")
+        .plural_label("Statistical Units")
+        .table_name("fin_statistical_units")
+        .description("Non-monetary measurement units for statistical accounting")
+        .icon("ruler")
+        .required_string("code", "Code")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .enumeration("stat_type", "Type", vec![
+            "headcount", "square_footage", "units_produced", "machine_hours",
+            "labor_hours", "transactions", "vehicles", "lines_of_code", "custom",
+        ])
+        .enumeration("unit_of_measure", "Unit of Measure", vec![
+            "people", "sqft", "sqm", "units", "hours", "transactions", "vehicles", "kloc", "each",
+        ])
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Statistical Entry entity with workflow
+/// Oracle Fusion: General Ledger > Statistical Accounting > Entries
+pub fn statistical_entry_definition() -> EntityDefinition {
+    let workflow = WorkflowBuilder::new("statistical_entry_workflow", "draft")
+        .initial_state("draft", "Draft")
+        .final_state("posted", "Posted")
+        .final_state("reversed", "Reversed")
+        .transition("draft", "posted", "post")
+        .transition("posted", "reversed", "reverse")
+        .build();
+
+    SchemaBuilder::new("statistical_entries", "Statistical Entry")
+        .plural_label("Statistical Entries")
+        .table_name("fin_statistical_entries")
+        .description("Statistical journal entries tracking non-monetary quantities")
+        .icon("chart-bar")
+        .required_string("entry_number", "Entry Number")
+        .reference("statistical_unit_id", "Statistical Unit", "statistical_units")
+        .string("statistical_unit_code", "Unit Code")
+        .string("account_code", "Account Code")
+        .string("dimension1", "Dimension 1")
+        .string("dimension2", "Dimension 2")
+        .string("dimension3", "Dimension 3")
+        .integer("fiscal_year", "Fiscal Year")
+        .integer("period_number", "Period Number")
+        .decimal("quantity", "Quantity", 18, 4)
+        .decimal("unit_cost", "Unit Cost", 18, 4)
+        .currency("extended_amount", "Extended Amount", "USD")
+        .enumeration("status", "Status", vec![
+            "draft", "posted", "reversed",
+        ])
+        .string("source_type", "Source Type")
+        .string("source_number", "Source Number")
+        .string("description", "Description")
+        .workflow(workflow)
+        .build()
+}

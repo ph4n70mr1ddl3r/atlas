@@ -146,6 +146,7 @@ pub mod cash_flow_statement;
 pub mod third_party_payment;
 pub mod auto_offset;
 pub mod average_balance;
+pub mod statistical_accounting;
 
 pub use schema::*;
 pub use records::*;
@@ -4814,6 +4815,31 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/avg-balance/dashboard", get(average_balance::get_dashboard))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Statistical Accounting (Oracle Fusion GL > Statistical Accounting)
+        // ════════════════════════════════════════════════════════════════════════════════
+
+        // Units
+        .route("/statistical-units", post(statistical_accounting::create_unit))
+        .route("/statistical-units", get(statistical_accounting::list_units))
+        .route("/statistical-units/code/:code", get(statistical_accounting::get_unit_by_code))
+        .route("/statistical-units/:id", get(statistical_accounting::get_unit))
+        .route("/statistical-units/:id/activate", post(statistical_accounting::activate_unit))
+        .route("/statistical-units/:id/deactivate", post(statistical_accounting::deactivate_unit))
+
+        // Entries
+        .route("/statistical-entries", post(statistical_accounting::create_entry))
+        .route("/statistical-entries", get(statistical_accounting::list_entries))
+        .route("/statistical-entries/:id", get(statistical_accounting::get_entry))
+        .route("/statistical-entries/:id/post", post(statistical_accounting::post_entry))
+        .route("/statistical-entries/:id/reverse", post(statistical_accounting::reverse_entry))
+
+        // Balance
+        .route("/statistical-balances", get(statistical_accounting::get_balance))
+
+        // Dashboard
+        .route("/statistical-accounting/dashboard", get(statistical_accounting::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

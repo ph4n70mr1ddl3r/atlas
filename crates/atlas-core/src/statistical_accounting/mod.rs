@@ -126,27 +126,252 @@ pub trait StatisticalAccountingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<StatisticalDashboard>;
 }
 
-/// PostgreSQL stub
+/// PostgreSQL implementation of StatisticalAccountingRepository
 #[allow(dead_code)]
-pub struct PostgresStatisticalAccountingRepository { #[allow(dead_code)]
-    pool: PgPool }
-impl PostgresStatisticalAccountingRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+pub struct PostgresStatisticalAccountingRepository {
+    pool: PgPool,
+}
+
+impl PostgresStatisticalAccountingRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+fn row_to_unit(row: &sqlx::postgres::PgRow) -> StatisticalUnit {
+    use sqlx::Row;
+    StatisticalUnit {
+        id: row.get("id"),
+        organization_id: row.get("organization_id"),
+        code: row.get("code"),
+        name: row.get("name"),
+        description: row.get("description"),
+        stat_type: row.get("stat_type"),
+        unit_of_measure: row.get("unit_of_measure"),
+        is_active: row.get("is_active"),
+        metadata: row.get("metadata"),
+        created_by: row.get("created_by"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+    }
+}
+
+fn get_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> String {
+    use sqlx::Row;
+    row.try_get::<String, _>(col).unwrap_or_else(|_| "0".to_string())
+}
+
+fn get_optional_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> Option<String> {
+    use sqlx::Row;
+    row.try_get::<Option<String>, _>(col).unwrap_or(None)
+}
+
+fn row_to_entry(row: &sqlx::postgres::PgRow) -> StatisticalEntry {
+    use sqlx::Row;
+    StatisticalEntry {
+        id: row.get("id"),
+        organization_id: row.get("organization_id"),
+        entry_number: row.get("entry_number"),
+        statistical_unit_id: row.get("statistical_unit_id"),
+        statistical_unit_code: row.get("statistical_unit_code"),
+        account_code: row.get("account_code"),
+        dimension1: row.get("dimension1"),
+        dimension2: row.get("dimension2"),
+        dimension3: row.get("dimension3"),
+        fiscal_year: row.get("fiscal_year"),
+        period_number: row.get("period_number"),
+        quantity: get_numeric_text(row, "quantity"),
+        unit_cost: get_optional_numeric_text(row, "unit_cost"),
+        extended_amount: get_optional_numeric_text(row, "extended_amount"),
+        status: row.get("status"),
+        source_type: row.get("source_type"),
+        source_id: row.get("source_id"),
+        source_number: row.get("source_number"),
+        description: row.get("description"),
+        metadata: row.get("metadata"),
+        created_by: row.get("created_by"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+    }
+}
 
 #[async_trait]
 impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository {
-    async fn create_unit(&self, _: Uuid, _: &str, _: &str, _: Option<&str>, _: &str, _: &str, _: Option<Uuid>) -> AtlasResult<StatisticalUnit> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_unit(&self, _: Uuid) -> AtlasResult<Option<StatisticalUnit>> { Ok(None) }
-    async fn get_unit_by_code(&self, _: Uuid, _: &str) -> AtlasResult<Option<StatisticalUnit>> { Ok(None) }
-    async fn list_units(&self, _: Uuid, _: Option<&str>, _: Option<bool>) -> AtlasResult<Vec<StatisticalUnit>> { Ok(vec![]) }
-    async fn deactivate_unit(&self, _: Uuid) -> AtlasResult<StatisticalUnit> { Err(AtlasError::EntityNotFound("Not found".into())) }
-    async fn activate_unit(&self, _: Uuid) -> AtlasResult<StatisticalUnit> { Err(AtlasError::EntityNotFound("Not found".into())) }
-    async fn create_entry(&self, _: Uuid, _: &str, _: Uuid, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: i32, _: i32, _: &str, _: Option<&str>, _: Option<&str>, _: &str, _: Option<&str>, _: Option<Uuid>, _: Option<&str>, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<StatisticalEntry> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_entry(&self, _: Uuid) -> AtlasResult<Option<StatisticalEntry>> { Ok(None) }
-    async fn list_entries(&self, _: Uuid, _: Option<Uuid>, _: Option<i32>, _: Option<i32>, _: Option<&str>) -> AtlasResult<Vec<StatisticalEntry>> { Ok(vec![]) }
-    async fn update_entry_status(&self, _: Uuid, _: &str) -> AtlasResult<StatisticalEntry> { Err(AtlasError::EntityNotFound("Not found".into())) }
-    async fn get_balance(&self, _: Uuid, _: Uuid, _: i32, _: i32) -> AtlasResult<Option<StatisticalBalance>> { Ok(None) }
+    async fn create_unit(
+        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        stat_type: &str, unit_of_measure: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<StatisticalUnit> {
+        let row = sqlx::query(r#"
+            INSERT INTO financials.statistical_units
+                (organization_id, code, name, description, stat_type, unit_of_measure, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *
+        "#)
+            .bind(org_id).bind(code).bind(name).bind(description).bind(stat_type).bind(unit_of_measure).bind(created_by)
+            .fetch_one(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row_to_unit(&row))
+    }
+
+    async fn get_unit(&self, id: Uuid) -> AtlasResult<Option<StatisticalUnit>> {
+        let row = sqlx::query(r#"SELECT * FROM financials.statistical_units WHERE id = $1"#)
+            .bind(id)
+            .fetch_optional(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row.as_ref().map(row_to_unit))
+    }
+
+    async fn get_unit_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<StatisticalUnit>> {
+        let row = sqlx::query(r#"SELECT * FROM financials.statistical_units WHERE organization_id = $1 AND code = $2"#)
+            .bind(org_id).bind(code)
+            .fetch_optional(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row.as_ref().map(row_to_unit))
+    }
+
+    async fn list_units(&self, org_id: Uuid, stat_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<StatisticalUnit>> {
+        let rows = sqlx::query(r#"
+            SELECT * FROM financials.statistical_units
+            WHERE organization_id = $1
+              AND ($2::varchar IS NULL OR stat_type = $2)
+              AND ($3::bool IS NULL OR is_active = $3)
+            ORDER BY code
+        "#)
+            .bind(org_id).bind(stat_type).bind(is_active)
+            .fetch_all(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(rows.iter().map(row_to_unit).collect())
+    }
+
+    async fn deactivate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
+        let row = sqlx::query(r#"
+            UPDATE financials.statistical_units SET is_active = false, updated_at = now() WHERE id = $1 RETURNING *
+        "#)
+            .bind(id)
+            .fetch_one(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row_to_unit(&row))
+    }
+
+    async fn activate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
+        let row = sqlx::query(r#"
+            UPDATE financials.statistical_units SET is_active = true, updated_at = now() WHERE id = $1 RETURNING *
+        "#)
+            .bind(id)
+            .fetch_one(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row_to_unit(&row))
+    }
+
+    async fn create_entry(
+        &self, org_id: Uuid, entry_number: &str, statistical_unit_id: Uuid, statistical_unit_code: Option<&str>,
+        account_code: Option<&str>, dimension1: Option<&str>, dimension2: Option<&str>, dimension3: Option<&str>,
+        fiscal_year: i32, period_number: i32, quantity: &str,
+        unit_cost: Option<&str>, extended_amount: Option<&str>,
+        status: &str, source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        description: Option<&str>, created_by: Option<Uuid>,
+    ) -> AtlasResult<StatisticalEntry> {
+        let row = sqlx::query(r#"
+            INSERT INTO financials.statistical_entries
+                (organization_id, entry_number, statistical_unit_id, statistical_unit_code,
+                 account_code, dimension1, dimension2, dimension3,
+                 fiscal_year, period_number, quantity, unit_cost, extended_amount,
+                 status, source_type, source_id, source_number, description, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+            RETURNING *
+        "#)
+            .bind(org_id).bind(entry_number).bind(statistical_unit_id).bind(statistical_unit_code)
+            .bind(account_code).bind(dimension1).bind(dimension2).bind(dimension3)
+            .bind(fiscal_year).bind(period_number)
+            .bind(quantity.parse::<f64>().map_err(|_| AtlasError::ValidationFailed("Invalid quantity".into()))?)
+            .bind(unit_cost.map(|v| v.parse::<f64>().unwrap_or(0.0)))
+            .bind(extended_amount.map(|v| v.parse::<f64>().unwrap_or(0.0)))
+            .bind(status).bind(source_type).bind(source_id).bind(source_number).bind(description).bind(created_by)
+            .fetch_one(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row_to_entry(&row))
+    }
+
+    async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<StatisticalEntry>> {
+        let row = sqlx::query(r#"SELECT * FROM financials.statistical_entries WHERE id = $1"#)
+            .bind(id)
+            .fetch_optional(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row.as_ref().map(row_to_entry))
+    }
+
+    async fn list_entries(&self, org_id: Uuid, unit_id: Option<Uuid>, fiscal_year: Option<i32>, period: Option<i32>, status: Option<&str>) -> AtlasResult<Vec<StatisticalEntry>> {
+        let rows = sqlx::query(r#"
+            SELECT * FROM financials.statistical_entries
+            WHERE organization_id = $1
+              AND ($2::uuid IS NULL OR statistical_unit_id = $2)
+              AND ($3::int IS NULL OR fiscal_year = $3)
+              AND ($4::int IS NULL OR period_number = $4)
+              AND ($5::varchar IS NULL OR status = $5)
+            ORDER BY fiscal_year DESC, period_number DESC, entry_number
+        "#)
+            .bind(org_id).bind(unit_id).bind(fiscal_year).bind(period).bind(status)
+            .fetch_all(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(rows.iter().map(row_to_entry).collect())
+    }
+
+    async fn update_entry_status(&self, id: Uuid, status: &str) -> AtlasResult<StatisticalEntry> {
+        let row = sqlx::query(r#"
+            UPDATE financials.statistical_entries SET status = $2, updated_at = now() WHERE id = $1 RETURNING *
+        "#)
+            .bind(id).bind(status)
+            .fetch_one(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row_to_entry(&row))
+    }
+
+    async fn get_balance(&self, org_id: Uuid, unit_id: Uuid, fiscal_year: i32, period: i32) -> AtlasResult<Option<StatisticalBalance>> {
+        let row = sqlx::query(r#"
+            SELECT statistical_unit_id, statistical_unit_code, fiscal_year, period_number,
+                   beginning_balance, period_activity, ending_balance
+            FROM financials.statistical_balances
+            WHERE organization_id = $1 AND statistical_unit_id = $2 AND fiscal_year = $3 AND period_number = $4
+        "#)
+            .bind(org_id).bind(unit_id).bind(fiscal_year).bind(period)
+            .fetch_optional(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        use sqlx::Row;
+        Ok(row.map(|r| StatisticalBalance {
+            statistical_unit_id: r.get("statistical_unit_id"),
+            statistical_unit_code: r.get("statistical_unit_code"),
+            fiscal_year: r.get("fiscal_year"),
+            period_number: r.get("period_number"),
+            beginning_balance: get_numeric_text(&r, "beginning_balance"),
+            period_activity: get_numeric_text(&r, "period_activity"),
+            ending_balance: get_numeric_text(&r, "ending_balance"),
+        }))
+    }
+
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<StatisticalDashboard> {
-        Ok(StatisticalDashboard { organization_id: org_id, total_units: 0, active_units: 0, total_entries: 0, posted_entries: 0, by_type: serde_json::json!([]) })
+        // Aggregate from tables directly
+        let unit_count: (i64, i64) = sqlx::query_as(
+            "SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active) FROM financials.statistical_units WHERE organization_id = $1"
+        )
+            .bind(org_id)
+            .fetch_one(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+
+        let entry_count: (i64, i64) = sqlx::query_as(
+            "SELECT COUNT(*), COUNT(*) FILTER (WHERE status = 'posted') FROM financials.statistical_entries WHERE organization_id = $1"
+        )
+            .bind(org_id)
+            .fetch_one(&self.pool).await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+
+        Ok(StatisticalDashboard {
+            organization_id: org_id,
+            total_units: unit_count.0 as i32,
+            active_units: unit_count.1 as i32,
+            total_entries: entry_count.0 as i32,
+            posted_entries: entry_count.1 as i32,
+            by_type: serde_json::json!([]),
+        })
     }
 }
 

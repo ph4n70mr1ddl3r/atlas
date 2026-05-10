@@ -150,3 +150,4 @@ mod document_sequencing;
 mod transaction_calendar;
 mod asset_retirement;
 mod finance_charge_management;
+mod cash_receipt;

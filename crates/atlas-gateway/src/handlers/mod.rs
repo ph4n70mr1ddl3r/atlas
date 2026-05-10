@@ -147,6 +147,7 @@ pub mod cash_flow_statement;
 pub mod third_party_payment;
 pub mod auto_offset;
 pub mod average_balance;
+pub mod cash_receipt;
 pub mod statistical_accounting;
 pub mod receivables_factoring;
 pub mod document_sequencing;
@@ -4839,6 +4840,34 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/avg-balance/dashboard", get(average_balance::get_dashboard))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Cash Receipt Management (Oracle Fusion AR > Receipts)
+        // ════════════════════════════════════════════════════════════════════════════════
+
+        // Receipt Batches
+        .route("/cash-receipts/batches", post(cash_receipt::create_batch))
+        .route("/cash-receipts/batches", get(cash_receipt::list_batches))
+        .route("/cash-receipts/batches/:id", get(cash_receipt::get_batch))
+        .route("/cash-receipts/batches/:id/confirm", post(cash_receipt::confirm_batch))
+        .route("/cash-receipts/batches/:id/close", post(cash_receipt::close_batch))
+        .route("/cash-receipts/batches/:id/cancel", post(cash_receipt::cancel_batch))
+        .route("/cash-receipts/batches/:id", delete(cash_receipt::delete_batch))
+
+        // Cash Receipts
+        .route("/cash-receipts", post(cash_receipt::create_receipt))
+        .route("/cash-receipts", get(cash_receipt::list_receipts))
+        .route("/cash-receipts/:id", get(cash_receipt::get_receipt))
+        .route("/cash-receipts/:id/identify", post(cash_receipt::identify_receipt))
+        .route("/cash-receipts/:id/reverse", post(cash_receipt::reverse_receipt))
+
+        // Receipt Applications
+        .route("/cash-receipts/applications", post(cash_receipt::apply_receipt))
+        .route("/cash-receipts/:receipt_id/applications", get(cash_receipt::list_applications))
+        .route("/cash-receipts/applications/:id/unapply", post(cash_receipt::unapply_receipt))
+
+        // Dashboard
+        .route("/cash-receipts/dashboard", get(cash_receipt::get_dashboard))
 
         // ════════════════════════════════════════════════════════════════════════════════
         // Statistical Accounting (Oracle Fusion GL > Statistical Accounting)

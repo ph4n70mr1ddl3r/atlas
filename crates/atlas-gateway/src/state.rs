@@ -14,6 +14,8 @@ use atlas_core::{
     third_party_payment::PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo,
     AverageBalanceEngine,
     average_balance::PostgresAverageBalanceRepository as PostgresAverageBalanceRepo,
+    CashReceiptEngine,
+    cash_receipt::PostgresCashReceiptRepository as PostgresCashReceiptRepo,
     StatisticalAccountingEngine,
     statistical_accounting::PostgresStatisticalAccountingRepository as PostgresStatisticalAccountingRepo,
     ReceivablesFactoringEngine,
@@ -449,6 +451,7 @@ pub struct AppState {
     pub auto_offset_engine: Arc<AutoOffsetEngine>,
     pub cash_flow_statement_engine: Arc<CashFlowStatementEngine>,
     pub average_balance_engine: Arc<AverageBalanceEngine>,
+    pub cash_receipt_engine: Arc<CashReceiptEngine>,
     pub statistical_accounting_engine: Arc<StatisticalAccountingEngine>,
     pub receivables_factoring_engine: Arc<ReceivablesFactoringEngine>,
     pub document_sequencing_engine: Arc<DocumentSequencingEngine>,
@@ -1213,6 +1216,11 @@ impl AppState {
             PostgresAverageBalanceRepo::new(db_pool.clone())
         )));
 
+        // Initialize Cash Receipt Management engine (Oracle Fusion: AR > Receipts)
+        let cash_receipt_engine = Arc::new(CashReceiptEngine::new(Arc::new(
+            PostgresCashReceiptRepo::new(db_pool.clone())
+        )));
+
         // Initialize Statistical Accounting engine (Oracle Fusion: GL > Statistical Accounting)
         let statistical_accounting_engine = Arc::new(StatisticalAccountingEngine::new(Arc::new(
             PostgresStatisticalAccountingRepo::new(db_pool.clone())
@@ -1425,6 +1433,7 @@ impl AppState {
             third_party_payment_engine,
             auto_offset_engine,
             average_balance_engine,
+            cash_receipt_engine,
             statistical_accounting_engine,
             receivables_factoring_engine,
             document_sequencing_engine,

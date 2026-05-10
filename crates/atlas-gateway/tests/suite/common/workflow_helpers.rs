@@ -1148,6 +1148,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         average_balance_engine: Arc::new(atlas_core::AverageBalanceEngine::new(Arc::new(
             atlas_core::average_balance::PostgresAverageBalanceRepository::new(db_pool.clone()),
         ))),
+        cash_receipt_engine: Arc::new(atlas_core::CashReceiptEngine::new(Arc::new(
+            atlas_core::cash_receipt::PostgresCashReceiptRepository::new(db_pool.clone()),
+        ))),
         statistical_accounting_engine: Arc::new(atlas_core::StatisticalAccountingEngine::new(Arc::new(
             atlas_core::statistical_accounting::PostgresStatisticalAccountingRepository::new(db_pool.clone()),
         ))),

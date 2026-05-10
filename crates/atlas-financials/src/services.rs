@@ -15305,8 +15305,8 @@ impl BankStatementReconciliationService {
 mod tests {
     use crate::entities;
     use atlas_shared::RecordId;
-    use std::sync::Arc;
-    use atlas_core::{SchemaEngine, WorkflowEngine, ValidationEngine};
+    
+    
 
     // ========================================================================
     // General Ledger Entity Tests
@@ -20623,6 +20623,7 @@ mod tests {
     // ========================================================================
 
     #[test]
+    #[allow(clippy::vec_init_then_push)]
     fn test_grand_total_entity_count_all_features() {
         let mut all = vec![];
 
@@ -31226,7 +31227,7 @@ mod tests {
             &derivative_changes, &hedged_changes,
         );
         // R-squared may vary but with inverse correlation here it should be moderate to high
-        assert!(r_sq >= 0.0 && r_sq <= 1.0);
+        assert!((0.0..=1.0).contains(&r_sq));
     }
 
     // ========================================================================

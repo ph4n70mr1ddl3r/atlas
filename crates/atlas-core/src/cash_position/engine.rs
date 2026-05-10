@@ -226,7 +226,7 @@ mod tests {
         async fn list_positions(&self, org_id: Uuid, pd: Option<chrono::NaiveDate>, _cc: Option<&str>) -> AtlasResult<Vec<CashPosition>> {
             Ok(self.positions.lock().unwrap().iter()
                 .filter(|p| p.organization_id == org_id)
-                .filter(|p| pd.map_or(true, |d| p.position_date == d))
+                .filter(|p| pd.is_none_or(|d| p.position_date == d))
                 .cloned().collect())
         }
         async fn create_summary(&self, org_id: Uuid, cc: &str, pd: chrono::NaiveDate, ob: &str, ti: &str, to_: &str, cb: &str, lb: &str, ab: &str, ha: &str, ac: i32, accs: serde_json::Value) -> AtlasResult<CashPositionSummary> {

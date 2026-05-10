@@ -572,6 +572,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn make_template(id: Uuid, org_id: Uuid, name: &str, method: &str, periods: i32) -> MpaTemplate {
         MpaTemplate {
             id, organization_id: org_id, template_name: name.into(),
@@ -618,7 +619,7 @@ mod tests {
         async fn list_templates(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<MpaTemplate>> {
             Ok(self.templates.lock().unwrap().iter()
                 .filter(|t| t.organization_id == org_id)
-                .filter(|t| status.map_or(true, |s| t.status == s))
+                .filter(|t| status.is_none_or(|s| t.status == s))
                 .cloned().collect())
         }
 
@@ -687,7 +688,7 @@ mod tests {
         async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<MpaSchedule>> {
             Ok(self.schedules.lock().unwrap().iter()
                 .filter(|s| s.organization_id == org_id)
-                .filter(|s| status.map_or(true, |st| s.status == st))
+                .filter(|s| status.is_none_or(|st| s.status == st))
                 .cloned().collect())
         }
 
@@ -1086,7 +1087,7 @@ mod tests {
     async fn test_recognize_line_inactive_schedule_fails() {
         let e = eng();
         let org = Uuid::new_v4();
-        let s = e.create_schedule(
+        let _s = e.create_schedule(
             org, "MPA-BAD2", None, None, None, None, "1000.00",
             chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
             "USD", None, None, None, None,

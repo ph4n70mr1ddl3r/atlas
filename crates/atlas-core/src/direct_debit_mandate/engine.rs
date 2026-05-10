@@ -410,6 +410,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn make_mandate(
         id: Uuid, org_id: Uuid, num: &str, customer_id: Uuid, mandate_type: &str,
     ) -> DirectDebitMandate {
@@ -504,8 +505,8 @@ mod tests {
         async fn list_mandates(&self, org_id: Uuid, customer_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<DirectDebitMandate>> {
             Ok(self.mandates.lock().unwrap().iter()
                 .filter(|m| m.organization_id == org_id)
-                .filter(|m| customer_id.map_or(true, |c| m.customer_id == c))
-                .filter(|m| status.map_or(true, |s| m.status == s))
+                .filter(|m| customer_id.is_none_or(|c| m.customer_id == c))
+                .filter(|m| status.is_none_or(|s| m.status == s))
                 .cloned().collect())
         }
 
@@ -579,7 +580,7 @@ mod tests {
         async fn list_collections(&self, mandate_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<MandateCollection>> {
             Ok(self.collections.lock().unwrap().iter()
                 .filter(|c| c.mandate_id == mandate_id)
-                .filter(|c| status.map_or(true, |s| c.status == s))
+                .filter(|c| status.is_none_or(|s| c.status == s))
                 .cloned().collect())
         }
 

@@ -602,12 +602,12 @@ mod tests {
         let start = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let end = chrono::NaiveDate::from_ymd_opt(2026, 12, 31).unwrap();
         let count = DeferredRevenueEngine::calculate_period_count(start, end, "monthly");
-        assert!(count >= 11 && count <= 12, "Expected ~12, got {}", count);
+        assert!((11..=12).contains(&count), "Expected ~12, got {}", count);
 
         let start = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let end = chrono::NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
         let count = DeferredRevenueEngine::calculate_period_count(start, end, "monthly");
-        assert!(count >= 2 && count <= 3, "Expected ~3, got {}", count);
+        assert!((2..=3).contains(&count), "Expected ~3, got {}", count);
     }
 
     #[test]

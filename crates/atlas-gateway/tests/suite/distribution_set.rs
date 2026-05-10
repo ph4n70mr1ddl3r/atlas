@@ -499,7 +499,7 @@ async fn test_remove_distribution_line() {
     let set_id: Uuid = set["id"].as_str().unwrap().parse().unwrap();
 
     let line1 = add_line(&app, &set_id, "1000.100.100.100.100", "30.0000").await;
-    let line2 = add_line(&app, &set_id, "1000.100.100.100.200", "70.0000").await;
+    let _line2 = add_line(&app, &set_id, "1000.100.100.100.200", "70.0000").await;
 
     let line1_id: Uuid = line1["id"].as_str().unwrap().parse().unwrap();
 
@@ -849,9 +849,9 @@ async fn test_full_distribution_set_lifecycle() {
     assert_eq!(set["status"], "active");
 
     // 2. Add lines
-    let line1 = add_line(&app, &set_id, "1000.100.100.100.100", "50.0000").await;
+    let _line1 = add_line(&app, &set_id, "1000.100.100.100.100", "50.0000").await;
     let line2 = add_line(&app, &set_id, "1000.100.100.100.200", "30.0000").await;
-    let line3 = add_line(&app, &set_id, "1000.100.100.100.300", "20.0000").await;
+    let _line3 = add_line(&app, &set_id, "1000.100.100.100.300", "20.0000").await;
 
     // 3. Verify lines
     let (k, v) = auth_header(&admin_claims());

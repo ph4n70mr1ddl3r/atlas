@@ -429,9 +429,9 @@ mod tests {
         async fn list_payments(&self, org_id: Uuid, status: Option<&str>, payment_type: Option<&str>, source_entity_id: Option<Uuid>) -> AtlasResult<Vec<ThirdPartyPayment>> {
             Ok(self.payments.lock().unwrap().iter()
                 .filter(|p| p.organization_id == org_id)
-                .filter(|p| status.map_or(true, |s| p.status == s))
-                .filter(|p| payment_type.map_or(true, |t| p.payment_type == t))
-                .filter(|p| source_entity_id.map_or(true, |id| p.source_entity_id == id))
+                .filter(|p| status.is_none_or(|s| p.status == s))
+                .filter(|p| payment_type.is_none_or(|t| p.payment_type == t))
+                .filter(|p| source_entity_id.is_none_or(|id| p.source_entity_id == id))
                 .cloned().collect())
         }
 

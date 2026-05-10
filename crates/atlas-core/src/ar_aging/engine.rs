@@ -133,7 +133,7 @@ mod tests {
             d.status = status.into();
             Ok(d.clone())
         }
-        async fn delete_definition(&self, id: Uuid) -> AtlasResult<()> { Ok(()) }
+        async fn delete_definition(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
         async fn create_bucket(&self, org_id: Uuid, def_id: Uuid, bn: i32, name: &str, from: i32, to: Option<i32>, order: i32) -> AtlasResult<ArAgingBucket> {
             let b = ArAgingBucket { id: Uuid::new_v4(), organization_id: org_id, definition_id: def_id, bucket_number: bn, name: name.into(), from_days: from, to_days: to, display_order: order, metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now() };
             self.buckets.lock().unwrap().push(b.clone());

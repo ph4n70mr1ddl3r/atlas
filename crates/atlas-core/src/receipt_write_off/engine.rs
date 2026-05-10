@@ -635,10 +635,10 @@ mod tests {
         let e = eng();
         let b = e.create_batch(Uuid::new_v4(), "Batch", None, "USD", None).await.unwrap();
         // Batch starts as draft, need to set to pending_approval first
-        let mut bs = e.repository.clone();
+        let _bs = e.repository.clone();
         // Use direct repo update to set status
         {
-            let b2 = e.list_batches(b.organization_id, None).await.unwrap();
+            let _b2 = e.list_batches(b.organization_id, None).await.unwrap();
         }
         // For simplicity, let's test the error case
         assert!(e.approve_batch(b.id, Uuid::new_v4()).await.is_err()); // draft -> can't approve

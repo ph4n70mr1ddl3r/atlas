@@ -194,7 +194,7 @@ async fn test_create_deferral_schedule() {
     assert_eq!(r.status(), StatusCode::CREATED);
     let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
     let schedule: serde_json::Value = serde_json::from_slice(&b).unwrap();
-    assert_eq!(schedule["schedule_number"].as_str().unwrap().starts_with("DEF-"), true);
+    assert!(schedule["schedule_number"].as_str().unwrap().starts_with("DEF-"));
     assert_eq!(schedule["total_amount"], "120000.00");
 }
 

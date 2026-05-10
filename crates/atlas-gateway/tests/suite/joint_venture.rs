@@ -311,6 +311,7 @@ async fn create_and_activate_venture(app: &axum::Router, number: &str, name: &st
     serde_json::from_slice(&b).unwrap()
 }
 
+#[allow(dead_code)]
 async fn create_and_activate_venture_with_partner(app: &axum::Router, number: &str, name: &str) -> serde_json::Value {
     let venture = create_and_activate_venture(app, number, name).await;
     let venture_id = venture["id"].as_str().unwrap();

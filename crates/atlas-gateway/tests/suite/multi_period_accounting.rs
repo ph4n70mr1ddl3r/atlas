@@ -365,7 +365,7 @@ async fn test_full_workflow() {
     assert_eq!(lines[0]["amount"], "1000.00");
     assert_eq!(lines[0]["status"], "pending");
     let line1_id = lines[0]["id"].as_str().unwrap();
-    let line2_id = lines[1]["id"].as_str().unwrap();
+    let _line2_id = lines[1]["id"].as_str().unwrap();
 
     // 5. Activate schedule
     let r = app.clone().oneshot(Request::builder().method("POST")

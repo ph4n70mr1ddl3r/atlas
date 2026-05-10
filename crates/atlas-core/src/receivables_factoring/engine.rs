@@ -582,7 +582,7 @@ mod tests {
         async fn list_factor_companies(&self, org_id: Uuid, is_active: Option<bool>) -> AtlasResult<Vec<FactorCompany>> {
             Ok(self.companies.lock().unwrap().iter()
                 .filter(|c| c.organization_id == org_id)
-                .filter(|c| is_active.map_or(true, |a| c.is_active == a))
+                .filter(|c| is_active.is_none_or(|a| c.is_active == a))
                 .cloned().collect())
         }
 
@@ -631,7 +631,7 @@ mod tests {
         async fn list_agreements(&self, org_id: Uuid, status: Option<&str>, _fc_id: Option<Uuid>) -> AtlasResult<Vec<FactoringAgreement>> {
             Ok(self.agreements.lock().unwrap().iter()
                 .filter(|a| a.organization_id == org_id)
-                .filter(|a| status.map_or(true, |s| a.status == s))
+                .filter(|a| status.is_none_or(|s| a.status == s))
                 .cloned().collect())
         }
 
@@ -676,8 +676,8 @@ mod tests {
         async fn list_requests(&self, org_id: Uuid, agr_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<FactoringRequest>> {
             Ok(self.requests.lock().unwrap().iter()
                 .filter(|r| r.organization_id == org_id)
-                .filter(|r| agr_id.map_or(true, |id| r.agreement_id == id))
-                .filter(|r| status.map_or(true, |s| r.status == s))
+                .filter(|r| agr_id.is_none_or(|id| r.agreement_id == id))
+                .filter(|r| status.is_none_or(|s| r.status == s))
                 .cloned().collect())
         }
 
@@ -751,8 +751,8 @@ mod tests {
         async fn list_settlements(&self, org_id: Uuid, agr_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<FactoringSettlement>> {
             Ok(self.settlements.lock().unwrap().iter()
                 .filter(|s| s.organization_id == org_id)
-                .filter(|s| agr_id.map_or(true, |id| s.agreement_id == id))
-                .filter(|s| status.map_or(true, |st| s.status == st))
+                .filter(|s| agr_id.is_none_or(|id| s.agreement_id == id))
+                .filter(|s| status.is_none_or(|st| s.status == st))
                 .cloned().collect())
         }
 

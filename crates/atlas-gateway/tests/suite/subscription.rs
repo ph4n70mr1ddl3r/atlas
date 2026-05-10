@@ -577,8 +577,8 @@ async fn test_full_subscription_lifecycle_flow() {
     assert_eq!(revenue_lines.len(), 12);
 
     // Step 5: Recognize first 3 months of revenue
-    for i in 0..3 {
-        let line_id = revenue_lines[i]["id"].as_str().unwrap();
+    for line in revenue_lines.iter().take(3) {
+        let line_id = line["id"].as_str().unwrap();
         let r = app.clone().oneshot(Request::builder().method("POST")
             .uri(&format!("/api/v1/subscription/revenue-lines/{}/recognize", line_id))
             .header(&k, &v).body(Body::empty()).unwrap()

@@ -12,7 +12,6 @@ use uuid::Uuid;
 use atlas_core::{
     SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
     SecurityEngine, AuditEngine,
-    SupplyChainPlanningEngine,
     eventbus::NatsEventBus,
     schema::{SchemaBuilder, PostgresSchemaRepository},
     audit::PostgresAuditRepository,

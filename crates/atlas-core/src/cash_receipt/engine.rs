@@ -522,7 +522,7 @@ mod tests {
         async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ReceiptBatch>> {
             Ok(self.batches.lock().unwrap().iter()
                 .filter(|b| b.organization_id == org_id)
-                .filter(|b| status.map_or(true, |s| b.status == s))
+                .filter(|b| status.is_none_or(|s| b.status == s))
                 .cloned().collect())
         }
 
@@ -594,9 +594,9 @@ mod tests {
         async fn list_receipts(&self, org_id: Uuid, batch_id: Option<Uuid>, customer_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<CashReceipt>> {
             Ok(self.receipts.lock().unwrap().iter()
                 .filter(|r| r.organization_id == org_id || org_id == Uuid::nil())
-                .filter(|r| batch_id.map_or(true, |b| r.batch_id == Some(b)))
-                .filter(|r| customer_id.map_or(true, |c| r.customer_id == c))
-                .filter(|r| status.map_or(true, |s| r.status == s))
+                .filter(|r| batch_id.is_none_or(|b| r.batch_id == Some(b)))
+                .filter(|r| customer_id.is_none_or(|c| r.customer_id == c))
+                .filter(|r| status.is_none_or(|s| r.status == s))
                 .cloned().collect())
         }
 
@@ -655,7 +655,7 @@ mod tests {
         async fn list_applications(&self, receipt_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ReceiptApplication>> {
             Ok(self.applications.lock().unwrap().iter()
                 .filter(|a| a.receipt_id == receipt_id)
-                .filter(|a| status.map_or(true, |s| a.status == s))
+                .filter(|a| status.is_none_or(|s| a.status == s))
                 .cloned().collect())
         }
 

@@ -446,8 +446,8 @@ mod tests {
         async fn list_matches(&self, org_id: Uuid, status: Option<&str>, match_type: Option<&str>, _supplier_id: Option<Uuid>) -> AtlasResult<Vec<InvoiceMatch>> {
             Ok(self.matches.lock().unwrap().iter()
                 .filter(|m| m.organization_id == org_id)
-                .filter(|m| status.map_or(true, |s| m.status == s))
-                .filter(|m| match_type.map_or(true, |t| m.match_type == t))
+                .filter(|m| status.is_none_or(|s| m.status == s))
+                .filter(|m| match_type.is_none_or(|t| m.match_type == t))
                 .cloned().collect())
         }
         async fn update_match_status(&self, id: Uuid, status: &str) -> AtlasResult<InvoiceMatch> {

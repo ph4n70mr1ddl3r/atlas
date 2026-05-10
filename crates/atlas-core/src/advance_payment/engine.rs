@@ -350,7 +350,7 @@ mod tests {
         async fn list_advances(&self, org_id: Uuid, status: Option<&str>, _supplier_id: Option<Uuid>) -> AtlasResult<Vec<AdvancePayment>> {
             Ok(self.advances.lock().unwrap().iter()
                 .filter(|a| a.organization_id == org_id)
-                .filter(|a| status.map_or(true, |s| a.status == s))
+                .filter(|a| status.is_none_or(|s| a.status == s))
                 .cloned().collect())
         }
         async fn update_advance_status(&self, id: Uuid, status: &str) -> AtlasResult<AdvancePayment> {

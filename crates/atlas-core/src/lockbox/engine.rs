@@ -192,7 +192,7 @@ mod tests {
             Ok(a)
         }
         async fn list_applications_by_receipt(&self, rid: Uuid) -> AtlasResult<Vec<LockboxApplication>> { Ok(self.applications.lock().unwrap().iter().filter(|a| a.receipt_id == rid).cloned().collect()) }
-        async fn reverse_application(&self, id: Uuid) -> AtlasResult<LockboxApplication> { Err(AtlasError::EntityNotFound("Mock".into())) }
+        async fn reverse_application(&self, _id: Uuid) -> AtlasResult<LockboxApplication> { Err(AtlasError::EntityNotFound("Mock".into())) }
         async fn create_format(&self, _: Uuid, _: &str, _: &str, _: Option<&str>, _: &str, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<LockboxTransmissionFormat> { Err(AtlasError::DatabaseError("Not implemented".into())) }
         async fn list_formats(&self, _: Uuid) -> AtlasResult<Vec<LockboxTransmissionFormat>> { Ok(vec![]) }
         async fn delete_format(&self, _: Uuid) -> AtlasResult<()> { Ok(()) }
@@ -250,7 +250,7 @@ mod tests {
         let e = eng();
         let org = Uuid::new_v4();
         let b = e.create_batch(org, "LB-V", "LB123", None, chrono::NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(), "USD", None, None).await.unwrap();
-        let r = e.create_receipt(org, b.id, "REC-1", Some("CUST-1"), None, chrono::NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(), "1000.00", Some("INV-001")).await.unwrap();
+        let _r = e.create_receipt(org, b.id, "REC-1", Some("CUST-1"), None, chrono::NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(), "1000.00", Some("INV-001")).await.unwrap();
         let b = e.validate_batch(b.id).await.unwrap();
         assert_eq!(b.status, "validated");
     }

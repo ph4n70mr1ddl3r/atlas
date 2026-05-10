@@ -278,7 +278,7 @@ mod tests {
                 standard_invoice_id: std_id, standard_invoice_number: std_num.map(Into::into),
                 supplier_id, supplier_number: supplier_num.map(Into::into),
                 applied_amount: applied.into(), remaining_prepayment_amount: remaining.into(),
-                currency_code: currency.into(), application_date: app_date, gl_date: gl_date,
+                currency_code: currency.into(), application_date: app_date, gl_date,
                 status: status.into(), reason: reason.map(Into::into), notes: notes.map(Into::into),
                 metadata: serde_json::json!({}), created_by, created_at: Utc::now(), updated_at: Utc::now(),
             };

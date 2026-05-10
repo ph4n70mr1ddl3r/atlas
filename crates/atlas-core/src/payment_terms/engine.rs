@@ -191,7 +191,7 @@ mod tests {
             t.status = status.into();
             Ok(t.clone())
         }
-        async fn delete_term(&self, id: Uuid) -> AtlasResult<()> { Ok(()) }
+        async fn delete_term(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
         async fn create_discount_schedule(&self, org_id: Uuid, term_id: Uuid, dp: &str, dd: i32, dom: Option<i32>, basis: &str, order: i32) -> AtlasResult<PaymentTermDiscountSchedule> {
             let s = PaymentTermDiscountSchedule { id: Uuid::new_v4(), organization_id: org_id, payment_term_id: term_id, discount_percent: dp.into(), discount_days: dd, discount_day_of_month: dom, discount_basis: basis.into(), display_order: order, metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now() };
             self.discounts.lock().unwrap().push(s.clone());

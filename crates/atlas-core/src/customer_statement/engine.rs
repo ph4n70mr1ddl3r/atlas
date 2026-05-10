@@ -667,7 +667,7 @@ mod tests {
             (chrono::NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(), -100.0),  // skip negative
             (chrono::NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(), 500.0),   // include
         ];
-        let (cur, a30, a60, a90, a120, a121) = compute_aging_breakdown(ref_date, &items);
+        let (cur, a30, _a60, _a90, _a120, _a121) = compute_aging_breakdown(ref_date, &items);
         assert!((a30 - 500.0).abs() < 0.01); // 29 days overdue -> 1-30
         assert!((cur).abs() < 0.01);
     }

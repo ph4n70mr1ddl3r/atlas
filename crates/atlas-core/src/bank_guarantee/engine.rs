@@ -777,6 +777,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn test_amount_validation() {
         // Positive amounts are valid
         assert!(100000.0_f64 > 0.0);

@@ -567,7 +567,7 @@ async fn test_create_payment_and_pay_invoice() {
     let payment: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(payment["payment_number"], "PAY-001");
     assert_eq!(payment["status"], "draft");
-    let payment_id = payment["id"].as_str().unwrap();
+    let _payment_id = payment["id"].as_str().unwrap();
 
     // Verify invoice is now paid
     let r = app.clone().oneshot(Request::builder().method("GET")

@@ -164,14 +164,14 @@ mod tests {
         async fn get_contract(&self, org_id: Uuid, cn: &str) -> AtlasResult<Option<RevMgmtContract>> { Ok(self.contracts.lock().unwrap().iter().find(|c| c.organization_id == org_id && c.contract_number == cn).cloned()) }
         async fn get_contract_by_id(&self, id: Uuid) -> AtlasResult<Option<RevMgmtContract>> { Ok(self.contracts.lock().unwrap().iter().find(|c| c.id == id).cloned()) }
         async fn list_contracts(&self, _: Uuid, _: Option<&str>) -> AtlasResult<Vec<RevMgmtContract>> { Ok(vec![]) }
-        async fn update_contract_status(&self, id: Uuid, status: &str) -> AtlasResult<RevMgmtContract> { Err(AtlasError::EntityNotFound("Mock".into())) }
+        async fn update_contract_status(&self, _id: Uuid, _status: &str) -> AtlasResult<RevMgmtContract> { Err(AtlasError::EntityNotFound("Mock".into())) }
         async fn update_contract_totals(&self, _: Uuid, _: &str, _: &str, _: &str, _: i32, _: i32) -> AtlasResult<()> { Ok(()) }
         async fn create_obligation(&self, org_id: Uuid, contract_id: Uuid, cn: Option<&str>, on: &str, desc: &str, ot: &str, sm: &str, rp: &str, ssp: &str, aa: &str, rsd: Option<chrono::NaiveDate>, red: Option<chrono::NaiveDate>) -> AtlasResult<RevMgmtObligation> {
             Ok(RevMgmtObligation { id: Uuid::new_v4(), organization_id: org_id, contract_id, contract_number: cn.map(Into::into), obligation_number: on.into(), description: desc.into(), obligation_type: ot.into(), satisfaction_status: "not_started".into(), satisfaction_method: sm.into(), recognition_pattern: rp.into(), standalone_selling_price: ssp.into(), allocated_amount: aa.into(), recognized_amount: "0".into(), unrecognized_amount: aa.into(), recognition_start_date: rsd, recognition_end_date: red, percent_complete: "0".into(), metadata: serde_json::json!({}), created_at: chrono::Utc::now(), updated_at: chrono::Utc::now() })
         }
         async fn get_obligation(&self, _: Uuid) -> AtlasResult<Option<RevMgmtObligation>> { Ok(None) }
         async fn list_obligations_by_contract(&self, _: Uuid) -> AtlasResult<Vec<RevMgmtObligation>> { Ok(vec![]) }
-        async fn update_obligation_status(&self, id: Uuid, ss: &str, ra: &str, ua: &str, pc: &str) -> AtlasResult<RevMgmtObligation> { Err(AtlasError::EntityNotFound("Mock".into())) }
+        async fn update_obligation_status(&self, _id: Uuid, _ss: &str, _ra: &str, _ua: &str, _pc: &str) -> AtlasResult<RevMgmtObligation> { Err(AtlasError::EntityNotFound("Mock".into())) }
         async fn create_ssp(&self, org_id: Uuid, ic: &str, in_: &str, em: &str, p: &str, cc: &str, ef: chrono::NaiveDate, et: Option<chrono::NaiveDate>, cb: Option<Uuid>) -> AtlasResult<RevMgmtSSP> {
             Ok(RevMgmtSSP { id: Uuid::new_v4(), organization_id: org_id, item_code: ic.into(), item_name: in_.into(), estimation_method: em.into(), price: p.into(), currency_code: cc.into(), effective_from: ef, effective_to: et, is_active: true, metadata: serde_json::json!({}), created_by: cb, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now() })
         }

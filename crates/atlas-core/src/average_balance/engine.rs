@@ -547,7 +547,7 @@ mod tests {
         async fn list_books(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<AverageBalanceBook>> {
             Ok(self.books.lock().unwrap().iter()
                 .filter(|b| b.organization_id == org_id)
-                .filter(|b| status.map_or(true, |s| b.status == s))
+                .filter(|b| status.is_none_or(|s| b.status == s))
                 .cloned().collect())
         }
 
@@ -629,8 +629,8 @@ mod tests {
         ) -> AtlasResult<Vec<DailyBalance>> {
             Ok(self.daily_balances.lock().unwrap().iter()
                 .filter(|d| d.book_id == book_id && d.account_id == account_id)
-                .filter(|d| from.map_or(true, |f| d.balance_date >= f))
-                .filter(|d| to.map_or(true, |t| d.balance_date <= t))
+                .filter(|d| from.is_none_or(|f| d.balance_date >= f))
+                .filter(|d| to.is_none_or(|t| d.balance_date <= t))
                 .cloned().collect())
         }
 
@@ -651,7 +651,7 @@ mod tests {
         async fn list_calculations(&self, book_id: Uuid, account_id: Option<Uuid>, _: Option<&str>, _: Option<&str>) -> AtlasResult<Vec<AverageBalanceCalculation>> {
             Ok(self.calculations.lock().unwrap().iter()
                 .filter(|c| c.book_id == book_id)
-                .filter(|c| account_id.map_or(true, |id| c.account_id == id))
+                .filter(|c| account_id.is_none_or(|id| c.account_id == id))
                 .cloned().collect())
         }
 

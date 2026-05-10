@@ -389,7 +389,7 @@ async fn test_create_tax_group_invalid_code_id_fails() {
 async fn setup_group_with_codes(
     app: &axum::Router,
 ) -> (Uuid, String) {
-    let tc = create_tax_code(&app, "SUP-IT", "Supplier Income Tax", "income_tax", "10.00", "1000").await;
+    let tc = create_tax_code(app, "SUP-IT", "Supplier Income Tax", "income_tax", "10.00", "1000").await;
     let tc_id: Uuid = tc["id"].as_str().unwrap().parse().unwrap();
     let group = create_tax_group(app, "SUP-GRP", "Supplier Group", &[tc_id]).await;
     let group_code = group["code"].as_str().unwrap().to_string();
@@ -578,7 +578,7 @@ async fn test_remove_supplier_assignment() {
 #[tokio::test]
 async fn test_compute_withholding_basic() {
     let (_state, app) = setup_test().await;
-    let (tc_id, group_code) = setup_group_with_codes(&app).await;
+    let (_tc_id, group_code) = setup_group_with_codes(&app).await;
 
     let supplier_id = Uuid::new_v4();
     let (k, v) = auth_header(&admin_claims());
@@ -705,7 +705,7 @@ async fn test_compute_withholding_no_assignment() {
 #[tokio::test]
 async fn test_compute_withholding_below_threshold() {
     let (_state, app) = setup_test().await;
-    let (tc_id, group_code) = setup_group_with_codes(&app).await;
+    let (_tc_id, group_code) = setup_group_with_codes(&app).await;
 
     let supplier_id = Uuid::new_v4();
     let (k, v) = auth_header(&admin_claims());
@@ -933,7 +933,7 @@ async fn test_issue_already_issued_fails() {
 #[tokio::test]
 async fn test_certificate_invalid_period_fails() {
     let (_state, app) = setup_test().await;
-    let (tc_id, group_code) = setup_group_with_codes(&app).await;
+    let (tc_id, _group_code) = setup_group_with_codes(&app).await;
 
     let supplier_id = Uuid::new_v4();
     let (k, v) = auth_header(&admin_claims());
@@ -1058,7 +1058,7 @@ async fn test_list_certificates_filter_by_supplier() {
 #[tokio::test]
 async fn test_withholding_dashboard() {
     let (_state, app) = setup_test().await;
-    let (tc_id, group_code) = setup_group_with_codes(&app).await;
+    let (_tc_id, group_code) = setup_group_with_codes(&app).await;
 
     let (k, v) = auth_header(&admin_claims());
 

@@ -327,7 +327,7 @@ mod tests {
         async fn list_deposits(&self, org_id: Uuid, status: Option<&str>, _customer_id: Option<Uuid>) -> AtlasResult<Vec<CustomerDeposit>> {
             Ok(self.deposits.lock().unwrap().iter()
                 .filter(|d| d.organization_id == org_id)
-                .filter(|d| status.map_or(true, |s| d.status == s))
+                .filter(|d| status.is_none_or(|s| d.status == s))
                 .cloned().collect())
         }
         async fn update_deposit_status(&self, id: Uuid, status: &str) -> AtlasResult<CustomerDeposit> {

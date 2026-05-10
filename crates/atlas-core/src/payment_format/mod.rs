@@ -461,7 +461,7 @@ mod tests {
     async fn test_delete() {
         let e = eng();
         let org = Uuid::new_v4();
-        let pf = e.create(org, "DEL", "To Delete", None, "file", "eft", None, false, true, true, None, "USD", None).await.unwrap();
+        let _pf = e.create(org, "DEL", "To Delete", None, "file", "eft", None, false, true, true, None, "USD", None).await.unwrap();
         e.delete(org, "DEL").await.unwrap();
         assert!(e.get_by_code(org, "DEL").await.unwrap().is_none());
     }

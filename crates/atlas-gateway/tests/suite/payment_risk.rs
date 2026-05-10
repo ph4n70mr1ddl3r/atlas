@@ -6,9 +6,12 @@
 // NOTE: These tests use reqwest-based integration testing pattern
 // and are not fully compatible with the tower-based E2E suite.
 // Gated behind a feature to avoid compilation errors.
-#[cfg(feature = "integration-test")]
+#![cfg(feature = "integration-test")]
+#![allow(dead_code)]
 
+#[allow(unused_imports)]
 use super::common::helpers::*;
+#[allow(unused_imports)]
 use super::common::workflow_helpers::*;
 use serde_json::json;
 

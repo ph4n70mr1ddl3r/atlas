@@ -155,6 +155,7 @@ pub mod document_sequencing;
 pub mod transaction_calendar;
 pub mod asset_retirement;
 pub mod multi_period_accounting;
+pub mod dunning_letter_management;
 
 pub use schema::*;
 pub use records::*;
@@ -5045,6 +5046,47 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // MPA Dashboard
         .route("/mpa/dashboard", get(multi_period_accounting::get_dashboard))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Dunning Letter Management (Oracle Fusion: AR > Dunning Letters)
+        // ════════════════════════════════════════════════════════════════════════════════
+
+        // Letter Sets
+        .route("/dunning/letter-sets", post(dunning_letter_management::create_letter_set))
+        .route("/dunning/letter-sets", get(dunning_letter_management::list_letter_sets))
+        .route("/dunning/letter-sets/:id", get(dunning_letter_management::get_letter_set))
+        .route("/dunning/letter-sets/:id/activate", post(dunning_letter_management::activate_letter_set))
+        .route("/dunning/letter-sets/:id/deactivate", post(dunning_letter_management::deactivate_letter_set))
+
+        // Letter Set Lines
+        .route("/dunning/letter-sets/:set_id/lines", post(dunning_letter_management::add_letter_set_line))
+        .route("/dunning/letter-sets/:set_id/lines", get(dunning_letter_management::list_letter_set_lines))
+
+        // Dunning Profiles
+        .route("/dunning/profiles", post(dunning_letter_management::create_profile))
+        .route("/dunning/profiles", get(dunning_letter_management::list_profiles))
+        .route("/dunning/profiles/:id", get(dunning_letter_management::get_profile))
+        .route("/dunning/profiles/:id/enable", post(dunning_letter_management::enable_profile))
+        .route("/dunning/profiles/:id/disable", post(dunning_letter_management::disable_profile))
+        .route("/dunning/profiles/:id/hold", post(dunning_letter_management::hold_profile))
+
+        // Dunning Runs
+        .route("/dunning/runs", post(dunning_letter_management::create_run))
+        .route("/dunning/runs", get(dunning_letter_management::list_runs))
+        .route("/dunning/runs/:id", get(dunning_letter_management::get_run))
+        .route("/dunning/runs/:id/submit", post(dunning_letter_management::submit_run))
+        .route("/dunning/runs/:id/complete", post(dunning_letter_management::complete_run))
+        .route("/dunning/runs/:id/cancel", post(dunning_letter_management::cancel_run))
+
+        // Run Results
+        .route("/dunning/runs/:run_id/results", post(dunning_letter_management::add_run_result))
+        .route("/dunning/runs/:run_id/results", get(dunning_letter_management::list_run_results))
+        .route("/dunning/results/:id", get(dunning_letter_management::get_run_result))
+        .route("/dunning/results/:id/send", post(dunning_letter_management::mark_result_sent))
+        .route("/dunning/results/:id/fail", post(dunning_letter_management::mark_result_failed))
+
+        // Dashboard
+        .route("/dunning/dashboard", get(dunning_letter_management::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

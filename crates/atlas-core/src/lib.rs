@@ -182,6 +182,7 @@ pub mod average_balance;
 pub mod cash_receipt;
 pub mod direct_debit_mandate;
 pub mod multi_period_accounting;
+pub mod dunning_letter_management;
 
 pub use schema::*;
 pub use workflow::{
@@ -365,6 +366,7 @@ pub use average_balance::{AverageBalanceEngine, PostgresAverageBalanceRepository
 pub use cash_receipt::{CashReceiptEngine, PostgresCashReceiptRepository as PostgresCashReceiptRepo};
 pub use direct_debit_mandate::{DirectDebitMandateEngine, PostgresDirectDebitMandateRepository as PostgresDirectDebitMandateRepo};
 pub use multi_period_accounting::{MultiPeriodAccountingEngine, MpaRepository, PostgresMpaRepository as PostgresMpaRepo};
+pub use dunning_letter_management::{DunningLetterManagementEngine, PostgresDunningLetterManagementRepository as PostgresDunningLetterManagementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

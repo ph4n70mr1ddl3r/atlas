@@ -676,6 +676,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         mpa_engine: Arc::new(atlas_core::MultiPeriodAccountingEngine::new(Arc::new(
             atlas_core::multi_period_accounting::PostgresMpaRepository::new(db_pool.clone()),
         ))),
+        dunning_letter_management_engine: Arc::new(atlas_core::DunningLetterManagementEngine::new(Arc::new(
+            atlas_core::dunning_letter_management::PostgresDunningLetterManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1277,4 +1280,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM financials.mpa_schedules").execute(pool).await.ok();
     sqlx::query("DELETE FROM financials.mpa_template_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM financials.mpa_templates").execute(pool).await.ok();
-} 
+
+    // Clean dunning letter management test data
+    sqlx::query("DELETE FROM financials.dunning_letter_audit").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.dunning_letter_run_results").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.dunning_letter_runs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.dunning_letter_set_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.dunning_letter_sets").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.dunning_profiles").execute(pool).await.ok();
+}

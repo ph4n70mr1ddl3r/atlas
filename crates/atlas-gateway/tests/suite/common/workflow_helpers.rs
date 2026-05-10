@@ -1172,6 +1172,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         mpa_engine: Arc::new(atlas_core::MultiPeriodAccountingEngine::new(Arc::new(
             atlas_core::multi_period_accounting::PostgresMpaRepository::new(db_pool.clone()),
         ))),
+        dunning_letter_management_engine: Arc::new(atlas_core::DunningLetterManagementEngine::new(Arc::new(
+            atlas_core::dunning_letter_management::PostgresDunningLetterManagementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

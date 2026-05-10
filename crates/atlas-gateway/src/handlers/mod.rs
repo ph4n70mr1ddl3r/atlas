@@ -148,6 +148,7 @@ pub mod auto_offset;
 pub mod average_balance;
 pub mod statistical_accounting;
 pub mod receivables_factoring;
+pub mod document_sequencing;
 
 pub use schema::*;
 pub use records::*;
@@ -4883,6 +4884,27 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/factoring/dashboard", get(receivables_factoring::get_factoring_dashboard))
+
+        // ========================================================================
+        // Document Sequencing (Oracle Fusion: GL > Setup > Document Sequencing)
+        // ========================================================================
+        .route("/document-sequences", post(document_sequencing::create_sequence))
+        .route("/document-sequences", get(document_sequencing::list_sequences))
+        .route("/document-sequences/code/:code", get(document_sequencing::get_sequence_by_code))
+        .route("/document-sequences/code/:code", delete(document_sequencing::delete_sequence))
+        .route("/document-sequences/:id", get(document_sequencing::get_sequence))
+        .route("/document-sequences/:id/activate", post(document_sequencing::activate_sequence))
+        .route("/document-sequences/:id/deactivate", post(document_sequencing::deactivate_sequence))
+        .route("/document-sequences/generate", post(document_sequencing::generate_number))
+        .route("/document-sequences/generate-direct", post(document_sequencing::generate_number_direct))
+        .route("/document-sequences/assignments", post(document_sequencing::create_assignment))
+        .route("/document-sequences/assignments", get(document_sequencing::list_assignments))
+        .route("/document-sequences/assignments/:id", get(document_sequencing::get_assignment))
+        .route("/document-sequences/assignments/:id/deactivate", post(document_sequencing::deactivate_assignment))
+        .route("/document-sequences/assignments/:id", delete(document_sequencing::delete_assignment))
+        .route("/document-sequences/audit", get(document_sequencing::list_audit_entries))
+        .route("/document-sequences/audit/:document_id", get(document_sequencing::get_audit_by_document))
+        .route("/document-sequences/dashboard", get(document_sequencing::get_document_sequencing_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

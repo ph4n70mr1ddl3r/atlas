@@ -655,6 +655,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         receivables_factoring_engine: Arc::new(atlas_core::ReceivablesFactoringEngine::new(Arc::new(
             atlas_core::receivables_factoring::PostgresReceivablesFactoringRepository::new(db_pool.clone()),
         ))),
+        document_sequencing_engine: Arc::new(atlas_core::DocumentSequencingEngine::new(Arc::new(
+            atlas_core::document_sequencing::PostgresDocumentSequencingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1231,4 +1234,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM financials.statistical_balances").execute(pool).await.ok();
     sqlx::query("DELETE FROM financials.statistical_entries").execute(pool).await.ok();
     sqlx::query("DELETE FROM financials.statistical_units").execute(pool).await.ok();
+
+    // Clean document sequencing test data
+    sqlx::query("DELETE FROM _atlas.document_sequence_audit").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.document_sequence_assignments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.document_sequences").execute(pool).await.ok();
 } 

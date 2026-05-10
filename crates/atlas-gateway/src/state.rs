@@ -3,6 +3,8 @@
 //! Shared state for all request handlers.
 
 use atlas_core::{
+    DocumentSequencingEngine,
+    document_sequencing::PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo,
     CashFlowStatementEngine,
     ThirdPartyPaymentEngine,
     third_party_payment::PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo,
@@ -442,6 +444,7 @@ pub struct AppState {
     pub average_balance_engine: Arc<AverageBalanceEngine>,
     pub statistical_accounting_engine: Arc<StatisticalAccountingEngine>,
     pub receivables_factoring_engine: Arc<ReceivablesFactoringEngine>,
+    pub document_sequencing_engine: Arc<DocumentSequencingEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1206,6 +1209,11 @@ impl AppState {
             PostgresReceivablesFactoringRepo::new(db_pool.clone())
         )));
 
+        // Initialize Document Sequencing engine (Oracle Fusion: GL > Setup > Document Sequencing)
+        let document_sequencing_engine = Arc::new(DocumentSequencingEngine::new(Arc::new(
+            PostgresDocumentSequencingRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1395,6 +1403,7 @@ impl AppState {
             average_balance_engine,
             statistical_accounting_engine,
             receivables_factoring_engine,
+            document_sequencing_engine,
             cash_flow_statement_engine,
             event_bus,
             jwt_secret,

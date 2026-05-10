@@ -1151,6 +1151,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         receivables_factoring_engine: Arc::new(atlas_core::ReceivablesFactoringEngine::new(Arc::new(
             atlas_core::receivables_factoring::PostgresReceivablesFactoringRepository::new(db_pool.clone()),
         ))),
+        document_sequencing_engine: Arc::new(atlas_core::DocumentSequencingEngine::new(Arc::new(
+            atlas_core::document_sequencing::PostgresDocumentSequencingRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

@@ -423,7 +423,7 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
                 COUNT(*) FILTER (WHERE status = 'active') as active,
                 COUNT(*) FILTER (WHERE sequence_type = 'gapless') as gapless,
                 COUNT(*) FILTER (WHERE sequence_type = 'gap_permitted') as gap_permitted,
-                COALESCE(SUM(current_value), 0) as total_generated
+                COALESCE(SUM(current_value), 0)::bigint as total_generated
             FROM _atlas.document_sequences WHERE organization_id = $1"#,
         )
         .bind(org_id).fetch_one(&self.pool).await

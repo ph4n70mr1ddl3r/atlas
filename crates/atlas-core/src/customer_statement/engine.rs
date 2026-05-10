@@ -443,7 +443,7 @@ impl CustomerStatementEngine {
         self.repository.create_statement_line(
             org_id, statement_id, line_type,
             transaction_id, transaction_number, transaction_date, due_date,
-            original_amount.map(|s| format!("{:.2}", orig_amt.unwrap_or(0.0))).as_deref(),
+            original_amount.map(|_s| format!("{:.2}", orig_amt.unwrap_or(0.0))).as_deref(),
             &format!("{:.2}", amt),
             description, reference_type, reference_id,
             next_order, metadata,

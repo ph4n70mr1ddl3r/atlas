@@ -15134,19 +15134,15 @@ impl BankStatementReconciliationService {
                 format!("Invalid match strategy: '{}'", match_strategy),
             ));
         }
-        if matches!(match_strategy, "amount_tolerance" | "combined_amount_reference" | "combined_amount_date") {
-            if tolerance_pct.is_none() {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Match strategy '{}' requires amount tolerance percentage", match_strategy),
-                ));
-            }
+        if matches!(match_strategy, "amount_tolerance" | "combined_amount_reference" | "combined_amount_date") && tolerance_pct.is_none() {
+            return Err(AtlasError::ValidationFailed(
+                format!("Match strategy '{}' requires amount tolerance percentage", match_strategy),
+            ));
         }
-        if matches!(match_strategy, "date_range" | "combined_amount_date") {
-            if date_tolerance_days.is_none() {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Match strategy '{}' requires date tolerance days", match_strategy),
-                ));
-            }
+        if matches!(match_strategy, "date_range" | "combined_amount_date") && date_tolerance_days.is_none() {
+            return Err(AtlasError::ValidationFailed(
+                format!("Match strategy '{}' requires date tolerance days", match_strategy),
+            ));
         }
 
         info!(

@@ -307,7 +307,7 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
         Ok(row_to_batch(&row))
     }
 
-    async fn get_next_batch_number(&self, org_id: Uuid) -> AtlasResult<i32> {
+    async fn get_next_batch_number(&self, _org_id: Uuid) -> AtlasResult<i32> {
         let row = sqlx::query(
             "SELECT nextval('_atlas.remittance_batch_num_seq') as next_num"
         )

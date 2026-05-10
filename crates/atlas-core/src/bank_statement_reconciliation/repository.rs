@@ -12,6 +12,12 @@ pub trait BankStatementReconciliationRepository: Send + Sync {}
 /// PostgreSQL-backed implementation (stub — real SQL in production).
 pub struct PostgresBankStatementReconciliationRepository;
 
+impl Default for PostgresBankStatementReconciliationRepository {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PostgresBankStatementReconciliationRepository {
     pub fn new() -> Self {
         Self

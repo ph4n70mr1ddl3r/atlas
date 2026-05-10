@@ -17,6 +17,7 @@ use tracing::info;
 use uuid::Uuid;
 
 const VALID_DISTRIBUTION_TYPES: &[&str] = &["percentage", "amount"];
+#[allow(dead_code)]
 const VALID_STATUSES: &[&str] = &["active", "inactive"];
 pub struct DistributionSetEngine {
     repository: Arc<dyn DistributionSetRepository>,
@@ -202,7 +203,7 @@ impl DistributionSetEngine {
         let pct: f64 = percentage.parse().map_err(|_| AtlasError::ValidationFailed(
             "Percentage must be a valid number".into(),
         ))?;
-        if pct < 0.0 || pct > 100.0 {
+        if !(0.0..=100.0).contains(&pct) {
             return Err(AtlasError::ValidationFailed(
                 "Percentage must be between 0 and 100".into(),
             ));

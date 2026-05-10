@@ -96,7 +96,7 @@ pub async fn list_calendars(
 
 pub async fn get_calendar(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.transaction_calendar_engine.get_calendar_by_id(id).await {
@@ -127,7 +127,7 @@ pub async fn get_calendar_by_code(
 
 pub async fn activate_calendar(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.transaction_calendar_engine.activate_calendar(id).await {
@@ -145,7 +145,7 @@ pub async fn activate_calendar(
 
 pub async fn deactivate_calendar(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.transaction_calendar_engine.deactivate_calendar(id).await {
@@ -231,7 +231,7 @@ pub async fn create_exception(
 
 pub async fn list_exceptions(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(calendar_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.transaction_calendar_engine.list_exceptions(calendar_id).await {
@@ -252,7 +252,7 @@ pub struct ListExceptionsRangeQuery {
 
 pub async fn list_exceptions_range(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(calendar_id): Path<Uuid>,
     Query(query): Query<ListExceptionsRangeQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -269,7 +269,7 @@ pub async fn list_exceptions_range(
 
 pub async fn delete_exception(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     match state.transaction_calendar_engine.delete_exception(id).await {

@@ -20,6 +20,7 @@ use uuid::Uuid;
 const VALID_EXCEPTION_TYPES: &[&str] = &["holiday", "non_working", "special_working"];
 
 /// Valid calendar statuses
+#[allow(dead_code)]
 const VALID_STATUSES: &[&str] = &["active", "inactive"];
 
 /// Default working days: Monday through Friday
@@ -448,7 +449,7 @@ impl TransactionCalendarEngine {
                 }
                 for v in arr {
                     match v.as_i64() {
-                        Some(d) if d >= 1 && d <= 7 => {}
+                        Some(d) if (1..=7).contains(&d) => {}
                         _ => return Err(AtlasError::ValidationFailed(format!(
                             "Invalid working day value: {}. Must be 1-7 (Mon-Sun)", v
                         ))),

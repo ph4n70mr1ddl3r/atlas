@@ -353,7 +353,7 @@ pub async fn create_run(
 
 pub async fn get_run(
     State(state): State<Arc<AppState>>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.get_run(id).await {

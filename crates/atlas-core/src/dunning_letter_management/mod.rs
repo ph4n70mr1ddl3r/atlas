@@ -393,7 +393,7 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
                 .bind(org_id)
                 .fetch_all(&self.pool).await
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_letter_set(&r)).collect())
+        Ok(rows.iter().map(row_to_letter_set).collect())
     }
 
     async fn update_letter_set_status(&self, id: Uuid, status: &str) -> AtlasResult<DunningLetterSet> {
@@ -437,7 +437,7 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
         ).bind(set_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_letter_set_line(&r)).collect())
+        Ok(rows.iter().map(row_to_letter_set_line).collect())
     }
 
     // ========================================================================
@@ -490,7 +490,7 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
                 .bind(org_id)
                 .fetch_all(&self.pool).await
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_profile(&r)).collect())
+        Ok(rows.iter().map(row_to_profile).collect())
     }
 
     async fn update_profile_status(&self, id: Uuid, status: &str, reason: Option<&str>) -> AtlasResult<DunningProfile> {
@@ -566,7 +566,7 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
                 .bind(org_id)
                 .fetch_all(&self.pool).await
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_run(&r)).collect())
+        Ok(rows.iter().map(row_to_run).collect())
     }
 
     async fn update_run_status(&self, id: Uuid, status: &str) -> AtlasResult<DunningLetterRun> {
@@ -626,7 +626,7 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
         ).bind(run_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| row_to_run_result(&r)).collect())
+        Ok(rows.iter().map(row_to_run_result).collect())
     }
 
     async fn get_run_result(&self, id: Uuid) -> AtlasResult<Option<DunningLetterRunResult>> {

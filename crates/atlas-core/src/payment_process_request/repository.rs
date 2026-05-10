@@ -714,8 +714,8 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
             cancelled_count: stats.get("cancelled_count"),
             total_payment_amount: stats.get("total_payment_amount"),
             total_documents_processed: stats.get("total_documents_processed"),
-            by_payment_method: by_payment_method,
-            by_selection_criteria: by_selection_criteria,
+            by_payment_method,
+            by_selection_criteria,
         })
     }
 }

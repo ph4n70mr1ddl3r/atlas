@@ -96,7 +96,7 @@ pub async fn create_retirement(
 
 pub async fn get_retirement(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.asset_retirement_engine.get(id).await {
@@ -175,7 +175,7 @@ pub struct CompleteRetirementRequest {
 
 pub async fn complete_retirement(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteRetirementRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
@@ -196,7 +196,7 @@ pub async fn complete_retirement(
 
 pub async fn reverse_retirement(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     match state.asset_retirement_engine.reverse(id).await {
@@ -216,7 +216,7 @@ pub async fn reverse_retirement(
 
 pub async fn cancel_retirement(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     match state.asset_retirement_engine.cancel(id).await {

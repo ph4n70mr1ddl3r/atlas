@@ -475,11 +475,11 @@ impl TaxRegistrationEngine {
     }
 
     /// Get registrations expiring within N days from a reference date
-    pub fn get_expiring<'a>(
-        registrations: &'a [TaxRegistration],
+    pub fn get_expiring(
+        registrations: &[TaxRegistration],
         as_of: chrono::NaiveDate,
         within_days: i32,
-    ) -> Vec<(&'a TaxRegistration, i64)> {
+    ) -> Vec<(&TaxRegistration, i64)> {
         registrations.iter()
             .filter(|r| {
                 r.status == "active"
@@ -499,15 +499,7 @@ impl TaxRegistrationEngine {
 
     /// Validate a status transition is allowed
     pub fn validate_status_transition(from: &str, to: &str) -> bool {
-        match (from, to) {
-            ("pending", "active") => true,
-            ("active", "suspended") => true,
-            ("active", "deregistered") => true,
-            ("active", "expired") => true,
-            ("suspended", "active") => true,
-            ("suspended", "deregistered") => true,
-            _ => false,
-        }
+        matches!((from, to), ("pending", "active") | ("active", "suspended") | ("active", "deregistered") | ("active", "expired") | ("suspended", "active") | ("suspended", "deregistered"))
     }
 }
 
@@ -637,7 +629,7 @@ fn validate_au_abn(number: &str, reg_type: &str) -> AtlasResult<()> {
             if i == 0 { d.saturating_sub(1) } else { d }
         }).collect();
         let sum: u32 = adjusted.iter().zip(weights.iter()).map(|(&d, &w)| d * w).sum();
-        if sum % 89 != 0 {
+        if !sum.is_multiple_of(89) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Australian ABN '{}' failed checksum validation", number
             )));
@@ -666,8 +658,8 @@ fn validate_in_gst(number: &str, reg_type: &str) -> AtlasResult<()> {
             ));
         }
         // Position 2-6: PAN (alphanumeric)
-        for i in 2..=6 {
-            if !chars[i].is_alphanumeric() {
+        for &ch in chars.iter().take(7).skip(2) {
+            if !ch.is_alphanumeric() {
                 return Err(AtlasError::ValidationFailed(
                     "GSTIN positions 2-6 must be alphanumeric (PAN)".to_string(),
                 ));
@@ -686,8 +678,8 @@ fn validate_in_gst(number: &str, reg_type: &str) -> AtlasResult<()> {
             ));
         }
         // Position 9-12: alphanumeric
-        for i in 9..=12 {
-            if !chars[i].is_alphanumeric() {
+        for &ch in chars.iter().take(13).skip(9) {
+            if !ch.is_alphanumeric() {
                 return Err(AtlasError::ValidationFailed(
                     "GSTIN positions 9-12 must be alphanumeric".to_string(),
                 ));

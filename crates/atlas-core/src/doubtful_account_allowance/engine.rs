@@ -127,7 +127,7 @@ impl DoubtfulAccountAllowanceEngine {
             let pct: f64 = flat_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
                 "flat_percentage must be a valid number".to_string(),
             ))?;
-            if pct < 0.0 || pct > 100.0 {
+            if !(0.0..=100.0).contains(&pct) {
                 return Err(AtlasError::ValidationFailed(
                     "flat_percentage must be between 0 and 100".to_string(),
                 ));
@@ -284,7 +284,7 @@ impl DoubtfulAccountAllowanceEngine {
             "provision_percentage must be a valid number".to_string(),
         ))?;
 
-        if pct < 0.0 || pct > 100.0 {
+        if !(0.0..=100.0).contains(&pct) {
             return Err(AtlasError::ValidationFailed(
                 "provision_percentage must be between 0 and 100".to_string(),
             ));

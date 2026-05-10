@@ -117,7 +117,7 @@ pub async fn list_sequences(
 
 pub async fn get_sequence(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.get_sequence_by_id(id).await {
@@ -148,7 +148,7 @@ pub async fn get_sequence_by_code(
 
 pub async fn activate_sequence(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.activate_sequence(id).await {
@@ -166,7 +166,7 @@ pub async fn activate_sequence(
 
 pub async fn deactivate_sequence(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.deactivate_sequence(id).await {
@@ -332,7 +332,7 @@ pub async fn create_assignment(
 
 pub async fn get_assignment(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.get_assignment(id).await {
@@ -367,7 +367,7 @@ pub async fn list_assignments(
 
 pub async fn deactivate_assignment(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.deactivate_assignment(id).await {
@@ -385,7 +385,7 @@ pub async fn deactivate_assignment(
 
 pub async fn delete_assignment(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     match state.document_sequencing_engine.delete_assignment(id).await {
@@ -428,7 +428,7 @@ pub async fn list_audit_entries(
 
 pub async fn get_audit_by_document(
     State(state): State<Arc<AppState>>,
-    claims: Extension<Claims>,
+    _claims: Extension<Claims>,
     Path(document_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.get_audit_by_document(document_id).await {

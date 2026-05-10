@@ -38,6 +38,7 @@ const VALID_REQUEST_STATUSES: &[&str] = &[
     "draft", "submitted", "approved", "funded",
     "partially_settled", "settled", "cancelled", "rejected",
 ];
+#[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &["pending", "funded", "settled", "chargeback", "excluded"];
 const VALID_SETTLEMENT_STATUSES: &[&str] = &["draft", "processed", "cancelled"];
 

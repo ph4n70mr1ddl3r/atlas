@@ -773,8 +773,6 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let upcoming_count = upcoming_count;
-
         #[derive(sqlx::FromRow)]
         struct RecurrenceRow { recurrence_type: String, count: Option<i64> }
 

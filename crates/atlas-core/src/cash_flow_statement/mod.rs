@@ -118,7 +118,7 @@ impl CashFlowStatementRepository for PostgresCashFlowStatementRepository {
     async fn add_line(&self, _: Uuid, _: i32, _: &str, _: Option<&str>, _: &str, _: &str, _: Option<&str>, _: Option<&str>, _: bool, _: i32) -> AtlasResult<CashFlowStatementLine> { Err(AtlasError::DatabaseError("Not implemented".into())) }
     async fn list_lines(&self, _: Uuid) -> AtlasResult<Vec<CashFlowStatementLine>> { Ok(vec![]) }
     async fn remove_line(&self, _: Uuid) -> AtlasResult<()> { Ok(()) }
-    async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CashFlowDashboard> {
+    async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<CashFlowDashboard> {
         Ok(CashFlowDashboard { total_statements: 0, draft_statements: 0, published_statements: 0, total_operating: "0".into(), total_investing: "0".into(), total_financing: "0".into() })
     }
 }

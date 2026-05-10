@@ -79,6 +79,7 @@ impl FinanceChargeEngine {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn validate_line_status(status: &str) -> AtlasResult<()> {
         if !VALID_LINE_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(

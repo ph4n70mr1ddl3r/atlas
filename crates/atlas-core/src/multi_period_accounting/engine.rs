@@ -19,6 +19,7 @@ const VALID_DISTRIBUTION_METHODS: &[&str] = &["equal", "custom", "days"];
 const VALID_PERIOD_TYPES: &[&str] = &["month", "quarter", "year"];
 const VALID_TEMPLATE_STATUSES: &[&str] = &["draft", "active", "inactive"];
 const VALID_SCHEDULE_STATUSES: &[&str] = &["draft", "active", "completed", "cancelled", "on_hold"];
+#[allow(dead_code)]
 const VALID_LINE_STATUSES: &[&str] = &["pending", "recognized", "reversed"];
 
 pub struct MultiPeriodAccountingEngine {
@@ -416,7 +417,7 @@ impl MultiPeriodAccountingEngine {
 
         // Check parent schedule is active
         let schedule = self.repository.get_schedule(line.schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule not found")))?;
+            .ok_or_else(|| AtlasError::EntityNotFound("Schedule not found".to_string()))?;
         if schedule.status != "active" {
             return Err(AtlasError::WorkflowError(
                 format!("Cannot recognize line: parent schedule is in '{}' status. Must be 'active'.", schedule.status)

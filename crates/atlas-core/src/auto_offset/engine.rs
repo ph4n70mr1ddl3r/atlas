@@ -25,7 +25,9 @@ const VALID_GENERATION_METHODS: &[&str] = &[
 const VALID_SOURCE_TYPES: &[&str] = &[
     "journal_entry", "invoice", "payment", "receipt", "manual",
 ];
+#[allow(dead_code)]
 const VALID_OFFSET_TYPES: &[&str] = &["due_to", "due_from", "clearing"];
+#[allow(dead_code)]
 const VALID_GENERATION_STATUSES: &[&str] = &[
     "generated", "posted", "reversed", "cancelled",
 ];

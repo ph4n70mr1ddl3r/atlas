@@ -181,6 +181,7 @@ pub mod third_party_payment;
 pub mod average_balance;
 pub mod cash_receipt;
 pub mod direct_debit_mandate;
+pub mod multi_period_accounting;
 
 pub use schema::*;
 pub use workflow::{
@@ -363,6 +364,7 @@ pub use third_party_payment::{ThirdPartyPaymentEngine, PostgresThirdPartyPayment
 pub use average_balance::{AverageBalanceEngine, PostgresAverageBalanceRepository as PostgresAverageBalanceRepo};
 pub use cash_receipt::{CashReceiptEngine, PostgresCashReceiptRepository as PostgresCashReceiptRepo};
 pub use direct_debit_mandate::{DirectDebitMandateEngine, PostgresDirectDebitMandateRepository as PostgresDirectDebitMandateRepo};
+pub use multi_period_accounting::{MultiPeriodAccountingEngine, MpaRepository, PostgresMpaRepository as PostgresMpaRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

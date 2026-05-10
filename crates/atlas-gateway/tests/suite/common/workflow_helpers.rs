@@ -1169,6 +1169,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         asset_retirement_engine: Arc::new(atlas_core::AssetRetirementEngine::new(Arc::new(
             atlas_core::asset_retirement::PostgresAssetRetirementRepository::new(db_pool.clone()),
         ))),
+        mpa_engine: Arc::new(atlas_core::MultiPeriodAccountingEngine::new(Arc::new(
+            atlas_core::multi_period_accounting::PostgresMpaRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

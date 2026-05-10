@@ -3,6 +3,8 @@
 //! Shared state for all request handlers.
 
 use atlas_core::{
+    MultiPeriodAccountingEngine,
+    multi_period_accounting::PostgresMpaRepository as PostgresMpaRepo,
     DocumentSequencingEngine,
     document_sequencing::PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo,
     TransactionCalendarEngine,
@@ -460,6 +462,7 @@ pub struct AppState {
     pub document_sequencing_engine: Arc<DocumentSequencingEngine>,
     pub transaction_calendar_engine: Arc<TransactionCalendarEngine>,
     pub asset_retirement_engine: Arc<AssetRetirementEngine>,
+    pub mpa_engine: Arc<MultiPeriodAccountingEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1253,6 +1256,11 @@ impl AppState {
             PostgresAssetRetirementRepo::new(db_pool.clone())
         )));
 
+        // Initialize Multi-Period Accounting engine (Oracle Fusion: GL > Multi-Period Accounting)
+        let mpa_engine = Arc::new(MultiPeriodAccountingEngine::new(Arc::new(
+            PostgresMpaRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1448,6 +1456,7 @@ impl AppState {
             document_sequencing_engine,
             transaction_calendar_engine,
             asset_retirement_engine,
+            mpa_engine,
             cash_flow_statement_engine,
             event_bus,
             jwt_secret,

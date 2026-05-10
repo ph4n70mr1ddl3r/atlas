@@ -152,3 +152,4 @@ mod asset_retirement;
 mod finance_charge_management;
 mod cash_receipt;
 mod direct_debit_mandate;
+mod multi_period_accounting;

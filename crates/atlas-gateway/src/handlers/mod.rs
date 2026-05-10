@@ -154,6 +154,7 @@ pub mod receivables_factoring;
 pub mod document_sequencing;
 pub mod transaction_calendar;
 pub mod asset_retirement;
+pub mod multi_period_accounting;
 
 pub use schema::*;
 pub use records::*;
@@ -5015,6 +5016,35 @@ pub fn api_routes() -> Router<Arc<AppState>> {
 
         // Dashboard
         .route("/direct-debit-mandates/dashboard", get(direct_debit_mandate::get_dashboard))
+
+        // ═══════════════════════════════════════════════════════
+        // Multi-Period Accounting (Oracle Fusion: GL > Multi-Period Accounting)
+        // ═══════════════════════════════════════════════════════
+
+        // MPA Templates
+        .route("/mpa/templates", post(multi_period_accounting::create_template))
+        .route("/mpa/templates", get(multi_period_accounting::list_templates))
+        .route("/mpa/templates/:id", get(multi_period_accounting::get_template))
+        .route("/mpa/templates/:id/activate", post(multi_period_accounting::activate_template))
+        .route("/mpa/templates/:id/deactivate", post(multi_period_accounting::deactivate_template))
+        .route("/mpa/templates/:template_id/lines", post(multi_period_accounting::add_template_line))
+        .route("/mpa/templates/:template_id/lines", get(multi_period_accounting::list_template_lines))
+
+        // MPA Schedules
+        .route("/mpa/schedules", post(multi_period_accounting::create_schedule))
+        .route("/mpa/schedules", get(multi_period_accounting::list_schedules))
+        .route("/mpa/schedules/:id", get(multi_period_accounting::get_schedule))
+        .route("/mpa/schedules/:id/activate", post(multi_period_accounting::activate_schedule))
+        .route("/mpa/schedules/:id/hold", post(multi_period_accounting::hold_schedule))
+        .route("/mpa/schedules/:id/cancel", post(multi_period_accounting::cancel_schedule))
+
+        // MPA Schedule Lines
+        .route("/mpa/schedules/:schedule_id/lines", get(multi_period_accounting::list_schedule_lines))
+        .route("/mpa/lines/:line_id/recognize", post(multi_period_accounting::recognize_line))
+        .route("/mpa/lines/:line_id/reverse", post(multi_period_accounting::reverse_line))
+
+        // MPA Dashboard
+        .route("/mpa/dashboard", get(multi_period_accounting::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

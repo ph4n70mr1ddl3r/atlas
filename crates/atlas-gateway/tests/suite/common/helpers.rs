@@ -673,6 +673,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         asset_retirement_engine: Arc::new(atlas_core::AssetRetirementEngine::new(Arc::new(
             atlas_core::asset_retirement::PostgresAssetRetirementRepository::new(db_pool.clone()),
         ))),
+        mpa_engine: Arc::new(atlas_core::MultiPeriodAccountingEngine::new(Arc::new(
+            atlas_core::multi_period_accounting::PostgresMpaRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1267,4 +1270,11 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.finance_charge_runs").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.finance_charge_tiers").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.finance_charge_terms").execute(pool).await.ok();
+
+    // Clean Multi-Period Accounting test data
+    sqlx::query("DELETE FROM financials.mpa_audit").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.mpa_schedule_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.mpa_schedules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.mpa_template_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.mpa_templates").execute(pool).await.ok();
 } 

@@ -166,6 +166,7 @@ pub mod cash_concentration;
 pub mod customer_statement;
 pub mod remittance_batch;
 pub mod chargeback_management;
+pub mod finance_charge;
 pub mod profitability_analysis;
 pub mod recurring_invoice;
 pub mod payment_settlement;
@@ -344,6 +345,7 @@ pub use cash_concentration::{CashConcentrationEngine, PostgresCashConcentrationR
 pub use customer_statement::{CustomerStatementEngine, PostgresCustomerStatementRepository as PostgresCustomerStatementRepo};
 pub use remittance_batch::{RemittanceBatchEngine, PostgresRemittanceBatchRepository as PostgresRemittanceBatchRepo};
 pub use chargeback_management::{ChargebackManagementEngine, PostgresChargebackManagementRepository as PostgresChargebackManagementRepo};
+pub use finance_charge::{FinanceChargeEngine, PostgresFinanceChargeRepository};
 pub use profitability_analysis::{ProfitabilityAnalysisEngine, PostgresProfitabilityAnalysisRepository as PostgresProfitabilityAnalysisRepo};
 pub use recurring_invoice::{RecurringInvoiceEngine, PostgresRecurringInvoiceRepository as PostgresRecurringInvoiceRepo};
 pub use payment_settlement::{PaymentSettlementEngine, PostgresPaymentSettlementRepository as PostgresPaymentSettlementRepo};

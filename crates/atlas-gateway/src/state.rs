@@ -198,6 +198,8 @@ use atlas_core::{
     remittance_batch::PostgresRemittanceBatchRepository,
     ChargebackManagementEngine,
     chargeback_management::PostgresChargebackManagementRepository as PostgresChargebackManagementRepo,
+    FinanceChargeEngine,
+    finance_charge::PostgresFinanceChargeRepository,
     ProfitabilityAnalysisEngine,
     profitability_analysis::PostgresProfitabilityAnalysisRepository as PostgresProfitabilityAnalysisRepo,
     RecurringInvoiceEngine,
@@ -432,6 +434,7 @@ pub struct AppState {
     pub customer_statement_engine: Arc<CustomerStatementEngine>,
     pub remittance_batch_engine: Arc<RemittanceBatchEngine>,
     pub chargeback_engine: Arc<ChargebackManagementEngine>,
+    pub finance_charge_engine: Arc<FinanceChargeEngine>,
     pub profitability_engine: Arc<ProfitabilityAnalysisEngine>,
     pub recurring_invoice_engine: Arc<RecurringInvoiceEngine>,
     pub payment_settlement_engine: Arc<PaymentSettlementEngine>,
@@ -1135,6 +1138,11 @@ impl AppState {
             PostgresChargebackManagementRepo::new(db_pool.clone())
         )));
 
+        // Initialize Finance Charge Management engine (Oracle Fusion: Receivables > Finance Charges)
+        let finance_charge_engine = Arc::new(FinanceChargeEngine::new(Arc::new(
+            PostgresFinanceChargeRepository::new(db_pool.clone())
+        )));
+
         // Initialize Profitability Analysis engine (Oracle Fusion: Financials > Profitability Analysis)
         let profitability_engine = Arc::new(ProfitabilityAnalysisEngine::new(Arc::new(
             PostgresProfitabilityAnalysisRepo::new(db_pool.clone())
@@ -1403,6 +1411,7 @@ impl AppState {
             customer_statement_engine,
             remittance_batch_engine,
             chargeback_engine,
+            finance_charge_engine,
             profitability_engine,
             recurring_invoice_engine,
             payment_settlement_engine,

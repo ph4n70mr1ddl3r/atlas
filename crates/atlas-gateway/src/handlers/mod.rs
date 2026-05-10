@@ -132,6 +132,7 @@ pub mod cash_concentration;
 pub mod customer_statement;
 pub mod remittance_batch;
 pub mod chargeback_management;
+pub mod finance_charge_management;
 pub mod profitability_analysis;
 pub mod recurring_invoice;
 pub mod payment_settlement;
@@ -4524,6 +4525,25 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/chargebacks/:chargeback_id/lines/:line_id", delete(chargeback_management::remove_line))
         .route("/chargebacks/:chargeback_id/activities", get(chargeback_management::list_activities))
         .route("/chargebacks/dashboard", get(chargeback_management::get_dashboard))
+
+        // Finance Charge Management (Oracle Fusion: Receivables > Finance Charges)
+        .route("/finance-charges/terms", post(finance_charge_management::create_term))
+        .route("/finance-charges/terms", get(finance_charge_management::list_terms))
+        .route("/finance-charges/terms/:id", get(finance_charge_management::get_term))
+        .route("/finance-charges/runs", post(finance_charge_management::create_run))
+        .route("/finance-charges/runs", get(finance_charge_management::list_runs))
+        .route("/finance-charges/runs/:id", get(finance_charge_management::get_run))
+        .route("/finance-charges/runs/number/:number", get(finance_charge_management::get_run_by_number))
+        .route("/finance-charges/runs/number/:number", delete(finance_charge_management::delete_run))
+        .route("/finance-charges/runs/:id/transition", post(finance_charge_management::transition_run))
+        .route("/finance-charges/runs/:run_id/lines", post(finance_charge_management::add_charge_line))
+        .route("/finance-charges/runs/:run_id/lines", get(finance_charge_management::list_lines))
+        .route("/finance-charges/lines/:line_id/waive", post(finance_charge_management::waive_line))
+        .route("/finance-charges/runs/:run_id/generate-invoices", post(finance_charge_management::generate_invoices))
+        .route("/finance-charges/invoices", get(finance_charge_management::list_invoices))
+        .route("/finance-charges/invoices/:id", get(finance_charge_management::get_invoice))
+        .route("/finance-charges/invoices/:id/transition", post(finance_charge_management::transition_invoice))
+        .route("/finance-charges/dashboard", get(finance_charge_management::get_dashboard))
 
         // ========================================================================
         // Profitability Analysis (Oracle Fusion: Financials > Profitability Analysis)

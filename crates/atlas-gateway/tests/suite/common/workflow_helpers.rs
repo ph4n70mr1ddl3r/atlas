@@ -1103,6 +1103,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         chargeback_engine: Arc::new(atlas_core::ChargebackManagementEngine::new(Arc::new(
             atlas_core::chargeback_management::PostgresChargebackManagementRepository::new(db_pool.clone()),
         ))),
+        finance_charge_engine: Arc::new(atlas_core::FinanceChargeEngine::new(Arc::new(
+            atlas_core::finance_charge::PostgresFinanceChargeRepository::new(db_pool.clone()),
+        ))),
         profitability_engine: Arc::new(atlas_core::ProfitabilityAnalysisEngine::new(Arc::new(
             atlas_core::profitability_analysis::PostgresProfitabilityAnalysisRepository::new(db_pool.clone()),
         ))),

@@ -607,6 +607,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         chargeback_engine: Arc::new(atlas_core::ChargebackManagementEngine::new(Arc::new(
             atlas_core::chargeback_management::PostgresChargebackManagementRepository::new(db_pool.clone()),
         ))),
+        finance_charge_engine: Arc::new(atlas_core::FinanceChargeEngine::new(Arc::new(
+            atlas_core::finance_charge::PostgresFinanceChargeRepository::new(db_pool.clone()),
+        ))),
         profitability_engine: Arc::new(atlas_core::ProfitabilityAnalysisEngine::new(Arc::new(
             atlas_core::profitability_analysis::PostgresProfitabilityAnalysisRepository::new(db_pool.clone()),
         ))),
@@ -1250,4 +1253,12 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.calendar_date_calculations").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.calendar_exceptions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.transaction_calendars").execute(pool).await.ok();
+
+    // Clean finance charge management test data
+    sqlx::query("DELETE FROM _atlas.finance_charge_activities").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_invoices").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_runs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_tiers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_terms").execute(pool).await.ok();
 } 

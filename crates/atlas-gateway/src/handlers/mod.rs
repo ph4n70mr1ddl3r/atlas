@@ -150,6 +150,7 @@ pub mod statistical_accounting;
 pub mod receivables_factoring;
 pub mod document_sequencing;
 pub mod transaction_calendar;
+pub mod asset_retirement;
 
 pub use schema::*;
 pub use records::*;
@@ -4927,6 +4928,18 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/transaction-calendars/calculations", get(transaction_calendar::list_calculations))
         .route("/transaction-calendars/dashboard", get(transaction_calendar::get_transaction_calendar_dashboard))
         .route("/transaction-calendars/exceptions/:id", delete(transaction_calendar::delete_exception))
+
+        // ========================================================================
+        // Asset Retirement (Oracle Fusion: Fixed Assets > Asset Retirements)
+        // ========================================================================
+        .route("/asset-retirements", post(asset_retirement::create_retirement))
+        .route("/asset-retirements", get(asset_retirement::list_retirements))
+        .route("/asset-retirements/dashboard", get(asset_retirement::get_retirement_dashboard))
+        .route("/asset-retirements/:id", get(asset_retirement::get_retirement))
+        .route("/asset-retirements/:id/approve", post(asset_retirement::approve_retirement))
+        .route("/asset-retirements/:id/complete", post(asset_retirement::complete_retirement))
+        .route("/asset-retirements/:id/reverse", post(asset_retirement::reverse_retirement))
+        .route("/asset-retirements/:id/cancel", post(asset_retirement::cancel_retirement))
 
         .layer(middleware::from_fn(auth_middleware))
 }

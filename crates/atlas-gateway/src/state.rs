@@ -7,6 +7,8 @@ use atlas_core::{
     document_sequencing::PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo,
     TransactionCalendarEngine,
     transaction_calendar::PostgresTransactionCalendarRepository as PostgresTransactionCalendarRepo,
+    AssetRetirementEngine,
+    asset_retirement::PostgresAssetRetirementRepository as PostgresAssetRetirementRepo,
     CashFlowStatementEngine,
     ThirdPartyPaymentEngine,
     third_party_payment::PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo,
@@ -448,6 +450,7 @@ pub struct AppState {
     pub receivables_factoring_engine: Arc<ReceivablesFactoringEngine>,
     pub document_sequencing_engine: Arc<DocumentSequencingEngine>,
     pub transaction_calendar_engine: Arc<TransactionCalendarEngine>,
+    pub asset_retirement_engine: Arc<AssetRetirementEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1221,6 +1224,11 @@ impl AppState {
             PostgresTransactionCalendarRepo::new(db_pool.clone())
         )));
 
+        // Initialize Asset Retirement engine (Oracle Fusion: Fixed Assets > Asset Retirements)
+        let asset_retirement_engine = Arc::new(AssetRetirementEngine::new(Arc::new(
+            PostgresAssetRetirementRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1412,6 +1420,7 @@ impl AppState {
             receivables_factoring_engine,
             document_sequencing_engine,
             transaction_calendar_engine,
+            asset_retirement_engine,
             cash_flow_statement_engine,
             event_bus,
             jwt_secret,

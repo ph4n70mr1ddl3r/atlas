@@ -661,6 +661,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         transaction_calendar_engine: Arc::new(atlas_core::TransactionCalendarEngine::new(Arc::new(
             atlas_core::transaction_calendar::PostgresTransactionCalendarRepository::new(db_pool.clone()),
         ))),
+        asset_retirement_engine: Arc::new(atlas_core::AssetRetirementEngine::new(Arc::new(
+            atlas_core::asset_retirement::PostgresAssetRetirementRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

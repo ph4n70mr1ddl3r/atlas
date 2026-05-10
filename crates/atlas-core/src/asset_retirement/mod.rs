@@ -4,11 +4,17 @@
 //! Handles retirement of fixed assets through sale, scrap, donation, or transfer
 //! with GL accounting entries for gain/loss on disposal.
 //!
+//! Key capabilities:
+//! - Create retirement requests with automatic gain/loss calculation
+//! - Approve, complete (post to GL), reverse, and cancel retirements
+//! - Track retirements by type (sale, scrap, donation, transfer, theft, destruction)
+//! - Dashboard with summary statistics
+//!
 //! Oracle Fusion equivalent: Financials > Fixed Assets > Asset Retirements
 
 use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
@@ -27,6 +33,7 @@ const VALID_STATUSES: &[&str] = &["pending", "approved", "completed", "reversed"
 // ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AssetRetirement {
     pub id: Uuid,
     pub organization_id: Uuid,
@@ -60,6 +67,7 @@ pub struct AssetRetirement {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RetirementDashboard {
     pub organization_id: Uuid,
     pub total_retirements: i32,
@@ -97,22 +105,206 @@ pub trait AssetRetirementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RetirementDashboard>;
 }
 
-/// PostgreSQL stub implementation
-#[allow(dead_code)]
-pub struct PostgresAssetRetirementRepository { #[allow(dead_code)]
-    pool: PgPool }
-impl PostgresAssetRetirementRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+// ============================================================================
+// PostgreSQL Implementation
+// ============================================================================
+
+pub struct PostgresAssetRetirementRepository {
+    pool: PgPool,
+}
+
+impl PostgresAssetRetirementRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+fn row_to_retirement(row: &sqlx::postgres::PgRow) -> AssetRetirement {
+    AssetRetirement {
+        id: row.get("id"),
+        organization_id: row.get("organization_id"),
+        retirement_number: row.get("retirement_number"),
+        asset_id: row.get("asset_id"),
+        asset_number: row.get("asset_number"),
+        asset_description: row.get("asset_description"),
+        retirement_type: row.get("retirement_type"),
+        retirement_date: row.get("retirement_date"),
+        cost: row.get("cost"),
+        accumulated_depreciation: row.get("accumulated_depreciation"),
+        net_book_value: row.get("net_book_value"),
+        proceeds: row.get("proceeds"),
+        removal_cost: row.get("removal_cost"),
+        gain_loss_amount: row.get("gain_loss_amount"),
+        gain_loss_account: row.get("gain_loss_account"),
+        asset_account: row.get("asset_account"),
+        depreciation_account: row.get("depreciation_account"),
+        proceeds_account: row.get("proceeds_account"),
+        removal_cost_account: row.get("removal_cost_account"),
+        buyer_name: row.get("buyer_name"),
+        reason: row.get("reason"),
+        status: row.get("status"),
+        approved_by: row.get("approved_by"),
+        posted_to_gl: row.get("posted_to_gl"),
+        gl_batch_id: row.get("gl_batch_id"),
+        metadata: row.get("metadata"),
+        created_by: row.get("created_by"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+    }
+}
 
 #[async_trait]
 impl AssetRetirementRepository for PostgresAssetRetirementRepository {
-    async fn create(&self, _: Uuid, _: &str, _: Uuid, _: Option<&str>, _: Option<&str>, _: &str, _: chrono::NaiveDate, _: &str, _: &str, _: &str, _: &str, _: &str, _: &str, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: &str, _: Option<Uuid>) -> AtlasResult<AssetRetirement> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get(&self, _: Uuid) -> AtlasResult<Option<AssetRetirement>> { Ok(None) }
-    async fn get_by_number(&self, _: Uuid, _: &str) -> AtlasResult<Option<AssetRetirement>> { Ok(None) }
-    async fn list(&self, _: Uuid, _: Option<&str>, _: Option<&str>) -> AtlasResult<Vec<AssetRetirement>> { Ok(vec![]) }
-    async fn update_status(&self, _: Uuid, _: &str, _: Option<Uuid>) -> AtlasResult<AssetRetirement> { Err(AtlasError::EntityNotFound("Not found".into())) }
-    async fn mark_posted(&self, _: Uuid, _: Uuid) -> AtlasResult<AssetRetirement> { Err(AtlasError::EntityNotFound("Not found".into())) }
+    async fn create(
+        &self,
+        org_id: Uuid, retirement_number: &str,
+        asset_id: Uuid, asset_number: Option<&str>, asset_description: Option<&str>,
+        retirement_type: &str, retirement_date: chrono::NaiveDate,
+        cost: &str, accumulated_depreciation: &str, net_book_value: &str,
+        proceeds: &str, removal_cost: &str, gain_loss_amount: &str,
+        gain_loss_account: Option<&str>, asset_account: Option<&str>,
+        depreciation_account: Option<&str>, proceeds_account: Option<&str>,
+        removal_cost_account: Option<&str>, buyer_name: Option<&str>,
+        reason: Option<&str>, status: &str, created_by: Option<Uuid>,
+    ) -> AtlasResult<AssetRetirement> {
+        let row = sqlx::query(
+            r#"INSERT INTO _atlas.asset_retirements
+                (organization_id, retirement_number, asset_id, asset_number, asset_description,
+                 retirement_type, retirement_date, cost, accumulated_depreciation, net_book_value,
+                 proceeds, removal_cost, gain_loss_amount, gain_loss_account, asset_account,
+                 depreciation_account, proceeds_account, removal_cost_account, buyer_name,
+                 reason, status, created_by)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+            RETURNING *"#,
+        )
+        .bind(org_id).bind(retirement_number).bind(asset_id)
+        .bind(asset_number).bind(asset_description)
+        .bind(retirement_type).bind(retirement_date)
+        .bind(cost).bind(accumulated_depreciation).bind(net_book_value)
+        .bind(proceeds).bind(removal_cost).bind(gain_loss_amount)
+        .bind(gain_loss_account).bind(asset_account).bind(depreciation_account)
+        .bind(proceeds_account).bind(removal_cost_account).bind(buyer_name)
+        .bind(reason).bind(status).bind(created_by)
+        .fetch_one(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row_to_retirement(&row))
+    }
+
+    async fn get(&self, id: Uuid) -> AtlasResult<Option<AssetRetirement>> {
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.asset_retirements WHERE id = $1"
+        )
+        .bind(id)
+        .fetch_optional(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row.map(|r| row_to_retirement(&r)))
+    }
+
+    async fn get_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<AssetRetirement>> {
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.asset_retirements WHERE organization_id = $1 AND retirement_number = $2"
+        )
+        .bind(org_id).bind(number)
+        .fetch_optional(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row.map(|r| row_to_retirement(&r)))
+    }
+
+    async fn list(&self, org_id: Uuid, status: Option<&str>, retirement_type: Option<&str>) -> AtlasResult<Vec<AssetRetirement>> {
+        let rows = sqlx::query(
+            r#"SELECT * FROM _atlas.asset_retirements
+            WHERE organization_id = $1
+              AND ($2::text IS NULL OR status = $2)
+              AND ($3::text IS NULL OR retirement_type = $3)
+            ORDER BY created_at DESC"#,
+        )
+        .bind(org_id).bind(status).bind(retirement_type)
+        .fetch_all(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(rows.iter().map(row_to_retirement).collect())
+    }
+
+    async fn update_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<AssetRetirement> {
+        let row = sqlx::query(
+            r#"UPDATE _atlas.asset_retirements
+            SET status = $2, approved_by = COALESCE($3, approved_by), updated_at = now()
+            WHERE id = $1
+            RETURNING *"#,
+        )
+        .bind(id).bind(status).bind(approved_by)
+        .fetch_one(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row_to_retirement(&row))
+    }
+
+    async fn mark_posted(&self, id: Uuid, gl_batch_id: Uuid) -> AtlasResult<AssetRetirement> {
+        let row = sqlx::query(
+            r#"UPDATE _atlas.asset_retirements
+            SET posted_to_gl = TRUE, gl_batch_id = $2, updated_at = now()
+            WHERE id = $1
+            RETURNING *"#,
+        )
+        .bind(id).bind(gl_batch_id)
+        .fetch_one(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row_to_retirement(&row))
+    }
+
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RetirementDashboard> {
-        Ok(RetirementDashboard { organization_id: org_id, total_retirements: 0, pending_retirements: 0, completed_retirements: 0, total_proceeds: "0".into(), total_gain: "0".into(), total_loss: "0".into(), by_type: serde_json::json!([]) })
+        let row = sqlx::query(
+            r#"SELECT
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE status = 'pending') as pending,
+                COUNT(*) FILTER (WHERE status = 'completed') as completed,
+                COALESCE(SUM(proceeds::NUMERIC) FILTER (WHERE status = 'completed'), 0) as total_proceeds,
+                COALESCE(SUM(gain_loss_amount::NUMERIC) FILTER (WHERE status = 'completed' AND gain_loss_amount::NUMERIC > 0), 0) as total_gain,
+                COALESCE(SUM(gain_loss_amount::NUMERIC) FILTER (WHERE status = 'completed' AND gain_loss_amount::NUMERIC < 0), 0) as total_loss
+            FROM _atlas.asset_retirements WHERE organization_id = $1"#,
+        )
+        .bind(org_id)
+        .fetch_one(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+
+        let total: i64 = row.try_get("total").unwrap_or(0);
+        let pending: i64 = row.try_get("pending").unwrap_or(0);
+        let completed: i64 = row.try_get("completed").unwrap_or(0);
+        let total_proceeds: String = row.try_get("total_proceeds").unwrap_or_else(|_| "0".to_string());
+        let total_gain: String = row.try_get("total_gain").unwrap_or_else(|_| "0".to_string());
+        let total_loss: String = row.try_get("total_loss").unwrap_or_else(|_| "0".to_string());
+
+        // By-type breakdown
+        let type_rows = sqlx::query(
+            r#"SELECT retirement_type, COUNT(*) as count,
+                COALESCE(SUM(proceeds::NUMERIC), 0) as total_proceeds,
+                COALESCE(SUM(gain_loss_amount::NUMERIC), 0) as net_gain_loss
+            FROM _atlas.asset_retirements
+            WHERE organization_id = $1 AND status = 'completed'
+            GROUP BY retirement_type
+            ORDER BY retirement_type"#,
+        )
+        .bind(org_id)
+        .fetch_all(&self.pool).await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+
+        let by_type: Vec<serde_json::Value> = type_rows.iter().map(|r| {
+            serde_json::json!({
+                "retirementType": r.get::<String, _>("retirement_type"),
+                "count": r.get::<i64, _>("count"),
+                "totalProceeds": row.try_get::<String, _>("total_proceeds").unwrap_or_else(|_| "0".to_string()),
+                "netGainLoss": row.try_get::<String, _>("net_gain_loss").unwrap_or_else(|_| "0".to_string()),
+            })
+        }).collect();
+
+        Ok(RetirementDashboard {
+            organization_id: org_id,
+            total_retirements: total as i32,
+            pending_retirements: pending as i32,
+            completed_retirements: completed as i32,
+            total_proceeds: total_proceeds.to_string(),
+            total_gain: total_gain.to_string(),
+            total_loss: total_loss.to_string(),
+            by_type: serde_json::Value::Array(by_type),
+        })
     }
 }
 

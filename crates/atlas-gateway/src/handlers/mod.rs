@@ -148,6 +148,7 @@ pub mod third_party_payment;
 pub mod auto_offset;
 pub mod average_balance;
 pub mod cash_receipt;
+pub mod direct_debit_mandate;
 pub mod statistical_accounting;
 pub mod receivables_factoring;
 pub mod document_sequencing;
@@ -4989,6 +4990,31 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/asset-retirements/:id/complete", post(asset_retirement::complete_retirement))
         .route("/asset-retirements/:id/reverse", post(asset_retirement::reverse_retirement))
         .route("/asset-retirements/:id/cancel", post(asset_retirement::cancel_retirement))
+
+        // ════════════════════════════════════════════════════════════════════════════════
+        // Direct Debit Mandate Management (Oracle Fusion AR > Direct Debit Mandates)
+        // ════════════════════════════════════════════════════════════════════════════════
+
+        // Mandates
+        .route("/direct-debit-mandates", post(direct_debit_mandate::create_mandate))
+        .route("/direct-debit-mandates", get(direct_debit_mandate::list_mandates))
+        .route("/direct-debit-mandates/:id", get(direct_debit_mandate::get_mandate))
+        .route("/direct-debit-mandates/:id/activate", post(direct_debit_mandate::activate_mandate))
+        .route("/direct-debit-mandates/:id/cancel", post(direct_debit_mandate::cancel_mandate))
+        .route("/direct-debit-mandates/:id/revoke", post(direct_debit_mandate::revoke_mandate))
+
+        // Collections
+        .route("/direct-debit-collections", post(direct_debit_mandate::create_collection))
+        .route("/direct-debit-collections/:id", get(direct_debit_mandate::get_collection))
+        .route("/direct-debit-collections/:id/submit", post(direct_debit_mandate::submit_collection))
+        .route("/direct-debit-collections/:id/complete", post(direct_debit_mandate::complete_collection))
+        .route("/direct-debit-collections/:id/fail", post(direct_debit_mandate::fail_collection))
+        .route("/direct-debit-collections/:id/return", post(direct_debit_mandate::return_collection))
+        .route("/direct-debit-collections/:id/reverse", post(direct_debit_mandate::reverse_collection))
+        .route("/direct-debit-mandates/:mandate_id/collections", get(direct_debit_mandate::list_collections))
+
+        // Dashboard
+        .route("/direct-debit-mandates/dashboard", get(direct_debit_mandate::get_dashboard))
 
         .layer(middleware::from_fn(auth_middleware))
 }

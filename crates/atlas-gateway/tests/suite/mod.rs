@@ -151,3 +151,4 @@ mod transaction_calendar;
 mod asset_retirement;
 mod finance_charge_management;
 mod cash_receipt;
+mod direct_debit_mandate;

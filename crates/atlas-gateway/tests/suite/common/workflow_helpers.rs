@@ -1151,6 +1151,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         cash_receipt_engine: Arc::new(atlas_core::CashReceiptEngine::new(Arc::new(
             atlas_core::cash_receipt::PostgresCashReceiptRepository::new(db_pool.clone()),
         ))),
+        direct_debit_mandate_engine: Arc::new(atlas_core::DirectDebitMandateEngine::new(Arc::new(
+            atlas_core::direct_debit_mandate::PostgresDirectDebitMandateRepository::new(db_pool.clone()),
+        ))),
         statistical_accounting_engine: Arc::new(atlas_core::StatisticalAccountingEngine::new(Arc::new(
             atlas_core::statistical_accounting::PostgresStatisticalAccountingRepository::new(db_pool.clone()),
         ))),

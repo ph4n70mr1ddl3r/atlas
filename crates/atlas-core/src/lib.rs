@@ -180,6 +180,7 @@ pub mod bank_statement_reconciliation;
 pub mod third_party_payment;
 pub mod average_balance;
 pub mod cash_receipt;
+pub mod direct_debit_mandate;
 
 pub use schema::*;
 pub use workflow::{
@@ -361,6 +362,7 @@ pub use bank_statement_reconciliation::{BankStatementReconciliationEngine, Postg
 pub use third_party_payment::{ThirdPartyPaymentEngine, PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo};
 pub use average_balance::{AverageBalanceEngine, PostgresAverageBalanceRepository as PostgresAverageBalanceRepo};
 pub use cash_receipt::{CashReceiptEngine, PostgresCashReceiptRepository as PostgresCashReceiptRepo};
+pub use direct_debit_mandate::{DirectDebitMandateEngine, PostgresDirectDebitMandateRepository as PostgresDirectDebitMandateRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

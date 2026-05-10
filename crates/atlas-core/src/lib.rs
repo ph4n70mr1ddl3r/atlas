@@ -57,6 +57,7 @@ pub mod supplier_qualification;
 pub mod recurring_journal;
 pub mod manual_journal;
 pub mod document_sequencing;
+pub mod transaction_calendar;
 pub mod descriptive_flexfield;
 pub mod cross_validation;
 pub mod scheduled_process;
@@ -235,6 +236,7 @@ pub use supplier_qualification::{SupplierQualificationEngine, PostgresSupplierQu
 pub use recurring_journal::{RecurringJournalEngine, PostgresRecurringJournalRepository as PostgresRecurringJournalRepo};
 pub use manual_journal::{ManualJournalEngine, PostgresManualJournalRepository as PostgresManualJournalRepo};
 pub use document_sequencing::{DocumentSequencingEngine, PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo};
+pub use transaction_calendar::{TransactionCalendarEngine, PostgresTransactionCalendarRepository as PostgresTransactionCalendarRepo};
 pub use descriptive_flexfield::{DescriptiveFlexfieldEngine, PostgresDescriptiveFlexfieldRepository as PostgresDescriptiveFlexfieldRepo};
 pub use cross_validation::{CrossValidationEngine, PostgresCrossValidationRepository as PostgresCrossValidationRepo};
 pub use scheduled_process::{ScheduledProcessEngine, PostgresScheduledProcessRepository as PostgresScheduledProcessRepo};

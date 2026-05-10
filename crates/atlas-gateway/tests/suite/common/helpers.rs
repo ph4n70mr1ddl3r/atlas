@@ -658,6 +658,9 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
         document_sequencing_engine: Arc::new(atlas_core::DocumentSequencingEngine::new(Arc::new(
             atlas_core::document_sequencing::PostgresDocumentSequencingRepository::new(db_pool.clone()),
         ))),
+        transaction_calendar_engine: Arc::new(atlas_core::TransactionCalendarEngine::new(Arc::new(
+            atlas_core::transaction_calendar::PostgresTransactionCalendarRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1239,4 +1242,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.document_sequence_audit").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.document_sequence_assignments").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.document_sequences").execute(pool).await.ok();
+
+    // Clean transaction calendar test data
+    sqlx::query("DELETE FROM _atlas.calendar_date_calculations").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.calendar_exceptions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.transaction_calendars").execute(pool).await.ok();
 } 

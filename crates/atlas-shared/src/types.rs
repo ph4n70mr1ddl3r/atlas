@@ -22877,3 +22877,81 @@ pub struct AutoOffsetDashboard {
     pub total_offset_lines: i32,
     pub total_offset_amount: f64,
 }
+
+// ============================================================================
+// Transaction Calendar Management
+// Oracle Fusion: General Ledger > Setup > Transaction Calendars
+// ============================================================================
+
+/// A transaction calendar definition.
+/// Defines working days, holidays, and exception dates for business date calculations.
+/// Used by AP/AR for due date calculation, GL for posting date validation,
+/// and Cash Management for forecasting.
+/// Oracle Fusion: General Ledger > Setup > Transaction Calendars
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionCalendar {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Working days as ISO weekday numbers (1=Monday, 7=Sunday). Default: [1,2,3,4,5]
+    pub working_days: serde_json::Value,
+    pub status: String, // active, inactive
+    pub effective_from: Option<chrono::NaiveDate>,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A calendar exception (holiday, non-working day, or special working day).
+/// Oracle Fusion: General Ledger > Setup > Transaction Calendars > Exceptions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarException {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub calendar_id: Uuid,
+    pub exception_date: chrono::NaiveDate,
+    /// "holiday", "non_working", "special_working"
+    pub exception_type: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// An audit record for a business date calculation.
+/// Tracks every date calculation performed for compliance and traceability.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarDateCalculation {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+    pub calendar_id: Uuid,
+    pub calendar_code: String,
+    /// "next_business_day", "previous_business_day", "is_business_day", "add_business_days"
+    pub operation: String,
+    pub input_date: chrono::NaiveDate,
+    pub result_date: Option<chrono::NaiveDate>,
+    pub result_boolean: Option<bool>,
+    pub business_days_added: Option<i32>,
+    pub reference_type: Option<String>,
+    pub reference_id: Option<Uuid>,
+    pub calculated_at: DateTime<Utc>,
+    pub calculated_by: Option<Uuid>,
+}
+
+/// Dashboard summary for transaction calendars.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionCalendarDashboard {
+    pub total_calendars: i32,
+    pub active_calendars: i32,
+    pub total_exceptions: i32,
+    pub total_calculations: i64,
+    pub recent_calculations: Vec<CalendarDateCalculation>,
+}

@@ -5,6 +5,8 @@
 use atlas_core::{
     DocumentSequencingEngine,
     document_sequencing::PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo,
+    TransactionCalendarEngine,
+    transaction_calendar::PostgresTransactionCalendarRepository as PostgresTransactionCalendarRepo,
     CashFlowStatementEngine,
     ThirdPartyPaymentEngine,
     third_party_payment::PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo,
@@ -445,6 +447,7 @@ pub struct AppState {
     pub statistical_accounting_engine: Arc<StatisticalAccountingEngine>,
     pub receivables_factoring_engine: Arc<ReceivablesFactoringEngine>,
     pub document_sequencing_engine: Arc<DocumentSequencingEngine>,
+    pub transaction_calendar_engine: Arc<TransactionCalendarEngine>,
     pub event_bus: Arc<NatsEventBus>,
     pub jwt_secret: String,
 }
@@ -1214,6 +1217,10 @@ impl AppState {
             PostgresDocumentSequencingRepo::new(db_pool.clone())
         )));
 
+        let transaction_calendar_engine = Arc::new(TransactionCalendarEngine::new(Arc::new(
+            PostgresTransactionCalendarRepo::new(db_pool.clone())
+        )));
+
         // Load JWT secret from environment
         let jwt_secret = std::env::var("JWT_SECRET")
             .unwrap_or_else(|_| {
@@ -1404,6 +1411,7 @@ impl AppState {
             statistical_accounting_engine,
             receivables_factoring_engine,
             document_sequencing_engine,
+            transaction_calendar_engine,
             cash_flow_statement_engine,
             event_bus,
             jwt_secret,

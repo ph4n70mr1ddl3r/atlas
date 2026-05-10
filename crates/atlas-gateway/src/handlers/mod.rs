@@ -149,6 +149,7 @@ pub mod average_balance;
 pub mod statistical_accounting;
 pub mod receivables_factoring;
 pub mod document_sequencing;
+pub mod transaction_calendar;
 
 pub use schema::*;
 pub use records::*;
@@ -4905,6 +4906,27 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/document-sequences/audit", get(document_sequencing::list_audit_entries))
         .route("/document-sequences/audit/:document_id", get(document_sequencing::get_audit_by_document))
         .route("/document-sequences/dashboard", get(document_sequencing::get_document_sequencing_dashboard))
+
+        // ========================================================================
+        // Transaction Calendars (Oracle Fusion: GL > Setup > Transaction Calendars)
+        // ========================================================================
+        .route("/transaction-calendars", post(transaction_calendar::create_calendar))
+        .route("/transaction-calendars", get(transaction_calendar::list_calendars))
+        .route("/transaction-calendars/code/:code", get(transaction_calendar::get_calendar_by_code))
+        .route("/transaction-calendars/code/:code", delete(transaction_calendar::delete_calendar))
+        .route("/transaction-calendars/:id", get(transaction_calendar::get_calendar))
+        .route("/transaction-calendars/:id/activate", post(transaction_calendar::activate_calendar))
+        .route("/transaction-calendars/:id/deactivate", post(transaction_calendar::deactivate_calendar))
+        .route("/transaction-calendars/:id/exceptions", post(transaction_calendar::create_exception))
+        .route("/transaction-calendars/:id/exceptions", get(transaction_calendar::list_exceptions))
+        .route("/transaction-calendars/:id/exceptions/range", get(transaction_calendar::list_exceptions_range))
+        .route("/transaction-calendars/:calendar_id/is-business-day", post(transaction_calendar::is_business_day))
+        .route("/transaction-calendars/:calendar_id/next-business-day", post(transaction_calendar::next_business_day))
+        .route("/transaction-calendars/:calendar_id/previous-business-day", post(transaction_calendar::previous_business_day))
+        .route("/transaction-calendars/:calendar_id/add-business-days", post(transaction_calendar::add_business_days))
+        .route("/transaction-calendars/calculations", get(transaction_calendar::list_calculations))
+        .route("/transaction-calendars/dashboard", get(transaction_calendar::get_transaction_calendar_dashboard))
+        .route("/transaction-calendars/exceptions/:id", delete(transaction_calendar::delete_exception))
 
         .layer(middleware::from_fn(auth_middleware))
 }

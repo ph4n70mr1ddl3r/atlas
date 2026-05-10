@@ -1154,6 +1154,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         document_sequencing_engine: Arc::new(atlas_core::DocumentSequencingEngine::new(Arc::new(
             atlas_core::document_sequencing::PostgresDocumentSequencingRepository::new(db_pool.clone()),
         ))),
+        transaction_calendar_engine: Arc::new(atlas_core::TransactionCalendarEngine::new(Arc::new(
+            atlas_core::transaction_calendar::PostgresTransactionCalendarRepository::new(db_pool.clone()),
+        ))),
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };

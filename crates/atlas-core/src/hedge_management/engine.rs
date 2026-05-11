@@ -78,13 +78,14 @@ const VALID_DOC_STATUSES: &[&str] = &[
 ];
 
 /// Calculate effectiveness using the dollar-offset method.
-/// Returns (ratio, is_effective) where effectiveness requires 0.80 <= ratio <= 1.25.
+/// Returns (ratio, `is_effective`) where effectiveness requires 0.80 <= ratio <= 1.25.
 ///
 /// # Panics / Precision
 ///
 /// Uses `f64` arithmetic which is acceptable for the ratio calculation itself.
 /// Callers should pass values that are already rounded to the desired
 /// precision (e.g. 2 decimal places for currency amounts).
+#[must_use] 
 pub fn calculate_dollar_offset_effectiveness(
     derivative_fair_value_change: f64,
     hedged_item_fair_value_change: f64,
@@ -178,7 +179,7 @@ impl HedgeManagementEngine {
 
         // Generate instrument number
         let next_num = self.repository.get_latest_derivative_number(org_id).await? + 1;
-        let instrument_number = format!("DERIV-{:04}", next_num);
+        let instrument_number = format!("DERIV-{next_num:04}");
 
         info!("Creating derivative instrument {} for org {}", instrument_number, org_id);
 
@@ -187,27 +188,27 @@ impl HedgeManagementEngine {
             instrument_number,
             instrument_type: instrument_type.to_string(),
             underlying_type: underlying_type.to_string(),
-            underlying_description: underlying_description.map(|s| s.to_string()),
+            underlying_description: underlying_description.map(std::string::ToString::to_string),
             currency_code: currency_code.to_string(),
-            counter_currency_code: counter_currency_code.map(|s| s.to_string()),
+            counter_currency_code: counter_currency_code.map(std::string::ToString::to_string),
             notional_amount: notional_amount.to_string(),
-            strike_rate: strike_rate.map(|s| s.to_string()),
-            forward_rate: forward_rate.map(|s| s.to_string()),
-            spot_rate: spot_rate.map(|s| s.to_string()),
-            option_type: option_type.map(|s| s.to_string()),
-            premium_amount: premium_amount.map(|s| s.to_string()),
+            strike_rate: strike_rate.map(std::string::ToString::to_string),
+            forward_rate: forward_rate.map(std::string::ToString::to_string),
+            spot_rate: spot_rate.map(std::string::ToString::to_string),
+            option_type: option_type.map(std::string::ToString::to_string),
+            premium_amount: premium_amount.map(std::string::ToString::to_string),
             trade_date,
             effective_date,
             maturity_date,
             settlement_date,
-            settlement_type: settlement_type.map(|s| s.to_string()),
-            counterparty_name: counterparty_name.map(|s| s.to_string()),
-            counterparty_reference: counterparty_reference.map(|s| s.to_string()),
-            portfolio_code: portfolio_code.map(|s| s.to_string()),
-            trading_book: trading_book.map(|s| s.to_string()),
-            accounting_treatment: accounting_treatment.map(|s| s.to_string()),
-            risk_factor: risk_factor.map(|s| s.to_string()),
-            notes: notes.map(|s| s.to_string()),
+            settlement_type: settlement_type.map(std::string::ToString::to_string),
+            counterparty_name: counterparty_name.map(std::string::ToString::to_string),
+            counterparty_reference: counterparty_reference.map(std::string::ToString::to_string),
+            portfolio_code: portfolio_code.map(std::string::ToString::to_string),
+            trading_book: trading_book.map(std::string::ToString::to_string),
+            accounting_treatment: accounting_treatment.map(std::string::ToString::to_string),
+            risk_factor: risk_factor.map(std::string::ToString::to_string),
+            notes: notes.map(std::string::ToString::to_string),
             created_by,
         }).await
     }
@@ -246,7 +247,7 @@ impl HedgeManagementEngine {
     /// Activate a derivative
     pub async fn activate_derivative(&self, id: Uuid) -> AtlasResult<atlas_shared::DerivativeInstrument> {
         let deriv = self.repository.get_derivative_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {id} not found")))?;
 
         if deriv.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -262,7 +263,7 @@ impl HedgeManagementEngine {
     /// Mature a derivative
     pub async fn mature_derivative(&self, id: Uuid) -> AtlasResult<atlas_shared::DerivativeInstrument> {
         let deriv = self.repository.get_derivative_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {id} not found")))?;
 
         if deriv.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -278,7 +279,7 @@ impl HedgeManagementEngine {
     /// Settle a derivative
     pub async fn settle_derivative(&self, id: Uuid) -> AtlasResult<atlas_shared::DerivativeInstrument> {
         let deriv = self.repository.get_derivative_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {id} not found")))?;
 
         if deriv.status != "matured" && deriv.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -294,7 +295,7 @@ impl HedgeManagementEngine {
     /// Cancel a derivative
     pub async fn cancel_derivative(&self, id: Uuid) -> AtlasResult<atlas_shared::DerivativeInstrument> {
         let deriv = self.repository.get_derivative_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {id} not found")))?;
 
         if deriv.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -316,7 +317,7 @@ impl HedgeManagementEngine {
         valuation_method: Option<&str>,
     ) -> AtlasResult<atlas_shared::DerivativeInstrument> {
         let deriv = self.repository.get_derivative_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {id} not found")))?;
 
         if deriv.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -341,7 +342,7 @@ impl HedgeManagementEngine {
     /// Delete a derivative (only if draft or cancelled)
     pub async fn delete_derivative(&self, org_id: Uuid, instrument_number: &str) -> AtlasResult<()> {
         let deriv = self.repository.get_derivative(org_id, instrument_number).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {} not found", instrument_number)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Derivative {instrument_number} not found")))?;
 
         if deriv.status != "draft" && deriv.status != "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -412,13 +413,13 @@ impl HedgeManagementEngine {
         if let Some(did) = derivative_id {
             let deriv = self.repository.get_derivative_by_id(did).await?;
             if deriv.is_none() {
-                return Err(AtlasError::EntityNotFound(format!("Derivative {} not found", did)));
+                return Err(AtlasError::EntityNotFound(format!("Derivative {did} not found")));
             }
         }
 
         // Generate hedge ID
         let next_num = self.repository.get_latest_hedge_number(org_id).await? + 1;
-        let hedge_id = format!("HEDGE-{:04}", next_num);
+        let hedge_id = format!("HEDGE-{next_num:04}");
 
         info!("Creating hedge relationship {} for org {}", hedge_id, org_id);
 
@@ -427,26 +428,26 @@ impl HedgeManagementEngine {
             hedge_id,
             hedge_type: hedge_type.to_string(),
             derivative_id,
-            derivative_number: derivative_number.map(|s| s.to_string()),
-            hedged_item_description: hedged_item_description.map(|s| s.to_string()),
+            derivative_number: derivative_number.map(std::string::ToString::to_string),
+            hedged_item_description: hedged_item_description.map(std::string::ToString::to_string),
             hedged_item_id,
             hedged_risk: hedged_risk.to_string(),
-            hedge_strategy: hedge_strategy.map(|s| s.to_string()),
-            hedged_item_reference: hedged_item_reference.map(|s| s.to_string()),
-            hedged_item_currency: hedged_item_currency.map(|s| s.to_string()),
+            hedge_strategy: hedge_strategy.map(std::string::ToString::to_string),
+            hedged_item_reference: hedged_item_reference.map(std::string::ToString::to_string),
+            hedged_item_currency: hedged_item_currency.map(std::string::ToString::to_string),
             hedged_amount: hedged_amount.to_string(),
-            hedge_ratio: hedge_ratio.map(|s| s.to_string()),
+            hedge_ratio: hedge_ratio.map(std::string::ToString::to_string),
             designated_start_date,
             designated_end_date,
             effectiveness_method: effectiveness_method.to_string(),
-            critical_terms_match: critical_terms_match.map(|s| s.to_string()),
-            hedge_documentation_ref: hedge_documentation_ref.map(|s| s.to_string()),
-            notes: notes.map(|s| s.to_string()),
+            critical_terms_match: critical_terms_match.map(std::string::ToString::to_string),
+            hedge_documentation_ref: hedge_documentation_ref.map(std::string::ToString::to_string),
+            notes: notes.map(std::string::ToString::to_string),
             created_by,
         }).await
     }
 
-    /// Get a hedge relationship by hedge_id
+    /// Get a hedge relationship by `hedge_id`
     pub async fn get_hedge_relationship(&self, org_id: Uuid, hedge_id: &str) -> AtlasResult<Option<atlas_shared::HedgeRelationship>> {
         self.repository.get_hedge_relationship(org_id, hedge_id).await
     }
@@ -480,7 +481,7 @@ impl HedgeManagementEngine {
     /// Designate a hedge (move from draft to designated)
     pub async fn designate_hedge(&self, id: Uuid) -> AtlasResult<atlas_shared::HedgeRelationship> {
         let hedge = self.repository.get_hedge_relationship_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge relationship {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge relationship {id} not found")))?;
 
         if hedge.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -496,7 +497,7 @@ impl HedgeManagementEngine {
     /// Activate a hedge relationship
     pub async fn activate_hedge(&self, id: Uuid) -> AtlasResult<atlas_shared::HedgeRelationship> {
         let hedge = self.repository.get_hedge_relationship_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge relationship {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge relationship {id} not found")))?;
 
         if hedge.status != "designated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -512,7 +513,7 @@ impl HedgeManagementEngine {
     /// De-designate a hedge relationship
     pub async fn de_designate_hedge(&self, id: Uuid) -> AtlasResult<atlas_shared::HedgeRelationship> {
         let hedge = self.repository.get_hedge_relationship_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge relationship {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge relationship {id} not found")))?;
 
         if hedge.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -528,7 +529,7 @@ impl HedgeManagementEngine {
     /// Terminate a hedge relationship
     pub async fn terminate_hedge(&self, id: Uuid) -> AtlasResult<atlas_shared::HedgeRelationship> {
         let hedge = self.repository.get_hedge_relationship_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge relationship {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge relationship {id} not found")))?;
 
         if hedge.status != "active" && hedge.status != "de-designated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -544,7 +545,7 @@ impl HedgeManagementEngine {
     /// Delete a hedge relationship (only if draft)
     pub async fn delete_hedge_relationship(&self, org_id: Uuid, hedge_id: &str) -> AtlasResult<()> {
         let hedge = self.repository.get_hedge_relationship(org_id, hedge_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge {} not found", hedge_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hedge {hedge_id} not found")))?;
 
         if hedge.status != "draft" && hedge.status != "terminated" {
             return Err(AtlasError::WorkflowError(
@@ -583,7 +584,7 @@ impl HedgeManagementEngine {
 
         let hedge = self.repository.get_hedge_relationship_by_id(hedge_relationship_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Hedge relationship {} not found", hedge_relationship_id
+                "Hedge relationship {hedge_relationship_id} not found"
             )))?;
 
         if hedge.status != "active" && hedge.status != "designated" {
@@ -624,14 +625,14 @@ impl HedgeManagementEngine {
             test_period_end,
             derivative_fair_value_change: Some(derivative_fair_value_change.to_string()),
             hedged_item_fair_value_change: Some(hedged_item_fair_value_change.to_string()),
-            hedge_ratio_result: Some(format!("{:.4}", ratio)),
+            hedge_ratio_result: Some(format!("{ratio:.4}")),
             ratio_lower_bound: Some("0.80".to_string()),
             ratio_upper_bound: Some("1.25".to_string()),
             effectiveness_result: effectiveness_result.to_string(),
             ineffective_amount: Some(ineffective_amount.to_string()),
             cumulative_gain_loss: None,
             regression_r_squared: None,
-            notes: notes.map(|s| s.to_string()),
+            notes: notes.map(std::string::ToString::to_string),
             created_by,
         }).await?;
 
@@ -689,27 +690,27 @@ impl HedgeManagementEngine {
 
         // Generate document number
         let next_num = self.repository.get_latest_test_number(org_id).await? + 1;
-        let document_number = format!("HDOC-{:04}", next_num);
+        let document_number = format!("HDOC-{next_num:04}");
 
         info!("Creating hedge documentation {} for org {}", document_number, org_id);
 
         self.repository.create_hedge_documentation(&DocumentationCreateParams {
             org_id,
             hedge_relationship_id,
-            hedge_id: hedge_id.map(|s| s.to_string()),
+            hedge_id: hedge_id.map(std::string::ToString::to_string),
             document_number,
             hedge_type: hedge_type.to_string(),
-            risk_management_objective: risk_management_objective.map(|s| s.to_string()),
-            hedging_strategy_description: hedging_strategy_description.map(|s| s.to_string()),
-            hedged_item_description: hedged_item_description.map(|s| s.to_string()),
-            hedged_risk_description: hedged_risk_description.map(|s| s.to_string()),
-            derivative_description: derivative_description.map(|s| s.to_string()),
-            effectiveness_method_description: effectiveness_method_description.map(|s| s.to_string()),
-            assessment_frequency: assessment_frequency.map(|s| s.to_string()),
+            risk_management_objective: risk_management_objective.map(std::string::ToString::to_string),
+            hedging_strategy_description: hedging_strategy_description.map(std::string::ToString::to_string),
+            hedged_item_description: hedged_item_description.map(std::string::ToString::to_string),
+            hedged_risk_description: hedged_risk_description.map(std::string::ToString::to_string),
+            derivative_description: derivative_description.map(std::string::ToString::to_string),
+            effectiveness_method_description: effectiveness_method_description.map(std::string::ToString::to_string),
+            assessment_frequency: assessment_frequency.map(std::string::ToString::to_string),
             designation_date,
             documentation_date,
-            prepared_by: prepared_by.map(|s| s.to_string()),
-            notes: notes.map(|s| s.to_string()),
+            prepared_by: prepared_by.map(std::string::ToString::to_string),
+            notes: notes.map(std::string::ToString::to_string),
             created_by,
         }).await
     }
@@ -727,7 +728,7 @@ impl HedgeManagementEngine {
     /// Approve hedge documentation
     pub async fn approve_documentation(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<atlas_shared::HedgeDocumentation> {
         let doc = self.repository.get_hedge_documentation_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {id} not found")))?;
 
         if doc.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -750,7 +751,7 @@ impl HedgeManagementEngine {
     /// Delete documentation (only if draft or rejected)
     pub async fn delete_documentation(&self, org_id: Uuid, document_number: &str) -> AtlasResult<()> {
         let doc = self.repository.get_hedge_documentation(org_id, document_number).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {} not found", document_number)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {document_number} not found")))?;
 
         if doc.status != "draft" && doc.status != "rejected" {
             return Err(AtlasError::WorkflowError(

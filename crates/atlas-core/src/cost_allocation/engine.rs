@@ -182,7 +182,7 @@ impl CostAllocationEngine {
     ) -> AtlasResult<AllocationBaseValue> {
         let base = self.repository.get_base(org_id, base_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation base '{}' not found", base_code)
+                format!("Allocation base '{base_code}' not found")
             ))?;
 
         let val: f64 = value.parse().map_err(|_| AtlasError::ValidationFailed(
@@ -254,13 +254,13 @@ impl CostAllocationEngine {
         // Validate pool exists
         let pool = self.repository.get_pool(org_id, pool_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation pool '{}' not found", pool_code)
+                format!("Allocation pool '{pool_code}' not found")
             ))?;
 
         // Validate base exists
         let base = self.repository.get_base(org_id, base_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation base '{}' not found", base_code)
+                format!("Allocation base '{base_code}' not found")
             ))?;
 
         let rule_number = format!("ALLOC-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
@@ -296,7 +296,7 @@ impl CostAllocationEngine {
     pub async fn activate_rule(&self, rule_id: Uuid) -> AtlasResult<AllocationRule> {
         let rule = self.repository.get_rule(rule_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation rule {} not found", rule_id)
+                format!("Allocation rule {rule_id} not found")
             ))?;
 
         if rule.status != "draft" {
@@ -321,7 +321,7 @@ impl CostAllocationEngine {
     pub async fn deactivate_rule(&self, rule_id: Uuid) -> AtlasResult<AllocationRule> {
         let rule = self.repository.get_rule(rule_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation rule {} not found", rule_id)
+                format!("Allocation rule {rule_id} not found")
             ))?;
 
         if rule.status != "active" {
@@ -353,7 +353,7 @@ impl CostAllocationEngine {
     ) -> AtlasResult<AllocationRuleTarget> {
         let rule = self.repository.get_rule(rule_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation rule {} not found", rule_id)
+                format!("Allocation rule {rule_id} not found")
             ))?;
 
         if target_account_code.is_empty() {
@@ -413,7 +413,7 @@ impl CostAllocationEngine {
     ) -> AtlasResult<AllocationRun> {
         let rule = self.repository.get_rule(rule_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation rule {} not found", rule_id)
+                format!("Allocation rule {rule_id} not found")
             ))?;
 
         if rule.status != "active" {
@@ -471,8 +471,8 @@ impl CostAllocationEngine {
         let run = self.repository.create_run(
             org_id, &run_number, rule_id, &rule.name, &rule.rule_number,
             period_start, period_end,
-            &format!("{:.2}", total_amount),
-            &format!("{:.2}", total_allocated),
+            &format!("{total_amount:.2}"),
+            &format!("{total_allocated:.2}"),
             line_count, run_date, created_by,
         ).await?;
 
@@ -496,7 +496,7 @@ impl CostAllocationEngine {
             org_id, run.id, line_count,
             "credit", offset_account,
             None, None, None, None,
-            &format!("{:.2}", total_allocated),
+            &format!("{total_allocated:.2}"),
             None, None,
             Some(&format!("Offset for {}", rule.name)),
         ).await?;
@@ -547,8 +547,8 @@ impl CostAllocationEngine {
             allocations.push(AllocationTargetResult {
                 target: target.clone(),
                 amount: allocated,
-                base_value: Some(format!("{:.2}", base_val)),
-                percentage: Some(format!("{:.4}", pct)),
+                base_value: Some(format!("{base_val:.2}")),
+                percentage: Some(format!("{pct:.4}")),
             });
         }
 
@@ -570,7 +570,7 @@ impl CostAllocationEngine {
                 target: target.clone(),
                 amount: allocated,
                 base_value: None,
-                percentage: Some(format!("{:.4}", pct)),
+                percentage: Some(format!("{pct:.4}")),
             });
         }
         Ok(allocations)
@@ -619,7 +619,7 @@ impl CostAllocationEngine {
     pub async fn post_run(&self, run_id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<AllocationRun> {
         let run = self.repository.get_run(run_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation run {} not found", run_id)
+                format!("Allocation run {run_id} not found")
             ))?;
 
         if run.status != "draft" {
@@ -641,7 +641,7 @@ impl CostAllocationEngine {
     ) -> AtlasResult<AllocationRun> {
         let run = self.repository.get_run(run_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation run {} not found", run_id)
+                format!("Allocation run {run_id} not found")
             ))?;
 
         if run.status != "posted" {

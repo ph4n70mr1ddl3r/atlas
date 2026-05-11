@@ -1,6 +1,6 @@
 //! Treasury Management Repository
 //!
-//! PostgreSQL storage for counterparties, treasury deals, and settlements.
+//! `PostgreSQL` storage for counterparties, treasury deals, and settlements.
 
 use atlas_shared::{
     TreasuryCounterparty, TreasuryDeal, TreasurySettlement, TreasuryDashboardSummary,
@@ -96,13 +96,14 @@ pub trait TreasuryRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<TreasuryDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresTreasuryRepository {
     pool: PgPool,
 }
 
 impl PostgresTreasuryRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -212,14 +213,14 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TreasuryCounterparty> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.treasury_counterparties
                 (organization_id, counterparty_code, name, counterparty_type,
                  country_code, credit_rating, credit_limit, settlement_currency,
                  contact_name, contact_email, contact_phone, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $7, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(counterparty_code).bind(name).bind(counterparty_type)
         .bind(country_code).bind(credit_rating).bind(credit_limit)
@@ -309,7 +310,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TreasuryDeal> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.treasury_deals
                 (organization_id, deal_number, deal_type, description,
                  counterparty_id, counterparty_name,
@@ -328,7 +329,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
                     $16, $17::numeric, $18::numeric,
                     0, $19, $20)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(deal_number).bind(deal_type).bind(description)
         .bind(counterparty_id).bind(counterparty_name)
@@ -367,13 +368,13 @@ impl TreasuryRepository for PostgresTreasuryRepository {
 
     async fn list_deals(&self, org_id: Uuid, deal_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<TreasuryDeal>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.treasury_deals
             WHERE organization_id = $1
               AND ($2::text IS NULL OR deal_type = $2)
               AND ($3::text IS NULL OR status = $3)
             ORDER BY deal_number
-            "#,
+            ",
         )
         .bind(org_id).bind(deal_type).bind(status)
         .fetch_all(&self.pool)
@@ -391,7 +392,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         matured_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<TreasuryDeal> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.treasury_deals
             SET status = $2,
                 authorized_by = COALESCE($3, authorized_by),
@@ -401,7 +402,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(authorized_by).bind(settled_at).bind(matured_at)
         .fetch_one(&self.pool)
@@ -413,13 +414,13 @@ impl TreasuryRepository for PostgresTreasuryRepository {
     async fn update_deal_interest(&self, id: Uuid, accrued_interest: &str, settlement_amount: Option<&str>) -> AtlasResult<()> {
         if let Some(sa) = settlement_amount {
             sqlx::query(
-                r#"
+                r"
                 UPDATE _atlas.treasury_deals
                 SET accrued_interest = $2::numeric,
                     settlement_amount = $3::numeric,
                     updated_at = now()
                 WHERE id = $1
-                "#,
+                ",
             )
             .bind(id).bind(accrued_interest).bind(sa)
             .execute(&self.pool)
@@ -427,12 +428,12 @@ impl TreasuryRepository for PostgresTreasuryRepository {
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         } else {
             sqlx::query(
-                r#"
+                r"
                 UPDATE _atlas.treasury_deals
                 SET accrued_interest = $2::numeric,
                     updated_at = now()
                 WHERE id = $1
-                "#,
+                ",
             )
             .bind(id).bind(accrued_interest)
             .execute(&self.pool)
@@ -456,7 +457,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TreasurySettlement> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.treasury_settlements
                 (organization_id, deal_id, settlement_number, settlement_type,
                  settlement_date, principal_amount, interest_amount, total_amount,
@@ -465,7 +466,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
                     $6::numeric, $7::numeric, $8::numeric,
                     $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(deal_id).bind(settlement_number).bind(settlement_type)
         .bind(settlement_date)
@@ -491,12 +492,12 @@ impl TreasuryRepository for PostgresTreasuryRepository {
 
     async fn update_settlement_status(&self, id: Uuid, status: &str) -> AtlasResult<TreasurySettlement> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.treasury_settlements
             SET status = $2, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool)
@@ -507,7 +508,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<TreasuryDashboardSummary> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) FILTER (WHERE status IN ('authorized', 'settled')) as total_active,
                 COALESCE(SUM(principal_amount) FILTER (WHERE deal_type = 'investment' AND status IN ('authorized', 'settled')), 0) as total_inv,
@@ -521,7 +522,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
                 COUNT(*) FILTER (WHERE deal_type IN ('fx_spot', 'fx_forward') AND status IN ('authorized', 'settled')) as fx_count
             FROM _atlas.treasury_deals
             WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)

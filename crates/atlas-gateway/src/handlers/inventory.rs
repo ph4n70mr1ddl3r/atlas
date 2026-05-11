@@ -17,8 +17,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 use tracing::error;
 
-fn default_true() -> bool { true }
-fn default_false() -> bool { false }
+const fn default_true() -> bool { true }
+const fn default_false() -> bool { false }
 fn default_warehouse() -> String { "warehouse".to_string() }
 fn default_inventory() -> String { "inventory".to_string() }
 fn default_ea() -> String { "EA".to_string() }

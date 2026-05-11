@@ -55,15 +55,15 @@ pub enum AtlasError {
 impl From<sqlx::Error> for AtlasError {
     fn from(err: sqlx::Error) -> Self {
         match err {
-            sqlx::Error::RowNotFound => AtlasError::EntityNotFound("Record not found".to_string()),
-            _ => AtlasError::DatabaseError(err.to_string()),
+            sqlx::Error::RowNotFound => Self::EntityNotFound("Record not found".to_string()),
+            _ => Self::DatabaseError(err.to_string()),
         }
     }
 }
 
 impl From<jsonwebtoken::errors::Error> for AtlasError {
     fn from(err: jsonwebtoken::errors::Error) -> Self {
-        AtlasError::Unauthorized(err.to_string())
+        Self::Unauthorized(err.to_string())
     }
 }
 
@@ -72,23 +72,24 @@ pub type AtlasResult<T> = Result<T, AtlasError>;
 
 /// HTTP status code mapping
 impl AtlasError {
-    pub fn status_code(&self) -> u16 {
+    #[must_use] 
+    pub const fn status_code(&self) -> u16 {
         match self {
-            AtlasError::EntityNotFound(_) => 404,
-            AtlasError::FieldNotFound(_, _) => 404,
-            AtlasError::ValidationFailed(_) => 400,
-            AtlasError::WorkflowError(_) => 400,
-            AtlasError::InvalidStateTransition(_, _) => 400,
-            AtlasError::Unauthorized(_) => 401,
-            AtlasError::Forbidden(_) => 403,
-            AtlasError::ConfigError(_) => 500,
-            AtlasError::DatabaseError(_) => 500,
-            AtlasError::EventBusError(_) => 500,
-            AtlasError::SchemaError(_) => 500,
-            AtlasError::NotImplemented(_) => 501,
-            AtlasError::Conflict(_) => 409,
-            AtlasError::InvalidFieldType(_) => 400,
-            AtlasError::Internal(_) => 500,
+            Self::EntityNotFound(_) => 404,
+            Self::FieldNotFound(_, _) => 404,
+            Self::ValidationFailed(_) => 400,
+            Self::WorkflowError(_) => 400,
+            Self::InvalidStateTransition(_, _) => 400,
+            Self::Unauthorized(_) => 401,
+            Self::Forbidden(_) => 403,
+            Self::ConfigError(_) => 500,
+            Self::DatabaseError(_) => 500,
+            Self::EventBusError(_) => 500,
+            Self::SchemaError(_) => 500,
+            Self::NotImplemented(_) => 501,
+            Self::Conflict(_) => 409,
+            Self::InvalidFieldType(_) => 400,
+            Self::Internal(_) => 500,
         }
     }
 }

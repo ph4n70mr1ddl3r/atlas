@@ -157,7 +157,7 @@ impl MultiBookAccountingEngine {
 
         let book = self.repository.get_book_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting book {} not found", id)
+                format!("Accounting book {id} not found")
             ))?;
 
         // Cannot deactivate a primary book
@@ -175,7 +175,7 @@ impl MultiBookAccountingEngine {
     pub async fn delete_book(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let book = self.get_book(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting book '{}' not found", code)
+                format!("Accounting book '{code}' not found")
             ))?;
 
         if book.book_type == "primary" {
@@ -225,11 +225,11 @@ impl MultiBookAccountingEngine {
         // Validate source and target books exist
         let source_book = self.repository.get_book_by_id(source_book_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Source accounting book {} not found", source_book_id)
+                format!("Source accounting book {source_book_id} not found")
             ))?;
         let _target_book = self.repository.get_book_by_id(target_book_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Target accounting book {} not found", target_book_id)
+                format!("Target accounting book {target_book_id} not found")
             ))?;
 
         if let (Some(from), Some(to)) = (effective_from, effective_to) {
@@ -287,7 +287,7 @@ impl MultiBookAccountingEngine {
         // Validate book exists and is active
         let book = self.repository.get_book_by_id(book_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting book {} not found", book_id)
+                format!("Accounting book {book_id} not found")
             ))?;
 
         if book.status != "active" {
@@ -313,8 +313,7 @@ impl MultiBookAccountingEngine {
         let diff = (total_debit - total_credit).abs();
         if diff > 0.005 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Journal entry is not balanced. Total debit: {:.2}, Total credit: {:.2}, Difference: {:.2}",
-                total_debit, total_credit, diff
+                "Journal entry is not balanced. Total debit: {total_debit:.2}, Total credit: {total_credit:.2}, Difference: {diff:.2}"
             )));
         }
 
@@ -327,8 +326,8 @@ impl MultiBookAccountingEngine {
             org_id, book_id, &entry_number, header_description,
             None, None, external_reference,
             accounting_date, period_name,
-            &format!("{:.2}", total_debit),
-            &format!("{:.2}", total_credit),
+            &format!("{total_debit:.2}"),
+            &format!("{total_credit:.2}"),
             "draft", false, currency_code, None,
             serde_json::json!({}),
             created_by,
@@ -376,7 +375,7 @@ impl MultiBookAccountingEngine {
     pub async fn post_journal_entry(&self, id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<BookJournalEntry> {
         let entry = self.repository.get_journal_entry_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", id)
+                format!("Journal entry {id} not found")
             ))?;
 
         if entry.status != "draft" {
@@ -406,7 +405,7 @@ impl MultiBookAccountingEngine {
     pub async fn reverse_journal_entry(&self, id: Uuid, created_by: Option<Uuid>) -> AtlasResult<BookJournalEntry> {
         let entry = self.repository.get_journal_entry_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", id)
+                format!("Journal entry {id} not found")
             ))?;
 
         if entry.status != "posted" && entry.status != "propagated" {
@@ -507,24 +506,21 @@ impl MultiBookAccountingEngine {
                 &line.account_code,
             ).await?;
 
-            match mapping {
-                Some(m) => {
-                    target_line_data.push(JournalLineData {
-                        account_code: m.target_account_code.clone(),
-                        account_name: None,
-                        debit_amount: line.debit_amount.clone(),
-                        credit_amount: line.credit_amount.clone(),
-                        description: line.description.clone(),
-                        tax_code: line.tax_code.clone(),
-                    });
-                    propagated_lines += 1;
-                }
-                None => {
-                    // No mapping found - skip this line
-                    unmapped_lines += 1;
-                    info!("No mapping found for account {} from book {} to book {}, skipping line",
-                        line.account_code, source_entry.book_id, target_book.id);
-                }
+            if let Some(m) = mapping {
+                target_line_data.push(JournalLineData {
+                    account_code: m.target_account_code.clone(),
+                    account_name: None,
+                    debit_amount: line.debit_amount.clone(),
+                    credit_amount: line.credit_amount.clone(),
+                    description: line.description.clone(),
+                    tax_code: line.tax_code.clone(),
+                });
+                propagated_lines += 1;
+            } else {
+                // No mapping found - skip this line
+                unmapped_lines += 1;
+                info!("No mapping found for account {} from book {} to book {}, skipping line",
+                    line.account_code, source_entry.book_id, target_book.id);
             }
         }
 
@@ -557,10 +553,10 @@ impl MultiBookAccountingEngine {
         let propagated_number = format!("{}-PROP-{}", target_book.code, chrono::Utc::now().timestamp() % 100000);
 
         // Determine conversion rate if currencies differ
-        let conversion_rate = if source_entry.currency_code != target_book.currency_code {
-            Some("1.0".to_string()) // Simplified - would integrate with currency engine
-        } else {
+        let conversion_rate = if source_entry.currency_code == target_book.currency_code {
             None
+        } else {
+            Some("1.0".to_string()) // Simplified - would integrate with currency engine
         };
 
         let target_entry = self.repository.create_journal_entry(
@@ -573,8 +569,8 @@ impl MultiBookAccountingEngine {
             None,
             source_entry.accounting_date,
             source_entry.period_name.as_deref(),
-            &format!("{:.2}", total_debit),
-            &format!("{:.2}", total_credit),
+            &format!("{total_debit:.2}"),
+            &format!("{total_credit:.2}"),
             "propagated",
             true,
             &target_book.currency_code,
@@ -627,7 +623,7 @@ impl MultiBookAccountingEngine {
     ) -> AtlasResult<PropagationLog> {
         let entry = self.repository.get_journal_entry_by_id(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", entry_id)
+                format!("Journal entry {entry_id} not found")
             ))?;
 
         if entry.status != "posted" {
@@ -638,7 +634,7 @@ impl MultiBookAccountingEngine {
 
         let target_book = self.repository.get_book_by_id(target_book_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Target accounting book {} not found", target_book_id)
+                format!("Target accounting book {target_book_id} not found")
             ))?;
 
         let lines = self.repository.list_journal_lines(entry_id).await?;

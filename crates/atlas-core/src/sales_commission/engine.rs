@@ -195,7 +195,7 @@ impl SalesCommissionEngine {
     /// Activate a commission plan
     pub async fn activate_plan(&self, id: Uuid) -> AtlasResult<CommissionPlan> {
         let plan = self.repository.get_plan_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {id} not found")))?;
 
         if plan.status != "draft" && plan.status != "inactive" {
             return Err(AtlasError::WorkflowError(
@@ -210,7 +210,7 @@ impl SalesCommissionEngine {
     /// Deactivate a commission plan
     pub async fn deactivate_plan(&self, id: Uuid) -> AtlasResult<CommissionPlan> {
         let plan = self.repository.get_plan_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {id} not found")))?;
 
         if plan.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -243,7 +243,7 @@ impl SalesCommissionEngine {
         flat_amount: Option<&str>,
     ) -> AtlasResult<CommissionRateTier> {
         let plan = self.repository.get_plan_by_id(plan_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {} not found", plan_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {plan_id} not found")))?;
 
         let from: f64 = from_amount.parse().map_err(|_| AtlasError::ValidationFailed(
             "from_amount must be a valid number".to_string(),
@@ -294,11 +294,11 @@ impl SalesCommissionEngine {
     ) -> AtlasResult<PlanAssignment> {
         // Verify rep exists
         self.repository.get_rep_by_id(rep_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rep {} not found", rep_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rep {rep_id} not found")))?;
 
         // Verify plan exists
         self.repository.get_plan_by_id(plan_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {} not found", plan_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {plan_id} not found")))?;
 
         info!("Assigning plan {} to rep {}", plan_id, rep_id);
 
@@ -332,7 +332,7 @@ impl SalesCommissionEngine {
     ) -> AtlasResult<SalesQuota> {
         // Verify rep exists
         self.repository.get_rep_by_id(rep_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rep {} not found", rep_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rep {rep_id} not found")))?;
 
         if !VALID_QUOTA_TYPES.contains(&quota_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -395,7 +395,7 @@ impl SalesCommissionEngine {
     ) -> AtlasResult<CommissionTransaction> {
         // Verify rep exists
         let rep = self.repository.get_rep_by_id(rep_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rep {} not found", rep_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rep {rep_id} not found")))?;
 
         let sale: f64 = sale_amount.parse().map_err(|_| AtlasError::ValidationFailed(
             "sale_amount must be a valid number".to_string(),
@@ -409,7 +409,7 @@ impl SalesCommissionEngine {
         // Determine the commission plan (explicit or from active assignment)
         let plan = if let Some(pid) = plan_id {
             self.repository.get_plan_by_id(pid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {} not found", pid)))?
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {pid} not found")))?
         } else {
             // Find active assignment for this rep
             let assignments = self.repository.list_assignments(org_id, Some(rep_id)).await?;
@@ -437,11 +437,11 @@ impl SalesCommissionEngine {
             "percentage" => {
                 let rate: f64 = plan.default_rate.parse().unwrap_or(0.0);
                 let commission = sale * rate / 100.0;
-                (format!("{:.4}", rate), format!("{:.4}", commission))
+                (format!("{rate:.4}"), format!("{commission:.4}"))
             }
             "flat_rate" => {
                 let flat: f64 = plan.default_rate.parse().unwrap_or(0.0);
-                (format!("{:.4}", flat), format!("{:.4}", flat))
+                (format!("{flat:.4}"), format!("{flat:.4}"))
             }
             "tiered" | "graduated" => {
                 let tiers = self.repository.list_rate_tiers(plan.id).await?;
@@ -449,7 +449,7 @@ impl SalesCommissionEngine {
                     // Fall back to default rate
                     let rate: f64 = plan.default_rate.parse().unwrap_or(0.0);
                     let commission = sale * rate / 100.0;
-                    (format!("{:.4}", rate), format!("{:.4}", commission))
+                    (format!("{rate:.4}"), format!("{commission:.4}"))
                 } else {
                     // Find applicable tier
                     let mut applicable_rate = 0.0_f64;
@@ -471,13 +471,13 @@ impl SalesCommissionEngine {
                         }
                     }
                     let commission = sale * applicable_rate / 100.0;
-                    (format!("{:.4}", applicable_rate), format!("{:.4}", commission))
+                    (format!("{applicable_rate:.4}"), format!("{commission:.4}"))
                 }
             }
             _ => {
                 let rate: f64 = plan.default_rate.parse().unwrap_or(0.0);
                 let commission = sale * rate / 100.0;
-                (format!("{:.4}", rate), format!("{:.4}", commission))
+                (format!("{rate:.4}"), format!("{commission:.4}"))
             }
         };
 
@@ -505,7 +505,7 @@ impl SalesCommissionEngine {
                 let pct = if target > 0.0 { (new_achieved / target) * 100.0 } else { 0.0 };
 
                 self.repository.update_quota_achievement(
-                    qid, &format!("{:.4}", new_achieved), &format!("{:.4}", pct),
+                    qid, &format!("{new_achieved:.4}"), &format!("{pct:.4}"),
                 ).await?;
             }
         }
@@ -610,7 +610,7 @@ impl SalesCommissionEngine {
                 totals.plan_id, plan_code.as_deref(),
                 &format!("{:.4}", totals.total_commission),
                 "0.0000",
-                &format!("{:.4}", net),
+                &format!("{net:.4}"),
                 currency_code,
                 totals.transaction_count,
             ).await?;
@@ -619,7 +619,7 @@ impl SalesCommissionEngine {
         // Update payout totals
         self.repository.update_payout_totals(
             payout.id,
-            &format!("{:.4}", total_payout),
+            &format!("{total_payout:.4}"),
             rep_totals.len() as i32,
             eligible_txns.len() as i32,
         ).await?;
@@ -647,7 +647,7 @@ impl SalesCommissionEngine {
     /// Approve a payout
     pub async fn approve_payout(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<CommissionPayout> {
         let payout = self.repository.get_payout(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payout {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payout {id} not found")))?;
 
         if payout.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -662,7 +662,7 @@ impl SalesCommissionEngine {
     /// Reject a payout
     pub async fn reject_payout(&self, id: Uuid, rejected_reason: Option<&str>) -> AtlasResult<CommissionPayout> {
         let payout = self.repository.get_payout(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payout {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payout {id} not found")))?;
 
         if payout.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -731,7 +731,7 @@ impl SalesCommissionEngine {
         }
 
         // Enrich rep names
-        for (rep_id, (name, _, _)) in rep_commissions.iter_mut() {
+        for (rep_id, (name, _, _)) in &mut rep_commissions {
             if let Some(rep) = self.repository.get_rep_by_id(*rep_id).await.ok().flatten() {
                 *name = format!("{} {}", rep.first_name, rep.last_name);
             }
@@ -741,7 +741,7 @@ impl SalesCommissionEngine {
             .map(|(rep_id, (name, total_comm, _))| CommissionTopPerformer {
                 rep_id,
                 rep_name: name,
-                total_commission: format!("{:.4}", total_comm),
+                total_commission: format!("{total_comm:.4}"),
                 quota_achievement: "0".to_string(),
                 rank: 0,
             })
@@ -764,8 +764,8 @@ impl SalesCommissionEngine {
             total_quotas: quotas.len() as i32,
             total_transactions: txns.len() as i32,
             total_pending_payouts: pending_payouts,
-            total_commission_this_month: format!("{:.4}", total_commission_this_month),
-            total_quota_achievement_percent: format!("{:.2}", total_quota_achievement),
+            total_commission_this_month: format!("{total_commission_this_month:.4}"),
+            total_quota_achievement_percent: format!("{total_quota_achievement:.2}"),
             payouts_by_status: serde_json::Value::Object(pb_status),
             top_performers: top,
         })

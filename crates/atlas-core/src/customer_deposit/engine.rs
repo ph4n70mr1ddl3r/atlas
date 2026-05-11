@@ -10,7 +10,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Accounts Receivable > Customer Deposits
 
-use super::*;
+use super::{CustomerDepositRepository, AtlasResult, CustomerDeposit, AtlasError, DepositApplication, CustomerDepositDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -74,7 +74,7 @@ impl CustomerDepositEngine {
             }
         }
         if self.repository.get_deposit_by_number(org_id, deposit_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Deposit number '{}' already exists", deposit_number)));
+            return Err(AtlasError::Conflict(format!("Deposit number '{deposit_number}' already exists")));
         }
 
         info!("Creating customer deposit {} for customer {} ({})", deposit_number, customer_name, customer_id);
@@ -120,7 +120,7 @@ impl CustomerDepositEngine {
     /// Record receipt of a draft deposit
     pub async fn receive_deposit(&self, deposit_id: Uuid, receipt_reference: Option<&str>, received_by: Option<Uuid>) -> AtlasResult<CustomerDeposit> {
         let dep = self.repository.get_deposit(deposit_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deposit {} not found", deposit_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deposit {deposit_id} not found")))?;
 
         if dep.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -136,7 +136,7 @@ impl CustomerDepositEngine {
     /// Refund an unapplied deposit
     pub async fn refund_deposit(&self, deposit_id: Uuid, refund_reference: Option<&str>, refunded_by: Option<Uuid>) -> AtlasResult<CustomerDeposit> {
         let dep = self.repository.get_deposit(deposit_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deposit {} not found", deposit_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deposit {deposit_id} not found")))?;
 
         if dep.status != "received" && dep.status != "partially_applied" {
             return Err(AtlasError::WorkflowError(
@@ -157,7 +157,7 @@ impl CustomerDepositEngine {
     /// Cancel a draft deposit
     pub async fn cancel_deposit(&self, deposit_id: Uuid, _reason: Option<&str>) -> AtlasResult<CustomerDeposit> {
         let dep = self.repository.get_deposit(deposit_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deposit {} not found", deposit_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deposit {deposit_id} not found")))?;
 
         if dep.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -186,7 +186,7 @@ impl CustomerDepositEngine {
         applied_by: Option<Uuid>,
     ) -> AtlasResult<DepositApplication> {
         let dep = self.repository.get_deposit(deposit_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deposit {} not found", deposit_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deposit {deposit_id} not found")))?;
 
         if dep.status != "received" && dep.status != "partially_applied" {
             return Err(AtlasError::WorkflowError(
@@ -202,7 +202,7 @@ impl CustomerDepositEngine {
         let unapplied: f64 = dep.unapplied_amount.parse().unwrap_or(0.0);
         if amount > unapplied + 0.01 {
             return Err(AtlasError::ValidationFailed(
-                format!("Applied amount {} exceeds unapplied amount {}", amount, unapplied)
+                format!("Applied amount {amount} exceeds unapplied amount {unapplied}")
             ));
         }
 
@@ -226,8 +226,8 @@ impl CustomerDepositEngine {
 
         self.repository.update_deposit_amounts(
             deposit_id,
-            &format!("{:.2}", total_applied),
-            &format!("{:.2}", new_unapplied),
+            &format!("{total_applied:.2}"),
+            &format!("{new_unapplied:.2}"),
             new_status,
         ).await?;
 
@@ -237,7 +237,7 @@ impl CustomerDepositEngine {
     /// Unapply (reverse) a deposit application
     pub async fn unapply_application(&self, application_id: Uuid, reversed_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<DepositApplication> {
         let app = self.repository.get_application(application_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {} not found", application_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {application_id} not found")))?;
 
         if app.status != "applied" {
             return Err(AtlasError::WorkflowError(
@@ -262,8 +262,8 @@ impl CustomerDepositEngine {
             let new_status = if total_applied.abs() < 0.01 { "received" } else { "partially_applied" };
             self.repository.update_deposit_amounts(
                 app.deposit_id,
-                &format!("{:.2}", total_applied),
-                &format!("{:.2}", new_unapplied),
+                &format!("{total_applied:.2}"),
+                &format!("{new_unapplied:.2}"),
                 new_status,
             ).await?;
         }

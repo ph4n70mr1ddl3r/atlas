@@ -16,6 +16,7 @@ pub struct WorkflowEngine {
 }
 
 impl WorkflowEngine {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             workflows: Arc::new(RwLock::new(HashMap::new())),
@@ -64,7 +65,7 @@ impl WorkflowEngine {
     ) -> AtlasResult<TransitionResult> {
         let workflows = self.workflows.read().await;
         let workflow = workflows.get(workflow_name)
-            .ok_or_else(|| AtlasError::WorkflowError(format!("Workflow not found: {}", workflow_name)))?;
+            .ok_or_else(|| AtlasError::WorkflowError(format!("Workflow not found: {workflow_name}")))?;
         
         // Find the transition
         let transition = workflow.transitions.iter()
@@ -167,7 +168,7 @@ impl WorkflowEngine {
     ) -> AtlasResult<AvailableTransitions> {
         let workflows = self.workflows.read().await;
         let workflow = workflows.get(workflow_name)
-            .ok_or_else(|| AtlasError::WorkflowError(format!("Workflow not found: {}", workflow_name)))?;
+            .ok_or_else(|| AtlasError::WorkflowError(format!("Workflow not found: {workflow_name}")))?;
         
         let mut transitions = vec![];
         

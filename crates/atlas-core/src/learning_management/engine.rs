@@ -103,7 +103,7 @@ impl LearningManagementEngine {
         }
 
         if self.repository.get_learning_item_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Learning item '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Learning item '{code_upper}' already exists")));
         }
 
         info!("Creating learning item '{}' for org {}", code_upper, org_id);
@@ -141,12 +141,11 @@ impl LearningManagementEngine {
     pub async fn update_learning_item_status(&self, id: Uuid, status: &str) -> AtlasResult<LearningItem> {
         validate_enum("status", status, VALID_ITEM_STATUSES)?;
         let item = self.repository.get_learning_item(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning item {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning item {id} not found")))?;
 
         match (item.status.as_str(), status) {
-            ("draft", "active") | ("active", "inactive") |
-            ("inactive", "active") | ("active", "archived") |
-            ("draft", "archived") => {}
+            ("draft" | "inactive", "active") | ("active", "inactive" | "archived") |
+("draft", "archived") => {}
             _ => return Err(AtlasError::ValidationFailed(format!(
                 "Cannot transition item from '{}' to '{}'", item.status, status
             ))),
@@ -183,11 +182,11 @@ impl LearningManagementEngine {
         }
         if let Some(pid) = parent_category_id {
             let _parent = self.repository.get_learning_category(pid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Parent category {} not found", pid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Parent category {pid} not found")))?;
         }
 
         if self.repository.get_learning_category_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Learning category '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Learning category '{code_upper}' already exists")));
         }
 
         info!("Creating learning category '{}' for org {}", code_upper, org_id);
@@ -236,7 +235,7 @@ impl LearningManagementEngine {
 
         // Verify learning item exists and is active
         let item = self.repository.get_learning_item(learning_item_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning item {} not found", learning_item_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning item {learning_item_id} not found")))?;
         if item.status != "active" {
             return Err(AtlasError::ValidationFailed(
                 "Can only enroll in active learning items".to_string(),
@@ -301,7 +300,7 @@ impl LearningManagementEngine {
         }
 
         let enrollment = self.repository.get_learning_enrollment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Enrollment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Enrollment {id} not found")))?;
 
         let completion_date = if status == Some("completed") && enrollment.completion_date.is_none() {
             Some(chrono::Utc::now().date_naive())
@@ -335,7 +334,7 @@ impl LearningManagementEngine {
     /// Withdraw an enrollment
     pub async fn withdraw_enrollment(&self, id: Uuid) -> AtlasResult<LearningEnrollment> {
         let enrollment = self.repository.get_learning_enrollment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Enrollment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Enrollment {id} not found")))?;
         if enrollment.status == "completed" {
             return Err(AtlasError::ValidationFailed("Cannot withdraw a completed enrollment".to_string()));
         }
@@ -379,7 +378,7 @@ impl LearningManagementEngine {
         }
 
         if self.repository.get_learning_path_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Learning path '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Learning path '{code_upper}' already exists")));
         }
 
         info!("Creating learning path '{}' for org {}", code_upper, org_id);
@@ -414,12 +413,11 @@ impl LearningManagementEngine {
     pub async fn update_learning_path_status(&self, id: Uuid, status: &str) -> AtlasResult<LearningPath> {
         validate_enum("status", status, VALID_PATH_STATUSES)?;
         let path = self.repository.get_learning_path(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning path {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning path {id} not found")))?;
 
         match (path.status.as_str(), status) {
-            ("draft", "active") | ("active", "inactive") |
-            ("inactive", "active") | ("active", "archived") |
-            ("draft", "archived") => {}
+            ("draft" | "inactive", "active") | ("active", "inactive" | "archived") |
+("draft", "archived") => {}
             _ => return Err(AtlasError::ValidationFailed(format!(
                 "Cannot transition path from '{}' to '{}'", path.status, status
             ))),
@@ -455,7 +453,7 @@ impl LearningManagementEngine {
 
         // Verify path exists and is draft
         let path = self.repository.get_learning_path(learning_path_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning path {} not found", learning_path_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning path {learning_path_id} not found")))?;
         if path.status != "draft" {
             return Err(AtlasError::ValidationFailed(
                 "Can only add items to a draft learning path".to_string(),
@@ -467,7 +465,7 @@ impl LearningManagementEngine {
 
         // Verify item exists and is active
         let item = self.repository.get_learning_item(learning_item_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning item {} not found", learning_item_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning item {learning_item_id} not found")))?;
         if item.status != "active" {
             return Err(AtlasError::ValidationFailed(
                 "Can only add active learning items to a path".to_string(),
@@ -541,7 +539,7 @@ impl LearningManagementEngine {
         // Verify learning item if provided
         if let Some(li_id) = learning_item_id {
             let item = self.repository.get_learning_item(li_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning item {} not found", li_id)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning item {li_id} not found")))?;
             if item.status != "active" {
                 return Err(AtlasError::ValidationFailed("Can only assign active learning items".to_string()));
             }
@@ -550,7 +548,7 @@ impl LearningManagementEngine {
         // Verify learning path if provided
         if let Some(lp_id) = learning_path_id {
             let path = self.repository.get_learning_path(lp_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning path {} not found", lp_id)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Learning path {lp_id} not found")))?;
             if path.status != "active" {
                 return Err(AtlasError::ValidationFailed("Can only assign active learning paths".to_string()));
             }
@@ -589,10 +587,10 @@ impl LearningManagementEngine {
     pub async fn update_learning_assignment_status(&self, id: Uuid, status: &str) -> AtlasResult<LearningAssignment> {
         validate_enum("status", status, VALID_ASSIGNMENT_STATUSES)?;
         let assignment = self.repository.get_learning_assignment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Assignment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Assignment {id} not found")))?;
 
         match (assignment.status.as_str(), status) {
-            ("active", "completed") | ("active", "cancelled") => {}
+            ("active", "completed" | "cancelled") => {}
             _ => return Err(AtlasError::ValidationFailed(format!(
                 "Cannot transition assignment from '{}' to '{}'", assignment.status, status
             ))),

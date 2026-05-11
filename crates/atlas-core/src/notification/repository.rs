@@ -21,13 +21,14 @@ pub trait NotificationRepository: Send + Sync {
     async fn send_scheduled(&self) -> AtlasResult<u64>;
 }
 
-/// PostgreSQL implementation of notification storage
+/// `PostgreSQL` implementation of notification storage
 pub struct PostgresNotificationRepository {
     pool: PgPool,
 }
 
 impl PostgresNotificationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -70,14 +71,14 @@ impl NotificationRepository for PostgresNotificationRepository {
         let channels = request.channels.unwrap_or_else(|| serde_json::json!(["in_app"]));
 
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.notifications 
                 (organization_id, user_id, notification_type, priority, title, message,
                  entity_type, entity_id, action_url, workflow_name, from_state, to_state,
                  action, performed_by, channels, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id)
         .bind(user_id)

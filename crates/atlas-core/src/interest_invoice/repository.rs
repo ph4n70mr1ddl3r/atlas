@@ -1,6 +1,6 @@
 //! Interest Invoice Repository
 //!
-//! PostgreSQL storage for interest rate schedules, overdue invoices,
+//! `PostgreSQL` storage for interest rate schedules, overdue invoices,
 //! calculation runs, calculation lines, interest invoices, and invoice lines.
 
 use atlas_shared::{
@@ -97,9 +97,9 @@ pub trait InterestInvoiceRepository: Send + Sync {
 }
 
 
-/// Read a NUMERIC column as text string from a PostgreSQL row.
-/// PostgreSQL NUMERIC type doesn't map directly to Rust types via SQLx,
-/// so we use the pgrowlocks::get pattern with explicit text casting.
+/// Read a NUMERIC column as text string from a `PostgreSQL` row.
+/// `PostgreSQL` NUMERIC type doesn't map directly to Rust types via `SQLx`,
+/// so we use the `pgrowlocks::get` pattern with explicit text casting.
 fn get_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> String {
     row.try_get::<String, _>(col).unwrap_or_else(|_| "0.00".to_string())
 }
@@ -112,13 +112,14 @@ fn get_optional_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> Option<S
     row.try_get::<Option<String>, _>(col).unwrap_or(None)
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresInterestInvoiceRepository {
     pool: PgPool,
 }
 
 impl PostgresInterestInvoiceRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -279,12 +280,12 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InterestRateSchedule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.interest_rate_schedules
+            r"INSERT INTO _atlas.interest_rate_schedules
                 (organization_id, schedule_code, name, description, annual_rate,
                  compounding_frequency, charge_type, grace_period_days, minimum_charge,
                  maximum_charge, currency_code, effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(schedule_code).bind(name).bind(description)
         .bind(annual_rate).bind(compounding_frequency).bind(charge_type)
@@ -317,9 +318,9 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
 
     async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InterestRateSchedule>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.interest_rate_schedules
+            r"SELECT * FROM _atlas.interest_rate_schedules
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY schedule_code"#,
+            ORDER BY schedule_code",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -329,8 +330,8 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
 
     async fn update_schedule_status(&self, id: Uuid, status: &str) -> AtlasResult<InterestRateSchedule> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.interest_rate_schedules SET status=$2, updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            r"UPDATE _atlas.interest_rate_schedules SET status=$2, updated_at=now()
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -358,11 +359,11 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
         due_date: chrono::NaiveDate, overdue_days: i32, currency_code: &str,
     ) -> AtlasResult<OverdueInvoice> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.overdue_invoices
+            r"INSERT INTO _atlas.overdue_invoices
                 (organization_id, invoice_number, customer_id, customer_name,
                  original_amount, outstanding_amount, due_date, overdue_days, currency_code)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(invoice_number).bind(customer_id).bind(customer_name)
         .bind(original_amount).bind(outstanding_amount)
@@ -394,9 +395,9 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
 
     async fn list_overdue_invoices(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<OverdueInvoice>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.overdue_invoices
+            r"SELECT * FROM _atlas.overdue_invoices
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY overdue_days DESC"#,
+            ORDER BY overdue_days DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -406,8 +407,8 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
 
     async fn update_overdue_invoice_status(&self, id: Uuid, status: &str) -> AtlasResult<OverdueInvoice> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.overdue_invoices SET status=$2, updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            r"UPDATE _atlas.overdue_invoices SET status=$2, updated_at=now()
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -417,9 +418,9 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
 
     async fn update_overdue_interest(&self, id: Uuid, total_interest: &str, last_interest_date: chrono::NaiveDate) -> AtlasResult<OverdueInvoice> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.overdue_invoices
+            r"UPDATE _atlas.overdue_invoices
             SET total_interest_charged=$2, last_interest_date=$3, updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(total_interest).bind(last_interest_date)
         .fetch_one(&self.pool).await
@@ -437,10 +438,10 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
         currency_code: &str, generated_by: Option<Uuid>,
     ) -> AtlasResult<InterestCalculationRun> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.interest_calculation_runs
+            r"INSERT INTO _atlas.interest_calculation_runs
                 (organization_id, run_number, description, calculation_date,
                  schedule_id, currency_code, generated_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *",
         )
         .bind(org_id).bind(run_number).bind(description)
         .bind(calculation_date).bind(schedule_id)
@@ -470,9 +471,9 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
 
     async fn update_calculation_run_totals(&self, id: Uuid, invoices_processed: i32, total_interest: &str) -> AtlasResult<InterestCalculationRun> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.interest_calculation_runs
+            r"UPDATE _atlas.interest_calculation_runs
             SET total_invoices_processed=$2, total_interest_calculated=$3, updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(invoices_processed).bind(total_interest)
         .fetch_one(&self.pool).await
@@ -482,9 +483,9 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
 
     async fn update_calculation_run_status(&self, id: Uuid, status: &str, posted_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<InterestCalculationRun> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.interest_calculation_runs SET status=$2,
+            r"UPDATE _atlas.interest_calculation_runs SET status=$2,
                 posted_at=COALESCE($3, posted_at), updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(posted_at)
         .fetch_one(&self.pool).await
@@ -513,12 +514,12 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
         interest_amount: &str, currency_code: &str,
     ) -> AtlasResult<InterestCalculationLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.interest_calculation_lines
+            r"INSERT INTO _atlas.interest_calculation_lines
                 (organization_id, run_id, overdue_invoice_id, invoice_number,
                  customer_id, customer_name, outstanding_amount, overdue_days,
                  annual_rate_used, interest_amount, currency_code)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(run_id).bind(overdue_invoice_id).bind(invoice_number)
         .bind(customer_id).bind(customer_name).bind(outstanding_amount)
@@ -540,9 +541,9 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
 
     async fn update_calculation_line_status(&self, id: Uuid, status: &str, invoice_id: Option<Uuid>) -> AtlasResult<InterestCalculationLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.interest_calculation_lines SET status=$2,
+            r"UPDATE _atlas.interest_calculation_lines SET status=$2,
                 interest_invoice_id=COALESCE($3, interest_invoice_id), updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(invoice_id)
         .fetch_one(&self.pool).await
@@ -563,13 +564,13 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<InterestInvoice> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.interest_invoices
+            r"INSERT INTO _atlas.interest_invoices
                 (organization_id, invoice_number, customer_id, customer_name,
                  calculation_run_id, invoice_date, due_date, total_interest_amount,
                  currency_code, line_count, gl_account_code, reference_invoice_number,
                  notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(invoice_number).bind(customer_id).bind(customer_name)
         .bind(calculation_run_id).bind(invoice_date).bind(due_date)
@@ -602,9 +603,9 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
 
     async fn list_interest_invoices(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InterestInvoice>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.interest_invoices
+            r"SELECT * FROM _atlas.interest_invoices
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY invoice_date DESC"#,
+            ORDER BY invoice_date DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -617,12 +618,12 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
         reversed_at: Option<chrono::DateTime<chrono::Utc>>, reversal_invoice_id: Option<Uuid>,
     ) -> AtlasResult<InterestInvoice> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.interest_invoices SET status=$2,
+            r"UPDATE _atlas.interest_invoices SET status=$2,
                 posted_at=COALESCE($3, posted_at),
                 reversed_at=COALESCE($4, reversed_at),
                 reversal_invoice_id=COALESCE($5, reversal_invoice_id),
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(posted_at).bind(reversed_at).bind(reversal_invoice_id)
         .fetch_one(&self.pool).await
@@ -652,13 +653,13 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
         interest_amount: &str, currency_code: &str, gl_account_code: Option<&str>,
     ) -> AtlasResult<InterestInvoiceLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.interest_invoice_lines
+            r"INSERT INTO _atlas.interest_invoice_lines
                 (organization_id, interest_invoice_id, calculation_line_id,
                  line_number, line_type, description, reference_invoice_number,
                  overdue_days, outstanding_amount, annual_rate_used, interest_amount,
                  currency_code, gl_account_code)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(interest_invoice_id).bind(calculation_line_id)
         .bind(line_number).bind(line_type).bind(description)
@@ -687,7 +688,7 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<InterestInvoiceDashboard> {
         // (no external imports needed)
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_schedules,
                 (SELECT COUNT(*) FROM _atlas.overdue_invoices WHERE organization_id = $1 AND status = 'open') as overdue_inv,
                 (SELECT COALESCE(SUM(outstanding_amount::numeric), 0)::text FROM _atlas.overdue_invoices WHERE organization_id = $1 AND status = 'open') as overdue_amt,
@@ -696,7 +697,7 @@ impl InterestInvoiceRepository for PostgresInterestInvoiceRepository {
                 (SELECT COUNT(*) FROM _atlas.interest_invoices WHERE organization_id = $1 AND status = 'draft') as pending_inv,
                 (SELECT COALESCE(SUM(total_interest_amount::numeric), 0)::text FROM _atlas.interest_invoices WHERE organization_id = $1 AND status = 'draft') as pending_amt,
                 (SELECT COALESCE(AVG(overdue_days), 0) FROM _atlas.overdue_invoices WHERE organization_id = $1 AND status = 'open')::text as avg_days
-            FROM _atlas.interest_rate_schedules WHERE organization_id = $1"#,
+            FROM _atlas.interest_rate_schedules WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

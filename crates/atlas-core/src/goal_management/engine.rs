@@ -65,7 +65,7 @@ impl GoalManagementEngine {
         }
         if self.repository.get_library_category_by_code(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Library category '{}' already exists", code_upper
+                "Library category '{code_upper}' already exists"
             )));
         }
         info!("Creating goal library category '{}' for org {}", code_upper, org_id);
@@ -144,7 +144,7 @@ impl GoalManagementEngine {
         }
         if self.repository.get_library_template_by_code(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Library template '{}' already exists", code_upper
+                "Library template '{code_upper}' already exists"
             )));
         }
         info!("Creating goal library template '{}' for org {}", code_upper, org_id);
@@ -227,7 +227,7 @@ impl GoalManagementEngine {
         }
         if self.repository.get_goal_plan_by_code(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Goal plan '{}' already exists", code_upper
+                "Goal plan '{code_upper}' already exists"
             )));
         }
         info!("Creating goal plan '{}' for org {}", code_upper, org_id);
@@ -271,7 +271,7 @@ impl GoalManagementEngine {
             )));
         }
         let plan = self.repository.get_goal_plan(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal plan {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal plan {id} not found")))?;
         // Validate status transitions
         match (plan.status.as_str(), status) {
             ("draft", "active") | ("active", "closed") => {}
@@ -360,14 +360,14 @@ impl GoalManagementEngine {
         if let Some(pid) = parent_goal_id {
             let _parent = self.repository.get_goal(pid).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Parent goal {} not found", pid
+                    "Parent goal {pid} not found"
                 )))?;
         }
         // Verify plan exists and is active if provided
         if let Some(plid) = plan_id {
             let plan = self.repository.get_goal_plan(plid).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Goal plan {} not found", plid
+                    "Goal plan {plid} not found"
                 )))?;
             if plan.status != "active" {
                 return Err(AtlasError::ValidationFailed(
@@ -427,7 +427,7 @@ impl GoalManagementEngine {
         status: Option<&str>,
     ) -> AtlasResult<Goal> {
         let goal = self.repository.get_goal(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal {id} not found")))?;
 
         if let Some(s) = status {
             if !VALID_GOAL_STATUSES.contains(&s) {
@@ -496,9 +496,9 @@ impl GoalManagementEngine {
         }
         // Verify both goals exist
         let _source = self.repository.get_goal(source_goal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Source goal {} not found", source_goal_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Source goal {source_goal_id} not found")))?;
         let _target = self.repository.get_goal(aligned_to_goal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Target goal {} not found", aligned_to_goal_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Target goal {aligned_to_goal_id} not found")))?;
 
         info!("Creating alignment: {} {} {}", source_goal_id, alignment_type, aligned_to_goal_id);
         self.repository.create_goal_alignment(
@@ -547,7 +547,7 @@ impl GoalManagementEngine {
         }
         // Verify goal exists
         let _goal = self.repository.get_goal(goal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal {} not found", goal_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal {goal_id} not found")))?;
 
         info!("Adding {} note to goal {}", note_type, goal_id);
         self.repository.create_goal_note(

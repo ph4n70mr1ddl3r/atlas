@@ -44,7 +44,8 @@ pub trait CashFlowForecastRepository: Send + Sync {
 #[allow(dead_code)]
 pub struct PostgresCashFlowForecastRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresCashFlowForecastRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresCashFlowForecastRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl CashFlowForecastRepository for PostgresCashFlowForecastRepository {

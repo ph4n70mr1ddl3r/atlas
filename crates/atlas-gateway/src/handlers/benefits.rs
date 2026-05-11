@@ -44,7 +44,7 @@ pub struct CreateBenefitsPlanRequest {
     pub max_dependents: Option<i32>,
 }
 
-fn default_true() -> bool { true }
+const fn default_true() -> bool { true }
 
 /// Create or update a benefits plan
 pub async fn create_benefits_plan(

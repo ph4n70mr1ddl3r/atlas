@@ -8,7 +8,7 @@ use atlas_shared::SecurityPolicy;
 use uuid::Uuid;
 
 
-/// Fluent builder for EntityDefinition
+/// Fluent builder for `EntityDefinition`
 pub struct SchemaBuilder {
     name: String,
     label: String,
@@ -26,17 +26,18 @@ pub struct SchemaBuilder {
 }
 
 impl SchemaBuilder {
+    #[must_use] 
     pub fn new(name: &str, label: &str) -> Self {
-        let plural_label = if label.ends_with("s") || label.ends_with("sh") || label.ends_with("ch") || label.ends_with("x") || label.ends_with("z") {
-            format!("{}es", label)
+        let plural_label = if label.ends_with('s') || label.ends_with("sh") || label.ends_with("ch") || label.ends_with('x') || label.ends_with('z') {
+            format!("{label}es")
         } else if label.ends_with('y') && !label.ends_with("ay") && !label.ends_with("ey") && !label.ends_with("iy") && !label.ends_with("oy") && !label.ends_with("uy") {
             format!("{}ies", &label[..label.len()-1])
         } else if let Some(stripped) = label.strip_suffix("fe") {
-            format!("{}ves", stripped)
+            format!("{stripped}ves")
         } else if let Some(stripped) = label.strip_suffix('f') {
-            format!("{}ves", stripped)
+            format!("{stripped}ves")
         } else {
-            format!("{}s", label)
+            format!("{label}s")
         };
         
         Self {
@@ -56,62 +57,74 @@ impl SchemaBuilder {
         }
     }
     
+    #[must_use] 
     pub fn plural_label(mut self, plural: &str) -> Self {
         self.plural_label = plural.to_string();
         self
     }
     
+    #[must_use] 
     pub fn table_name(mut self, name: &str) -> Self {
         self.table_name = Some(name.to_string());
         self
     }
     
+    #[must_use] 
     pub fn description(mut self, desc: &str) -> Self {
         self.description = Some(desc.to_string());
         self
     }
     
+    #[must_use] 
     pub fn icon(mut self, icon: &str) -> Self {
         self.icon = Some(icon.to_string());
         self
     }
     
+    #[must_use] 
     pub fn color(mut self, color: &str) -> Self {
         self.color = Some(color.to_string());
         self
     }
     
-    pub fn audit_disabled(mut self) -> Self {
+    #[must_use] 
+    pub const fn audit_disabled(mut self) -> Self {
         self.is_audit_enabled = false;
         self
     }
     
-    pub fn hard_delete(mut self) -> Self {
+    #[must_use] 
+    pub const fn hard_delete(mut self) -> Self {
         self.is_soft_delete = false;
         self
     }
     
+    #[must_use] 
     pub fn add_field(mut self, field: FieldDefinition) -> Self {
         self.fields.push(field);
         self
     }
     
+    #[must_use] 
     pub fn add_index(mut self, index: IndexDefinition) -> Self {
         self.indexes.push(index);
         self
     }
     
+    #[must_use] 
     pub fn workflow(mut self, workflow: WorkflowDefinition) -> Self {
         self.workflow = Some(workflow);
         self
     }
     
+    #[must_use] 
     pub fn security(mut self, policy: SecurityPolicy) -> Self {
         self.security = Some(policy);
         self
     }
     
     /// Add a string field
+    #[must_use] 
     pub fn string(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::String {
             max_length: None,
@@ -121,6 +134,7 @@ impl SchemaBuilder {
     }
     
     /// Add a required string field
+    #[must_use] 
     pub fn required_string(mut self, name: &str, label: &str) -> Self {
         let mut field = FieldDefinition::new(name, label, FieldType::String {
             max_length: None,
@@ -132,6 +146,7 @@ impl SchemaBuilder {
     }
     
     /// Add an integer field
+    #[must_use] 
     pub fn integer(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Integer {
             min: None,
@@ -141,6 +156,7 @@ impl SchemaBuilder {
     }
     
     /// Add a required integer field
+    #[must_use] 
     pub fn required_integer(mut self, name: &str, label: &str) -> Self {
         let mut field = FieldDefinition::new(name, label, FieldType::Integer {
             min: None,
@@ -152,6 +168,7 @@ impl SchemaBuilder {
     }
     
     /// Add a decimal field
+    #[must_use] 
     pub fn decimal(mut self, name: &str, label: &str, precision: u8, scale: u8) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Decimal {
             precision,
@@ -161,32 +178,37 @@ impl SchemaBuilder {
     }
     
     /// Add a boolean field
+    #[must_use] 
     pub fn boolean(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Boolean));
         self
     }
     
     /// Add a date field
+    #[must_use] 
     pub fn date(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Date));
         self
     }
     
     /// Add a datetime field
+    #[must_use] 
     pub fn datetime(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::DateTime));
         self
     }
     
     /// Add an enum field
+    #[must_use] 
     pub fn enumeration(mut self, name: &str, label: &str, values: Vec<&str>) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Enum {
-            values: values.into_iter().map(|s| s.to_string()).collect(),
+            values: values.into_iter().map(std::string::ToString::to_string).collect(),
         }));
         self
     }
     
     /// Add a reference field
+    #[must_use] 
     pub fn reference(mut self, name: &str, label: &str, entity: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Reference {
             entity: entity.to_string(),
@@ -196,6 +218,7 @@ impl SchemaBuilder {
     }
     
     /// Add a currency field
+    #[must_use] 
     pub fn currency(mut self, name: &str, label: &str, code: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Currency {
             code: code.to_string(),
@@ -204,42 +227,49 @@ impl SchemaBuilder {
     }
     
     /// Add an email field
+    #[must_use] 
     pub fn email(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Email));
         self
     }
     
     /// Add a phone field
+    #[must_use] 
     pub fn phone(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Phone));
         self
     }
     
     /// Add a rich text field
+    #[must_use] 
     pub fn rich_text(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::RichText));
         self
     }
     
     /// Add an address field
+    #[must_use] 
     pub fn address(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Address));
         self
     }
     
     /// Add a URL field
+    #[must_use] 
     pub fn url(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Url));
         self
     }
     
     /// Add a JSON field
+    #[must_use] 
     pub fn json(mut self, name: &str, label: &str) -> Self {
         self.fields.push(FieldDefinition::new(name, label, FieldType::Json));
         self
     }
     
     /// Add a boolean field with a default value
+    #[must_use] 
     pub fn boolean_default(mut self, name: &str, label: &str, default: bool) -> Self {
         let mut field = FieldDefinition::new(name, label, FieldType::Boolean);
         field.default_value = Some(serde_json::json!(default));
@@ -247,6 +277,7 @@ impl SchemaBuilder {
         self
     }
     
+    #[must_use] 
     pub fn build(self) -> EntityDefinition {
         // Auto-generate display_order for fields
         let fields: Vec<_> = self.fields.into_iter()
@@ -286,6 +317,7 @@ pub struct WorkflowBuilder {
 }
 
 impl WorkflowBuilder {
+    #[must_use] 
     pub fn new(name: &str, initial_state: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -295,6 +327,7 @@ impl WorkflowBuilder {
         }
     }
     
+    #[must_use] 
     pub fn add_state(mut self, name: &str, label: &str, state_type: StateType) -> Self {
         self.states.push(StateDefinition {
             name: name.to_string(),
@@ -307,6 +340,7 @@ impl WorkflowBuilder {
         self
     }
     
+    #[must_use] 
     pub fn initial_state(mut self, name: &str, label: &str) -> Self {
         self.states.push(StateDefinition {
             name: name.to_string(),
@@ -320,6 +354,7 @@ impl WorkflowBuilder {
         self
     }
     
+    #[must_use] 
     pub fn working_state(mut self, name: &str, label: &str) -> Self {
         self.states.push(StateDefinition {
             name: name.to_string(),
@@ -332,6 +367,7 @@ impl WorkflowBuilder {
         self
     }
     
+    #[must_use] 
     pub fn final_state(mut self, name: &str, label: &str) -> Self {
         self.states.push(StateDefinition {
             name: name.to_string(),
@@ -344,9 +380,10 @@ impl WorkflowBuilder {
         self
     }
     
+    #[must_use] 
     pub fn transition(mut self, from: &str, to: &str, action: &str) -> Self {
         self.transitions.push(TransitionDefinition {
-            name: format!("{}:{}", from, to),
+            name: format!("{from}:{to}"),
             from_state: from.to_string(),
             to_state: to.to_string(),
             action: action.to_string(),
@@ -359,6 +396,7 @@ impl WorkflowBuilder {
         self
     }
     
+    #[must_use] 
     pub fn build(self) -> WorkflowDefinition {
         WorkflowDefinition {
             id: Some(Uuid::new_v4()),

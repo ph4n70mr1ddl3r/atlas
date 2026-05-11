@@ -37,9 +37,9 @@ pub struct InvoiceMatch {
     pub po_number: Option<String>,
     pub supplier_id: Uuid,
     pub supplier_name: String,
-    /// 'two_way', 'three_way', 'four_way'
+    /// '`two_way`', '`three_way`', '`four_way`'
     pub match_type: String,
-    /// 'pending', 'matched', 'partial_match', 'exception', 'overridden', 'cancelled'
+    /// 'pending', 'matched', '`partial_match`', 'exception', 'overridden', 'cancelled'
     pub status: String,
     pub invoice_amount: String,
     pub po_amount: String,
@@ -138,11 +138,12 @@ pub trait InvoiceMatchingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<InvoiceMatchingDashboard>;
 }
 
-/// PostgreSQL implementation (stub)
+/// `PostgreSQL` implementation (stub)
 #[allow(dead_code)]
 pub struct PostgresInvoiceMatchingRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresInvoiceMatchingRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresInvoiceMatchingRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl InvoiceMatchingRepository for PostgresInvoiceMatchingRepository {

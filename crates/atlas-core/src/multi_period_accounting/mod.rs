@@ -5,10 +5,10 @@
 //! - Create reusable MPA templates with distribution methods (equal, custom, days)
 //! - Apply templates to create MPA schedules with per-period allocation lines
 //! - Recognize or reverse individual period allocations
-//! - Track MPA schedule lifecycle (draft → active → completed/cancelled/on_hold)
+//! - Track MPA schedule lifecycle (draft → active → `completed/cancelled/on_hold`)
 //! - Dashboard with aggregated MPA statistics
 //!
-//! Schedule statuses: draft → active → completed/cancelled/on_hold
+//! Schedule statuses: draft → active → `completed/cancelled/on_hold`
 //! Schedule line statuses: pending → recognized → reversed
 //!
 //! Oracle Fusion equivalent: Financials > General Ledger > Multi-Period Accounting
@@ -255,10 +255,11 @@ fn row_to_schedule_line(row: &sqlx::postgres::PgRow) -> MpaScheduleLine {
     }
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 #[allow(dead_code)]
 pub struct PostgresMpaRepository { #[allow(dead_code)] pool: PgPool }
-impl PostgresMpaRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresMpaRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl MpaRepository for PostgresMpaRepository {
@@ -270,12 +271,12 @@ impl MpaRepository for PostgresMpaRepository {
         currency: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<MpaTemplate> {
         let row = sqlx::query(
-            r#"INSERT INTO financials.mpa_templates
+            r"INSERT INTO financials.mpa_templates
                 (organization_id, template_name, description, distribution_method,
                  number_of_periods, period_type, deferred_account_code, expense_account_code,
                  currency_code, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(name).bind(description).bind(method)
         .bind(periods).bind(period_type).bind(deferred).bind(expense)
@@ -304,9 +305,9 @@ impl MpaRepository for PostgresMpaRepository {
 
     async fn list_templates(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<MpaTemplate>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM financials.mpa_templates
+            r"SELECT * FROM financials.mpa_templates
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         ).bind(org_id).bind(status)
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -324,9 +325,9 @@ impl MpaRepository for PostgresMpaRepository {
 
     async fn add_template_line(&self, template_id: Uuid, seq: i32, pct: &str, offset: i32) -> AtlasResult<MpaTemplateLine> {
         let row = sqlx::query(
-            r#"INSERT INTO financials.mpa_template_lines
+            r"INSERT INTO financials.mpa_template_lines
                 (template_id, period_sequence, percentage, offset_days)
-            VALUES ($1,$2,$3,$4) RETURNING *"#,
+            VALUES ($1,$2,$3,$4) RETURNING *",
         ).bind(template_id).bind(seq).bind(pct).bind(offset)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -359,13 +360,13 @@ impl MpaRepository for PostgresMpaRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<MpaSchedule> {
         let row = sqlx::query(
-            r#"INSERT INTO financials.mpa_schedules
+            r"INSERT INTO financials.mpa_schedules
                 (organization_id, schedule_number, description, template_id,
                  source_journal_entry_id, source_journal_line_id,
                  total_amount, remaining_amount, start_date, end_date,
                  currency_code, company_code, cost_center, account_segment, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(num).bind(desc).bind(template_id)
         .bind(src_je).bind(src_jl).bind(total).bind(total)
@@ -395,9 +396,9 @@ impl MpaRepository for PostgresMpaRepository {
 
     async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<MpaSchedule>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM financials.mpa_schedules
+            r"SELECT * FROM financials.mpa_schedules
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         ).bind(org_id).bind(status)
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -428,10 +429,10 @@ impl MpaRepository for PostgresMpaRepository {
         start: chrono::NaiveDate, end: chrono::NaiveDate, amount: &str, pct: &str,
     ) -> AtlasResult<MpaScheduleLine> {
         let row = sqlx::query(
-            r#"INSERT INTO financials.mpa_schedule_lines
+            r"INSERT INTO financials.mpa_schedule_lines
                 (schedule_id, period_sequence, period_name, period_start_date, period_end_date,
                  amount, percentage)
-            VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *",
         ).bind(schedule_id).bind(seq).bind(name).bind(start).bind(end).bind(amount).bind(pct)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -457,11 +458,11 @@ impl MpaRepository for PostgresMpaRepository {
 
     async fn update_schedule_line_status(&self, id: Uuid, status: &str, je_id: Option<Uuid>) -> AtlasResult<MpaScheduleLine> {
         let row = sqlx::query(
-            r#"UPDATE financials.mpa_schedule_lines
+            r"UPDATE financials.mpa_schedule_lines
             SET status = $2, journal_entry_id = $3,
                 recognized_at = CASE WHEN $2 = 'recognized' THEN now() ELSE recognized_at END,
                 updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         ).bind(id).bind(status).bind(je_id)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -484,12 +485,12 @@ impl MpaRepository for PostgresMpaRepository {
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         let total: f64 = row.try_get("total").unwrap_or(0.0);
-        Ok(format!("{:.2}", total))
+        Ok(format!("{total:.2}"))
     }
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<MpaDashboard> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COALESCE((SELECT COUNT(*) FROM financials.mpa_templates WHERE organization_id = $1), 0) as total_templates,
                 COALESCE((SELECT COUNT(*) FROM financials.mpa_templates WHERE organization_id = $1 AND status = 'active'), 0) as active_templates,
                 COALESCE((SELECT COUNT(*) FROM financials.mpa_schedules WHERE organization_id = $1), 0) as total_schedules,
@@ -503,7 +504,7 @@ impl MpaRepository for PostgresMpaRepository {
                 COALESCE((SELECT SUM(remaining_amount::numeric) FROM financials.mpa_schedules WHERE organization_id = $1), 0)::float8 as total_remaining_amount,
                 COALESCE((SELECT COUNT(*) FROM financials.mpa_schedule_lines sl JOIN financials.mpa_schedules s ON s.id = sl.schedule_id WHERE s.organization_id = $1 AND sl.status = 'pending'), 0) as pending_lines,
                 COALESCE((SELECT COUNT(*) FROM financials.mpa_schedule_lines sl JOIN financials.mpa_schedules s ON s.id = sl.schedule_id WHERE s.organization_id = $1 AND sl.status = 'recognized'), 0) as recognized_lines,
-                COALESCE((SELECT COUNT(*) FROM financials.mpa_schedule_lines sl JOIN financials.mpa_schedules s ON s.id = sl.schedule_id WHERE s.organization_id = $1 AND sl.status = 'reversed'), 0) as reversed_lines"#,
+                COALESCE((SELECT COUNT(*) FROM financials.mpa_schedule_lines sl JOIN financials.mpa_schedules s ON s.id = sl.schedule_id WHERE s.organization_id = $1 AND sl.status = 'reversed'), 0) as reversed_lines",
         ).bind(org_id)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -517,9 +518,9 @@ impl MpaRepository for PostgresMpaRepository {
             completed_schedules: row.try_get("completed_schedules").unwrap_or(0),
             cancelled_schedules: row.try_get("cancelled_schedules").unwrap_or(0),
             on_hold_schedules: row.try_get("on_hold_schedules").unwrap_or(0),
-            total_scheduled_amount: row.try_get::<f64,_>("total_scheduled_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".into()),
-            total_recognized_amount: row.try_get::<f64,_>("total_recognized_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".into()),
-            total_remaining_amount: row.try_get::<f64,_>("total_remaining_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".into()),
+            total_scheduled_amount: row.try_get::<f64,_>("total_scheduled_amount").map_or_else(|_| "0.00".into(), |v| format!("{v:.2}")),
+            total_recognized_amount: row.try_get::<f64,_>("total_recognized_amount").map_or_else(|_| "0.00".into(), |v| format!("{v:.2}")),
+            total_remaining_amount: row.try_get::<f64,_>("total_remaining_amount").map_or_else(|_| "0.00".into(), |v| format!("{v:.2}")),
             pending_lines: row.try_get("pending_lines").unwrap_or(0),
             recognized_lines: row.try_get("recognized_lines").unwrap_or(0),
             reversed_lines: row.try_get("reversed_lines").unwrap_or(0),

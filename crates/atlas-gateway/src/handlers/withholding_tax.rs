@@ -525,7 +525,7 @@ pub async fn list_certificates(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let supplier_id = query.supplier_id.as_deref()
-        .map(|s| s.parse::<Uuid>())
+        .map(str::parse::<Uuid>)
         .transpose()
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid supplier_id: {}", e)}))))?;
 

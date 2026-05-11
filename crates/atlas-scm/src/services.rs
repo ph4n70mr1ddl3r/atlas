@@ -18,7 +18,8 @@ pub struct InventoryService {
 }
 
 impl InventoryService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -28,7 +29,7 @@ impl InventoryService {
 
     /// Adjust inventory quantity
     /// 
-    /// Updates quantity_on_hand and quantity_available for a product at a warehouse.
+    /// Updates `quantity_on_hand` and `quantity_available` for a product at a warehouse.
     /// Publishes an inventory changed event.
     pub async fn adjust_quantity(
         &self,
@@ -65,7 +66,7 @@ impl InventoryService {
 
     /// Check for low stock items
     /// 
-    /// Returns products where quantity_on_hand <= reorder_level.
+    /// Returns products where `quantity_on_hand` <= `reorder_level`.
     pub async fn low_stock_items(&self) -> AtlasResult<Vec<serde_json::Value>> {
         let _entity = self.schema_engine.get_entity("inventory_items")
             .ok_or_else(|| AtlasError::EntityNotFound("inventory_items".to_string()))?;
@@ -84,7 +85,8 @@ pub struct SupplierService {
 }
 
 impl SupplierService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, validation_engine }
     }
 

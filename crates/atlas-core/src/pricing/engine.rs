@@ -148,7 +148,7 @@ impl PricingEngine {
     /// Activate a price list (draft -> active)
     pub async fn activate_price_list(&self, id: Uuid) -> AtlasResult<PriceList> {
         let pl = self.repository.get_price_list_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list {id} not found")))?;
 
         if pl.status != "draft" && pl.status != "inactive" {
             return Err(AtlasError::WorkflowError(
@@ -171,7 +171,7 @@ impl PricingEngine {
     /// Deactivate a price list
     pub async fn deactivate_price_list(&self, id: Uuid) -> AtlasResult<PriceList> {
         let pl = self.repository.get_price_list_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list {id} not found")))?;
 
         if pl.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -213,7 +213,7 @@ impl PricingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PriceListLine> {
         let pl = self.repository.get_price_list_by_id(price_list_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list {} not found", price_list_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list {price_list_id} not found")))?;
 
         if pl.status == "expired" {
             return Err(AtlasError::WorkflowError(
@@ -287,7 +287,7 @@ impl PricingEngine {
         price_type: &str,
     ) -> AtlasResult<PriceTier> {
         let line = self.repository.get_price_list_line(price_list_line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list line {} not found", price_list_line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list line {price_list_line_id} not found")))?;
 
         if !VALID_TIER_PRICE_TYPES.contains(&price_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -536,7 +536,7 @@ impl PricingEngine {
             let pl = self.repository.get_price_list_by_id(pl_id).await?;
             if pl.is_none() {
                 return Err(AtlasError::EntityNotFound(
-                    format!("Price list {} not found", pl_id)
+                    format!("Price list {pl_id} not found")
                 ));
             }
         }
@@ -662,8 +662,8 @@ impl PricingEngine {
                     steps.push(PriceCalculationStep {
                         step_type: "markup".to_string(),
                         description: format!("Apply {}% markup from strategy {}", markup, strat.code),
-                        amount_before: format!("{:.4}", before),
-                        amount_after: format!("{:.4}", unit_list_price),
+                        amount_before: format!("{before:.4}"),
+                        amount_after: format!("{unit_list_price:.4}"),
                         rule_applied: Some(strat.code.clone()),
                     });
                 }
@@ -673,8 +673,8 @@ impl PricingEngine {
                     steps.push(PriceCalculationStep {
                         step_type: "markdown".to_string(),
                         description: format!("Apply {}% markdown from strategy {}", markdown, strat.code),
-                        amount_before: format!("{:.4}", before),
-                        amount_after: format!("{:.4}", unit_list_price),
+                        amount_before: format!("{before:.4}"),
+                        amount_after: format!("{unit_list_price:.4}"),
                         rule_applied: Some(strat.code.clone()),
                     });
                 }
@@ -700,8 +700,8 @@ impl PricingEngine {
                     steps.push(PriceCalculationStep {
                         step_type: "tier".to_string(),
                         description: format!("Apply tier {} pricing (qty >= {})", tier.tier_number, from_qty),
-                        amount_before: format!("{:.4}", before),
-                        amount_after: format!("{:.4}", unit_list_price),
+                        amount_before: format!("{before:.4}"),
+                        amount_after: format!("{unit_list_price:.4}"),
                         rule_applied: None,
                     });
                     break;
@@ -709,15 +709,15 @@ impl PricingEngine {
             }
         } else {
             return Err(AtlasError::EntityNotFound(
-                format!("No price found for item '{}' in any active price list", item_code)
+                format!("No price found for item '{item_code}' in any active price list")
             ));
         }
 
         steps.push(PriceCalculationStep {
             step_type: "base_price".to_string(),
-            description: format!("Base unit price for item {}", item_code),
+            description: format!("Base unit price for item {item_code}"),
             amount_before: "0.0000".to_string(),
-            amount_after: format!("{:.4}", unit_list_price),
+            amount_after: format!("{unit_list_price:.4}"),
             rule_applied: applied_price_list_code.clone(),
         });
 
@@ -765,7 +765,7 @@ impl PricingEngine {
             steps.push(PriceCalculationStep {
                 step_type: "discount".to_string(),
                 description: format!("Apply discount '{}' ({})", disc.name, disc.code),
-                amount_before: format!("{:.4}", before),
+                amount_before: format!("{before:.4}"),
                 amount_after: format!("{:.4}", before - discount_amount),
                 rule_applied: Some(disc.code.clone()),
             });
@@ -814,8 +814,8 @@ impl PricingEngine {
                 steps.push(PriceCalculationStep {
                     step_type: "charge".to_string(),
                     description: format!("Apply charge '{}' ({})", charge.name, charge.code),
-                    amount_before: format!("{:.4}", before_charge),
-                    amount_after: format!("{:.4}", charge_amount),
+                    amount_before: format!("{before_charge:.4}"),
+                    amount_after: format!("{charge_amount:.4}"),
                     rule_applied: Some(charge.code.clone()),
                 });
                 break; // Apply first matching charge only
@@ -824,18 +824,18 @@ impl PricingEngine {
 
         // Calculate final prices
         let unit_selling_price = unit_list_price - discount_amount;
-        let extended_price = unit_selling_price * qty + charge_amount;
+        let extended_price = unit_selling_price.mul_add(qty, charge_amount);
 
         // Log the calculation
         self.repository.create_calculation_log(
             org_id, entity_type, entity_id, line_id,
             price_list_line.as_ref().and_then(|l| l.item_id),
             Some(item_code), Some(quantity),
-            &format!("{:.4}", unit_list_price),
-            &format!("{:.4}", unit_selling_price),
-            &format!("{:.4}", discount_amount),
+            &format!("{unit_list_price:.4}"),
+            &format!("{unit_selling_price:.4}"),
+            &format!("{discount_amount:.4}"),
             discount_rule_id,
-            &format!("{:.4}", charge_amount),
+            &format!("{charge_amount:.4}"),
             charge_def_id,
             strategy_id,
             price_list_id,
@@ -845,11 +845,11 @@ impl PricingEngine {
         ).await?;
 
         Ok(PriceCalculationResult {
-            list_price: format!("{:.4}", unit_list_price),
-            discount_amount: format!("{:.4}", discount_amount),
-            charge_amount: format!("{:.4}", charge_amount),
-            unit_selling_price: format!("{:.4}", unit_selling_price),
-            extended_price: format!("{:.4}", extended_price),
+            list_price: format!("{unit_list_price:.4}"),
+            discount_amount: format!("{discount_amount:.4}"),
+            charge_amount: format!("{charge_amount:.4}"),
+            unit_selling_price: format!("{unit_selling_price:.4}"),
+            extended_price: format!("{extended_price:.4}"),
             currency_code: currency_code.to_string(),
             applied_discount_rule_code,
             applied_charge_code,

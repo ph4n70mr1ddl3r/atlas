@@ -2,7 +2,7 @@
 //!
 //! REST endpoints for Oracle Fusion-inspired Chargeback Management.
 //! Manages customer payment deductions with full lifecycle:
-//! open → under_review → accepted → rejected → written_off
+//! open → `under_review` → accepted → rejected → `written_off`
 
 use axum::{
     extract::{Path, Query, State, Extension},

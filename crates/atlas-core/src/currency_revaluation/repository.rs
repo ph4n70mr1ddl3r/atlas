@@ -1,6 +1,6 @@
 //! Currency Revaluation Repository
 //!
-//! PostgreSQL storage for currency revaluation definitions, accounts, and runs.
+//! `PostgreSQL` storage for currency revaluation definitions, accounts, and runs.
 
 use atlas_shared::{
     CurrencyRevaluationDefinition, CurrencyRevaluationAccount,
@@ -80,13 +80,14 @@ pub trait CurrencyRevaluationRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CurrencyRevaluationDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCurrencyRevaluationRepository {
     pool: PgPool,
 }
 
 impl PostgresCurrencyRevaluationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -209,7 +210,7 @@ impl CurrencyRevaluationRepository for PostgresCurrencyRevaluationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CurrencyRevaluationDefinition> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.currency_revaluation_definitions
+            r"INSERT INTO _atlas.currency_revaluation_definitions
                 (organization_id, code, name, description, revaluation_type,
                  currency_code, rate_type, gain_account_code, loss_account_code,
                  unrealized_gain_account_code, unrealized_loss_account_code,
@@ -217,7 +218,7 @@ impl CurrencyRevaluationRepository for PostgresCurrencyRevaluationRepository {
                  auto_reverse, reversal_period_offset,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(revaluation_type).bind(currency_code).bind(rate_type)
@@ -311,8 +312,8 @@ impl CurrencyRevaluationRepository for PostgresCurrencyRevaluationRepository {
     async fn delete_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         // Delete accounts first
         sqlx::query(
-            r#"DELETE FROM _atlas.currency_revaluation_accounts WHERE definition_id IN
-               (SELECT id FROM _atlas.currency_revaluation_definitions WHERE organization_id = $1 AND code = $2)"#
+            r"DELETE FROM _atlas.currency_revaluation_accounts WHERE definition_id IN
+               (SELECT id FROM _atlas.currency_revaluation_definitions WHERE organization_id = $1 AND code = $2)"
         ).bind(org_id).bind(code)
         .execute(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -331,10 +332,10 @@ impl CurrencyRevaluationRepository for PostgresCurrencyRevaluationRepository {
         account_name: Option<&str>, account_type: &str, is_included: bool,
     ) -> AtlasResult<CurrencyRevaluationAccount> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.currency_revaluation_accounts
+            r"INSERT INTO _atlas.currency_revaluation_accounts
                 (organization_id, definition_id, account_code, account_name, account_type, is_included)
             VALUES ($1,$2,$3,$4,$5,$6)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(definition_id).bind(account_code)
         .bind(account_name).bind(account_type).bind(is_included)
@@ -369,14 +370,14 @@ impl CurrencyRevaluationRepository for PostgresCurrencyRevaluationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CurrencyRevaluationRun> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.currency_revaluation_runs
+            r"INSERT INTO _atlas.currency_revaluation_runs
                 (organization_id, run_number, definition_id, definition_code, definition_name,
                  period_name, period_start_date, period_end_date, revaluation_date,
                  currency_code, rate_type,
                  total_revalued_amount, total_gain_amount, total_loss_amount, total_entries,
                  status, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,0,0,0,0,'draft',$12)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(run_number).bind(definition_id)
         .bind(definition_code).bind(definition_name)
@@ -440,13 +441,13 @@ impl CurrencyRevaluationRepository for PostgresCurrencyRevaluationRepository {
     ) -> AtlasResult<CurrencyRevaluationRun> {
         let row = if status == "posted" {
             sqlx::query(
-                r#"UPDATE _atlas.currency_revaluation_runs SET status = $2, posted_at = now(), posted_by = $3, updated_at = now() WHERE id = $1 RETURNING *"#,
+                r"UPDATE _atlas.currency_revaluation_runs SET status = $2, posted_at = now(), posted_by = $3, updated_at = now() WHERE id = $1 RETURNING *",
             ).bind(id).bind(status).bind(acted_by)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else if status == "reversed" {
             sqlx::query(
-                r#"UPDATE _atlas.currency_revaluation_runs SET status = $2, reversed_at = $3, updated_at = now() WHERE id = $1 RETURNING *"#,
+                r"UPDATE _atlas.currency_revaluation_runs SET status = $2, reversed_at = $3, updated_at = now() WHERE id = $1 RETURNING *",
             ).bind(id).bind(status).bind(reversed_at)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
@@ -465,10 +466,10 @@ impl CurrencyRevaluationRepository for PostgresCurrencyRevaluationRepository {
         total_loss: &str, total_entries: i32,
     ) -> AtlasResult<CurrencyRevaluationRun> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.currency_revaluation_runs SET
+            r"UPDATE _atlas.currency_revaluation_runs SET
                 total_revalued_amount = $2, total_gain_amount = $3, total_loss_amount = $4,
                 total_entries = $5, updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         ).bind(id).bind(total_revalued).bind(total_gain).bind(total_loss).bind(total_entries)
         .fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -496,7 +497,7 @@ impl CurrencyRevaluationRepository for PostgresCurrencyRevaluationRepository {
         gain_loss_account_code: &str,
     ) -> AtlasResult<CurrencyRevaluationLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.currency_revaluation_lines
+            r"INSERT INTO _atlas.currency_revaluation_lines
                 (organization_id, run_id, line_number,
                  account_code, account_name, account_type,
                  original_amount, original_currency,
@@ -504,7 +505,7 @@ impl CurrencyRevaluationRepository for PostgresCurrencyRevaluationRepository {
                  revalued_exchange_rate, revalued_base_amount,
                  gain_loss_amount, gain_loss_type, gain_loss_account_code)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(run_id).bind(line_number)
         .bind(account_code).bind(account_name).bind(account_type)

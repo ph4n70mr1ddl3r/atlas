@@ -1,6 +1,6 @@
 //! Inventory Management Repository
 //!
-//! PostgreSQL storage for inventory data: organizations, items,
+//! `PostgreSQL` storage for inventory data: organizations, items,
 //! subinventories, locators, on-hand balances, transactions,
 //! cycle counts, and transaction reasons.
 
@@ -180,13 +180,14 @@ pub trait InventoryRepository: Send + Sync {
     async fn approve_cycle_count_line(&self, id: Uuid, approved_quantity: &str) -> AtlasResult<CycleCountLine>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresInventoryRepository {
     pool: PgPool,
 }
 
 impl PostgresInventoryRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -507,7 +508,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InventoryOrganization> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.inventory_organizations
                 (organization_id, code, name, description, org_type, location_code, address,
                  default_subinventory_code, default_currency_code,
@@ -518,7 +519,7 @@ impl InventoryRepository for PostgresInventoryRepository {
                 SET name = $3, description = $4, org_type = $5, location_code = $6,
                     address = $7, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(org_type).bind(location_code).bind(address)
@@ -574,14 +575,14 @@ impl InventoryRepository for PostgresInventoryRepository {
         parent_category_id: Option<Uuid>, track_as_asset: bool, created_by: Option<Uuid>,
     ) -> AtlasResult<ItemCategory> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.item_categories
                 (organization_id, code, name, description, parent_category_id, track_as_asset, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (organization_id, code) DO UPDATE
                 SET name = $3, description = $4, parent_category_id = $5, track_as_asset = $6, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(parent_category_id).bind(track_as_asset).bind(created_by)
@@ -636,7 +637,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Item> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.items
                 (organization_id, item_code, name, description, long_description,
                  category_id, category_code, item_type, uom, secondary_uom,
@@ -656,7 +657,7 @@ impl InventoryRepository for PostgresInventoryRepository {
                     category_id = $6, category_code = $7, item_type = $8, uom = $9,
                     list_price = $15, standard_cost = $16, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(item_code).bind(name).bind(description).bind(long_description)
         .bind(category_id).bind(category_code).bind(item_type).bind(uom).bind(secondary_uom)
@@ -696,13 +697,13 @@ impl InventoryRepository for PostgresInventoryRepository {
 
     async fn list_items(&self, org_id: Uuid, category_code: Option<&str>, item_type: Option<&str>) -> AtlasResult<Vec<Item>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.items
             WHERE organization_id = $1 AND is_active = true
               AND ($2::text IS NULL OR category_code = $2)
               AND ($3::text IS NULL OR item_type = $3)
             ORDER BY item_code
-            "#,
+            ",
         )
         .bind(org_id).bind(category_code).bind(item_type)
         .fetch_all(&self.pool)
@@ -733,7 +734,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         location_code: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<Subinventory> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.subinventories
                 (organization_id, inventory_org_id, code, name, description,
                  subinventory_type, asset_subinventory, quantity_tracked,
@@ -743,7 +744,7 @@ impl InventoryRepository for PostgresInventoryRepository {
                 SET name = $4, description = $5, subinventory_type = $6,
                     asset_subinventory = $7, quantity_tracked = $8, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(inventory_org_id).bind(code).bind(name).bind(description)
         .bind(subinventory_type).bind(asset_subinventory).bind(quantity_tracked)
@@ -783,13 +784,13 @@ impl InventoryRepository for PostgresInventoryRepository {
         description: Option<&str>, picker_order: i32,
     ) -> AtlasResult<Locator> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.locators (organization_id, subinventory_id, code, description, picker_order)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (subinventory_id, code) DO UPDATE
                 SET description = $4, picker_order = $5, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(subinventory_id).bind(code).bind(description).bind(picker_order)
         .fetch_one(&self.pool)
@@ -819,14 +820,14 @@ impl InventoryRepository for PostgresInventoryRepository {
         lot_number: Option<&str>, serial_number: Option<&str>, revision: Option<&str>,
     ) -> AtlasResult<Option<OnHandBalance>> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.on_hand_balances
             WHERE organization_id = $1 AND inventory_org_id = $2 AND item_id = $3
               AND subinventory_id = $4 AND COALESCE(locator_id, '00000000-0000-0000-0000-000000000000'::uuid) = COALESCE($5, '00000000-0000-0000-0000-000000000000'::uuid)
               AND COALESCE(lot_number, '') = COALESCE($6, '')
               AND COALESCE(serial_number, '') = COALESCE($7, '')
               AND COALESCE(revision, '') = COALESCE($8, '')
-            "#,
+            ",
         )
         .bind(org_id).bind(inventory_org_id).bind(item_id).bind(subinventory_id)
         .bind(locator_id).bind(lot_number).bind(serial_number).bind(revision)
@@ -843,7 +844,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         quantity_delta: &str, unit_cost: &str,
     ) -> AtlasResult<OnHandBalance> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.on_hand_balances
                 (organization_id, inventory_org_id, item_id, subinventory_id, locator_id,
                  lot_number, serial_number, revision, quantity, reserved_quantity,
@@ -858,7 +859,7 @@ impl InventoryRepository for PostgresInventoryRepository {
                 last_transaction_date = now(),
                 updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(inventory_org_id).bind(item_id).bind(subinventory_id).bind(locator_id)
         .bind(lot_number).bind(serial_number).bind(revision)
@@ -871,13 +872,13 @@ impl InventoryRepository for PostgresInventoryRepository {
 
     async fn list_on_hand_balances(&self, org_id: Uuid, item_id: Option<Uuid>, inventory_org_id: Option<Uuid>) -> AtlasResult<Vec<OnHandBalance>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.on_hand_balances
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR item_id = $2)
               AND ($3::uuid IS NULL OR inventory_org_id = $3)
             ORDER BY item_id
-            "#,
+            ",
         )
         .bind(org_id).bind(item_id).bind(inventory_org_id)
         .fetch_all(&self.pool)
@@ -896,14 +897,14 @@ impl InventoryRepository for PostgresInventoryRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InventoryTransactionType> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.inventory_transaction_types
                 (organization_id, code, name, description, transaction_action, source_type, is_system, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (organization_id, code) DO UPDATE
                 SET name = $3, description = $4, transaction_action = $5, source_type = $6, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(transaction_action).bind(source_type).bind(is_system).bind(created_by)
@@ -956,7 +957,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InventoryTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.inventory_transactions
                 (organization_id, transaction_number,
                  transaction_type_id, transaction_type_code, transaction_action, source_type,
@@ -970,7 +971,7 @@ impl InventoryRepository for PostgresInventoryRepository {
                  notes, status, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(transaction_number)
         .bind(transaction_type_id).bind(transaction_type_code).bind(transaction_action).bind(source_type)
@@ -1002,14 +1003,14 @@ impl InventoryRepository for PostgresInventoryRepository {
         transaction_action: Option<&str>, status: Option<&str>,
     ) -> AtlasResult<Vec<InventoryTransaction>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.inventory_transactions
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR item_id = $2)
               AND ($3::text IS NULL OR transaction_action = $3)
               AND ($4::text IS NULL OR status = $4)
             ORDER BY transaction_date DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(item_id).bind(transaction_action).bind(status)
         .fetch_all(&self.pool)
@@ -1020,7 +1021,7 @@ impl InventoryRepository for PostgresInventoryRepository {
 
     async fn update_transaction_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<InventoryTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.inventory_transactions
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
@@ -1028,7 +1029,7 @@ impl InventoryRepository for PostgresInventoryRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool)
@@ -1046,14 +1047,14 @@ impl InventoryRepository for PostgresInventoryRepository {
         applicable_actions: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<TransactionReason> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.transaction_reasons
                 (organization_id, code, name, description, applicable_actions, created_by)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (organization_id, code) DO UPDATE
                 SET name = $3, description = $4, applicable_actions = $5, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(applicable_actions).bind(created_by)
@@ -1084,14 +1085,14 @@ impl InventoryRepository for PostgresInventoryRepository {
         count_method: &str, tolerance_percent: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<CycleCountHeader> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.cycle_count_headers
                 (organization_id, count_number, name, description,
                  inventory_org_id, subinventory_id, count_date,
                  count_method, tolerance_percent, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(count_number).bind(name).bind(description)
         .bind(inventory_org_id).bind(subinventory_id).bind(count_date)
@@ -1113,11 +1114,11 @@ impl InventoryRepository for PostgresInventoryRepository {
 
     async fn list_cycle_counts(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CycleCountHeader>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.cycle_count_headers
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
             ORDER BY count_date DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -1142,12 +1143,12 @@ impl InventoryRepository for PostgresInventoryRepository {
         matched_items: i32, mismatched_items: i32,
     ) -> AtlasResult<CycleCountHeader> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.cycle_count_headers
             SET total_items = $2, counted_items = $3, matched_items = $4, mismatched_items = $5, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(total_items).bind(counted_items).bind(matched_items).bind(mismatched_items)
         .fetch_one(&self.pool)
@@ -1168,7 +1169,7 @@ impl InventoryRepository for PostgresInventoryRepository {
         system_quantity: &str,
     ) -> AtlasResult<CycleCountLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.cycle_count_lines
                 (organization_id, cycle_count_id, line_number,
                  item_id, item_code, item_description,
@@ -1176,7 +1177,7 @@ impl InventoryRepository for PostgresInventoryRepository {
                  system_quantity)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(cycle_count_id).bind(line_number)
         .bind(item_id).bind(item_code).bind(item_description)
@@ -1202,14 +1203,13 @@ impl InventoryRepository for PostgresInventoryRepository {
     async fn update_cycle_count_line_count(
         &self, id: Uuid, count_number: i32, count_quantity: &str, counted_by: Option<Uuid>,
     ) -> AtlasResult<CycleCountLine> {
-        let qty_col = format!("count_quantity_{}", count_number);
-        let date_col = format!("count_date_{}", count_number);
-        let by_col = format!("counted_by_{}", count_number);
+        let qty_col = format!("count_quantity_{count_number}");
+        let date_col = format!("count_date_{count_number}");
+        let by_col = format!("counted_by_{count_number}");
         let sql = format!(
-            r#"UPDATE _atlas.cycle_count_lines
-               SET {} = $2, {} = now(), {} = $3, status = 'counted', updated_at = now()
-               WHERE id = $1 RETURNING *"#,
-            qty_col, date_col, by_col
+            r"UPDATE _atlas.cycle_count_lines
+               SET {qty_col} = $2, {date_col} = now(), {by_col} = $3, status = 'counted', updated_at = now()
+               WHERE id = $1 RETURNING *"
         );
         let row = sqlx::query(&sql)
             .bind(id).bind(count_quantity).bind(counted_by)
@@ -1221,7 +1221,7 @@ impl InventoryRepository for PostgresInventoryRepository {
 
     async fn approve_cycle_count_line(&self, id: Uuid, approved_quantity: &str) -> AtlasResult<CycleCountLine> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.cycle_count_lines
             SET approved_quantity = $2,
                 variance_quantity = $2::numeric - system_quantity,
@@ -1231,7 +1231,7 @@ impl InventoryRepository for PostgresInventoryRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(approved_quantity)
         .fetch_one(&self.pool)

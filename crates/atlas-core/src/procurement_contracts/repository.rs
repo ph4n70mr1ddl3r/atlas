@@ -1,6 +1,6 @@
 //! Procurement Contracts Repository
 //!
-//! PostgreSQL storage for procurement contracts data:
+//! `PostgreSQL` storage for procurement contracts data:
 //! contract types, contracts, contract lines, milestones,
 //! renewals, and spend entries.
 
@@ -135,13 +135,14 @@ pub trait ProcurementContractRepository: Send + Sync {
     async fn list_spend_entries(&self, contract_id: Uuid) -> AtlasResult<Vec<ContractSpend>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresProcurementContractRepository {
     pool: PgPool,
 }
 
 impl PostgresProcurementContractRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -343,7 +344,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractType> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.procurement_contract_types
                 (organization_id, code, name, description, contract_classification,
                  requires_approval, default_duration_days,
@@ -361,7 +362,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
                     default_payment_terms_code = $15, default_currency_code = $16,
                     is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(contract_classification).bind(requires_approval).bind(default_duration_days)
@@ -436,7 +437,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProcurementContract> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.procurement_contracts
                 (organization_id, contract_number, title, description,
                  contract_type_code, contract_classification, status,
@@ -454,7 +455,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
                     0, $19, 0, 0,
                     $20, $21)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(contract_number).bind(title).bind(description)
         .bind(contract_type_code).bind(contract_classification)
@@ -493,13 +494,13 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
 
     async fn list_contracts(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<ProcurementContract>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.procurement_contracts
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::uuid IS NULL OR supplier_id = $3)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(supplier_id)
         .fetch_all(&self.pool)
@@ -514,7 +515,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         terminated_by: Option<Uuid>, termination_reason: Option<&str>,
     ) -> AtlasResult<ProcurementContract> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.procurement_contracts
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
@@ -526,7 +527,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejection_reason)
         .bind(terminated_by).bind(termination_reason)
@@ -545,7 +546,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         milestone_count: Option<i32>,
     ) -> AtlasResult<ProcurementContract> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.procurement_contracts
             SET total_committed_amount = COALESCE($2::numeric, total_committed_amount),
                 total_released_amount = COALESCE($3::numeric, total_released_amount),
@@ -555,7 +556,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(total_committed_amount).bind(total_released_amount)
         .bind(total_invoiced_amount).bind(line_count).bind(milestone_count)
@@ -571,14 +572,14 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         end_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ProcurementContract> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.procurement_contracts
             SET start_date = COALESCE($2, start_date),
                 end_date = COALESCE($3, end_date),
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(start_date).bind(end_date)
         .fetch_one(&self.pool)
@@ -589,12 +590,12 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
 
     async fn increment_renewal_count(&self, id: Uuid) -> AtlasResult<ProcurementContract> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.procurement_contracts
             SET renewal_count = renewal_count + 1, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id)
         .fetch_one(&self.pool)
@@ -621,7 +622,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.procurement_contract_lines
                 (organization_id, contract_id, line_number,
                  item_description, item_code, category, uom,
@@ -634,7 +635,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
                     $10::numeric, $11::numeric, $12::numeric,
                     $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(contract_id).bind(line_number)
         .bind(item_description).bind(item_code).bind(category).bind(uom)
@@ -692,7 +693,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractMilestone> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.procurement_contract_milestones
                 (organization_id, contract_id, contract_line_id,
                  milestone_number, name, description, milestone_type,
@@ -702,7 +703,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
                     $8, 'pending', $9::numeric, $10::numeric,
                     $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(contract_id).bind(contract_line_id)
         .bind(milestone_number).bind(name).bind(description).bind(milestone_type)
@@ -739,14 +740,14 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         &self, id: Uuid, status: &str, actual_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ContractMilestone> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.procurement_contract_milestones
             SET status = $2,
                 actual_date = COALESCE($3, actual_date),
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(actual_date)
         .fetch_one(&self.pool)
@@ -767,14 +768,14 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         renewed_by: Option<Uuid>, notes: Option<&str>,
     ) -> AtlasResult<ContractRenewal> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.procurement_contract_renewals
                 (organization_id, contract_id, renewal_number,
                  previous_end_date, new_end_date, renewal_type,
                  terms_changed, renewed_by, notes)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(contract_id).bind(renewal_number)
         .bind(previous_end_date).bind(new_end_date).bind(renewal_type)
@@ -810,7 +811,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractSpend> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.procurement_contract_spend
                 (organization_id, contract_id, contract_line_id,
                  source_type, source_id, source_number,
@@ -818,7 +819,7 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
                  quantity, description, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::numeric, $9::numeric, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(contract_id).bind(contract_line_id)
         .bind(source_type).bind(source_id).bind(source_number)

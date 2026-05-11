@@ -1,6 +1,6 @@
 //! Remittance Batch Repository
 //!
-//! PostgreSQL storage for remittance batches and batch receipts.
+//! `PostgreSQL` storage for remittance batches and batch receipts.
 
 use atlas_shared::{
     RemittanceBatch, RemittanceBatchReceipt, RemittanceBatchSummary,
@@ -76,9 +76,7 @@ pub trait RemittanceBatchRepository: Send + Sync {
 
 // Helper functions
 fn get_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> String {
-    row.try_get::<f64, _>(col)
-        .map(|v| format!("{:.2}", v))
-        .unwrap_or_else(|_| "0.00".to_string())
+    row.try_get::<f64, _>(col).map_or_else(|_| "0.00".to_string(), |v| format!("{v:.2}"))
 }
 
 fn row_to_batch(row: &sqlx::postgres::PgRow) -> RemittanceBatch {
@@ -130,7 +128,7 @@ fn row_to_receipt(row: &sqlx::postgres::PgRow) -> RemittanceBatchReceipt {
         applied_amount: get_numeric_text(row, "applied_amount"),
         receipt_method: row.get("receipt_method"),
         currency_code: row.get("currency_code"),
-        exchange_rate: row.try_get::<f64, _>("exchange_rate").ok().map(|v| format!("{:.6}", v)),
+        exchange_rate: row.try_get::<f64, _>("exchange_rate").ok().map(|v| format!("{v:.6}")),
         status: row.get("status"),
         display_order: row.try_get("display_order").unwrap_or(0),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
@@ -139,13 +137,14 @@ fn row_to_receipt(row: &sqlx::postgres::PgRow) -> RemittanceBatchReceipt {
     }
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresRemittanceBatchRepository {
     pool: PgPool,
 }
 
 impl PostgresRemittanceBatchRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -171,7 +170,7 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RemittanceBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.remittance_batches
                 (organization_id, batch_number, batch_name,
                  bank_account_id, bank_account_name, bank_name,
@@ -180,7 +179,7 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
                  format_program, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(batch_number).bind(batch_name)
         .bind(bank_account_id).bind(bank_account_name).bind(bank_name)
@@ -222,14 +221,14 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
         remittance_method: Option<&str>,
     ) -> AtlasResult<Vec<RemittanceBatch>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.remittance_batches
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::text IS NULL OR currency_code = $3)
               AND ($4::text IS NULL OR remittance_method = $4)
             ORDER BY batch_date DESC, batch_number DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(currency_code).bind(remittance_method)
         .fetch_all(&self.pool)
@@ -240,7 +239,7 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
 
     async fn update_batch_status(&self, id: Uuid, status: &str) -> AtlasResult<RemittanceBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.remittance_batches
             SET status = $2,
                 format_date = CASE WHEN $2 = 'formatted' AND format_date IS NULL THEN now() ELSE format_date END,
@@ -251,7 +250,7 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool)
@@ -291,14 +290,14 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
 
     async fn update_advice_sent(&self, id: Uuid) -> AtlasResult<RemittanceBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.remittance_batches
             SET remittance_advice_sent = true,
                 remittance_advice_date = now(),
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id)
         .fetch_one(&self.pool)
@@ -341,7 +340,7 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
         metadata: serde_json::Value,
     ) -> AtlasResult<RemittanceBatchReceipt> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.remittance_batch_receipts
                 (organization_id, batch_id, receipt_id, receipt_number,
                  customer_id, customer_number, customer_name,
@@ -350,7 +349,7 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
                  display_order, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10::numeric,$11,$12,$13::numeric,$14,$15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(batch_id).bind(receipt_id).bind(receipt_number)
         .bind(customer_id).bind(customer_number).bind(customer_name)
@@ -411,14 +410,14 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
 
     async fn get_batch_summary(&self, org_id: Uuid) -> AtlasResult<RemittanceBatchSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft_cnt,
                 COUNT(*) FILTER (WHERE status = 'approved') as approved_cnt,
                 COUNT(*) FILTER (WHERE status = 'settled') as settled_cnt,
                 COALESCE(SUM(total_amount), 0) as total_amt,
                 COALESCE(SUM(receipt_count), 0) as total_receipts
-            FROM _atlas.remittance_batches WHERE organization_id = $1"#,
+            FROM _atlas.remittance_batches WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -469,7 +468,7 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
             draft_count: draft as i32,
             approved_count: approved as i32,
             settled_count: settled as i32,
-            total_amount: format!("{:.2}", total_amt),
+            total_amount: format!("{total_amt:.2}"),
             total_receipts: total_receipts as i32,
             by_status: serde_json::Value::Object(by_status),
             by_currency: serde_json::Value::Object(by_currency),

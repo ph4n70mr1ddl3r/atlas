@@ -149,7 +149,7 @@ impl NettingEngine {
         // Check uniqueness
         if self.repository.get_agreement_by_number(org_id, agreement_number).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Agreement number '{}' already exists", agreement_number)
+                format!("Agreement number '{agreement_number}' already exists")
             ));
         }
 
@@ -191,7 +191,7 @@ impl NettingEngine {
     /// Activate a draft agreement
     pub async fn activate_agreement(&self, id: Uuid) -> AtlasResult<NettingAgreement> {
         let agreement = self.repository.get_agreement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {id} not found")))?;
 
         if agreement.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -218,7 +218,7 @@ impl NettingEngine {
     ) -> AtlasResult<NettingBatch> {
         let agreement = self.repository.get_agreement(agreement_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting agreement {} not found", agreement_id)
+                format!("Netting agreement {agreement_id} not found")
             ))?;
 
         if agreement.status != "active" {
@@ -277,7 +277,7 @@ impl NettingEngine {
     ) -> AtlasResult<NettingTransactionLine> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {} not found", batch_id)
+                format!("Netting batch {batch_id} not found")
             ))?;
 
         if batch.status != "draft" {
@@ -320,7 +320,7 @@ impl NettingEngine {
         self.repository.create_transaction_line(
             org_id, batch_id, line_number,
             source_type, source_id, source_number, source_date,
-            original_amount, netting_amount, &format!("{:.2}", remaining),
+            original_amount, netting_amount, &format!("{remaining:.2}"),
             currency_code, created_by,
         ).await
     }
@@ -331,6 +331,7 @@ impl NettingEngine {
     }
 
     /// Calculate net difference for a batch
+    #[must_use] 
     pub fn calculate_net_difference(payables: f64, receivables: f64) -> (f64, String) {
         let diff = payables - receivables;
         let direction = if diff.abs() < 0.01 {
@@ -351,7 +352,7 @@ impl NettingEngine {
     pub async fn submit_batch(&self, batch_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<NettingBatch> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {} not found", batch_id)
+                format!("Netting batch {batch_id} not found")
             ))?;
 
         if batch.status != "draft" {
@@ -385,9 +386,9 @@ impl NettingEngine {
         // Update totals
         self.repository.update_batch_totals(
             batch_id,
-            &format!("{:.2}", total_payables),
-            &format!("{:.2}", total_receivables),
-            &format!("{:.2}", net_diff),
+            &format!("{total_payables:.2}"),
+            &format!("{total_receivables:.2}"),
+            &format!("{net_diff:.2}"),
             &settlement_dir,
             lines.iter().filter(|l| l.source_type == "payable").count() as i32,
             lines.iter().filter(|l| l.source_type == "receivable").count() as i32,
@@ -405,7 +406,7 @@ impl NettingEngine {
     pub async fn approve_batch(&self, batch_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<NettingBatch> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {} not found", batch_id)
+                format!("Netting batch {batch_id} not found")
             ))?;
 
         if batch.status != "submitted" {
@@ -425,7 +426,7 @@ impl NettingEngine {
     pub async fn settle_batch(&self, batch_id: Uuid) -> AtlasResult<NettingBatch> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {} not found", batch_id)
+                format!("Netting batch {batch_id} not found")
             ))?;
 
         if batch.status != "approved" {
@@ -451,7 +452,7 @@ impl NettingEngine {
     pub async fn cancel_batch(&self, batch_id: Uuid, reason: Option<&str>) -> AtlasResult<NettingBatch> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {} not found", batch_id)
+                format!("Netting batch {batch_id} not found")
             ))?;
 
         if batch.status != "draft" && batch.status != "submitted" {
@@ -471,7 +472,7 @@ impl NettingEngine {
     pub async fn get_settlement_summary(&self, batch_id: Uuid) -> AtlasResult<NettingSettlementSummary> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {} not found", batch_id)
+                format!("Netting batch {batch_id} not found")
             ))?;
 
         Ok(NettingSettlementSummary {
@@ -493,6 +494,7 @@ impl NettingEngine {
     }
 
     /// Check if a partner is eligible for netting
+    #[must_use] 
     pub fn check_netting_eligibility(
         payables_amount: f64,
         receivables_amount: f64,

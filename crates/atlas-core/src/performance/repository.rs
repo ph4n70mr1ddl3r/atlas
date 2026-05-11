@@ -1,6 +1,6 @@
 //! Performance Management Repository
 //!
-//! PostgreSQL storage for rating models, review cycles, competencies,
+//! `PostgreSQL` storage for rating models, review cycles, competencies,
 //! performance documents, goals, competency assessments, and feedback.
 
 use atlas_shared::{
@@ -109,13 +109,14 @@ pub trait PerformanceRepository: Send + Sync {
     async fn update_feedback_status(&self, id: Uuid, status: &str) -> AtlasResult<PerformanceFeedback>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresPerformanceRepository {
     pool: PgPool,
 }
 
 impl PostgresPerformanceRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -136,12 +137,12 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         rating_scale: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceRatingModel> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.performance_rating_models
+            r"INSERT INTO _atlas.performance_rating_models
                 (organization_id, code, name, description, rating_scale, created_by)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (organization_id, code) DO UPDATE
                 SET name = $3, description = $4, rating_scale = $5, is_active = true, updated_at = now()
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(&rating_scale).bind(created_by)
@@ -221,7 +222,7 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceReviewCycle> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.performance_review_cycles
+            r"INSERT INTO _atlas.performance_review_cycles
                 (organization_id, name, description, cycle_type, rating_model_id,
                  start_date, end_date, goal_setting_start, goal_setting_end,
                  self_evaluation_start, self_evaluation_end,
@@ -230,7 +231,7 @@ impl PerformanceRepository for PostgresPerformanceRepository {
                  goal_weight_total, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
                     $15, $16, $17, $18, $19::numeric, $20)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(name).bind(description).bind(cycle_type).bind(rating_model_id)
         .bind(start_date).bind(end_date)
@@ -257,9 +258,9 @@ impl PerformanceRepository for PostgresPerformanceRepository {
 
     async fn list_review_cycles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PerformanceReviewCycle>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.performance_review_cycles
+            r"SELECT * FROM _atlas.performance_review_cycles
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-            ORDER BY start_date DESC"#,
+            ORDER BY start_date DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -287,13 +288,13 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         behavioral_indicators: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceCompetency> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.performance_competencies
+            r"INSERT INTO _atlas.performance_competencies
                 (organization_id, code, name, description, category, rating_model_id, behavioral_indicators, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (organization_id, code) DO UPDATE
                 SET name = $3, description = $4, category = $5, rating_model_id = $6,
                     behavioral_indicators = $7, is_active = true, updated_at = now()
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(category)
         .bind(rating_model_id).bind(&behavioral_indicators).bind(created_by)
@@ -329,10 +330,10 @@ impl PerformanceRepository for PostgresPerformanceRepository {
 
     async fn list_competencies(&self, org_id: Uuid, category: Option<&str>) -> AtlasResult<Vec<PerformanceCompetency>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.performance_competencies
+            r"SELECT * FROM _atlas.performance_competencies
             WHERE organization_id = $1 AND is_active = true
               AND ($2::text IS NULL OR category = $2)
-            ORDER BY code"#,
+            ORDER BY code",
         )
         .bind(org_id).bind(category)
         .fetch_all(&self.pool).await
@@ -367,11 +368,11 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         manager_name: Option<&str>, document_number: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceDocument> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.performance_documents
+            r"INSERT INTO _atlas.performance_documents
                 (organization_id, review_cycle_id, employee_id, employee_name,
                  manager_id, manager_name, document_number, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(review_cycle_id).bind(employee_id).bind(employee_name)
         .bind(manager_id).bind(manager_name).bind(document_number).bind(created_by)
@@ -403,12 +404,12 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         employee_id: Option<Uuid>, status: Option<&str>,
     ) -> AtlasResult<Vec<PerformanceDocument>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.performance_documents
+            r"SELECT * FROM _atlas.performance_documents
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR review_cycle_id = $2)
               AND ($3::uuid IS NULL OR employee_id = $3)
               AND ($4::text IS NULL OR status = $4)
-            ORDER BY employee_name"#,
+            ORDER BY employee_name",
         )
         .bind(org_id).bind(review_cycle_id).bind(employee_id).bind(status)
         .fetch_all(&self.pool).await
@@ -428,9 +429,9 @@ impl PerformanceRepository for PostgresPerformanceRepository {
 
     async fn update_self_evaluation(&self, id: Uuid, overall_rating: Option<&str>, comments: Option<&str>) -> AtlasResult<PerformanceDocument> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.performance_documents
+            r"UPDATE _atlas.performance_documents
             SET self_overall_rating = $2::numeric, self_comments = $3, updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(overall_rating).bind(comments)
         .fetch_one(&self.pool).await
@@ -440,9 +441,9 @@ impl PerformanceRepository for PostgresPerformanceRepository {
 
     async fn update_manager_evaluation(&self, id: Uuid, overall_rating: Option<&str>, comments: Option<&str>) -> AtlasResult<PerformanceDocument> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.performance_documents
+            r"UPDATE _atlas.performance_documents
             SET manager_overall_rating = $2::numeric, manager_comments = $3, updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(overall_rating).bind(comments)
         .fetch_one(&self.pool).await
@@ -452,11 +453,11 @@ impl PerformanceRepository for PostgresPerformanceRepository {
 
     async fn finalize_document(&self, id: Uuid, final_rating: Option<&str>, final_comments: Option<&str>) -> AtlasResult<PerformanceDocument> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.performance_documents
+            r"UPDATE _atlas.performance_documents
             SET status = 'completed', final_rating = $2::numeric, final_comments = $3,
                 overall_rating = COALESCE($2::numeric, manager_overall_rating),
                 updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(final_rating).bind(final_comments)
         .fetch_one(&self.pool).await
@@ -476,11 +477,11 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceGoal> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.performance_goals
+            r"INSERT INTO _atlas.performance_goals
                 (organization_id, document_id, employee_id, goal_name, description,
                  goal_category, weight, target_metric, start_date, due_date, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8, $9, $10, $11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(document_id).bind(employee_id).bind(goal_name).bind(description)
         .bind(goal_category).bind(weight).bind(target_metric)
@@ -508,10 +509,10 @@ impl PerformanceRepository for PostgresPerformanceRepository {
 
     async fn list_goals_by_cycle(&self, org_id: Uuid, cycle_id: Uuid) -> AtlasResult<Vec<PerformanceGoal>> {
         let rows = sqlx::query(
-            r#"SELECT g.* FROM _atlas.performance_goals g
+            r"SELECT g.* FROM _atlas.performance_goals g
             JOIN _atlas.performance_documents d ON g.document_id = d.id
             WHERE g.organization_id = $1 AND d.review_cycle_id = $2
-            ORDER BY g.created_at"#,
+            ORDER BY g.created_at",
         )
         .bind(org_id).bind(cycle_id)
         .fetch_all(&self.pool).await
@@ -524,10 +525,10 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         completed_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<PerformanceGoal> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.performance_goals
+            r"UPDATE _atlas.performance_goals
             SET status = $2, actual_result = COALESCE($3, actual_result),
                 completed_date = COALESCE($4, completed_date), updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(status).bind(actual_result).bind(completed_date)
         .fetch_one(&self.pool).await
@@ -537,9 +538,9 @@ impl PerformanceRepository for PostgresPerformanceRepository {
 
     async fn update_goal_self_rating(&self, id: Uuid, rating: &str, comments: Option<&str>) -> AtlasResult<PerformanceGoal> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.performance_goals
+            r"UPDATE _atlas.performance_goals
             SET self_rating = $2::numeric, self_comments = $3, updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(rating).bind(comments)
         .fetch_one(&self.pool).await
@@ -549,9 +550,9 @@ impl PerformanceRepository for PostgresPerformanceRepository {
 
     async fn update_goal_manager_rating(&self, id: Uuid, rating: &str, comments: Option<&str>) -> AtlasResult<PerformanceGoal> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.performance_goals
+            r"UPDATE _atlas.performance_goals
             SET manager_rating = $2::numeric, manager_comments = $3, updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(rating).bind(comments)
         .fetch_one(&self.pool).await
@@ -589,13 +590,12 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         };
 
         let query = format!(
-            r#"INSERT INTO _atlas.performance_competency_assessments
-                (organization_id, document_id, employee_id, competency_id, {}, {}, created_by)
+            r"INSERT INTO _atlas.performance_competency_assessments
+                (organization_id, document_id, employee_id, competency_id, {rating_col}, {comments_col}, created_by)
             VALUES ($1, $2, $3, $4, $5::numeric, $6, $7)
             ON CONFLICT (document_id, competency_id) DO UPDATE
-                SET {} = $5::numeric, {} = $6, updated_at = now()
-            RETURNING *"#,
-            rating_col, comments_col, rating_col, comments_col
+                SET {rating_col} = $5::numeric, {comments_col} = $6, updated_at = now()
+            RETURNING *"
         );
 
         let row = sqlx::query(&query)
@@ -627,11 +627,11 @@ impl PerformanceRepository for PostgresPerformanceRepository {
         visibility: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceFeedback> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.performance_feedback
+            r"INSERT INTO _atlas.performance_feedback
                 (organization_id, document_id, employee_id, from_user_id, from_user_name,
                  feedback_type, subject, content, visibility, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(document_id).bind(employee_id).bind(from_user_id).bind(from_user_name)
         .bind(feedback_type).bind(subject).bind(content).bind(visibility).bind(created_by)
@@ -649,11 +649,11 @@ impl PerformanceRepository for PostgresPerformanceRepository {
 
     async fn list_feedback(&self, org_id: Uuid, employee_id: Option<Uuid>, document_id: Option<Uuid>) -> AtlasResult<Vec<PerformanceFeedback>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.performance_feedback
+            r"SELECT * FROM _atlas.performance_feedback
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR employee_id = $2)
               AND ($3::uuid IS NULL OR document_id = $3)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(employee_id).bind(document_id)
         .fetch_all(&self.pool).await

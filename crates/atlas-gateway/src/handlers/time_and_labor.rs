@@ -52,10 +52,10 @@ pub struct CreateWorkScheduleRequest {
 }
 
 fn default_fixed() -> String { "fixed".to_string() }
-fn default_eight() -> f64 { 8.0 }
-fn default_forty() -> f64 { 40.0 }
-fn default_five() -> i32 { 5 }
-fn default_sixty() -> i32 { 60 }
+const fn default_eight() -> f64 { 8.0 }
+const fn default_forty() -> f64 { 40.0 }
+const fn default_five() -> i32 { 5 }
+const fn default_sixty() -> i32 { 60 }
 
 /// Create or update a work schedule
 pub async fn create_work_schedule(
@@ -146,8 +146,8 @@ pub struct CreateOvertimeRuleRequest {
 }
 
 fn default_weekly_threshold() -> String { "weekly".to_string() }
-fn default_one_point_five() -> f64 { 1.5 }
-fn default_two() -> f64 { 2.0 }
+const fn default_one_point_five() -> f64 { 1.5 }
+const fn default_two() -> f64 { 2.0 }
 
 /// Create or update an overtime rule
 pub async fn create_overtime_rule(

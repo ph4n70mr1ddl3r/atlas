@@ -79,7 +79,7 @@ impl TransactionCalendarEngine {
         // Check uniqueness
         if self.repository.get_calendar(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Transaction calendar with code '{}' already exists", code
+                "Transaction calendar with code '{code}' already exists"
             )));
         }
 
@@ -113,7 +113,7 @@ impl TransactionCalendarEngine {
     /// Activate a calendar
     pub async fn activate_calendar(&self, id: Uuid) -> AtlasResult<TransactionCalendar> {
         let cal = self.get_calendar_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar {id} not found")))?;
 
         if cal.status == "active" {
             return Err(AtlasError::WorkflowError("Calendar is already active".to_string()));
@@ -126,7 +126,7 @@ impl TransactionCalendarEngine {
     /// Deactivate a calendar
     pub async fn deactivate_calendar(&self, id: Uuid) -> AtlasResult<TransactionCalendar> {
         let cal = self.get_calendar_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar {id} not found")))?;
 
         if cal.status == "inactive" {
             return Err(AtlasError::WorkflowError("Calendar is already inactive".to_string()));
@@ -139,7 +139,7 @@ impl TransactionCalendarEngine {
     /// Delete a calendar (only if no exceptions exist)
     pub async fn delete_calendar(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let cal = self.repository.get_calendar(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar '{}' not found", code)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar '{code}' not found")))?;
 
         // Check for exceptions
         let exceptions = self.repository.list_exceptions(cal.id).await?;
@@ -183,7 +183,7 @@ impl TransactionCalendarEngine {
         // Verify calendar exists and is active
         let cal = self.repository.get_calendar_by_id(calendar_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {} not found", calendar_id
+                "Calendar {calendar_id} not found"
             )))?;
 
         if cal.status != "active" {
@@ -250,9 +250,9 @@ impl TransactionCalendarEngine {
 
     /// Check if a date is a business day according to the calendar.
     /// A business day is:
-    /// - A working day (as defined by the calendar's working_days)
+    /// - A working day (as defined by the calendar's `working_days`)
     /// - NOT a holiday or non-working exception
-    /// - OR IS a special_working exception (overrides non-working day)
+    /// - OR IS a `special_working` exception (overrides non-working day)
     pub async fn is_business_day(
         &self,
         calendar_id: Uuid,
@@ -263,7 +263,7 @@ impl TransactionCalendarEngine {
     ) -> AtlasResult<bool> {
         let cal = self.repository.get_calendar_by_id(calendar_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {} not found", calendar_id
+                "Calendar {calendar_id} not found"
             )))?;
 
         let result = Self::calculate_is_business_day(&cal, date, &self.repository).await?;
@@ -289,7 +289,7 @@ impl TransactionCalendarEngine {
     ) -> AtlasResult<NaiveDate> {
         let cal = self.repository.get_calendar_by_id(calendar_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {} not found", calendar_id
+                "Calendar {calendar_id} not found"
             )))?;
 
         let mut current = date + Duration::days(1);
@@ -322,7 +322,7 @@ impl TransactionCalendarEngine {
     ) -> AtlasResult<NaiveDate> {
         let cal = self.repository.get_calendar_by_id(calendar_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {} not found", calendar_id
+                "Calendar {calendar_id} not found"
             )))?;
 
         let mut current = date - Duration::days(1);
@@ -361,13 +361,13 @@ impl TransactionCalendarEngine {
 
         let cal = self.repository.get_calendar_by_id(calendar_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {} not found", calendar_id
+                "Calendar {calendar_id} not found"
             )))?;
 
         let mut current = start_date;
         let mut remaining = days;
 
-        for _ in 0..(days as i64 + 366) {
+        for _ in 0..(i64::from(days) + 366) {
             if remaining == 0 {
                 break;
             }
@@ -423,8 +423,7 @@ impl TransactionCalendarEngine {
 
         // Check working_days pattern
         let is_working_day = cal.working_days.as_array()
-            .map(|arr| arr.iter().any(|v| v.as_i64() == Some(weekday as i64)))
-            .unwrap_or(false);
+            .is_some_and(|arr| arr.iter().any(|v| v.as_i64() == Some(i64::from(weekday))));
 
         // Check for exceptions on this date
         if let Some(exc) = repo.get_exception(cal.id, date).await? {
@@ -438,7 +437,7 @@ impl TransactionCalendarEngine {
         Ok(is_working_day)
     }
 
-    /// Validate working_days JSON value
+    /// Validate `working_days` JSON value
     pub fn validate_working_days(working_days: &serde_json::Value) -> AtlasResult<()> {
         match working_days.as_array() {
             Some(arr) => {
@@ -451,7 +450,7 @@ impl TransactionCalendarEngine {
                     match v.as_i64() {
                         Some(d) if (1..=7).contains(&d) => {}
                         _ => return Err(AtlasError::ValidationFailed(format!(
-                            "Invalid working day value: {}. Must be 1-7 (Mon-Sun)", v
+                            "Invalid working day value: {v}. Must be 1-7 (Mon-Sun)"
                         ))),
                     }
                 }

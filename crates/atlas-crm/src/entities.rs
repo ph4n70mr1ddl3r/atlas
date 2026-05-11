@@ -5,6 +5,7 @@ use atlas_core::schema::WorkflowBuilder;
 use atlas_shared::EntityDefinition;
 
 /// Customer entity
+#[must_use] 
 pub fn customer_definition() -> EntityDefinition {
     SchemaBuilder::new("customers", "Customer")
         .plural_label("Customers")
@@ -30,6 +31,7 @@ pub fn customer_definition() -> EntityDefinition {
 }
 
 /// Lead entity with qualification workflow
+#[must_use] 
 pub fn lead_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("lead_workflow", "new")
         .initial_state("new", "New")
@@ -76,6 +78,7 @@ pub fn lead_definition() -> EntityDefinition {
 }
 
 /// Opportunity entity
+#[must_use] 
 pub fn opportunity_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("opportunity_workflow", "discovery")
         .initial_state("discovery", "Discovery")
@@ -114,6 +117,7 @@ pub fn opportunity_definition() -> EntityDefinition {
 }
 
 /// Contact entity
+#[must_use] 
 pub fn contact_definition() -> EntityDefinition {
     SchemaBuilder::new("contacts", "Contact")
         .plural_label("Contacts")
@@ -135,6 +139,7 @@ pub fn contact_definition() -> EntityDefinition {
 }
 
 /// Service Case entity with workflow
+#[must_use] 
 pub fn service_case_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("case_workflow", "open")
         .initial_state("open", "Open")

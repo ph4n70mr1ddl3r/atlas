@@ -83,10 +83,9 @@ impl PaymentSettlementEngine {
             ("approved", "settled") => Ok(()),
             ("approved", "cancelled") => Ok(()),
             _ => Err(AtlasError::WorkflowError(format!(
-                "Invalid status transition from '{}' to '{}'. \
+                "Invalid status transition from '{current}' to '{target}'. \
                  Valid: draft→submitted, draft→cancelled, submitted→approved, \
-                 submitted→cancelled, approved→settled, approved→cancelled",
-                current, target
+                 submitted→cancelled, approved→settled, approved→cancelled"
             ))),
         }
     }
@@ -126,11 +125,11 @@ impl PaymentSettlementEngine {
         let params = SettlementBatchCreateParams {
             org_id,
             batch_name: batch_name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             bank_account_id,
-            bank_account_name: bank_account_name.map(|s| s.to_string()),
+            bank_account_name: bank_account_name.map(std::string::ToString::to_string),
             currency_code: currency_code.to_string(),
-            exchange_rate_type: exchange_rate_type.map(|s| s.to_string()),
+            exchange_rate_type: exchange_rate_type.map(std::string::ToString::to_string),
             exchange_rate,
             settlement_date,
             gl_date,
@@ -402,13 +401,13 @@ impl PaymentSettlementEngine {
             org_id,
             batch_id,
             invoice_id,
-            invoice_number: invoice_number.map(|s| s.to_string()),
+            invoice_number: invoice_number.map(std::string::ToString::to_string),
             invoice_date,
             invoice_amount,
             supplier_id,
-            supplier_number: supplier_number.map(|s| s.to_string()),
-            supplier_name: supplier_name.map(|s| s.to_string()),
-            supplier_site: supplier_site.map(|s| s.to_string()),
+            supplier_number: supplier_number.map(std::string::ToString::to_string),
+            supplier_name: supplier_name.map(std::string::ToString::to_string),
+            supplier_site: supplier_site.map(std::string::ToString::to_string),
             original_amount,
             amount_due,
             amount_paid,
@@ -417,11 +416,11 @@ impl PaymentSettlementEngine {
             discount_date,
             bank_charges,
             adjustment_amount,
-            adjustment_reason: adjustment_reason.map(|s| s.to_string()),
+            adjustment_reason: adjustment_reason.map(std::string::ToString::to_string),
             settlement_type: line_settlement_type.to_string(),
-            liability_account: liability_account.map(|s| s.to_string()),
-            discount_account: discount_account.map(|s| s.to_string()),
-            charges_account: charges_account.map(|s| s.to_string()),
+            liability_account: liability_account.map(std::string::ToString::to_string),
+            discount_account: discount_account.map(std::string::ToString::to_string),
+            charges_account: charges_account.map(std::string::ToString::to_string),
         };
 
         let line = self.repo.create_line(&params).await?;
@@ -522,9 +521,12 @@ impl PaymentSettlementEngine {
     // Exported validation functions for handler use
     // ========================================================================
 
-    pub fn valid_settlement_methods() -> &'static [&'static str] { VALID_SETTLEMENT_METHODS }
-    pub fn valid_settlement_types() -> &'static [&'static str] { VALID_SETTLEMENT_TYPES }
-    pub fn valid_batch_statuses() -> &'static [&'static str] { VALID_BATCH_STATUSES }
+    #[must_use] 
+    pub const fn valid_settlement_methods() -> &'static [&'static str] { VALID_SETTLEMENT_METHODS }
+    #[must_use] 
+    pub const fn valid_settlement_types() -> &'static [&'static str] { VALID_SETTLEMENT_TYPES }
+    #[must_use] 
+    pub const fn valid_batch_statuses() -> &'static [&'static str] { VALID_BATCH_STATUSES }
 }
 
 // Re-export for convenience

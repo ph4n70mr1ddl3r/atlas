@@ -10,7 +10,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Payables > Invoice Matching
 
-use super::*;
+use super::{InvoiceMatchingRepository, AtlasResult, InvoiceMatch, AtlasError, InvoiceMatchLine, InvoiceMatchingDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -112,7 +112,7 @@ impl InvoiceMatchingEngine {
         }
 
         if self.repository.get_match_by_number(org_id, match_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Match number '{}' already exists", match_number)));
+            return Err(AtlasError::Conflict(format!("Match number '{match_number}' already exists")));
         }
 
         info!("Creating invoice match {} (type: {}) for supplier {}", match_number, match_type, supplier_name);
@@ -194,9 +194,9 @@ impl InvoiceMatchingEngine {
         };
 
         (
-            Some(format!("{:.2}", price_var)),
-            Some(format!("{:.2}", receipt_var)),
-            Some(format!("{:.2}", amt_var)),
+            Some(format!("{price_var:.2}")),
+            Some(format!("{receipt_var:.2}")),
+            Some(format!("{amt_var:.2}")),
             status,
         )
     }
@@ -243,7 +243,7 @@ impl InvoiceMatchingEngine {
     /// Place a match on hold
     pub async fn hold_match(&self, match_id: Uuid, reason: Option<&str>, held_by: Option<Uuid>) -> AtlasResult<InvoiceMatch> {
         let m = self.repository.get_match(match_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {} not found", match_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {match_id} not found")))?;
 
         if m.status == "cancelled" {
             return Err(AtlasError::WorkflowError("Cannot hold a cancelled match".into()));
@@ -263,7 +263,7 @@ impl InvoiceMatchingEngine {
         }
 
         let m = self.repository.get_match(match_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {} not found", match_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {match_id} not found")))?;
 
         if m.status != "exception" && m.status != "partial_match" {
             return Err(AtlasError::WorkflowError(
@@ -278,7 +278,7 @@ impl InvoiceMatchingEngine {
     /// Confirm a match (mark as matched)
     pub async fn confirm_match(&self, match_id: Uuid, confirmed_by: Option<Uuid>) -> AtlasResult<InvoiceMatch> {
         let m = self.repository.get_match(match_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {} not found", match_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {match_id} not found")))?;
 
         if m.status != "pending" && m.status != "partial_match" {
             return Err(AtlasError::WorkflowError(
@@ -293,7 +293,7 @@ impl InvoiceMatchingEngine {
     /// Cancel a match
     pub async fn cancel_match(&self, match_id: Uuid, reason: Option<&str>) -> AtlasResult<InvoiceMatch> {
         let m = self.repository.get_match(match_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {} not found", match_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {match_id} not found")))?;
 
         if m.status == "matched" || m.status == "overridden" {
             return Err(AtlasError::WorkflowError(
@@ -331,7 +331,7 @@ impl InvoiceMatchingEngine {
         notes: Option<&str>,
     ) -> AtlasResult<InvoiceMatchLine> {
         let m = self.repository.get_match(match_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {} not found", match_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {match_id} not found")))?;
 
         if m.status == "cancelled" {
             return Err(AtlasError::WorkflowError("Cannot add lines to a cancelled match".into()));
@@ -372,7 +372,7 @@ impl InvoiceMatchingEngine {
             org_id, match_id, invoice_line_id, po_line_id, receipt_line_id,
             inspection_line_id, line_number, item_description, invoice_qty, po_qty,
             receipt_qty, inspected_qty, invoice_price, po_price, invoice_amt, po_amt,
-            line_status, Some(&format!("{:.4}", price_var)), Some(&format!("{:.4}", qty_var)), notes,
+            line_status, Some(&format!("{price_var:.4}")), Some(&format!("{qty_var:.4}")), notes,
         ).await
     }
 
@@ -384,7 +384,7 @@ impl InvoiceMatchingEngine {
     /// Override a single match line
     pub async fn override_match_line(&self, line_id: Uuid) -> AtlasResult<InvoiceMatchLine> {
         let line = self.repository.get_match_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match line {} not found", line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match line {line_id} not found")))?;
 
         if line.status != "exception" {
             return Err(AtlasError::WorkflowError(

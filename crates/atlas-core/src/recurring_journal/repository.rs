@@ -1,6 +1,6 @@
 //! Recurring Journal Repository
 //!
-//! PostgreSQL storage for recurring journal schedules, template lines,
+//! `PostgreSQL` storage for recurring journal schedules, template lines,
 //! generations, and generated lines.
 
 use atlas_shared::{
@@ -70,13 +70,14 @@ pub trait RecurringJournalRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RecurringJournalDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresRecurringJournalRepository {
     pool: PgPool,
 }
 
 impl PostgresRecurringJournalRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -199,13 +200,13 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalSchedule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.recurring_journal_schedules
+            r"INSERT INTO _atlas.recurring_journal_schedules
                 (organization_id, schedule_number, name, description, recurrence_type,
                  journal_type, currency_code, status, effective_from, effective_to,
                  next_generation_date, incremental_percent, auto_post, reversal_method,
                  ledger_id, journal_category, reference_template, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,'draft',$8,$9,$10,$11::numeric,$12,$13,$14,$15,$16,$17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(schedule_number).bind(name).bind(description)
         .bind(recurrence_type).bind(journal_type).bind(currency_code)
@@ -241,9 +242,9 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
 
     async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<RecurringJournalSchedule>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.recurring_journal_schedules
+            r"SELECT * FROM _atlas.recurring_journal_schedules
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY schedule_number"#,
+            ORDER BY schedule_number",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -253,10 +254,10 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
 
     async fn update_schedule_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<RecurringJournalSchedule> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.recurring_journal_schedules SET status=$2,
+            r"UPDATE _atlas.recurring_journal_schedules SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approved_at=CASE WHEN $3 IS NOT NULL AND approved_at IS NULL THEN now() ELSE approved_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool).await
@@ -266,10 +267,10 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
 
     async fn update_schedule_generation_info(&self, id: Uuid, last_gen: chrono::NaiveDate, next_gen: Option<chrono::NaiveDate>, total: i32) -> AtlasResult<RecurringJournalSchedule> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.recurring_journal_schedules
+            r"UPDATE _atlas.recurring_journal_schedules
             SET last_generation_date=$2, next_generation_date=$3,
                 total_generations=$4, updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(last_gen).bind(next_gen).bind(total)
         .fetch_one(&self.pool).await
@@ -294,11 +295,11 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         cost_center: Option<&str>, department_id: Option<Uuid>, project_id: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalScheduleLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.recurring_journal_schedule_lines
+            r"INSERT INTO _atlas.recurring_journal_schedule_lines
                 (organization_id, schedule_id, line_number, line_type, account_code,
                  account_name, description, amount, currency_code, tax_code, cost_center,
                  department_id, project_id)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9,$10,$11,$12,$13) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9,$10,$11,$12,$13) RETURNING *",
         )
         .bind(org_id).bind(schedule_id).bind(line_number).bind(line_type)
         .bind(account_code).bind(account_name).bind(description)
@@ -333,10 +334,10 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         generated_by: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalGeneration> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.recurring_journal_generations
+            r"INSERT INTO _atlas.recurring_journal_generations
                 (organization_id, schedule_id, generation_number, generation_date,
                  period_name, total_debit, total_credit, line_count, generated_by)
-            VALUES ($1,$2,$3,$4,$5,$6::numeric,$7::numeric,$8,$9) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6::numeric,$7::numeric,$8,$9) RETURNING *",
         )
         .bind(org_id).bind(schedule_id).bind(generation_number)
         .bind(generation_date).bind(period_name)
@@ -367,11 +368,11 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
 
     async fn update_generation_status(&self, id: Uuid, status: &str, posted_at: Option<chrono::DateTime<chrono::Utc>>, reversed_at: Option<chrono::DateTime<chrono::Utc>>, reversal_entry_id: Option<Uuid>) -> AtlasResult<RecurringJournalGeneration> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.recurring_journal_generations SET status=$2,
+            r"UPDATE _atlas.recurring_journal_generations SET status=$2,
                 posted_at=COALESCE($3, posted_at),
                 reversed_at=COALESCE($4, reversed_at),
                 reversal_entry_id=COALESCE($5, reversal_entry_id),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(posted_at).bind(reversed_at).bind(reversal_entry_id)
         .fetch_one(&self.pool).await
@@ -397,11 +398,11 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         department_id: Option<Uuid>, project_id: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalGenerationLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.recurring_journal_generation_lines
+            r"INSERT INTO _atlas.recurring_journal_generation_lines
                 (organization_id, generation_id, schedule_line_id, line_number,
                  line_type, account_code, account_name, description, amount,
                  currency_code, tax_code, cost_center, department_id, project_id)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10,$11,$12,$13,$14) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10,$11,$12,$13,$14) RETURNING *",
         )
         .bind(org_id).bind(generation_id).bind(schedule_line_id)
         .bind(line_number).bind(line_type).bind(account_code)
@@ -424,7 +425,7 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RecurringJournalDashboardSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_count,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft_count,
                 COALESCE(SUM(total_generations), 0) as total_gens,
@@ -432,7 +433,7 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
                 COALESCE(SUM(total_generations), 0) as total_amount,
                 COUNT(*) FILTER (WHERE status = 'active' AND next_generation_date <= CURRENT_DATE) as due_today,
                 0 as overdue
-            FROM _atlas.recurring_journal_schedules WHERE organization_id = $1"#,
+            FROM _atlas.recurring_journal_schedules WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

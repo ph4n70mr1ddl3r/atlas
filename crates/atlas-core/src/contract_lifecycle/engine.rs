@@ -82,7 +82,7 @@ impl ContractLifecycleEngine {
         validate_enum(contract_category, VALID_CATEGORIES, "contract_category")?;
 
         if self.repository.get_contract_type_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Contract type '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Contract type '{code_upper}' already exists")));
         }
 
         info!(code = %code_upper, "Creating contract type");
@@ -134,7 +134,7 @@ impl ContractLifecycleEngine {
         validate_enum(clause_category, VALID_CLAUSE_CATEGORIES, "clause_category")?;
 
         if self.repository.get_clause_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Clause '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Clause '{code_upper}' already exists")));
         }
 
         info!(code = %code_upper, "Creating clause");
@@ -180,7 +180,7 @@ impl ContractLifecycleEngine {
         }
 
         if self.repository.get_template_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Template '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Template '{code_upper}' already exists")));
         }
 
         info!(code = %code_upper, "Creating contract template");
@@ -212,9 +212,9 @@ impl ContractLifecycleEngine {
         is_required: bool,
     ) -> AtlasResult<ClmTemplateClause> {
         let _tmpl = self.repository.get_template(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", template_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {template_id} not found")))?;
         let _clause = self.repository.get_clause(clause_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Clause {} not found", clause_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Clause {clause_id} not found")))?;
 
         self.repository.add_template_clause(template_id, clause_id, section, display_order, is_required).await
     }
@@ -260,7 +260,7 @@ impl ContractLifecycleEngine {
         }
 
         if self.repository.get_contract_by_number(org_id, &cn_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Contract '{}' already exists", cn_upper)));
+            return Err(AtlasError::Conflict(format!("Contract '{cn_upper}' already exists")));
         }
 
         info!(number = %cn_upper, "Creating contract");
@@ -292,7 +292,7 @@ impl ContractLifecycleEngine {
         validate_enum(new_status, VALID_STATUSES, "status")?;
 
         let contract = self.repository.get_contract(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {id} not found")))?;
 
         validate_transition(&contract.status, new_status)?;
 
@@ -331,7 +331,7 @@ impl ContractLifecycleEngine {
         }
 
         let _contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
 
         self.repository.add_contract_party(
             org_id, contract_id, party_type, party_role, party_name,
@@ -368,17 +368,17 @@ impl ContractLifecycleEngine {
         }
 
         let _contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
 
         let original_body = if let Some(cid) = clause_id {
             let clause = self.repository.get_clause(cid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Clause {} not found", cid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Clause {cid} not found")))?;
             if clause.is_locked && clause.body != body {
                 return Err(AtlasError::ValidationFailed(
                     format!("Clause '{}' is locked and cannot be modified", clause.code)
                 ));
             }
-            if clause.body != body { Some(clause.body.clone()) } else { None }
+            if clause.body == body { None } else { Some(clause.body) }
         } else {
             None
         };
@@ -424,7 +424,7 @@ impl ContractLifecycleEngine {
         }
 
         let _contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
 
         self.repository.create_milestone(
             org_id, contract_id, name, description, milestone_type,
@@ -438,7 +438,7 @@ impl ContractLifecycleEngine {
 
     pub async fn complete_milestone(&self, id: Uuid) -> AtlasResult<ClmMilestone> {
         let milestone = self.repository.get_milestone(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Milestone {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Milestone {id} not found")))?;
         if milestone.status != "pending" && milestone.status != "in_progress" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot complete milestone in '{}' status", milestone.status)
@@ -479,11 +479,11 @@ impl ContractLifecycleEngine {
         }
 
         let _contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
 
         if let Some(mid) = milestone_id {
             let _m = self.repository.get_milestone(mid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Milestone {} not found", mid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Milestone {mid} not found")))?;
         }
 
         self.repository.create_deliverable(
@@ -498,7 +498,7 @@ impl ContractLifecycleEngine {
 
     pub async fn accept_deliverable(&self, id: Uuid, accepted_by: Option<Uuid>) -> AtlasResult<ClmDeliverable> {
         let d = self.repository.get_deliverable(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deliverable {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deliverable {id} not found")))?;
         if d.status != "submitted" && d.status != "under_review" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot accept deliverable in '{}' status", d.status)
@@ -509,7 +509,7 @@ impl ContractLifecycleEngine {
 
     pub async fn reject_deliverable(&self, id: Uuid) -> AtlasResult<ClmDeliverable> {
         let d = self.repository.get_deliverable(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deliverable {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deliverable {id} not found")))?;
         if d.status != "submitted" && d.status != "under_review" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot reject deliverable in '{}' status", d.status)
@@ -546,7 +546,7 @@ impl ContractLifecycleEngine {
         }
 
         let _contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
 
         info!(number = amendment_number, "Creating amendment");
         self.repository.create_amendment(
@@ -561,7 +561,7 @@ impl ContractLifecycleEngine {
 
     pub async fn approve_amendment(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<ClmAmendment> {
         let a = self.repository.get_amendment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {id} not found")))?;
         if a.status != "pending_approval" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot approve amendment in '{}' status", a.status)
@@ -572,7 +572,7 @@ impl ContractLifecycleEngine {
 
     pub async fn reject_amendment(&self, id: Uuid) -> AtlasResult<ClmAmendment> {
         let a = self.repository.get_amendment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {id} not found")))?;
         if a.status != "pending_approval" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot reject amendment in '{}' status", a.status)
@@ -609,7 +609,7 @@ impl ContractLifecycleEngine {
         }
 
         let _contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
 
         self.repository.create_risk(
             org_id, contract_id, risk_category, risk_description,
@@ -639,7 +639,7 @@ impl ContractLifecycleEngine {
 fn validate_code(code: &str, label: &str) -> AtlasResult<()> {
     if code.is_empty() || code.len() > 100 {
         return Err(AtlasError::ValidationFailed(
-            format!("{} must be 1-100 characters", label)
+            format!("{label} must be 1-100 characters")
         ));
     }
     Ok(())

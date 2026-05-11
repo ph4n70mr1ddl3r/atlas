@@ -1,7 +1,7 @@
 //! AR Aging Analysis Engine
 //! Oracle Fusion: AR > Aging Reports
 
-use super::*;
+use super::{ArAgingRepository, AtlasResult, ArAgingDefinition, AtlasError, ArAgingBucket, ArAgingSnapshot, ArAgingSnapshotLine, ArAgingSummary, ArAgingDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -19,13 +19,13 @@ impl ArAgingEngine {
             return Err(AtlasError::ValidationFailed("Code and name are required".into()));
         }
         if !VALID_AGING_BASES.contains(&aging_basis) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid aging_basis '{}'", aging_basis)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid aging_basis '{aging_basis}'")));
         }
         if !(1..=20).contains(&num_buckets) {
             return Err(AtlasError::ValidationFailed("Number of buckets must be 1-20".into()));
         }
         if self.repository.get_definition(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Definition '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Definition '{code}' already exists")));
         }
         info!("Creating AR aging definition {} for org {}", code, org_id);
         self.repository.create_definition(org_id, code, name, description, aging_basis, num_buckets, created_by).await
@@ -36,17 +36,17 @@ impl ArAgingEngine {
     }
 
     pub async fn list_definitions(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ArAgingDefinition>> {
-        if let Some(s) = status { if !VALID_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s))); } }
+        if let Some(s) = status { if !VALID_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'"))); } }
         self.repository.list_definitions(org_id, status).await
     }
 
     pub async fn delete_definition(&self, id: Uuid) -> AtlasResult<()> {
-        self.repository.get_definition_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {} not found", id)))?;
+        self.repository.get_definition_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {id} not found")))?;
         self.repository.delete_definition(id).await
     }
 
     pub async fn create_bucket(&self, org_id: Uuid, def_id: Uuid, bucket_number: i32, name: &str, from_days: i32, to_days: Option<i32>, display_order: i32) -> AtlasResult<ArAgingBucket> {
-        self.repository.get_definition_by_id(def_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {} not found", def_id)))?;
+        self.repository.get_definition_by_id(def_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {def_id} not found")))?;
         if name.is_empty() { return Err(AtlasError::ValidationFailed("Bucket name is required".into())); }
         if bucket_number < 0 { return Err(AtlasError::ValidationFailed("Bucket number must be >= 0".into())); }
         if from_days < 0 { return Err(AtlasError::ValidationFailed("From days must be >= 0".into())); }
@@ -60,7 +60,8 @@ impl ArAgingEngine {
         self.repository.list_buckets(def_id).await
     }
 
-    /// Determine which bucket a given days_past_due value falls into
+    /// Determine which bucket a given `days_past_due` value falls into
+    #[must_use] 
     pub fn determine_bucket<'a>(&self, days_past_due: i32, buckets: &'a [ArAgingBucket]) -> Option<&'a ArAgingBucket> {
         buckets.iter().find(|b| {
             days_past_due >= b.from_days && (b.to_days.is_none() || days_past_due <= b.to_days.unwrap())
@@ -68,7 +69,7 @@ impl ArAgingEngine {
     }
 
     pub async fn create_snapshot(&self, org_id: Uuid, def_id: Uuid, as_of_date: chrono::NaiveDate, currency_code: &str, created_by: Option<Uuid>) -> AtlasResult<ArAgingSnapshot> {
-        let def = self.repository.get_definition_by_id(def_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {} not found", def_id)))?;
+        let def = self.repository.get_definition_by_id(def_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {def_id} not found")))?;
         if def.status != "active" { return Err(AtlasError::WorkflowError("Definition must be active".into())); }
         if currency_code.len() != 3 { return Err(AtlasError::ValidationFailed("Currency code must be 3 characters".into())); }
         info!("Creating AR aging snapshot for definition {} as of {}", def.definition_code, as_of_date);
@@ -107,6 +108,7 @@ impl ArAgingEngine {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use super::*;
 
     struct MockRepo {

@@ -1,6 +1,6 @@
 //! Budget Repository
 //!
-//! PostgreSQL storage for budget definitions, versions, lines, and transfers.
+//! `PostgreSQL` storage for budget definitions, versions, lines, and transfers.
 
 use atlas_shared::{
     BudgetDefinition, BudgetVersion, BudgetLine, BudgetTransfer,
@@ -136,13 +136,14 @@ pub trait BudgetRepository: Send + Sync {
     ) -> AtlasResult<BudgetTransfer>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresBudgetRepository {
     pool: PgPool,
 }
 
 impl PostgresBudgetRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -295,7 +296,7 @@ impl BudgetRepository for PostgresBudgetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BudgetDefinition> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.budget_definitions
                 (organization_id, code, name, description,
                  calendar_id, fiscal_year, budget_type, control_level,
@@ -308,7 +309,7 @@ impl BudgetRepository for PostgresBudgetRepository {
                     allow_carry_forward = $9, allow_transfers = $10,
                     currency_code = $11, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(calendar_id).bind(fiscal_year).bind(budget_type).bind(control_level)
@@ -380,13 +381,13 @@ impl BudgetRepository for PostgresBudgetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BudgetVersion> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.budget_versions
                 (organization_id, definition_id, version_number, label,
                  effective_from, effective_to, notes, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(definition_id).bind(version_number).bind(label)
         .bind(effective_from).bind(effective_to).bind(notes).bind(created_by)
@@ -452,7 +453,7 @@ impl BudgetRepository for PostgresBudgetRepository {
         rejected_reason: Option<&str>,
     ) -> AtlasResult<BudgetVersion> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.budget_versions
             SET status = $2, submitted_by = COALESCE($3, submitted_by),
                 submitted_at = CASE WHEN $3 IS NOT NULL AND submitted_at IS NULL THEN now() ELSE submitted_at END,
@@ -461,7 +462,7 @@ impl BudgetRepository for PostgresBudgetRepository {
                 rejected_reason = $5, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(submitted_by).bind(approved_by).bind(rejected_reason)
         .fetch_one(&self.pool)
@@ -479,13 +480,13 @@ impl BudgetRepository for PostgresBudgetRepository {
         total_variance: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.budget_versions
             SET total_budget_amount = $2::numeric, total_committed_amount = $3::numeric,
                 total_actual_amount = $4::numeric, total_variance_amount = $5::numeric,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(total_budget).bind(total_committed).bind(total_actual).bind(total_variance)
         .execute(&self.pool)
@@ -520,7 +521,7 @@ impl BudgetRepository for PostgresBudgetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BudgetLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.budget_lines
                 (organization_id, version_id, line_number,
                  account_code, account_name,
@@ -532,7 +533,7 @@ impl BudgetRepository for PostgresBudgetRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16::numeric, $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(version_id).bind(line_number)
         .bind(account_code).bind(account_name)
@@ -579,14 +580,14 @@ impl BudgetRepository for PostgresBudgetRepository {
         cost_center: Option<&str>,
     ) -> AtlasResult<Option<BudgetLine>> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.budget_lines
             WHERE version_id = $1 AND account_code = $2
               AND ($3::text IS NULL AND period_name IS NULL OR period_name = $3)
               AND ($4::uuid IS NULL AND department_id IS NULL OR department_id = $4)
               AND ($5::text IS NULL AND cost_center IS NULL OR cost_center = $5)
             LIMIT 1
-            "#,
+            ",
         )
         .bind(version_id).bind(account_code).bind(period_name).bind(department_id).bind(cost_center)
         .fetch_optional(&self.pool)
@@ -597,7 +598,7 @@ impl BudgetRepository for PostgresBudgetRepository {
 
     async fn update_line_amount(&self, id: Uuid, budget_amount: &str) -> AtlasResult<BudgetLine> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.budget_lines
             SET budget_amount = $2::numeric,
                 variance_amount = budget_amount - actual_amount,
@@ -607,7 +608,7 @@ impl BudgetRepository for PostgresBudgetRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(budget_amount)
         .fetch_one(&self.pool)
@@ -649,7 +650,7 @@ impl BudgetRepository for PostgresBudgetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BudgetTransfer> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.budget_transfers
                 (organization_id, version_id, transfer_number, description,
                  from_account_code, from_period_name, from_department_id, from_cost_center,
@@ -657,7 +658,7 @@ impl BudgetRepository for PostgresBudgetRepository {
                  amount, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::numeric, $14)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(version_id).bind(transfer_number).bind(description)
         .bind(from_account_code).bind(from_period_name).bind(from_department_id).bind(from_cost_center)
@@ -700,7 +701,7 @@ impl BudgetRepository for PostgresBudgetRepository {
         rejected_reason: Option<&str>,
     ) -> AtlasResult<BudgetTransfer> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.budget_transfers
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
@@ -709,7 +710,7 @@ impl BudgetRepository for PostgresBudgetRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
         .fetch_one(&self.pool)

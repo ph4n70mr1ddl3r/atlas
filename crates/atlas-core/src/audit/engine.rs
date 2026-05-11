@@ -79,8 +79,8 @@ impl AuditEngine {
             changed_by: user_id,
             changed_at: Utc::now(),
             session_id,
-            ip_address: ip_address.map(|s| s.to_string()),
-            user_agent: user_agent.map(|s| s.to_string()),
+            ip_address: ip_address.map(std::string::ToString::to_string),
+            user_agent: user_agent.map(std::string::ToString::to_string),
         };
         
         self.repository.insert(&entry).await?;
@@ -201,7 +201,7 @@ impl AuditEngine {
         let from_date = Utc::now() - chrono::Duration::days(days);
         
         let entries = self.repository.query(&AuditQuery {
-            entity_type: entity_type.map(|s| s.to_string()),
+            entity_type: entity_type.map(std::string::ToString::to_string),
             entity_id: None,
             action: None,
             user_id: None,

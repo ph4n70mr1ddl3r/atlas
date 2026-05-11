@@ -325,7 +325,7 @@ impl GrantManagementEngine {
     /// Activate a draft award
     pub async fn activate_award(&self, award_id: Uuid) -> AtlasResult<GrantAward> {
         let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {} not found", award_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if award.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -340,7 +340,7 @@ impl GrantManagementEngine {
     /// Suspend an active award
     pub async fn suspend_award(&self, award_id: Uuid) -> AtlasResult<GrantAward> {
         let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {} not found", award_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if award.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -355,7 +355,7 @@ impl GrantManagementEngine {
     /// Complete an active award
     pub async fn complete_award(&self, award_id: Uuid, closeout_notes: Option<&str>) -> AtlasResult<GrantAward> {
         let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {} not found", award_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if award.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -372,7 +372,7 @@ impl GrantManagementEngine {
     /// Terminate an award
     pub async fn terminate_award(&self, award_id: Uuid, closeout_notes: Option<&str>) -> AtlasResult<GrantAward> {
         let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {} not found", award_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if award.status != "active" && award.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -399,7 +399,7 @@ impl GrantManagementEngine {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GrantBudgetLine> {
         let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {} not found", award_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if award.status != "draft" && award.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -456,7 +456,7 @@ impl GrantManagementEngine {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GrantExpenditure> {
         let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {} not found", award_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if award.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -494,9 +494,9 @@ impl GrantManagementEngine {
         let exp = self.repository.create_expenditure(
             org_id, award_id, &expenditure_number, expenditure_type, expenditure_date,
             description, budget_line_id, budget_category, amount,
-            &format!("{:.2}", indirect_cost_amount),
-            &format!("{:.2}", total_amount),
-            &format!("{:.2}", cost_sharing_amount),
+            &format!("{indirect_cost_amount:.2}"),
+            &format!("{total_amount:.2}"),
+            &format!("{cost_sharing_amount:.2}"),
             employee_id, employee_name, vendor_id, vendor_name,
             source_entity_type, source_entity_id, source_entity_number,
             gl_debit_account, gl_credit_account, "pending", notes, created_by,
@@ -519,7 +519,7 @@ impl GrantManagementEngine {
     /// Approve a pending expenditure
     pub async fn approve_expenditure(&self, expenditure_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<GrantExpenditure> {
         let exp = self.repository.get_expenditure(expenditure_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Expenditure {} not found", expenditure_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Expenditure {expenditure_id} not found")))?;
 
         if exp.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
@@ -534,7 +534,7 @@ impl GrantManagementEngine {
     /// Reverse an expenditure
     pub async fn reverse_expenditure(&self, expenditure_id: Uuid) -> AtlasResult<GrantExpenditure> {
         let exp = self.repository.get_expenditure(expenditure_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Expenditure {} not found", expenditure_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Expenditure {expenditure_id} not found")))?;
 
         if exp.status != "approved" && exp.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
@@ -570,7 +570,7 @@ impl GrantManagementEngine {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GrantBilling> {
         let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {} not found", award_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if award.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -612,8 +612,8 @@ impl GrantManagementEngine {
         let billing = self.repository.create_billing(
             org_id, award_id, &invoice_number, invoice_date,
             period_start, period_end, Some(due_date),
-            &format!("{:.2}", direct_costs), &format!("{:.2}", indirect_costs),
-            &format!("{:.2}", cost_sharing), &format!("{:.2}", total_amount),
+            &format!("{direct_costs:.2}"), &format!("{indirect_costs:.2}"),
+            &format!("{cost_sharing:.2}"), &format!("{total_amount:.2}"),
             serde_json::json!(exp_ids), notes, created_by,
         ).await?;
 
@@ -631,7 +631,7 @@ impl GrantManagementEngine {
     /// Submit a draft billing for approval
     pub async fn submit_billing(&self, billing_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<GrantBilling> {
         let billing = self.repository.get_billing(billing_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {} not found", billing_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {billing_id} not found")))?;
 
         if billing.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -646,7 +646,7 @@ impl GrantManagementEngine {
     /// Approve a submitted billing
     pub async fn approve_billing(&self, billing_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<GrantBilling> {
         let billing = self.repository.get_billing(billing_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {} not found", billing_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {billing_id} not found")))?;
 
         if billing.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -661,7 +661,7 @@ impl GrantManagementEngine {
     /// Mark a billing as paid
     pub async fn mark_billing_paid(&self, billing_id: Uuid, payment_reference: Option<&str>) -> AtlasResult<GrantBilling> {
         let billing = self.repository.get_billing(billing_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {} not found", billing_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {billing_id} not found")))?;
 
         if billing.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
@@ -696,7 +696,7 @@ impl GrantManagementEngine {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GrantComplianceReport> {
         let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {} not found", award_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if !VALID_REPORT_TYPES.contains(&report_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -736,8 +736,8 @@ impl GrantManagementEngine {
         self.repository.create_compliance_report(
             org_id, award_id, report_type, report_title,
             reporting_period_start, reporting_period_end, due_date,
-            &format!("{:.2}", total_expenditures),
-            &format!("{:.2}", total_billed),
+            &format!("{total_expenditures:.2}"),
+            &format!("{total_billed:.2}"),
             "0", "0", "0", content, notes, created_by,
         ).await
     }
@@ -745,7 +745,7 @@ impl GrantManagementEngine {
     /// Submit a compliance report
     pub async fn submit_compliance_report(&self, report_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<GrantComplianceReport> {
         let report = self.repository.get_compliance_report(report_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Report {} not found", report_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Report {report_id} not found")))?;
 
         if report.status != "draft" && report.status != "rejected" {
             return Err(AtlasError::WorkflowError(format!(
@@ -760,7 +760,7 @@ impl GrantManagementEngine {
     /// Approve a compliance report
     pub async fn approve_compliance_report(&self, report_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<GrantComplianceReport> {
         let report = self.repository.get_compliance_report(report_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Report {} not found", report_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Report {report_id} not found")))?;
 
         if report.status != "in_review" && report.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -793,7 +793,7 @@ impl GrantManagementEngine {
     /// Recalculate award totals from expenditures and billings
     async fn recalculate_award_totals(&self, award_id: Uuid) -> AtlasResult<()> {
         let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {} not found", award_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         let expenditures = self.repository.list_expenditures(award_id, None).await?;
         let total_expenditures: f64 = expenditures.iter()
@@ -822,11 +822,11 @@ impl GrantManagementEngine {
 
         self.repository.update_award_totals(
             award_id,
-            &format!("{:.2}", total_expenditures),
-            &format!("{:.2}", total_commitments),
-            &format!("{:.2}", total_billed),
-            &format!("{:.2}", total_collected),
-            &format!("{:.2}", available),
+            &format!("{total_expenditures:.2}"),
+            &format!("{total_commitments:.2}"),
+            &format!("{total_billed:.2}"),
+            &format!("{total_collected:.2}"),
+            &format!("{available:.2}"),
         ).await
     }
 
@@ -834,7 +834,7 @@ impl GrantManagementEngine {
     async fn recalculate_budget_line(&self, budget_line_id: Uuid) -> AtlasResult<()> {
         // Get all expenditures for this budget line
         let bl = self.repository.get_budget_line(budget_line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget line {} not found", budget_line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget line {budget_line_id} not found")))?;
 
         let expenditures = self.repository.list_expenditures(bl.award_id, None).await?;
         let line_exps: Vec<_> = expenditures.iter()
@@ -861,10 +861,10 @@ impl GrantManagementEngine {
 
         self.repository.update_budget_line_amounts(
             budget_line_id,
-            &format!("{:.2}", committed),
-            &format!("{:.2}", expended),
-            &format!("{:.2}", billed),
-            &format!("{:.2}", available),
+            &format!("{committed:.2}"),
+            &format!("{expended:.2}"),
+            &format!("{billed:.2}"),
+            &format!("{available:.2}"),
         ).await
     }
 }

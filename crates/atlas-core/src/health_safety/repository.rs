@@ -1,6 +1,6 @@
 //! Workplace Health & Safety Repository
 //!
-//! PostgreSQL storage for safety incidents, hazards, inspections,
+//! `PostgreSQL` storage for safety incidents, hazards, inspections,
 //! corrective actions, and dashboard data.
 
 use atlas_shared::{
@@ -114,13 +114,14 @@ pub trait HealthSafetyRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<HealthSafetyDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresHealthSafetyRepository {
     pool: PgPool,
 }
 
 impl PostgresHealthSafetyRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -299,7 +300,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
     ) -> AtlasResult<SafetyIncident> {
         let _ = &metadata; // used by downstream callers, stored in DB schema
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.safety_incidents
+            r"INSERT INTO _atlas.safety_incidents
                 (organization_id, incident_number, title, description,
                  incident_type, severity, status, priority,
                  incident_date, incident_time, location,
@@ -317,7 +318,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
                     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
                     $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
                     $31, $32, $33, '{}'::jsonb, $34)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(incident_number).bind(title).bind(description)
         .bind(incident_type).bind(severity).bind(status).bind(priority)
@@ -351,13 +352,13 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
 
     async fn list_incidents(&self, org_id: Uuid, status: Option<&str>, severity: Option<&str>, incident_type: Option<&str>, facility_id: Option<&Uuid>) -> AtlasResult<Vec<SafetyIncident>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.safety_incidents
+            r"SELECT * FROM _atlas.safety_incidents
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR severity = $3)
                  AND ($4::text IS NULL OR incident_type = $4)
                  AND ($5::uuid IS NULL OR facility_id = $5)
-               ORDER BY incident_date DESC, created_at DESC"#,
+               ORDER BY incident_date DESC, created_at DESC",
         )
         .bind(org_id).bind(status).bind(severity).bind(incident_type).bind(facility_id.copied())
         .fetch_all(&self.pool).await?;
@@ -369,13 +370,13 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             "UPDATE _atlas.safety_incidents SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Incident {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Incident {id} not found")))?;
         Ok(row_to_incident(&row))
     }
 
     async fn update_incident_investigation(&self, id: Uuid, root_cause: Option<&str>, immediate_action: Option<&str>, assigned_to_id: Option<Uuid>, assigned_to_name: Option<&str>, days_away_from_work: Option<i32>, days_restricted: Option<i32>) -> AtlasResult<SafetyIncident> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.safety_incidents
+            r"UPDATE _atlas.safety_incidents
                SET root_cause = COALESCE($2, root_cause),
                    immediate_action = COALESCE($3, immediate_action),
                    assigned_to_id = COALESCE($4, assigned_to_id),
@@ -383,26 +384,26 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
                    days_away_from_work = COALESCE($6, days_away_from_work),
                    days_restricted = COALESCE($7, days_restricted),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(root_cause).bind(immediate_action)
         .bind(assigned_to_id).bind(assigned_to_name)
         .bind(days_away_from_work).bind(days_restricted)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Incident {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Incident {id} not found")))?;
         Ok(row_to_incident(&row))
     }
 
     async fn close_incident(&self, id: Uuid, closed_by: Option<Uuid>) -> AtlasResult<SafetyIncident> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.safety_incidents
+            r"UPDATE _atlas.safety_incidents
                SET status = 'closed', closed_date = CURRENT_DATE,
                    closed_by = $2, resolution_date = CURRENT_DATE, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(closed_by)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Incident {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Incident {id} not found")))?;
         Ok(row_to_incident(&row))
     }
 
@@ -411,7 +412,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             "DELETE FROM _atlas.safety_incidents WHERE organization_id = $1 AND incident_number = $2"
         ).bind(org_id).bind(incident_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Incident '{}' not found", incident_number)));
+            return Err(AtlasError::EntityNotFound(format!("Incident '{incident_number}' not found")));
         }
         Ok(())
     }
@@ -436,7 +437,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
     ) -> AtlasResult<Hazard> {
         let _ = &metadata; // used by downstream callers, stored in DB schema
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.safety_hazards
+            r"INSERT INTO _atlas.safety_hazards
                 (organization_id, hazard_code, title, description,
                  hazard_category, risk_level, likelihood, consequence,
                  risk_score, status, location,
@@ -448,7 +449,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
                     $21, $22, '{}'::jsonb, $23)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(hazard_code).bind(title).bind(description)
         .bind(hazard_category).bind(risk_level).bind(likelihood).bind(consequence)
@@ -477,13 +478,13 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
 
     async fn list_hazards(&self, org_id: Uuid, status: Option<&str>, risk_level: Option<&str>, hazard_category: Option<&str>, facility_id: Option<&Uuid>) -> AtlasResult<Vec<Hazard>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.safety_hazards
+            r"SELECT * FROM _atlas.safety_hazards
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR risk_level = $3)
                  AND ($4::text IS NULL OR hazard_category = $4)
                  AND ($5::uuid IS NULL OR facility_id = $5)
-               ORDER BY risk_score DESC, created_at DESC"#,
+               ORDER BY risk_score DESC, created_at DESC",
         )
         .bind(org_id).bind(status).bind(risk_level).bind(hazard_category).bind(facility_id.copied())
         .fetch_all(&self.pool).await?;
@@ -495,19 +496,19 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             "UPDATE _atlas.safety_hazards SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Hazard {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Hazard {id} not found")))?;
         Ok(row_to_hazard(&row))
     }
 
     async fn update_residual_risk(&self, id: Uuid, residual_risk_level: &str, residual_risk_score: i32) -> AtlasResult<Hazard> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.safety_hazards
+            r"UPDATE _atlas.safety_hazards
                SET residual_risk_level = $2, residual_risk_score = $3, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(residual_risk_level).bind(residual_risk_score)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Hazard {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Hazard {id} not found")))?;
         Ok(row_to_hazard(&row))
     }
 
@@ -516,7 +517,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             "DELETE FROM _atlas.safety_hazards WHERE organization_id = $1 AND hazard_code = $2"
         ).bind(org_id).bind(hazard_code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Hazard '{}' not found", hazard_code)));
+            return Err(AtlasError::EntityNotFound(format!("Hazard '{hazard_code}' not found")));
         }
         Ok(())
     }
@@ -540,7 +541,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
     ) -> AtlasResult<SafetyInspection> {
         let _ = &metadata; // used by downstream callers, stored in DB schema
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.safety_inspections
+            r"INSERT INTO _atlas.safety_inspections
                 (organization_id, inspection_number, title, description,
                  inspection_type, status, priority,
                  scheduled_date, completed_date,
@@ -553,7 +554,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16, $17, $18, $19,
                     $20, $21, $22, $23, $24, '{}'::jsonb, $25)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(inspection_number).bind(title).bind(description)
         .bind(inspection_type).bind(status).bind(priority)
@@ -583,12 +584,12 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
 
     async fn list_inspections(&self, org_id: Uuid, status: Option<&str>, inspection_type: Option<&str>, facility_id: Option<&Uuid>) -> AtlasResult<Vec<SafetyInspection>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.safety_inspections
+            r"SELECT * FROM _atlas.safety_inspections
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR inspection_type = $3)
                  AND ($4::uuid IS NULL OR facility_id = $4)
-               ORDER BY scheduled_date DESC, created_at DESC"#,
+               ORDER BY scheduled_date DESC, created_at DESC",
         )
         .bind(org_id).bind(status).bind(inspection_type).bind(facility_id.copied())
         .fetch_all(&self.pool).await?;
@@ -602,21 +603,21 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
         findings: serde_json::Value,
     ) -> AtlasResult<SafetyInspection> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.safety_inspections
+            r"UPDATE _atlas.safety_inspections
                SET status = 'completed', completed_date = CURRENT_DATE,
                    findings_summary = COALESCE($2, findings_summary),
                    total_findings = $3, critical_findings = $4,
                    non_conformities = $5, observations = $6,
                    score = $7, max_score = $8, score_pct = $9,
                    findings = $10, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(findings_summary)
         .bind(total_findings).bind(critical_findings).bind(non_conformities).bind(observations)
         .bind(score).bind(max_score).bind(score_pct)
         .bind(&findings)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Inspection {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Inspection {id} not found")))?;
         Ok(row_to_inspection(&row))
     }
 
@@ -625,7 +626,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             "UPDATE _atlas.safety_inspections SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Inspection {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Inspection {id} not found")))?;
         Ok(row_to_inspection(&row))
     }
 
@@ -634,7 +635,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             "DELETE FROM _atlas.safety_inspections WHERE organization_id = $1 AND inspection_number = $2"
         ).bind(org_id).bind(inspection_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Inspection '{}' not found", inspection_number)));
+            return Err(AtlasError::EntityNotFound(format!("Inspection '{inspection_number}' not found")));
         }
         Ok(())
     }
@@ -659,7 +660,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
     ) -> AtlasResult<SafetyCorrectiveAction> {
         let _ = &metadata; // used by downstream callers, stored in DB schema
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.corrective_actions
+            r"INSERT INTO _atlas.corrective_actions
                 (organization_id, action_number, title, description,
                  action_type, status, priority,
                  source_type, source_id, source_number,
@@ -673,7 +674,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
                     $21, $22, $23, $24, $25, $26, $27, '{}'::jsonb, $28)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(action_number).bind(title).bind(description)
         .bind(action_type).bind(status).bind(priority)
@@ -704,12 +705,12 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
 
     async fn list_corrective_actions(&self, org_id: Uuid, status: Option<&str>, action_type: Option<&str>, source_type: Option<&str>) -> AtlasResult<Vec<SafetyCorrectiveAction>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.corrective_actions
+            r"SELECT * FROM _atlas.corrective_actions
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR action_type = $3)
                  AND ($4::text IS NULL OR source_type = $4)
-               ORDER BY due_date ASC, created_at DESC"#,
+               ORDER BY due_date ASC, created_at DESC",
         )
         .bind(org_id).bind(status).bind(action_type).bind(source_type)
         .fetch_all(&self.pool).await?;
@@ -721,22 +722,22 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             "UPDATE _atlas.corrective_actions SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Corrective action {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Corrective action {id} not found")))?;
         Ok(row_to_corrective_action(&row))
     }
 
     async fn complete_corrective_action(&self, id: Uuid, effectiveness: &str, actual_cost: Option<f64>, verified_by: Option<Uuid>) -> AtlasResult<SafetyCorrectiveAction> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.corrective_actions
+            r"UPDATE _atlas.corrective_actions
                SET status = 'completed', completed_date = CURRENT_DATE,
                    effectiveness = $2, actual_cost = $3,
                    verified_by = $4, verified_date = CURRENT_DATE,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(effectiveness).bind(actual_cost).bind(verified_by)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Corrective action {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Corrective action {id} not found")))?;
         Ok(row_to_corrective_action(&row))
     }
 
@@ -745,7 +746,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
             "DELETE FROM _atlas.corrective_actions WHERE organization_id = $1 AND action_number = $2"
         ).bind(org_id).bind(action_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Action '{}' not found", action_number)));
+            return Err(AtlasError::EntityNotFound(format!("Action '{action_number}' not found")));
         }
         Ok(())
     }
@@ -781,14 +782,14 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
         for r in &inc_rows {
             let t: String = r.try_get("incident_type").unwrap_or_default();
             *incidents_by_type.entry(t).or_insert(serde_json::Value::from(0i64)) = serde_json::Value::from(
-                incidents_by_type.get(&t).and_then(|v| v.as_i64()).unwrap_or(0) + 1
+                incidents_by_type.get(&t).and_then(serde_json::Value::as_i64).unwrap_or(0) + 1
             );
         }
         let mut incidents_by_severity = serde_json::Map::new();
         for r in &inc_rows {
             let s: String = r.try_get("severity").unwrap_or_default();
             *incidents_by_severity.entry(s).or_insert(serde_json::Value::from(0i64)) = serde_json::Value::from(
-                incidents_by_severity.get(&s).and_then(|v| v.as_i64()).unwrap_or(0) + 1
+                incidents_by_severity.get(&s).and_then(serde_json::Value::as_i64).unwrap_or(0) + 1
             );
         }
 
@@ -799,7 +800,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
         let days_since_last_incident = match last_incident {
             Ok(row) => {
                 let last: Option<chrono::NaiveDate> = row.try_get("last_date").unwrap_or(None);
-                last.map(|d| (chrono::Utc::now().date_naive() - d).num_days()).unwrap_or(-1)
+                last.map_or(-1, |d| (chrono::Utc::now().date_naive() - d).num_days())
             }
             Err(_) => -1,
         };
@@ -823,7 +824,7 @@ impl HealthSafetyRepository for PostgresHealthSafetyRepository {
         for r in &haz_rows {
             let l: String = r.try_get("risk_level").unwrap_or_default();
             *hazards_by_risk.entry(l).or_insert(serde_json::Value::from(0i64)) = serde_json::Value::from(
-                hazards_by_risk.get(&l).and_then(|v| v.as_i64()).unwrap_or(0) + 1
+                hazards_by_risk.get(&l).and_then(serde_json::Value::as_i64).unwrap_or(0) + 1
             );
         }
 

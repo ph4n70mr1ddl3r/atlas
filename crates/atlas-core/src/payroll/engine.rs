@@ -90,7 +90,7 @@ impl PayrollEngine {
         // Check unique name within org
         if self.repository.get_payroll_by_name(org_id, name).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Payroll definition '{}' already exists", name
+                "Payroll definition '{name}' already exists"
             )));
         }
 
@@ -217,7 +217,7 @@ impl PayrollEngine {
         // Check unique code
         if self.repository.get_element_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Element code '{}' already exists", code
+                "Element code '{code}' already exists"
             )));
         }
 
@@ -282,7 +282,7 @@ impl PayrollEngine {
         // Validate element exists
         let element = self.repository.get_element(element_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Element {} not found", element_id)
+                format!("Element {element_id} not found")
             ))?;
 
         if !element.is_active {
@@ -353,7 +353,7 @@ impl PayrollEngine {
         // Validate payroll exists
         let payroll = self.repository.get_payroll(payroll_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll definition {} not found", payroll_id)
+                format!("Payroll definition {payroll_id} not found")
             ))?;
 
         if !payroll.is_active {
@@ -418,7 +418,7 @@ impl PayrollEngine {
     ) -> AtlasResult<PayrollRun> {
         let run = self.repository.get_run(run_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll run {} not found", run_id)
+                format!("Payroll run {run_id} not found")
             ))?;
 
         if run.status != "open" {
@@ -453,10 +453,10 @@ impl PayrollEngine {
                 run_id,
                 emp.employee_id,
                 emp.employee_name.as_deref(),
-                &format!("{:.2}", gross),
-                &format!("{:.2}", deductions),
-                &format!("{:.2}", net),
-                &format!("{:.2}", employer_cost),
+                &format!("{gross:.2}"),
+                &format!("{deductions:.2}"),
+                &format!("{net:.2}"),
+                &format!("{employer_cost:.2}"),
                 "USD",
                 emp.payment_method.as_deref(),
                 emp.bank_account_last4.as_deref(),
@@ -483,10 +483,10 @@ impl PayrollEngine {
         // Update run totals
         self.repository.update_run_totals(
             run_id,
-            &format!("{:.2}", total_gross),
-            &format!("{:.2}", total_deductions),
-            &format!("{:.2}", total_net),
-            &format!("{:.2}", total_employer_cost),
+            &format!("{total_gross:.2}"),
+            &format!("{total_deductions:.2}"),
+            &format!("{total_net:.2}"),
+            &format!("{total_employer_cost:.2}"),
             employee_data.len() as i32,
         ).await?;
 
@@ -504,7 +504,7 @@ impl PayrollEngine {
     pub async fn confirm_run(&self, run_id: Uuid, confirmed_by: Uuid) -> AtlasResult<PayrollRun> {
         let run = self.repository.get_run(run_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll run {} not found", run_id)
+                format!("Payroll run {run_id} not found")
             ))?;
 
         if run.status != "calculated" {
@@ -521,7 +521,7 @@ impl PayrollEngine {
     pub async fn mark_paid(&self, run_id: Uuid, paid_by: Uuid) -> AtlasResult<PayrollRun> {
         let run = self.repository.get_run(run_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll run {} not found", run_id)
+                format!("Payroll run {run_id} not found")
             ))?;
 
         if run.status != "confirmed" {
@@ -538,7 +538,7 @@ impl PayrollEngine {
     pub async fn reverse_run(&self, run_id: Uuid) -> AtlasResult<PayrollRun> {
         let run = self.repository.get_run(run_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll run {} not found", run_id)
+                format!("Payroll run {run_id} not found")
             ))?;
 
         if run.status != "paid" && run.status != "confirmed" {
@@ -592,7 +592,7 @@ impl PayrollEngine {
     /// 4. Apply post-tax deductions
     /// 5. Net pay = gross - all deductions
     ///
-    /// Returns (gross, total_deductions, net_pay, employer_cost, lines).
+    /// Returns (gross, `total_deductions`, `net_pay`, `employer_cost`, lines).
     pub fn calculate_employee_pay(
         &self,
         entries: &[ElementEntryInput],
@@ -626,9 +626,9 @@ impl PayrollEngine {
                 element_name: entry.element_name.clone(),
                 element_type: "earning".to_string(),
                 category: entry.category.clone(),
-                hours_or_units: entry.hours_or_units.map(|h| format!("{:.2}", h)),
+                hours_or_units: entry.hours_or_units.map(|h| format!("{h:.2}")),
                 rate: Some(format!("{:.2}", entry.entry_value)),
-                amount: format!("{:.2}", amount),
+                amount: format!("{amount:.2}"),
                 is_pretax: false,
                 is_employer: false,
                 gl_account_code: entry.gl_account_code.clone(),
@@ -648,8 +648,8 @@ impl PayrollEngine {
                 element_type: "earning".to_string(),
                 category: "salary".to_string(),
                 hours_or_units: None,
-                rate: Some(format!("{:.2}", salary_monthly)),
-                amount: format!("{:.2}", salary_monthly),
+                rate: Some(format!("{salary_monthly:.2}")),
+                amount: format!("{salary_monthly:.2}"),
                 is_pretax: false,
                 is_employer: false,
                 gl_account_code: None,
@@ -673,7 +673,7 @@ impl PayrollEngine {
                 category: entry.category.clone(),
                 hours_or_units: None,
                 rate: Some(format!("{:.2}", entry.entry_value)),
-                amount: format!("{:.2}", amount),
+                amount: format!("{amount:.2}"),
                 is_pretax: true,
                 is_employer: false,
                 gl_account_code: entry.gl_account_code.clone(),
@@ -692,8 +692,8 @@ impl PayrollEngine {
                     element_type: "deduction".to_string(),
                     category: entry.category.clone(),
                     hours_or_units: None,
-                    rate: Some(format!("{:.2}", rate)),
-                    amount: format!("{:.2}", emp_amount),
+                    rate: Some(format!("{rate:.2}")),
+                    amount: format!("{emp_amount:.2}"),
                     is_pretax: false,
                     is_employer: true,
                     gl_account_code: entry.gl_account_code.clone(),
@@ -725,7 +725,7 @@ impl PayrollEngine {
                 category: "tax".to_string(),
                 hours_or_units: None,
                 rate: Some(format!("{:.2}", entry.entry_value)),
-                amount: format!("{:.2}", amount),
+                amount: format!("{amount:.2}"),
                 is_pretax: false,
                 is_employer: false,
                 gl_account_code: entry.gl_account_code.clone(),
@@ -744,8 +744,8 @@ impl PayrollEngine {
                     element_type: "deduction".to_string(),
                     category: "tax".to_string(),
                     hours_or_units: None,
-                    rate: Some(format!("{:.2}", rate)),
-                    amount: format!("{:.2}", emp_amount),
+                    rate: Some(format!("{rate:.2}")),
+                    amount: format!("{emp_amount:.2}"),
                     is_pretax: false,
                     is_employer: true,
                     gl_account_code: None,
@@ -770,7 +770,7 @@ impl PayrollEngine {
                 category: entry.category.clone(),
                 hours_or_units: None,
                 rate: Some(format!("{:.2}", entry.entry_value)),
-                amount: format!("{:.2}", amount),
+                amount: format!("{amount:.2}"),
                 is_pretax: false,
                 is_employer: false,
                 gl_account_code: entry.gl_account_code.clone(),
@@ -788,8 +788,8 @@ impl PayrollEngine {
                     element_type: "deduction".to_string(),
                     category: entry.category.clone(),
                     hours_or_units: None,
-                    rate: Some(format!("{:.2}", rate)),
-                    amount: format!("{:.2}", emp_amount),
+                    rate: Some(format!("{rate:.2}")),
+                    amount: format!("{emp_amount:.2}"),
                     is_pretax: false,
                     is_employer: true,
                     gl_account_code: None,

@@ -1,6 +1,6 @@
 //! Supplier Scorecard Repository
 //!
-//! PostgreSQL storage for supplier scorecard data.
+//! `PostgreSQL` storage for supplier scorecard data.
 
 use atlas_shared::{
     ScorecardTemplate, ScorecardCategory, SupplierScorecard, ScorecardLine,
@@ -58,12 +58,13 @@ pub struct PostgresScorecardRepository { #[allow(dead_code)]
     pool: PgPool }
 
 impl PostgresScorecardRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self { Self { pool } }
 }
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    format!("{v:.2}")
 }
 
 fn row_to_template(row: &sqlx::postgres::PgRow) -> ScorecardTemplate {
@@ -83,7 +84,7 @@ fn row_to_category(row: &sqlx::postgres::PgRow) -> ScorecardCategory {
         template_id: row.get("template_id"), code: row.get("code"), name: row.get("name"),
         description: row.get("description"), weight: get_num(row, "weight"),
         sort_order: row.get("sort_order"), scoring_model: row.get("scoring_model"),
-        target_score: row.get::<Option<f64>, _>("target_score").map(|v| format!("{:.2}", v)), metadata: row.get("metadata"),
+        target_score: row.get::<Option<f64>, _>("target_score").map(|v| format!("{v:.2}")), metadata: row.get("metadata"),
         created_by: row.get("created_by"), created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
     }
@@ -113,7 +114,7 @@ fn row_to_line(row: &sqlx::postgres::PgRow) -> ScorecardLine {
         scorecard_id: row.get("scorecard_id"), category_id: row.get("category_id"),
         line_number: row.get("line_number"), kpi_name: row.get("kpi_name"),
         kpi_description: row.get("kpi_description"), weight: get_num(row, "weight"),
-        target_value: row.get::<Option<f64>, _>("target_value").map(|v| format!("{:.2}", v)), actual_value: row.get::<Option<f64>, _>("actual_value").map(|v| format!("{:.2}", v)),
+        target_value: row.get::<Option<f64>, _>("target_value").map(|v| format!("{v:.2}")), actual_value: row.get::<Option<f64>, _>("actual_value").map(|v| format!("{v:.2}")),
         score: get_num(row, "score"), weighted_score: get_num(row, "weighted_score"),
         evidence: row.get("evidence"), notes: row.get("notes"),
         metadata: row.get("metadata"), created_at: row.get("created_at"),
@@ -128,8 +129,8 @@ fn row_to_review(row: &sqlx::postgres::PgRow) -> SupplierPerformanceReview {
         supplier_name: row.get("supplier_name"), scorecard_id: row.get("scorecard_id"),
         review_type: row.get("review_type"), review_period: row.get("review_period"),
         period_start: row.get("period_start"), period_end: row.get("period_end"),
-        previous_score: row.get::<Option<f64>, _>("previous_score").map(|v| format!("{:.2}", v)), current_score: row.get::<Option<f64>, _>("current_score").map(|v| format!("{:.2}", v)),
-        score_change: row.get::<Option<f64>, _>("score_change").map(|v| format!("{:.2}", v)), rating: row.get("rating"),
+        previous_score: row.get::<Option<f64>, _>("previous_score").map(|v| format!("{v:.2}")), current_score: row.get::<Option<f64>, _>("current_score").map(|v| format!("{v:.2}")),
+        score_change: row.get::<Option<f64>, _>("score_change").map(|v| format!("{v:.2}")), rating: row.get("rating"),
         strengths: row.get("strengths"), improvement_areas: row.get("improvement_areas"),
         action_items: row.get("action_items"), follow_up_date: row.get("follow_up_date"),
         status: row.get("status"), reviewer_id: row.get("reviewer_id"),

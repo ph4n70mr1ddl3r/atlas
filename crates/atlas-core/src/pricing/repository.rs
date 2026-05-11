@@ -1,6 +1,6 @@
 //! Advanced Pricing Repository
 //!
-//! PostgreSQL storage for price lists, price list lines, price tiers,
+//! `PostgreSQL` storage for price lists, price list lines, price tiers,
 //! discount rules, charge definitions, pricing strategies, and calculation logs.
 
 use atlas_shared::{
@@ -176,13 +176,14 @@ pub trait PricingRepository: Send + Sync {
     async fn list_calculation_logs(&self, org_id: Uuid, entity_type: Option<&str>, entity_id: Option<Uuid>) -> AtlasResult<Vec<PriceCalculationLog>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresPricingRepository {
     pool: PgPool,
 }
 
 impl PostgresPricingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -395,7 +396,7 @@ impl PricingRepository for PostgresPricingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PriceList> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.price_lists
                 (organization_id, code, name, description, currency_code,
                  list_type, pricing_basis, effective_from, effective_to, created_by)
@@ -405,7 +406,7 @@ impl PricingRepository for PostgresPricingRepository {
                     list_type = $6, pricing_basis = $7,
                     effective_from = $8, effective_to = $9, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(currency_code)
         .bind(list_type).bind(pricing_basis)
@@ -512,7 +513,7 @@ impl PricingRepository for PostgresPricingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PriceListLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.price_list_lines
                 (organization_id, price_list_id, line_number, item_id, item_code,
                  item_description, pricing_unit_of_measure, list_price, unit_price,
@@ -522,7 +523,7 @@ impl PricingRepository for PostgresPricingRepository {
                     $8::numeric, $9::numeric, $10::numeric, $11::numeric,
                     $12::numeric, $13::numeric, $14, $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(price_list_id).bind(line_number)
         .bind(item_id).bind(item_code).bind(item_description)
@@ -597,13 +598,13 @@ impl PricingRepository for PostgresPricingRepository {
         price_type: &str,
     ) -> AtlasResult<PriceTier> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.price_tiers
                 (organization_id, price_list_line_id, tier_number,
                  from_quantity, to_quantity, price, discount_percent, price_type)
             VALUES ($1, $2, $3, $4::numeric, $5::numeric, $6::numeric, $7::numeric, $8)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(price_list_line_id).bind(tier_number)
         .bind(from_quantity).bind(to_quantity).bind(price)
@@ -658,7 +659,7 @@ impl PricingRepository for PostgresPricingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DiscountRule> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.discount_rules
                 (organization_id, code, name, description, discount_type,
                  discount_value, application_method, stacking_rule, priority,
@@ -671,7 +672,7 @@ impl PricingRepository for PostgresPricingRepository {
                     effective_from = $11, effective_to = $12,
                     max_usage = $13, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(discount_type).bind(discount_value)
@@ -769,7 +770,7 @@ impl PricingRepository for PostgresPricingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ChargeDefinition> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.charge_definitions
                 (organization_id, code, name, description, charge_type,
                  charge_category, calculation_method, charge_amount, charge_percent,
@@ -786,7 +787,7 @@ impl PricingRepository for PostgresPricingRepository {
                     taxable = $12, condition = $13,
                     effective_from = $14, effective_to = $15, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(charge_type).bind(charge_category).bind(calculation_method)
@@ -860,7 +861,7 @@ impl PricingRepository for PostgresPricingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PricingStrategy> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pricing_strategies
                 (organization_id, code, name, description, strategy_type,
                  priority, condition, price_list_id,
@@ -874,7 +875,7 @@ impl PricingRepository for PostgresPricingRepository {
                     markup_percent = $9::numeric, markdown_percent = $10::numeric,
                     effective_from = $11, effective_to = $12, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(strategy_type).bind(priority).bind(condition)
@@ -935,7 +936,7 @@ impl PricingRepository for PostgresPricingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PriceCalculationLog> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.price_calculation_logs
                 (organization_id, entity_type, entity_id, line_id,
                  item_id, item_code, requested_quantity,
@@ -948,7 +949,7 @@ impl PricingRepository for PostgresPricingRepository {
                     $11, $12::numeric, $13,
                     $14, $15, $16, $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(entity_type).bind(entity_id).bind(line_id)
         .bind(item_id).bind(item_code).bind(requested_quantity)

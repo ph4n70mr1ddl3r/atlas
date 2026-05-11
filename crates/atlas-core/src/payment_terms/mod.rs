@@ -92,7 +92,8 @@ pub trait PaymentTermsRepository: Send + Sync {
 #[allow(dead_code)]
 pub struct PostgresPaymentTermsRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresPaymentTermsRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresPaymentTermsRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl PaymentTermsRepository for PostgresPaymentTermsRepository {

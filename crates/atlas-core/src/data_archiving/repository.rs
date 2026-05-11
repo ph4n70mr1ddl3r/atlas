@@ -1,6 +1,6 @@
 //! Data Archiving and Retention Management Repository
 //!
-//! PostgreSQL storage for retention policies, legal holds, archived records,
+//! `PostgreSQL` storage for retention policies, legal holds, archived records,
 //! archive batches, and audit trail.
 
 use atlas_shared::{
@@ -188,13 +188,14 @@ pub trait DataArchivingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<DataArchivingDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresDataArchivingRepository {
     pool: PgPool,
 }
 
 impl PostgresDataArchivingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -335,12 +336,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RetentionPolicy> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.retention_policies
+            r"INSERT INTO _atlas.retention_policies
                 (organization_id, policy_code, name, description,
                  entity_type, retention_days, action_type, purge_after_days,
                  condition_expression, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(policy_code).bind(name).bind(description)
         .bind(entity_type).bind(retention_days).bind(action_type)
@@ -380,11 +381,11 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         entity_type: Option<&str>,
     ) -> AtlasResult<Vec<RetentionPolicy>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.retention_policies
+            r"SELECT * FROM _atlas.retention_policies
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::text IS NULL OR entity_type = $3)
-            ORDER BY policy_code"#,
+            ORDER BY policy_code",
         )
         .bind(org_id).bind(status).bind(entity_type)
         .fetch_all(&self.pool).await
@@ -395,10 +396,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
 
     async fn update_policy_status(&self, id: Uuid, status: &str) -> AtlasResult<RetentionPolicy> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.retention_policies
+            r"UPDATE _atlas.retention_policies
             SET status = $2, updated_at = now()
             WHERE id = $1
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -432,12 +433,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<LegalHold> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.legal_holds
+            r"INSERT INTO _atlas.legal_holds
                 (organization_id, hold_number, name, description,
                  reason, case_reference, authorized_by,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(hold_number).bind(name).bind(description)
         .bind(reason).bind(case_reference).bind(authorized_by)
@@ -476,10 +477,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         status: Option<&str>,
     ) -> AtlasResult<Vec<LegalHold>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.legal_holds
+            r"SELECT * FROM _atlas.legal_holds
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -495,12 +496,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         reason: Option<&str>,
     ) -> AtlasResult<LegalHold> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.legal_holds
+            r"UPDATE _atlas.legal_holds
             SET status = 'released', released_at = now(),
                 released_by = $2, release_reason = $3,
                 updated_at = now()
             WHERE id = $1
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(id).bind(released_by).bind(reason)
         .fetch_one(&self.pool).await
@@ -529,10 +530,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         record_id: Uuid,
     ) -> AtlasResult<LegalHoldItem> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.legal_hold_items
+            r"INSERT INTO _atlas.legal_hold_items
                 (organization_id, legal_hold_id, entity_type, record_id)
             VALUES ($1, $2, $3, $4)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(legal_hold_id).bind(entity_type).bind(record_id)
         .fetch_one(&self.pool).await
@@ -567,12 +568,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         record_id: Uuid,
     ) -> AtlasResult<bool> {
         let row = sqlx::query(
-            r#"SELECT COUNT(*) as cnt FROM _atlas.legal_hold_items lhi
+            r"SELECT COUNT(*) as cnt FROM _atlas.legal_hold_items lhi
             JOIN _atlas.legal_holds lh ON lh.id = lhi.legal_hold_id
             WHERE lhi.organization_id = $1
               AND lhi.entity_type = $2
               AND lhi.record_id = $3
-              AND lh.status = 'active'"#,
+              AND lh.status = 'active'",
         )
         .bind(org_id).bind(entity_type).bind(record_id)
         .fetch_one(&self.pool).await
@@ -599,12 +600,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         archived_by: Option<Uuid>,
     ) -> AtlasResult<ArchivedRecord> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.archived_records
+            r"INSERT INTO _atlas.archived_records
                 (organization_id, entity_type, original_record_id, original_data,
                  retention_policy_id, archive_batch_id,
                  original_created_at, original_updated_at, archived_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(entity_type).bind(original_record_id).bind(original_data)
         .bind(retention_policy_id).bind(archive_batch_id)
@@ -633,11 +634,11 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         record_id: Uuid,
     ) -> AtlasResult<bool> {
         let row = sqlx::query(
-            r#"SELECT COUNT(*) as cnt FROM _atlas.archived_records
+            r"SELECT COUNT(*) as cnt FROM _atlas.archived_records
             WHERE organization_id = $1
               AND entity_type = $2
               AND original_record_id = $3
-              AND status = 'archived'"#,
+              AND status = 'archived'",
         )
         .bind(org_id).bind(entity_type).bind(record_id)
         .fetch_one(&self.pool).await
@@ -656,12 +657,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
     ) -> AtlasResult<Vec<ArchivedRecord>> {
         let limit_val = limit.unwrap_or(100);
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.archived_records
+            r"SELECT * FROM _atlas.archived_records
             WHERE organization_id = $1
               AND ($2::text IS NULL OR entity_type = $2)
               AND ($3::text IS NULL OR status = $3)
             ORDER BY archived_at DESC
-            LIMIT $4"#,
+            LIMIT $4",
         )
         .bind(org_id).bind(entity_type).bind(status).bind(limit_val)
         .fetch_all(&self.pool).await
@@ -676,10 +677,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         restored_by: Option<Uuid>,
     ) -> AtlasResult<ArchivedRecord> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.archived_records
+            r"UPDATE _atlas.archived_records
             SET status = 'restored', restored_at = now(), restored_by = $2
             WHERE id = $1
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(id).bind(restored_by)
         .fetch_one(&self.pool).await
@@ -694,10 +695,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         purged_by: Option<Uuid>,
     ) -> AtlasResult<ArchivedRecord> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.archived_records
+            r"UPDATE _atlas.archived_records
             SET status = 'purged', purged_at = now(), purged_by = $2
             WHERE id = $1
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(id).bind(purged_by)
         .fetch_one(&self.pool).await
@@ -719,11 +720,11 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArchiveBatch> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.archive_batches
+            r"INSERT INTO _atlas.archive_batches
                 (organization_id, batch_number, retention_policy_id,
                  entity_type, created_by)
             VALUES ($1,$2,$3,$4,$5)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(batch_number).bind(retention_policy_id)
         .bind(entity_type).bind(created_by)
@@ -750,10 +751,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         status: Option<&str>,
     ) -> AtlasResult<Vec<ArchiveBatch>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.archive_batches
+            r"SELECT * FROM _atlas.archive_batches
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -765,8 +766,7 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
     async fn update_archive_batch_status(&self, id: Uuid, status: &str) -> AtlasResult<()> {
         let start_col = if status == "in_progress" { ", started_at = now()" } else if status == "completed" { ", completed_at = now()" } else { "" };
         let query = format!(
-            "UPDATE _atlas.archive_batches SET status = $2{}, updated_at = now() WHERE id = $1",
-            start_col
+            "UPDATE _atlas.archive_batches SET status = $2{start_col}, updated_at = now() WHERE id = $1"
         );
         sqlx::query(&query)
             .bind(id).bind(status)
@@ -783,10 +783,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         failed: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.archive_batches
+            r"UPDATE _atlas.archive_batches
             SET total_records = $2, archived_records = $3, failed_records = $4,
                 updated_at = now()
-            WHERE id = $1"#,
+            WHERE id = $1",
         )
         .bind(id).bind(total).bind(archived).bind(failed)
         .execute(&self.pool).await
@@ -806,13 +806,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         let table_name = entity_type;
 
         let query_str = format!(
-            r#"SELECT id, to_jsonb(t) as data, created_at, updated_at
-            FROM {} t
+            r"SELECT id, to_jsonb(t) as data, created_at, updated_at
+            FROM {table_name} t
             WHERE (t.organization_id = $1 OR t.organization_id IS NULL)
               AND t.created_at < $2
             ORDER BY t.created_at ASC
-            LIMIT 1000"#,
-            table_name
+            LIMIT 1000"
         );
 
         let rows = sqlx::query(&query_str)
@@ -850,12 +849,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         performed_by: Option<Uuid>,
     ) -> AtlasResult<ArchiveAudit> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.archive_audit
+            r"INSERT INTO _atlas.archive_audit
                 (organization_id, operation, entity_type, record_id,
                  batch_id, legal_hold_id, retention_policy_id,
                  result, details, performed_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(operation).bind(entity_type).bind(record_id)
         .bind(batch_id).bind(legal_hold_id).bind(retention_policy_id)
@@ -875,12 +874,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
     ) -> AtlasResult<Vec<ArchiveAudit>> {
         let limit_val = limit.unwrap_or(100);
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.archive_audit
+            r"SELECT * FROM _atlas.archive_audit
             WHERE organization_id = $1
               AND ($2::text IS NULL OR operation = $2)
               AND ($3::text IS NULL OR entity_type = $3)
             ORDER BY performed_at DESC
-            LIMIT $4"#,
+            LIMIT $4",
         )
         .bind(org_id).bind(operation).bind(entity_type).bind(limit_val)
         .fetch_all(&self.pool).await
@@ -896,10 +895,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<DataArchivingDashboard> {
         // Policy stats
         let policy_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active
-            FROM _atlas.retention_policies WHERE organization_id = $1"#,
+            FROM _atlas.retention_policies WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -910,10 +909,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
 
         // Legal hold stats
         let hold_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active
-            FROM _atlas.legal_holds WHERE organization_id = $1"#,
+            FROM _atlas.legal_holds WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -924,11 +923,11 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
 
         // Archived record stats
         let archive_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'archived') as archived,
                 COUNT(*) FILTER (WHERE status = 'purged') as purged,
                 COUNT(*) FILTER (WHERE status = 'restored') as restored
-            FROM _atlas.archived_records WHERE organization_id = $1"#,
+            FROM _atlas.archived_records WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -940,10 +939,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
 
         // Policies by entity type
         let et_rows = sqlx::query(
-            r#"SELECT entity_type, COUNT(*) as cnt
+            r"SELECT entity_type, COUNT(*) as cnt
             FROM _atlas.retention_policies
             WHERE organization_id = $1 AND status = 'active'
-            GROUP BY entity_type"#,
+            GROUP BY entity_type",
         )
         .bind(org_id)
         .fetch_all(&self.pool).await

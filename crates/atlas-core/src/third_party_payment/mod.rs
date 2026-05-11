@@ -30,9 +30,9 @@ pub struct ThirdPartyPayment {
     pub id: Uuid,
     pub organization_id: Uuid,
     pub payment_number: String,
-    /// 'garnishment', 'tax_levy', 'insurance', 'court_order', 'custom'
+    /// 'garnishment', '`tax_levy`', 'insurance', '`court_order`', 'custom'
     pub payment_type: String,
-    /// 'draft', 'submitted', 'approved', 'paid', 'on_hold', 'cancelled', 'rejected'
+    /// 'draft', 'submitted', 'approved', 'paid', '`on_hold`', 'cancelled', 'rejected'
     pub status: String,
     /// The entity on whose behalf the payment is made (supplier or employee)
     pub source_entity_type: String,
@@ -169,10 +169,11 @@ pub trait ThirdPartyPaymentRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ThirdPartyPaymentDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresThirdPartyPaymentRepository { #[allow(dead_code)] pool: PgPool }
-impl PostgresThirdPartyPaymentRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresThirdPartyPaymentRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl ThirdPartyPaymentRepository for PostgresThirdPartyPaymentRepository {

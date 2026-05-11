@@ -1,6 +1,6 @@
 //! Approval Authority Limits Repository
 //!
-//! PostgreSQL storage for approval authority limits and check audit trail.
+//! `PostgreSQL` storage for approval authority limits and check audit trail.
 
 use atlas_shared::{
     ApprovalAuthorityLimit, AuthorityCheckAudit,
@@ -91,13 +91,14 @@ pub trait ApprovalAuthorityRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ApprovalAuthorityDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresApprovalAuthorityRepository {
     pool: PgPool,
 }
 
 impl PostgresApprovalAuthorityRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -166,14 +167,14 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApprovalAuthorityLimit> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.approval_authority_limits
+            r"INSERT INTO _atlas.approval_authority_limits
                 (organization_id, limit_code, name, description,
                  owner_type, user_id, role_name, document_type,
                  approval_limit_amount, currency_code,
                  business_unit_id, cost_center,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(limit_code).bind(name).bind(description)
         .bind(owner_type).bind(user_id).bind(role_name)
@@ -218,14 +219,14 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
         role_name: Option<&str>,
     ) -> AtlasResult<Vec<ApprovalAuthorityLimit>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.approval_authority_limits
+            r"SELECT * FROM _atlas.approval_authority_limits
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::text IS NULL OR owner_type = $3)
               AND ($4::text IS NULL OR document_type = $4)
               AND ($5::uuid IS NULL OR user_id = $5)
               AND ($6::text IS NULL OR role_name = $6)
-            ORDER BY limit_code"#,
+            ORDER BY limit_code",
         )
         .bind(org_id).bind(status).bind(owner_type)
         .bind(document_type).bind(user_id).bind(role_name)
@@ -237,10 +238,10 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
 
     async fn update_limit_status(&self, id: Uuid, status: &str) -> AtlasResult<ApprovalAuthorityLimit> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.approval_authority_limits
+            r"UPDATE _atlas.approval_authority_limits
             SET status = $2, updated_at = now()
             WHERE id = $1
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -270,7 +271,7 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
         // Fetch limits matching the owner and document type.
         // BU-scoped limits are preferred; global limits (no BU) are fallback.
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.approval_authority_limits
+            r"SELECT * FROM _atlas.approval_authority_limits
             WHERE organization_id = $1
               AND owner_type = $2
               AND (
@@ -287,7 +288,7 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
                   cost_center IS NULL
                   OR ($7::text IS NOT NULL AND cost_center = $7)
               )
-            ORDER BY approval_limit_amount DESC"#,
+            ORDER BY approval_limit_amount DESC",
         )
         .bind(org_id).bind(owner_type)
         .bind(user_id).bind(role_name)
@@ -312,12 +313,12 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
         reason: Option<&str>,
     ) -> AtlasResult<AuthorityCheckAudit> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.approval_authority_check_audit
+            r"INSERT INTO _atlas.approval_authority_check_audit
                 (organization_id, limit_id, checked_user_id, checked_role,
                  document_type, document_id, requested_amount,
                  applicable_limit, result, reason)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(limit_id).bind(checked_user_id).bind(checked_role)
         .bind(document_type).bind(document_id).bind(requested_amount)
@@ -338,13 +339,13 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
     ) -> AtlasResult<Vec<AuthorityCheckAudit>> {
         let limit_val = limit.unwrap_or(100);
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.approval_authority_check_audit
+            r"SELECT * FROM _atlas.approval_authority_check_audit
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR checked_user_id = $2)
               AND ($3::text IS NULL OR document_type = $3)
               AND ($4::text IS NULL OR result = $4)
             ORDER BY created_at DESC
-            LIMIT $5"#,
+            LIMIT $5",
         )
         .bind(org_id).bind(user_id).bind(document_type).bind(result)
         .bind(limit_val)
@@ -356,12 +357,12 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ApprovalAuthorityDashboard> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active,
                 COUNT(*) FILTER (WHERE owner_type = 'user') as user_limits,
                 COUNT(*) FILTER (WHERE owner_type = 'role') as role_limits
-            FROM _atlas.approval_authority_limits WHERE organization_id = $1"#,
+            FROM _atlas.approval_authority_limits WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -372,10 +373,10 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
 
         // By document type
         let dt_rows = sqlx::query(
-            r#"SELECT document_type, COUNT(*) as cnt
+            r"SELECT document_type, COUNT(*) as cnt
             FROM _atlas.approval_authority_limits
             WHERE organization_id = $1 AND status = 'active'
-            GROUP BY document_type"#,
+            GROUP BY document_type",
         )
         .bind(org_id)
         .fetch_all(&self.pool).await
@@ -390,10 +391,10 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
 
         // By owner type
         let ot_rows = sqlx::query(
-            r#"SELECT owner_type, COUNT(*) as cnt
+            r"SELECT owner_type, COUNT(*) as cnt
             FROM _atlas.approval_authority_limits
             WHERE organization_id = $1 AND status = 'active'
-            GROUP BY owner_type"#,
+            GROUP BY owner_type",
         )
         .bind(org_id)
         .fetch_all(&self.pool).await
@@ -408,11 +409,11 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
 
         // Check audit stats
         let audit_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total_checks,
                 COUNT(*) FILTER (WHERE result = 'approved') as approved_checks,
                 COUNT(*) FILTER (WHERE result = 'denied') as denied_checks
-            FROM _atlas.approval_authority_check_audit WHERE organization_id = $1"#,
+            FROM _atlas.approval_authority_check_audit WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -424,9 +425,9 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
 
         // Recent checks
         let recent_rows = sqlx::query(
-            r#"SELECT * FROM _atlas.approval_authority_check_audit
+            r"SELECT * FROM _atlas.approval_authority_check_audit
             WHERE organization_id = $1
-            ORDER BY created_at DESC LIMIT 10"#,
+            ORDER BY created_at DESC LIMIT 10",
         )
         .bind(org_id)
         .fetch_all(&self.pool).await

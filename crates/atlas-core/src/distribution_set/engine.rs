@@ -10,7 +10,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Payables > Setup > Distribution Sets
 
-use super::*;
+use super::{DistributionSetRepository, AtlasResult, DistributionSet, DistributionSetLine, DistributionSetUsage, DistributionSetDashboard};
 use atlas_shared::AtlasError;
 use std::sync::Arc;
 use tracing::info;
@@ -74,7 +74,7 @@ impl DistributionSetEngine {
         // Check for duplicate code
         if let Some(_existing) = self.repository.get_set_by_code(org_id, set_code).await? {
             return Err(AtlasError::Conflict(format!(
-                "Distribution set code '{}' already exists", set_code
+                "Distribution set code '{set_code}' already exists"
             )));
         }
 
@@ -125,8 +125,7 @@ impl DistributionSetEngine {
                 .sum();
             if (total_pct - 100.0).abs() > 0.01 {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Percentage-type set must have lines summing to 100%. Current total: {:.2}%",
-                    total_pct
+                    "Percentage-type set must have lines summing to 100%. Current total: {total_pct:.2}%"
                 )));
             }
         }
@@ -221,8 +220,7 @@ impl DistributionSetEngine {
             let new_total = current_total + pct;
             if new_total > 100.01 {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Adding {:.2}% would exceed 100%. Current total: {:.2}%",
-                    pct, current_total
+                    "Adding {pct:.2}% would exceed 100%. Current total: {current_total:.2}%"
                 )));
             }
         }
@@ -254,7 +252,7 @@ impl DistributionSetEngine {
             .sum();
         self.repository.update_set_total_percentage(
             distribution_set_id,
-            &format!("{:.4}", total_pct),
+            &format!("{total_pct:.4}"),
         ).await?;
 
         Ok(line)
@@ -279,7 +277,7 @@ impl DistributionSetEngine {
             .sum();
         self.repository.update_set_total_percentage(
             line.distribution_set_id,
-            &format!("{:.4}", total_pct),
+            &format!("{total_pct:.4}"),
         ).await?;
 
         Ok(())
@@ -371,6 +369,7 @@ impl DistributionSetEngine {
     // ========================================================================
 
     /// Calculate distributed amounts from percentage lines
+    #[must_use] 
     pub fn calculate_distribution_amounts(
         total_amount: f64,
         lines: &[(Uuid, f64)], // (line_id, percentage)

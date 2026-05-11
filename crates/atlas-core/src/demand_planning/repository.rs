@@ -1,6 +1,6 @@
 //! Demand Planning Repository
 //!
-//! PostgreSQL storage for demand planning data.
+//! `PostgreSQL` storage for demand planning data.
 
 use atlas_shared::{
     DemandForecastMethod, DemandSchedule, DemandScheduleLine,
@@ -141,13 +141,14 @@ pub trait DemandPlanningRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<DemandPlanningDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresDemandPlanningRepository {
     pool: PgPool,
 }
 
 impl PostgresDemandPlanningRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -169,9 +170,9 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DemandForecastMethod> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.demand_forecast_methods
+            r"INSERT INTO _atlas.demand_forecast_methods
                 (organization_id, code, name, description, method_type, parameters, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(method_type).bind(&parameters).bind(created_by)
@@ -236,11 +237,11 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DemandSchedule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.demand_schedules
+            r"INSERT INTO _atlas.demand_schedules
                 (organization_id, schedule_number, name, description,
                  method_id, method_name, schedule_type, start_date, end_date,
                  currency_code, confidence_level, owner_id, owner_name, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *",
         )
         .bind(org_id).bind(schedule_number).bind(name).bind(description)
         .bind(method_id).bind(method_name).bind(schedule_type)
@@ -292,9 +293,9 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
 
     async fn approve_schedule(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<DemandSchedule> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.demand_schedules
+            r"UPDATE _atlas.demand_schedules
                SET status = 'approved', approved_by = $2, approved_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(approved_by).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -303,7 +304,7 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
 
     async fn update_schedule_totals(&self, id: Uuid) -> AtlasResult<DemandSchedule> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.demand_schedules
+            r"UPDATE _atlas.demand_schedules
                SET total_forecast_quantity = (
                        SELECT COALESCE(SUM(forecast_quantity), 0) FROM _atlas.demand_schedule_lines WHERE schedule_id = $1
                    ),
@@ -311,7 +312,7 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                        SELECT COALESCE(SUM(forecast_value), 0) FROM _atlas.demand_schedule_lines WHERE schedule_id = $1
                    ),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -352,12 +353,12 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         let value = qty * price;
 
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.demand_schedule_lines
+            r"INSERT INTO _atlas.demand_schedule_lines
                 (organization_id, schedule_id, line_number, item_code, item_name,
                  item_category, warehouse_code, region, customer_group,
                  period_start, period_end, forecast_quantity, forecast_value,
                  unit_price, remaining_quantity, confidence_pct, notes)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$12,$15,$16) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$12,$15,$16) RETURNING *",
         )
         .bind(org_id).bind(schedule_id).bind(line_number).bind(item_code)
         .bind(item_name).bind(item_category).bind(warehouse_code)
@@ -414,11 +415,11 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         source_line_id: Option<Uuid>,
     ) -> AtlasResult<DemandHistory> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.demand_history
+            r"INSERT INTO _atlas.demand_history
                 (organization_id, item_code, item_name, warehouse_code, region,
                  customer_group, actual_date, actual_quantity, actual_value,
                  source_type, source_id, source_line_id)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *",
         )
         .bind(org_id).bind(item_code).bind(item_name).bind(warehouse_code)
         .bind(region).bind(customer_group).bind(actual_date)
@@ -477,10 +478,10 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DemandConsumption> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.demand_consumption
+            r"INSERT INTO _atlas.demand_consumption
                 (organization_id, schedule_line_id, history_id,
                  consumed_quantity, consumed_date, source_type, notes, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
         )
         .bind(org_id).bind(schedule_line_id).bind(history_id)
         .bind(consumed_quantity.parse::<f64>().unwrap_or(0.0))
@@ -490,7 +491,7 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
 
         // Update the schedule line consumed/remaining quantities
         sqlx::query(
-            r#"UPDATE _atlas.demand_schedule_lines
+            r"UPDATE _atlas.demand_schedule_lines
                SET consumed_quantity = (
                        SELECT COALESCE(SUM(consumed_quantity), 0) FROM _atlas.demand_consumption WHERE schedule_line_id = $1
                    ),
@@ -498,7 +499,7 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                        SELECT COALESCE(SUM(consumed_quantity), 0) FROM _atlas.demand_consumption WHERE schedule_line_id = $1
                    ),
                    updated_at = now()
-               WHERE id = $1"#,
+               WHERE id = $1",
         )
         .bind(schedule_line_id).execute(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -542,11 +543,11 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         measurement_date: chrono::NaiveDate,
     ) -> AtlasResult<DemandAccuracy> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.demand_accuracy
+            r"INSERT INTO _atlas.demand_accuracy
                 (organization_id, schedule_id, schedule_line_id, item_code,
                  period_start, period_end, forecast_quantity, actual_quantity,
                  absolute_error, absolute_pct_error, bias, measurement_date)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *",
         )
         .bind(org_id).bind(schedule_id).bind(schedule_line_id).bind(item_code)
         .bind(period_start).bind(period_end)
@@ -578,12 +579,12 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         use sqlx::Row;
 
         let sched_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status IN ('approved', 'active')) as active,
                 COALESCE(SUM(total_forecast_quantity), 0) as total_qty,
                 COALESCE(SUM(total_forecast_value), 0) as total_val
-               FROM _atlas.demand_schedules WHERE organization_id = $1"#,
+               FROM _atlas.demand_schedules WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -595,7 +596,7 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let avg_accuracy: f64 = sqlx::query_scalar(
-            r#"SELECT COALESCE(AVG(absolute_pct_error), 0) FROM _atlas.demand_accuracy WHERE organization_id = $1"#,
+            r"SELECT COALESCE(AVG(absolute_pct_error), 0) FROM _atlas.demand_accuracy WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -605,8 +606,8 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
 
         // By status
         let status_rows = sqlx::query(
-            r#"SELECT status, COUNT(*) as cnt FROM _atlas.demand_schedules
-               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC"#,
+            r"SELECT status, COUNT(*) as cnt FROM _atlas.demand_schedules
+               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -620,9 +621,9 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
 
         // Top forecast items
         let top_rows = sqlx::query(
-            r#"SELECT item_code, item_name, SUM(forecast_quantity) as total_qty, SUM(forecast_value) as total_val
+            r"SELECT item_code, item_name, SUM(forecast_quantity) as total_qty, SUM(forecast_value) as total_val
                FROM _atlas.demand_schedule_lines WHERE organization_id = $1
-               GROUP BY item_code, item_name ORDER BY total_qty DESC LIMIT 10"#,
+               GROUP BY item_code, item_name ORDER BY total_qty DESC LIMIT 10",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -638,12 +639,12 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
 
         // Accuracy by method
         let method_rows = sqlx::query(
-            r#"SELECT m.name as method_name, COALESCE(AVG(a.absolute_pct_error), 0) as avg_mape
+            r"SELECT m.name as method_name, COALESCE(AVG(a.absolute_pct_error), 0) as avg_mape
                FROM _atlas.demand_schedules s
                JOIN _atlas.demand_forecast_methods m ON s.method_id = m.id
                LEFT JOIN _atlas.demand_accuracy a ON a.schedule_id = s.id
                WHERE s.organization_id = $1
-               GROUP BY m.name"#,
+               GROUP BY m.name",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -662,7 +663,7 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
             total_forecast_items: item_count as i32,
             total_forecast_quantity: format!("{:.2}", sched_row.get::<f64, _>("total_qty")),
             total_forecast_value: format!("{:.2}", sched_row.get::<f64, _>("total_val")),
-            avg_accuracy_pct: format!("{:.1}", accuracy_pct),
+            avg_accuracy_pct: format!("{accuracy_pct:.1}"),
             schedules_by_status,
             top_forecast_items,
             accuracy_by_method,
@@ -678,7 +679,7 @@ use sqlx::Row;
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    format!("{v:.2}")
 }
 
 fn row_to_method(row: &sqlx::postgres::PgRow) -> DemandForecastMethod {

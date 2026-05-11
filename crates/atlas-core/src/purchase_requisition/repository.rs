@@ -1,7 +1,7 @@
 //! Purchase Requisition Repository
 //!
-//! PostgreSQL storage for purchase requisitions, lines, distributions,
-//! approvals, and AutoCreate links.
+//! `PostgreSQL` storage for purchase requisitions, lines, distributions,
+//! approvals, and `AutoCreate` links.
 
 use atlas_shared::{
     PurchaseRequisition, RequisitionLine, RequisitionDistribution,
@@ -98,13 +98,14 @@ pub trait PurchaseRequisitionRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RequisitionDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresPurchaseRequisitionRepository {
     pool: PgPool,
 }
 
 impl PostgresPurchaseRequisitionRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -269,14 +270,14 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<PurchaseRequisition> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.purchase_requisitions
+            r"INSERT INTO _atlas.purchase_requisitions
                 (organization_id, requisition_number, description, urgency_code,
                  status, requester_id, requester_name, department, justification,
                  budget_code, amount_limit, total_amount, currency_code,
                  charge_account_code, delivery_address, requested_delivery_date,
                  notes, created_by)
             VALUES ($1,$2,$3,$4,'draft',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(requisition_number).bind(description).bind(urgency_code)
         .bind(requester_id).bind(requester_name).bind(department).bind(justification)
@@ -354,7 +355,7 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
         notes: Option<&str>, updated_by: Option<Uuid>,
     ) -> AtlasResult<PurchaseRequisition> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.purchase_requisitions SET
+            r"UPDATE _atlas.purchase_requisitions SET
                 description = COALESCE($2, description),
                 urgency_code = $3,
                 department = COALESCE($4, department),
@@ -367,7 +368,7 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
                 notes = COALESCE($11, notes),
                 updated_by = $12,
                 updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         ).bind(id).bind(description).bind(urgency_code).bind(department)
         .bind(justification).bind(budget_code).bind(total_amount)
         .bind(charge_account_code).bind(delivery_address).bind(requested_delivery_date)
@@ -386,29 +387,29 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
     ) -> AtlasResult<PurchaseRequisition> {
         let row = if status == "approved" {
             sqlx::query(
-                r#"UPDATE _atlas.purchase_requisitions SET status = $2, approved_by = $3, approved_at = now(), updated_at = now()
-                WHERE id = $1 RETURNING *"#,
+                r"UPDATE _atlas.purchase_requisitions SET status = $2, approved_by = $3, approved_at = now(), updated_at = now()
+                WHERE id = $1 RETURNING *",
             ).bind(id).bind(status).bind(approved_by)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else if status == "submitted" {
             sqlx::query(
-                r#"UPDATE _atlas.purchase_requisitions SET status = $2, submitted_at = now(), updated_at = now()
-                WHERE id = $1 RETURNING *"#,
+                r"UPDATE _atlas.purchase_requisitions SET status = $2, submitted_at = now(), updated_at = now()
+                WHERE id = $1 RETURNING *",
             ).bind(id).bind(status)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else if status == "closed" {
             sqlx::query(
-                r#"UPDATE _atlas.purchase_requisitions SET status = $2, closed_at = now(), updated_at = now()
-                WHERE id = $1 RETURNING *"#,
+                r"UPDATE _atlas.purchase_requisitions SET status = $2, closed_at = now(), updated_at = now()
+                WHERE id = $1 RETURNING *",
             ).bind(id).bind(status)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else {
             sqlx::query(
-                r#"UPDATE _atlas.purchase_requisitions SET status = $2, updated_at = now()
-                WHERE id = $1 RETURNING *"#,
+                r"UPDATE _atlas.purchase_requisitions SET status = $2, updated_at = now()
+                WHERE id = $1 RETURNING *",
             ).bind(id).bind(status)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
@@ -451,14 +452,14 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<RequisitionLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.requisition_lines
+            r"INSERT INTO _atlas.requisition_lines
                 (organization_id, requisition_id, line_number,
                  item_code, item_description, category, quantity, unit_of_measure,
                  unit_price, line_amount, currency_code, charge_account_code,
                  requested_delivery_date, supplier_id, supplier_name,
                  status, source_type, source_reference, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'draft',$16,$17,$18,$19)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(requisition_id).bind(line_number)
         .bind(item_code).bind(item_description).bind(category)
@@ -527,12 +528,12 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
         project_code: Option<&str>, cost_center: Option<&str>,
     ) -> AtlasResult<RequisitionDistribution> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.requisition_distributions
+            r"INSERT INTO _atlas.requisition_distributions
                 (organization_id, requisition_id, line_id, distribution_number,
                  charge_account_code, allocation_percentage, amount,
                  project_code, cost_center)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(requisition_id).bind(line_id).bind(distribution_number)
         .bind(charge_account_code).bind(allocation_percentage).bind(amount)
@@ -559,10 +560,10 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
         approver_name: Option<&str>, action: &str, comments: Option<&str>,
     ) -> AtlasResult<RequisitionApproval> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.requisition_approvals
+            r"INSERT INTO _atlas.requisition_approvals
                 (organization_id, requisition_id, approver_id, approver_name, action, comments)
             VALUES ($1,$2,$3,$4,$5,$6)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(requisition_id).bind(approver_id).bind(approver_name)
         .bind(action).bind(comments)
@@ -591,12 +592,12 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutocreateLink> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.autocreate_links
+            r"INSERT INTO _atlas.autocreate_links
                 (organization_id, requisition_id, requisition_line_id,
                  purchase_order_number, supplier_id, supplier_name,
                  quantity_ordered, status, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(requisition_id).bind(requisition_line_id)
         .bind(purchase_order_number).bind(supplier_id).bind(supplier_name)
@@ -628,7 +629,7 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RequisitionDashboardSummary> {
         let req_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft,
                 COUNT(*) FILTER (WHERE status = 'submitted') as submitted,
@@ -636,15 +637,15 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
                 COUNT(*) FILTER (WHERE status = 'rejected') as rejected,
                 COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled,
                 COALESCE(SUM(total_amount::numeric), 0) as total_amount
-            FROM _atlas.purchase_requisitions WHERE organization_id = $1"#
+            FROM _atlas.purchase_requisitions WHERE organization_id = $1"
         ).bind(org_id).fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let auto_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'pending') as pending,
                 COUNT(*) FILTER (WHERE status = 'ordered') as ordered
-            FROM _atlas.autocreate_links WHERE organization_id = $1"#
+            FROM _atlas.autocreate_links WHERE organization_id = $1"
         ).bind(org_id).fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 

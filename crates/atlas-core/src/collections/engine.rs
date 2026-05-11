@@ -178,7 +178,7 @@ impl CollectionsEngine {
     ) -> AtlasResult<CustomerCreditProfile> {
         let profile = self.repository.get_credit_profile(org_id, customer_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile not found for customer {}", customer_id)
+                format!("Credit profile not found for customer {customer_id}")
             ))?;
 
         if profile.credit_hold {
@@ -205,7 +205,7 @@ impl CollectionsEngine {
     ) -> AtlasResult<CustomerCreditProfile> {
         let profile = self.repository.get_credit_profile(org_id, customer_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile not found for customer {}", customer_id)
+                format!("Credit profile not found for customer {customer_id}")
             ))?;
 
         if !profile.credit_hold {
@@ -233,7 +233,7 @@ impl CollectionsEngine {
     ) -> AtlasResult<bool> {
         let profile = self.repository.get_credit_profile(org_id, customer_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile not found for customer {}", customer_id)
+                format!("Credit profile not found for customer {customer_id}")
             ))?;
 
         if profile.credit_hold {
@@ -333,7 +333,7 @@ impl CollectionsEngine {
     ) -> AtlasResult<CollectionCase> {
         let case = self.repository.get_case(case_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Collection case {} not found", case_id)
+                format!("Collection case {case_id} not found")
             ))?;
 
         if case.status != "open" && case.status != "in_progress" {
@@ -369,7 +369,7 @@ impl CollectionsEngine {
     ) -> AtlasResult<CollectionCase> {
         let case = self.repository.get_case(case_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Collection case {} not found", case_id)
+                format!("Collection case {case_id} not found")
             ))?;
 
         if case.status == "closed" || case.status == "resolved" {
@@ -528,7 +528,7 @@ impl CollectionsEngine {
     pub async fn keep_promise(&self, promise_id: Uuid, paid_amount: &str) -> AtlasResult<PromiseToPay> {
         let ptp = self.repository.get_promise_to_pay(promise_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Promise to pay {} not found", promise_id)
+                format!("Promise to pay {promise_id} not found")
             ))?;
 
         if ptp.status != "pending" && ptp.status != "partially_kept" {
@@ -553,8 +553,8 @@ impl CollectionsEngine {
         self.repository.update_promise_status(
             promise_id,
             new_status,
-            Some(&format!("{:.2}", total_paid)),
-            Some(&format!("{:.2}", remaining)),
+            Some(&format!("{total_paid:.2}")),
+            Some(&format!("{remaining:.2}")),
             None,
             None,
         ).await
@@ -564,7 +564,7 @@ impl CollectionsEngine {
     pub async fn break_promise(&self, promise_id: Uuid, reason: Option<&str>) -> AtlasResult<PromiseToPay> {
         let ptp = self.repository.get_promise_to_pay(promise_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Promise to pay {} not found", promise_id)
+                format!("Promise to pay {promise_id} not found")
             ))?;
 
         if ptp.status != "pending" && ptp.status != "partially_kept" {
@@ -656,7 +656,7 @@ impl CollectionsEngine {
     pub async fn submit_write_off(&self, request_id: Uuid, submitted_by: Uuid) -> AtlasResult<WriteOffRequest> {
         let wo = self.repository.get_write_off_request(request_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Write-off request {} not found", request_id)
+                format!("Write-off request {request_id} not found")
             ))?;
 
         if wo.status != "draft" {
@@ -673,7 +673,7 @@ impl CollectionsEngine {
     pub async fn approve_write_off(&self, request_id: Uuid, approved_by: Uuid) -> AtlasResult<WriteOffRequest> {
         let wo = self.repository.get_write_off_request(request_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Write-off request {} not found", request_id)
+                format!("Write-off request {request_id} not found")
             ))?;
 
         if wo.status != "submitted" {
@@ -690,7 +690,7 @@ impl CollectionsEngine {
     pub async fn reject_write_off(&self, request_id: Uuid, reason: &str) -> AtlasResult<WriteOffRequest> {
         let wo = self.repository.get_write_off_request(request_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Write-off request {} not found", request_id)
+                format!("Write-off request {request_id} not found")
             ))?;
 
         if wo.status != "submitted" {
@@ -709,6 +709,7 @@ impl CollectionsEngine {
 
     /// Calculate aging summary across all customers for a given date
     /// This returns a summary report combining all individual snapshots
+    #[must_use] 
     pub fn calculate_aging_summary(
         &self,
         snapshots: &[atlas_shared::ReceivablesAgingSnapshot],
@@ -756,17 +757,17 @@ impl CollectionsEngine {
         AgingSummary {
             organization_id: org_id,
             as_of_date,
-            total_outstanding: format!("{:.2}", total_outstanding),
-            total_overdue: format!("{:.2}", total_overdue),
-            aging_current: format!("{:.2}", aging_current),
-            aging_1_30: format!("{:.2}", aging_1_30),
-            aging_31_60: format!("{:.2}", aging_31_60),
-            aging_61_90: format!("{:.2}", aging_61_90),
-            aging_91_120: format!("{:.2}", aging_91_120),
-            aging_121_plus: format!("{:.2}", aging_121_plus),
+            total_outstanding: format!("{total_outstanding:.2}"),
+            total_overdue: format!("{total_overdue:.2}"),
+            aging_current: format!("{aging_current:.2}"),
+            aging_1_30: format!("{aging_1_30:.2}"),
+            aging_31_60: format!("{aging_31_60:.2}"),
+            aging_61_90: format!("{aging_61_90:.2}"),
+            aging_91_120: format!("{aging_91_120:.2}"),
+            aging_121_plus: format!("{aging_121_plus:.2}"),
             customer_count: snapshots.len() as i32,
             overdue_customer_count: overdue_count,
-            weighted_average_days_overdue: format!("{:.1}", weighted_days),
+            weighted_average_days_overdue: format!("{weighted_days:.1}"),
         }
     }
 }

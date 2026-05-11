@@ -1,6 +1,6 @@
 //! Cash Management Repository
 //!
-//! PostgreSQL storage for cash positions, forecast templates, forecast sources,
+//! `PostgreSQL` storage for cash positions, forecast templates, forecast sources,
 //! cash forecasts, and forecast lines.
 
 use atlas_shared::{
@@ -171,13 +171,14 @@ pub trait CashManagementRepository: Send + Sync {
     ) -> AtlasResult<Vec<CashForecastLine>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCashManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresCashManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -341,7 +342,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CashPosition> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.cash_positions
                 (organization_id, bank_account_id, account_number, account_name,
                  currency_code, book_balance, available_balance,
@@ -363,7 +364,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
                     projected_inflows = $14::numeric, projected_outflows = $15::numeric,
                     projected_net = $16::numeric, is_reconciled = $17, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(bank_account_id).bind(account_number).bind(account_name)
         .bind(currency_code).bind(book_balance).bind(available_balance)
@@ -409,12 +410,12 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         position_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Vec<CashPosition>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.cash_positions
             WHERE organization_id = $1
               AND ($2::date IS NULL OR position_date = $2)
             ORDER BY position_date DESC, account_name
-            "#,
+            ",
         )
         .bind(org_id).bind(position_date)
         .fetch_all(&self.pool)
@@ -441,7 +442,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CashForecastTemplate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.cash_forecast_templates
                 (organization_id, code, name, description, bucket_type,
                  number_of_periods, start_offset_days, is_default, columns, created_by)
@@ -451,7 +452,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
                     number_of_periods = $6, start_offset_days = $7,
                     is_default = $8, columns = $9, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(bucket_type)
         .bind(number_of_periods).bind(start_offset_days).bind(is_default)
@@ -526,7 +527,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CashForecastSource> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.cash_forecast_sources
                 (organization_id, template_id, code, name, description,
                  source_type, cash_flow_direction, is_actual, display_order,
@@ -538,7 +539,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
                     lead_time_days = $10, payment_terms_reference = $11,
                     account_code_filter = $12, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(template_id).bind(code).bind(name).bind(description)
         .bind(source_type).bind(cash_flow_direction).bind(is_actual).bind(display_order)
@@ -610,7 +611,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CashForecast> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.cash_forecasts
                 (organization_id, forecast_number, template_id, template_name,
                  name, description, start_date, end_date,
@@ -622,7 +623,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
                     $13::numeric, $14::numeric, $15::numeric,
                     $16, $17, 'generated', true, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(forecast_number).bind(template_id).bind(template_name)
         .bind(name).bind(description).bind(start_date).bind(end_date)
@@ -663,13 +664,13 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         status: Option<&str>,
     ) -> AtlasResult<Vec<CashForecast>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.cash_forecasts
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR template_id = $2)
               AND ($3::text IS NULL OR status = $3)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(template_id).bind(status)
         .fetch_all(&self.pool)
@@ -685,7 +686,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         approved_by: Option<Uuid>,
     ) -> AtlasResult<CashForecast> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.cash_forecasts
             SET status = $2,
                 approved_by = CASE WHEN $2 = 'approved' THEN $3 ELSE approved_by END,
@@ -693,7 +694,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool)
@@ -704,12 +705,12 @@ impl CashManagementRepository for PostgresCashManagementRepository {
 
     async fn supersede_previous_forecasts(&self, template_id: Uuid, new_forecast_id: Uuid) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.cash_forecasts
             SET is_latest = false, status = CASE WHEN status = 'generated' THEN 'superseded' ELSE status END,
                 updated_at = now()
             WHERE template_id = $1 AND id != $2 AND is_latest = true
-            "#,
+            ",
         )
         .bind(template_id).bind(new_forecast_id)
         .execute(&self.pool)
@@ -742,7 +743,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CashForecastLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.cash_forecast_lines
                 (organization_id, forecast_id, source_id, source_name, source_type,
                  cash_flow_direction, period_start_date, period_end_date,
@@ -751,7 +752,7 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11::numeric, $12::numeric, $13, $14, $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(forecast_id).bind(source_id).bind(source_name).bind(source_type)
         .bind(cash_flow_direction).bind(period_start_date).bind(period_end_date)
@@ -782,13 +783,13 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         period_end_date: chrono::NaiveDate,
     ) -> AtlasResult<Vec<CashForecastLine>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.cash_forecast_lines
             WHERE forecast_id = $1
               AND period_start_date >= $2
               AND period_end_date <= $3
             ORDER BY period_sequence
-            "#,
+            ",
         )
         .bind(forecast_id).bind(period_start_date).bind(period_end_date)
         .fetch_all(&self.pool)

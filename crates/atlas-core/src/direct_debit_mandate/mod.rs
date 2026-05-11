@@ -158,10 +158,11 @@ pub trait DirectDebitMandateRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<DirectDebitDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresDirectDebitMandateRepository { #[allow(dead_code)] pool: PgPool }
-impl PostgresDirectDebitMandateRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresDirectDebitMandateRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl DirectDebitMandateRepository for PostgresDirectDebitMandateRepository {

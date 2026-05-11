@@ -1,6 +1,6 @@
 //! Descriptive Flexfield Repository
 //!
-//! PostgreSQL storage for flexfields, contexts, segments, value sets,
+//! `PostgreSQL` storage for flexfields, contexts, segments, value sets,
 //! value set entries, and flexfield data.
 
 use atlas_shared::{
@@ -166,13 +166,14 @@ pub trait DescriptiveFlexfieldRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::FlexfieldDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresDescriptiveFlexfieldRepository {
     pool: PgPool,
 }
 
 impl PostgresDescriptiveFlexfieldRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -303,11 +304,11 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DescriptiveFlexfield> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.dff_flexfields
+            r"INSERT INTO _atlas.dff_flexfields
                 (organization_id, code, name, description, entity_name,
                  context_column, default_context_code, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(entity_name).bind(context_column).bind(default_context_code)
@@ -386,10 +387,10 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<FlexfieldContext> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.dff_contexts
+            r"INSERT INTO _atlas.dff_contexts
                 (organization_id, flexfield_id, code, name, description, is_global, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(flexfield_id).bind(code).bind(name)
         .bind(description).bind(is_global).bind(created_by)
@@ -457,12 +458,12 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<FlexfieldSegment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.dff_segments
+            r"INSERT INTO _atlas.dff_segments
                 (organization_id, flexfield_id, context_id, segment_code, name, description,
                  display_order, column_name, data_type, is_required, is_read_only, is_visible,
                  default_value, value_set_id, value_set_code, help_text, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(flexfield_id).bind(context_id)
         .bind(segment_code).bind(name).bind(description)
@@ -527,7 +528,7 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         value_set_code: Option<&str>,
     ) -> AtlasResult<FlexfieldSegment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.dff_segments SET
+            r"UPDATE _atlas.dff_segments SET
                 name = COALESCE($2, name),
                 description = COALESCE($3, description),
                 display_order = COALESCE($4, display_order),
@@ -538,7 +539,7 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
                 value_set_id = COALESCE($9, value_set_id),
                 value_set_code = COALESCE($10, value_set_code),
                 updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(name).bind(description).bind(display_order)
@@ -570,12 +571,12 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<FlexfieldValueSet> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.dff_value_sets
+            r"INSERT INTO _atlas.dff_value_sets
                 (organization_id, code, name, description, validation_type, data_type,
                  max_length, min_length, format_mask, table_validation,
                  independent_values, parent_value_set_code, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(validation_type).bind(data_type)
@@ -639,12 +640,12 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         sort_order: i32, created_by: Option<Uuid>,
     ) -> AtlasResult<FlexfieldValueSetEntry> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.dff_value_set_entries
+            r"INSERT INTO _atlas.dff_value_set_entries
                 (organization_id, value_set_id, value, meaning, description,
                  parent_value, is_enabled, effective_from, effective_to,
                  sort_order, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(value_set_id).bind(value)
         .bind(meaning).bind(description)
@@ -658,11 +659,11 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
 
     async fn list_value_set_entries(&self, value_set_id: Uuid, parent_value: Option<&str>) -> AtlasResult<Vec<FlexfieldValueSetEntry>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.dff_value_set_entries
+            r"SELECT * FROM _atlas.dff_value_set_entries
             WHERE value_set_id=$1
               AND ($2::text IS NULL OR parent_value=$2)
               AND is_enabled = true
-            ORDER BY sort_order, value"#,
+            ORDER BY sort_order, value",
         )
         .bind(value_set_id).bind(parent_value)
         .fetch_all(&self.pool).await
@@ -679,13 +680,13 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
 
     async fn validate_value(&self, value_set_id: Uuid, value: &str, parent_value: Option<&str>) -> AtlasResult<bool> {
         let row = sqlx::query(
-            r#"SELECT COUNT(*) as cnt FROM _atlas.dff_value_set_entries
+            r"SELECT COUNT(*) as cnt FROM _atlas.dff_value_set_entries
             WHERE value_set_id=$1
               AND value=$2
               AND is_enabled = true
               AND ($3::text IS NULL OR parent_value=$3)
               AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
-              AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)"#,
+              AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)",
         )
         .bind(value_set_id).bind(value).bind(parent_value)
         .fetch_one(&self.pool).await
@@ -706,8 +707,8 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
     ) -> AtlasResult<FlexfieldData> {
         // Upsert: if data exists for this entity+context, update it
         let existing = sqlx::query(
-            r#"SELECT id FROM _atlas.dff_data
-            WHERE entity_name=$1 AND entity_id=$2 AND context_code=$3"#,
+            r"SELECT id FROM _atlas.dff_data
+            WHERE entity_name=$1 AND entity_id=$2 AND context_code=$3",
         )
         .bind(entity_name).bind(entity_id).bind(context_code)
         .fetch_optional(&self.pool).await
@@ -715,10 +716,10 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
 
         if existing.is_some() {
             let row = sqlx::query(
-                r#"UPDATE _atlas.dff_data
+                r"UPDATE _atlas.dff_data
                 SET segment_values = $1, updated_at = now()
                 WHERE entity_name = $2 AND entity_id = $3 AND context_code = $4
-                RETURNING *"#,
+                RETURNING *",
             )
             .bind(&segment_values).bind(entity_name).bind(entity_id).bind(context_code)
             .fetch_one(&self.pool).await
@@ -726,11 +727,11 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
             Ok(row_to_flexfield_data(&row))
         } else {
             let row = sqlx::query(
-                r#"INSERT INTO _atlas.dff_data
+                r"INSERT INTO _atlas.dff_data
                     (organization_id, flexfield_id, entity_name, entity_id,
                      context_code, segment_values, created_by)
                 VALUES ($1,$2,$3,$4,$5,$6,$7)
-                RETURNING *"#,
+                RETURNING *",
             )
             .bind(org_id).bind(flexfield_id).bind(entity_name)
             .bind(entity_id).bind(context_code).bind(&segment_values)
@@ -783,10 +784,10 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::FlexfieldDashboardSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE is_active) as active
-            FROM _atlas.dff_flexfields WHERE organization_id = $1"#,
+            FROM _atlas.dff_flexfields WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -814,8 +815,8 @@ impl DescriptiveFlexfieldRepository for PostgresDescriptiveFlexfieldRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let entity_rows = sqlx::query(
-            r#"SELECT entity_name, COUNT(*) as cnt FROM _atlas.dff_flexfields
-            WHERE organization_id = $1 GROUP BY entity_name ORDER BY entity_name"#
+            r"SELECT entity_name, COUNT(*) as cnt FROM _atlas.dff_flexfields
+            WHERE organization_id = $1 GROUP BY entity_name ORDER BY entity_name"
         )
         .bind(org_id)
         .fetch_all(&self.pool).await

@@ -35,20 +35,20 @@ pub enum FilterExpression {
     },
     /// All children must match
     And {
-        conditions: Vec<FilterExpression>,
+        conditions: Vec<Self>,
     },
     /// Any child must match
     Or {
-        conditions: Vec<FilterExpression>,
+        conditions: Vec<Self>,
     },
 }
 
 impl FilterExpression {
     /// Convert the filter expression tree into a SQL WHERE clause fragment.
-    /// Returns (sql_fragment, bind_params_as_text).
+    /// Returns (`sql_fragment`, `bind_params_as_text`).
     fn to_sql(&self, param_idx: &mut usize) -> (String, Vec<Option<String>>) {
         match self {
-            FilterExpression::Condition { field, operator, value } => {
+            Self::Condition { field, operator, value } => {
                 let Ok(safe_field) = sanitize_identifier(field) else {
                     return ("1=0".to_string(), vec![]);
                 };
@@ -149,7 +149,7 @@ impl FilterExpression {
                                 let p1 = *param_idx;
                                 *param_idx += 1;
                                 let p2 = *param_idx;
-                                (format!("\"{}\" BETWEEN ${}::text AND ${}::text", safe_field, p1, p2),
+                                (format!("\"{safe_field}\" BETWEEN ${p1}::text AND ${p2}::text"),
                                  vec![json_val_to_text(&arr[0]), json_val_to_text(&arr[1])])
                             } else {
                                 ("1=0".to_string(), vec![])
@@ -161,7 +161,7 @@ impl FilterExpression {
                     _ => ("1=1".to_string(), vec![]),
                 }
             }
-            FilterExpression::And { conditions } => {
+            Self::And { conditions } => {
                 let mut parts = Vec::new();
                 let mut all_params = Vec::new();
                 for cond in conditions {
@@ -180,7 +180,7 @@ impl FilterExpression {
                     (format!("({})", parts.join(" AND ")), all_params)
                 }
             }
-            FilterExpression::Or { conditions } => {
+            Self::Or { conditions } => {
                 let mut parts = Vec::new();
                 let mut all_params = Vec::new();
                 for cond in conditions {
@@ -213,7 +213,7 @@ pub struct AdvancedListParams {
     pub limit: Option<i64>,
     pub sort: Option<String>,
     pub order: Option<String>,
-    /// JSON-encoded FilterExpression tree
+    /// JSON-encoded `FilterExpression` tree
     pub filter: Option<String>,
 }
 
@@ -254,7 +254,7 @@ pub async fn list_records_advanced(
     if let Some(ref search) = params.search {
         if !search.is_empty() {
             let escaped = search.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
-            let pattern = format!("%{}%", escaped);
+            let pattern = format!("%{escaped}%");
             let fields: Vec<String> = entity_def.fields.iter()
                 .filter(|f| f.is_searchable && matches!(
                     f.field_type,
@@ -267,7 +267,7 @@ pub async fn list_records_advanced(
                 where_parts.push(format!(
                     "({})",
                     fields.iter()
-                        .map(|f| format!("{} ${}::text", f, param_idx))
+                        .map(|f| format!("{f} ${param_idx}::text"))
                         .collect::<Vec<_>>()
                         .join(" OR ")
                 ));
@@ -281,7 +281,7 @@ pub async fn list_records_advanced(
         if let Ok(filter_expr) = serde_json::from_str::<FilterExpression>(filter_json) {
             let (sql, params) = filter_expr.to_sql(&mut param_idx);
             if sql != "1=1" {
-                where_parts.push(format!("({})", sql));
+                where_parts.push(format!("({sql})"));
                 bind_params.extend(params);
             }
         }
@@ -294,11 +294,11 @@ pub async fn list_records_advanced(
         Some(field) if !field.is_empty() => {
             let safe = sanitize_identifier(field).unwrap_or_else(|_| "created_at".to_string());
             let dir = match params.order.as_deref() {
-                Some("asc") | Some("ASC") => "ASC",
-                Some("desc") | Some("DESC") => "DESC",
+                Some("asc" | "ASC") => "ASC",
+                Some("desc" | "DESC") => "DESC",
                 _ => "DESC",
             };
-            format!("ORDER BY \"{}\" {}", safe, dir)
+            format!("ORDER BY \"{safe}\" {dir}")
         }
         _ => "ORDER BY created_at DESC".to_string(),
     };
@@ -321,7 +321,7 @@ pub async fn list_records_advanced(
     let records: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
 
     // Count query
-    let count_sql = format!("SELECT COUNT(*) FROM \"{}\" WHERE {}", table_name, where_clause);
+    let count_sql = format!("SELECT COUNT(*) FROM \"{table_name}\" WHERE {where_clause}");
     let mut count_query = sqlx::query_scalar::<_, i64>(&count_sql);
     for param in &bind_params {
         count_query = count_query.bind(param.as_deref());
@@ -409,7 +409,7 @@ pub async fn execute_bulk_operation(
             where_parts.push("deleted_at IS NULL".to_string());
         }
         let (filter_sql, filter_params) = filter.to_sql(&mut param_idx);
-        where_parts.push(format!("({})", filter_sql));
+        where_parts.push(format!("({filter_sql})"));
         bind_params.extend(filter_params);
 
         let sql = format!("SELECT id FROM \"{}\" WHERE {}", table_name, where_parts.join(" AND "));
@@ -443,11 +443,11 @@ pub async fn execute_bulk_operation(
 
     // Create job tracking record
     let job_row = sqlx::query(
-        r#"INSERT INTO _atlas.bulk_operations
+        r"INSERT INTO _atlas.bulk_operations
             (organization_id, user_id, entity_type, operation, filter, record_ids,
              payload, status, total_records, is_dry_run)
         VALUES ($1, $2, $3, $4, $5, $6, $7, 'running', $8, $9)
-        RETURNING id"#
+        RETURNING id"
     )
     .bind(org_id)
     .bind(user_id)
@@ -472,9 +472,9 @@ pub async fn execute_bulk_operation(
         "delete" => {
             for rid in &record_ids {
                 let q = if entity_def.is_soft_delete {
-                    format!("UPDATE \"{}\" SET deleted_at = now() WHERE id = $1 AND organization_id = $2", table_name)
+                    format!("UPDATE \"{table_name}\" SET deleted_at = now() WHERE id = $1 AND organization_id = $2")
                 } else {
-                    format!("DELETE FROM \"{}\" WHERE id = $1 AND organization_id = $2", table_name)
+                    format!("DELETE FROM \"{table_name}\" WHERE id = $1 AND organization_id = $2")
                 };
                 match sqlx::query(&q).bind(rid).bind(org_id).execute(&state.db_pool).await {
                     Ok(r) if r.rows_affected() > 0 => succeeded += 1,
@@ -530,8 +530,7 @@ pub async fn execute_bulk_operation(
                 .to_string();
             for rid in &record_ids {
                 let q = format!(
-                    "UPDATE \"{}\" SET workflow_state = $1::text, updated_at = now() WHERE id = $2 AND organization_id = $3 AND deleted_at IS NULL",
-                    table_name
+                    "UPDATE \"{table_name}\" SET workflow_state = $1::text, updated_at = now() WHERE id = $2 AND organization_id = $3 AND deleted_at IS NULL"
                 );
                 match sqlx::query(&q).bind(&action).bind(rid).bind(org_id).execute(&state.db_pool).await {
                     Ok(r) if r.rows_affected() > 0 => succeeded += 1,
@@ -598,13 +597,13 @@ pub async fn list_comments(
     let offset = params.offset.unwrap_or(0).max(0);
 
     let rows = sqlx::query(
-        r#"SELECT c.*, u.name as author_name
+        r"SELECT c.*, u.name as author_name
            FROM _atlas.comments c
            LEFT JOIN _atlas.users u ON c.user_id = u.id
            WHERE c.organization_id = $1 AND c.entity_type = $2 AND c.entity_id = $3
              AND c.deleted_at IS NULL
            ORDER BY c.is_pinned DESC, c.created_at ASC
-           LIMIT $4 OFFSET $5"#
+           LIMIT $4 OFFSET $5"
     )
     .bind(org_id)
     .bind(&entity)
@@ -690,13 +689,13 @@ pub async fn create_comment(
     };
 
     let row = sqlx::query(
-        r#"INSERT INTO _atlas.comments
+        r"INSERT INTO _atlas.comments
             (organization_id, entity_type, entity_id, parent_id, user_id, user_name,
              body, body_format, mentions, thread_root_id, depth, is_internal)
         VALUES ($1, $2, $3, $4, $5, 
                 (SELECT name FROM _atlas.users WHERE id = $5),
                 $6, $7, $8, $9, $10, $11)
-        RETURNING *"#
+        RETURNING *"
     )
     .bind(org_id).bind(&entity).bind(id).bind(payload.parent_id)
     .bind(user_id)
@@ -789,7 +788,7 @@ pub async fn list_favorites(
 
     if let Some(ref _entity_type) = params.entity_type {
         bind_count += 1;
-        query_str.push_str(&format!(" AND entity_type = ${}", bind_count));
+        query_str.push_str(&format!(" AND entity_type = ${bind_count}"));
     }
     query_str.push_str(" ORDER BY display_order, created_at DESC");
 
@@ -824,10 +823,10 @@ pub async fn add_favorite(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let row = sqlx::query(
-        r#"INSERT INTO _atlas.favorites (organization_id, user_id, entity_type, entity_id, label, notes)
+        r"INSERT INTO _atlas.favorites (organization_id, user_id, entity_type, entity_id, label, notes)
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (user_id, entity_type, entity_id) DO UPDATE SET label = $5, notes = $6
-        RETURNING *"#
+        RETURNING *"
     )
     .bind(org_id).bind(user_id).bind(&entity).bind(id)
     .bind(&payload.label).bind(&payload.notes)
@@ -915,7 +914,7 @@ pub async fn export_csv(
         fields_str.split(',')
             .filter_map(|f| {
                 let f = f.trim().to_string();
-                if !f.is_empty() { Some(f) } else { None }
+                if f.is_empty() { None } else { Some(f) }
             })
             .collect()
     } else {
@@ -941,7 +940,7 @@ pub async fn export_csv(
         if let Ok(filter_expr) = serde_json::from_str::<FilterExpression>(filter_json) {
             let (sql, params) = filter_expr.to_sql(&mut param_idx);
             if sql != "1=1" {
-                where_parts.push(format!("({})", sql));
+                where_parts.push(format!("({sql})"));
                 bind_params.extend(params);
             }
         }
@@ -954,8 +953,7 @@ pub async fn export_csv(
         .join(", ");
 
     let sql = format!(
-        "SELECT id, {} FROM \"{}\" WHERE {} ORDER BY created_at DESC",
-        select_fields, table_name, where_clause
+        "SELECT id, {select_fields} FROM \"{table_name}\" WHERE {where_clause} ORDER BY created_at DESC"
     );
 
     let mut query = sqlx::query(&sql);
@@ -1002,7 +1000,7 @@ pub async fn export_csv(
         axum::http::StatusCode::OK,
         [
             ("content-type", "text/csv".to_string()),
-            ("content-disposition", format!("attachment; filename=\"{}\"", filename)),
+            ("content-disposition", format!("attachment; filename=\"{filename}\"")),
         ],
         csv_body,
     ).into_response())
@@ -1032,7 +1030,7 @@ fn json_to_csv_string(v: &serde_json::Value) -> String {
 // ============================================================================
 
 /// Get related records for a parent entity
-/// e.g., GET /api/v1/purchase_orders/{id}/related/lines
+/// e.g., GET /`api/v1/purchase_orders/{id}/related/lines`
 pub async fn get_related_records(
     State(state): State<Arc<AppState>>,
     Path((entity, id, related_entity)): Path<(String, Uuid, String)>,
@@ -1055,28 +1053,25 @@ pub async fn get_related_records(
             }
         });
 
-    let (related_table, foreign_key) = match related_field {
-        Some(field) => match &field.field_type {
-            atlas_shared::FieldType::OneToMany { entity: rel_entity, foreign_key } => {
-                // Look up the related entity definition to get its table name
-                if let Some(rel_def) = state.schema_engine.get_entity(rel_entity) {
-                    let tbl = rel_def.table_name.as_deref().unwrap_or(rel_entity);
-                    (sanitize_identifier(tbl)?, foreign_key.clone())
-                } else {
-                    (sanitize_identifier(rel_entity)?, foreign_key.clone())
-                }
-            }
-            _ => return Err(StatusCode::BAD_REQUEST),
-        },
-        None => {
-            // Try convention: {entity_singular}_id as foreign key
-            let fk = format!("{}_id", entity.trim_end_matches('s'));
-            if let Some(rel_def) = state.schema_engine.get_entity(&related_entity) {
-                let tbl = rel_def.table_name.as_deref().unwrap_or(&related_entity);
-                (sanitize_identifier(tbl)?, fk)
+    let (related_table, foreign_key) = if let Some(field) = related_field { match &field.field_type {
+        atlas_shared::FieldType::OneToMany { entity: rel_entity, foreign_key } => {
+            // Look up the related entity definition to get its table name
+            if let Some(rel_def) = state.schema_engine.get_entity(rel_entity) {
+                let tbl = rel_def.table_name.as_deref().unwrap_or(rel_entity);
+                (sanitize_identifier(tbl)?, foreign_key.clone())
             } else {
-                (sanitize_identifier(&related_entity)?, fk)
+                (sanitize_identifier(rel_entity)?, foreign_key.clone())
             }
+        }
+        _ => return Err(StatusCode::BAD_REQUEST),
+    } } else {
+        // Try convention: {entity_singular}_id as foreign key
+        let fk = format!("{}_id", entity.trim_end_matches('s'));
+        if let Some(rel_def) = state.schema_engine.get_entity(&related_entity) {
+            let tbl = rel_def.table_name.as_deref().unwrap_or(&related_entity);
+            (sanitize_identifier(tbl)?, fk)
+        } else {
+            (sanitize_identifier(&related_entity)?, fk)
         }
     };
 
@@ -1087,8 +1082,7 @@ pub async fn get_related_records(
 
     let rows = sqlx::query(
         &format!(
-            "SELECT * FROM \"{}\" WHERE \"{}\" = $1 AND organization_id = $2 AND deleted_at IS NULL ORDER BY created_at ASC LIMIT $3 OFFSET $4",
-            related_table, safe_fk
+            "SELECT * FROM \"{related_table}\" WHERE \"{safe_fk}\" = $1 AND organization_id = $2 AND deleted_at IS NULL ORDER BY created_at ASC LIMIT $3 OFFSET $4"
         )
     )
     .bind(id).bind(org_id).bind(limit).bind(offset)
@@ -1101,8 +1095,7 @@ pub async fn get_related_records(
     // Count
     let total: i64 = sqlx::query_scalar(
         &format!(
-            "SELECT COUNT(*) FROM \"{}\" WHERE \"{}\" = $1 AND organization_id = $2 AND deleted_at IS NULL",
-            related_table, safe_fk
+            "SELECT COUNT(*) FROM \"{related_table}\" WHERE \"{safe_fk}\" = $1 AND organization_id = $2 AND deleted_at IS NULL"
         )
     )
     .bind(id).bind(org_id)
@@ -1157,9 +1150,9 @@ pub async fn get_effective_record(
     if params.include_history {
         // Return all versions
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.effective_dated_records
+            r"SELECT * FROM _atlas.effective_dated_records
             WHERE organization_id = $1 AND entity_type = $2 AND base_record_id = $3
-            ORDER BY effective_from DESC"#
+            ORDER BY effective_from DESC"
         )
         .bind(org_id).bind(&entity).bind(id)
         .fetch_all(&state.db_pool)
@@ -1179,11 +1172,11 @@ pub async fn get_effective_record(
         .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string());
 
     let row = sqlx::query(
-        r#"SELECT * FROM _atlas.effective_dated_records
+        r"SELECT * FROM _atlas.effective_dated_records
         WHERE organization_id = $1 AND entity_type = $2 AND base_record_id = $3
           AND effective_from <= $4::date
           AND (effective_to IS NULL OR effective_to >= $4::date)
-        ORDER BY effective_from DESC LIMIT 1"#
+        ORDER BY effective_from DESC LIMIT 1"
     )
     .bind(org_id).bind(&entity).bind(id).bind(&as_of_date)
     .fetch_optional(&state.db_pool)
@@ -1229,10 +1222,10 @@ pub async fn create_effective_version(
 
     // Close any currently-open records that overlap
     sqlx::query(
-        r#"UPDATE _atlas.effective_dated_records
+        r"UPDATE _atlas.effective_dated_records
         SET effective_to = ($4::date - INTERVAL '1 day')::date, is_current = false, updated_at = now()
         WHERE entity_type = $1 AND base_record_id = $2 AND is_current = true
-          AND effective_to IS NULL"#
+          AND effective_to IS NULL"
     )
     .bind(&entity).bind(id).bind(org_id).bind(&payload.effective_from)
     .execute(&state.db_pool)
@@ -1240,11 +1233,11 @@ pub async fn create_effective_version(
     .map_err(|e| { error!("Close effective version error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
     let row = sqlx::query(
-        r#"INSERT INTO _atlas.effective_dated_records
+        r"INSERT INTO _atlas.effective_dated_records
             (organization_id, entity_type, base_record_id, effective_from, effective_to,
              data, change_reason, changed_by, version, is_current)
         VALUES ($1, $2, $3, $4::date, $5::date, $6, $7, $8, $9, true)
-        RETURNING *"#
+        RETURNING *"
     )
     .bind(org_id).bind(&entity).bind(id)
     .bind(&payload.effective_from)
@@ -1272,7 +1265,7 @@ pub struct CsvImportRequest {
     pub entity: String,
     /// Raw CSV content (first row = headers)
     pub csv_content: String,
-    /// Column to field mapping: { "csv_column_name": "entity_field_name" }
+    /// Column to field mapping: { "`csv_column_name"`: "`entity_field_name`" }
     pub field_mapping: serde_json::Value,
     #[serde(default)]
     pub upsert_mode: bool,
@@ -1285,7 +1278,7 @@ pub struct CsvImportRequest {
     pub delimiter: char,
 }
 
-fn default_delimiter() -> char { ',' }
+const fn default_delimiter() -> char { ',' }
 
 #[derive(Debug, Serialize)]
 pub struct CsvImportResponse {
@@ -1335,7 +1328,7 @@ pub async fn import_csv(
         .from_reader(payload.csv_content.as_bytes());
 
     let headers = reader.headers()
-        .map(|h| h.iter().map(|s| s.to_string()).collect::<Vec<_>>())
+        .map(|h| h.iter().map(std::string::ToString::to_string).collect::<Vec<_>>())
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // Build field mapping
@@ -1355,7 +1348,7 @@ pub async fn import_csv(
     for result in reader.records() {
         match result {
             Ok(record) => {
-                all_rows.push(record.iter().map(|s| s.to_string()).collect());
+                all_rows.push(record.iter().map(std::string::ToString::to_string).collect());
             }
             Err(e) => {
                 return Ok(Json(CsvImportResponse {
@@ -1415,10 +1408,10 @@ pub async fn import_csv(
     }
 
     let col_list = safe_fields.iter()
-        .map(|f| format!("\"{}\"", f))
+        .map(|f| format!("\"{f}\""))
         .collect::<Vec<_>>()
         .join(", ");
-    let col_list_with_org = format!("{}, \"organization_id\"", col_list);
+    let col_list_with_org = format!("{col_list}, \"organization_id\"");
 
     let mut imported = 0usize;
     let mut failed = 0usize;
@@ -1455,7 +1448,7 @@ pub async fn import_csv(
         }
 
         let placeholders: Vec<String> = (1..=values.len())
-            .map(|i| format!("${}::text", i))
+            .map(|i| format!("${i}::text"))
             .collect();
         let org_placeholder = format!("${}::uuid", values.len() + 1);
 

@@ -1,6 +1,6 @@
 //! Product Configurator Repository
 //!
-//! PostgreSQL storage for configuration models, features, options, rules,
+//! `PostgreSQL` storage for configuration models, features, options, rules,
 //! instances, and dashboard analytics.
 
 use atlas_shared::{
@@ -267,7 +267,8 @@ pub struct PostgresProductConfiguratorRepository {
 }
 
 impl PostgresProductConfiguratorRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -288,14 +289,14 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         ui_layout: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<ConfigModel> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.config_models
+            r"INSERT INTO _atlas.config_models
                 (organization_id, model_number, name, description,
                  base_product_id, base_product_number, base_product_name,
                  model_type, status, version,
                  effective_from, effective_to, default_config, validation_mode,
                  ui_layout, metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'{}'::jsonb,$16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(model_number).bind(name).bind(description)
         .bind(base_product_id).bind(base_product_number).bind(base_product_name)
@@ -323,11 +324,11 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         &self, org_id: Uuid, status: Option<&str>, model_type: Option<&str>,
     ) -> AtlasResult<Vec<ConfigModel>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.config_models
+            r"SELECT * FROM _atlas.config_models
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR model_type = $3)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(model_type)
         .fetch_all(&self.pool).await?;
@@ -339,7 +340,7 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
             "UPDATE _atlas.config_models SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Config model {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Config model {id} not found")))?;
         Ok(row_to_model(&row))
     }
 
@@ -348,7 +349,7 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
             "DELETE FROM _atlas.config_models WHERE organization_id = $1 AND model_number = $2"
         ).bind(org_id).bind(model_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Config model '{}' not found", model_number)));
+            return Err(AtlasError::EntityNotFound(format!("Config model '{model_number}' not found")));
         }
         Ok(())
     }
@@ -364,11 +365,11 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         display_order: i32, ui_hints: serde_json::Value,
     ) -> AtlasResult<ConfigFeature> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.config_features
+            r"INSERT INTO _atlas.config_features
                 (organization_id, model_id, feature_code, name, description,
                  feature_type, is_required, display_order, ui_hints, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(model_id).bind(feature_code).bind(name).bind(description)
         .bind(feature_type).bind(is_required).bind(display_order).bind(&ui_hints)
@@ -410,12 +411,12 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         is_default: bool, is_available: bool, display_order: i32,
     ) -> AtlasResult<ConfigOption> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.config_options
+            r"INSERT INTO _atlas.config_options
                 (organization_id, feature_id, option_code, name, description,
                  option_type, price_adjustment, cost_adjustment, lead_time_days,
                  is_default, is_available, display_order, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(feature_id).bind(option_code).bind(name).bind(description)
         .bind(option_type).bind(price_adjustment).bind(cost_adjustment).bind(lead_time_days)
@@ -442,7 +443,7 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
             "UPDATE _atlas.config_options SET is_available = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(is_available)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Config option {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Config option {id} not found")))?;
         Ok(row_to_option(&row))
     }
 
@@ -469,13 +470,13 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         is_active: bool, priority: i32, created_by: Option<Uuid>,
     ) -> AtlasResult<ConfigRule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.config_rules
+            r"INSERT INTO _atlas.config_rules
                 (organization_id, model_id, rule_code, name, description,
                  rule_type, source_feature_id, source_option_id,
                  target_feature_id, target_option_id,
                  condition_expression, severity, is_active, priority, metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'{}'::jsonb,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(model_id).bind(rule_code).bind(name).bind(description)
         .bind(rule_type).bind(source_feature_id).bind(source_option_id)
@@ -500,10 +501,10 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
 
     async fn list_rules(&self, model_id: Uuid, rule_type: Option<&str>) -> AtlasResult<Vec<ConfigRule>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.config_rules
+            r"SELECT * FROM _atlas.config_rules
                WHERE model_id = $1
                  AND ($2::text IS NULL OR rule_type = $2)
-               ORDER BY priority DESC, created_at"#,
+               ORDER BY priority DESC, created_at",
         )
         .bind(model_id).bind(rule_type)
         .fetch_all(&self.pool).await?;
@@ -515,7 +516,7 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
             "UPDATE _atlas.config_rules SET is_active = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(is_active)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Config rule {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Config rule {id} not found")))?;
         Ok(row_to_rule(&row))
     }
 
@@ -544,14 +545,14 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         configured_by: Option<Uuid>, created_by: Option<Uuid>,
     ) -> AtlasResult<ConfigInstance> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.config_instances
+            r"INSERT INTO _atlas.config_instances
                 (organization_id, instance_number, model_id, model_number,
                  name, description, status, selections,
                  validation_errors, validation_warnings,
                  base_price, total_price, currency_code, config_hash,
                  effective_date, configured_by, metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'{}'::jsonb,$17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(instance_number).bind(model_id).bind(model_number)
         .bind(name).bind(description).bind(status).bind(&selections)
@@ -579,11 +580,11 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         &self, org_id: Uuid, status: Option<&str>, model_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<ConfigInstance>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.config_instances
+            r"SELECT * FROM _atlas.config_instances
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::uuid IS NULL OR model_id = $3)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(model_id.copied())
         .fetch_all(&self.pool).await?;
@@ -592,12 +593,12 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
 
     async fn update_instance_status(&self, id: Uuid, status: &str) -> AtlasResult<ConfigInstance> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.config_instances
+            r"UPDATE _atlas.config_instances
                SET status = $2, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {id} not found")))?;
         Ok(row_to_instance(&row))
     }
 
@@ -605,12 +606,12 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         &self, id: Uuid, validation_errors: serde_json::Value, validation_warnings: serde_json::Value,
     ) -> AtlasResult<ConfigInstance> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.config_instances
+            r"UPDATE _atlas.config_instances
                SET validation_errors = $2, validation_warnings = $3, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(&validation_errors).bind(&validation_warnings)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {id} not found")))?;
         Ok(row_to_instance(&row))
     }
 
@@ -618,12 +619,12 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         &self, id: Uuid, selections: serde_json::Value, total_price: f64, config_hash: Option<&str>,
     ) -> AtlasResult<ConfigInstance> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.config_instances
+            r"UPDATE _atlas.config_instances
                SET selections = $2, total_price = $3, config_hash = $4, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(&selections).bind(total_price).bind(config_hash)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {id} not found")))?;
         Ok(row_to_instance(&row))
     }
 
@@ -631,12 +632,12 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         &self, id: Uuid, approved_by: Option<Uuid>,
     ) -> AtlasResult<ConfigInstance> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.config_instances
+            r"UPDATE _atlas.config_instances
                SET approved_by = $2, approved_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(approved_by)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {id} not found")))?;
         Ok(row_to_instance(&row))
     }
 
@@ -645,13 +646,13 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         sales_order_number: Option<&str>, sales_order_line: Option<i32>,
     ) -> AtlasResult<ConfigInstance> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.config_instances
+            r"UPDATE _atlas.config_instances
                SET sales_order_id = $2, sales_order_number = $3,
                    sales_order_line = $4, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(sales_order_id).bind(sales_order_number).bind(sales_order_line)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Config instance {id} not found")))?;
         Ok(row_to_instance(&row))
     }
 
@@ -660,7 +661,7 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
             "DELETE FROM _atlas.config_instances WHERE organization_id = $1 AND instance_number = $2"
         ).bind(org_id).bind(instance_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Config instance '{}' not found", instance_number)));
+            return Err(AtlasError::EntityNotFound(format!("Config instance '{instance_number}' not found")));
         }
         Ok(())
     }
@@ -703,7 +704,7 @@ impl ProductConfiguratorRepository for PostgresProductConfiguratorRepository {
         let total_configured_value: f64 = inst_rows.iter()
             .map(|r| r.try_get("total_price").unwrap_or(0.0)).sum();
         let avg_configuration_price = if total_configurations > 0 {
-            total_configured_value / total_configurations as f64
+            total_configured_value / f64::from(total_configurations)
         } else {
             0.0
         };

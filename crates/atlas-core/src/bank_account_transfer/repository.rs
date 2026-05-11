@@ -74,13 +74,14 @@ pub trait BankAccountTransferRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<BankTransferDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresBankAccountTransferRepository {
     pool: PgPool,
 }
 
 impl PostgresBankAccountTransferRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -159,13 +160,13 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
         approval_threshold: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<BankTransferType> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.bank_transfer_types
                 (organization_id, code, name, description, settlement_method,
                  requires_approval, approval_threshold, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::decimal, $8)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(settlement_method).bind(requires_approval)
@@ -200,7 +201,7 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BankAccountTransfer> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.bank_account_transfers
                 (organization_id, transfer_number, transfer_type_id,
                  from_bank_account_id, from_bank_account_number, from_bank_name,
@@ -212,7 +213,7 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
                     $10::decimal, $11, $12::decimal, $13, $14, $15::decimal,
                     $16, $17, $18, $19, $20, $21, $22, $23, $24)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(transfer_number).bind(transfer_type_id)
         .bind(from_bank_account_id).bind(from_bank_account_number).bind(from_bank_name)
@@ -234,9 +235,9 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
 
     async fn list_transfers(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BankAccountTransfer>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.bank_account_transfers
+            r"SELECT * FROM _atlas.bank_account_transfers
                WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY transfer_date DESC, created_at DESC"#,
+               ORDER BY transfer_date DESC, created_at DESC",
         ).bind(org_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -250,7 +251,7 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
         cancellation_reason: Option<&str>,
     ) -> AtlasResult<BankAccountTransfer> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.bank_account_transfers
             SET status = $2,
                 submitted_by = COALESCE($3, submitted_by),
@@ -264,7 +265,7 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
                 cancellation_reason = COALESCE($7, cancellation_reason),
                 updated_at = now()
             WHERE id = $1 RETURNING *
-            "#,
+            ",
         ).bind(id).bind(status).bind(submitted_by).bind(approved_by)
         .bind(completed_by).bind(cancelled_by).bind(cancellation_reason)
         .fetch_one(&self.pool).await
@@ -274,14 +275,14 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<BankTransferDashboardSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status IN ('draft', 'submitted', 'approved', 'in_transit')) as pending,
                 COUNT(*) FILTER (WHERE status = 'completed') as completed,
                 COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled,
                 COALESCE(SUM(amount) FILTER (WHERE status = 'completed'), 0) as total_amount,
                 COALESCE(AVG(amount) FILTER (WHERE status = 'completed'), 0) as avg_amount
-            FROM _atlas.bank_account_transfers WHERE organization_id = $1"#,
+            FROM _atlas.bank_account_transfers WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 

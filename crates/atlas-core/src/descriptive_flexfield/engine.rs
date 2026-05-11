@@ -63,14 +63,14 @@ impl DescriptiveFlexfieldEngine {
         // Check uniqueness by code
         if self.repository.get_flexfield(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Flexfield with code '{}' already exists", code
+                "Flexfield with code '{code}' already exists"
             )));
         }
 
         // Check uniqueness by entity (one DFF per entity)
         if self.repository.get_flexfield_by_entity(org_id, entity_name).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "An active flexfield already exists for entity '{}'", entity_name
+                "An active flexfield already exists for entity '{entity_name}'"
             )));
         }
 
@@ -102,7 +102,7 @@ impl DescriptiveFlexfieldEngine {
     /// Activate a flexfield
     pub async fn activate_flexfield(&self, id: Uuid) -> AtlasResult<DescriptiveFlexfield> {
         let ff = self.repository.get_flexfield_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Flexfield {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Flexfield {id} not found")))?;
 
         if ff.is_active {
             return Err(AtlasError::WorkflowError("Flexfield is already active".to_string()));
@@ -115,7 +115,7 @@ impl DescriptiveFlexfieldEngine {
     /// Deactivate a flexfield
     pub async fn deactivate_flexfield(&self, id: Uuid) -> AtlasResult<DescriptiveFlexfield> {
         let ff = self.repository.get_flexfield_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Flexfield {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Flexfield {id} not found")))?;
 
         if !ff.is_active {
             return Err(AtlasError::WorkflowError("Flexfield is already inactive".to_string()));
@@ -155,13 +155,13 @@ impl DescriptiveFlexfieldEngine {
 
         let flexfield = self.repository.get_flexfield(org_id, flexfield_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Flexfield '{}' not found", flexfield_code
+                "Flexfield '{flexfield_code}' not found"
             )))?;
 
         // Check uniqueness
         if self.repository.get_context_by_code(flexfield.id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Context '{}' already exists in flexfield '{}'", code, flexfield_code
+                "Context '{code}' already exists in flexfield '{flexfield_code}'"
             )));
         }
 
@@ -181,7 +181,7 @@ impl DescriptiveFlexfieldEngine {
     pub async fn list_contexts(&self, org_id: Uuid, flexfield_code: &str) -> AtlasResult<Vec<FlexfieldContext>> {
         let flexfield = self.repository.get_flexfield(org_id, flexfield_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Flexfield '{}' not found", flexfield_code
+                "Flexfield '{flexfield_code}' not found"
             )))?;
 
         self.repository.list_contexts(flexfield.id).await
@@ -243,17 +243,17 @@ impl DescriptiveFlexfieldEngine {
 
         let flexfield = self.repository.get_flexfield(org_id, flexfield_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Flexfield '{}' not found", flexfield_code
+                "Flexfield '{flexfield_code}' not found"
             )))?;
 
         let context = self.repository.get_context_by_code(flexfield.id, context_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Context '{}' not found in flexfield '{}'", context_code, flexfield_code
+                "Context '{context_code}' not found in flexfield '{flexfield_code}'"
             )))?;
 
         if !context.is_enabled {
             return Err(AtlasError::WorkflowError(format!(
-                "Context '{}' is disabled", context_code
+                "Context '{context_code}' is disabled"
             )));
         }
 
@@ -261,15 +261,14 @@ impl DescriptiveFlexfieldEngine {
         let existing = self.repository.list_segments_by_context(context.id).await?;
         if existing.len() >= MAX_SEGMENTS_PER_CONTEXT {
             return Err(AtlasError::ValidationFailed(format!(
-                "Context '{}' has reached the maximum of {} segments",
-                context_code, MAX_SEGMENTS_PER_CONTEXT
+                "Context '{context_code}' has reached the maximum of {MAX_SEGMENTS_PER_CONTEXT} segments"
             )));
         }
 
         // Check uniqueness within context
         if self.repository.get_segment_by_code(context.id, segment_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Segment '{}' already exists in context '{}'", segment_code, context_code
+                "Segment '{segment_code}' already exists in context '{context_code}'"
             )));
         }
 
@@ -277,9 +276,9 @@ impl DescriptiveFlexfieldEngine {
         let (value_set_id, vs_code) = if let Some(vs_code) = value_set_code {
             let vs = self.repository.get_value_set(org_id, vs_code).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Value set '{}' not found", vs_code
+                    "Value set '{vs_code}' not found"
                 )))?;
-            (Some(vs.id), Some(vs.code.clone()))
+            (Some(vs.id), Some(vs.code))
         } else {
             (None, None)
         };
@@ -311,12 +310,12 @@ impl DescriptiveFlexfieldEngine {
     ) -> AtlasResult<Vec<FlexfieldSegment>> {
         let flexfield = self.repository.get_flexfield(org_id, flexfield_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Flexfield '{}' not found", flexfield_code
+                "Flexfield '{flexfield_code}' not found"
             )))?;
 
         let context = self.repository.get_context_by_code(flexfield.id, context_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Context '{}' not found", context_code
+                "Context '{context_code}' not found"
             )))?;
 
         self.repository.list_segments_by_context(context.id).await
@@ -330,7 +329,7 @@ impl DescriptiveFlexfieldEngine {
     ) -> AtlasResult<Vec<FlexfieldSegment>> {
         let flexfield = self.repository.get_flexfield(org_id, flexfield_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Flexfield '{}' not found", flexfield_code
+                "Flexfield '{flexfield_code}' not found"
             )))?;
 
         self.repository.list_segments_by_flexfield(flexfield.id).await
@@ -351,14 +350,14 @@ impl DescriptiveFlexfieldEngine {
         value_set_code: Option<&str>,
     ) -> AtlasResult<FlexfieldSegment> {
         let segment = self.repository.get_segment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Segment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Segment {id} not found")))?;
 
         let (vs_id, vs_code) = if let Some(vs_code) = value_set_code {
             let vs = self.repository.get_value_set(segment.organization_id, vs_code).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Value set '{}' not found", vs_code
+                    "Value set '{vs_code}' not found"
                 )))?;
-            (Some(Some(vs.id)), Some(Some(vs.code.clone())))
+            (Some(Some(vs.id)), Some(Some(vs.code)))
         } else {
             (None, None)
         };
@@ -430,7 +429,7 @@ impl DescriptiveFlexfieldEngine {
         // Check uniqueness
         if self.repository.get_value_set(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Value set '{}' already exists", code
+                "Value set '{code}' already exists"
             )));
         }
 
@@ -438,7 +437,7 @@ impl DescriptiveFlexfieldEngine {
         if let Some(parent_code) = parent_value_set_code {
             let parent = self.repository.get_value_set(org_id, parent_code).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Parent value set '{}' not found", parent_code
+                    "Parent value set '{parent_code}' not found"
                 )))?;
             if parent.validation_type != "independent" {
                 return Err(AtlasError::ValidationFailed(
@@ -497,7 +496,7 @@ impl DescriptiveFlexfieldEngine {
 
         let vs = self.repository.get_value_set(org_id, value_set_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Value set '{}' not found", value_set_code
+                "Value set '{value_set_code}' not found"
             )))?;
 
         // For dependent value sets, parent_value is required
@@ -533,7 +532,7 @@ impl DescriptiveFlexfieldEngine {
     ) -> AtlasResult<Vec<FlexfieldValueSetEntry>> {
         let vs = self.repository.get_value_set(org_id, value_set_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Value set '{}' not found", value_set_code
+                "Value set '{value_set_code}' not found"
             )))?;
 
         self.repository.list_value_set_entries(vs.id, parent_value).await
@@ -562,7 +561,7 @@ impl DescriptiveFlexfieldEngine {
     ) -> AtlasResult<FlexfieldData> {
         let flexfield = self.repository.get_flexfield_by_entity(org_id, entity_name).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "No active flexfield for entity '{}'", entity_name
+                "No active flexfield for entity '{entity_name}'"
             )))?;
 
         if !flexfield.is_active {
@@ -573,12 +572,12 @@ impl DescriptiveFlexfieldEngine {
 
         let context = self.repository.get_context_by_code(flexfield.id, context_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Context '{}' not found", context_code
+                "Context '{context_code}' not found"
             )))?;
 
         if !context.is_enabled {
             return Err(AtlasError::WorkflowError(format!(
-                "Context '{}' is disabled", context_code
+                "Context '{context_code}' is disabled"
             )));
         }
 
@@ -669,13 +668,13 @@ impl DescriptiveFlexfieldEngine {
             "number"
                 if value.parse::<f64>().is_err() => {
                     return Err(AtlasError::ValidationFailed(format!(
-                        "Segment '{}' requires a numeric value, got '{}'", segment_name, value
+                        "Segment '{segment_name}' requires a numeric value, got '{value}'"
                     )));
                 }
             "date"
                 if chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d").is_err() => {
                     return Err(AtlasError::ValidationFailed(format!(
-                        "Segment '{}' requires a date value (YYYY-MM-DD), got '{}'", segment_name, value
+                        "Segment '{segment_name}' requires a date value (YYYY-MM-DD), got '{value}'"
                     )));
                 }
             "datetime"
@@ -684,7 +683,7 @@ impl DescriptiveFlexfieldEngine {
                     && value.parse::<chrono::NaiveDateTime>().is_err()
                 => {
                     return Err(AtlasError::ValidationFailed(format!(
-                        "Segment '{}' requires a datetime value, got '{}'", segment_name, value
+                        "Segment '{segment_name}' requires a datetime value, got '{value}'"
                     )));
                 }
             _ => { /* any value is valid */ }

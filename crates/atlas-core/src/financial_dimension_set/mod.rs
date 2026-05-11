@@ -85,11 +85,12 @@ pub trait FinancialDimensionSetRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<DimensionSetDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresFinancialDimensionSetRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresFinancialDimensionSetRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresFinancialDimensionSetRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl FinancialDimensionSetRepository for PostgresFinancialDimensionSetRepository {
@@ -140,7 +141,7 @@ impl FinancialDimensionSetEngine {
             return Err(AtlasError::ValidationFailed("Code and name are required".into()));
         }
         if self.repository.get_by_code(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Dimension set '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Dimension set '{code}' already exists")));
         }
         info!("Creating financial dimension set '{}' for org {}", code, org_id);
         self.repository.create_set(org_id, code, name, description, created_by).await
@@ -164,7 +165,7 @@ impl FinancialDimensionSetEngine {
     /// Update dimension set
     pub async fn update(&self, id: Uuid, name: Option<&str>, description: Option<&str>) -> AtlasResult<FinancialDimensionSet> {
         let ds = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set {id} not found")))?;
         if !ds.is_active {
             return Err(AtlasError::ValidationFailed("Cannot update inactive dimension set".into()));
         }
@@ -175,7 +176,7 @@ impl FinancialDimensionSetEngine {
     /// Deactivate
     pub async fn deactivate(&self, id: Uuid) -> AtlasResult<FinancialDimensionSet> {
         let ds = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set {id} not found")))?;
         if !ds.is_active { return Err(AtlasError::ValidationFailed("Already inactive".into())); }
         info!("Deactivating dimension set {}", ds.code);
         self.repository.deactivate(id).await
@@ -184,7 +185,7 @@ impl FinancialDimensionSetEngine {
     /// Activate
     pub async fn activate(&self, id: Uuid) -> AtlasResult<FinancialDimensionSet> {
         let ds = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set {id} not found")))?;
         if ds.is_active { return Err(AtlasError::ValidationFailed("Already active".into())); }
         info!("Activating dimension set {}", ds.code);
         self.repository.activate(id).await
@@ -193,7 +194,7 @@ impl FinancialDimensionSetEngine {
     /// Delete
     pub async fn delete(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         self.repository.get_by_code(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set '{}' not found", code)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set '{code}' not found")))?;
         info!("Deleting dimension set {}", code);
         self.repository.delete_set(org_id, code).await
     }
@@ -210,7 +211,7 @@ impl FinancialDimensionSetEngine {
         display_order: i32,
     ) -> AtlasResult<DimensionSetMember> {
         let ds = self.repository.get(dimension_set_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set {} not found", dimension_set_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dimension set {dimension_set_id} not found")))?;
 
         if !ds.is_active {
             return Err(AtlasError::ValidationFailed("Cannot add members to inactive dimension set".into()));
@@ -223,7 +224,7 @@ impl FinancialDimensionSetEngine {
         let members = self.repository.list_members(dimension_set_id).await?;
         if members.iter().any(|m| m.dimension_code == dimension_code && m.dimension_value_code == dimension_value_code) {
             return Err(AtlasError::Conflict(format!(
-                "Member {}.{} already exists in dimension set", dimension_code, dimension_value_code
+                "Member {dimension_code}.{dimension_value_code} already exists in dimension set"
             )));
         }
 

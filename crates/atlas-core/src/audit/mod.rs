@@ -54,6 +54,7 @@ pub struct FieldChange {
 }
 
 impl FieldChange {
+    #[must_use] 
     pub fn new(field: &str, old_val: Option<serde_json::Value>, new_val: Option<serde_json::Value>) -> Self {
         Self {
             field: field.to_string(),
@@ -63,7 +64,8 @@ impl FieldChange {
     }
     
     /// Compute changes between two JSON values
-    pub fn compute_changes(old_data: &serde_json::Value, new_data: &serde_json::Value) -> Vec<FieldChange> {
+    #[must_use] 
+    pub fn compute_changes(old_data: &serde_json::Value, new_data: &serde_json::Value) -> Vec<Self> {
         let mut changes = vec![];
         
         let empty_old = serde_json::Map::new();
@@ -76,7 +78,7 @@ impl FieldChange {
             let old_val = old_obj.get(key);
             
             if !values_equal(old_val, new_val) {
-                changes.push(FieldChange::new(
+                changes.push(Self::new(
                     key,
                     old_val.cloned(),
                     Some(new_val.clone()),
@@ -87,7 +89,7 @@ impl FieldChange {
         // Check for removed keys
         for (key, old_val) in old_obj {
             if !new_obj.contains_key(key) {
-                changes.push(FieldChange::new(
+                changes.push(Self::new(
                     key,
                     Some(old_val.clone()),
                     None,

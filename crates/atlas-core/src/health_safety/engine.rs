@@ -105,7 +105,7 @@ const VALID_EFFECTIVENESS: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -138,7 +138,7 @@ fn compute_risk_score(likelihood: &str, consequence: &str) -> i32 {
 }
 
 /// Determine risk level from risk score
-fn risk_level_from_score(score: i32) -> &'static str {
+const fn risk_level_from_score(score: i32) -> &'static str {
     match score {
         1..=3 => "low",
         4..=6 => "medium",
@@ -205,7 +205,7 @@ impl HealthSafetyEngine {
 
         if self.repository.get_incident_by_number(org_id, incident_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Incident '{}' already exists", incident_number
+                "Incident '{incident_number}' already exists"
             )));
         }
 
@@ -341,7 +341,7 @@ impl HealthSafetyEngine {
 
         if self.repository.get_hazard_by_code(org_id, hazard_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Hazard '{}' already exists", hazard_code
+                "Hazard '{hazard_code}' already exists"
             )));
         }
 
@@ -448,7 +448,7 @@ impl HealthSafetyEngine {
 
         if self.repository.get_inspection_by_number(org_id, inspection_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Inspection '{}' already exists", inspection_number
+                "Inspection '{inspection_number}' already exists"
             )));
         }
 
@@ -580,7 +580,7 @@ impl HealthSafetyEngine {
 
         if self.repository.get_corrective_action_by_number(org_id, action_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Corrective action '{}' already exists", action_number
+                "Corrective action '{action_number}' already exists"
             )));
         }
 

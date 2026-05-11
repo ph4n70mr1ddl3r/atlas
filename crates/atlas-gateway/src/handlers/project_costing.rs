@@ -330,7 +330,7 @@ pub async fn list_cost_adjustments(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    let status = params.get("status").map(|s| s.as_str());
+    let status = params.get("status").map(std::string::String::as_str);
     match state.project_costing_engine.list_cost_adjustments(org_id, status).await {
         Ok(adjustments) => Ok(Json(json!({"data": adjustments}))),
         Err(e) => Err(error_response(e)),

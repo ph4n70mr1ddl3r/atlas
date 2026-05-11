@@ -109,7 +109,7 @@ pub struct CreateCampaignRequest {
     pub notes: Option<String>,
 }
 
-fn default_empty_array() -> serde_json::Value { serde_json::json!([]) }
+const fn default_empty_array() -> serde_json::Value { serde_json::json!([]) }
 
 pub async fn create_campaign(
     State(state): State<Arc<AppState>>,

@@ -39,8 +39,8 @@ pub struct CreateProductRequest {
     pub tier_type: String,
 }
 
-fn default_duration() -> i32 { 12 }
-fn default_cancellation_notice() -> i32 { 30 }
+const fn default_duration() -> i32 { 12 }
+const fn default_cancellation_notice() -> i32 { 30 }
 fn default_zero() -> String { "0".to_string() }
 fn default_tier_type() -> String { "flat".to_string() }
 

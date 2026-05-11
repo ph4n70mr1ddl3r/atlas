@@ -128,7 +128,7 @@ impl ScheduledProcessEngine {
         // Check uniqueness
         if self.repository.get_template(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Process template with code '{}' already exists", code
+                "Process template with code '{code}' already exists"
             )));
         }
 
@@ -166,7 +166,7 @@ impl ScheduledProcessEngine {
     /// Activate a template
     pub async fn activate_template(&self, id: Uuid) -> AtlasResult<ScheduledProcessTemplate> {
         let template = self.get_template_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {id} not found")))?;
 
         if template.is_active {
             return Err(AtlasError::WorkflowError("Template is already active".to_string()));
@@ -179,7 +179,7 @@ impl ScheduledProcessEngine {
     /// Deactivate a template
     pub async fn deactivate_template(&self, id: Uuid) -> AtlasResult<ScheduledProcessTemplate> {
         let template = self.get_template_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {id} not found")))?;
 
         if !template.is_active {
             return Err(AtlasError::WorkflowError("Template is already inactive".to_string()));
@@ -243,12 +243,12 @@ impl ScheduledProcessEngine {
         if let Some(code) = template_code {
             let template = self.repository.get_template(org_id, code).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Template '{}' not found", code
+                    "Template '{code}' not found"
                 )))?;
 
             if !template.is_active {
                 return Err(AtlasError::WorkflowError(format!(
-                    "Template '{}' is not active", code
+                    "Template '{code}' is not active"
                 )));
             }
 
@@ -257,16 +257,14 @@ impl ScheduledProcessEngine {
             if let Some(from) = template.effective_from {
                 if today < from {
                     return Err(AtlasError::ValidationFailed(format!(
-                        "Template '{}' is not yet effective (effective from {})",
-                        code, from
+                        "Template '{code}' is not yet effective (effective from {from})"
                     )));
                 }
             }
             if let Some(to) = template.effective_to {
                 if today > to {
                     return Err(AtlasError::ValidationFailed(format!(
-                        "Template '{}' has expired (effective to {})",
-                        code, to
+                        "Template '{code}' has expired (effective to {to})"
                     )));
                 }
             }
@@ -324,7 +322,7 @@ impl ScheduledProcessEngine {
     /// Start a pending/scheduled process (marks as running)
     pub async fn start_process(&self, id: Uuid) -> AtlasResult<ScheduledProcess> {
         let process = self.repository.get_process(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "pending" && process.status != "scheduled" {
             return Err(AtlasError::WorkflowError(format!(
@@ -350,7 +348,7 @@ impl ScheduledProcessEngine {
         log_output: Option<&str>,
     ) -> AtlasResult<ScheduledProcess> {
         let process = self.repository.get_process(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "running" {
             return Err(AtlasError::WorkflowError(format!(
@@ -376,7 +374,7 @@ impl ScheduledProcessEngine {
         log_output: Option<&str>,
     ) -> AtlasResult<ScheduledProcess> {
         let process = self.repository.get_process(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "running" {
             return Err(AtlasError::WorkflowError(format!(
@@ -408,7 +406,7 @@ impl ScheduledProcessEngine {
         reason: Option<&str>,
     ) -> AtlasResult<ScheduledProcess> {
         let process = self.repository.get_process(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status == "completed" || process.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
@@ -436,7 +434,7 @@ impl ScheduledProcessEngine {
         }
 
         let process = self.repository.get_process(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "running" {
             return Err(AtlasError::WorkflowError(format!(
@@ -451,7 +449,7 @@ impl ScheduledProcessEngine {
     /// Update heartbeat for a running process (keeps process alive)
     pub async fn heartbeat(&self, id: Uuid) -> AtlasResult<ScheduledProcess> {
         let process = self.repository.get_process(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "running" {
             return Err(AtlasError::WorkflowError(format!(
@@ -466,7 +464,7 @@ impl ScheduledProcessEngine {
     /// Approve a waiting process
     pub async fn approve_process(&self, id: Uuid) -> AtlasResult<ScheduledProcess> {
         let process = self.repository.get_process(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "waiting_for_approval" {
             return Err(AtlasError::WorkflowError(format!(
@@ -529,12 +527,12 @@ impl ScheduledProcessEngine {
         // Validate template exists and is active
         let template = self.repository.get_template(org_id, template_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Template '{}' not found", template_code
+                "Template '{template_code}' not found"
             )))?;
 
         if !template.is_active {
             return Err(AtlasError::WorkflowError(format!(
-                "Template '{}' is not active", template_code
+                "Template '{template_code}' is not active"
             )));
         }
 
@@ -577,7 +575,7 @@ impl ScheduledProcessEngine {
     /// Deactivate a recurrence
     pub async fn deactivate_recurrence(&self, id: Uuid) -> AtlasResult<ScheduledProcessRecurrence> {
         let recurrence = self.repository.get_recurrence(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Recurrence {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Recurrence {id} not found")))?;
 
         if !recurrence.is_active {
             return Err(AtlasError::WorkflowError("Recurrence is already inactive".to_string()));
@@ -594,7 +592,7 @@ impl ScheduledProcessEngine {
     }
 
     /// Process due recurrences: spawn process instances for recurrences whose
-    /// next_run_at has passed. Returns the IDs of spawned processes.
+    /// `next_run_at` has passed. Returns the IDs of spawned processes.
     pub async fn process_due_recurrences(&self) -> AtlasResult<Vec<Uuid>> {
         let now = Utc::now();
         let due = self.repository.find_due_recurrences(now).await?;
@@ -753,6 +751,7 @@ impl ScheduledProcessEngine {
     // ========================================================================
 
     /// Calculate the first run time based on recurrence config and start date.
+    #[must_use] 
     pub fn calculate_next_run(
         start_date: chrono::NaiveDate,
         _recurrence_type: &str,
@@ -766,6 +765,7 @@ impl ScheduledProcessEngine {
     }
 
     /// Calculate the next run time from now, based on recurrence config.
+    #[must_use] 
     pub fn calculate_next_run_from_now(
         recurrence_type: &str,
         recurrence_config: &serde_json::Value,
@@ -787,9 +787,7 @@ impl ScheduledProcessEngine {
             }
             "weekly" => {
                 let days_of_week = recurrence_config["days_of_week"].as_array();
-                let target_days: Vec<u32> = days_of_week
-                    .map(|arr| arr.iter().filter_map(|v| v.as_u64().map(|n| n as u32)).collect())
-                    .unwrap_or_else(|| vec![1]); // default Monday
+                let target_days: Vec<u32> = days_of_week.map_or_else(|| vec![1], |arr| arr.iter().filter_map(|v| v.as_u64().map(|n| n as u32)).collect()); // default Monday
 
                 let mut candidate = now.date_naive();
                 for _ in 0..8 {
@@ -851,6 +849,7 @@ impl ScheduledProcessEngine {
     }
 
     /// Parse a time string "HH:MM" into (hour, minute).
+    #[must_use] 
     pub fn parse_time(time_str: &str) -> (u32, u32) {
         let parts: Vec<&str> = time_str.split(':').collect();
         if parts.len() == 2 {

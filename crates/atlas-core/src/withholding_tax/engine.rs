@@ -177,7 +177,7 @@ impl WithholdingTaxEngine {
             let tc = self.repository.get_tax_code_by_id(*tc_id).await?;
             if tc.is_none() {
                 return Err(AtlasError::EntityNotFound(
-                    format!("Withholding tax code {} not found", tc_id)
+                    format!("Withholding tax code {tc_id} not found")
                 ));
             }
         }
@@ -239,7 +239,7 @@ impl WithholdingTaxEngine {
         // Validate tax group exists
         let group = self.get_tax_group(org_id, tax_group_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Withholding tax group '{}' not found", tax_group_code)
+                format!("Withholding tax group '{tax_group_code}' not found")
             ))?;
 
         // Validate exemption
@@ -364,7 +364,7 @@ impl WithholdingTaxEngine {
                     lines: vec![],
                     total_taxable_amount: "0.00".to_string(),
                     total_withheld_amount: "0.00".to_string(),
-                    net_payment_amount: format!("{:.2}", invoice_amount),
+                    net_payment_amount: format!("{invoice_amount:.2}"),
                 });
             }
         };
@@ -376,7 +376,7 @@ impl WithholdingTaxEngine {
                 lines: vec![],
                 total_taxable_amount: "0.00".to_string(),
                 total_withheld_amount: "0.00".to_string(),
-                net_payment_amount: format!("{:.2}", invoice_amount),
+                net_payment_amount: format!("{invoice_amount:.2}"),
             });
         }
 
@@ -430,10 +430,10 @@ impl WithholdingTaxEngine {
                 tax_code_id: tax_code.id,
                 tax_code: tax_code.code,
                 tax_type: tax_code.tax_type,
-                rate_percentage: format!("{:.2}", rate),
+                rate_percentage: format!("{rate:.2}"),
                 threshold_amount: tax_code.threshold_amount.clone(),
-                taxable_amount: format!("{:.2}", taxable_amount),
-                withheld_amount: format!("{:.2}", withheld_amount),
+                taxable_amount: format!("{taxable_amount:.2}"),
+                withheld_amount: format!("{withheld_amount:.2}"),
                 withholding_account_code: tax_code.withholding_account_code.clone(),
                 threshold_applied,
             });
@@ -445,9 +445,9 @@ impl WithholdingTaxEngine {
             tax_group_code: Some(group.code),
             is_exempt: false,
             lines: computed_lines,
-            total_taxable_amount: format!("{:.2}", total_taxable),
-            total_withheld_amount: format!("{:.2}", total_withheld),
-            net_payment_amount: format!("{:.2}", net_payment),
+            total_taxable_amount: format!("{total_taxable:.2}"),
+            total_withheld_amount: format!("{total_withheld:.2}"),
+            net_payment_amount: format!("{net_payment:.2}"),
         })
     }
 
@@ -556,7 +556,7 @@ impl WithholdingTaxEngine {
         // Get the tax code
         let tax_code = self.repository.get_tax_code_by_id(tax_code_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Withholding tax code {} not found", tax_code_id)
+                format!("Withholding tax code {tax_code_id} not found")
             ))?;
 
         // Get withholding lines for this supplier, tax code, and period
@@ -595,8 +595,8 @@ impl WithholdingTaxEngine {
             supplier_id, supplier_number, supplier_name,
             &tax_code.tax_type, tax_code_id, &tax_code.code,
             period_start, period_end,
-            &format!("{:.2}", total_invoice),
-            &format!("{:.2}", total_withheld),
+            &format!("{total_invoice:.2}"),
+            &format!("{total_withheld:.2}"),
             &tax_code.rate_percentage,
             serde_json::json!(payment_ids),
             created_by,
@@ -622,7 +622,7 @@ impl WithholdingTaxEngine {
     pub async fn issue_certificate(&self, id: Uuid) -> AtlasResult<WithholdingCertificate> {
         let cert = self.repository.get_certificate(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Certificate {} not found", id)
+                format!("Certificate {id} not found")
             ))?;
 
         if cert.status != "draft" {
@@ -639,7 +639,7 @@ impl WithholdingTaxEngine {
     pub async fn cancel_certificate(&self, id: Uuid) -> AtlasResult<WithholdingCertificate> {
         let cert = self.repository.get_certificate(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Certificate {} not found", id)
+                format!("Certificate {id} not found")
             ))?;
 
         if cert.status == "cancelled" {

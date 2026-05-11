@@ -1,6 +1,6 @@
 //! Service Request Repository
 //!
-//! PostgreSQL storage for service categories, requests, updates,
+//! `PostgreSQL` storage for service categories, requests, updates,
 //! and assignments.
 
 use atlas_shared::{
@@ -129,13 +129,14 @@ pub trait ServiceRequestRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ServiceRequestDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresServiceRequestRepository {
     pool: PgPool,
 }
 
 impl PostgresServiceRequestRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -248,7 +249,7 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ServiceCategory> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.service_categories
                 (organization_id, code, name, description, parent_category_id,
                  default_priority, default_sla_hours, created_by)
@@ -257,7 +258,7 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
                 SET name = $3, description = $4, parent_category_id = $5,
                     default_priority = $6, default_sla_hours = $7, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(parent_category_id).bind(default_priority).bind(default_sla_hours)
@@ -346,7 +347,7 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ServiceRequest> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.service_requests
                 (organization_id, request_number, title, description,
                  category_id, category_name, priority, status, request_type, channel,
@@ -359,7 +360,7 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
                     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
                     $21, $22, $23, $24, $25)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(request_number).bind(title).bind(description)
         .bind(category_id).bind(category_name).bind(priority).bind(status)
@@ -416,29 +417,29 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         let priority_val;
 
         if let Some(s) = status {
-            query_str.push_str(&format!(" AND status = ${}", bind_idx));
+            query_str.push_str(&format!(" AND status = ${bind_idx}"));
             status_val = s.to_string();
             bind_idx += 1;
         } else {
             status_val = String::new();
         }
         if let Some(p) = priority {
-            query_str.push_str(&format!(" AND priority = ${}", bind_idx));
+            query_str.push_str(&format!(" AND priority = ${bind_idx}"));
             priority_val = p.to_string();
             bind_idx += 1;
         } else {
             priority_val = String::new();
         }
         if customer_id.is_some() {
-            query_str.push_str(&format!(" AND customer_id = ${}", bind_idx));
+            query_str.push_str(&format!(" AND customer_id = ${bind_idx}"));
             bind_idx += 1;
         }
         if assigned_to.is_some() {
-            query_str.push_str(&format!(" AND (assigned_to = ${} OR assigned_group IS NOT NULL)", bind_idx));
+            query_str.push_str(&format!(" AND (assigned_to = ${bind_idx} OR assigned_group IS NOT NULL)"));
             bind_idx += 1;
         }
         if category_id.is_some() {
-            query_str.push_str(&format!(" AND category_id = ${}", bind_idx));
+            query_str.push_str(&format!(" AND category_id = ${bind_idx}"));
         }
 
         query_str.push_str(" ORDER BY created_at DESC");
@@ -466,13 +467,13 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         closed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ServiceRequest> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.service_requests
             SET status = $2, resolved_at = COALESCE($3, resolved_at),
                 closed_at = COALESCE($4, closed_at), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(resolved_at).bind(closed_at)
         .fetch_one(&self.pool)
@@ -490,13 +491,13 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         resolved_at: chrono::DateTime<chrono::Utc>,
     ) -> AtlasResult<ServiceRequest> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.service_requests
             SET status = 'resolved', resolution = $2, resolution_code = $3,
                 resolved_at = $4, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(resolution).bind(resolution_code).bind(resolved_at)
         .fetch_one(&self.pool)
@@ -514,11 +515,11 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         assigned_group: Option<&str>,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.service_requests
             SET assigned_to = $2, assigned_to_name = $3, assigned_group = $4, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(assigned_to).bind(assigned_to_name).bind(assigned_group)
         .execute(&self.pool)
@@ -543,13 +544,13 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         is_internal: bool,
     ) -> AtlasResult<ServiceRequestUpdate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.service_request_updates
                 (organization_id, request_id, update_type, author_id, author_name,
                  subject, body, is_internal)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(request_id).bind(update_type)
         .bind(author_id).bind(author_name).bind(subject).bind(body).bind(is_internal)
@@ -594,13 +595,13 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         assignment_type: &str,
     ) -> AtlasResult<ServiceRequestAssignment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.service_request_assignments
                 (organization_id, request_id, assigned_to, assigned_to_name,
                  assigned_group, assigned_by, assigned_by_name, assignment_type)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(request_id).bind(assigned_to).bind(assigned_to_name)
         .bind(assigned_group).bind(assigned_by).bind(assigned_by_name).bind(assignment_type)
@@ -629,12 +630,12 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ServiceRequestDashboard> {
         // Get counts by status
         let status_rows = sqlx::query(
-            r#"
+            r"
             SELECT status, COUNT(*) as count
             FROM _atlas.service_requests
             WHERE organization_id = $1
             GROUP BY status
-            "#
+            "
         )
         .bind(org_id)
         .fetch_all(&self.pool)
@@ -694,12 +695,12 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
 
         // By category
         let category_rows = sqlx::query(
-            r#"
+            r"
             SELECT COALESCE(category_name, 'Uncategorized') as cat, COUNT(*) as count
             FROM _atlas.service_requests
             WHERE organization_id = $1
             GROUP BY category_name
-            "#
+            "
         )
         .bind(org_id)
         .fetch_all(&self.pool)
@@ -732,11 +733,11 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         // Average resolution time - cast to text to avoid NUMERIC/f64 mismatch
         let avg_hours: f64 = {
             let row = sqlx::query(
-                r#"
+                r"
                 SELECT COALESCE(EXTRACT(EPOCH FROM AVG(resolved_at - created_at)) / 3600.0, 0)::text as avg_hours
                 FROM _atlas.service_requests
                 WHERE organization_id = $1 AND resolved_at IS NOT NULL
-                "#
+                "
             )
             .bind(org_id)
             .fetch_optional(&self.pool)
@@ -762,7 +763,7 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             by_status: serde_json::Value::Object(by_status),
             by_category: serde_json::Value::Object(by_category),
             by_channel: serde_json::Value::Object(by_channel),
-            average_resolution_hours: format!("{:.2}", avg_hours),
+            average_resolution_hours: format!("{avg_hours:.2}"),
         })
     }
 }

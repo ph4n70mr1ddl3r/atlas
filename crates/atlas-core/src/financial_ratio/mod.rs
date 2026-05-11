@@ -132,11 +132,12 @@ pub trait FinancialRatioRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RatioDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 #[allow(dead_code)]
 pub struct PostgresFinancialRatioRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresFinancialRatioRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresFinancialRatioRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl FinancialRatioRepository for PostgresFinancialRatioRepository {

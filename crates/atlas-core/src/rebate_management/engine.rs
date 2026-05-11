@@ -82,7 +82,7 @@ const VALID_PAYMENT_METHODS: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -165,7 +165,7 @@ impl RebateManagementEngine {
 
         if self.repository.get_agreement_by_number(org_id, agreement_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Rebate agreement '{}' already exists", agreement_number
+                "Rebate agreement '{agreement_number}' already exists"
             )));
         }
 
@@ -274,7 +274,7 @@ impl RebateManagementEngine {
         // Verify agreement exists
         self.repository.get_agreement(agreement_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rebate agreement {} not found", agreement_id
+                "Rebate agreement {agreement_id} not found"
             )))?;
 
         info!("Creating tier {} for agreement {} [from={}, to={:?}, rate={}, type={}]",
@@ -334,7 +334,7 @@ impl RebateManagementEngine {
         // Verify agreement exists and is active
         let agreement = self.repository.get_agreement(agreement_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rebate agreement {} not found", agreement_id
+                "Rebate agreement {agreement_id} not found"
             )))?;
 
         if agreement.status != "active" {
@@ -345,7 +345,7 @@ impl RebateManagementEngine {
 
         if self.repository.get_transaction_by_number(org_id, transaction_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Rebate transaction '{}' already exists", transaction_number
+                "Rebate transaction '{transaction_number}' already exists"
             )));
         }
 
@@ -418,7 +418,7 @@ impl RebateManagementEngine {
         // Verify agreement exists
         let agreement = self.repository.get_agreement(agreement_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rebate agreement {} not found", agreement_id
+                "Rebate agreement {agreement_id} not found"
             )))?;
 
         // Sum up eligible transactions for this agreement
@@ -433,7 +433,7 @@ impl RebateManagementEngine {
 
         if self.repository.get_accrual_by_number(org_id, accrual_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Rebate accrual '{}' already exists", accrual_number
+                "Rebate accrual '{accrual_number}' already exists"
             )));
         }
 
@@ -519,7 +519,7 @@ impl RebateManagementEngine {
         // Verify agreement exists
         let agreement = self.repository.get_agreement(agreement_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rebate agreement {} not found", agreement_id
+                "Rebate agreement {agreement_id} not found"
             )))?;
 
         // Sum up accrued transactions
@@ -533,7 +533,7 @@ impl RebateManagementEngine {
 
         if self.repository.get_settlement_by_number(org_id, settlement_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Rebate settlement '{}' already exists", settlement_number
+                "Rebate settlement '{settlement_number}' already exists"
             )));
         }
 

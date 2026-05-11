@@ -1,6 +1,6 @@
 //! Quality Management Repository
 //!
-//! PostgreSQL storage for inspection plans, inspections, non-conformance
+//! `PostgreSQL` storage for inspection plans, inspections, non-conformance
 //! reports, corrective actions, quality holds, and related data.
 
 use atlas_shared::{
@@ -177,13 +177,14 @@ pub trait QualityManagementRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<QualityDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresQualityManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresQualityManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -211,14 +212,14 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<QualityInspectionPlan> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.quality_inspection_plans
+            r"INSERT INTO _atlas.quality_inspection_plans
                 (organization_id, plan_code, name, description, plan_type,
                  item_id, item_code, supplier_id, supplier_name,
                  inspection_trigger, sampling_method, sample_size_percent,
                  accept_number, reject_number, frequency,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::numeric,$13,$14,$15,$16,$17,$18)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(plan_code).bind(name).bind(description)
         .bind(plan_type).bind(item_id).bind(item_code)
@@ -291,13 +292,13 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         weight: &str, criticality: &str,
     ) -> AtlasResult<QualityInspectionPlanCriterion> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.quality_plan_criteria
+            r"INSERT INTO _atlas.quality_plan_criteria
                 (organization_id, plan_id, criterion_number, name, description,
                  characteristic, measurement_type, target_value,
                  lower_spec_limit, upper_spec_limit, unit_of_measure,
                  is_mandatory, weight, criticality)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9::numeric,$10::numeric,$11,$12,$13::numeric,$14)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(plan_id).bind(criterion_number).bind(name)
         .bind(description).bind(characteristic).bind(measurement_type)
@@ -343,7 +344,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<QualityInspection> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.quality_inspections
+            r"INSERT INTO _atlas.quality_inspections
                 (organization_id, inspection_number, plan_id,
                  source_type, source_id, source_number,
                  item_id, item_code, item_description,
@@ -351,7 +352,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
                  unit_of_measure, inspector_id, inspector_name, inspection_date,
                  created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::numeric,$12::numeric,$13::numeric,$14,$15,$16,$17,$18)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(inspection_number).bind(plan_id)
         .bind(source_type).bind(source_id).bind(source_number)
@@ -391,10 +392,10 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         plan_id: Option<Uuid>, limit: Option<i64>,
     ) -> AtlasResult<Vec<QualityInspection>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.quality_inspections
+            r"SELECT * FROM _atlas.quality_inspections
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::uuid IS NULL OR plan_id=$3)
-            ORDER BY created_at DESC LIMIT COALESCE($4, 100)"#,
+            ORDER BY created_at DESC LIMIT COALESCE($4, 100)",
         )
         .bind(org_id).bind(status).bind(plan_id).bind(limit)
         .fetch_all(&self.pool).await
@@ -408,9 +409,9 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         completed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<QualityInspection> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.quality_inspections SET status=$2,
+            r"UPDATE _atlas.quality_inspections SET status=$2,
                 completed_at=COALESCE($3, completed_at),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(completed_at)
         .fetch_one(&self.pool).await
@@ -424,10 +425,10 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         notes: Option<&str>,
     ) -> AtlasResult<QualityInspection> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.quality_inspections SET
+            r"UPDATE _atlas.quality_inspections SET
                 verdict=$2, overall_score=COALESCE($3::numeric, overall_score),
                 notes=COALESCE($4, notes),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(verdict).bind(score).bind(notes)
         .fetch_one(&self.pool).await
@@ -450,14 +451,14 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         notes: Option<&str>, evaluated_by: Option<Uuid>,
     ) -> AtlasResult<QualityInspectionResult> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.quality_inspection_results
+            r"INSERT INTO _atlas.quality_inspection_results
                 (organization_id, inspection_id, criterion_id,
                  criterion_name, characteristic, measurement_type,
                  observed_value, target_value, lower_spec_limit,
                  upper_spec_limit, unit_of_measure, result_status,
                  deviation, notes, evaluated_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8::numeric,$9::numeric,$10::numeric,$11,$12,$13::numeric,$14,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(inspection_id).bind(criterion_id)
         .bind(criterion_name).bind(characteristic).bind(measurement_type)
@@ -485,9 +486,9 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         &self, id: Uuid, status: &str, deviation: Option<&str>,
     ) -> AtlasResult<QualityInspectionResult> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.quality_inspection_results SET
+            r"UPDATE _atlas.quality_inspection_results SET
                 result_status=$2, deviation=COALESCE($3::numeric, deviation),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(deviation)
         .fetch_one(&self.pool).await
@@ -511,13 +512,13 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<NonConformanceReport> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.quality_non_conformance_reports
+            r"INSERT INTO _atlas.quality_non_conformance_reports
                 (organization_id, ncr_number, title, description,
                  ncr_type, severity, origin, source_type, source_id, source_number,
                  item_id, item_code, supplier_id, supplier_name,
                  detected_date, detected_by, responsible_party, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(ncr_number).bind(title).bind(description)
         .bind(ncr_type).bind(severity).bind(origin)
@@ -556,10 +557,10 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         severity: Option<&str>, limit: Option<i64>,
     ) -> AtlasResult<Vec<NonConformanceReport>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.quality_non_conformance_reports
+            r"SELECT * FROM _atlas.quality_non_conformance_reports
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::text IS NULL OR severity=$3)
-            ORDER BY detected_date DESC LIMIT COALESCE($4, 100)"#,
+            ORDER BY detected_date DESC LIMIT COALESCE($4, 100)",
         )
         .bind(org_id).bind(status).bind(severity).bind(limit)
         .fetch_all(&self.pool).await
@@ -573,9 +574,9 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         resolved_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<NonConformanceReport> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.quality_non_conformance_reports SET status=$2,
+            r"UPDATE _atlas.quality_non_conformance_reports SET status=$2,
                 resolved_at=COALESCE($3, resolved_at),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(resolved_at)
         .fetch_one(&self.pool).await
@@ -589,11 +590,11 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         resolution_type: &str, resolved_by: Option<&str>,
     ) -> AtlasResult<NonConformanceReport> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.quality_non_conformance_reports SET
+            r"UPDATE _atlas.quality_non_conformance_reports SET
                 resolution_description=$2, resolution_type=$3,
                 resolved_by=COALESCE($4, resolved_by),
                 resolved_at=CASE WHEN resolved_at IS NULL THEN now() ELSE resolved_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(resolution_description).bind(resolution_type).bind(resolved_by)
         .fetch_one(&self.pool).await
@@ -615,13 +616,13 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         priority: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<CorrectiveAction> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.quality_corrective_actions
+            r"INSERT INTO _atlas.quality_corrective_actions
                 (organization_id, ncr_id, action_number, action_type,
                  title, description, root_cause,
                  corrective_action_desc, preventive_action_desc,
                  assigned_to, due_date, priority, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(ncr_id).bind(action_number).bind(action_type)
         .bind(title).bind(description).bind(root_cause)
@@ -660,10 +661,10 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         effectiveness_rating: Option<i32>,
     ) -> AtlasResult<CorrectiveAction> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.quality_corrective_actions SET status=$2,
+            r"UPDATE _atlas.quality_corrective_actions SET status=$2,
                 completed_at=COALESCE($3, completed_at),
                 effectiveness_rating=COALESCE($4, effectiveness_rating),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(completed_at).bind(effectiveness_rating)
         .fetch_one(&self.pool).await
@@ -686,14 +687,14 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<QualityHold> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.quality_holds
+            r"INSERT INTO _atlas.quality_holds
                 (organization_id, hold_number, reason, description,
                  item_id, item_code, lot_number,
                  supplier_id, supplier_name,
                  source_type, source_id, source_number,
                  hold_type, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(hold_number).bind(reason).bind(description)
         .bind(item_id).bind(item_code).bind(lot_number)
@@ -721,10 +722,10 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         item_id: Option<Uuid>,
     ) -> AtlasResult<Vec<QualityHold>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.quality_holds
+            r"SELECT * FROM _atlas.quality_holds
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::uuid IS NULL OR item_id=$3)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(item_id)
         .fetch_all(&self.pool).await
@@ -738,11 +739,11 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         release_notes: Option<&str>,
     ) -> AtlasResult<QualityHold> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.quality_holds SET status=$2,
+            r"UPDATE _atlas.quality_holds SET status=$2,
                 released_by=COALESCE($3, released_by),
                 release_notes=COALESCE($4, release_notes),
                 released_at=CASE WHEN $2='released' AND released_at IS NULL THEN now() ELSE released_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(released_by).bind(release_notes)
         .fetch_one(&self.pool).await
@@ -757,7 +758,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<QualityDashboardSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 (SELECT COUNT(*) FROM _atlas.quality_inspection_plans WHERE organization_id=$1 AND is_active=true) as active_plans,
                 (SELECT COUNT(*) FROM _atlas.quality_inspections WHERE organization_id=$1 AND status IN ('planned','in_progress')) as pending_inspections,
                 (SELECT COUNT(*) FROM _atlas.quality_inspections WHERE organization_id=$1 AND status='completed' AND verdict='pass') as passed_inspections,
@@ -767,7 +768,7 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
                 (SELECT COUNT(*) FROM _atlas.quality_corrective_actions WHERE organization_id=$1 AND status IN ('open','in_progress')) as open_corrective_actions,
                 (SELECT COUNT(*) FROM _atlas.quality_corrective_actions WHERE organization_id=$1 AND status='completed') as completed_corrective_actions,
                 (SELECT COUNT(*) FROM _atlas.quality_holds WHERE organization_id=$1 AND status='active') as active_holds,
-                (SELECT COUNT(*) FROM _atlas.quality_non_conformance_reports WHERE organization_id=$1 AND severity='critical') as critical_ncrs"#,
+                (SELECT COUNT(*) FROM _atlas.quality_non_conformance_reports WHERE organization_id=$1 AND severity='critical') as critical_ncrs",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -802,13 +803,13 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
             total_pending_inspections: pending_inspections as i32,
             total_passed_inspections: passed_inspections as i32,
             total_failed_inspections: failed_inspections as i32,
-            inspection_pass_rate_percent: format!("{:.1}", pass_rate),
+            inspection_pass_rate_percent: format!("{pass_rate:.1}"),
             total_open_ncrs: open_ncrs as i32,
             total_ncrs: total_ncrs as i32,
             critical_ncrs: critical_ncrs as i32,
             total_open_corrective_actions: open_corrective_actions as i32,
             total_completed_corrective_actions: completed_corrective_actions as i32,
-            corrective_action_completion_rate_percent: format!("{:.1}", cap_rate),
+            corrective_action_completion_rate_percent: format!("{cap_rate:.1}"),
             total_active_holds: active_holds as i32,
             inspections_by_verdict: serde_json::json!({}),
             ncrs_by_severity: serde_json::json!({}),

@@ -6,9 +6,9 @@
 //!
 //! Quality lifecycle:
 //! - Inspection Plans: draft → active → inactive
-//! - Inspections: planned → in_progress → completed
-//! - NCRs: open → under_investigation → corrective_action → resolved/closed
-//! - CAPA: open → in_progress → completed → verified
+//! - Inspections: planned → `in_progress` → completed
+//! - NCRs: open → `under_investigation` → `corrective_action` → resolved/closed
+//! - CAPA: open → `in_progress` → completed → verified
 //! - Holds: active → released
 //!
 //! Oracle Fusion Cloud ERP equivalent: Quality Management
@@ -202,8 +202,7 @@ impl QualityManagementEngine {
         // Check for duplicate plan code
         if let Some(_existing) = self.repository.get_plan(org_id, plan_code).await? {
             return Err(AtlasError::Conflict(format!(
-                "Inspection plan '{}' already exists",
-                plan_code
+                "Inspection plan '{plan_code}' already exists"
             )));
         }
 
@@ -260,7 +259,7 @@ impl QualityManagementEngine {
             .repository
             .get_plan_by_id(plan_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection plan {} not found", plan_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection plan {plan_id} not found")))?;
 
         if name.is_empty() {
             return Err(AtlasError::ValidationFailed("Criterion name is required".to_string()));
@@ -336,7 +335,7 @@ impl QualityManagementEngine {
             .repository
             .get_plan_by_id(plan_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection plan {} not found", plan_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection plan {plan_id} not found")))?;
 
         let qi: f64 = quantity_inspected.parse().map_err(|_| AtlasError::ValidationFailed(
             "Quantity inspected must be a valid number".to_string(),
@@ -394,13 +393,13 @@ impl QualityManagementEngine {
         self.repository.list_inspections(org_id, status, plan_id, None).await
     }
 
-    /// Start an inspection (move from planned to in_progress)
+    /// Start an inspection (move from planned to `in_progress`)
     pub async fn start_inspection(&self, id: Uuid) -> AtlasResult<QualityInspection> {
         let inspection = self
             .repository
             .get_inspection(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection {id} not found")))?;
 
         if inspection.status != "planned" {
             return Err(AtlasError::WorkflowError(format!(
@@ -424,7 +423,7 @@ impl QualityManagementEngine {
             .repository
             .get_inspection(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection {id} not found")))?;
 
         if inspection.status != "in_progress" {
             return Err(AtlasError::WorkflowError(format!(
@@ -450,7 +449,7 @@ impl QualityManagementEngine {
         );
 
         self.repository
-            .update_inspection_verdict(id, verdict, Some(&format!("{:.2}", score)), notes)
+            .update_inspection_verdict(id, verdict, Some(&format!("{score:.2}")), notes)
             .await?;
 
         self.repository
@@ -464,7 +463,7 @@ impl QualityManagementEngine {
             .repository
             .get_inspection(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection {id} not found")))?;
 
         if inspection.status == "completed" || inspection.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
@@ -505,7 +504,7 @@ impl QualityManagementEngine {
             .repository
             .get_inspection(inspection_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection {} not found", inspection_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection {inspection_id} not found")))?;
 
         if inspection.status != "in_progress" && inspection.status != "planned" {
             return Err(AtlasError::WorkflowError(format!(
@@ -640,13 +639,13 @@ impl QualityManagementEngine {
         self.repository.list_ncrs(org_id, status, severity, None).await
     }
 
-    /// Move NCR to under_investigation
+    /// Move NCR to `under_investigation`
     pub async fn investigate_ncr(&self, id: Uuid) -> AtlasResult<NonConformanceReport> {
         let ncr = self
             .repository
             .get_ncr(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {id} not found")))?;
 
         if ncr.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
@@ -659,13 +658,13 @@ impl QualityManagementEngine {
         self.repository.update_ncr_status(id, "under_investigation", None).await
     }
 
-    /// Move NCR to corrective_action phase
+    /// Move NCR to `corrective_action` phase
     pub async fn start_corrective_action_phase(&self, id: Uuid) -> AtlasResult<NonConformanceReport> {
         let ncr = self
             .repository
             .get_ncr(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {id} not found")))?;
 
         if ncr.status != "under_investigation" {
             return Err(AtlasError::WorkflowError(format!(
@@ -690,7 +689,7 @@ impl QualityManagementEngine {
             .repository
             .get_ncr(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {id} not found")))?;
 
         if ncr.status != "corrective_action" && ncr.status != "under_investigation" {
             return Err(AtlasError::WorkflowError(format!(
@@ -729,7 +728,7 @@ impl QualityManagementEngine {
             .repository
             .get_ncr(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {id} not found")))?;
 
         if ncr.status != "resolved" {
             return Err(AtlasError::WorkflowError(format!(
@@ -776,7 +775,7 @@ impl QualityManagementEngine {
             .repository
             .get_ncr(ncr_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {} not found", ncr_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NCR {ncr_id} not found")))?;
 
         if ncr.status == "closed" {
             return Err(AtlasError::WorkflowError(
@@ -832,7 +831,7 @@ impl QualityManagementEngine {
             .repository
             .get_corrective_action(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Corrective action {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Corrective action {id} not found")))?;
 
         if action.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
@@ -855,7 +854,7 @@ impl QualityManagementEngine {
             .repository
             .get_corrective_action(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Corrective action {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Corrective action {id} not found")))?;
 
         if action.status != "in_progress" {
             return Err(AtlasError::WorkflowError(format!(
@@ -884,7 +883,7 @@ impl QualityManagementEngine {
             .repository
             .get_corrective_action(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Corrective action {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Corrective action {id} not found")))?;
 
         if action.status != "completed" {
             return Err(AtlasError::WorkflowError(format!(
@@ -977,7 +976,7 @@ impl QualityManagementEngine {
             .repository
             .get_hold(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hold {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hold {id} not found")))?;
 
         if hold.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -1034,10 +1033,10 @@ impl QualityManagementEngine {
             .is_none_or(|u| obs <= u);
 
         if within_lower && within_upper {
-            Some(format!("{:.4}", deviation))
+            Some(format!("{deviation:.4}"))
         } else {
             // Out of spec: include indicator for clarity
-            Some(format!("{:.4} (OUT_OF_SPEC)", deviation))
+            Some(format!("{deviation:.4} (OUT_OF_SPEC)"))
         }
     }
 }

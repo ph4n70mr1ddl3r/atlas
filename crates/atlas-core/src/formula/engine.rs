@@ -21,6 +21,7 @@ pub struct FormulaEngine {
 }
 
 impl FormulaEngine {
+    #[must_use] 
     pub fn new() -> Self {
         let mut engine = Self { functions: HashMap::new() };
         engine.register_builtin_functions();
@@ -51,7 +52,7 @@ impl FormulaEngine {
             Ok(value) => Ok(value),
             Err(e) => {
                 warn!("Formula evaluation error: {}", e);
-                Err(AtlasError::Internal(format!("Formula error: {}", e)))
+                Err(AtlasError::Internal(format!("Formula error: {e}")))
             }
         }
     }
@@ -67,7 +68,7 @@ impl FormulaEngine {
                 if let Some(_records) = ctx.get_related(_entity) {
                     // Aggregate function needed
                     return Err(AtlasError::NotImplemented(
-                        format!("Related field {} requires aggregation", field)
+                        format!("Related field {field} requires aggregation")
                     ));
                 }
             }
@@ -103,7 +104,7 @@ impl FormulaEngine {
                 return Ok((func.handler)(&args));
             }
             
-            return Err(format!("Unknown function: {}", func_name));
+            return Err(format!("Unknown function: {func_name}"));
         }
         
         // Handle operators
@@ -153,7 +154,7 @@ impl FormulaEngine {
         
         // Handle comparison operators — check longer operators first to avoid
         // partial matches (e.g. ">=" must be tried before ">" ).
-        for op in [">=", "<=", "==", "!=", ">", "<"].iter() {
+        for op in &[">=", "<=", "==", "!=", ">", "<"] {
             if expr.contains(op) {
                 if let Some(result) = self.evaluate_compare(expr, op, ctx)? {
                     return Ok(result);
@@ -264,8 +265,7 @@ impl FormulaEngine {
                         }
                         let byte_idx = expr.char_indices()
                             .nth(i)
-                            .map(|(bi, _)| bi)
-                            .unwrap_or(expr.len());
+                            .map_or(expr.len(), |(bi, _)| bi);
                         last_op_byte_idx = Some(byte_idx);
                     }
                 }
@@ -323,8 +323,8 @@ impl FormulaEngine {
         if let Some(idx) = op_idx {
             // Convert char indices to byte indices using char_indices
             let mut ci = expr.char_indices();
-            let byte_idx = ci.nth(idx).map(|(bi, _)| bi).unwrap_or(expr.len());
-            let byte_end = ci.nth(op_len - 1).map(|(bi, c)| bi + c.len_utf8()).unwrap_or(expr.len());
+            let byte_idx = ci.nth(idx).map_or(expr.len(), |(bi, _)| bi);
+            let byte_end = ci.nth(op_len - 1).map_or(expr.len(), |(bi, c)| bi + c.len_utf8());
             let left = expr[..byte_idx].trim();
             let right = expr[byte_end..].trim();
             
@@ -427,7 +427,7 @@ impl FormulaEngine {
                     }
                 })
                 .collect();
-            nums.iter().cloned().reduce(f64::min).map(FormulaValue::Number).unwrap_or(FormulaValue::Null)
+            nums.iter().copied().reduce(f64::min).map_or(FormulaValue::Null, FormulaValue::Number)
         });
         
         self.register_function("MAX", 1, usize::MAX, |args| {
@@ -440,7 +440,7 @@ impl FormulaEngine {
                     }
                 })
                 .collect();
-            nums.iter().cloned().reduce(f64::max).map(FormulaValue::Number).unwrap_or(FormulaValue::Null)
+            nums.iter().copied().reduce(f64::max).map_or(FormulaValue::Null, FormulaValue::Number)
         });
         
         // String functions
@@ -514,7 +514,7 @@ impl FormulaEngine {
 fn add_values(a: &FormulaValue, b: &FormulaValue) -> FormulaValue {
     match (a, b) {
         (FormulaValue::Number(n1), FormulaValue::Number(n2)) => FormulaValue::Number(n1 + n2),
-        (FormulaValue::String(s1), FormulaValue::String(s2)) => FormulaValue::String(format!("{}{}", s1, s2)),
+        (FormulaValue::String(s1), FormulaValue::String(s2)) => FormulaValue::String(format!("{s1}{s2}")),
         _ => FormulaValue::Null,
     }
 }
@@ -552,7 +552,7 @@ fn compare_values(a: &FormulaValue, b: &FormulaValue) -> i32 {
         (FormulaValue::Null, _) => -1,
         (_, FormulaValue::Null) => 1,
         (FormulaValue::Number(n1), FormulaValue::Number(n2)) => {
-            if n1 < n2 { -1 } else if n1 > n2 { 1 } else { 0 }
+            if n1 < n2 { -1 } else { i32::from(n1 > n2) }
         }
         (FormulaValue::String(s1), FormulaValue::String(s2)) => s1.cmp(s2) as i32,
         (FormulaValue::Boolean(b1), FormulaValue::Boolean(b2)) => {

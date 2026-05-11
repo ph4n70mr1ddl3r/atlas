@@ -104,7 +104,7 @@ impl AbsenceEngine {
         self.repository.create_absence_type(
             org_id, &code_upper, name, description, category, plan_type,
             requires_approval, requires_documentation,
-            &format!("{:.2}", auto_approve_below_days),
+            &format!("{auto_approve_below_days:.2}"),
             allow_negative_balance, allow_half_day, created_by,
         ).await
     }
@@ -195,12 +195,12 @@ impl AbsenceEngine {
         // Look up the absence type
         let absence_type = self.get_absence_type(org_id, absence_type_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Absence type '{}' not found", absence_type_code)
+                format!("Absence type '{absence_type_code}' not found")
             ))?;
 
         if !absence_type.is_active {
             return Err(AtlasError::ValidationFailed(
-                format!("Absence type '{}' is not active", absence_type_code)
+                format!("Absence type '{absence_type_code}' is not active")
             ));
         }
 
@@ -209,10 +209,10 @@ impl AbsenceEngine {
         self.repository.create_absence_plan(
             org_id, &code_upper, name, description,
             absence_type.id, accrual_frequency,
-            &format!("{:.4}", accrual_rate), accrual_unit,
-            carry_over_max.map(|v| format!("{:.2}", v)),
+            &format!("{accrual_rate:.4}"), accrual_unit,
+            carry_over_max.map(|v| format!("{v:.2}")),
             carry_over_expiry_months,
-            max_balance.map(|v| format!("{:.2}", v)),
+            max_balance.map(|v| format!("{v:.2}")),
             probation_period_days, prorate_first_year,
             created_by,
         ).await
@@ -288,12 +288,12 @@ impl AbsenceEngine {
         // Look up absence type
         let absence_type = self.get_absence_type(org_id, absence_type_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Absence type '{}' not found", absence_type_code)
+                format!("Absence type '{absence_type_code}' not found")
             ))?;
 
         if !absence_type.is_active {
             return Err(AtlasError::ValidationFailed(
-                format!("Absence type '{}' is not active", absence_type_code)
+                format!("Absence type '{absence_type_code}' is not active")
             ));
         }
 
@@ -301,7 +301,7 @@ impl AbsenceEngine {
         let plan_id = if let Some(pc) = plan_code {
             let plan = self.get_absence_plan(org_id, pc).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Absence plan '{}' not found", pc)
+                    format!("Absence plan '{pc}' not found")
                 ))?;
             Some(plan.id)
         } else {
@@ -339,8 +339,8 @@ impl AbsenceEngine {
             absence_type.id, plan_id,
             &entry_number, status,
             start_date, end_date,
-            &format!("{:.4}", duration_days),
-            duration_hours.map(|h| format!("{:.4}", h)),
+            &format!("{duration_days:.4}"),
+            duration_hours.map(|h| format!("{h:.4}")),
             is_half_day, half_day_period,
             reason, comments,
             documentation_provided,
@@ -392,11 +392,11 @@ impl AbsenceEngine {
     pub async fn submit_entry(&self, org_id: Uuid, entry_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<AbsenceEntry> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Absence entry {} not found", entry_id)
+                format!("Absence entry {entry_id} not found")
             ))?;
 
         if entry.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {entry_id} not found")));
         }
 
         if entry.status != "draft" {
@@ -419,11 +419,11 @@ impl AbsenceEngine {
     pub async fn approve_entry(&self, org_id: Uuid, entry_id: Uuid, approved_by: Uuid) -> AtlasResult<AbsenceEntry> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Absence entry {} not found", entry_id)
+                format!("Absence entry {entry_id} not found")
             ))?;
 
         if entry.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {entry_id} not found")));
         }
 
         if entry.status != "submitted" {
@@ -465,11 +465,11 @@ impl AbsenceEngine {
     ) -> AtlasResult<AbsenceEntry> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Absence entry {} not found", entry_id)
+                format!("Absence entry {entry_id} not found")
             ))?;
 
         if entry.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {entry_id} not found")));
         }
 
         if entry.status != "submitted" {
@@ -500,11 +500,11 @@ impl AbsenceEngine {
     ) -> AtlasResult<AbsenceEntry> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Absence entry {} not found", entry_id)
+                format!("Absence entry {entry_id} not found")
             ))?;
 
         if entry.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {entry_id} not found")));
         }
 
         if entry.status != "draft" && entry.status != "submitted" {
@@ -555,7 +555,7 @@ impl AbsenceEngine {
         // Get plan for accrual info
         let plan = self.repository.get_plan_by_id(plan_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Absence plan {} not found", plan_id)
+                format!("Absence plan {plan_id} not found")
             ))?;
 
         let accrual_rate: f64 = plan.accrual_rate.parse().unwrap_or(0.0);
@@ -591,11 +591,11 @@ impl AbsenceEngine {
         self.repository.create_balance(
             org_id, employee_id, plan_id,
             period_start, period_end,
-            &format!("{:.4}", accrued),
-            &format!("{:.4}", taken),
-            &format!("{:.4}", adjusted),
-            &format!("{:.4}", carried_over),
-            &format!("{:.4}", remaining),
+            &format!("{accrued:.4}"),
+            &format!("{taken:.4}"),
+            &format!("{adjusted:.4}"),
+            &format!("{carried_over:.4}"),
+            &format!("{remaining:.4}"),
         ).await
     }
 
@@ -616,9 +616,9 @@ impl AbsenceEngine {
     pub async fn get_entry_history(&self, org_id: Uuid, entry_id: Uuid) -> AtlasResult<Vec<AbsenceEntryHistory>> {
         // Verify the entry belongs to the org before returning history
         let entry = self.repository.get_entry(entry_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Absence entry {entry_id} not found")))?;
         if entry.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Absence entry {} not found", entry_id)));
+            return Err(AtlasError::EntityNotFound(format!("Absence entry {entry_id} not found")));
         }
         self.repository.get_entry_history(entry_id).await
     }
@@ -651,7 +651,7 @@ impl AbsenceEngine {
         let mut by_status = serde_json::Map::new();
         for entry in &all_entries {
             let count = by_status.get(&entry.status)
-                .and_then(|v| v.as_i64())
+                .and_then(serde_json::Value::as_i64)
                 .unwrap_or(0) + 1;
             by_status.insert(entry.status.clone(), serde_json::json!(count));
         }
@@ -661,13 +661,13 @@ impl AbsenceEngine {
         for entry in &all_entries {
             let type_id = entry.absence_type_id.to_string();
             let count = by_type.get(&type_id)
-                .and_then(|v| v.as_i64())
+                .and_then(serde_json::Value::as_i64)
                 .unwrap_or(0) + 1;
             by_type.insert(type_id, serde_json::json!(count));
         }
 
         // Recent entries (last 10)
-        let mut recent = all_entries.clone();
+        let mut recent = all_entries;
         recent.sort_by_key(|b| std::cmp::Reverse(b.created_at));
         recent.truncate(10);
 
@@ -698,7 +698,7 @@ impl AbsenceEngine {
     ) -> AtlasResult<()> {
         let plan = self.repository.get_plan_by_id(plan_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Plan {} not found", plan_id)
+                format!("Plan {plan_id} not found")
             ))?;
 
         // Determine current period based on accrual frequency
@@ -720,9 +720,9 @@ impl AbsenceEngine {
 
         self.repository.update_balance(
             balance.id,
-            &format!("{:.4}", new_taken),
-            &format!("{:.4}", adjusted),
-            &format!("{:.4}", new_remaining),
+            &format!("{new_taken:.4}"),
+            &format!("{adjusted:.4}"),
+            &format!("{new_remaining:.4}"),
         ).await?;
 
         info!("Updated balance for employee {} plan {}: taken += {}", 
@@ -732,6 +732,7 @@ impl AbsenceEngine {
     }
 
     /// Calculate current period dates based on accrual frequency
+    #[must_use] 
     pub fn calculate_current_period(&self, frequency: &str) -> (chrono::NaiveDate, chrono::NaiveDate) {
         let today = chrono::Utc::now().date_naive();
         let year = today.year();
@@ -777,7 +778,7 @@ impl AbsenceEngine {
             }
             "weekly" => {
                 let weekday = today.weekday().num_days_from_monday();
-                let start = today - chrono::Duration::days(weekday as i64);
+                let start = today - chrono::Duration::days(i64::from(weekday));
                 let end = start + chrono::Duration::days(6);
                 (start, end)
             }

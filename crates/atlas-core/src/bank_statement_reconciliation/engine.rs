@@ -112,8 +112,7 @@ impl BankStatementReconciliationEngine {
         if difference > 0.01 {
             return Err(atlas_shared::AtlasError::ValidationFailed(
                 format!(
-                    "Statement balance inconsistency: expected closing {:.2} but got {:.2} (diff {:.2})",
-                    expected_closing, closing_balance, difference
+                    "Statement balance inconsistency: expected closing {expected_closing:.2} but got {closing_balance:.2} (diff {difference:.2})"
                 ),
             ));
         }
@@ -144,6 +143,7 @@ impl BankStatementReconciliationEngine {
     /// an exact amount match strategy.
     ///
     /// Returns the index of the matching system transaction, if any.
+    #[must_use] 
     pub fn match_exact_amount(
         statement_amount: f64,
         statement_type: &str, // "credit" or "debit"
@@ -166,6 +166,7 @@ impl BankStatementReconciliationEngine {
     /// amount tolerance matching.
     ///
     /// Returns all candidate matches within the tolerance band.
+    #[must_use] 
     pub fn match_amount_tolerance(
         statement_amount: f64,
         tolerance_pct: f64,
@@ -185,6 +186,7 @@ impl BankStatementReconciliationEngine {
     }
 
     /// Match by customer/bank reference string
+    #[must_use] 
     pub fn match_reference(
         statement_reference: &str,
         system_transactions: &[(f64, &str, Option<&str>, Option<chrono::NaiveDate>)],
@@ -213,6 +215,7 @@ impl BankStatementReconciliationEngine {
     }
 
     /// Match by date within a tolerance range
+    #[must_use] 
     pub fn match_date_range(
         statement_date: chrono::NaiveDate,
         tolerance_days: i32,
@@ -222,7 +225,7 @@ impl BankStatementReconciliationEngine {
         for (i, (_amount, _txn_type, _ref, sys_date)) in system_transactions.iter().enumerate() {
             if let Some(date) = sys_date {
                 let days_diff = (*date - statement_date).num_days().abs();
-                if days_diff <= tolerance_days as i64 {
+                if days_diff <= i64::from(tolerance_days) {
                     matches.push(i);
                 }
             }
@@ -231,6 +234,7 @@ impl BankStatementReconciliationEngine {
     }
 
     /// Combined match: amount tolerance AND reference
+    #[must_use] 
     pub fn match_combined_amount_reference(
         statement_amount: f64,
         statement_reference: &str,
@@ -252,6 +256,7 @@ impl BankStatementReconciliationEngine {
     }
 
     /// Combined match: amount tolerance AND date range
+    #[must_use] 
     pub fn match_combined_amount_date(
         statement_amount: f64,
         statement_date: chrono::NaiveDate,
@@ -280,6 +285,7 @@ impl BankStatementReconciliationEngine {
     /// against system transactions using the provided matching rules.
     ///
     /// Returns a `ReconciliationRunResult` summarising the outcome.
+    #[must_use] 
     pub fn run_auto_reconciliation(
         statement_lines: &[StatementLineInput],
         system_transactions: &[SystemTransactionInput],
@@ -446,6 +452,7 @@ impl BankStatementReconciliationEngine {
     // ========================================================================
 
     /// Calculate the reconciliation difference between bank and book
+    #[must_use] 
     pub fn calculate_reconciliation_difference(
         bank_closing_balance: f64,
         book_balance: f64,
@@ -475,7 +482,7 @@ impl BankStatementReconciliationEngine {
         let cleaned = raw.trim().replace(',', ".");
         cleaned.parse::<f64>().map_err(|_| {
             atlas_shared::AtlasError::ValidationFailed(
-                format!("Invalid MT940 amount: '{}'", raw),
+                format!("Invalid MT940 amount: '{raw}'"),
             )
         })
     }
@@ -487,7 +494,7 @@ impl BankStatementReconciliationEngine {
             'C' | 'c' => Ok("credit".to_string()),
             'D' | 'd' => Ok("debit".to_string()),
             _ => Err(atlas_shared::AtlasError::ValidationFailed(
-                format!("Invalid MT940 credit/debit indicator: '{}'", indicator),
+                format!("Invalid MT940 credit/debit indicator: '{indicator}'"),
             )),
         }
     }
@@ -497,7 +504,7 @@ impl BankStatementReconciliationEngine {
         match code {
             "01" | "02" | "03" | "16" | "49" | "88" | "98" | "99" => Ok(()),
             _ => Err(atlas_shared::AtlasError::ValidationFailed(
-                format!("Invalid BAI2 record type: '{}'", code),
+                format!("Invalid BAI2 record type: '{code}'"),
             )),
         }
     }

@@ -18,7 +18,8 @@ pub struct CustomerService {
 }
 
 impl CustomerService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -83,7 +84,8 @@ pub struct LeadService {
 }
 
 impl LeadService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -105,7 +107,7 @@ impl LeadService {
 
     /// Assign lead to sales rep
     /// 
-    /// Updates the assigned_to_id field and triggers any assignment actions.
+    /// Updates the `assigned_to_id` field and triggers any assignment actions.
     pub async fn assign(&self, lead_id: RecordId, rep_id: RecordId) -> AtlasResult<()> {
         let _entity = self.schema_engine.get_entity("leads")
             .ok_or_else(|| AtlasError::EntityNotFound("leads".to_string()))?;

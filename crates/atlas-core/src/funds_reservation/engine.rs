@@ -36,7 +36,7 @@ const VALID_SOURCE_TYPES: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -121,7 +121,7 @@ impl FundsReservationEngine {
         // Check for duplicate reservation number
         if self.repository.get_reservation_by_number(org_id, reservation_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Reservation '{}' already exists", reservation_number
+                "Reservation '{reservation_number}' already exists"
             )));
         }
 
@@ -216,7 +216,7 @@ impl FundsReservationEngine {
         }
 
         let reservation = self.repository.get_reservation(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reservation {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
 
         if reservation.status != "active" && reservation.status != "partially_consumed" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -254,7 +254,7 @@ impl FundsReservationEngine {
         }
 
         let reservation = self.repository.get_reservation(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reservation {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
 
         if reservation.status == "cancelled" || reservation.status == "fully_consumed" || reservation.status == "released" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -296,7 +296,7 @@ impl FundsReservationEngine {
         reason: Option<&str>,
     ) -> AtlasResult<FundReservation> {
         let reservation = self.repository.get_reservation(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reservation {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
 
         if reservation.status == "cancelled" {
             return Err(AtlasError::ValidationFailed("Reservation is already cancelled".to_string()));
@@ -353,7 +353,7 @@ impl FundsReservationEngine {
         // Verify reservation exists
         self.repository.get_reservation(reservation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Reservation {} not found", reservation_id
+                "Reservation {reservation_id} not found"
             )))?;
 
         info!("Adding line {} to reservation {} [account={}, amount={:.2}]",

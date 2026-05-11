@@ -107,7 +107,7 @@ impl PerformanceEngine {
                 "Rating model name is required".to_string(),
             ));
         }
-        if !rating_scale.is_array() || rating_scale.as_array().is_none_or(|a| a.is_empty()) {
+        if !rating_scale.is_array() || rating_scale.as_array().is_none_or(std::vec::Vec::is_empty) {
             return Err(AtlasError::ValidationFailed(
                 "Rating scale must be a non-empty array".to_string(),
             ));
@@ -240,7 +240,7 @@ impl PerformanceEngine {
     ) -> AtlasResult<PerformanceReviewCycle> {
         let cycle = self.repository.get_review_cycle(cycle_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Review cycle {} not found", cycle_id)
+                format!("Review cycle {cycle_id} not found")
             ))?;
 
         // Validate transition
@@ -345,7 +345,7 @@ impl PerformanceEngine {
         // Check cycle exists
         let cycle = self.repository.get_review_cycle(review_cycle_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Review cycle {} not found", review_cycle_id)
+                format!("Review cycle {review_cycle_id} not found")
             ))?;
 
         if cycle.status == "draft" || cycle.status == "cancelled" {
@@ -358,7 +358,7 @@ impl PerformanceEngine {
         let existing = self.repository.get_document_by_cycle_employee(org_id, review_cycle_id, employee_id).await?;
         if existing.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Employee {} already has a document in this cycle", employee_id)
+                format!("Employee {employee_id} already has a document in this cycle")
             ));
         }
 
@@ -402,7 +402,7 @@ impl PerformanceEngine {
     ) -> AtlasResult<PerformanceDocument> {
         let doc = self.repository.get_document(document_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {} not found", document_id)
+                format!("Document {document_id} not found")
             ))?;
 
         let valid_next = match doc.status.as_str() {
@@ -432,7 +432,7 @@ impl PerformanceEngine {
     ) -> AtlasResult<PerformanceDocument> {
         let doc = self.repository.get_document(document_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {} not found", document_id)
+                format!("Document {document_id} not found")
             ))?;
 
         if doc.status != "self_evaluation" {
@@ -453,7 +453,7 @@ impl PerformanceEngine {
     ) -> AtlasResult<PerformanceDocument> {
         let doc = self.repository.get_document(document_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {} not found", document_id)
+                format!("Document {document_id} not found")
             ))?;
 
         if doc.status != "manager_evaluation" {
@@ -474,7 +474,7 @@ impl PerformanceEngine {
     ) -> AtlasResult<PerformanceDocument> {
         let doc = self.repository.get_document(document_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {} not found", document_id)
+                format!("Document {document_id} not found")
             ))?;
 
         if doc.status != "calibration" && doc.status != "manager_evaluation" {
@@ -509,7 +509,7 @@ impl PerformanceEngine {
         // Validate document exists and is in the right state
         let doc = self.repository.get_document(document_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {} not found", document_id)
+                format!("Document {document_id} not found")
             ))?;
 
         if doc.status != "goal_setting" && doc.status != "not_started" {
@@ -562,7 +562,7 @@ impl PerformanceEngine {
     ) -> AtlasResult<PerformanceGoal> {
         let goal = self.repository.get_goal(goal_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Goal {} not found", goal_id)
+                format!("Goal {goal_id} not found")
             ))?;
 
         if goal.status != "active" && goal.status != "draft" {
@@ -585,7 +585,7 @@ impl PerformanceEngine {
     ) -> AtlasResult<PerformanceGoal> {
         let _goal = self.repository.get_goal(goal_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Goal {} not found", goal_id)
+                format!("Goal {goal_id} not found")
             ))?;
 
         let rating_val: f64 = rating.parse().map_err(|_| AtlasError::ValidationFailed(
@@ -609,7 +609,7 @@ impl PerformanceEngine {
     pub async fn delete_goal(&self, goal_id: Uuid) -> AtlasResult<()> {
         let goal = self.repository.get_goal(goal_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Goal {} not found", goal_id)
+                format!("Goal {goal_id} not found")
             ))?;
         if goal.status == "completed" {
             return Err(AtlasError::WorkflowError("Cannot delete completed goal".to_string()));
@@ -713,7 +713,7 @@ impl PerformanceEngine {
     pub async fn submit_feedback(&self, feedback_id: Uuid) -> AtlasResult<PerformanceFeedback> {
         let fb = self.repository.get_feedback(feedback_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Feedback {} not found", feedback_id)
+                format!("Feedback {feedback_id} not found")
             ))?;
 
         if fb.status != "draft" {
@@ -754,7 +754,7 @@ impl PerformanceEngine {
                 .filter(|d| d.status == "completed")
                 .filter_map(|d| d.final_rating.as_ref().and_then(|r| r.parse::<f64>().ok()))
                 .sum();
-            Some(format!("{:.2}", sum / completed as f64))
+            Some(format!("{:.2}", sum / f64::from(completed)))
         } else {
             None
         };

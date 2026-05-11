@@ -1,6 +1,6 @@
 //! Withholding Tax Repository
 //!
-//! PostgreSQL storage for withholding tax codes, groups, supplier assignments,
+//! `PostgreSQL` storage for withholding tax codes, groups, supplier assignments,
 //! certificates, and withholding tax lines.
 
 use atlas_shared::{
@@ -142,13 +142,14 @@ pub trait WithholdingTaxRepository: Send + Sync {
     async fn update_certificate_status(&self, id: Uuid, status: &str) -> AtlasResult<WithholdingCertificate>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresWithholdingTaxRepository {
     pool: PgPool,
 }
 
 impl PostgresWithholdingTaxRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -315,7 +316,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WithholdingTaxCode> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.withholding_tax_codes
                 (organization_id, code, name, description, tax_type,
                  rate_percentage, threshold_amount, threshold_is_cumulative,
@@ -329,7 +330,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
                     withholding_account_code = $9, expense_account_code = $10,
                     effective_from = $11, effective_to = $12, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(tax_type)
         .bind(rate_percentage).bind(threshold_amount).bind(threshold_is_cumulative)
@@ -405,14 +406,14 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WithholdingTaxGroup> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.withholding_tax_groups
                 (organization_id, code, name, description, created_by)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (organization_id, code) DO UPDATE
                 SET name = $3, description = $4, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(created_by)
         .fetch_one(&self.pool)
@@ -501,12 +502,12 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         display_order: i32,
     ) -> AtlasResult<WithholdingTaxGroupMember> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.withholding_tax_group_members
                 (group_id, tax_code_id, rate_override, display_order)
             VALUES ($1, $2, $3::numeric, $4)
             RETURNING *
-            "#,
+            ",
         )
         .bind(group_id).bind(tax_code_id).bind(rate_override).bind(display_order)
         .fetch_one(&self.pool)
@@ -518,13 +519,13 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
 
     async fn list_group_members(&self, group_id: Uuid) -> AtlasResult<Vec<WithholdingTaxGroupMember>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT m.*, c.code as tax_code, c.name as tax_code_name
             FROM _atlas.withholding_tax_group_members m
             JOIN _atlas.withholding_tax_codes c ON c.id = m.tax_code_id
             WHERE m.group_id = $1 AND m.is_active = true
             ORDER BY m.display_order
-            "#
+            "
         )
         .bind(group_id)
         .fetch_all(&self.pool)
@@ -562,7 +563,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierWithholdingAssignment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.supplier_withholding_assignments
                 (organization_id, supplier_id, supplier_number, supplier_name,
                  tax_group_id, is_exempt, exemption_reason, exemption_certificate,
@@ -573,7 +574,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
                     exemption_certificate = $8, exemption_valid_until = $9,
                     updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(supplier_id).bind(supplier_number).bind(supplier_name)
         .bind(tax_group_id).bind(is_exempt).bind(exemption_reason)
@@ -587,12 +588,12 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
 
     async fn get_supplier_assignment(&self, org_id: Uuid, supplier_id: Uuid) -> AtlasResult<Option<SupplierWithholdingAssignment>> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT a.*, g.code as tax_group_code, g.name as tax_group_name
             FROM _atlas.supplier_withholding_assignments a
             JOIN _atlas.withholding_tax_groups g ON g.id = a.tax_group_id
             WHERE a.organization_id = $1 AND a.supplier_id = $2 AND a.is_active = true
-            "#
+            "
         )
         .bind(org_id).bind(supplier_id)
         .fetch_optional(&self.pool)
@@ -603,13 +604,13 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
 
     async fn list_supplier_assignments(&self, org_id: Uuid) -> AtlasResult<Vec<SupplierWithholdingAssignment>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT a.*, g.code as tax_group_code, g.name as tax_group_name
             FROM _atlas.supplier_withholding_assignments a
             JOIN _atlas.withholding_tax_groups g ON g.id = a.tax_group_id
             WHERE a.organization_id = $1 AND a.is_active = true
             ORDER BY a.supplier_name
-            "#
+            "
         )
         .bind(org_id)
         .fetch_all(&self.pool)
@@ -653,7 +654,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WithholdingTaxLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.withholding_tax_lines
                 (organization_id, payment_id, payment_number,
                  invoice_id, invoice_number,
@@ -664,7 +665,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
                     $12::numeric, $13::numeric, $14::numeric, $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(payment_id).bind(payment_number)
         .bind(invoice_id).bind(invoice_number)
@@ -731,12 +732,12 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         remittance_reference: Option<&str>,
     ) -> AtlasResult<WithholdingTaxLine> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.withholding_tax_lines
             SET status = $2, remittance_date = $3, remittance_reference = $4, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(remittance_date).bind(remittance_reference)
         .fetch_one(&self.pool)
@@ -768,7 +769,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WithholdingCertificate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.withholding_certificates
                 (organization_id, certificate_number,
                  supplier_id, supplier_number, supplier_name,
@@ -779,7 +780,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11::numeric, $12::numeric, $13::numeric, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(certificate_number)
         .bind(supplier_id).bind(supplier_number).bind(supplier_name)
@@ -836,8 +837,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
     async fn update_certificate_status(&self, id: Uuid, status: &str) -> AtlasResult<WithholdingCertificate> {
         let issued_at_expr = if status == "issued" { "CASE WHEN issued_at IS NULL THEN now() ELSE issued_at END" } else { "issued_at" };
         let query_str = format!(
-            r#"UPDATE _atlas.withholding_certificates SET status = $2, issued_at = {}, updated_at = now() WHERE id = $1 RETURNING *"#,
-            issued_at_expr
+            r"UPDATE _atlas.withholding_certificates SET status = $2, issued_at = {issued_at_expr}, updated_at = now() WHERE id = $1 RETURNING *"
         );
         let row = sqlx::query(&query_str)
             .bind(id).bind(status)

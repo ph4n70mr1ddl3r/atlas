@@ -1,6 +1,6 @@
 //! Territory Management Repository
 //!
-//! PostgreSQL storage for territory data.
+//! `PostgreSQL` storage for territory data.
 
 use atlas_shared::{
     Territory, TerritoryMember, TerritoryRule, TerritoryQuota, TerritoryDashboard,
@@ -107,13 +107,14 @@ pub trait TerritoryManagementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<TerritoryDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresTerritoryManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresTerritoryManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -135,11 +136,11 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Territory> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.territories
+            r"INSERT INTO _atlas.territories
                 (organization_id, code, name, description, territory_type,
                  parent_id, owner_id, owner_name, effective_from, effective_to, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(territory_type)
         .bind(parent_id).bind(owner_id).bind(owner_name)
@@ -224,7 +225,7 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Territory> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.territories SET
+            r"UPDATE _atlas.territories SET
                 name = COALESCE($2, name),
                 description = COALESCE($3, description),
                 territory_type = COALESCE($4, territory_type),
@@ -234,7 +235,7 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
                 effective_from = CASE WHEN $9::boolean THEN $10 ELSE effective_from END,
                 effective_to = CASE WHEN $11::boolean THEN $12 ELSE effective_to END,
                 updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(name).bind(description).bind(territory_type)
         .bind(parent_id)
@@ -276,11 +277,11 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TerritoryMember> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.territory_members
+            r"INSERT INTO _atlas.territory_members
                 (organization_id, territory_id, user_id, user_name, role,
                  effective_from, effective_to, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id).bind(territory_id).bind(user_id).bind(user_name).bind(role)
         .bind(effective_from).bind(effective_to).bind(created_by)
@@ -331,11 +332,11 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TerritoryRule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.territory_rules
+            r"INSERT INTO _atlas.territory_rules
                 (organization_id, territory_id, entity_type, field_name,
                  match_operator, match_value, priority, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id).bind(territory_id).bind(entity_type).bind(field_name)
         .bind(match_operator).bind(match_value).bind(priority).bind(created_by)
@@ -377,13 +378,13 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TerritoryQuota> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.territory_quotas
+            r"INSERT INTO _atlas.territory_quotas
                 (organization_id, territory_id, period_name, period_start, period_end,
                  revenue_quota, actual_revenue, currency_code, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
                RETURNING id, organization_id, territory_id, period_name, period_start, period_end,
                  revenue_quota::text as revenue_quota, actual_revenue::text as actual_revenue,
-                 currency_code, created_by, created_at, updated_at"#,
+                 currency_code, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(territory_id).bind(period_name)
         .bind(period_start).bind(period_end)
@@ -451,12 +452,12 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<TerritoryDashboard> {
         let terr_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE is_active) as active,
                 COUNT(*) FILTER (WHERE parent_id IS NULL) as top_level,
                 COUNT(DISTINCT parent_id) FILTER (WHERE parent_id IS NOT NULL) as with_parent
-               FROM _atlas.territories WHERE organization_id = $1"#,
+               FROM _atlas.territories WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -465,14 +466,14 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
             "SELECT COUNT(DISTINCT user_id) as cnt FROM _atlas.territory_members WHERE organization_id = $1 AND is_active = true",
         )
         .bind(org_id).fetch_one(&self.pool).await
-        .map(|r| r.get("cnt")).unwrap_or(0);
+        .map_or(0, |r| r.get("cnt"));
 
         let quota_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COALESCE(SUM(revenue_quota), 0) as total_quota,
                 COALESCE(SUM(actual_revenue), 0) as total_actual,
                 COUNT(*) as quota_count
-               FROM _atlas.territory_quotas WHERE organization_id = $1"#,
+               FROM _atlas.territory_quotas WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -483,9 +484,9 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         let attainment_pct = if total_quota > 0.0 { (total_actual / total_quota) * 100.0 } else { 0.0 };
 
         let by_type_row = sqlx::query(
-            r#"SELECT territory_type, COUNT(*) as cnt
+            r"SELECT territory_type, COUNT(*) as cnt
                FROM _atlas.territories WHERE organization_id = $1 AND is_active = true
-               GROUP BY territory_type ORDER BY cnt DESC"#,
+               GROUP BY territory_type ORDER BY cnt DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -502,9 +503,9 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
             active_territories: terr_row.get::<i64, _>("active") as i32,
             top_level_territories: terr_row.get::<i64, _>("top_level") as i32,
             total_members: member_count as i32,
-            total_quota: format!("{:.2}", total_quota),
-            total_actual: format!("{:.2}", total_actual),
-            attainment_percent: format!("{:.1}", attainment_pct),
+            total_quota: format!("{total_quota:.2}"),
+            total_actual: format!("{total_actual:.2}"),
+            attainment_percent: format!("{attainment_pct:.1}"),
             quota_count: quota_row.get::<i64, _>("quota_count") as i32,
             by_type,
         })
@@ -585,9 +586,9 @@ fn row_to_quota(row: &sqlx::postgres::PgRow) -> TerritoryQuota {
         period_name: row.get("period_name"),
         period_start: row.get("period_start"),
         period_end: row.get("period_end"),
-        revenue_quota: format!("{:.2}", quota),
-        actual_revenue: format!("{:.2}", actual),
-        attainment_percent: format!("{:.1}", pct),
+        revenue_quota: format!("{quota:.2}"),
+        actual_revenue: format!("{actual:.2}"),
+        attainment_percent: format!("{pct:.1}"),
         currency_code: row.get("currency_code"),
         created_by: row.get("created_by"),
         created_at: row.get("created_at"),

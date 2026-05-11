@@ -55,7 +55,7 @@ const VALID_UTILIZATION_STATUSES: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -144,7 +144,7 @@ impl ProjectResourceManagementEngine {
 
         if self.repository.get_profile_by_number(org_id, resource_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Resource profile '{}' already exists", resource_number
+                "Resource profile '{resource_number}' already exists"
             )));
         }
 
@@ -262,7 +262,7 @@ impl ProjectResourceManagementEngine {
 
         if self.repository.get_request_by_number(org_id, request_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Resource request '{}' already exists", request_number
+                "Resource request '{request_number}' already exists"
             )));
         }
 
@@ -382,12 +382,12 @@ impl ProjectResourceManagementEngine {
         // Verify resource exists
         let resource = self.repository.get_profile(resource_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Resource profile {} not found", resource_id
+                "Resource profile {resource_id} not found"
             )))?;
 
         if self.repository.get_assignment_by_number(org_id, assignment_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Resource assignment '{}' already exists", assignment_number
+                "Resource assignment '{assignment_number}' already exists"
             )));
         }
 
@@ -479,7 +479,7 @@ impl ProjectResourceManagementEngine {
         // Verify assignment exists
         let assignment = self.repository.get_assignment(assignment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Resource assignment {} not found", assignment_id
+                "Resource assignment {assignment_id} not found"
             )))?;
 
         if assignment.status == "cancelled" {

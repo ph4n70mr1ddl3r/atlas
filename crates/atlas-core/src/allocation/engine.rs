@@ -75,7 +75,7 @@ impl AllocationEngine {
         // Check uniqueness
         if self.repository.get_pool_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Allocation pool with code '{}' already exists", code
+                "Allocation pool with code '{code}' already exists"
             )));
         }
 
@@ -107,7 +107,7 @@ impl AllocationEngine {
     /// Activate a pool
     pub async fn activate_pool(&self, id: Uuid) -> AtlasResult<GlAllocationPool> {
         let pool = self.repository.get_pool_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation pool {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation pool {id} not found")))?;
 
         if pool.is_active {
             return Err(AtlasError::WorkflowError("Pool is already active".to_string()));
@@ -120,7 +120,7 @@ impl AllocationEngine {
     /// Deactivate a pool
     pub async fn deactivate_pool(&self, id: Uuid) -> AtlasResult<GlAllocationPool> {
         let pool = self.repository.get_pool_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation pool {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation pool {id} not found")))?;
 
         if !pool.is_active {
             return Err(AtlasError::WorkflowError("Pool is already inactive".to_string()));
@@ -170,7 +170,7 @@ impl AllocationEngine {
         // Check uniqueness
         if self.repository.get_basis_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Allocation basis with code '{}' already exists", code
+                "Allocation basis with code '{code}' already exists"
             )));
         }
 
@@ -201,7 +201,7 @@ impl AllocationEngine {
     /// Activate a basis
     pub async fn activate_basis(&self, id: Uuid) -> AtlasResult<GlAllocationBasis> {
         let basis = self.repository.get_basis_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation basis {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation basis {id} not found")))?;
 
         if basis.is_active {
             return Err(AtlasError::WorkflowError("Basis is already active".to_string()));
@@ -214,7 +214,7 @@ impl AllocationEngine {
     /// Deactivate a basis
     pub async fn deactivate_basis(&self, id: Uuid) -> AtlasResult<GlAllocationBasis> {
         let basis = self.repository.get_basis_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation basis {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation basis {id} not found")))?;
 
         if !basis.is_active {
             return Err(AtlasError::WorkflowError("Basis is already inactive".to_string()));
@@ -244,12 +244,12 @@ impl AllocationEngine {
     ) -> AtlasResult<GlAllocationBasisDetail> {
         let basis = self.repository.get_basis_by_code(org_id, basis_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation basis '{}' not found", basis_code
+                "Allocation basis '{basis_code}' not found"
             )))?;
 
         if !basis.is_active {
             return Err(AtlasError::WorkflowError(format!(
-                "Basis '{}' is inactive", basis_code
+                "Basis '{basis_code}' is inactive"
             )));
         }
 
@@ -278,7 +278,7 @@ impl AllocationEngine {
     ) -> AtlasResult<Vec<GlAllocationBasisDetail>> {
         let basis = self.repository.get_basis_by_code(org_id, basis_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation basis '{}' not found", basis_code
+                "Allocation basis '{basis_code}' not found"
             )))?;
 
         self.repository.list_basis_details(basis.id, period_name).await
@@ -292,7 +292,7 @@ impl AllocationEngine {
     ) -> AtlasResult<GlAllocationBasisDetail> {
         let _detail = self.repository.get_basis_detail_by_id(detail_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Basis detail {} not found", detail_id
+                "Basis detail {detail_id} not found"
             )))?;
 
         info!("Updating basis detail {} amount to {}", detail_id, basis_amount);
@@ -313,7 +313,7 @@ impl AllocationEngine {
     ) -> AtlasResult<Vec<GlAllocationBasisDetail>> {
         let basis = self.repository.get_basis_by_code(org_id, basis_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation basis '{}' not found", basis_code
+                "Allocation basis '{basis_code}' not found"
             )))?;
 
         let details = self.repository.list_basis_details(basis.id, None).await?;
@@ -331,7 +331,7 @@ impl AllocationEngine {
         for detail in &details {
             let amount: f64 = detail.basis_amount.parse::<f64>().unwrap_or(0.0);
             let percentage = (amount / total) * 100.0;
-            self.repository.update_basis_detail_percentage(detail.id, &format!("{:.6}", percentage)).await?;
+            self.repository.update_basis_detail_percentage(detail.id, &format!("{percentage:.6}")).await?;
         }
 
         self.repository.list_basis_details(basis.id, None).await
@@ -395,7 +395,7 @@ impl AllocationEngine {
                     .sum();
                 if (total_pct - 100.0).abs() > 0.01 {
                     return Err(AtlasError::ValidationFailed(format!(
-                        "Fixed percentages must sum to 100%. Current total: {:.2}%", total_pct
+                        "Fixed percentages must sum to 100%. Current total: {total_pct:.2}%"
                     )));
                 }
             }
@@ -459,7 +459,7 @@ impl AllocationEngine {
     /// Activate a rule
     pub async fn activate_rule(&self, id: Uuid) -> AtlasResult<GlAllocationRule> {
         let rule = self.repository.get_rule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation rule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation rule {id} not found")))?;
 
         if rule.is_active {
             return Err(AtlasError::WorkflowError("Rule is already active".to_string()));
@@ -472,7 +472,7 @@ impl AllocationEngine {
     /// Deactivate a rule
     pub async fn deactivate_rule(&self, id: Uuid) -> AtlasResult<GlAllocationRule> {
         let rule = self.repository.get_rule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation rule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation rule {id} not found")))?;
 
         if !rule.is_active {
             return Err(AtlasError::WorkflowError("Rule is already inactive".to_string()));
@@ -595,9 +595,9 @@ impl AllocationEngine {
                         None,
                         pool.source_account_code.as_deref(),
                         &detail.basis_amount,
-                        &format!("{:.6}", percentage),
-                        &format!("{:.2}", allocated),
-                        &format!("{:.2}", allocated),
+                        &format!("{percentage:.6}"),
+                        &format!("{allocated:.2}"),
+                        &format!("{allocated:.2}"),
                         "allocation",
                     ).await?;
                     run_lines.push(line);
@@ -623,9 +623,9 @@ impl AllocationEngine {
                             target.target_account_name.as_deref(),
                             pool.source_account_code.as_deref(),
                             "0.00",
-                            &format!("{:.6}", pct),
-                            &format!("{:.2}", allocated),
-                            &format!("{:.2}", allocated),
+                            &format!("{pct:.6}"),
+                            &format!("{allocated:.2}"),
+                            &format!("{allocated:.2}"),
                             "allocation",
                         ).await?;
                         run_lines.push(line);
@@ -663,9 +663,9 @@ impl AllocationEngine {
                         None,
                         pool.source_account_code.as_deref(),
                         &detail.basis_amount,
-                        &format!("{:.6}", percentage),
-                        &format!("{:.2}", allocated),
-                        &format!("{:.2}", allocated),
+                        &format!("{percentage:.6}"),
+                        &format!("{allocated:.2}"),
+                        &format!("{allocated:.2}"),
                         "allocation",
                     ).await?;
                     run_lines.push(line);
@@ -700,8 +700,8 @@ impl AllocationEngine {
                 None,
                 "0.00", // no basis for offset
                 "0.000000", // no percentage for offset
-                &format!("{:.2}", total_allocated),
-                &format!("{:.2}", total_allocated),
+                &format!("{total_allocated:.2}"),
+                &format!("{total_allocated:.2}"),
                 "offset",
             ).await?;
         }
@@ -729,7 +729,7 @@ impl AllocationEngine {
     /// Post an allocation run (mark as posted)
     pub async fn post_run(&self, id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<GlAllocationRun> {
         let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation run {id} not found")))?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -744,7 +744,7 @@ impl AllocationEngine {
     /// Reverse an allocation run
     pub async fn reverse_run(&self, id: Uuid, reversed_by: Option<Uuid>) -> AtlasResult<GlAllocationRun> {
         let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation run {id} not found")))?;
 
         if run.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -759,7 +759,7 @@ impl AllocationEngine {
     /// Cancel an allocation run
     pub async fn cancel_run(&self, id: Uuid) -> AtlasResult<GlAllocationRun> {
         let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation run {id} not found")))?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(

@@ -1,6 +1,6 @@
 //! Period Close Repository
 //!
-//! PostgreSQL storage for accounting calendars, periods, and close checklist.
+//! `PostgreSQL` storage for accounting calendars, periods, and close checklist.
 
 use atlas_shared::{
     AccountingCalendar, AccountingPeriod, PeriodCloseChecklistItem,
@@ -121,13 +121,14 @@ pub trait PeriodCloseRepository: Send + Sync {
     async fn revoke_period_exception(&self, period_id: Uuid, user_id: Uuid) -> AtlasResult<()>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresPeriodCloseRepository {
     pool: PgPool,
 }
 
 impl PostgresPeriodCloseRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -230,13 +231,13 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingCalendar> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.accounting_calendars
                 (organization_id, name, description, calendar_type, fiscal_year_start_month,
                  periods_per_year, has_adjusting_period, current_fiscal_year, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(name)
@@ -300,13 +301,13 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         period_type: &str,
     ) -> AtlasResult<AccountingPeriod> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.accounting_periods
                 (organization_id, calendar_id, period_name, period_number, fiscal_year,
                  quarter, start_date, end_date, period_type, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'not_opened')
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(calendar_id)
@@ -398,7 +399,7 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         };
 
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.accounting_periods
             SET status = $2, status_changed_by = $3, status_changed_at = now(),
                 closed_by = CASE WHEN $4 IS NOT NULL THEN $3 ELSE closed_by END,
@@ -406,7 +407,7 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id)
         .bind(status)
@@ -431,12 +432,11 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
             "ar" => "ar_status",
             "fa" => "fa_status",
             "po" => "po_status",
-            _ => return Err(AtlasError::ValidationFailed(format!("Unknown subledger: {}", subledger))),
+            _ => return Err(AtlasError::ValidationFailed(format!("Unknown subledger: {subledger}"))),
         };
 
         let sql = format!(
-            "UPDATE _atlas.accounting_periods SET {} = $2, updated_at = now() WHERE id = $1 RETURNING *",
-            column
+            "UPDATE _atlas.accounting_periods SET {column} = $2, updated_at = now() WHERE id = $1 RETURNING *"
         );
 
         let row = sqlx::query(&sql)
@@ -476,13 +476,13 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         depends_on: Option<Uuid>,
     ) -> AtlasResult<PeriodCloseChecklistItem> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.period_close_checklist
                 (organization_id, period_id, task_name, task_description, task_order,
                  category, subledger, assigned_to, due_date, depends_on, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending')
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(period_id)
@@ -526,12 +526,12 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         };
 
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.period_close_checklist
             SET status = $2, completed_by = $3, completed_at = $4, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id)
         .bind(status)
@@ -566,13 +566,13 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         valid_until: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.period_close_exceptions
                 (organization_id, period_id, user_id, allowed_actions, reason, granted_by, valid_until)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (period_id, user_id) DO UPDATE
                 SET allowed_actions = $4, reason = $5, granted_by = $6, valid_until = $7
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(period_id)
@@ -593,13 +593,13 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         user_id: Uuid,
     ) -> AtlasResult<bool> {
         let exists: bool = sqlx::query_scalar(
-            r#"
+            r"
             SELECT EXISTS(
                 SELECT 1 FROM _atlas.period_close_exceptions
                 WHERE period_id = $1 AND user_id = $2
                   AND (valid_until IS NULL OR valid_until > now())
             )
-            "#,
+            ",
         )
         .bind(period_id)
         .bind(user_id)

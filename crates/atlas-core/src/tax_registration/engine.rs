@@ -245,7 +245,7 @@ impl TaxRegistrationEngine {
     /// Oracle Fusion: Tax > Tax Registrations > Activate
     pub async fn activate_registration(&self, id: Uuid) -> AtlasResult<TaxRegistration> {
         let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
 
         if reg.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
@@ -263,7 +263,7 @@ impl TaxRegistrationEngine {
     /// Oracle Fusion: Tax > Tax Registrations > Suspend
     pub async fn suspend_registration(&self, id: Uuid) -> AtlasResult<TaxRegistration> {
         let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
 
         if reg.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -279,7 +279,7 @@ impl TaxRegistrationEngine {
     /// Reactivate a suspended registration
     pub async fn reactivate_registration(&self, id: Uuid) -> AtlasResult<TaxRegistration> {
         let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
 
         if reg.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -301,7 +301,7 @@ impl TaxRegistrationEngine {
         deregistration_date: chrono::NaiveDate,
     ) -> AtlasResult<TaxRegistration> {
         let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
 
         if reg.status != "active" && reg.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -326,7 +326,7 @@ impl TaxRegistrationEngine {
     /// Oracle Fusion: Tax > Tax Registrations > Validate
     pub async fn validate_registration(&self, id: Uuid) -> AtlasResult<TaxRegistration> {
         let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
 
         // Perform format validation
         let validation_result = validate_registration_number_format(
@@ -386,6 +386,7 @@ impl TaxRegistrationEngine {
     }
 
     /// Determine if a registration is currently effective as of a given date
+    #[must_use] 
     pub fn is_effective(reg: &TaxRegistration, as_of: chrono::NaiveDate) -> bool {
         if reg.status != "active" {
             return false;
@@ -404,7 +405,8 @@ impl TaxRegistrationEngine {
     /// Check for compliance gaps: find jurisdictions where registrations
     /// are missing or will expire soon.
     ///
-    /// Returns a list of (jurisdiction_code, issue_description) tuples.
+    /// Returns a list of (`jurisdiction_code`, `issue_description`) tuples.
+    #[must_use] 
     pub fn detect_compliance_gaps(
         registrations: &[TaxRegistration],
         required_jurisdictions: &[(&str, &str)], // (jurisdiction_code, country_code)
@@ -425,14 +427,14 @@ impl TaxRegistrationEngine {
             if matching.is_empty() {
                 gaps.push((
                     jurisdiction.to_string(),
-                    format!("No active registration found for jurisdiction {} ({})", jurisdiction, country),
+                    format!("No active registration found for jurisdiction {jurisdiction} ({country})"),
                 ));
             } else {
                 // Check if any will expire within warning_days
                 for reg in &matching {
                     if let Some(to) = reg.effective_to {
                         let days_remaining = (to - as_of).num_days();
-                        if days_remaining <= warning_days as i64 && days_remaining > 0 {
+                        if days_remaining <= i64::from(warning_days) && days_remaining > 0 {
                             gaps.push((
                                 jurisdiction.to_string(),
                                 format!(
@@ -458,6 +460,7 @@ impl TaxRegistrationEngine {
     }
 
     /// Check if a registration number already exists in a list (duplicate detection)
+    #[must_use] 
     pub fn is_duplicate_number(number: &str, existing: &[TaxRegistration]) -> bool {
         existing.iter().any(|r| {
             r.registration_number == number
@@ -467,6 +470,7 @@ impl TaxRegistrationEngine {
     }
 
     /// Filter registrations by status
+    #[must_use] 
     pub fn filter_by_status<'a>(
         registrations: &'a [TaxRegistration],
         status: &str,
@@ -475,6 +479,7 @@ impl TaxRegistrationEngine {
     }
 
     /// Get registrations expiring within N days from a reference date
+    #[must_use] 
     pub fn get_expiring(
         registrations: &[TaxRegistration],
         as_of: chrono::NaiveDate,
@@ -488,7 +493,7 @@ impl TaxRegistrationEngine {
             .filter_map(|r| {
                 let to = r.effective_to.unwrap();
                 let days = (to - as_of).num_days();
-                if days >= 0 && days <= within_days as i64 {
+                if days >= 0 && days <= i64::from(within_days) {
                     Some((r, days))
                 } else {
                     None
@@ -498,8 +503,11 @@ impl TaxRegistrationEngine {
     }
 
     /// Validate a status transition is allowed
+    #[must_use] 
     pub fn validate_status_transition(from: &str, to: &str) -> bool {
-        matches!((from, to), ("pending", "active") | ("active", "suspended") | ("active", "deregistered") | ("active", "expired") | ("suspended", "active") | ("suspended", "deregistered"))
+        matches!((from, to), ("pending" | "suspended", "active") |
+("active", "suspended" | "deregistered" | "expired") |
+("suspended", "deregistered"))
     }
 }
 
@@ -533,12 +541,12 @@ fn validate_registration_number_format(
             // Generic validation: minimum 3 characters, alphanumeric + hyphens
             if number.len() < 3 {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Registration number '{}' is too short (minimum 3 characters)", number
+                    "Registration number '{number}' is too short (minimum 3 characters)"
                 )));
             }
             if !number.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '.' || c == '/' || c == ' ') {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Registration number '{}' contains invalid characters", number
+                    "Registration number '{number}' contains invalid characters"
                 )));
             }
             Ok(())
@@ -550,10 +558,10 @@ fn validate_registration_number_format(
 fn validate_us_number(number: &str, reg_type: &str) -> AtlasResult<()> {
     if reg_type == "ein" {
         // EIN format: XX-XXXXXXX
-        let digits_only: String = number.chars().filter(|c| c.is_ascii_digit()).collect();
+        let digits_only: String = number.chars().filter(char::is_ascii_digit).collect();
         if digits_only.len() != 9 {
             return Err(AtlasError::ValidationFailed(format!(
-                "US EIN '{}' must contain exactly 9 digits (format: XX-XXXXXXX)", number
+                "US EIN '{number}' must contain exactly 9 digits (format: XX-XXXXXXX)"
             )));
         }
         // Verify proper format if hyphen is present
@@ -561,7 +569,7 @@ fn validate_us_number(number: &str, reg_type: &str) -> AtlasResult<()> {
             let parts: Vec<&str> = number.split('-').collect();
             if parts.len() != 2 || parts[0].len() != 2 || parts[1].len() != 7 {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "US EIN '{}' must be in XX-XXXXXXX format", number
+                    "US EIN '{number}' must be in XX-XXXXXXX format"
                 )));
             }
         }
@@ -575,10 +583,10 @@ fn validate_us_number(number: &str, reg_type: &str) -> AtlasResult<()> {
 fn validate_gb_vat(number: &str, reg_type: &str) -> AtlasResult<()> {
     if reg_type == "vat" {
         let trimmed = number.trim_start_matches("GB").trim_start_matches("gb");
-        let digits_only: String = trimmed.chars().filter(|c| c.is_ascii_digit()).collect();
+        let digits_only: String = trimmed.chars().filter(char::is_ascii_digit).collect();
         if digits_only.len() != 9 && digits_only.len() != 12 {
             return Err(AtlasError::ValidationFailed(format!(
-                "UK VAT number '{}' must have 9 or 12 digits after country prefix", number
+                "UK VAT number '{number}' must have 9 or 12 digits after country prefix"
             )));
         }
     } else {
@@ -603,8 +611,7 @@ fn validate_eu_vat(number: &str, reg_type: &str, country_code: &str) -> AtlasRes
 
         if cleaned.len() < 8 || cleaned.len() > 15 {
             return Err(AtlasError::ValidationFailed(format!(
-                "EU VAT number '{}' must have 8-15 alphanumeric characters after country prefix ({})",
-                number, country_code
+                "EU VAT number '{number}' must have 8-15 alphanumeric characters after country prefix ({country_code})"
             )));
         }
     } else {
@@ -616,10 +623,10 @@ fn validate_eu_vat(number: &str, reg_type: &str, country_code: &str) -> AtlasRes
 /// Australian ABN validation: 11 digits with basic checksum
 fn validate_au_abn(number: &str, reg_type: &str) -> AtlasResult<()> {
     if reg_type == "gst" || reg_type == "tin" {
-        let digits_only: String = number.chars().filter(|c| c.is_ascii_digit()).collect();
+        let digits_only: String = number.chars().filter(char::is_ascii_digit).collect();
         if digits_only.len() != 11 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Australian ABN/GST number '{}' must contain exactly 11 digits", number
+                "Australian ABN/GST number '{number}' must contain exactly 11 digits"
             )));
         }
         // Basic ABN checksum: subtract 1 from first digit, then weighted sum mod 89 == 0
@@ -631,7 +638,7 @@ fn validate_au_abn(number: &str, reg_type: &str) -> AtlasResult<()> {
         let sum: u32 = adjusted.iter().zip(weights.iter()).map(|(&d, &w)| d * w).sum();
         if !sum.is_multiple_of(89) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Australian ABN '{}' failed checksum validation", number
+                "Australian ABN '{number}' failed checksum validation"
             )));
         }
     } else {
@@ -646,7 +653,7 @@ fn validate_in_gst(number: &str, reg_type: &str) -> AtlasResult<()> {
     if reg_type == "gst" {
         if number.len() != 15 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Indian GST number '{}' must be exactly 15 characters", number
+                "Indian GST number '{number}' must be exactly 15 characters"
             )));
         }
         let chars: Vec<char> = number.chars().collect();
@@ -710,7 +717,7 @@ fn validate_ca_gst(number: &str, reg_type: &str) -> AtlasResult<()> {
         // Canadian BN: 9 digits + RT + 4 digits = 15 characters
         if cleaned.len() < 9 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Canadian GST number '{}' must contain at least 9 digits (BN format)", number
+                "Canadian GST number '{number}' must contain at least 9 digits (BN format)"
             )));
         }
         let first9: String = cleaned.chars().take(9).collect();
@@ -728,10 +735,10 @@ fn validate_ca_gst(number: &str, reg_type: &str) -> AtlasResult<()> {
 /// Brazilian CNPJ validation: 14 digits with modulo-11 checksum
 fn validate_br_cnpj(number: &str, reg_type: &str) -> AtlasResult<()> {
     if reg_type == "tin" || reg_type == "cst" {
-        let digits_only: String = number.chars().filter(|c| c.is_ascii_digit()).collect();
+        let digits_only: String = number.chars().filter(char::is_ascii_digit).collect();
         if digits_only.len() != 14 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Brazilian CNPJ '{}' must contain exactly 14 digits", number
+                "Brazilian CNPJ '{number}' must contain exactly 14 digits"
             )));
         }
         // Modulo-11 checksum validation
@@ -743,7 +750,7 @@ fn validate_br_cnpj(number: &str, reg_type: &str) -> AtlasResult<()> {
         let check1 = if sum1 % 11 < 2 { 0 } else { 11 - (sum1 % 11) };
         if digits[12] != check1 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Brazilian CNPJ '{}' failed first check digit validation", number
+                "Brazilian CNPJ '{number}' failed first check digit validation"
             )));
         }
 
@@ -753,7 +760,7 @@ fn validate_br_cnpj(number: &str, reg_type: &str) -> AtlasResult<()> {
         let check2 = if sum2 % 11 < 2 { 0 } else { 11 - (sum2 % 11) };
         if digits[13] != check2 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Brazilian CNPJ '{}' failed second check digit validation", number
+                "Brazilian CNPJ '{number}' failed second check digit validation"
             )));
         }
     } else {
@@ -767,7 +774,7 @@ fn generic_alphanumeric_check(number: &str, min_len: usize) -> AtlasResult<()> {
     let trimmed = number.trim();
     if trimmed.len() < min_len {
         return Err(AtlasError::ValidationFailed(format!(
-            "Registration number '{}' is too short (minimum {} characters)", trimmed, min_len
+            "Registration number '{trimmed}' is too short (minimum {min_len} characters)"
         )));
     }
     Ok(())

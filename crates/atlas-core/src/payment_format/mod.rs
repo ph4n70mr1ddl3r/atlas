@@ -84,11 +84,12 @@ pub trait PaymentFormatRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PaymentFormatDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresPaymentFormatRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresPaymentFormatRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresPaymentFormatRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl PaymentFormatRepository for PostgresPaymentFormatRepository {
@@ -165,7 +166,7 @@ impl PaymentFormatEngine {
 
         // Check for duplicate code
         if self.repository.get_by_code(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Payment format '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Payment format '{code}' already exists")));
         }
 
         info!("Creating payment format '{}' for org {}", code, org_id);
@@ -196,7 +197,7 @@ impl PaymentFormatEngine {
     /// Update a payment format
     pub async fn update(&self, id: Uuid, name: Option<&str>, description: Option<&str>, file_template: Option<&str>, max_payments: Option<i32>) -> AtlasResult<PaymentFormat> {
         let pf = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment format {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment format {id} not found")))?;
 
         if !pf.is_active {
             return Err(AtlasError::ValidationFailed("Cannot update inactive payment format".into()));
@@ -215,7 +216,7 @@ impl PaymentFormatEngine {
     /// Deactivate a payment format
     pub async fn deactivate(&self, id: Uuid) -> AtlasResult<PaymentFormat> {
         let pf = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment format {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment format {id} not found")))?;
 
         if !pf.is_active {
             return Err(AtlasError::ValidationFailed("Payment format is already inactive".into()));
@@ -227,7 +228,7 @@ impl PaymentFormatEngine {
     /// Activate a payment format
     pub async fn activate(&self, id: Uuid) -> AtlasResult<PaymentFormat> {
         let pf = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment format {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment format {id} not found")))?;
 
         if pf.is_active {
             return Err(AtlasError::ValidationFailed("Payment format is already active".into()));
@@ -239,7 +240,7 @@ impl PaymentFormatEngine {
     /// Delete a payment format (soft delete)
     pub async fn delete(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let _pf = self.repository.get_by_code(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment format '{}' not found", code)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment format '{code}' not found")))?;
 
         info!("Deleting payment format {}", code);
         self.repository.delete(org_id, code).await

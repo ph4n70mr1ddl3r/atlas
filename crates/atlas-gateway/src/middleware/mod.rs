@@ -64,7 +64,7 @@ pub async fn admin_auth_middleware(
 /// Simple in-memory rate limiter for login attempts
 /// In production, use Redis or similar distributed store
 pub struct RateLimiter {
-    /// Map of IP -> (attempts, window_start)
+    /// Map of IP -> (attempts, `window_start`)
     attempts: RwLock<HashMap<String, (u32, Instant)>>,
     /// Max attempts per window
     max_attempts: u32,
@@ -73,6 +73,7 @@ pub struct RateLimiter {
 }
 
 impl RateLimiter {
+    #[must_use] 
     pub fn new(max_attempts: u32, window_secs: u64) -> Self {
         Self {
             attempts: RwLock::new(HashMap::new()),
@@ -101,7 +102,7 @@ impl RateLimiter {
         attempts.retain(|_, (_, start)| now.duration_since(*start) < self.window);
         
         // Check current state and determine action
-        let entry = attempts.get(ip).cloned();
+        let entry = attempts.get(ip).copied();
         
         match entry {
             Some((count, start)) if now.duration_since(start) < self.window => {
@@ -148,9 +149,7 @@ pub fn get_client_ip(request: &Request) -> String {
         .headers()
         .get("x-forwarded-for")
         .and_then(|h| h.to_str().ok())
-        .and_then(|s| s.split(',').next())
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string())
+        .and_then(|s| s.split(',').next()).map_or_else(|| "unknown".to_string(), |s| s.trim().to_string())
 }
 
 /// Rate limiting middleware for login endpoint

@@ -140,13 +140,14 @@ pub trait TaxReportingRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<TaxReportingDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresTaxReportingRepository {
     pool: PgPool,
 }
 
 impl PostgresTaxReportingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -289,13 +290,13 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
         effective_to: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
     ) -> AtlasResult<TaxReturnTemplate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_return_templates
                 (organization_id, code, name, description, tax_type, jurisdiction_code,
                  filing_frequency, return_form_number, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         ).bind(org_id).bind(code).bind(name).bind(description)
         .bind(tax_type).bind(jurisdiction_code).bind(filing_frequency)
         .bind(return_form_number).bind(effective_from).bind(effective_to).bind(created_by)
@@ -336,14 +337,14 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
         is_debit: bool, display_order: i32,
     ) -> AtlasResult<TaxReturnTemplateLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_return_template_lines
                 (organization_id, template_id, line_number, box_code, box_name, description,
                  line_type, calculation_formula, account_code_filter, tax_rate_code_filter,
                  is_debit, display_order)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         ).bind(org_id).bind(template_id).bind(line_number).bind(box_code).bind(box_name)
         .bind(description).bind(line_type).bind(calculation_formula)
         .bind(account_code_filter).bind(tax_rate_code_filter)
@@ -370,13 +371,13 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
         filing_due_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
     ) -> AtlasResult<TaxReturn> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_returns
                 (organization_id, return_number, template_id, template_name, tax_type,
                  jurisdiction_code, filing_period_start, filing_period_end, filing_due_date, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         ).bind(org_id).bind(return_number).bind(template_id).bind(template_name)
         .bind(tax_type).bind(jurisdiction_code)
         .bind(filing_period_start).bind(filing_period_end).bind(filing_due_date).bind(created_by)
@@ -394,9 +395,9 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
 
     async fn list_returns(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<TaxReturn>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.tax_returns
+            r"SELECT * FROM _atlas.tax_returns
                WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY filing_period_end DESC"#,
+               ORDER BY filing_period_end DESC",
         ).bind(org_id).bind(status).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_return).collect())
@@ -407,7 +408,7 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
         filed_by: Option<Uuid>, approved_by: Option<Uuid>,
     ) -> AtlasResult<TaxReturn> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.tax_returns
             SET status = $2,
                 submitted_by = COALESCE($3, submitted_by),
@@ -418,7 +419,7 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
                 approved_at = CASE WHEN $2 IN ('submitted','filed') THEN now() ELSE approved_at END,
                 updated_at = now()
             WHERE id = $1 RETURNING *
-            "#,
+            ",
         ).bind(id).bind(status).bind(submitted_by).bind(filed_by).bind(approved_by)
         .fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -431,12 +432,12 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
         net_tax_due: &str, total_amount_due: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.tax_returns
+            r"UPDATE _atlas.tax_returns
                SET total_tax_amount = $2::decimal, total_taxable_amount = $3::decimal,
                    total_exempt_amount = $4::decimal, total_input_tax = $5::decimal,
                    total_output_tax = $6::decimal, net_tax_due = $7::decimal,
                    total_amount_due = $8::decimal, updated_at = now()
-               WHERE id = $1"#,
+               WHERE id = $1",
         ).bind(id).bind(total_tax_amount).bind(total_taxable_amount)
         .bind(total_exempt_amount).bind(total_input_tax).bind(total_output_tax)
         .bind(net_tax_due).bind(total_amount_due)
@@ -450,11 +451,11 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
         filing_reference: Option<&str>, filed_by: Option<Uuid>,
     ) -> AtlasResult<TaxReturn> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.tax_returns
+            r"UPDATE _atlas.tax_returns
                SET status = $2, filing_method = $3, filing_reference = $4,
                    filed_by = COALESCE($5, filed_by), filed_at = now(),
                    filing_date = CURRENT_DATE, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(status).bind(filing_method).bind(filing_reference).bind(filed_by)
         .fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -465,10 +466,10 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
         &self, id: Uuid, status: &str, payment_amount: &str, payment_reference: Option<&str>,
     ) -> AtlasResult<TaxReturn> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.tax_returns
+            r"UPDATE _atlas.tax_returns
                SET status = $2, payment_amount = $3::decimal, payment_reference = $4,
                    payment_date = CURRENT_DATE, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(status).bind(payment_amount).bind(payment_reference)
         .fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -484,7 +485,7 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
         description: Option<&str>, source_count: i32,
     ) -> AtlasResult<TaxReturnLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_return_lines
                 (organization_id, tax_return_id, template_line_id, line_number,
                  box_code, box_name, line_type, amount, calculated_amount,
@@ -492,7 +493,7 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::decimal, $9::decimal,
                     $10::decimal, $11::decimal, $12, $13)
             RETURNING *
-            "#,
+            ",
         ).bind(org_id).bind(tax_return_id).bind(template_line_id).bind(line_number)
         .bind(box_code).bind(box_name).bind(line_type).bind(amount).bind(calculated_amount)
         .bind(override_amount).bind(final_amount).bind(description).bind(source_count)
@@ -520,10 +521,10 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
         &self, id: Uuid, amount: &str, override_amount: Option<&str>, final_amount: &str,
     ) -> AtlasResult<TaxReturnLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.tax_return_lines
+            r"UPDATE _atlas.tax_return_lines
                SET amount = $2::decimal, override_amount = $3::decimal,
                    final_amount = $4::decimal, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(amount).bind(override_amount).bind(final_amount)
         .fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -540,15 +541,15 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<TaxReportingDashboardSummary> {
         let tmpl_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE is_active) as active
-            FROM _atlas.tax_return_templates WHERE organization_id = $1"#,
+            FROM _atlas.tax_return_templates WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let ret_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft,
                 COUNT(*) FILTER (WHERE status = 'filed' OR status = 'paid') as filed,
@@ -556,13 +557,13 @@ impl TaxReportingRepository for PostgresTaxReportingRepository {
                 COALESCE(SUM(payment_amount), 0) as total_paid,
                 COALESCE(SUM(net_tax_due) - SUM(payment_amount), 0) as total_due,
                 COALESCE(SUM(refund_amount), 0) as total_refunds
-            FROM _atlas.tax_returns WHERE organization_id = $1"#,
+            FROM _atlas.tax_returns WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let upcoming = sqlx::query(
-            r#"SELECT COUNT(*) as cnt FROM _atlas.tax_filing_calendar
-               WHERE organization_id = $1 AND filing_status IN ('upcoming', 'due_soon')"#,
+            r"SELECT COUNT(*) as cnt FROM _atlas.tax_filing_calendar
+               WHERE organization_id = $1 AND filing_status IN ('upcoming', 'due_soon')",
         ).bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 

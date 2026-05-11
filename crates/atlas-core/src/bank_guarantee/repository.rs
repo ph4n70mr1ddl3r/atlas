@@ -1,6 +1,6 @@
 //! Bank Guarantee Repository
 //!
-//! PostgreSQL storage for bank guarantees, amendments, and dashboard queries.
+//! `PostgreSQL` storage for bank guarantees, amendments, and dashboard queries.
 
 use atlas_shared::{
     BankGuarantee, BankGuaranteeAmendment,
@@ -81,13 +81,14 @@ const AMD_SELECT: &str = "id, org_id, guarantee_id, guarantee_number, \
     previous_terms, new_terms, reason, \
     status, effective_date, approved_by_id, created_at, updated_at";
 
-/// PostgreSQL implementation of BankGuaranteeRepository
+/// `PostgreSQL` implementation of `BankGuaranteeRepository`
 pub struct PostgresBankGuaranteeRepository {
     pool: PgPool,
 }
 
 impl PostgresBankGuaranteeRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -194,8 +195,7 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
                 purpose, collateral_type, collateral_amount, \
                 notes, created_by_id) \
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::numeric,$13,$14::numeric,$15::numeric,$16::numeric,$17::numeric,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28::numeric,$29,$30) \
-            RETURNING {}",
-            BG_SELECT
+            RETURNING {BG_SELECT}"
         );
 
         let row = sqlx::query(&sql)
@@ -237,7 +237,7 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
     }
 
     async fn get_guarantee(&self, org_id: Uuid, guarantee_number: &str) -> AtlasResult<Option<BankGuarantee>> {
-        let sql = format!("SELECT {} FROM fin_bank_guarantees WHERE org_id = $1 AND guarantee_number = $2", BG_SELECT);
+        let sql = format!("SELECT {BG_SELECT} FROM fin_bank_guarantees WHERE org_id = $1 AND guarantee_number = $2");
         let row = sqlx::query(&sql)
             .bind(org_id)
             .bind(guarantee_number)
@@ -249,7 +249,7 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
     }
 
     async fn get_guarantee_by_id(&self, id: Uuid) -> AtlasResult<Option<BankGuarantee>> {
-        let sql = format!("SELECT {} FROM fin_bank_guarantees WHERE id = $1", BG_SELECT);
+        let sql = format!("SELECT {BG_SELECT} FROM fin_bank_guarantees WHERE id = $1");
         let row = sqlx::query(&sql)
             .bind(id)
             .fetch_optional(&self.pool)
@@ -262,25 +262,25 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
     async fn list_guarantees(&self, org_id: Uuid, status: Option<&str>, guarantee_type: Option<&str>) -> AtlasResult<Vec<BankGuarantee>> {
         let rows = match (status, guarantee_type) {
             (Some(s), Some(t)) => {
-                let sql = format!("SELECT {} FROM fin_bank_guarantees WHERE org_id = $1 AND status = $2 AND guarantee_type = $3 ORDER BY created_at DESC", BG_SELECT);
+                let sql = format!("SELECT {BG_SELECT} FROM fin_bank_guarantees WHERE org_id = $1 AND status = $2 AND guarantee_type = $3 ORDER BY created_at DESC");
                 sqlx::query(&sql)
                     .bind(org_id).bind(s).bind(t)
                     .fetch_all(&self.pool).await
             }
             (Some(s), None) => {
-                let sql = format!("SELECT {} FROM fin_bank_guarantees WHERE org_id = $1 AND status = $2 ORDER BY created_at DESC", BG_SELECT);
+                let sql = format!("SELECT {BG_SELECT} FROM fin_bank_guarantees WHERE org_id = $1 AND status = $2 ORDER BY created_at DESC");
                 sqlx::query(&sql)
                     .bind(org_id).bind(s)
                     .fetch_all(&self.pool).await
             }
             (None, Some(t)) => {
-                let sql = format!("SELECT {} FROM fin_bank_guarantees WHERE org_id = $1 AND guarantee_type = $2 ORDER BY created_at DESC", BG_SELECT);
+                let sql = format!("SELECT {BG_SELECT} FROM fin_bank_guarantees WHERE org_id = $1 AND guarantee_type = $2 ORDER BY created_at DESC");
                 sqlx::query(&sql)
                     .bind(org_id).bind(t)
                     .fetch_all(&self.pool).await
             }
             (None, None) => {
-                let sql = format!("SELECT {} FROM fin_bank_guarantees WHERE org_id = $1 ORDER BY created_at DESC", BG_SELECT);
+                let sql = format!("SELECT {BG_SELECT} FROM fin_bank_guarantees WHERE org_id = $1 ORDER BY created_at DESC");
                 sqlx::query(&sql)
                     .bind(org_id)
                     .fetch_all(&self.pool).await
@@ -293,8 +293,7 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
 
     async fn update_guarantee_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<BankGuarantee> {
         let sql = format!(
-            "UPDATE fin_bank_guarantees SET status = $2, approved_by_id = COALESCE($3, approved_by_id), updated_at = now() WHERE id = $1 RETURNING {}",
-            BG_SELECT
+            "UPDATE fin_bank_guarantees SET status = $2, approved_by_id = COALESCE($3, approved_by_id), updated_at = now() WHERE id = $1 RETURNING {BG_SELECT}"
         );
         let row = sqlx::query(&sql)
             .bind(id).bind(status).bind(approved_by)
@@ -349,7 +348,7 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
 
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound(format!(
-                "Draft guarantee '{}' not found", guarantee_number
+                "Draft guarantee '{guarantee_number}' not found"
             )));
         }
         Ok(())
@@ -376,8 +375,7 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
                 previous_terms, new_terms, \
                 reason, effective_date, created_by_id) \
             VALUES ($1,$2,$3,$4,$5,$6::numeric,$7::numeric,$8,$9,$10,$11,$12,$13,$14) \
-            RETURNING {}",
-            AMD_SELECT
+            RETURNING {AMD_SELECT}"
         );
 
         let row = sqlx::query(&sql)
@@ -403,7 +401,7 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
     }
 
     async fn get_amendment_by_id(&self, id: Uuid) -> AtlasResult<Option<BankGuaranteeAmendment>> {
-        let sql = format!("SELECT {} FROM fin_bank_guarantee_amendments WHERE id = $1", AMD_SELECT);
+        let sql = format!("SELECT {AMD_SELECT} FROM fin_bank_guarantee_amendments WHERE id = $1");
         let row = sqlx::query(&sql)
             .bind(id)
             .fetch_optional(&self.pool)
@@ -414,7 +412,7 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
     }
 
     async fn list_amendments(&self, guarantee_id: Uuid) -> AtlasResult<Vec<BankGuaranteeAmendment>> {
-        let sql = format!("SELECT {} FROM fin_bank_guarantee_amendments WHERE guarantee_id = $1 ORDER BY created_at DESC", AMD_SELECT);
+        let sql = format!("SELECT {AMD_SELECT} FROM fin_bank_guarantee_amendments WHERE guarantee_id = $1 ORDER BY created_at DESC");
         let rows = sqlx::query(&sql)
             .bind(guarantee_id)
             .fetch_all(&self.pool)
@@ -426,8 +424,7 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
 
     async fn update_amendment_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<BankGuaranteeAmendment> {
         let sql = format!(
-            "UPDATE fin_bank_guarantee_amendments SET status = $2, approved_by_id = COALESCE($3, approved_by_id), updated_at = now() WHERE id = $1 RETURNING {}",
-            AMD_SELECT
+            "UPDATE fin_bank_guarantee_amendments SET status = $2, approved_by_id = COALESCE($3, approved_by_id), updated_at = now() WHERE id = $1 RETURNING {AMD_SELECT}"
         );
         let row = sqlx::query(&sql)
             .bind(id).bind(status).bind(approved_by)

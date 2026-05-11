@@ -259,7 +259,7 @@ impl RevenueEngine {
     pub async fn activate_contract(&self, contract_id: Uuid) -> AtlasResult<RevenueContract> {
         let contract = self.repository.get_contract(contract_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Revenue contract {} not found", contract_id)
+                format!("Revenue contract {contract_id} not found")
             ))?;
 
         if contract.status != "draft" {
@@ -283,7 +283,7 @@ impl RevenueEngine {
     pub async fn cancel_contract(&self, contract_id: Uuid, reason: Option<&str>) -> AtlasResult<RevenueContract> {
         let contract = self.repository.get_contract(contract_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Revenue contract {} not found", contract_id)
+                format!("Revenue contract {contract_id} not found")
             ))?;
 
         if contract.status == "completed" || contract.status == "cancelled" {
@@ -328,7 +328,7 @@ impl RevenueEngine {
     ) -> AtlasResult<PerformanceObligation> {
         let contract = self.repository.get_contract(contract_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Revenue contract {} not found", contract_id)
+                format!("Revenue contract {contract_id} not found")
             ))?;
 
         if contract.status == "cancelled" || contract.status == "completed" {
@@ -412,7 +412,7 @@ impl RevenueEngine {
     pub async fn allocate_transaction_price(&self, contract_id: Uuid) -> AtlasResult<Vec<PerformanceObligation>> {
         let contract = self.repository.get_contract(contract_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Revenue contract {} not found", contract_id)
+                format!("Revenue contract {contract_id} not found")
             ))?;
 
         if contract.status == "cancelled" {
@@ -446,12 +446,12 @@ impl RevenueEngine {
         for obligation in &obligations {
             let ssp: f64 = obligation.standalone_selling_price.parse().unwrap_or(0.0);
             let allocated = (ssp / total_ssp) * total_price;
-            let allocated_str = format!("{:.2}", allocated);
+            let allocated_str = format!("{allocated:.2}");
 
             let updated = self.repository.update_obligation_allocation(
                 obligation.id,
                 &allocated_str,
-                &format!("{:.2}", allocated), // deferred_revenue = allocated initially
+                &format!("{allocated:.2}"), // deferred_revenue = allocated initially
             ).await?;
 
             updated_obligations.push(updated);
@@ -470,8 +470,8 @@ impl RevenueEngine {
             Some(true), // step3_price_determined
             Some(true), // step4_price_allocated
             None,
-            Some(&format!("{:.2}", total_allocated)),
-            Some(&format!("{:.2}", total_allocated)),
+            Some(&format!("{total_allocated:.2}")),
+            Some(&format!("{total_allocated:.2}")),
             Some("0"),
             None, None,
         ).await?;
@@ -484,8 +484,8 @@ impl RevenueEngine {
     // ========================================================================
 
     /// Generate a straight-line recognition schedule for a performance obligation.
-    /// Creates evenly-distributed schedule lines from recognition_start_date to
-    /// recognition_end_date.
+    /// Creates evenly-distributed schedule lines from `recognition_start_date` to
+    /// `recognition_end_date`.
     pub async fn generate_straight_line_schedule(
         &self,
         obligation_id: Uuid,
@@ -494,7 +494,7 @@ impl RevenueEngine {
     ) -> AtlasResult<Vec<RevenueScheduleLine>> {
         let obligation = self.repository.get_obligation(obligation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Performance obligation {} not found", obligation_id)
+                format!("Performance obligation {obligation_id} not found")
             ))?;
 
         if obligation.status == "cancelled" || obligation.status == "satisfied" {
@@ -524,9 +524,9 @@ impl RevenueEngine {
             ));
         }
 
-        let per_month = total_amount / (total_months as f64);
+        let per_month = total_amount / f64::from(total_months);
         // Adjust last month for rounding
-        let per_month_rounded = format!("{:.2}", per_month);
+        let per_month_rounded = format!("{per_month:.2}");
 
         info!("Generating {}-month straight-line schedule for obligation {} ({} per month)",
             total_months, obligation_id, per_month_rounded);
@@ -592,7 +592,7 @@ impl RevenueEngine {
     ) -> AtlasResult<RevenueScheduleLine> {
         let obligation = self.repository.get_obligation(obligation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Performance obligation {} not found", obligation_id)
+                format!("Performance obligation {obligation_id} not found")
             ))?;
 
         if obligation.status == "cancelled" || obligation.status == "satisfied" {
@@ -617,7 +617,7 @@ impl RevenueEngine {
             obligation.contract_id,
             1,
             recognition_date,
-            &format!("{:.2}", total_amount),
+            &format!("{total_amount:.2}"),
             "100.0000",
             "point_in_time",
             obligation.created_by,
@@ -646,7 +646,7 @@ impl RevenueEngine {
     pub async fn recognize_revenue(&self, line_id: Uuid) -> AtlasResult<RevenueScheduleLine> {
         let line = self.repository.get_schedule_line(line_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Revenue schedule line {} not found", line_id)
+                format!("Revenue schedule line {line_id} not found")
             ))?;
 
         if line.status != "planned" {
@@ -692,8 +692,8 @@ impl RevenueEngine {
 
         self.repository.update_obligation_recognition(
             obligation.id,
-            &format!("{:.2}", new_recognized),
-            &format!("{:.2}", new_deferred),
+            &format!("{new_recognized:.2}"),
+            &format!("{new_deferred:.2}"),
             &pct_complete,
             new_status,
         ).await?;
@@ -713,8 +713,8 @@ impl RevenueEngine {
             None as Option<&str>,
             None, None, None, None, None,
             None,
-            Some(&format!("{:.2}", contract_recognized)),
-            Some(&format!("{:.2}", new_contract_deferred)),
+            Some(&format!("{contract_recognized:.2}")),
+            Some(&format!("{new_contract_deferred:.2}")),
             None, None,
         ).await?;
 
@@ -725,7 +725,7 @@ impl RevenueEngine {
     pub async fn reverse_recognition(&self, line_id: Uuid, reason: &str) -> AtlasResult<RevenueScheduleLine> {
         let line = self.repository.get_schedule_line(line_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Revenue schedule line {} not found", line_id)
+                format!("Revenue schedule line {line_id} not found")
             ))?;
 
         if line.status != "recognized" {
@@ -780,7 +780,7 @@ impl RevenueEngine {
     ) -> AtlasResult<RevenueModification> {
         let contract = self.repository.get_contract(contract_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Revenue contract {} not found", contract_id)
+                format!("Revenue contract {contract_id} not found")
             ))?;
 
         if contract.status != "active" && contract.status != "modified" {
@@ -818,7 +818,7 @@ impl RevenueEngine {
             Some("modified"),
             None, None, None, None, None,
             None, None, None,
-            Some(&format!("{:.2}", new_price)),
+            Some(&format!("{new_price:.2}")),
             None,
         ).await?;
 

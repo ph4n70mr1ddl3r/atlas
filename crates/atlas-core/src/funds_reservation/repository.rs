@@ -1,6 +1,6 @@
 //! Funds Reservation Repository
 //!
-//! PostgreSQL storage for fund reservations, reservation lines,
+//! `PostgreSQL` storage for fund reservations, reservation lines,
 //! fund availability checks, and budgetary control dashboard.
 
 use atlas_shared::{
@@ -71,13 +71,14 @@ pub trait FundsReservationRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<BudgetaryControlDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresFundsReservationRepository {
     pool: PgPool,
 }
 
 impl PostgresFundsReservationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -201,7 +202,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
         metadata: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<FundReservation> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.fund_reservations
+            r"INSERT INTO _atlas.fund_reservations
                 (organization_id, reservation_number,
                  budget_id, budget_code, budget_version_id,
                  description, source_type, source_id, source_number,
@@ -215,7 +216,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
                     $10, 0, 0, $10,
                     $11, $12, $13, $14, $15, $16, $17,
                     $18, $19, $20, $21, $22, $23)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(reservation_number)
         .bind(budget_id).bind(budget_code).bind(budget_version_id)
@@ -249,12 +250,12 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
         department_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<FundReservation>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.fund_reservations
+            r"SELECT * FROM _atlas.fund_reservations
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::uuid IS NULL OR budget_id = $3)
                  AND ($4::uuid IS NULL OR department_id = $4)
-               ORDER BY reservation_date DESC, created_at DESC"#,
+               ORDER BY reservation_date DESC, created_at DESC",
         )
         .bind(org_id).bind(status).bind(budget_id.copied()).bind(department_id.copied())
         .fetch_all(&self.pool).await?;
@@ -266,7 +267,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
             "UPDATE _atlas.fund_reservations SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation {} not found", id)))?;
+        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
         Ok(row_to_reservation(&row))
     }
 
@@ -274,7 +275,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
         &self, id: Uuid, consumed_amount: f64, released_amount: f64, remaining_amount: f64,
     ) -> AtlasResult<FundReservation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.fund_reservations
+            r"UPDATE _atlas.fund_reservations
                SET consumed_amount = $2, released_amount = $3, remaining_amount = $4,
                    status = CASE
                        WHEN $2 >= (reserved_amount - $3) THEN 'fully_consumed'
@@ -282,11 +283,11 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
                        ELSE status
                    END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(consumed_amount).bind(released_amount).bind(remaining_amount)
         .fetch_one(&self.pool).await
-        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation {} not found", id)))?;
+        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
         Ok(row_to_reservation(&row))
     }
 
@@ -294,7 +295,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
         &self, id: Uuid, cancelled_by: Option<Uuid>, reason: Option<&str>,
     ) -> AtlasResult<FundReservation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.fund_reservations
+            r"UPDATE _atlas.fund_reservations
                SET status = 'cancelled',
                    remaining_amount = 0,
                    released_amount = reserved_amount - consumed_amount,
@@ -302,11 +303,11 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
                    cancelled_at = now(),
                    cancellation_reason = $3,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(cancelled_by).bind(reason)
         .fetch_one(&self.pool).await
-        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation {} not found", id)))?;
+        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
         Ok(row_to_reservation(&row))
     }
 
@@ -316,7 +317,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
         ).bind(org_id).bind(reservation_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
             return Err(atlas_shared::AtlasError::EntityNotFound(
-                format!("Reservation '{}' not found", reservation_number)
+                format!("Reservation '{reservation_number}' not found")
             ));
         }
         Ok(())
@@ -335,14 +336,14 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
         metadata: serde_json::Value,
     ) -> AtlasResult<FundReservationLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.fund_reservation_lines
+            r"INSERT INTO _atlas.fund_reservation_lines
                 (organization_id, reservation_id, line_number,
                  account_code, account_description,
                  budget_line_id, department_id, project_id, cost_center,
                  reserved_amount, consumed_amount, released_amount, remaining_amount,
                  metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 0, $10, $11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(reservation_id).bind(line_number)
         .bind(account_code).bind(account_description)
@@ -363,14 +364,14 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
         &self, id: Uuid, consumed_amount: f64, released_amount: f64, remaining_amount: f64,
     ) -> AtlasResult<FundReservationLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.fund_reservation_lines
+            r"UPDATE _atlas.fund_reservation_lines
                SET consumed_amount = $2, released_amount = $3, remaining_amount = $4,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(consumed_amount).bind(released_amount).bind(remaining_amount)
         .fetch_one(&self.pool).await
-        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation line {} not found", id)))?;
+        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation line {id} not found")))?;
         Ok(row_to_reservation_line(&row))
     }
 
@@ -385,7 +386,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
     ) -> AtlasResult<FundAvailability> {
         // Get budget amount from budget lines
         let budget_row = sqlx::query(
-            r#"SELECT COALESCE(SUM(
+            r"SELECT COALESCE(SUM(
                 CASE
                     WHEN bl.budget_amount ~ '^[0-9]+\.?[0-9]*$' THEN bl.budget_amount::numeric
                     ELSE 0
@@ -397,7 +398,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
             JOIN _atlas.budget_definitions bd ON bd.id = bl.budget_definition_id
             WHERE bl.budget_definition_id = $1
               AND bl.account_code = $2
-              AND bl.organization_id = $3"#,
+              AND bl.organization_id = $3",
         )
         .bind(budget_id).bind(account_code).bind(org_id)
         .fetch_optional(&self.pool).await?;
@@ -414,7 +415,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
 
         // Calculate total reserved, consumed, released from active reservations
         let summary_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COALESCE(SUM(
                     CASE WHEN frl.reserved_amount ~ '^[0-9]+\.?[0-9]*$' THEN frl.reserved_amount::numeric ELSE 0 END
                 ), 0) as total_reserved,
@@ -429,7 +430,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
             WHERE fr.budget_id = $1
               AND frl.account_code = $2
               AND fr.organization_id = $3
-              AND fr.status IN ('active', 'partially_consumed')"#,
+              AND fr.status IN ('active', 'partially_consumed')",
         )
         .bind(budget_id).bind(account_code).bind(org_id)
         .fetch_one(&self.pool).await?;
@@ -452,7 +453,7 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
             check_passed: available_balance >= 0.0,
             control_level,
             message: if available_balance >= 0.0 {
-                format!("Funds available: {:.2}", available_balance)
+                format!("Funds available: {available_balance:.2}")
             } else {
                 format!("Insufficient funds: shortfall of {:.2}", available_balance.abs())
             },

@@ -3,7 +3,7 @@
 //! Oracle Fusion Trade Management > Trade Promotion.
 //!
 //! Features:
-//! - Promotion CRUD with lifecycle (draft → active → on_hold → completed → cancelled)
+//! - Promotion CRUD with lifecycle (draft → active → `on_hold` → completed → cancelled)
 //! - Promotional offers (discounts, buy-get, bundles, rebates, free items)
 //! - Fund allocation and tracking (marketing development, cooperative, trade spend)
 //! - Claims processing (accrual, settlement, deduction, lump sum)
@@ -126,7 +126,7 @@ impl PromotionsManagementEngine {
 
         // Check uniqueness
         if self.repository.get_promotion_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Promotion '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Promotion '{code}' already exists")));
         }
 
         info!("Creating promotion '{}' ({}) for org {}", name, code, org_id);
@@ -154,14 +154,14 @@ impl PromotionsManagementEngine {
         if let Some(pt) = promotion_type {
             if !VALID_PROMOTION_TYPES.contains(&pt) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid promotion type '{}'", pt
+                    "Invalid promotion type '{pt}'"
                 )));
             }
         }
         if let Some(s) = status {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'", s
+                    "Invalid status '{s}'"
                 )));
             }
         }
@@ -181,7 +181,7 @@ impl PromotionsManagementEngine {
         owner_name: Option<&str>,
     ) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtPromotion> {
         let existing = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         // Validate dates
         let from = start_date.unwrap_or(existing.start_date);
@@ -211,7 +211,7 @@ impl PromotionsManagementEngine {
     /// Activate a promotion
     pub async fn activate_promotion(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtPromotion> {
         let promotion = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
         if promotion.status != "draft" && promotion.status != "on_hold" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot activate promotion in '{}' status. Must be 'draft' or 'on_hold'.", promotion.status)
@@ -224,7 +224,7 @@ impl PromotionsManagementEngine {
     /// Put a promotion on hold
     pub async fn hold_promotion(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtPromotion> {
         let promotion = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
         if promotion.status != "active" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot hold promotion in '{}' status. Must be 'active'.", promotion.status)
@@ -237,7 +237,7 @@ impl PromotionsManagementEngine {
     /// Complete a promotion
     pub async fn complete_promotion(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtPromotion> {
         let promotion = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
         if promotion.status != "active" && promotion.status != "on_hold" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot complete promotion in '{}' status.", promotion.status)
@@ -250,7 +250,7 @@ impl PromotionsManagementEngine {
     /// Cancel a promotion
     pub async fn cancel_promotion(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtPromotion> {
         let promotion = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
         if promotion.status == "completed" || promotion.status == "cancelled" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot cancel promotion in '{}' status.", promotion.status)
@@ -263,7 +263,7 @@ impl PromotionsManagementEngine {
     /// Delete a promotion (only in draft)
     pub async fn delete_promotion(&self, id: Uuid) -> atlas_shared::AtlasResult<()> {
         let promotion = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
         if promotion.status != "draft" {
             return Err(AtlasError::ValidationFailed(
                 "Can only delete promotions in 'draft' status".to_string(),
@@ -293,7 +293,7 @@ impl PromotionsManagementEngine {
         created_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtOffer> {
         self.repository.get_promotion(promotion_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", promotion_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {promotion_id} not found")))?;
 
         if !VALID_OFFER_TYPES.contains(&offer_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -370,7 +370,7 @@ impl PromotionsManagementEngine {
         created_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtFund> {
         self.repository.get_promotion(promotion_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", promotion_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {promotion_id} not found")))?;
 
         if !VALID_FUND_TYPES.contains(&fund_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -444,7 +444,7 @@ impl PromotionsManagementEngine {
         created_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtClaim> {
         let promotion = self.repository.get_promotion(promotion_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", promotion_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {promotion_id} not found")))?;
 
         if promotion.status != "active" {
             return Err(AtlasError::ValidationFailed(
@@ -491,16 +491,16 @@ impl PromotionsManagementEngine {
     ) -> atlas_shared::AtlasResult<Vec<atlas_shared::PromoMgmtClaim>> {
         if let Some(s) = status {
             if !VALID_CLAIM_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid claim status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid claim status '{s}'")));
             }
         }
         self.repository.list_claims(promotion_id, status).await
     }
 
-    /// Review a claim (move to under_review)
+    /// Review a claim (move to `under_review`)
     pub async fn review_claim(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtClaim> {
         let claim = self.repository.get_claim(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
         if claim.status != "submitted" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot review claim in '{}' status. Must be 'submitted'.", claim.status)
@@ -512,7 +512,7 @@ impl PromotionsManagementEngine {
     /// Approve a claim
     pub async fn approve_claim(&self, id: Uuid, approved_amount: Option<&str>) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtClaim> {
         let claim = self.repository.get_claim(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
         if claim.status != "submitted" && claim.status != "under_review" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot approve claim in '{}' status.", claim.status)
@@ -531,7 +531,7 @@ impl PromotionsManagementEngine {
     /// Reject a claim
     pub async fn reject_claim(&self, id: Uuid, reason: &str) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtClaim> {
         let claim = self.repository.get_claim(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
         if claim.status != "submitted" && claim.status != "under_review" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot reject claim in '{}' status.", claim.status)
@@ -547,7 +547,7 @@ impl PromotionsManagementEngine {
     /// Settle (pay) a claim
     pub async fn settle_claim(&self, id: Uuid, paid_amount: &str) -> atlas_shared::AtlasResult<atlas_shared::PromoMgmtClaim> {
         let claim = self.repository.get_claim(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
         if claim.status != "approved" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot settle claim in '{}' status. Must be 'approved'.", claim.status)
@@ -567,7 +567,7 @@ impl PromotionsManagementEngine {
     /// Delete a claim (only in submitted status)
     pub async fn delete_claim(&self, id: Uuid) -> atlas_shared::AtlasResult<()> {
         let claim = self.repository.get_claim(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
         if claim.status != "submitted" {
             return Err(AtlasError::ValidationFailed(
                 "Can only delete claims in 'submitted' status".to_string(),

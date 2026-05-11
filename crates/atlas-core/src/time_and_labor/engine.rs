@@ -101,8 +101,8 @@ impl TimeAndLaborEngine {
 
         self.repository.create_work_schedule(
             org_id, &code_upper, name, description, schedule_type,
-            &format!("{:.2}", standard_hours_per_day),
-            &format!("{:.2}", standard_hours_per_week),
+            &format!("{standard_hours_per_day:.2}"),
+            &format!("{standard_hours_per_week:.2}"),
             work_days_per_week,
             start_time, end_time, break_duration_minutes,
             created_by,
@@ -188,11 +188,11 @@ impl TimeAndLaborEngine {
 
         self.repository.create_overtime_rule(
             org_id, &code_upper, name, description, threshold_type,
-            &format!("{:.2}", daily_threshold_hours),
-            &format!("{:.2}", weekly_threshold_hours),
-            &format!("{:.4}", overtime_multiplier),
-            double_time_threshold_hours.map(|v| format!("{:.2}", v)).as_deref(),
-            &format!("{:.4}", double_time_multiplier),
+            &format!("{daily_threshold_hours:.2}"),
+            &format!("{weekly_threshold_hours:.2}"),
+            &format!("{overtime_multiplier:.4}"),
+            double_time_threshold_hours.map(|v| format!("{v:.2}")).as_deref(),
+            &format!("{double_time_multiplier:.4}"),
             include_holidays, include_weekends,
             effective_from, effective_to,
             created_by,
@@ -240,7 +240,7 @@ impl TimeAndLaborEngine {
         let schedule_id = if let Some(sc) = schedule_code {
             let schedule = self.get_work_schedule(org_id, sc).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Work schedule '{}' not found", sc)
+                    format!("Work schedule '{sc}' not found")
                 ))?;
             Some(schedule.id)
         } else {
@@ -250,7 +250,7 @@ impl TimeAndLaborEngine {
         let overtime_rule_id = if let Some(oc) = overtime_rule_code {
             let rule = self.get_overtime_rule(org_id, oc).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Overtime rule '{}' not found", oc)
+                    format!("Overtime rule '{oc}' not found")
                 ))?;
             Some(rule.id)
         } else {
@@ -311,12 +311,12 @@ impl TimeAndLaborEngine {
     pub async fn submit_time_card(&self, org_id: Uuid, card_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<TimeCard> {
         let card = self.repository.get_time_card(card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time card {} not found", card_id)
+                format!("Time card {card_id} not found")
             ))?;
 
         if card.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time card {} not found", card_id)
+                format!("Time card {card_id} not found")
             ));
         }
 
@@ -340,12 +340,12 @@ impl TimeAndLaborEngine {
     pub async fn approve_time_card(&self, org_id: Uuid, card_id: Uuid, approved_by: Uuid) -> AtlasResult<TimeCard> {
         let card = self.repository.get_time_card(card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time card {} not found", card_id)
+                format!("Time card {card_id} not found")
             ))?;
 
         if card.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time card {} not found", card_id)
+                format!("Time card {card_id} not found")
             ));
         }
 
@@ -369,12 +369,12 @@ impl TimeAndLaborEngine {
     pub async fn reject_time_card(&self, org_id: Uuid, card_id: Uuid, rejected_by: Uuid, reason: Option<&str>) -> AtlasResult<TimeCard> {
         let card = self.repository.get_time_card(card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time card {} not found", card_id)
+                format!("Time card {card_id} not found")
             ))?;
 
         if card.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time card {} not found", card_id)
+                format!("Time card {card_id} not found")
             ));
         }
 
@@ -398,12 +398,12 @@ impl TimeAndLaborEngine {
     pub async fn cancel_time_card(&self, org_id: Uuid, card_id: Uuid, reason: Option<&str>) -> AtlasResult<TimeCard> {
         let card = self.repository.get_time_card(card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time card {} not found", card_id)
+                format!("Time card {card_id} not found")
             ))?;
 
         if card.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time card {} not found", card_id)
+                format!("Time card {card_id} not found")
             ));
         }
 
@@ -451,12 +451,12 @@ impl TimeAndLaborEngine {
     ) -> AtlasResult<TimeEntry> {
         let card = self.repository.get_time_card(time_card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time card {} not found", time_card_id)
+                format!("Time card {time_card_id} not found")
             ))?;
 
         if card.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time card {} not found", time_card_id)
+                format!("Time card {time_card_id} not found")
             ));
         }
 
@@ -499,7 +499,7 @@ impl TimeAndLaborEngine {
         let entry = self.repository.create_time_entry(
             org_id, time_card_id, entry_date, entry_type,
             start_time, end_time,
-            &format!("{:.4}", duration_hours),
+            &format!("{duration_hours:.4}"),
             project_id, project_name, department_id, department_name,
             task_name, location, cost_center, labor_category,
             comments, created_by,
@@ -527,11 +527,11 @@ impl TimeAndLaborEngine {
         // Verify the time card belongs to org
         let card = self.repository.get_time_card(time_card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time card {} not found", time_card_id)
+                format!("Time card {time_card_id} not found")
             ))?;
         if card.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time card {} not found", time_card_id)
+                format!("Time card {time_card_id} not found")
             ));
         }
         self.repository.list_time_entries_by_card(time_card_id).await
@@ -541,12 +541,12 @@ impl TimeAndLaborEngine {
     pub async fn delete_time_entry(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let entry = self.repository.get_time_entry(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time entry {} not found", id)
+                format!("Time entry {id} not found")
             ))?;
 
         if entry.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time entry {} not found", id)
+                format!("Time entry {id} not found")
             ));
         }
 
@@ -575,11 +575,11 @@ impl TimeAndLaborEngine {
         // Verify the time card belongs to org
         let card = self.repository.get_time_card(time_card_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time card {} not found", time_card_id)
+                format!("Time card {time_card_id} not found")
             ))?;
         if card.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time card {} not found", time_card_id)
+                format!("Time card {time_card_id} not found")
             ));
         }
         self.repository.get_time_card_history(time_card_id).await
@@ -604,12 +604,12 @@ impl TimeAndLaborEngine {
     ) -> AtlasResult<LaborDistribution> {
         let entry = self.repository.get_time_entry(time_entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time entry {} not found", time_entry_id)
+                format!("Time entry {time_entry_id} not found")
             ))?;
 
         if entry.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time entry {} not found", time_entry_id)
+                format!("Time entry {time_entry_id} not found")
             ));
         }
 
@@ -626,10 +626,10 @@ impl TimeAndLaborEngine {
 
         self.repository.create_labor_distribution(
             org_id, time_entry_id,
-            &format!("{:.2}", distribution_percent),
+            &format!("{distribution_percent:.2}"),
             cost_center, project_id, project_name,
             department_id, department_name, gl_account_code,
-            &format!("{:.4}", allocated),
+            &format!("{allocated:.4}"),
         ).await
     }
 
@@ -638,11 +638,11 @@ impl TimeAndLaborEngine {
         // Verify the entry belongs to org
         let entry = self.repository.get_time_entry(time_entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Time entry {} not found", time_entry_id)
+                format!("Time entry {time_entry_id} not found")
             ))?;
         if entry.organization_id != org_id {
             return Err(AtlasError::EntityNotFound(
-                format!("Time entry {} not found", time_entry_id)
+                format!("Time entry {time_entry_id} not found")
             ));
         }
         self.repository.list_labor_distributions_by_entry(time_entry_id).await
@@ -681,7 +681,7 @@ impl TimeAndLaborEngine {
         let mut by_status = serde_json::Map::new();
         for card in &all_cards {
             let count = by_status.get(&card.status)
-                .and_then(|v| v.as_i64())
+                .and_then(serde_json::Value::as_i64)
                 .unwrap_or(0) + 1;
             by_status.insert(card.status.clone(), serde_json::json!(count));
         }
@@ -693,7 +693,7 @@ impl TimeAndLaborEngine {
             for entry in &entries {
                 let hours: f64 = entry.duration_hours.parse().unwrap_or(0.0);
                 let current = hours_by_type.get(&entry.entry_type)
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(0.0);
                 hours_by_type.insert(entry.entry_type.clone(), serde_json::json!(((current + hours) * 100.0).round() / 100.0));
             }
@@ -742,10 +742,10 @@ impl TimeAndLaborEngine {
 
         self.repository.update_time_card_totals(
             time_card_id,
-            &format!("{:.4}", regular),
-            &format!("{:.4}", overtime),
-            &format!("{:.4}", double_time),
-            &format!("{:.4}", total),
+            &format!("{regular:.4}"),
+            &format!("{overtime:.4}"),
+            &format!("{double_time:.4}"),
+            &format!("{total:.4}"),
         ).await?;
 
         Ok(())

@@ -142,7 +142,7 @@ impl CurrencyRevaluationEngine {
     /// Activate a definition
     pub async fn activate_definition(&self, id: Uuid) -> AtlasResult<CurrencyRevaluationDefinition> {
         let def = self.repository.get_definition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation definition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation definition {id} not found")))?;
 
         if def.is_active {
             return Err(AtlasError::WorkflowError("Definition is already active".to_string()));
@@ -155,7 +155,7 @@ impl CurrencyRevaluationEngine {
     /// Deactivate a definition
     pub async fn deactivate_definition(&self, id: Uuid) -> AtlasResult<CurrencyRevaluationDefinition> {
         let def = self.repository.get_definition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation definition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation definition {id} not found")))?;
 
         if !def.is_active {
             return Err(AtlasError::WorkflowError("Definition is already inactive".to_string()));
@@ -184,7 +184,7 @@ impl CurrencyRevaluationEngine {
     ) -> AtlasResult<CurrencyRevaluationAccount> {
         let def = self.repository.get_definition_by_code(org_id, definition_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Revaluation definition '{}' not found", definition_code
+                "Revaluation definition '{definition_code}' not found"
             )))?;
 
         if !VALID_ACCOUNT_TYPES.contains(&request.account_type.as_str()) {
@@ -211,7 +211,7 @@ impl CurrencyRevaluationEngine {
     pub async fn list_accounts(&self, org_id: Uuid, definition_code: &str) -> AtlasResult<Vec<CurrencyRevaluationAccount>> {
         let def = self.repository.get_definition_by_code(org_id, definition_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Revaluation definition '{}' not found", definition_code
+                "Revaluation definition '{definition_code}' not found"
             )))?;
 
         let mut definition = self.repository.get_definition_by_id(def.id).await?
@@ -349,8 +349,8 @@ impl CurrencyRevaluationEngine {
                 &balance.original_currency,
                 &balance.original_exchange_rate,
                 &balance.original_base_amount,
-                &format!("{:.10}", original_rate),
-                &format!("{:.2}", revalued_base),
+                &format!("{original_rate:.10}"),
+                &format!("{revalued_base:.2}"),
                 &format!("{:.2}", gain_loss.abs()),
                 gain_loss_type,
                 gain_loss_account,
@@ -360,9 +360,9 @@ impl CurrencyRevaluationEngine {
         // Update run totals
         self.repository.update_run_totals(
             run.id,
-            &format!("{:.2}", total_revalued),
-            &format!("{:.2}", total_gain),
-            &format!("{:.2}", total_loss),
+            &format!("{total_revalued:.2}"),
+            &format!("{total_gain:.2}"),
+            &format!("{total_loss:.2}"),
             line_number,
         ).await?;
 
@@ -384,7 +384,7 @@ impl CurrencyRevaluationEngine {
     /// Post a revaluation run
     pub async fn post_run(&self, id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<CurrencyRevaluationRun> {
         let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation run {id} not found")))?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -399,7 +399,7 @@ impl CurrencyRevaluationEngine {
     /// Reverse a revaluation run (creates a reversal run)
     pub async fn reverse_run(&self, id: Uuid, reversed_by: Option<Uuid>) -> AtlasResult<CurrencyRevaluationRun> {
         let original_run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation run {id} not found")))?;
 
         if original_run.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -476,7 +476,7 @@ impl CurrencyRevaluationEngine {
                 &original_line.original_base_amount,
                 &original_line.revalued_exchange_rate,
                 &original_line.revalued_base_amount,
-                &format!("{:.2}", reversed_amount),
+                &format!("{reversed_amount:.2}"),
                 reversed_type,
                 &original_line.gain_loss_account_code,
             ).await?;
@@ -488,9 +488,9 @@ impl CurrencyRevaluationEngine {
         // Update reversal run totals
         self.repository.update_run_totals(
             reversal_run.id,
-            &format!("{:.2}", total_revalued),
-            &format!("{:.2}", total_gain),
-            &format!("{:.2}", total_loss),
+            &format!("{total_revalued:.2}"),
+            &format!("{total_gain:.2}"),
+            &format!("{total_loss:.2}"),
             line_number,
         ).await?;
 
@@ -511,7 +511,7 @@ impl CurrencyRevaluationEngine {
     /// Cancel a draft revaluation run
     pub async fn cancel_run(&self, id: Uuid) -> AtlasResult<CurrencyRevaluationRun> {
         let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation run {id} not found")))?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(

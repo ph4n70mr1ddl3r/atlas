@@ -17,6 +17,7 @@ pub struct ValidationEngine {
 type CustomValidator = Arc<dyn Fn(&serde_json::Value, &str) -> Option<String> + Send + Sync>;
 
 impl ValidationEngine {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             custom_validators: HashMap::new(),
@@ -55,6 +56,7 @@ impl ValidationEngine {
     }
     
     /// Validate data against an entity definition
+    #[must_use] 
     pub fn validate(&self, entity: &EntityDefinition, data: &serde_json::Value, _ctx: Option<&ValidationContext>) -> ValidationResult {
         let mut result = ValidationResult::new();
         
@@ -77,6 +79,7 @@ impl ValidationEngine {
     }
     
     /// Validate a single field
+    #[must_use] 
     pub fn validate_field(&self, field: &FieldDefinition, value: &serde_json::Value) -> ValidationResult {
         let mut result = ValidationResult::new();
         let field_name = &field.name;
@@ -247,7 +250,7 @@ impl ValidationEngine {
                             result.add_error(&field.name, "pattern", &format!("{} does not match required format", field.label));
                         }
                     } else {
-                        result.add_error(&field.name, "pattern", &format!("Invalid regex pattern: {}", pattern));
+                        result.add_error(&field.name, "pattern", &format!("Invalid regex pattern: {pattern}"));
                     }
                 }
             }
@@ -280,6 +283,7 @@ impl ValidationEngine {
     }
     
     /// Cross-field validation
+    #[must_use] 
     pub fn validate_cross_field(&self, data: &serde_json::Value, rules: &[(String, String, String)]) -> ValidationResult {
         let mut result = ValidationResult::new();
         
@@ -301,7 +305,7 @@ impl ValidationEngine {
                 result.add_error(
                     field1,
                     "cross_field",
-                    &format!("{} {} {} (cross-field validation)", field1, operator, field2)
+                    &format!("{field1} {operator} {field2} (cross-field validation)")
                 );
             }
         }
@@ -318,7 +322,7 @@ fn compare_values_safe(v1: Option<&serde_json::Value>, v2: Option<&serde_json::V
     
     // Try numeric comparison first
     if let (Some(n1), Some(n2)) = (a.as_f64(), b.as_f64()) {
-        return if n1 < n2 { -1 } else if n1 > n2 { 1 } else { 0 };
+        return if n1 < n2 { -1 } else { i32::from(n1 > n2) };
     }
     
     // Try string comparison (handles date strings like "2024-01-01")

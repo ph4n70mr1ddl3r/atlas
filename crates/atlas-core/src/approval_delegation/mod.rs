@@ -7,8 +7,8 @@
 //!
 //! Supports:
 //! - Full delegation (all approvals)
-//! - Category-based delegation (e.g., only "purchase_orders")
-//! - Role-based delegation (e.g., only approvals requiring role "finance_manager")
+//! - Category-based delegation (e.g., only "`purchase_orders`")
+//! - Role-based delegation (e.g., only approvals requiring role "`finance_manager`")
 //! - Entity-type-based delegation
 //! - Automatic activation/expiry based on date ranges
 

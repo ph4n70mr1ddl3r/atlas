@@ -1,6 +1,6 @@
 //! Expense Policy Compliance Repository
 //!
-//! PostgreSQL storage for expense policy rules, compliance audits, and violations.
+//! `PostgreSQL` storage for expense policy rules, compliance audits, and violations.
 
 use atlas_shared::{
     ExpensePolicyRule, ExpenseComplianceAudit, ExpenseComplianceViolation,
@@ -224,13 +224,14 @@ fn row_to_violation(row: &sqlx::postgres::PgRow) -> ExpenseComplianceViolation {
     }
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresExpensePolicyComplianceRepository {
     pool: PgPool,
 }
 
 impl PostgresExpensePolicyComplianceRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -517,7 +518,7 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ExpenseComplianceDashboard> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 (SELECT COUNT(*) FROM fin_expense_policy_rules WHERE org_id = $1 AND is_active = true) as active_rules,
                 (SELECT COUNT(*) FROM fin_expense_compliance_audits
                     WHERE org_id = $1 AND EXTRACT(YEAR FROM audit_date) = EXTRACT(YEAR FROM CURRENT_DATE)) as audits_period,
@@ -542,7 +543,7 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
                     AND EXTRACT(YEAR FROM audit_date) = EXTRACT(YEAR FROM CURRENT_DATE)) as high_risk,
                 (SELECT COUNT(*) FROM fin_expense_compliance_violations v
                     JOIN fin_expense_compliance_audits a ON v.audit_id = a.id
-                    WHERE a.org_id = $1 AND v.resolution_status = 'open') as open_violations"#,
+                    WHERE a.org_id = $1 AND v.resolution_status = 'open') as open_violations",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

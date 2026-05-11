@@ -3627,7 +3627,7 @@ impl SegregationOfDutiesRepository for MockSegregationOfDutiesRepository {
     }
 }
 
-/// Mock AutoInvoice repository for testing
+/// Mock `AutoInvoice` repository for testing
 pub struct MockAutoInvoiceRepository;
 
 #[async_trait]
@@ -4072,7 +4072,7 @@ impl crate::absence::AbsenceRepository for MockAbsenceRepository {
     ) -> AtlasResult<atlas_shared::AbsenceType> {
         Ok(atlas_shared::AbsenceType {
             id: Uuid::new_v4(), organization_id: _org_id, code: _code.to_string(),
-            name: _name.to_string(), description: _description.map(|s| s.to_string()),
+            name: _name.to_string(), description: _description.map(std::string::ToString::to_string),
             category: _category.to_string(), plan_type: _plan_type.to_string(),
             requires_approval: _requires_approval, requires_documentation: _requires_documentation,
             auto_approve_below_days: _auto_approve_below_days.to_string(),
@@ -4093,7 +4093,7 @@ impl crate::absence::AbsenceRepository for MockAbsenceRepository {
     ) -> AtlasResult<atlas_shared::AbsencePlan> {
         Ok(atlas_shared::AbsencePlan {
             id: Uuid::new_v4(), organization_id: _org_id, code: _code.to_string(),
-            name: _name.to_string(), description: _description.map(|s| s.to_string()),
+            name: _name.to_string(), description: _description.map(std::string::ToString::to_string),
             absence_type_id: _absence_type_id, accrual_frequency: _accrual_frequency.to_string(),
             accrual_rate: _accrual_rate.to_string(), accrual_unit: _accrual_unit.to_string(),
             carry_over_max: _carry_over_max, carry_over_expiry_months: _carry_over_expiry_months,
@@ -4303,10 +4303,10 @@ impl crate::payroll::PayrollRepository for MockPayrollRepository {
             code: _code.to_string(), name: _name.to_string(), description: None,
             element_type: _element_type.to_string(), category: _category.to_string(),
             calculation_method: _calculation_method.to_string(),
-            default_value: _default_value.map(|v| v.to_string()),
+            default_value: _default_value.map(std::string::ToString::to_string),
             is_recurring: _is_recurring,
             has_employer_contribution: _has_employer_contribution,
-            employer_contribution_rate: _employer_contribution_rate.map(|v| v.to_string()),
+            employer_contribution_rate: _employer_contribution_rate.map(std::string::ToString::to_string),
             gl_account_code: None, is_pretax: _is_pretax, is_active: true,
             effective_from: None, effective_to: None, created_by: None,
             created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
@@ -4371,7 +4371,7 @@ impl crate::payroll::PayrollRepository for MockPayrollRepository {
         Ok(atlas_shared::PaySlip {
             id: Uuid::new_v4(), organization_id: _org_id,
             payroll_run_id: _payroll_run_id, employee_id: _employee_id,
-            employee_name: _employee_name.map(|s| s.to_string()),
+            employee_name: _employee_name.map(std::string::ToString::to_string),
             gross_earnings: _gross_earnings.to_string(),
             total_deductions: _total_deductions.to_string(),
             net_pay: _net_pay.to_string(),
@@ -5448,10 +5448,10 @@ impl crate::product_configurator::ProductConfiguratorRepository for MockProductC
             organization_id: org_id,
             model_number: model_number.to_string(),
             name: name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             base_product_id,
-            base_product_number: base_product_number.map(|s| s.to_string()),
-            base_product_name: base_product_name.map(|s| s.to_string()),
+            base_product_number: base_product_number.map(std::string::ToString::to_string),
+            base_product_name: base_product_name.map(std::string::ToString::to_string),
             model_type: model_type.to_string(),
             status: status.to_string(),
             version,
@@ -5487,7 +5487,7 @@ impl crate::product_configurator::ProductConfiguratorRepository for MockProductC
             model_id,
             feature_code: feature_code.to_string(),
             name: name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             feature_type: feature_type.to_string(),
             is_required,
             display_order,
@@ -5515,7 +5515,7 @@ impl crate::product_configurator::ProductConfiguratorRepository for MockProductC
             feature_id,
             option_code: option_code.to_string(),
             name: name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             option_type: option_type.to_string(),
             price_adjustment,
             cost_adjustment,
@@ -5551,13 +5551,13 @@ impl crate::product_configurator::ProductConfiguratorRepository for MockProductC
             model_id,
             rule_code: rule_code.to_string(),
             name: name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             rule_type: rule_type.to_string(),
             source_feature_id,
             source_option_id,
             target_feature_id,
             target_option_id,
-            condition_expression: condition_expression.map(|s| s.to_string()),
+            condition_expression: condition_expression.map(std::string::ToString::to_string),
             severity: severity.to_string(),
             is_active,
             priority,
@@ -5592,9 +5592,9 @@ impl crate::product_configurator::ProductConfiguratorRepository for MockProductC
             organization_id: org_id,
             instance_number: instance_number.to_string(),
             model_id,
-            model_number: model_number.map(|s| s.to_string()),
-            name: name.map(|s| s.to_string()),
-            description: description.map(|s| s.to_string()),
+            model_number: model_number.map(std::string::ToString::to_string),
+            name: name.map(std::string::ToString::to_string),
+            description: description.map(std::string::ToString::to_string),
             status: status.to_string(),
             selections,
             validation_errors,
@@ -5602,7 +5602,7 @@ impl crate::product_configurator::ProductConfiguratorRepository for MockProductC
             base_price,
             total_price,
             currency_code: currency_code.to_string(),
-            config_hash: config_hash.map(|s| s.to_string()),
+            config_hash: config_hash.map(std::string::ToString::to_string),
             effective_date,
             valid_from: None,
             valid_to: None,
@@ -5677,25 +5677,25 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
             organization_id: org_id,
             carrier_code: carrier_code.to_string(),
             name: name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             carrier_type: carrier_type.to_string(),
             status: status.to_string(),
-            scac_code: scac_code.map(|s| s.to_string()),
-            dot_number: dot_number.map(|s| s.to_string()),
-            mc_number: mc_number.map(|s| s.to_string()),
-            tax_id: tax_id.map(|s| s.to_string()),
-            contact_name: contact_name.map(|s| s.to_string()),
-            contact_email: contact_email.map(|s| s.to_string()),
-            contact_phone: contact_phone.map(|s| s.to_string()),
-            address_line1: address_line1.map(|s| s.to_string()),
-            address_line2: address_line2.map(|s| s.to_string()),
-            city: city.map(|s| s.to_string()),
-            state: state.map(|s| s.to_string()),
-            postal_code: postal_code.map(|s| s.to_string()),
+            scac_code: scac_code.map(std::string::ToString::to_string),
+            dot_number: dot_number.map(std::string::ToString::to_string),
+            mc_number: mc_number.map(std::string::ToString::to_string),
+            tax_id: tax_id.map(std::string::ToString::to_string),
+            contact_name: contact_name.map(std::string::ToString::to_string),
+            contact_email: contact_email.map(std::string::ToString::to_string),
+            contact_phone: contact_phone.map(std::string::ToString::to_string),
+            address_line1: address_line1.map(std::string::ToString::to_string),
+            address_line2: address_line2.map(std::string::ToString::to_string),
+            city: city.map(std::string::ToString::to_string),
+            state: state.map(std::string::ToString::to_string),
+            postal_code: postal_code.map(std::string::ToString::to_string),
             country: country.to_string(),
             currency_code: currency_code.to_string(),
             payment_terms: payment_terms.to_string(),
-            insurance_policy_number: insurance_policy_number.map(|s| s.to_string()),
+            insurance_policy_number: insurance_policy_number.map(std::string::ToString::to_string),
             insurance_expiry_date,
             performance_rating: 0.0,
             on_time_delivery_pct: 0.0,
@@ -5737,7 +5737,7 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
             carrier_id,
             service_code: service_code.to_string(),
             name: name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             service_level: service_level.to_string(),
             transit_days_min,
             transit_days_max,
@@ -5780,13 +5780,13 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
             organization_id: org_id,
             lane_code: lane_code.to_string(),
             name: name.to_string(),
-            description: description.map(|s| s.to_string()),
-            origin_location_id, origin_location_name: origin_location_name.map(|s| s.to_string()),
-            origin_city: origin_city.map(|s| s.to_string()), origin_state: origin_state.map(|s| s.to_string()),
-            origin_country: origin_country.to_string(), origin_postal_code: origin_postal_code.map(|s| s.to_string()),
-            destination_location_id, destination_location_name: destination_location_name.map(|s| s.to_string()),
-            destination_city: destination_city.map(|s| s.to_string()), destination_state: destination_state.map(|s| s.to_string()),
-            destination_country: destination_country.to_string(), destination_postal_code: destination_postal_code.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
+            origin_location_id, origin_location_name: origin_location_name.map(std::string::ToString::to_string),
+            origin_city: origin_city.map(std::string::ToString::to_string), origin_state: origin_state.map(std::string::ToString::to_string),
+            origin_country: origin_country.to_string(), origin_postal_code: origin_postal_code.map(std::string::ToString::to_string),
+            destination_location_id, destination_location_name: destination_location_name.map(std::string::ToString::to_string),
+            destination_city: destination_city.map(std::string::ToString::to_string), destination_state: destination_state.map(std::string::ToString::to_string),
+            destination_country: destination_country.to_string(), destination_postal_code: destination_postal_code.map(std::string::ToString::to_string),
             distance_km, estimated_transit_hours,
             lane_type: lane_type.to_string(),
             preferred_carrier_id, preferred_service_id,
@@ -5836,16 +5836,16 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
             id: Uuid::new_v4(),
             organization_id: org_id,
             shipment_number: shipment_number.to_string(),
-            name: name.map(|s| s.to_string()),
-            description: description.map(|s| s.to_string()),
+            name: name.map(std::string::ToString::to_string),
+            description: description.map(std::string::ToString::to_string),
             status: status.to_string(),
             shipment_type: shipment_type.to_string(),
             priority: priority.to_string(),
-            carrier_id, carrier_code: carrier_code.map(|s| s.to_string()), carrier_name: carrier_name.map(|s| s.to_string()),
-            carrier_service_id, carrier_service_code: carrier_service_code.map(|s| s.to_string()),
-            lane_id, lane_code: lane_code.map(|s| s.to_string()),
-            origin_location_id, origin_location_name: origin_location_name.map(|s| s.to_string()), origin_address,
-            destination_location_id, destination_location_name: destination_location_name.map(|s| s.to_string()), destination_address,
+            carrier_id, carrier_code: carrier_code.map(std::string::ToString::to_string), carrier_name: carrier_name.map(std::string::ToString::to_string),
+            carrier_service_id, carrier_service_code: carrier_service_code.map(std::string::ToString::to_string),
+            lane_id, lane_code: lane_code.map(std::string::ToString::to_string),
+            origin_location_id, origin_location_name: origin_location_name.map(std::string::ToString::to_string), origin_address,
+            destination_location_id, destination_location_name: destination_location_name.map(std::string::ToString::to_string), destination_address,
             planned_ship_date, actual_ship_date: None,
             planned_delivery_date, actual_delivery_date: None,
             pickup_window_start, pickup_window_end,
@@ -5853,14 +5853,14 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
             total_weight_kg: 0.0, total_volume_cbm: 0.0, total_pieces: 0,
             freight_cost: 0.0, fuel_surcharge: 0.0, accessorial_charges: 0.0, total_cost: 0.0,
             currency_code: currency_code.to_string(),
-            tracking_number: tracking_number.map(|s| s.to_string()),
+            tracking_number: tracking_number.map(std::string::ToString::to_string),
             tracking_url: None,
-            pro_number: pro_number.map(|s| s.to_string()),
-            bill_of_lading: bill_of_lading.map(|s| s.to_string()),
-            sales_order_id, sales_order_number: sales_order_number.map(|s| s.to_string()),
-            purchase_order_id, purchase_order_number: purchase_order_number.map(|s| s.to_string()),
+            pro_number: pro_number.map(std::string::ToString::to_string),
+            bill_of_lading: bill_of_lading.map(std::string::ToString::to_string),
+            sales_order_id, sales_order_number: sales_order_number.map(std::string::ToString::to_string),
+            purchase_order_id, purchase_order_number: purchase_order_number.map(std::string::ToString::to_string),
             transfer_order_id,
-            special_instructions: special_instructions.map(|s| s.to_string()),
+            special_instructions: special_instructions.map(std::string::ToString::to_string),
             declared_value, insurance_required, signature_required,
             temperature_requirements, hazmat_info,
             driver_name: None, vehicle_id: None,
@@ -5909,13 +5909,13 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
             id: Uuid::new_v4(),
             organization_id: org_id, shipment_id, stop_number,
             stop_type: stop_type.to_string(),
-            location_id, location_name: location_name.map(|s| s.to_string()),
+            location_id, location_name: location_name.map(std::string::ToString::to_string),
             address, planned_arrival, actual_arrival: None,
             planned_departure, actual_departure: None,
             status: "pending".to_string(),
-            contact_name: contact_name.map(|s| s.to_string()),
-            contact_phone: contact_phone.map(|s| s.to_string()),
-            special_instructions: special_instructions.map(|s| s.to_string()),
+            contact_name: contact_name.map(std::string::ToString::to_string),
+            contact_phone: contact_phone.map(std::string::ToString::to_string),
+            special_instructions: special_instructions.map(std::string::ToString::to_string),
             pieces: 0, weight_kg: 0.0, metadata,
             created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
         })
@@ -5943,15 +5943,15 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
         Ok(atlas_shared::TransportShipmentLine {
             id: Uuid::new_v4(),
             organization_id: org_id, shipment_id, line_number,
-            item_id, item_number: item_number.map(|s| s.to_string()),
-            item_description: item_description.map(|s| s.to_string()),
+            item_id, item_number: item_number.map(std::string::ToString::to_string),
+            item_description: item_description.map(std::string::ToString::to_string),
             quantity, quantity_shipped: 0, quantity_received: 0,
             unit_of_measure: unit_of_measure.to_string(),
             weight_kg, volume_cbm,
-            lot_number: lot_number.map(|s| s.to_string()), serial_numbers,
-            source_line_id, source_line_type: source_line_type.map(|s| s.to_string()),
-            stop_id, freight_class: freight_class.map(|s| s.to_string()),
-            nmfc_code: nmfc_code.map(|s| s.to_string()), hazmat_class: hazmat_class.map(|s| s.to_string()),
+            lot_number: lot_number.map(std::string::ToString::to_string), serial_numbers,
+            source_line_id, source_line_type: source_line_type.map(std::string::ToString::to_string),
+            stop_id, freight_class: freight_class.map(std::string::ToString::to_string),
+            nmfc_code: nmfc_code.map(std::string::ToString::to_string), hazmat_class: hazmat_class.map(std::string::ToString::to_string),
             metadata, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
         })
     }
@@ -5979,13 +5979,13 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
             id: Uuid::new_v4(),
             organization_id: org_id, shipment_id,
             event_type: event_type.to_string(), event_timestamp,
-            location_description: location_description.map(|s| s.to_string()),
-            city: city.map(|s| s.to_string()), state: state.map(|s| s.to_string()),
-            country: country.map(|s| s.to_string()),
-            latitude, longitude, description: description.map(|s| s.to_string()),
-            carrier_event_code: carrier_event_code.map(|s| s.to_string()),
-            carrier_event_description: carrier_event_description.map(|s| s.to_string()),
-            updated_by: updated_by.map(|s| s.to_string()),
+            location_description: location_description.map(std::string::ToString::to_string),
+            city: city.map(std::string::ToString::to_string), state: state.map(std::string::ToString::to_string),
+            country: country.map(std::string::ToString::to_string),
+            latitude, longitude, description: description.map(std::string::ToString::to_string),
+            carrier_event_code: carrier_event_code.map(std::string::ToString::to_string),
+            carrier_event_description: carrier_event_description.map(std::string::ToString::to_string),
+            updated_by: updated_by.map(std::string::ToString::to_string),
             metadata, created_at: chrono::Utc::now(),
         })
     }
@@ -6007,13 +6007,13 @@ impl crate::transportation_management::TransportationManagementRepository for Mo
             id: Uuid::new_v4(),
             organization_id: org_id,
             rate_code: rate_code.to_string(), name: name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             carrier_id, carrier_service_id, lane_id,
             rate_type: rate_type.to_string(), rate_amount, minimum_charge,
             currency_code: currency_code.to_string(), fuel_surcharge_pct,
             accessorial_rates, effective_from, effective_to,
             status: status.to_string(), is_contract_rate,
-            contract_number: contract_number.map(|s| s.to_string()),
+            contract_number: contract_number.map(std::string::ToString::to_string),
             volume_threshold_min, volume_threshold_max,
             metadata, created_by,
             created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
@@ -6359,7 +6359,7 @@ impl crate::funds_reservation::FundsReservationRepository for MockFundsReservati
                     return Ok(fr.clone());
                 }
             }
-            Err(AtlasError::EntityNotFound(format!("Reservation {} not found", id)))
+            Err(AtlasError::EntityNotFound(format!("Reservation {id} not found")))
         })
     }
 
@@ -6377,7 +6377,7 @@ impl crate::funds_reservation::FundsReservationRepository for MockFundsReservati
                     return Ok(fr.clone());
                 }
             }
-            Err(AtlasError::EntityNotFound(format!("Reservation {} not found", id)))
+            Err(AtlasError::EntityNotFound(format!("Reservation {id} not found")))
         })
     }
 
@@ -6398,7 +6398,7 @@ impl crate::funds_reservation::FundsReservationRepository for MockFundsReservati
                     return Ok(fr.clone());
                 }
             }
-            Err(AtlasError::EntityNotFound(format!("Reservation {} not found", id)))
+            Err(AtlasError::EntityNotFound(format!("Reservation {id} not found")))
         })
     }
 
@@ -6514,7 +6514,7 @@ impl crate::rebate_management::RebateManagementRepository for MockRebateManageme
     async fn get_agreement_by_number(&self, _org_id: Uuid, _agreement_number: &str) -> AtlasResult<Option<atlas_shared::RebateAgreement>> { Ok(None) }
     async fn list_agreements(&self, _org_id: Uuid, _status: Option<&str>, _rebate_type: Option<&str>, _partner_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::RebateAgreement>> { Ok(vec![]) }
     async fn update_agreement_status(&self, id: Uuid, _status: &str) -> AtlasResult<atlas_shared::RebateAgreement> {
-        Err(AtlasError::EntityNotFound(format!("Agreement {} not found", id)))
+        Err(AtlasError::EntityNotFound(format!("Agreement {id} not found")))
     }
     async fn delete_agreement(&self, _org_id: Uuid, _agreement_number: &str) -> AtlasResult<()> { Ok(()) }
     async fn create_tier(&self, org_id: Uuid, agreement_id: Uuid, tier_number: i32, from_value: f64, to_value: Option<f64>, rebate_rate: f64, rate_type: &str, description: Option<&str>) -> AtlasResult<atlas_shared::RebateTier> {
@@ -6551,7 +6551,7 @@ impl crate::rebate_management::RebateManagementRepository for MockRebateManageme
     async fn get_transaction_by_number(&self, _org_id: Uuid, _transaction_number: &str) -> AtlasResult<Option<atlas_shared::RebateTransaction>> { Ok(None) }
     async fn list_transactions(&self, _agreement_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::RebateTransaction>> { Ok(vec![]) }
     async fn update_transaction_status(&self, id: Uuid, _status: &str, _reason: Option<&str>) -> AtlasResult<atlas_shared::RebateTransaction> {
-        Err(AtlasError::EntityNotFound(format!("Transaction {} not found", id)))
+        Err(AtlasError::EntityNotFound(format!("Transaction {id} not found")))
     }
     async fn delete_transaction(&self, _org_id: Uuid, _transaction_number: &str) -> AtlasResult<()> { Ok(()) }
     async fn create_accrual(
@@ -6578,7 +6578,7 @@ impl crate::rebate_management::RebateManagementRepository for MockRebateManageme
     async fn get_accrual_by_number(&self, _org_id: Uuid, _accrual_number: &str) -> AtlasResult<Option<atlas_shared::RebateAccrual>> { Ok(None) }
     async fn list_accruals(&self, _agreement_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::RebateAccrual>> { Ok(vec![]) }
     async fn update_accrual_status(&self, id: Uuid, _status: &str) -> AtlasResult<atlas_shared::RebateAccrual> {
-        Err(AtlasError::EntityNotFound(format!("Accrual {} not found", id)))
+        Err(AtlasError::EntityNotFound(format!("Accrual {id} not found")))
     }
     async fn delete_accrual(&self, _org_id: Uuid, _accrual_number: &str) -> AtlasResult<()> { Ok(()) }
     async fn create_settlement(
@@ -6610,13 +6610,13 @@ impl crate::rebate_management::RebateManagementRepository for MockRebateManageme
     async fn get_settlement_by_number(&self, _org_id: Uuid, _settlement_number: &str) -> AtlasResult<Option<atlas_shared::RebateSettlement>> { Ok(None) }
     async fn list_settlements(&self, _agreement_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<atlas_shared::RebateSettlement>> { Ok(vec![]) }
     async fn update_settlement_status(&self, id: Uuid, _status: &str) -> AtlasResult<atlas_shared::RebateSettlement> {
-        Err(AtlasError::EntityNotFound(format!("Settlement {} not found", id)))
+        Err(AtlasError::EntityNotFound(format!("Settlement {id} not found")))
     }
     async fn approve_settlement(&self, id: Uuid, _approved_by: Uuid) -> AtlasResult<atlas_shared::RebateSettlement> {
-        Err(AtlasError::EntityNotFound(format!("Settlement {} not found", id)))
+        Err(AtlasError::EntityNotFound(format!("Settlement {id} not found")))
     }
     async fn pay_settlement(&self, id: Uuid) -> AtlasResult<atlas_shared::RebateSettlement> {
-        Err(AtlasError::EntityNotFound(format!("Settlement {} not found", id)))
+        Err(AtlasError::EntityNotFound(format!("Settlement {id} not found")))
     }
     async fn delete_settlement(&self, _org_id: Uuid, _settlement_number: &str) -> AtlasResult<()> { Ok(()) }
     async fn create_settlement_line(&self, settlement_id: Uuid, transaction_id: Uuid, amount: f64) -> AtlasResult<atlas_shared::RebateSettlementLine> {

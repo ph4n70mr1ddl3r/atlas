@@ -141,7 +141,7 @@ impl PaymentEngine {
     pub async fn delete_payment_term(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         self.repository.get_payment_term(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment term '{}' not found", code)
+                format!("Payment term '{code}' not found")
             ))?;
 
         info!("Deleting payment term {} in org {}", code, org_id);
@@ -212,7 +212,7 @@ impl PaymentEngine {
     ) -> AtlasResult<PaymentBatch> {
         let batch = self.repository.get_payment_batch_by_id(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment batch {} not found", batch_id)
+                format!("Payment batch {batch_id} not found")
             ))?;
 
         // Validate transition
@@ -324,7 +324,7 @@ impl PaymentEngine {
     pub async fn issue_payment(&self, payment_id: Uuid) -> AtlasResult<Payment> {
         let payment = self.repository.get_payment(payment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {} not found", payment_id)
+                format!("Payment {payment_id} not found")
             ))?;
 
         if payment.status != "draft" {
@@ -344,7 +344,7 @@ impl PaymentEngine {
     pub async fn clear_payment(&self, payment_id: Uuid, cleared_by: Option<Uuid>) -> AtlasResult<Payment> {
         let payment = self.repository.get_payment(payment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {} not found", payment_id)
+                format!("Payment {payment_id} not found")
             ))?;
 
         if payment.status != "issued" {
@@ -366,7 +366,7 @@ impl PaymentEngine {
     pub async fn void_payment(&self, payment_id: Uuid, voided_by: Uuid, reason: &str) -> AtlasResult<Payment> {
         let payment = self.repository.get_payment(payment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {} not found", payment_id)
+                format!("Payment {payment_id} not found")
             ))?;
 
         if payment.status == "voided" {
@@ -499,6 +499,7 @@ impl PaymentEngine {
 
     /// Calculate early payment discount for a given payment term
     /// Returns the discount amount if paid within the discount period
+    #[must_use] 
     pub fn calculate_early_payment_discount(
         &self,
         term: &PaymentTerm,
@@ -518,8 +519,9 @@ impl PaymentEngine {
     }
 
     /// Calculate the due date for an invoice given a payment term
+    #[must_use] 
     pub fn calculate_due_date(&self, term: &PaymentTerm, invoice_date: chrono::NaiveDate) -> chrono::NaiveDate {
-        invoice_date + chrono::Duration::days(term.due_days as i64)
+        invoice_date + chrono::Duration::days(i64::from(term.due_days))
     }
 
     // ========================================================================
@@ -584,7 +586,7 @@ impl PaymentEngine {
         // Verify payment exists
         let payment = self.repository.get_payment(payment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {} not found", payment_id)
+                format!("Payment {payment_id} not found")
             ))?;
 
         if payment.status == "draft" {
@@ -682,14 +684,14 @@ impl PaymentEngine {
 
         Ok(PaymentDashboardSummary {
             total_pending_payment_count: total_pending_count,
-            total_pending_payment_amount: format!("{:.2}", total_pending_amount),
+            total_pending_payment_amount: format!("{total_pending_amount:.2}"),
             total_paid_payment_count: total_paid_count,
-            total_paid_payment_amount: format!("{:.2}", total_paid_amount),
-            total_discount_taken: format!("{:.2}", total_discount),
+            total_paid_payment_amount: format!("{total_paid_amount:.2}"),
+            total_discount_taken: format!("{total_discount:.2}"),
             payments_by_method,
             payments_by_status,
             upcoming_scheduled_count: upcoming_count,
-            upcoming_scheduled_amount: format!("{:.2}", upcoming_amount),
+            upcoming_scheduled_amount: format!("{upcoming_amount:.2}"),
         })
     }
 }

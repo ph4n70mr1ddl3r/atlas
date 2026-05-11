@@ -144,7 +144,7 @@ impl TreasuryEngine {
         // Validate counterparty exists
         let cp = self.repository.get_counterparty_by_id(counterparty_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Counterparty {} not found", counterparty_id)
+                format!("Counterparty {counterparty_id} not found")
             ))?;
 
         if !cp.is_active {
@@ -170,7 +170,7 @@ impl TreasuryEngine {
         if deal_type == "investment" || deal_type == "borrowing" {
             if interest_rate.is_none() {
                 return Err(AtlasError::ValidationFailed(
-                    format!("Interest rate is required for {} deals", deal_type)
+                    format!("Interest rate is required for {deal_type} deals")
                 ));
             }
             let rate: f64 = interest_rate.unwrap().parse().map_err(|_| AtlasError::ValidationFailed(
@@ -294,7 +294,7 @@ impl TreasuryEngine {
     ) -> AtlasResult<TreasuryDeal> {
         let deal = self.repository.get_deal(deal_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deal {} not found", deal_id)
+                format!("Deal {deal_id} not found")
             ))?;
 
         if deal.status != "draft" {
@@ -307,7 +307,7 @@ impl TreasuryEngine {
         let interest = self.calculate_interest(&deal);
         self.repository.update_deal_interest(
             deal_id,
-            &format!("{:.2}", interest),
+            &format!("{interest:.2}"),
             None,
         ).await?;
 
@@ -332,7 +332,7 @@ impl TreasuryEngine {
 
         let deal = self.repository.get_deal(deal_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deal {} not found", deal_id)
+                format!("Deal {deal_id} not found")
             ))?;
 
         if deal.status != "authorized" {
@@ -351,15 +351,15 @@ impl TreasuryEngine {
         let settlement = self.repository.create_settlement(
             deal.organization_id, deal_id, &settlement_number, settlement_type,
             chrono::Utc::now().date_naive(),
-            &format!("{:.2}", principal),
-            &format!("{:.2}", interest),
-            &format!("{:.2}", total),
+            &format!("{principal:.2}"),
+            &format!("{interest:.2}"),
+            &format!("{total:.2}"),
             payment_reference, settled_by,
         ).await?;
 
         // Update deal
         self.repository.update_deal_interest(
-            deal_id, &format!("{:.2}", interest), Some(&format!("{:.2}", total)),
+            deal_id, &format!("{interest:.2}"), Some(&format!("{total:.2}")),
         ).await?;
 
         self.repository.update_deal_status(
@@ -374,7 +374,7 @@ impl TreasuryEngine {
     pub async fn mature_deal(&self, deal_id: Uuid) -> AtlasResult<TreasuryDeal> {
         let deal = self.repository.get_deal(deal_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deal {} not found", deal_id)
+                format!("Deal {deal_id} not found")
             ))?;
 
         if deal.status != "settled" {
@@ -391,7 +391,7 @@ impl TreasuryEngine {
     pub async fn cancel_deal(&self, deal_id: Uuid) -> AtlasResult<TreasuryDeal> {
         let deal = self.repository.get_deal(deal_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deal {} not found", deal_id)
+                format!("Deal {deal_id} not found")
             ))?;
 
         if deal.status != "draft" {
@@ -418,6 +418,7 @@ impl TreasuryEngine {
     // ========================================================================
 
     /// Calculate accrued interest for a deal based on its interest basis
+    #[must_use] 
     pub fn calculate_interest(&self, deal: &TreasuryDeal) -> f64 {
         let rate: f64 = deal.interest_rate.as_deref()
             .and_then(|r| r.parse().ok())
@@ -434,7 +435,7 @@ impl TreasuryEngine {
             _ => 360.0, // actual_360 is default
         };
 
-        let term_days = deal.term_days as f64;
+        let term_days = f64::from(deal.term_days);
         // Simple interest: principal * rate * (term / basis_days)
         principal * rate * (term_days / basis_days)
     }

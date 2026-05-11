@@ -9,7 +9,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > General Ledger > Average Balances
 
-use super::*;
+use super::{AverageBalanceRepository, AtlasResult, AverageBalanceBook, AtlasError, BookAccount, DailyBalance, AverageBalanceCalculation, AverageBalanceDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -73,7 +73,7 @@ impl AverageBalanceEngine {
 
         // Check for duplicate book code
         if self.repository.get_book_by_code(org_id, book_code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Book code '{}' already exists", book_code)));
+            return Err(AtlasError::Conflict(format!("Book code '{book_code}' already exists")));
         }
 
         // If setting as primary, validate no other primary exists
@@ -122,7 +122,7 @@ impl AverageBalanceEngine {
     /// Activate a book
     pub async fn activate_book(&self, book_id: Uuid) -> AtlasResult<AverageBalanceBook> {
         let book = self.repository.get_book(book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {} not found", book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status == "active" {
             return Err(AtlasError::WorkflowError("Book is already active".into()));
@@ -135,7 +135,7 @@ impl AverageBalanceEngine {
     /// Deactivate a book
     pub async fn deactivate_book(&self, book_id: Uuid) -> AtlasResult<AverageBalanceBook> {
         let book = self.repository.get_book(book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {} not found", book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status == "inactive" {
             return Err(AtlasError::WorkflowError("Book is already inactive".into()));
@@ -148,7 +148,7 @@ impl AverageBalanceEngine {
     /// Delete a book (only if inactive)
     pub async fn delete_book(&self, book_id: Uuid) -> AtlasResult<()> {
         let book = self.repository.get_book(book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {} not found", book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status == "active" {
             return Err(AtlasError::WorkflowError(
@@ -175,7 +175,7 @@ impl AverageBalanceEngine {
         track_negative: bool,
     ) -> AtlasResult<BookAccount> {
         let book = self.repository.get_book(book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {} not found", book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -199,7 +199,7 @@ impl AverageBalanceEngine {
         let existing = self.repository.list_accounts(book_id).await?;
         if existing.iter().any(|a| a.gl_account == gl_account) {
             return Err(AtlasError::Conflict(format!(
-                "GL account '{}' already exists in book", gl_account
+                "GL account '{gl_account}' already exists in book"
             )));
         }
 
@@ -240,7 +240,7 @@ impl AverageBalanceEngine {
     ) -> AtlasResult<DailyBalance> {
         // Validate the book exists and is active
         let book = self.repository.get_book(book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {} not found", book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status != "active" {
             return Err(AtlasError::WorkflowError("Cannot record balances for an inactive book".into()));
@@ -248,7 +248,7 @@ impl AverageBalanceEngine {
 
         // Validate the account exists in this book
         let account = self.repository.get_account(account_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Account {} not found", account_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Account {account_id} not found")))?;
 
         if account.book_id != book_id {
             return Err(AtlasError::ValidationFailed("Account does not belong to this book".into()));
@@ -275,8 +275,7 @@ impl AverageBalanceEngine {
         let diff = (cb - expected_closing).abs();
         if diff > 0.01 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Closing balance ({}) does not equal opening ({}) + debits ({}) - credits ({})",
-                closing_balance, opening_balance, total_debits, total_credits
+                "Closing balance ({closing_balance}) does not equal opening ({opening_balance}) + debits ({total_debits}) - credits ({total_credits})"
             )));
         }
 
@@ -327,10 +326,10 @@ impl AverageBalanceEngine {
 
         // Validate book and account
         let book = self.repository.get_book(book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {} not found", book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         let account = self.repository.get_account(account_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Account {} not found", account_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Account {account_id} not found")))?;
 
         if account.book_id != book_id {
             return Err(AtlasError::ValidationFailed("Account does not belong to this book".into()));
@@ -356,10 +355,10 @@ impl AverageBalanceEngine {
         let sum_balances: f64 = daily_balances.iter()
             .map(|d| d.closing_balance.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let average_balance = sum_balances / actual_days as f64;
+        let average_balance = sum_balances / f64::from(actual_days);
 
         // Weighted average (balance * days weighted by recency)
-        let total_weight: f64 = (1..=actual_days).map(|d| d as f64).sum::<f64>();
+        let total_weight: f64 = (1..=actual_days).map(f64::from).sum::<f64>();
         let weighted_sum: f64 = daily_balances.iter().enumerate()
             .map(|(i, d)| d.closing_balance.parse::<f64>().unwrap_or(0.0) * (i + 1) as f64)
             .sum();
@@ -375,15 +374,14 @@ impl AverageBalanceEngine {
 
         // Period end balance (last entry)
         let period_end_balance: f64 = daily_balances.last()
-            .map(|d| d.closing_balance.parse::<f64>().unwrap_or(0.0))
-            .unwrap_or(0.0);
+            .map_or(0.0, |d| d.closing_balance.parse::<f64>().unwrap_or(0.0));
 
         // Peak and trough
         let balances: Vec<f64> = daily_balances.iter()
             .map(|d| d.closing_balance.parse::<f64>().unwrap_or(0.0))
             .collect();
-        let peak_balance = balances.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-        let trough_balance = balances.iter().cloned().fold(f64::INFINITY, f64::min);
+        let peak_balance = balances.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let trough_balance = balances.iter().copied().fold(f64::INFINITY, f64::min);
 
         // Average-to-date (simple average from start)
         let average_to_date = average_balance; // Simplified; real impl would go back to fiscal year start
@@ -396,14 +394,14 @@ impl AverageBalanceEngine {
             period_start_date,
             period_end_date,
             days_in_period,
-            average_balance: format!("{:.2}", average_balance),
-            weighted_average_balance: format!("{:.2}", weighted_average),
-            period_total_debits: format!("{:.2}", period_total_debits),
-            period_total_credits: format!("{:.2}", period_total_credits),
-            average_to_date: format!("{:.2}", average_to_date),
-            period_end_balance: format!("{:.2}", period_end_balance),
-            peak_balance: format!("{:.2}", peak_balance),
-            trough_balance: format!("{:.2}", trough_balance),
+            average_balance: format!("{average_balance:.2}"),
+            weighted_average_balance: format!("{weighted_average:.2}"),
+            period_total_debits: format!("{period_total_debits:.2}"),
+            period_total_credits: format!("{period_total_credits:.2}"),
+            average_to_date: format!("{average_to_date:.2}"),
+            period_end_balance: format!("{period_end_balance:.2}"),
+            peak_balance: format!("{peak_balance:.2}"),
+            trough_balance: format!("{trough_balance:.2}"),
             calculation_type: calculation_type.to_string(),
             status: "calculated".to_string(),
             calculated_at: Some(chrono::Utc::now()),
@@ -458,7 +456,7 @@ impl AverageBalanceEngine {
     /// Approve a calculated average balance
     pub async fn approve_calculation(&self, calc_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<AverageBalanceCalculation> {
         let calc = self.repository.get_calculation(calc_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calculation {} not found", calc_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calculation {calc_id} not found")))?;
 
         if calc.status != "calculated" {
             return Err(AtlasError::WorkflowError(
@@ -473,7 +471,7 @@ impl AverageBalanceEngine {
     /// Post an approved calculation
     pub async fn post_calculation(&self, calc_id: Uuid) -> AtlasResult<AverageBalanceCalculation> {
         let calc = self.repository.get_calculation(calc_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calculation {} not found", calc_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calculation {calc_id} not found")))?;
 
         if calc.status != "approved" {
             return Err(AtlasError::WorkflowError(

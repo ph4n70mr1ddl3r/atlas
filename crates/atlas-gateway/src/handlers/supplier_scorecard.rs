@@ -27,7 +27,7 @@ pub async fn create_template(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let code = payload.get("code").and_then(|v| v.as_str()).unwrap_or("").to_string();
     let name = payload.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let description = payload.get("description").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let description = payload.get("description").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let evaluation_period = payload.get("evaluation_period").and_then(|v| v.as_str()).unwrap_or("quarterly").to_string();
     let result = state.scorecard_engine.create_template(
         org_id, &code, &name, description.as_deref(), &evaluation_period, None,
@@ -77,11 +77,11 @@ pub async fn create_category(
     let template_id: Uuid = payload.get("template_id").and_then(|v| v.as_str()).unwrap_or("").parse().map_err(|_| StatusCode::BAD_REQUEST)?;
     let code = payload.get("code").and_then(|v| v.as_str()).unwrap_or("").to_string();
     let name = payload.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let description = payload.get("description").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let description = payload.get("description").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let weight = payload.get("weight").and_then(|v| v.as_str()).unwrap_or("0").to_string();
-    let sort_order = payload.get("sort_order").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+    let sort_order = payload.get("sort_order").and_then(serde_json::Value::as_i64).unwrap_or(0) as i32;
     let scoring_model = payload.get("scoring_model").and_then(|v| v.as_str()).unwrap_or("manual").to_string();
-    let target_score = payload.get("target_score").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let target_score = payload.get("target_score").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let result = state.scorecard_engine.create_category(
         org_id, template_id, &code, &name, description.as_deref(),
         &weight, sort_order, &scoring_model, target_score.as_deref(), None,
@@ -119,11 +119,11 @@ pub async fn create_scorecard(
     let template_id: Uuid = payload.get("template_id").and_then(|v| v.as_str()).unwrap_or("").parse().map_err(|_| StatusCode::BAD_REQUEST)?;
     let scorecard_number = payload.get("scorecard_number").and_then(|v| v.as_str()).unwrap_or("").to_string();
     let supplier_id: Uuid = payload.get("supplier_id").and_then(|v| v.as_str()).unwrap_or("").parse().map_err(|_| StatusCode::BAD_REQUEST)?;
-    let supplier_name = payload.get("supplier_name").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let supplier_number = payload.get("supplier_number").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let supplier_name = payload.get("supplier_name").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
+    let supplier_number = payload.get("supplier_number").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let period_start: chrono::NaiveDate = payload.get("evaluation_period_start").and_then(|v| v.as_str()).unwrap_or("2024-01-01").parse().map_err(|_| StatusCode::BAD_REQUEST)?;
     let period_end: chrono::NaiveDate = payload.get("evaluation_period_end").and_then(|v| v.as_str()).unwrap_or("2024-03-31").parse().map_err(|_| StatusCode::BAD_REQUEST)?;
-    let notes = payload.get("notes").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let notes = payload.get("notes").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let result = state.scorecard_engine.create_scorecard(
         org_id, template_id, &scorecard_number, supplier_id,
         supplier_name.as_deref(), supplier_number.as_deref(),
@@ -172,7 +172,7 @@ pub async fn submit_scorecard(
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let reviewer_name = payload.get("reviewer_name").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let reviewer_name = payload.get("reviewer_name").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let result = state.scorecard_engine.submit_scorecard(id, Some(user_id), reviewer_name.as_deref()).await.map_err(|e| match e {
         atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
         atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
@@ -227,13 +227,13 @@ pub async fn add_scorecard_line(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let category_id: Uuid = payload.get("category_id").and_then(|v| v.as_str()).unwrap_or("").parse().map_err(|_| StatusCode::BAD_REQUEST)?;
     let kpi_name = payload.get("kpi_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let kpi_description = payload.get("kpi_description").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let kpi_description = payload.get("kpi_description").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let weight = payload.get("weight").and_then(|v| v.as_str()).unwrap_or("0").to_string();
-    let target_value = payload.get("target_value").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let actual_value = payload.get("actual_value").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let target_value = payload.get("target_value").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
+    let actual_value = payload.get("actual_value").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let score = payload.get("score").and_then(|v| v.as_str()).unwrap_or("0").to_string();
-    let evidence = payload.get("evidence").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let notes = payload.get("notes").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let evidence = payload.get("evidence").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
+    let notes = payload.get("notes").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let result = state.scorecard_engine.add_scorecard_line(
         org_id, scorecard_id, category_id, &kpi_name, kpi_description.as_deref(),
         &weight, target_value.as_deref(), actual_value.as_deref(),
@@ -272,10 +272,10 @@ pub async fn create_review(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let review_number = payload.get("review_number").and_then(|v| v.as_str()).unwrap_or("").to_string();
     let supplier_id: Uuid = payload.get("supplier_id").and_then(|v| v.as_str()).unwrap_or("").parse().map_err(|_| StatusCode::BAD_REQUEST)?;
-    let supplier_name = payload.get("supplier_name").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let supplier_name = payload.get("supplier_name").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let scorecard_id = payload.get("scorecard_id").and_then(|v| v.as_str()).and_then(|s| s.parse::<Uuid>().ok());
     let review_type = payload.get("review_type").and_then(|v| v.as_str()).unwrap_or("periodic").to_string();
-    let review_period = payload.get("review_period").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let review_period = payload.get("review_period").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let period_start: chrono::NaiveDate = payload.get("period_start").and_then(|v| v.as_str()).unwrap_or("2024-01-01").parse().map_err(|_| StatusCode::BAD_REQUEST)?;
     let period_end: chrono::NaiveDate = payload.get("period_end").and_then(|v| v.as_str()).unwrap_or("2024-03-31").parse().map_err(|_| StatusCode::BAD_REQUEST)?;
     let result = state.scorecard_engine.create_review(
@@ -322,12 +322,12 @@ pub async fn complete_review(
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let current_score = payload.get("current_score").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let rating = payload.get("rating").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let strengths = payload.get("strengths").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let improvement_areas = payload.get("improvement_areas").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let action_items = payload.get("action_items").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let reviewer_name = payload.get("reviewer_name").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let current_score = payload.get("current_score").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
+    let rating = payload.get("rating").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
+    let strengths = payload.get("strengths").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
+    let improvement_areas = payload.get("improvement_areas").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
+    let action_items = payload.get("action_items").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
+    let reviewer_name = payload.get("reviewer_name").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let result = state.scorecard_engine.complete_review(
         id, current_score.as_deref(), rating.as_deref(), strengths.as_deref(),
         improvement_areas.as_deref(), action_items.as_deref(),
@@ -361,7 +361,7 @@ pub async fn create_action_item(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let description = payload.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
     let assignee_id = payload.get("assignee_id").and_then(|v| v.as_str()).and_then(|s| s.parse::<Uuid>().ok());
-    let assignee_name = payload.get("assignee_name").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let assignee_name = payload.get("assignee_name").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
     let priority = payload.get("priority").and_then(|v| v.as_str()).unwrap_or("medium").to_string();
     let due_date = payload.get("due_date").and_then(|v| v.as_str()).and_then(|s| s.parse::<chrono::NaiveDate>().ok());
     let result = state.scorecard_engine.create_action_item(

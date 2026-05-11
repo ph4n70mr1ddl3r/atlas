@@ -65,8 +65,8 @@ impl PaymentProcessRequestEngine {
     }
 
     /// Validate lifecycle status transition
-    /// draft → submitted → selection_complete → formatted → confirmed
-    /// draft / submitted / selection_complete / formatted → cancelled
+    /// draft → submitted → `selection_complete` → formatted → confirmed
+    /// draft / submitted / `selection_complete` / formatted → cancelled
     pub fn validate_status_transition(current: &str, target: &str) -> AtlasResult<()> {
         match (current, target) {
             ("draft", "submitted") => Ok(()),
@@ -78,7 +78,7 @@ impl PaymentProcessRequestEngine {
             ("formatted", "confirmed") => Ok(()),
             ("formatted", "cancelled") => Ok(()),
             _ => Err(AtlasError::ValidationFailed(format!(
-                "Invalid status transition from '{}' to '{}'", current, target
+                "Invalid status transition from '{current}' to '{target}'"
             ))),
         }
     }
@@ -157,7 +157,7 @@ impl PaymentProcessRequestEngine {
         // Log creation activity
         self.repo.log_activity(
             org_id, ppr.id, None,
-            "created", Some(&format!("Created PPR {}", request_number)),
+            "created", Some(&format!("Created PPR {request_number}")),
             None, Some("draft"), created_by, None,
             serde_json::json!({"requestName": request_name}),
         ).await.ok();
@@ -278,7 +278,7 @@ impl PaymentProcessRequestEngine {
 
         self.repo.log_activity(
             org_id, id, None,
-            "cancelled", Some(&format!("PPR cancelled{}", reason.map(|r| format!(": {}", r)).unwrap_or_default())),
+            "cancelled", Some(&format!("PPR cancelled{}", reason.map(|r| format!(": {r}")).unwrap_or_default())),
             Some(&old_status), Some("cancelled"), Some(cancelled_by), None,
             serde_json::json!({"reason": reason}),
         ).await.ok();

@@ -1,6 +1,6 @@
 //! Asset Depreciation Repository
 //!
-//! PostgreSQL storage for depreciation history and asset updates.
+//! `PostgreSQL` storage for depreciation history and asset updates.
 
 use atlas_shared::{AssetDepreciationHistory, FixedAsset, AtlasError, AtlasResult};
 use async_trait::async_trait;
@@ -37,13 +37,14 @@ pub trait AssetDepreciationRepository: Send + Sync {
     ) -> AtlasResult<()>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresAssetDepreciationRepository {
     pool: PgPool,
 }
 
 impl PostgresAssetDepreciationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -52,7 +53,7 @@ use sqlx::Row;
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    format!("{v:.2}")
 }
 
 fn row_to_depreciation_history(row: &sqlx::postgres::PgRow) -> AssetDepreciationHistory {
@@ -156,7 +157,7 @@ impl AssetDepreciationRepository for PostgresAssetDepreciationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetDepreciationHistory> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.asset_depreciation_history
                 (organization_id, asset_id, fiscal_year, period_number,
                  period_name, depreciation_date, depreciation_amount,
@@ -165,7 +166,7 @@ impl AssetDepreciationRepository for PostgresAssetDepreciationRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7::double precision,
                     $8::double precision, $9::double precision, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(asset_id).bind(fiscal_year).bind(period_number)
         .bind(period_name).bind(depreciation_date).bind(depreciation_amount)
@@ -199,7 +200,7 @@ impl AssetDepreciationRepository for PostgresAssetDepreciationRepository {
         last_depreciation_date: chrono::NaiveDate,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.fixed_assets
             SET accumulated_depreciation = $2::double precision,
                 net_book_value = $3::double precision,
@@ -208,7 +209,7 @@ impl AssetDepreciationRepository for PostgresAssetDepreciationRepository {
                 last_depreciation_date = $6,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(asset_id).bind(accumulated_depreciation).bind(net_book_value)
         .bind(last_depreciation_amount).bind(periods_depreciated).bind(last_depreciation_date)

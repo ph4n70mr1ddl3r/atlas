@@ -94,7 +94,7 @@ const VALID_RESOLUTION_STATUSES: &[&str] = &[
 
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
-        return Err(AtlasError::ValidationFailed(format!("{} is required", field)));
+        return Err(AtlasError::ValidationFailed(format!("{field} is required")));
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
@@ -147,7 +147,7 @@ impl SupplyChainPlanningEngine {
 
         let scenario_number = format!("SCP-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
         let planning_end_date = planning_start_date.map(|d| {
-            d + chrono::Duration::days(planning_horizon_days as i64)
+            d + chrono::Duration::days(i64::from(planning_horizon_days))
         });
 
         info!("Creating planning scenario {} for org {}", scenario_number, org_id);
@@ -194,7 +194,7 @@ impl SupplyChainPlanningEngine {
     pub async fn run_mrp(&self, scenario_id: Uuid) -> AtlasResult<PlanningScenario> {
         let mut scenario = self.repository.get_scenario(scenario_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planning scenario {} not found", scenario_id)
+                format!("Planning scenario {scenario_id} not found")
             ))?;
 
         if scenario.status != "draft" {
@@ -247,22 +247,17 @@ impl SupplyChainPlanningEngine {
                 scenario.organization_id, *item_id,
             ).await?;
 
-            let lead_time = params.as_ref().map(|p| p.lead_time_days).unwrap_or(0);
+            let lead_time = params.as_ref().map_or(0, |p| p.lead_time_days);
             let safety_stock: f64 = params.as_ref()
-                .map(|p| p.safety_stock_quantity.parse().unwrap_or(0.0))
-                .unwrap_or(0.0);
+                .map_or(0.0, |p| p.safety_stock_quantity.parse().unwrap_or(0.0));
             let min_order: f64 = params.as_ref()
-                .map(|p| p.min_order_quantity.parse().unwrap_or(0.0))
-                .unwrap_or(0.0);
+                .map_or(0.0, |p| p.min_order_quantity.parse().unwrap_or(0.0));
             let order_multiple: f64 = params.as_ref()
-                .map(|p| p.order_multiple.parse().unwrap_or(1.0))
-                .unwrap_or(1.0_f64).max(1.0);
+                .map_or(1.0_f64, |p| p.order_multiple.parse().unwrap_or(1.0)).max(1.0);
             let make_buy = params.as_ref()
-                .map(|p| p.make_buy.as_str())
-                .unwrap_or("buy");
+                .map_or("buy", |p| p.make_buy.as_str());
             let lot_policy = params.as_ref()
-                .map(|p| p.lot_size_policy.as_str())
-                .unwrap_or("lot_for_lot");
+                .map_or("lot_for_lot", |p| p.lot_size_policy.as_str());
 
             let item_name = item_entries.first().and_then(|e| e.item_name.clone());
             let item_number = item_entries.first().and_then(|e| e.item_number.clone());
@@ -296,7 +291,7 @@ impl SupplyChainPlanningEngine {
                         shortage_qty, total_supply, total_demand, safety_stock
                     ),
                     None, None, None,
-                    Some(&format!("{:.2}", shortage_qty)),
+                    Some(&format!("{shortage_qty:.2}")),
                     scenario.planning_start_date,
                 ).await?;
                 total_exceptions += 1;
@@ -318,7 +313,7 @@ impl SupplyChainPlanningEngine {
                         net_position
                     ),
                     None, None, None,
-                    Some(&format!("{:.2}", net_position)),
+                    Some(&format!("{net_position:.2}")),
                     scenario.planning_start_date,
                 ).await?;
                 total_exceptions += 1;
@@ -340,7 +335,7 @@ impl SupplyChainPlanningEngine {
 
                     if order_qty > 0.0 {
                         let due_date = dem.due_date;
-                        let start_date = due_date - chrono::Duration::days(lead_time as i64);
+                        let start_date = due_date - chrono::Duration::days(i64::from(lead_time));
                         let order_number = format!("PO-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
                         let order_type = match make_buy {
                             "make" => "make",
@@ -360,7 +355,7 @@ impl SupplyChainPlanningEngine {
                             &order_number,
                             order_type,
                             "unfirm",
-                            &format!("{:.2}", order_qty),
+                            &format!("{order_qty:.2}"),
                             "0",
                             due_date,
                             Some(start_date),
@@ -398,7 +393,7 @@ impl SupplyChainPlanningEngine {
                             Some(&dem.source_type),
                             dem.source_id,
                             dem.source_number.as_deref(),
-                            Some(&format!("{:.2}", dem_qty)),
+                            Some(&format!("{dem_qty:.2}")),
                             Some(dem.due_date),
                         ).await?;
                         total_exceptions += 1;
@@ -417,7 +412,7 @@ impl SupplyChainPlanningEngine {
                     let order_number = format!("PO-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
                     let due_date = scenario.planning_start_date
                         .unwrap_or_else(|| chrono::Utc::now().date_naive());
-                    let start_date = due_date - chrono::Duration::days(lead_time as i64);
+                    let start_date = due_date - chrono::Duration::days(i64::from(lead_time));
                     let supplier_id = params.as_ref().and_then(|p| p.default_supplier_id);
                     let supplier_name = params.as_ref().and_then(|p| p.default_supplier_name.clone());
 
@@ -430,7 +425,7 @@ impl SupplyChainPlanningEngine {
                         &order_number,
                         match make_buy { "make" => "make", _ => "buy" },
                         "unfirm",
-                        &format!("{:.2}", order_qty),
+                        &format!("{order_qty:.2}"),
                         "0",
                         due_date,
                         Some(start_date),
@@ -491,7 +486,7 @@ impl SupplyChainPlanningEngine {
     pub async fn cancel_scenario(&self, scenario_id: Uuid) -> AtlasResult<PlanningScenario> {
         let scenario = self.repository.get_scenario(scenario_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planning scenario {} not found", scenario_id)
+                format!("Planning scenario {scenario_id} not found")
             ))?;
 
         if scenario.status == "completed" || scenario.status == "cancelled" {
@@ -560,8 +555,8 @@ impl SupplyChainPlanningEngine {
         self.repository.upsert_planning_parameter(
             org_id, item_id, item_name, item_number, planner_code,
             planning_method, make_buy, lead_time_days,
-            &format!("{:.2}", ss),
-            &format!("{:.2}", moq),
+            &format!("{ss:.2}"),
+            &format!("{moq:.2}"),
             max_order_quantity,
             fixed_order_quantity,
             lot_size_policy,
@@ -629,8 +624,8 @@ impl SupplyChainPlanningEngine {
         self.repository.create_supply_demand_entry(
             org_id, scenario_id, item_id, item_name, item_number,
             entry_type, source_type, source_id, source_number,
-            &format!("{:.2}", qty),
-            &format!("{:.2}", qty),
+            &format!("{qty:.2}"),
+            &format!("{qty:.2}"),
             due_date,
             priority.unwrap_or(5),
             "open",
@@ -680,7 +675,7 @@ impl SupplyChainPlanningEngine {
     pub async fn firm_planned_order(&self, order_id: Uuid) -> AtlasResult<PlannedOrder> {
         let order = self.repository.get_planned_order(order_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planned order {} not found", order_id)
+                format!("Planned order {order_id} not found")
             ))?;
 
         if order.status != "unfirm" {
@@ -692,7 +687,7 @@ impl SupplyChainPlanningEngine {
         info!("Firming planned order {}", order.order_number);
         let qty: f64 = order.quantity.parse().unwrap_or(0.0);
         self.repository.update_planned_order_status(
-            order_id, "firmed", Some(&format!("{:.2}", qty)), None,
+            order_id, "firmed", Some(&format!("{qty:.2}")), None,
         ).await
     }
 
@@ -700,7 +695,7 @@ impl SupplyChainPlanningEngine {
     pub async fn cancel_planned_order(&self, order_id: Uuid) -> AtlasResult<PlannedOrder> {
         let order = self.repository.get_planned_order(order_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planned order {} not found", order_id)
+                format!("Planned order {order_id} not found")
             ))?;
 
         if order.status == "released" || order.status == "completed" {
@@ -744,7 +739,7 @@ impl SupplyChainPlanningEngine {
     ) -> AtlasResult<PlanningException> {
         let ex = self.repository.get_exception(exception_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planning exception {} not found", exception_id)
+                format!("Planning exception {exception_id} not found")
             ))?;
 
         if ex.resolution_status == "resolved" {
@@ -773,7 +768,7 @@ impl SupplyChainPlanningEngine {
     ) -> AtlasResult<PlanningException> {
         let ex = self.repository.get_exception(exception_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planning exception {} not found", exception_id)
+                format!("Planning exception {exception_id} not found")
             ))?;
 
         if ex.resolution_status == "resolved" {

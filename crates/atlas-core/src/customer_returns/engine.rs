@@ -167,7 +167,7 @@ impl CustomerReturnsEngine {
         // Look up reason name if code is provided
         let reason_name = if let Some(rc) = reason_code {
             self.repository.get_return_reason(org_id, rc).await?
-                .map(|r| r.name.clone())
+                .map(|r| r.name)
         } else {
             None
         };
@@ -218,7 +218,7 @@ impl CustomerReturnsEngine {
     /// Submit an RMA for approval (draft -> submitted)
     pub async fn submit_rma(&self, id: Uuid) -> AtlasResult<ReturnAuthorization> {
         let rma = self.repository.get_rma(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {id} not found")))?;
 
         if rma.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -241,7 +241,7 @@ impl CustomerReturnsEngine {
     /// Approve an RMA (submitted -> approved)
     pub async fn approve_rma(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<ReturnAuthorization> {
         let rma = self.repository.get_rma(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {id} not found")))?;
 
         if rma.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -256,7 +256,7 @@ impl CustomerReturnsEngine {
     /// Reject an RMA (submitted -> rejected)
     pub async fn reject_rma(&self, id: Uuid, reason: &str) -> AtlasResult<ReturnAuthorization> {
         let rma = self.repository.get_rma(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {id} not found")))?;
 
         if rma.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -277,7 +277,7 @@ impl CustomerReturnsEngine {
     /// Cancel an RMA
     pub async fn cancel_rma(&self, id: Uuid) -> AtlasResult<ReturnAuthorization> {
         let rma = self.repository.get_rma(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {id} not found")))?;
 
         if rma.status == "received" || rma.status == "closed" || rma.status == "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -314,7 +314,7 @@ impl CustomerReturnsEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReturnLine> {
         let rma = self.repository.get_rma(rma_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {} not found", rma_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {rma_id} not found")))?;
 
         if rma.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -388,9 +388,9 @@ impl CustomerReturnsEngine {
 
         self.repository.update_rma_totals(
             rma_id,
-            &format!("{:.2}", total_qty),
-            &format!("{:.2}", total_amt),
-            &format!("{:.2}", total_credit),
+            &format!("{total_qty:.2}"),
+            &format!("{total_amt:.2}"),
+            &format!("{total_credit:.2}"),
         ).await?;
 
         Ok(line)
@@ -408,7 +408,7 @@ impl CustomerReturnsEngine {
         received_quantity: &str,
     ) -> AtlasResult<ReturnLine> {
         let line = self.repository.get_return_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return line {} not found", line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return line {line_id} not found")))?;
 
         let recv_qty: f64 = received_quantity.parse().map_err(|_| AtlasError::ValidationFailed(
             "received_quantity must be a valid number".to_string(),
@@ -457,7 +457,7 @@ impl CustomerReturnsEngine {
         disposition: Option<&str>,
     ) -> AtlasResult<ReturnLine> {
         let line = self.repository.get_return_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return line {} not found", line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return line {line_id} not found")))?;
 
         let recv_qty: f64 = line.received_quantity.parse().unwrap_or(0.0);
         if recv_qty <= 0.0 {
@@ -499,7 +499,7 @@ impl CustomerReturnsEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CreditMemo> {
         let rma = self.repository.get_rma(rma_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {} not found", rma_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {rma_id} not found")))?;
 
         // RMA must be approved or received to generate credit memo
         if rma.status != "approved" && rma.status != "received" && rma.status != "partially_received" {
@@ -534,7 +534,7 @@ impl CustomerReturnsEngine {
             rma.organization_id, &cm_number,
             Some(rma_id), Some(&rma.rma_number),
             rma.customer_id, rma.customer_number.as_deref(), rma.customer_name.as_deref(),
-            &format!("{:.2}", total_credit), &rma.currency_code,
+            &format!("{total_credit:.2}"), &rma.currency_code,
             gl_account_code, None, created_by,
         ).await?;
 
@@ -572,7 +572,7 @@ impl CustomerReturnsEngine {
     /// Issue a credit memo (draft -> issued)
     pub async fn issue_credit_memo(&self, id: Uuid) -> AtlasResult<CreditMemo> {
         let memo = self.repository.get_credit_memo(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Credit memo {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Credit memo {id} not found")))?;
 
         if memo.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -587,7 +587,7 @@ impl CustomerReturnsEngine {
     /// Cancel a credit memo
     pub async fn cancel_credit_memo(&self, id: Uuid) -> AtlasResult<CreditMemo> {
         let memo = self.repository.get_credit_memo(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Credit memo {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Credit memo {id} not found")))?;
 
         if memo.status == "applied" || memo.status == "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -652,8 +652,8 @@ impl CustomerReturnsEngine {
             pending_approval,
             pending_receipt,
             pending_inspection,
-            total_credit_issued_amount: format!("{:.2}", total_credit_issued),
-            total_credit_pending_amount: format!("{:.2}", total_credit_pending),
+            total_credit_issued_amount: format!("{total_credit_issued:.2}"),
+            total_credit_pending_amount: format!("{total_credit_pending:.2}"),
             rmas_by_status: serde_json::Value::Object(by_status),
             rmas_by_reason: serde_json::Value::Object(by_reason),
             rmas_by_disposition: serde_json::json!({}),

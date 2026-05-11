@@ -44,7 +44,7 @@ pub async fn create_segment(
     let code = body["segmentCode"].as_str().unwrap_or("").to_string();
     let name = body["segmentName"].as_str().unwrap_or("").to_string();
     let segment_type = body["segmentType"].as_str().unwrap_or("product").to_string();
-    let description = body["description"].as_str().map(|s| s.to_string());
+    let description = body["description"].as_str().map(std::string::ToString::to_string);
     let parent_id = body["parentSegmentId"].as_str().and_then(|s| s.parse().ok());
     let sort_order = body["sortOrder"].as_i64().map(|v| v as i32);
 
@@ -124,7 +124,7 @@ pub async fn create_run(
         .unwrap_or(chrono::Utc::now().naive_utc().date());
     let currency_code = body["currencyCode"].as_str().unwrap_or("USD").to_string();
     let comparison_run_id = body["comparisonRunId"].as_str().and_then(|s| s.parse().ok());
-    let notes = body["notes"].as_str().map(|s| s.to_string());
+    let notes = body["notes"].as_str().map(std::string::ToString::to_string);
 
     match state.profitability_engine.create_run(
         org_id, &run_number, &run_name, &analysis_type,
@@ -203,9 +203,9 @@ pub async fn add_run_line(
     let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
 
     let segment_id = body["segmentId"].as_str().and_then(|s| s.parse().ok());
-    let segment_code = body["segmentCode"].as_str().map(|s| s.to_string());
-    let segment_name = body["segmentName"].as_str().map(|s| s.to_string());
-    let segment_type = body["segmentType"].as_str().map(|s| s.to_string());
+    let segment_code = body["segmentCode"].as_str().map(std::string::ToString::to_string);
+    let segment_name = body["segmentName"].as_str().map(std::string::ToString::to_string);
+    let segment_type = body["segmentType"].as_str().map(std::string::ToString::to_string);
     let line_number = body["lineNumber"].as_i64().unwrap_or(1) as i32;
     let revenue = body["revenue"].as_f64().unwrap_or(0.0);
     let cogs = body["costOfGoodsSold"].as_f64().unwrap_or(0.0);
@@ -262,7 +262,7 @@ pub async fn create_template(
 
     let code = body["templateCode"].as_str().unwrap_or("").to_string();
     let name = body["templateName"].as_str().unwrap_or("").to_string();
-    let description = body["description"].as_str().map(|s| s.to_string());
+    let description = body["description"].as_str().map(std::string::ToString::to_string);
     let segment_type = body["segmentType"].as_str().unwrap_or("product").to_string();
     let includes_cogs = body["includesCogs"].as_bool();
     let includes_operating = body["includesOperating"].as_bool();

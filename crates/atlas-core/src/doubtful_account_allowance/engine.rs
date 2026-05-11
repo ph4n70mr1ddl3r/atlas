@@ -137,7 +137,7 @@ impl DoubtfulAccountAllowanceEngine {
         // Check for duplicate code
         if let Some(_existing) = self.repository.get_policy_by_code(org_id, policy_code).await? {
             return Err(AtlasError::ValidationFailed(format!(
-                "Policy code '{}' already exists for this organization", policy_code
+                "Policy code '{policy_code}' already exists for this organization"
             )));
         }
 
@@ -158,7 +158,7 @@ impl DoubtfulAccountAllowanceEngine {
         self.repository.create_activity(
             org_id, None, Some(policy.id),
             "created",
-            Some(&format!("Policy '{}' created with {} method", policy_code, calculation_method)),
+            Some(&format!("Policy '{policy_code}' created with {calculation_method} method")),
             created_by, None, Some("active"), None,
         ).await.ok();
 
@@ -293,7 +293,7 @@ impl DoubtfulAccountAllowanceEngine {
         info!(
             "Doubtful Account: Creating aging bucket '{}' ({}-{} days, {}%) for policy {}",
             bucket_name, from_days,
-            to_days.map(|d| d.to_string()).unwrap_or_else(|| "∞".to_string()),
+            to_days.map_or_else(|| "∞".to_string(), |d| d.to_string()),
             pct, policy.policy_code
         );
 
@@ -305,7 +305,7 @@ impl DoubtfulAccountAllowanceEngine {
         self.repository.create_activity(
             org_id, None, Some(policy_id),
             "bucket_added",
-            Some(&format!("Bucket '{}' added ({:.1}%)", bucket_name, pct)),
+            Some(&format!("Bucket '{bucket_name}' added ({pct:.1}%)")),
             None, None, None, None,
         ).await.ok();
 
@@ -338,7 +338,7 @@ impl DoubtfulAccountAllowanceEngine {
 
         // Generate run number
         let next_num = self.repository.get_next_run_number(org_id).await.unwrap_or(1);
-        let run_number = format!("PROV-{:04}", next_num);
+        let run_number = format!("PROV-{next_num:04}");
 
         let today = chrono::Utc::now().date_naive();
 
@@ -357,7 +357,7 @@ impl DoubtfulAccountAllowanceEngine {
         self.repository.create_activity(
             org_id, Some(run.id), Some(policy_id),
             "created",
-            Some(&format!("Provision run '{}' created", run_number)),
+            Some(&format!("Provision run '{run_number}' created")),
             created_by, None, Some("draft"), None,
         ).await.ok();
 
@@ -406,9 +406,9 @@ impl DoubtfulAccountAllowanceEngine {
                         Some(bucket.id), &bucket.bucket_name,
                         bucket.from_days, bucket.to_days,
                         &bucket.provision_percentage,
-                        &format!("{:.2}", simulated_outstanding),
+                        &format!("{simulated_outstanding:.2}"),
                         0, 0,
-                        &format!("{:.2}", bucket_provision),
+                        &format!("{bucket_provision:.2}"),
                     ).await.ok();
 
                     total_outstanding += simulated_outstanding;
@@ -425,10 +425,10 @@ impl DoubtfulAccountAllowanceEngine {
                     run.organization_id, run_id,
                     None, "All Outstanding",
                     0, None,
-                    &format!("{:.4}", flat_pct),
-                    &format!("{:.2}", simulated_outstanding),
+                    &format!("{flat_pct:.4}"),
+                    &format!("{simulated_outstanding:.2}"),
                     0, 0,
-                    &format!("{:.2}", provision),
+                    &format!("{provision:.2}"),
                 ).await.ok();
 
                 total_outstanding = simulated_outstanding;
@@ -459,17 +459,16 @@ impl DoubtfulAccountAllowanceEngine {
 
         let total_prior_provision: f64 = prior_runs
             .first()
-            .map(|r| r.total_provision_amount.parse().unwrap_or(0.0))
-            .unwrap_or(0.0);
+            .map_or(0.0, |r| r.total_provision_amount.parse().unwrap_or(0.0));
 
         let incremental = total_provision - total_prior_provision;
 
         let updated_run = self.repository.update_provision_run_results(
             run_id,
-            &format!("{:.2}", total_outstanding),
-            &format!("{:.2}", total_provision),
-            &format!("{:.2}", total_prior_provision),
-            &format!("{:.2}", incremental),
+            &format!("{total_outstanding:.2}"),
+            &format!("{total_provision:.2}"),
+            &format!("{total_prior_provision:.2}"),
+            &format!("{incremental:.2}"),
             total_customer_count,
             total_transaction_count,
             "calculated",
@@ -479,8 +478,7 @@ impl DoubtfulAccountAllowanceEngine {
             run.organization_id, Some(run_id), Some(run.policy_id),
             "calculated",
             Some(&format!(
-                "Provision calculated: outstanding={:.2}, provision={:.2}, incremental={:.2}",
-                total_outstanding, total_provision, incremental
+                "Provision calculated: outstanding={total_outstanding:.2}, provision={total_provision:.2}, incremental={incremental:.2}"
             )),
             calculated_by, Some("draft"), Some("calculated"), None,
         ).await.ok();

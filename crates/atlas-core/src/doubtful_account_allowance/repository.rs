@@ -121,7 +121,7 @@ pub trait DoubtfulAccountAllowanceRepository: Send + Sync {
     async fn get_next_run_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 }
 
-/// PostgreSQL row types for query_as
+/// `PostgreSQL` row types for `query_as`
 #[derive(Debug, sqlx::FromRow)]
 struct PolicyRow {
     id: Uuid,
@@ -145,7 +145,7 @@ struct PolicyRow {
 
 impl From<PolicyRow> for DoubtfulAccountPolicy {
     fn from(r: PolicyRow) -> Self {
-        DoubtfulAccountPolicy {
+        Self {
             id: r.id,
             organization_id: r.organization_id,
             policy_code: r.policy_code,
@@ -185,7 +185,7 @@ struct BucketRow {
 
 impl From<BucketRow> for AgingBucketDefinition {
     fn from(r: BucketRow) -> Self {
-        AgingBucketDefinition {
+        Self {
             id: r.id,
             organization_id: r.organization_id,
             policy_id: r.policy_id,
@@ -231,7 +231,7 @@ struct RunRow {
 
 impl From<RunRow> for ProvisionRun {
     fn from(r: RunRow) -> Self {
-        ProvisionRun {
+        Self {
             id: r.id,
             organization_id: r.organization_id,
             run_number: r.run_number,
@@ -279,7 +279,7 @@ struct DetailRow {
 
 impl From<DetailRow> for ProvisionRunDetail {
     fn from(r: DetailRow) -> Self {
-        ProvisionRunDetail {
+        Self {
             id: r.id,
             organization_id: r.organization_id,
             run_id: r.run_id,
@@ -314,7 +314,7 @@ struct ActivityRow {
 
 impl From<ActivityRow> for ProvisionRunActivity {
     fn from(r: ActivityRow) -> Self {
-        ProvisionRunActivity {
+        Self {
             id: r.id,
             organization_id: r.organization_id,
             run_id: r.run_id,
@@ -330,13 +330,14 @@ impl From<ActivityRow> for ProvisionRunActivity {
     }
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresDoubtfulAccountAllowanceRepository {
     pool: sqlx::PgPool,
 }
 
 impl PostgresDoubtfulAccountAllowanceRepository {
-    pub fn new(pool: sqlx::PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: sqlx::PgPool) -> Self {
         Self { pool }
     }
 
@@ -363,7 +364,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         created_by: Option<Uuid>,
     ) -> AtlasResult<DoubtfulAccountPolicy> {
         let row: PolicyRow = sqlx::query_as(
-            r#"
+            r"
             INSERT INTO _atlas.doubtful_account_policies
                 (organization_id, policy_code, policy_name, description,
                  calculation_method, flat_percentage,
@@ -371,7 +372,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
                  currency_code, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(policy_code)
@@ -488,13 +489,13 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         display_order: i32,
     ) -> AtlasResult<AgingBucketDefinition> {
         let row: BucketRow = sqlx::query_as(
-            r#"
+            r"
             INSERT INTO _atlas.doubtful_account_aging_buckets
                 (organization_id, policy_id, bucket_name, from_days, to_days,
                  provision_percentage, display_order)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(policy_id)
@@ -536,14 +537,14 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProvisionRun> {
         let row: RunRow = sqlx::query_as(
-            r#"
+            r"
             INSERT INTO _atlas.doubtful_account_provision_runs
                 (organization_id, run_number, policy_id, policy_code,
                  run_date, as_of_date, calculation_method,
                  currency_code, description, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(run_number)
@@ -619,7 +620,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         status: &str,
     ) -> AtlasResult<ProvisionRun> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.doubtful_account_provision_runs
             SET total_outstanding_amount = $2,
                 total_provision_amount = $3,
@@ -630,7 +631,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
                 status = $8,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .bind(total_outstanding_amount.parse::<f64>().unwrap_or(0.0))
@@ -655,7 +656,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         journal_entry_number: Option<&str>,
     ) -> AtlasResult<ProvisionRun> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.doubtful_account_provision_runs
             SET status = $2,
                 posted_by = COALESCE($3, posted_by),
@@ -663,7 +664,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
                 journal_entry_number = COALESCE($4, journal_entry_number),
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .bind(status)
@@ -691,7 +692,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         provision_amount: &str,
     ) -> AtlasResult<ProvisionRunDetail> {
         let row: DetailRow = sqlx::query_as(
-            r#"
+            r"
             INSERT INTO _atlas.doubtful_account_provision_details
                 (organization_id, run_id, bucket_id, bucket_name,
                  from_days, to_days, provision_percentage,
@@ -699,7 +700,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
                  provision_amount)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(run_id)
@@ -744,13 +745,13 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         metadata: Option<serde_json::Value>,
     ) -> AtlasResult<ProvisionRunActivity> {
         let row: ActivityRow = sqlx::query_as(
-            r#"
+            r"
             INSERT INTO _atlas.doubtful_account_provision_activities
                 (organization_id, run_id, policy_id, action,
                  description, performed_by, old_status, new_status, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(run_id)
@@ -829,12 +830,12 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         }
 
         let latest: Option<LatestRow> = sqlx::query_as(
-            r#"
+            r"
             SELECT total_provision_amount, run_date, total_outstanding_amount
             FROM _atlas.doubtful_account_provision_runs
             WHERE organization_id = $1 AND status IN ('calculated', 'posted')
             ORDER BY run_date DESC LIMIT 1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_optional(&self.pool)
@@ -842,9 +843,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let latest_provision = latest
-            .as_ref()
-            .map(|l| l.total_provision_amount.to_string())
-            .unwrap_or_else(|| "0.00".to_string());
+            .as_ref().map_or_else(|| "0.00".to_string(), |l| l.total_provision_amount.to_string());
 
         let latest_run_date = latest
             .as_ref()
@@ -852,9 +851,7 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
             .unwrap_or_default();
 
         let total_outstanding = latest
-            .as_ref()
-            .map(|l| l.total_outstanding_amount.to_string())
-            .unwrap_or_else(|| "0.00".to_string());
+            .as_ref().map_or_else(|| "0.00".to_string(), |l| l.total_outstanding_amount.to_string());
 
         let outstanding_f64: f64 = total_outstanding.parse().unwrap_or(0.0);
         let provision_f64: f64 = latest_provision.parse().unwrap_or(0.0);
@@ -874,17 +871,17 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
             latest_provision_amount: latest_provision,
             latest_run_date: if latest_run_date.is_empty() { None } else { Some(latest_run_date) },
             total_outstanding_ar: total_outstanding,
-            overall_provision_rate: format!("{:.4}", rate),
+            overall_provision_rate: format!("{rate:.4}"),
         })
     }
 
     async fn get_next_run_number(&self, org_id: Uuid) -> AtlasResult<i32> {
         let max: Option<i64> = sqlx::query_scalar(
-            r#"
+            r"
             SELECT COUNT(*)
             FROM _atlas.doubtful_account_provision_runs
             WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)

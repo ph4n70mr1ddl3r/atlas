@@ -1,6 +1,6 @@
 //! Letter of Credit Repository
 //!
-//! PostgreSQL storage for letters of credit, amendments, required documents,
+//! `PostgreSQL` storage for letters of credit, amendments, required documents,
 //! shipments, presentations, and presentation documents.
 
 use atlas_shared::{
@@ -60,13 +60,14 @@ pub trait LetterOfCreditRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<LcDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresLetterOfCreditRepository {
     pool: PgPool,
 }
 
 impl PostgresLetterOfCreditRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -243,7 +244,7 @@ impl PostgresLetterOfCreditRepository {
 #[async_trait]
 impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
     async fn create_lc(&self, lc: &LetterOfCredit) -> AtlasResult<LetterOfCredit> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             INSERT INTO _atlas.letters_of_credit (
                 id, organization_id, lc_number, lc_type, lc_form, description,
                 applicant_name, applicant_address, applicant_bank_name, applicant_bank_swift,
@@ -265,7 +266,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
                 $31,$32,$33,$34,$35,$36,$37,$38,$39,$40,
                 $41,$42,$43
             ) RETURNING *
-        "#)
+        ")
             .bind(lc.id)
             .bind(lc.org_id)
             .bind(&lc.lc_number)
@@ -426,7 +427,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
 
     // Amendments
     async fn create_amendment(&self, amendment: &LcAmendment) -> AtlasResult<LcAmendment> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             INSERT INTO _atlas.lc_amendments (
                 id, organization_id, lc_id, lc_number, amendment_number, amendment_type,
                 previous_amount, new_amount, previous_expiry_date, new_expiry_date,
@@ -434,7 +435,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
                 status, effective_date, created_by
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
             RETURNING *
-        "#)
+        ")
             .bind(amendment.id)
             .bind(amendment.org_id)
             .bind(amendment.lc_id)
@@ -498,13 +499,13 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
 
     // Required Documents
     async fn create_required_document(&self, doc: &LcRequiredDocument) -> AtlasResult<LcRequiredDocument> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             INSERT INTO _atlas.lc_required_documents (
                 id, organization_id, lc_id, document_type, document_code,
                 description, original_copies, copy_count, is_mandatory, special_instructions
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
             RETURNING *
-        "#)
+        ")
             .bind(doc.id)
             .bind(doc.org_id)
             .bind(doc.lc_id)
@@ -541,7 +542,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
 
     // Shipments
     async fn create_shipment(&self, shipment: &LcShipment) -> AtlasResult<LcShipment> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             INSERT INTO _atlas.lc_shipments (
                 id, organization_id, lc_id, shipment_number,
                 vessel_name, voyage_number, bill_of_lading_number, carrier_name,
@@ -552,7 +553,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
                 status, notes
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
             RETURNING *
-        "#)
+        ")
             .bind(shipment.id)
             .bind(shipment.org_id)
             .bind(shipment.lc_id)
@@ -610,7 +611,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
 
     // Presentations
     async fn create_presentation(&self, presentation: &LcPresentation) -> AtlasResult<LcPresentation> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             INSERT INTO _atlas.lc_presentations (
                 id, organization_id, lc_id, presentation_number, shipment_id,
                 presentation_date, presenting_bank_name,
@@ -620,7 +621,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
                 status, notes, created_by
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
             RETURNING *
-        "#)
+        ")
             .bind(presentation.id)
             .bind(presentation.org_id)
             .bind(presentation.lc_id)
@@ -685,14 +686,14 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
 
     // Presentation Documents
     async fn create_presentation_document(&self, doc: &LcPresentationDocument) -> AtlasResult<LcPresentationDocument> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             INSERT INTO _atlas.lc_presentation_documents (
                 id, organization_id, presentation_id, required_document_id,
                 document_type, document_reference, description,
                 original_copies, copy_count, is_compliant, discrepancies
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
             RETURNING *
-        "#)
+        ")
             .bind(doc.id)
             .bind(doc.org_id)
             .bind(doc.presentation_id)
@@ -744,8 +745,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
             .bind(org_id)
             .fetch_one(&self.pool)
             .await
-            .map(|r| r.get("cnt"))
-            .unwrap_or(0);
+            .map_or(0, |r| r.get("cnt"));
 
         let discrepant_presentations: i64 = sqlx::query(
             "SELECT COUNT(*) as cnt FROM _atlas.lc_presentations p JOIN _atlas.letters_of_credit lc ON p.lc_id = lc.id WHERE lc.organization_id = $1 AND p.discrepant = true"
@@ -753,8 +753,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
             .bind(org_id)
             .fetch_one(&self.pool)
             .await
-            .map(|r| r.get("cnt"))
-            .unwrap_or(0);
+            .map_or(0, |r| r.get("cnt"));
 
         let today = chrono::Utc::now().date_naive();
         let in_30 = today + chrono::Duration::days(30);
@@ -766,8 +765,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
             .bind(org_id).bind(in_30)
             .fetch_one(&self.pool)
             .await
-            .map(|r| r.get("cnt"))
-            .unwrap_or(0);
+            .map_or(0, |r| r.get("cnt"));
 
         let expiring_90: i64 = sqlx::query(
             "SELECT COUNT(*) as cnt FROM _atlas.letters_of_credit WHERE organization_id = $1 AND expiry_date <= $2 AND status NOT IN ('draft', 'cancelled', 'expired')"
@@ -775,8 +773,7 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
             .bind(org_id).bind(in_90)
             .fetch_one(&self.pool)
             .await
-            .map(|r| r.get("cnt"))
-            .unwrap_or(0);
+            .map_or(0, |r| r.get("cnt"));
 
         // by_type / by_currency / by_status
         let all_rows = sqlx::query("SELECT * FROM _atlas.letters_of_credit WHERE organization_id = $1")

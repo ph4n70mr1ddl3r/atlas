@@ -127,11 +127,12 @@ pub trait CipCapitalizationRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CipCapitalizationDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresCipCapitalizationRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresCipCapitalizationRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresCipCapitalizationRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl CipCapitalizationRepository for PostgresCipCapitalizationRepository {
@@ -241,7 +242,7 @@ impl CipCapitalizationEngine {
     pub async fn list(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CipCapitalization>> {
         if let Some(s) = status {
             if !VALID_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'")));
             }
         }
         self.repository.list(org_id, status).await
@@ -259,7 +260,7 @@ impl CipCapitalizationEngine {
         cost_amount: &str,
     ) -> AtlasResult<CipCostLine> {
         let cap = self.repository.get(capitalization_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {} not found", capitalization_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {capitalization_id} not found")))?;
         if cap.status != "draft" {
             return Err(AtlasError::WorkflowError(format!("Cannot add cost lines to '{}' capitalization", cap.status)));
         }
@@ -286,7 +287,7 @@ impl CipCapitalizationEngine {
     /// Submit for approval
     pub async fn submit(&self, id: Uuid) -> AtlasResult<CipCapitalization> {
         let cap = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {id} not found")))?;
         if cap.status != "draft" {
             return Err(AtlasError::WorkflowError(format!("Cannot submit from '{}' status", cap.status)));
         }
@@ -297,7 +298,7 @@ impl CipCapitalizationEngine {
     /// Approve capitalization
     pub async fn approve(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<CipCapitalization> {
         let cap = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {id} not found")))?;
         if cap.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!("Cannot approve from '{}' status", cap.status)));
         }
@@ -308,7 +309,7 @@ impl CipCapitalizationEngine {
     /// Capitalize - finalize the process, creating the fixed asset
     pub async fn capitalize(&self, id: Uuid, capitalized_asset_number: &str, gl_batch_id: Option<Uuid>) -> AtlasResult<CipCapitalization> {
         let cap = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {id} not found")))?;
         if cap.status != "approved" {
             return Err(AtlasError::WorkflowError(format!("Cannot capitalize from '{}' status", cap.status)));
         }
@@ -323,14 +324,14 @@ impl CipCapitalizationEngine {
             let _ = self.repository.mark_posted(id, batch_id).await?;
         }
         let cap = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {id} not found")))?;
         Ok(cap)
     }
 
     /// Reverse a capitalized asset back to CIP
     pub async fn reverse(&self, id: Uuid) -> AtlasResult<CipCapitalization> {
         let cap = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {id} not found")))?;
         if cap.status != "capitalized" {
             return Err(AtlasError::WorkflowError(format!("Cannot reverse from '{}' status", cap.status)));
         }
@@ -341,7 +342,7 @@ impl CipCapitalizationEngine {
     /// Cancel a draft/submitted capitalization
     pub async fn cancel(&self, id: Uuid) -> AtlasResult<CipCapitalization> {
         let cap = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Capitalization {id} not found")))?;
         if cap.status != "draft" && cap.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!("Cannot cancel from '{}' status", cap.status)));
         }

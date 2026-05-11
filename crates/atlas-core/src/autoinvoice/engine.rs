@@ -1,10 +1,10 @@
-//! AutoInvoice Engine Implementation
+//! `AutoInvoice` Engine Implementation
 //!
-//! Oracle Fusion Cloud Receivables AutoInvoice.
+//! Oracle Fusion Cloud Receivables `AutoInvoice`.
 //! Automatically creates AR invoices from imported transaction data
 //! with configurable validation rules, grouping rules, and line ordering.
 //!
-//! The process follows Oracle Fusion's AutoInvoice pipeline:
+//! The process follows Oracle Fusion's `AutoInvoice` pipeline:
 //! 1. Import lines into interface tables
 //! 2. Validate each line against validation rules
 //! 3. Group valid lines into invoices using grouping rules
@@ -24,7 +24,7 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
-/// Valid transaction types for AutoInvoice
+/// Valid transaction types for `AutoInvoice`
 #[allow(dead_code)]
 const VALID_TRANSACTION_TYPES: &[&str] = &[
     "invoice", "credit_memo", "debit_memo", "on_account_credit",
@@ -42,12 +42,12 @@ const VALID_BATCH_STATUSES: &[&str] = &[
     "pending", "validating", "validated", "processing", "completed", "failed", "cancelled",
 ];
 
-/// Required fields for any AutoInvoice line
+/// Required fields for any `AutoInvoice` line
 const REQUIRED_LINE_FIELDS: &[&str] = &[
     "transaction_type", "currency_code", "transaction_date", "gl_date",
 ];
 
-/// AutoInvoice engine for processing AR invoice creation
+/// `AutoInvoice` engine for processing AR invoice creation
 pub struct AutoInvoiceEngine {
     repository: Arc<dyn AutoInvoiceRepository>,
 }
@@ -86,7 +86,7 @@ impl AutoInvoiceEngine {
         // Check uniqueness
         if self.repository.get_grouping_rule_by_name(org_id, name).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Grouping rule '{}' already exists", name
+                "Grouping rule '{name}' already exists"
             )));
         }
 
@@ -185,7 +185,7 @@ impl AutoInvoiceEngine {
     // Batch Import
     // ========================================================================
 
-    /// Import transaction lines as a new AutoInvoice batch
+    /// Import transaction lines as a new `AutoInvoice` batch
     /// This creates a batch and inserts all lines in pending status
     pub async fn import_batch(
         &self,
@@ -201,7 +201,7 @@ impl AutoInvoiceEngine {
         let grouping_rule_id = if let Some(rule_id) = request.grouping_rule_id {
             let rule = self.repository.get_grouping_rule(rule_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Grouping rule {} not found", rule_id)
+                    format!("Grouping rule {rule_id} not found")
                 ))?;
             Some(rule.id)
         } else {
@@ -307,7 +307,7 @@ impl AutoInvoiceEngine {
     pub async fn validate_batch(&self, batch_id: Uuid) -> AtlasResult<AutoInvoiceBatch> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Batch {} not found", batch_id)
+                format!("Batch {batch_id} not found")
             ))?;
 
         if batch.status != "pending" {
@@ -341,7 +341,7 @@ impl AutoInvoiceEngine {
                         line_number: line.line_number,
                         field_name: field.to_string(),
                         validation_rule: "built_in_required".to_string(),
-                        error_message: format!("Field '{}' is required", field),
+                        error_message: format!("Field '{field}' is required"),
                         is_fatal: true,
                     });
                 }
@@ -381,8 +381,7 @@ impl AutoInvoiceEngine {
 
                 // Check if rule applies to this transaction type
                 let applies = rule.transaction_types.as_array()
-                    .map(|arr| arr.iter().any(|v| v.as_str() == Some(&line.transaction_type)))
-                    .unwrap_or(true);
+                    .is_none_or(|arr| arr.iter().any(|v| v.as_str() == Some(&line.transaction_type)));
 
                 if !applies {
                     continue;
@@ -460,7 +459,7 @@ impl AutoInvoiceEngine {
     pub async fn process_batch(&self, batch_id: Uuid) -> AtlasResult<AutoInvoiceBatch> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Batch {} not found", batch_id)
+                format!("Batch {batch_id} not found")
             ))?;
 
         if batch.status != "validated" {
@@ -573,9 +572,9 @@ impl AutoInvoiceEngine {
             // Update result totals
             self.repository.update_result_totals(
                 result.id,
-                &format!("{:.2}", subtotal),
-                &format!("{:.2}", tax_total),
-                &format!("{:.2}", total),
+                &format!("{subtotal:.2}"),
+                &format!("{tax_total:.2}"),
+                &format!("{total:.2}"),
                 group_lines.len() as i32,
             ).await?;
 
@@ -589,7 +588,7 @@ impl AutoInvoiceEngine {
             batch.valid_lines,
             batch.invalid_lines,
             invoices_created,
-            &format!("{:.2}", total_invoice_amount),
+            &format!("{total_invoice_amount:.2}"),
             batch.validation_errors.clone(),
         ).await?;
 
@@ -655,13 +654,12 @@ impl AutoInvoiceEngine {
 
         let invoice = self.repository.get_result(invoice_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {} not found", invoice_id)
+                format!("Invoice {invoice_id} not found")
             ))?;
 
         // Status transition validation
         match (invoice.status.as_str(), status) {
-            ("draft", "complete") | ("draft", "cancelled") |
-            ("complete", "posted") | ("complete", "cancelled") => {},
+            ("draft", "complete" | "cancelled") | ("complete", "posted" | "cancelled") => {},
             _ => {
                 return Err(AtlasError::WorkflowError(format!(
                     "Cannot transition invoice from '{}' to '{}'", invoice.status, status
@@ -673,7 +671,7 @@ impl AutoInvoiceEngine {
         self.repository.update_result_status(invoice_id, status).await
     }
 
-    /// Get AutoInvoice summary for dashboard
+    /// Get `AutoInvoice` summary for dashboard
     pub async fn get_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::AutoInvoiceSummary> {
         self.repository.get_summary(org_id).await
     }
@@ -778,18 +776,16 @@ impl AutoInvoiceEngine {
     ) -> Vec<(String, Vec<&'a AutoInvoiceLine>)> {
         // Default grouping fields if no rule specified
         let group_fields: Vec<String> = rule
-            .and_then(|r| r.group_by_fields.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
-            .unwrap_or_else(|| {
+            .and_then(|r| r.group_by_fields.as_array()).map_or_else(|| {
                 vec![
                     "bill_to_customer_id".to_string(),
                     "currency_code".to_string(),
                     "transaction_type".to_string(),
                 ]
+            }, |arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
             });
 
         // Group by the specified fields

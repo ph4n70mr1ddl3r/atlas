@@ -60,13 +60,14 @@ pub trait FinancialStatementRepository: Send + Sync {
     async fn list_statements(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialStatement>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresFinancialStatementRepository {
     pool: PgPool,
 }
 
 impl PostgresFinancialStatementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -109,7 +110,7 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
         is_system: bool, created_by: Option<Uuid>,
     ) -> AtlasResult<FinancialStatementDefinition> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.financial_report_definitions
                 (organization_id, code, name, description, report_type,
                  currency_code, include_comparative, comparative_period_count,
@@ -117,7 +118,7 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
                  period_name, fiscal_year, is_system, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(report_type)
         .bind(currency_code).bind(include_comparative).bind(comparative_period_count)
@@ -152,13 +153,13 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
 
     async fn list_definitions(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialStatementDefinition>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.financial_report_definitions
             WHERE organization_id = $1
               AND ($2::text IS NULL OR report_type = $2)
               AND is_active = true
             ORDER BY report_type, code
-            "#,
+            ",
         )
         .bind(org_id).bind(report_type)
         .fetch_all(&self.pool)
@@ -174,7 +175,7 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
         _period_name: Option<&str>,
     ) -> AtlasResult<Vec<AccountBalance>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT
                 a.account_code,
                 a.account_name,
@@ -188,7 +189,7 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
             GROUP BY a.account_code, a.account_name, a.account_type, a.subtype
             HAVING COALESCE(SUM(jl.accounted_dr), 0) - COALESCE(SUM(jl.accounted_cr), 0) <> 0
             ORDER BY a.account_code
-            "#,
+            ",
         )
         .bind(org_id).bind(as_of_date)
         .fetch_all(&self.pool)
@@ -206,13 +207,13 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
 
     async fn save_statement(&self, stmt: &FinancialStatement) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.financial_statements
                 (id, organization_id, definition_id, report_name, report_type,
                  as_of_date, period_name, fiscal_year, currency_code,
                  lines, totals, is_balanced, generated_at, generated_by, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            "#,
+            ",
         )
         .bind(stmt.id).bind(stmt.organization_id).bind(stmt.definition_id)
         .bind(&stmt.report_name).bind(&stmt.report_type)
@@ -258,12 +259,12 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
 
     async fn list_statements(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialStatement>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.financial_statements
             WHERE organization_id = $1
               AND ($2::text IS NULL OR report_type = $2)
             ORDER BY generated_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(report_type)
         .fetch_all(&self.pool)

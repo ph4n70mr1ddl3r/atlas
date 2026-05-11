@@ -1,6 +1,6 @@
 //! Warehouse Management Repository
 //!
-//! PostgreSQL storage for warehouse management data.
+//! `PostgreSQL` storage for warehouse management data.
 
 use atlas_shared::{
     Warehouse, WarehouseZone, PutAwayRule, WarehouseTask, PickWave, WarehouseDashboard,
@@ -115,13 +115,14 @@ pub trait WarehouseManagementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<WarehouseDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresWarehouseManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresWarehouseManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -140,11 +141,11 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Warehouse> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.warehouses (organization_id, code, name, description, location_code, created_by)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(code)
@@ -156,7 +157,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         .await
         .map_err(|e| {
             if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
-                AtlasError::Conflict(format!("Warehouse code '{}' already exists", code))
+                AtlasError::Conflict(format!("Warehouse code '{code}' already exists"))
             } else {
                 AtlasError::DatabaseError(e.to_string())
             }
@@ -211,7 +212,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {id}")));
         }
         Ok(())
     }
@@ -229,11 +230,11 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         aisle_count: Option<i32>,
     ) -> AtlasResult<WarehouseZone> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.warehouse_zones (organization_id, warehouse_id, code, name, zone_type, description, aisle_count)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(warehouse_id)
@@ -246,7 +247,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         .await
         .map_err(|e| {
             if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
-                AtlasError::Conflict(format!("Zone code '{}' already exists in this warehouse", code))
+                AtlasError::Conflict(format!("Zone code '{code}' already exists in this warehouse"))
             } else {
                 AtlasError::DatabaseError(e.to_string())
             }
@@ -285,7 +286,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Zone {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Zone {id}")));
         }
         Ok(())
     }
@@ -304,11 +305,11 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         strategy: &str,
     ) -> AtlasResult<PutAwayRule> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.put_away_rules (organization_id, warehouse_id, rule_name, description, priority, item_category, target_zone_type, strategy)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(warehouse_id)
@@ -355,7 +356,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Put-away rule {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Put-away rule {id}")));
         }
         Ok(())
     }
@@ -385,7 +386,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WarehouseTask> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.warehouse_tasks
                 (organization_id, warehouse_id, task_number, task_type, priority,
                  item_id, item_description, from_zone_id, to_zone_id,
@@ -394,7 +395,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
                  wave_id, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(warehouse_id)
@@ -418,7 +419,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         .await
         .map_err(|e| {
             if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
-                AtlasError::Conflict(format!("Task number '{}' already exists", task_number))
+                AtlasError::Conflict(format!("Task number '{task_number}' already exists"))
             } else {
                 AtlasError::DatabaseError(e.to_string())
             }
@@ -498,14 +499,14 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         };
 
         let result = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.warehouse_tasks
             SET status = $2, assigned_to = COALESCE($3, assigned_to),
                 started_at = COALESCE($4, started_at),
                 completed_at = COALESCE($5, completed_at),
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .bind(status)
@@ -517,7 +518,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Task {id}")));
         }
 
         // If task completed and part of a wave, update wave completed count
@@ -546,7 +547,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Task {id}")));
         }
         Ok(())
     }
@@ -564,11 +565,11 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PickWave> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pick_waves (organization_id, warehouse_id, wave_number, priority, cut_off_date, shipping_method, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(warehouse_id)
@@ -581,7 +582,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         .await
         .map_err(|e| {
             if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
-                AtlasError::Conflict(format!("Wave number '{}' already exists", wave_number))
+                AtlasError::Conflict(format!("Wave number '{wave_number}' already exists"))
             } else {
                 AtlasError::DatabaseError(e.to_string())
             }
@@ -639,12 +640,12 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         };
 
         let result = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.pick_waves
             SET status = $2, released_at = COALESCE($3, released_at),
                 completed_at = COALESCE($4, completed_at), updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .bind(status)
@@ -655,7 +656,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Wave {id}")));
         }
         Ok(())
     }
@@ -682,7 +683,7 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Wave {id}")));
         }
         Ok(())
     }
@@ -780,13 +781,13 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
 
         // Wave completion percentage
         let wave_completion_pct: String = sqlx::query_scalar(
-            r#"
+            r"
             SELECT COALESCE(
                 (SUM(completed_tasks)::decimal / NULLIF(SUM(total_tasks), 0)::decimal * 100)::text,
                 '0.0'
             )
             FROM _atlas.pick_waves WHERE organization_id = $1 AND status IN ('released', 'in_progress', 'completed')
-            "#
+            "
         )
         .bind(org_id)
         .fetch_one(&self.pool)

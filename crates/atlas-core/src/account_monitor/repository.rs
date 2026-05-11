@@ -1,6 +1,6 @@
 //! Account Monitor Repository
 //!
-//! PostgreSQL storage for account groups, members, balance snapshots,
+//! `PostgreSQL` storage for account groups, members, balance snapshots,
 //! and saved balance inquiries.
 
 use atlas_shared::{
@@ -115,13 +115,14 @@ pub trait AccountMonitorRepository: Send + Sync {
     async fn get_monitor_summary(&self, org_id: Uuid) -> AtlasResult<AccountMonitorSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresAccountMonitorRepository {
     pool: PgPool,
 }
 
 impl PostgresAccountMonitorRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -209,12 +210,12 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountGroup> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.account_groups
+            r"INSERT INTO _atlas.account_groups
                 (organization_id, code, name, description, owner_id, is_shared,
                  threshold_warning_pct, threshold_critical_pct, comparison_type,
                  status, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::NUMERIC, $8::NUMERIC, $9, 'active', '{}'::jsonb, $10)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(owner_id).bind(is_shared)
@@ -306,7 +307,7 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
         .bind(org_id).bind(code)
         .execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Account group '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Account group '{code}' not found")));
         }
         Ok(())
     }
@@ -320,10 +321,10 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
         include_children: bool,
     ) -> AtlasResult<AccountGroupMember> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.account_group_members
+            r"INSERT INTO _atlas.account_group_members
                 (group_id, account_segment, account_label, display_order, include_children, metadata)
             VALUES ($1, $2, $3, $4, $5, '{}'::jsonb)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(group_id).bind(account_segment).bind(account_label)
         .bind(display_order).bind(include_children)
@@ -374,7 +375,7 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
         alert_status: &str,
     ) -> AtlasResult<BalanceSnapshot> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.balance_snapshots
+            r"INSERT INTO _atlas.balance_snapshots
                 (organization_id, account_group_id, member_id, account_segment,
                  period_name, period_start, period_end, fiscal_year, period_number,
                  beginning_balance, total_debits, total_credits, net_activity,
@@ -386,7 +387,7 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
                     $14::NUMERIC, $15,
                     $16::NUMERIC, $17,
                     $18::NUMERIC, $19::NUMERIC, $20)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(group_id).bind(member_id).bind(account_segment)
         .bind(period_name).bind(period_start).bind(period_end)
@@ -460,13 +461,13 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
         is_shared: bool,
     ) -> AtlasResult<SavedBalanceInquiry> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.saved_balance_inquiries
+            r"INSERT INTO _atlas.saved_balance_inquiries
                 (organization_id, user_id, name, description, account_segments,
                  period_from, period_to, currency_code, amount_type,
                  include_zero_balances, comparison_enabled, comparison_type,
                  sort_by, sort_direction, is_shared, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, '{}'::jsonb)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(user_id).bind(name).bind(description)
         .bind(&account_segments).bind(period_from).bind(period_to)

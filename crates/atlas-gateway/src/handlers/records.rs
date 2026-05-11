@@ -27,6 +27,7 @@ fn identifier_regex() -> &'static regex::Regex {
 
 /// Validates that an identifier is safe to use in SQL
 /// Only allows lowercase alphanumeric and underscores
+#[must_use] 
 pub fn is_valid_identifier(identifier: &str) -> bool {
     identifier_regex().is_match(identifier)
 }
@@ -103,7 +104,8 @@ pub fn to_json_or_null<T: serde::Serialize>(val: T) -> serde_json::Value {
 }
 
 /// Convert a JSON value into an `Option<String>` suitable for binding as
-/// `::text` in a parameterised PostgreSQL query.
+/// `::text` in a parameterised `PostgreSQL` query.
+#[must_use] 
 pub fn json_to_text(value: &serde_json::Value) -> Option<String> {
     match value {
         serde_json::Value::Null => None,
@@ -154,7 +156,7 @@ pub async fn list_records(
         Some(search) if !search.is_empty() => {
             // Escape ILIKE special characters in user input
             let escaped = search.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
-            let pattern = format!("%{}%", escaped);
+            let pattern = format!("%{escaped}%");
             let fields: Vec<String> = entity_def.fields.iter()
                 .filter(|f| f.is_searchable && matches!(
                     f.field_type,
@@ -187,8 +189,8 @@ pub async fn list_records(
         };
         let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         (
-            format!(" WHERE {} AND organization_id = $3", soft_delete),
-            format!(" WHERE {} AND organization_id = $1", soft_delete),
+            format!(" WHERE {soft_delete} AND organization_id = $3"),
+            format!(" WHERE {soft_delete} AND organization_id = $1"),
             org_id,
         )
     };
@@ -197,8 +199,7 @@ pub async fn list_records(
     let order_clause = build_order_clause(&params.sort, &params.order);
     
     let sql = format!(
-        "SELECT * FROM \"{}\"{}{}{} LIMIT $1 OFFSET $2",
-        table_name, base_filter_main, search_clause, order_clause
+        "SELECT * FROM \"{table_name}\"{base_filter_main}{search_clause}{order_clause} LIMIT $1 OFFSET $2"
     );
     
     let rows = if search_pattern.is_empty() {
@@ -227,8 +228,7 @@ pub async fn list_records(
     // Get total count for pagination
     // Count query: $1=org_id, $2=search_pattern (or just $1=org_id if no search)
     let count_sql = format!(
-        "SELECT COUNT(*) FROM \"{}\"{}{}",
-        table_name, base_filter_count, search_clause_count
+        "SELECT COUNT(*) FROM \"{table_name}\"{base_filter_count}{search_clause_count}"
     );
     let total: i64 = if search_pattern.is_empty() {
         sqlx::query_scalar(&count_sql)
@@ -268,8 +268,8 @@ fn build_order_clause(sort: &Option<String>, order: &Option<String>) -> String {
                 return "ORDER BY created_at DESC".to_string();
             }
             let dir = match order.as_deref() {
-                Some("asc") | Some("ASC") => "ASC",
-                Some("desc") | Some("DESC") => "DESC",
+                Some("asc" | "ASC") => "ASC",
+                Some("desc" | "DESC") => "DESC",
                 _ => "DESC",
             };
             format!("ORDER BY \"{}\" {}", field.to_lowercase(), dir)
@@ -386,14 +386,14 @@ pub async fn create_record(
     // organization_id is bound separately as UUID.
     let field_count = fields.len();
     let placeholders: Vec<String> = (1..=field_count)
-        .map(|i| format!("${}::text", i))
+        .map(|i| format!("${i}::text"))
         .collect();
     let org_placeholder = format!("${}::uuid", field_count + 1);
     
     let query = format!(
         "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, {}) RETURNING *",
         table_name,
-        fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
+        fields.iter().map(|f| format!("\"{f}\"")).collect::<Vec<_>>().join(", "),
         placeholders.join(", "),
         org_placeholder
     );
@@ -470,8 +470,7 @@ pub async fn update_record(
     };
     let old_row = sqlx::query(
         format!(
-            "SELECT * FROM \"{}\" WHERE id = $1 AND organization_id = $2{}",
-            table_name, soft_delete_filter
+            "SELECT * FROM \"{table_name}\" WHERE id = $1 AND organization_id = $2{soft_delete_filter}"
         ).as_str()
     )
     .bind(id)
@@ -584,8 +583,7 @@ pub async fn delete_record(
     // Fetch the old record for audit (scoped to organization)
     let old_row = sqlx::query(
         format!(
-            "SELECT * FROM \"{}\" WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL",
-            table_name
+            "SELECT * FROM \"{table_name}\" WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL"
         ).as_str()
     )
     .bind(id)
@@ -603,9 +601,9 @@ pub async fn delete_record(
     };
     
     let query = if entity_def.is_soft_delete {
-        format!("UPDATE \"{}\" SET deleted_at = NOW() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL", table_name)
+        format!("UPDATE \"{table_name}\" SET deleted_at = NOW() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL")
     } else {
-        format!("DELETE FROM \"{}\" WHERE id = $1 AND organization_id = $2", table_name)
+        format!("DELETE FROM \"{table_name}\" WHERE id = $1 AND organization_id = $2")
     };
     
     let result = sqlx::query(&query)
@@ -670,8 +668,7 @@ pub async fn get_transitions(
 
     let row = sqlx::query(
         format!(
-            "SELECT workflow_state FROM \"{}\" WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL",
-            table_name
+            "SELECT workflow_state FROM \"{table_name}\" WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL"
         ).as_str()
     )
     .bind(id)
@@ -729,8 +726,7 @@ pub async fn execute_action(
     // Fetch the current record, scoped to organization
     let row = sqlx::query(
         format!(
-            "SELECT * FROM \"{}\" WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL",
-            table_name
+            "SELECT * FROM \"{table_name}\" WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL"
         ).as_str()
     )
     .bind(id)
@@ -787,8 +783,7 @@ pub async fn execute_action(
 
     // Update the record's workflow_state in the database
     let update_query = format!(
-        "UPDATE \"{}\" SET workflow_state = $1, updated_at = now() WHERE id = $2",
-        table_name
+        "UPDATE \"{table_name}\" SET workflow_state = $1, updated_at = now() WHERE id = $2"
     );
     sqlx::query(&update_query)
         .bind(&result.to_state)
@@ -875,7 +870,7 @@ pub async fn execute_action(
 /// Get record audit history
 ///
 /// Scoped to the caller's organization to prevent cross-tenant access.
-/// The audit entries are filtered by matching the entity_id against
+/// The audit entries are filtered by matching the `entity_id` against
 /// records that belong to the caller's organization.
 pub async fn get_record_history(
     State(state): State<Arc<AppState>>,

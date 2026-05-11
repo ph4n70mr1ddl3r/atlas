@@ -1,6 +1,6 @@
 //! Landed Cost Repository
 //!
-//! PostgreSQL storage for landed cost templates, components, charges,
+//! `PostgreSQL` storage for landed cost templates, components, charges,
 //! charge lines, allocations, and simulations.
 
 use atlas_shared::{
@@ -94,13 +94,14 @@ pub trait LandedCostRepository: Send + Sync {
     async fn update_simulation_status(&self, id: Uuid, status: &str) -> AtlasResult<LandedCostSimulation>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresLandedCostRepository {
     pool: PgPool,
 }
 
 impl PostgresLandedCostRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -108,9 +109,9 @@ impl PostgresLandedCostRepository {
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
     if v == v.floor() {
-        format!("{:.0}", v)
+        format!("{v:.0}")
     } else {
-        let s = format!("{:.10}", v);
+        let s = format!("{v:.10}");
         s.trim_end_matches('0').trim_end_matches('.').to_string()
     }
 }
@@ -140,7 +141,7 @@ fn row_to_component(row: &sqlx::postgres::PgRow) -> LandedCostComponent {
         description: row.get("description"),
         cost_type: row.get("cost_type"),
         allocation_basis: row.get("allocation_basis"),
-        default_rate: row.try_get::<Option<f64>, _>("default_rate").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.6}", v) }),
+        default_rate: row.try_get::<Option<f64>, _>("default_rate").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.6}") }),
         rate_uom: row.get("rate_uom"),
         expense_account: row.get("expense_account"),
         is_taxable: row.get("is_taxable"),
@@ -188,8 +189,8 @@ fn row_to_charge_line(row: &sqlx::postgres::PgRow) -> LandedCostChargeLine {
         charge_amount: get_num(row, "charge_amount"),
         allocated_amount: get_num(row, "allocated_amount"),
         allocation_basis: row.get("allocation_basis"),
-        allocation_qty: row.try_get::<Option<f64>, _>("allocation_qty").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.6}", v) }),
-        allocation_value: row.try_get::<Option<f64>, _>("allocation_value").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.6}", v) }),
+        allocation_qty: row.try_get::<Option<f64>, _>("allocation_qty").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.6}") }),
+        allocation_value: row.try_get::<Option<f64>, _>("allocation_value").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.6}") }),
         expense_account: row.get("expense_account"),
         notes: row.get("notes"),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
@@ -210,11 +211,11 @@ fn row_to_allocation(row: &sqlx::postgres::PgRow) -> LandedCostAllocation {
         item_code: row.get("item_code"),
         allocated_amount: get_num(row, "allocated_amount"),
         allocation_basis: row.get("allocation_basis"),
-        allocation_basis_value: row.try_get::<Option<f64>, _>("allocation_basis_value").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.6}", v) }),
-        total_basis_value: row.try_get::<Option<f64>, _>("total_basis_value").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.6}", v) }),
-        allocation_pct: row.try_get::<Option<f64>, _>("allocation_pct").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.4}", v) }),
-        unit_landed_cost: row.try_get::<Option<f64>, _>("unit_landed_cost").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.6}", v) }),
-        original_unit_cost: row.try_get::<Option<f64>, _>("original_unit_cost").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.6}", v) }),
+        allocation_basis_value: row.try_get::<Option<f64>, _>("allocation_basis_value").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.6}") }),
+        total_basis_value: row.try_get::<Option<f64>, _>("total_basis_value").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.6}") }),
+        allocation_pct: row.try_get::<Option<f64>, _>("allocation_pct").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.4}") }),
+        unit_landed_cost: row.try_get::<Option<f64>, _>("unit_landed_cost").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.6}") }),
+        original_unit_cost: row.try_get::<Option<f64>, _>("original_unit_cost").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.6}") }),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
@@ -237,7 +238,7 @@ fn row_to_simulation(row: &sqlx::postgres::PgRow) -> LandedCostSimulation {
         estimated_charges: row.try_get("estimated_charges").unwrap_or(serde_json::json!([])),
         estimated_landed_cost: get_num(row, "estimated_landed_cost"),
         estimated_landed_cost_per_unit: get_num(row, "estimated_landed_cost_per_unit"),
-        variance_vs_actual: row.try_get::<Option<f64>, _>("variance_vs_actual").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.6}", v) }),
+        variance_vs_actual: row.try_get::<Option<f64>, _>("variance_vs_actual").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.6}") }),
         status: row.get("status"),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.get("created_by"),
@@ -257,14 +258,14 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LandedCostTemplate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.landed_cost_templates
                 (organization_id, code, name, description, created_by)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (organization_id, code) DO UPDATE
                 SET name = $3, description = $4, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(created_by)
         .fetch_one(&self.pool)
@@ -317,7 +318,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         is_taxable: bool, created_by: Option<Uuid>,
     ) -> AtlasResult<LandedCostComponent> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.landed_cost_components
                 (organization_id, template_id, code, name, description,
                  cost_type, allocation_basis, default_rate, rate_uom,
@@ -328,7 +329,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
                     allocation_basis = $7, default_rate = $8, rate_uom = $9,
                     expense_account = $10, is_taxable = $11, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(template_id).bind(code).bind(name).bind(description)
         .bind(cost_type).bind(allocation_basis)
@@ -353,11 +354,11 @@ impl LandedCostRepository for PostgresLandedCostRepository {
 
     async fn list_components(&self, org_id: Uuid, template_id: Option<Uuid>) -> AtlasResult<Vec<LandedCostComponent>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.landed_cost_components
             WHERE organization_id = $1 AND ($2::uuid IS NULL OR template_id = $2)
             ORDER BY code
-            "#,
+            ",
         )
         .bind(org_id).bind(template_id)
         .fetch_all(&self.pool)
@@ -389,14 +390,14 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         total_amount: &str, currency: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<LandedCostCharge> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.landed_cost_charges
                 (organization_id, charge_number, template_id, receipt_id,
                  purchase_order_id, supplier_id, supplier_name,
                  charge_type, charge_date, total_amount, currency, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(charge_number).bind(template_id).bind(receipt_id)
         .bind(purchase_order_id).bind(supplier_id).bind(supplier_name)
@@ -407,7 +408,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         .await
         .map_err(|e| {
             if e.to_string().contains("duplicate") || e.to_string().contains("violates unique constraint") {
-                AtlasError::Conflict(format!("Charge number '{}' already exists", charge_number))
+                AtlasError::Conflict(format!("Charge number '{charge_number}' already exists"))
             } else {
                 AtlasError::DatabaseError(e.to_string())
             }
@@ -440,14 +441,14 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         receipt_id: Option<Uuid>,
     ) -> AtlasResult<Vec<LandedCostCharge>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.landed_cost_charges
             WHERE organization_id = $1
               AND ($2 IS NULL OR status = $2)
               AND ($3 IS NULL OR charge_type = $3)
               AND ($4::uuid IS NULL OR receipt_id = $4)
             ORDER BY charge_date DESC NULLS LAST, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(charge_type).bind(receipt_id)
         .fetch_all(&self.pool)
@@ -480,7 +481,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         expense_account: Option<&str>, notes: Option<&str>,
     ) -> AtlasResult<LandedCostChargeLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.landed_cost_charge_lines
                 (organization_id, charge_id, component_id, line_number,
                  receipt_line_id, item_id, item_code, item_description,
@@ -488,7 +489,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
                  expense_account, notes)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(charge_id).bind(component_id).bind(line_number)
         .bind(receipt_line_id).bind(item_id).bind(item_code).bind(item_description)
@@ -535,7 +536,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         allocation_pct: Option<&str>, original_unit_cost: Option<&str>,
     ) -> AtlasResult<LandedCostAllocation> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.landed_cost_allocations
                 (organization_id, charge_id, charge_line_id,
                  receipt_id, receipt_line_id, item_id, item_code,
@@ -543,7 +544,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
                  total_basis_value, allocation_pct, original_unit_cost)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(charge_id).bind(charge_line_id)
         .bind(receipt_id).bind(receipt_line_id).bind(item_id).bind(item_code)
@@ -597,7 +598,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         };
 
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT id as receipt_line_id, item_id, item_code,
                    received_qty as quantity, unit_price,
                    0.0 as weight, 0.0 as volume
@@ -605,7 +606,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
             WHERE receipt_id = $1
               AND organization_id = $2
             ORDER BY line_number
-            "#,
+            ",
         )
         .bind(rid).bind(org_id)
         .fetch_all(&self.pool)
@@ -617,7 +618,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
             item_id: r.get("item_id"),
             item_code: r.get("item_code"),
             quantity: r.try_get::<f64, _>("quantity").unwrap_or(0.0),
-            unit_price: r.try_get::<Option<f64>, _>("unit_price").ok().flatten().map(|v| format!("{:.2}", v)),
+            unit_price: r.try_get::<Option<f64>, _>("unit_price").ok().flatten().map(|v| format!("{v:.2}")),
             weight: r.try_get::<Option<f64>, _>("weight").ok().flatten(),
             volume: r.try_get::<Option<f64>, _>("volume").ok().flatten(),
         }).collect())
@@ -637,7 +638,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LandedCostSimulation> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.landed_cost_simulations
                 (organization_id, simulation_number, template_id,
                  purchase_order_id, item_id, item_code, item_description,
@@ -646,7 +647,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
                  created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(simulation_number).bind(template_id)
         .bind(purchase_order_id).bind(item_id).bind(item_code).bind(item_description)
@@ -660,7 +661,7 @@ impl LandedCostRepository for PostgresLandedCostRepository {
         .await
         .map_err(|e| {
             if e.to_string().contains("duplicate") || e.to_string().contains("violates unique constraint") {
-                AtlasError::Conflict(format!("Simulation number '{}' already exists", simulation_number))
+                AtlasError::Conflict(format!("Simulation number '{simulation_number}' already exists"))
             } else {
                 AtlasError::DatabaseError(e.to_string())
             }
@@ -679,11 +680,11 @@ impl LandedCostRepository for PostgresLandedCostRepository {
 
     async fn list_simulations(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<LandedCostSimulation>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.landed_cost_simulations
             WHERE organization_id = $1 AND ($2 IS NULL OR status = $2)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)

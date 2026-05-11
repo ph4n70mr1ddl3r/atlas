@@ -9,7 +9,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > General Ledger > Multi-Period Accounting
 
-use super::*;
+use super::{MpaRepository, AtlasResult, MpaTemplate, AtlasError, MpaTemplateLine, MpaSchedule, MpaScheduleLine, MpaDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -70,7 +70,7 @@ impl MultiPeriodAccountingEngine {
         }
 
         if self.repository.get_template_by_name(org_id, template_name).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Template '{}' already exists", template_name)));
+            return Err(AtlasError::Conflict(format!("Template '{template_name}' already exists")));
         }
 
         info!("Creating MPA template '{}' ({} periods, {})", template_name, number_of_periods, distribution_method);
@@ -101,7 +101,7 @@ impl MultiPeriodAccountingEngine {
     /// Activate a template
     pub async fn activate_template(&self, template_id: Uuid) -> AtlasResult<MpaTemplate> {
         let template = self.repository.get_template(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", template_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {template_id} not found")))?;
 
         if template.status != "draft" && template.status != "inactive" {
             return Err(AtlasError::WorkflowError(
@@ -116,7 +116,7 @@ impl MultiPeriodAccountingEngine {
     /// Deactivate a template
     pub async fn deactivate_template(&self, template_id: Uuid) -> AtlasResult<MpaTemplate> {
         let template = self.repository.get_template(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", template_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {template_id} not found")))?;
 
         if template.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -137,7 +137,7 @@ impl MultiPeriodAccountingEngine {
         offset_days: i32,
     ) -> AtlasResult<MpaTemplateLine> {
         let template = self.repository.get_template(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", template_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {template_id} not found")))?;
 
         if template.distribution_method != "custom" {
             return Err(AtlasError::ValidationFailed(
@@ -208,7 +208,7 @@ impl MultiPeriodAccountingEngine {
         let mut template: Option<MpaTemplate> = None;
         if let Some(tid) = template_id {
             let t = self.repository.get_template(tid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", tid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {tid} not found")))?;
             if t.status != "active" {
                 return Err(AtlasError::WorkflowError(
                     format!("Cannot use template in '{}' status. Must be 'active'.", t.status)
@@ -218,7 +218,7 @@ impl MultiPeriodAccountingEngine {
         }
 
         if self.repository.get_schedule_by_number(org_id, schedule_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Schedule '{}' already exists", schedule_number)));
+            return Err(AtlasError::Conflict(format!("Schedule '{schedule_number}' already exists")));
         }
 
         info!("Creating MPA schedule '{}' (amount: {})", schedule_number, total_amount);
@@ -269,7 +269,7 @@ impl MultiPeriodAccountingEngine {
                         Some(&format_period_name(&period_start, &template.period_type)),
                         period_start,
                         period_end,
-                        &format!("{:.2}", amount),
+                        &format!("{amount:.2}"),
                         &line.percentage,
                     ).await?;
                 }
@@ -281,7 +281,7 @@ impl MultiPeriodAccountingEngine {
                     let period_end = add_periods(period_start, 1, &template.period_type)
                         - chrono::Duration::days(1);
                     let days_in_period = (period_end - period_start).num_days() as f64 + 1.0;
-                    let pct = days_in_period / total_days as f64 * 100.0;
+                    let pct = days_in_period / f64::from(total_days) * 100.0;
                     let amount = total * pct / 100.0;
 
                     self.repository.create_schedule_line(
@@ -290,8 +290,8 @@ impl MultiPeriodAccountingEngine {
                         Some(&format_period_name(&period_start, &template.period_type)),
                         period_start,
                         period_end,
-                        &format!("{:.2}", amount),
-                        &format!("{:.4}", pct),
+                        &format!("{amount:.2}"),
+                        &format!("{pct:.4}"),
                     ).await?;
                 }
             }
@@ -307,8 +307,8 @@ impl MultiPeriodAccountingEngine {
         num_periods: i32,
     ) -> AtlasResult<()> {
         let total: f64 = schedule.total_amount.parse().unwrap_or(0.0);
-        let per_period = total / num_periods as f64;
-        let pct_per_period = 100.0 / num_periods as f64;
+        let per_period = total / f64::from(num_periods);
+        let pct_per_period = 100.0 / f64::from(num_periods);
         let start = schedule.start_date;
 
         for i in 0..num_periods {
@@ -321,8 +321,8 @@ impl MultiPeriodAccountingEngine {
                 Some(&format_period_name(&period_start, "month")),
                 period_start,
                 period_end,
-                &format!("{:.2}", per_period),
-                &format!("{:.4}", pct_per_period),
+                &format!("{per_period:.2}"),
+                &format!("{pct_per_period:.4}"),
             ).await?;
         }
         Ok(())
@@ -348,7 +348,7 @@ impl MultiPeriodAccountingEngine {
     /// Activate a schedule
     pub async fn activate_schedule(&self, schedule_id: Uuid) -> AtlasResult<MpaSchedule> {
         let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
 
         if schedule.status != "draft" && schedule.status != "on_hold" {
             return Err(AtlasError::WorkflowError(
@@ -363,7 +363,7 @@ impl MultiPeriodAccountingEngine {
     /// Put a schedule on hold
     pub async fn hold_schedule(&self, schedule_id: Uuid) -> AtlasResult<MpaSchedule> {
         let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
 
         if schedule.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -378,7 +378,7 @@ impl MultiPeriodAccountingEngine {
     /// Cancel a schedule
     pub async fn cancel_schedule(&self, schedule_id: Uuid) -> AtlasResult<MpaSchedule> {
         let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
 
         if schedule.status == "completed" || schedule.status == "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -407,7 +407,7 @@ impl MultiPeriodAccountingEngine {
     /// Recognize a pending schedule line
     pub async fn recognize_line(&self, line_id: Uuid) -> AtlasResult<MpaScheduleLine> {
         let line = self.repository.get_schedule_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {} not found", line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {line_id} not found")))?;
 
         if line.status != "pending" {
             return Err(AtlasError::WorkflowError(
@@ -434,8 +434,8 @@ impl MultiPeriodAccountingEngine {
         let remaining = total - rec;
         self.repository.update_schedule_amounts(
             line.schedule_id,
-            &format!("{:.2}", rec),
-            &format!("{:.2}", remaining),
+            &format!("{rec:.2}"),
+            &format!("{remaining:.2}"),
         ).await?;
 
         // Auto-complete schedule if all lines recognized
@@ -451,7 +451,7 @@ impl MultiPeriodAccountingEngine {
     /// Reverse a recognized schedule line
     pub async fn reverse_line(&self, line_id: Uuid) -> AtlasResult<MpaScheduleLine> {
         let line = self.repository.get_schedule_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {} not found", line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {line_id} not found")))?;
 
         if line.status != "recognized" {
             return Err(AtlasError::WorkflowError(
@@ -474,8 +474,8 @@ impl MultiPeriodAccountingEngine {
         let remaining = total - rec;
         self.repository.update_schedule_amounts(
             line.schedule_id,
-            &format!("{:.2}", rec),
-            &format!("{:.2}", remaining),
+            &format!("{rec:.2}"),
+            &format!("{remaining:.2}"),
         ).await?;
 
         // If schedule was completed, reactivate it
@@ -537,8 +537,7 @@ fn days_in_month(year: i32, month: u32) -> u32 {
     chrono::NaiveDate::from_ymd_opt(year, month + 1, 1)
         .unwrap_or_else(|| chrono::NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap())
         .pred_opt()
-        .map(|d| d.day())
-        .unwrap_or(28)
+        .map_or(28, |d| d.day())
 }
 
 fn format_period_name(date: &chrono::NaiveDate, period_type: &str) -> String {

@@ -87,7 +87,7 @@ impl DemandPlanningEngine {
             )));
         }
         if self.repository.get_method_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Forecast method '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Forecast method '{code}' already exists")));
         }
         info!("Creating forecast method '{}' for org {}", code, org_id);
         self.repository.create_method(org_id, &code, name, description, method_type, parameters, created_by).await
@@ -152,13 +152,13 @@ impl DemandPlanningEngine {
 
         // Resolve method name if method_id provided
         let method_name = if let Some(mid) = method_id {
-            self.repository.get_method(mid).await?.map(|m| m.name.clone())
+            self.repository.get_method(mid).await?.map(|m| m.name)
         } else {
             None
         };
 
         if self.repository.get_schedule_by_number(org_id, schedule_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Schedule '{}' already exists", schedule_number)));
+            return Err(AtlasError::Conflict(format!("Schedule '{schedule_number}' already exists")));
         }
 
         info!("Creating demand schedule '{}' for org {}", schedule_number, org_id);
@@ -194,7 +194,7 @@ impl DemandPlanningEngine {
     /// Submit a schedule for approval
     pub async fn submit_schedule(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::DemandSchedule> {
         let schedule = self.repository.get_schedule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
         if schedule.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot submit schedule in '{}' status. Must be 'draft'.", schedule.status
@@ -211,7 +211,7 @@ impl DemandPlanningEngine {
         approved_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::DemandSchedule> {
         let schedule = self.repository.get_schedule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
         if schedule.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot approve schedule in '{}' status. Must be 'submitted'.", schedule.status
@@ -224,7 +224,7 @@ impl DemandPlanningEngine {
     /// Activate an approved schedule
     pub async fn activate_schedule(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::DemandSchedule> {
         let schedule = self.repository.get_schedule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
         if schedule.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot activate schedule in '{}' status. Must be 'approved'.", schedule.status
@@ -237,7 +237,7 @@ impl DemandPlanningEngine {
     /// Close a schedule
     pub async fn close_schedule(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::DemandSchedule> {
         let schedule = self.repository.get_schedule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
         if schedule.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot close schedule in '{}' status. Must be 'active'.", schedule.status
@@ -250,7 +250,7 @@ impl DemandPlanningEngine {
     /// Cancel a schedule
     pub async fn cancel_schedule(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::DemandSchedule> {
         let schedule = self.repository.get_schedule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
         if schedule.status == "closed" || schedule.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot cancel schedule in '{}' status.", schedule.status
@@ -314,7 +314,7 @@ impl DemandPlanningEngine {
 
         // Verify schedule exists
         let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
 
         if schedule.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -348,7 +348,7 @@ impl DemandPlanningEngine {
     /// Delete a schedule line
     pub async fn delete_schedule_line(&self, id: Uuid) -> atlas_shared::AtlasResult<()> {
         let line = self.repository.get_schedule_line(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {id} not found")))?;
 
         // Check schedule status
         let schedule = self.repository.get_schedule(line.schedule_id).await?
@@ -444,7 +444,7 @@ impl DemandPlanningEngine {
         created_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::DemandConsumption> {
         let line = self.repository.get_schedule_line(schedule_line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {} not found", schedule_line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {schedule_line_id} not found")))?;
 
         let remaining: f64 = line.remaining_quantity.parse().unwrap_or(0.0);
         let consume_qty: f64 = consumed_quantity.parse().map_err(|_| {
@@ -455,7 +455,7 @@ impl DemandPlanningEngine {
         }
         if consume_qty > remaining {
             return Err(AtlasError::ValidationFailed(format!(
-                "Cannot consume {} – only {} remaining", consume_qty, remaining
+                "Cannot consume {consume_qty} – only {remaining} remaining"
             )));
         }
 
@@ -489,7 +489,7 @@ impl DemandPlanningEngine {
         measurement_date: Option<chrono::NaiveDate>,
     ) -> atlas_shared::AtlasResult<atlas_shared::DemandAccuracy> {
         let line = self.repository.get_schedule_line(schedule_line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {} not found", schedule_line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {schedule_line_id} not found")))?;
 
         let forecast_qty: f64 = line.forecast_quantity.parse().unwrap_or(0.0);
         let actual_qty: f64 = actual_quantity.parse().map_err(|_| {
@@ -514,11 +514,11 @@ impl DemandPlanningEngine {
         self.repository.create_accuracy(
             org_id, line.schedule_id, Some(schedule_line_id),
             &line.item_code, line.period_start, line.period_end,
-            &format!("{:.2}", forecast_qty),
-            &format!("{:.2}", actual_qty),
-            &format!("{:.2}", absolute_error),
-            &format!("{:.4}", absolute_pct_error),
-            &format!("{:.2}", bias),
+            &format!("{forecast_qty:.2}"),
+            &format!("{actual_qty:.2}"),
+            &format!("{absolute_error:.2}"),
+            &format!("{absolute_pct_error:.4}"),
+            &format!("{bias:.2}"),
             measurement_date,
         ).await
     }

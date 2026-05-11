@@ -72,10 +72,9 @@ impl InvoiceBatchEngine {
             ("approved", "posted") => Ok(()),
             ("approved", "cancelled") => Ok(()),
             _ => Err(AtlasError::WorkflowError(format!(
-                "Invalid status transition from '{}' to '{}'. \
+                "Invalid status transition from '{current}' to '{target}'. \
                  Valid: draft→submitted, draft→cancelled, submitted→approved, \
-                 submitted→cancelled, approved→posted, approved→cancelled",
-                current, target
+                 submitted→cancelled, approved→posted, approved→cancelled"
             ))),
         }
     }
@@ -152,7 +151,7 @@ impl InvoiceBatchEngine {
         self.repo.add_activity(
             batch.id,
             "created",
-            Some(&format!("Batch '{}' created", batch_name)),
+            Some(&format!("Batch '{batch_name}' created")),
             None,
             Some("draft"),
             created_by,
@@ -329,7 +328,7 @@ impl InvoiceBatchEngine {
         self.repo.add_activity(
             id,
             "cancelled",
-            Some(&format!("Batch cancelled{}", reason.map(|r| format!(": {}", r)).unwrap_or_default())),
+            Some(&format!("Batch cancelled{}", reason.map(|r| format!(": {r}")).unwrap_or_default())),
             Some(&old_status),
             Some("cancelled"),
             Some(cancelled_by),
@@ -368,7 +367,7 @@ impl InvoiceBatchEngine {
         self.repo.add_activity(
             batch_id,
             "invoice_added",
-            Some(&format!("Invoice added (amount: {:.2}, tax: {:.2})", invoice_amount, tax_amount)),
+            Some(&format!("Invoice added (amount: {invoice_amount:.2}, tax: {tax_amount:.2})")),
             None,
             None,
             None,
@@ -403,7 +402,7 @@ impl InvoiceBatchEngine {
         self.repo.add_activity(
             batch_id,
             "invoice_removed",
-            Some(&format!("Invoice removed (amount: {:.2})", invoice_amount)),
+            Some(&format!("Invoice removed (amount: {invoice_amount:.2})")),
             None,
             None,
             None,

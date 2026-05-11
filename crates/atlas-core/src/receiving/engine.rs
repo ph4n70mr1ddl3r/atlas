@@ -214,7 +214,7 @@ impl ReceivingEngine {
     pub async fn confirm_receipt(&self, receipt_id: Uuid, received_by: Uuid) -> AtlasResult<ReceiptHeader> {
         let receipt = self.repository.get_receipt(receipt_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {} not found", receipt_id)
+                format!("Receipt {receipt_id} not found")
             ))?;
 
         if receipt.status != "draft" {
@@ -233,7 +233,7 @@ impl ReceivingEngine {
     pub async fn close_receipt(&self, receipt_id: Uuid) -> AtlasResult<ReceiptHeader> {
         let receipt = self.repository.get_receipt(receipt_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {} not found", receipt_id)
+                format!("Receipt {receipt_id} not found")
             ))?;
 
         if receipt.status == "closed" || receipt.status == "cancelled" {
@@ -252,7 +252,7 @@ impl ReceivingEngine {
     pub async fn cancel_receipt(&self, receipt_id: Uuid) -> AtlasResult<ReceiptHeader> {
         let receipt = self.repository.get_receipt(receipt_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {} not found", receipt_id)
+                format!("Receipt {receipt_id} not found")
             ))?;
 
         if receipt.status != "draft" {
@@ -295,7 +295,7 @@ impl ReceivingEngine {
     ) -> AtlasResult<ReceiptLine> {
         let receipt = self.repository.get_receipt(receipt_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {} not found", receipt_id)
+                format!("Receipt {receipt_id} not found")
             ))?;
 
         if receipt.status != "draft" && receipt.status != "received" {
@@ -358,7 +358,7 @@ impl ReceivingEngine {
     ) -> AtlasResult<ReceiptInspection> {
         let _line = self.repository.get_receipt_line(receipt_line_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt line {} not found", receipt_line_id)
+                format!("Receipt line {receipt_line_id} not found")
             ))?;
 
         let inspection_number = format!("INS-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
@@ -396,7 +396,7 @@ impl ReceivingEngine {
     ) -> AtlasResult<ReceiptInspection> {
         let inspection = self.repository.get_inspection(inspection_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Inspection {} not found", inspection_id)
+                format!("Inspection {inspection_id} not found")
             ))?;
 
         if inspection.status != "pending" && inspection.status != "in_progress" {
@@ -516,7 +516,7 @@ impl ReceivingEngine {
     ) -> AtlasResult<ReceiptDelivery> {
         let _line = self.repository.get_receipt_line(receipt_line_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt line {} not found", receipt_line_id)
+                format!("Receipt line {receipt_line_id} not found")
             ))?;
 
         if !VALID_DESTINATION_TYPES.contains(&destination_type) {
@@ -630,7 +630,7 @@ impl ReceivingEngine {
     pub async fn submit_return(&self, return_id: Uuid) -> AtlasResult<ReceiptReturn> {
         let rtv = self.repository.get_return(return_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Return {} not found", return_id)
+                format!("Return {return_id} not found")
             ))?;
 
         if rtv.status != "draft" {
@@ -647,7 +647,7 @@ impl ReceivingEngine {
     pub async fn ship_return(&self, return_id: Uuid, carrier: Option<&str>, tracking_number: Option<&str>) -> AtlasResult<ReceiptReturn> {
         let rtv = self.repository.get_return(return_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Return {} not found", return_id)
+                format!("Return {return_id} not found")
             ))?;
 
         if rtv.status != "submitted" {
@@ -664,7 +664,7 @@ impl ReceivingEngine {
     pub async fn credit_return(&self, return_id: Uuid) -> AtlasResult<ReceiptReturn> {
         let rtv = self.repository.get_return(return_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Return {} not found", return_id)
+                format!("Return {return_id} not found")
             ))?;
 
         if rtv.status != "shipped" && rtv.status != "received_by_supplier" {
@@ -681,7 +681,7 @@ impl ReceivingEngine {
     pub async fn cancel_return(&self, return_id: Uuid) -> AtlasResult<ReceiptReturn> {
         let rtv = self.repository.get_return(return_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Return {} not found", return_id)
+                format!("Return {return_id} not found")
             ))?;
 
         if rtv.status != "draft" && rtv.status != "submitted" {

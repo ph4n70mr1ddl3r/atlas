@@ -1,6 +1,6 @@
 //! Risk Management Repository
 //!
-//! PostgreSQL storage for risk categories, risks, controls, mappings,
+//! `PostgreSQL` storage for risk categories, risks, controls, mappings,
 //! control tests, issues, and dashboard summary.
 
 use atlas_shared::{
@@ -113,13 +113,14 @@ pub trait RiskManagementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RiskDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresRiskManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresRiskManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -294,10 +295,10 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         parent_category_id: Option<Uuid>, sort_order: i32, created_by: Option<Uuid>,
     ) -> AtlasResult<RiskCategory> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.risk_categories
+            r"INSERT INTO _atlas.risk_categories
                 (organization_id, code, name, description, parent_category_id, sort_order, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, '{}'::jsonb, $7)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(parent_category_id).bind(sort_order).bind(created_by)
@@ -330,7 +331,7 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             "DELETE FROM _atlas.risk_categories WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Category '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Category '{code}' not found")));
         }
         Ok(())
     }
@@ -348,14 +349,14 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RiskEntry> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.risk_register
+            r"INSERT INTO _atlas.risk_register
                 (organization_id, risk_number, title, description, category_id,
                  risk_source, likelihood, impact, risk_level, status,
                  owner_id, owner_name, response_strategy, business_units,
                  related_entity_type, related_entity_id, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'identified',
                     $10, $11, $12, $13, $14, $15, '{}'::jsonb, $16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(risk_number).bind(title).bind(description)
         .bind(category_id).bind(risk_source).bind(likelihood).bind(impact)
@@ -383,12 +384,12 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         &self, org_id: Uuid, status: Option<&str>, risk_level: Option<&str>, risk_source: Option<&str>,
     ) -> AtlasResult<Vec<RiskEntry>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.risk_register
+            r"SELECT * FROM _atlas.risk_register
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR risk_level = $3)
                  AND ($4::text IS NULL OR risk_source = $4)
-               ORDER BY risk_score DESC, created_at DESC"#,
+               ORDER BY risk_score DESC, created_at DESC",
         )
         .bind(org_id).bind(status).bind(risk_level).bind(risk_source)
         .fetch_all(&self.pool).await?;
@@ -397,12 +398,12 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
 
     async fn update_risk_status(&self, id: Uuid, status: &str) -> AtlasResult<RiskEntry> {
         let _closed_date = if status == "closed" { "CURRENT_DATE" } else { "NULL" };
-        let query = r#"UPDATE _atlas.risk_register SET status = $2, closed_date = CASE WHEN $3 THEN CURRENT_DATE ELSE closed_date END, updated_at = now()
-               WHERE id = $1 RETURNING *"#.to_string();
+        let query = r"UPDATE _atlas.risk_register SET status = $2, closed_date = CASE WHEN $3 THEN CURRENT_DATE ELSE closed_date END, updated_at = now()
+               WHERE id = $1 RETURNING *".to_string();
         let row = sqlx::query(&query)
             .bind(id).bind(status).bind(status == "closed")
             .fetch_one(&self.pool).await
-            .map_err(|_| AtlasError::EntityNotFound(format!("Risk {} not found", id)))?;
+            .map_err(|_| AtlasError::EntityNotFound(format!("Risk {id} not found")))?;
         Ok(row_to_risk(&row))
     }
 
@@ -411,17 +412,17 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         residual_likelihood: Option<i32>, residual_impact: Option<i32>,
     ) -> AtlasResult<RiskEntry> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.risk_register
+            r"UPDATE _atlas.risk_register
                SET likelihood = $2, impact = $3, risk_level = $4,
                    residual_likelihood = $5, residual_impact = $6,
                    last_assessed_date = CURRENT_DATE, status = 'assessed',
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(likelihood).bind(impact).bind(risk_level)
         .bind(residual_likelihood).bind(residual_impact)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Risk {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Risk {id} not found")))?;
         Ok(row_to_risk(&row))
     }
 
@@ -430,7 +431,7 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             "DELETE FROM _atlas.risk_register WHERE organization_id = $1 AND risk_number = $2"
         ).bind(org_id).bind(risk_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Risk '{}' not found", risk_number)));
+            return Err(AtlasError::EntityNotFound(format!("Risk '{risk_number}' not found")));
         }
         Ok(())
     }
@@ -448,14 +449,14 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ControlEntry> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.control_registry
+            r"INSERT INTO _atlas.control_registry
                 (organization_id, control_number, title, description,
                  control_type, control_nature, frequency,
                  objective, test_procedures, owner_id, owner_name,
                  is_key_control, business_processes, regulatory_frameworks,
                  metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, '{}'::jsonb, $15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(control_number).bind(title).bind(description)
         .bind(control_type).bind(control_nature).bind(frequency)
@@ -483,11 +484,11 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         &self, org_id: Uuid, status: Option<&str>, control_type: Option<&str>,
     ) -> AtlasResult<Vec<ControlEntry>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.control_registry
+            r"SELECT * FROM _atlas.control_registry
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR control_type = $3)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(control_type)
         .fetch_all(&self.pool).await?;
@@ -499,7 +500,7 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             "UPDATE _atlas.control_registry SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Control {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Control {id} not found")))?;
         Ok(row_to_control(&row))
     }
 
@@ -508,7 +509,7 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             "UPDATE _atlas.control_registry SET effectiveness = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(effectiveness)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Control {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Control {id} not found")))?;
         Ok(row_to_control(&row))
     }
 
@@ -517,7 +518,7 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             "DELETE FROM _atlas.control_registry WHERE organization_id = $1 AND control_number = $2"
         ).bind(org_id).bind(control_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Control '{}' not found", control_number)));
+            return Err(AtlasError::EntityNotFound(format!("Control '{control_number}' not found")));
         }
         Ok(())
     }
@@ -531,10 +532,10 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         mitigation_effectiveness: &str, description: Option<&str>, mapped_by: Option<Uuid>,
     ) -> AtlasResult<RiskControlMapping> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.risk_control_mappings
+            r"INSERT INTO _atlas.risk_control_mappings
                 (organization_id, risk_id, control_id, mitigation_effectiveness, description, mapped_by, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(risk_id).bind(control_id)
         .bind(mitigation_effectiveness).bind(description).bind(mapped_by)
@@ -575,12 +576,12 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         tester_id: Option<Uuid>, tester_name: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<ControlTest> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.control_tests
+            r"INSERT INTO _atlas.control_tests
                 (organization_id, control_id, test_number, test_plan,
                  test_period_start, test_period_end, tester_id, tester_name,
                  evidence_document_ids, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '[]'::jsonb, '{}'::jsonb, $9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(control_id).bind(test_number).bind(test_plan)
         .bind(test_period_start).bind(test_period_end)
@@ -604,12 +605,12 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
 
     async fn update_control_test_status(&self, id: Uuid, status: &str) -> AtlasResult<ControlTest> {
         let _started = if status == "in_progress" { "now()" } else { "started_at" };
-        let query = r#"UPDATE _atlas.control_tests SET status = $2, started_at = CASE WHEN $3 THEN now() ELSE started_at END, updated_at = now()
-               WHERE id = $1 RETURNING *"#.to_string();
+        let query = r"UPDATE _atlas.control_tests SET status = $2, started_at = CASE WHEN $3 THEN now() ELSE started_at END, updated_at = now()
+               WHERE id = $1 RETURNING *".to_string();
         let row = sqlx::query(&query)
             .bind(id).bind(status).bind(status == "in_progress")
             .fetch_one(&self.pool).await
-            .map_err(|_| AtlasError::EntityNotFound(format!("Control test {} not found", id)))?;
+            .map_err(|_| AtlasError::EntityNotFound(format!("Control test {id} not found")))?;
         Ok(row_to_test(&row))
     }
 
@@ -618,16 +619,16 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         deficiency_severity: Option<&str>, sample_size: Option<i32>, sample_exceptions: Option<i32>,
     ) -> AtlasResult<ControlTest> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.control_tests
+            r"UPDATE _atlas.control_tests
                SET result = $2, findings = $3, deficiency_severity = $4,
                    sample_size = $5, sample_exceptions = $6,
                    status = 'completed', completed_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(result).bind(findings).bind(deficiency_severity)
         .bind(sample_size).bind(sample_exceptions)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Control test {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Control test {id} not found")))?;
         Ok(row_to_test(&row))
     }
 
@@ -636,7 +637,7 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             "DELETE FROM _atlas.control_tests WHERE organization_id = $1 AND test_number = $2"
         ).bind(org_id).bind(test_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Test '{}' not found", test_number)));
+            return Err(AtlasError::EntityNotFound(format!("Test '{test_number}' not found")));
         }
         Ok(())
     }
@@ -654,14 +655,14 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RiskIssue> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.risk_issues
+            r"INSERT INTO _atlas.risk_issues
                 (organization_id, issue_number, title, description, source,
                  risk_id, control_id, control_test_id, severity, priority,
                  owner_id, owner_name, remediation_plan, remediation_due_date,
                  metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, '{}'::jsonb, $15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(issue_number).bind(title).bind(description).bind(source)
         .bind(risk_id).bind(control_id).bind(control_test_id)
@@ -689,13 +690,13 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         &self, org_id: Uuid, status: Option<&str>, severity: Option<&str>,
     ) -> AtlasResult<Vec<RiskIssue>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.risk_issues
+            r"SELECT * FROM _atlas.risk_issues
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR severity = $3)
                ORDER BY
                  CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END,
-                 created_at DESC"#,
+                 created_at DESC",
         )
         .bind(org_id).bind(status).bind(severity)
         .fetch_all(&self.pool).await?;
@@ -704,19 +705,19 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
 
     async fn update_issue_status(&self, id: Uuid, status: &str) -> AtlasResult<RiskIssue> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.risk_issues SET status = $2,
+            r"UPDATE _atlas.risk_issues SET status = $2,
                 resolved_date = CASE WHEN $3 THEN CURRENT_DATE ELSE resolved_date END,
                 closed_date = CASE WHEN $4 THEN CURRENT_DATE ELSE closed_date END,
                 remediation_completed_date = CASE WHEN $5 THEN CURRENT_DATE ELSE remediation_completed_date END,
                 updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(status)
         .bind(status == "resolved")
         .bind(status == "closed")
         .bind(status == "remediation_in_progress")
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Issue {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Issue {id} not found")))?;
         Ok(row_to_issue(&row))
     }
 
@@ -724,14 +725,14 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         &self, id: Uuid, root_cause: Option<&str>, corrective_actions: Option<&str>,
     ) -> AtlasResult<RiskIssue> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.risk_issues
+            r"UPDATE _atlas.risk_issues
                SET status = 'resolved', root_cause = $2, corrective_actions = $3,
                    resolved_date = CURRENT_DATE, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(root_cause).bind(corrective_actions)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Issue {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Issue {id} not found")))?;
         Ok(row_to_issue(&row))
     }
 
@@ -740,7 +741,7 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             "DELETE FROM _atlas.risk_issues WHERE organization_id = $1 AND issue_number = $2"
         ).bind(org_id).bind(issue_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Issue '{}' not found", issue_number)));
+            return Err(AtlasError::EntityNotFound(format!("Issue '{issue_number}' not found")));
         }
         Ok(())
     }

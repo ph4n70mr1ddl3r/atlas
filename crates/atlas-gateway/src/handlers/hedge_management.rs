@@ -274,7 +274,7 @@ pub async fn create_hedge_relationship(
     }
 }
 
-/// Get a hedge relationship by hedge_id
+/// Get a hedge relationship by `hedge_id`
 pub async fn get_hedge_relationship(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,

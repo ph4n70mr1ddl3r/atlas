@@ -1,6 +1,6 @@
 //! Approval Repository
 //!
-//! PostgreSQL storage for approval chains, requests, and steps.
+//! `PostgreSQL` storage for approval chains, requests, and steps.
 
 use atlas_shared::{ApprovalChain, ApprovalRequest, ApprovalStep, AtlasError, AtlasResult};
 use async_trait::async_trait;
@@ -58,13 +58,14 @@ pub trait ApprovalRepository: Send + Sync {
     async fn auto_approve_step(&self, id: Uuid) -> AtlasResult<()>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresApprovalRepository {
     pool: PgPool,
 }
 
 impl PostgresApprovalRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -113,14 +114,14 @@ impl PostgresApprovalRepository {
 impl ApprovalRepository for PostgresApprovalRepository {
     async fn create_chain(&self, chain: ApprovalChain) -> AtlasResult<ApprovalChain> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.approval_chains 
                 (organization_id, name, description, entity_type, condition_expression, 
                  chain_definition, escalation_enabled, escalation_hours, escalation_to_roles,
                  allow_delegation, is_active)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-            "#
+            "
         )
         .bind(chain.organization_id)
         .bind(&chain.name)
@@ -186,13 +187,13 @@ impl ApprovalRepository for PostgresApprovalRepository {
         description: Option<&str>,
     ) -> AtlasResult<ApprovalRequest> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.approval_requests
                 (organization_id, chain_id, entity_type, entity_id, current_level,
                  total_levels, status, requested_by, title, description, metadata)
             VALUES ($1, $2, $3, $4, 1, $5, 'pending', $6, $7, $8, '{}'::jsonb)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id)
         .bind(chain_id)
@@ -367,13 +368,13 @@ impl ApprovalRepository for PostgresApprovalRepository {
         auto_approve_after_hours: Option<i32>,
     ) -> AtlasResult<ApprovalStep> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.approval_steps
                 (organization_id, approval_request_id, level, approver_type, 
                  approver_role, approver_user_id, auto_approve_after_hours, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(request_id).bind(level).bind(approver_type)
         .bind(approver_role).bind(approver_user_id).bind(auto_approve_after_hours)
@@ -452,14 +453,14 @@ impl ApprovalRepository for PostgresApprovalRepository {
 
     async fn find_expired_steps(&self) -> AtlasResult<Vec<ApprovalStep>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT s.* FROM _atlas.approval_steps s
             JOIN _atlas.approval_requests r ON s.approval_request_id = r.id
             WHERE s.status = 'pending' 
               AND s.auto_approve_after_hours IS NOT NULL
               AND s.created_at < now() - (s.auto_approve_after_hours || ' hours')::interval
               AND r.status = 'pending'
-            "#
+            "
         )
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

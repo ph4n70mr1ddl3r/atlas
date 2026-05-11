@@ -1,6 +1,6 @@
 //! Shipping Execution Repository
 //!
-//! PostgreSQL storage for shipping execution data.
+//! `PostgreSQL` storage for shipping execution data.
 
 use atlas_shared::{
     ShippingCarrier, ShippingMethod, Shipment, ShipmentLine,
@@ -103,20 +103,21 @@ pub trait ShippingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ShippingDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresShippingRepository {
     pool: PgPool,
 }
 
 impl PostgresShippingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    format!("{v:.2}")
 }
 
 fn row_to_carrier(row: &sqlx::postgres::PgRow) -> ShippingCarrier {
@@ -277,10 +278,10 @@ impl ShippingRepository for PostgresShippingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ShippingCarrier> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.shipping_carriers
+            r"INSERT INTO _atlas.shipping_carriers
                 (organization_id, code, name, description, carrier_type,
                  tracking_url_template, contact_name, contact_phone, contact_email, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(carrier_type).bind(tracking_url_template)
@@ -335,9 +336,9 @@ impl ShippingRepository for PostgresShippingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ShippingMethod> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.shipping_methods
+            r"INSERT INTO _atlas.shipping_methods
                 (organization_id, code, name, description, carrier_id, transit_time_days, is_express, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(carrier_id).bind(transit_time_days).bind(is_express).bind(created_by)
@@ -389,7 +390,7 @@ impl ShippingRepository for PostgresShippingRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<Shipment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.shipments
+            r"INSERT INTO _atlas.shipments
                 (organization_id, shipment_number, description,
                  carrier_id, carrier_name, shipping_method_id, shipping_method_name,
                  order_id, order_number, customer_id, customer_name,
@@ -397,7 +398,7 @@ impl ShippingRepository for PostgresShippingRepository {
                  ship_to_name, ship_to_address, ship_to_city, ship_to_state,
                  ship_to_postal_code, ship_to_country,
                  estimated_delivery, notes, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *",
         )
         .bind(org_id).bind(shipment_number).bind(description)
         .bind(carrier_id).bind(carrier_name)
@@ -454,9 +455,9 @@ impl ShippingRepository for PostgresShippingRepository {
 
     async fn confirm_shipment(&self, id: Uuid, confirmed_by: Option<Uuid>) -> AtlasResult<Shipment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipments
+            r"UPDATE _atlas.shipments
                SET status = 'confirmed', confirmed_by = $2, confirmed_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(confirmed_by).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -468,10 +469,10 @@ impl ShippingRepository for PostgresShippingRepository {
         shipped_by: Option<Uuid>,
     ) -> AtlasResult<Shipment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipments
+            r"UPDATE _atlas.shipments
                SET status = 'shipped', tracking_number = COALESCE($2, tracking_number),
                    shipped_by = $3, shipped_date = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(tracking_number).bind(shipped_by)
         .fetch_one(&self.pool).await
@@ -481,9 +482,9 @@ impl ShippingRepository for PostgresShippingRepository {
 
     async fn deliver(&self, id: Uuid, delivered_by: Option<Uuid>) -> AtlasResult<Shipment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipments
+            r"UPDATE _atlas.shipments
                SET status = 'delivered', delivered_by = $2, actual_delivery = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(delivered_by).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -511,12 +512,12 @@ impl ShippingRepository for PostgresShippingRepository {
         notes: Option<&str>,
     ) -> AtlasResult<ShipmentLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.shipment_lines
+            r"INSERT INTO _atlas.shipment_lines
                 (organization_id, shipment_id, line_number, order_line_id,
                  item_code, item_name, item_description, requested_quantity,
                  unit_of_measure, weight, weight_unit, lot_number, serial_number,
                  is_fragile, is_hazardous, notes)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *",
         )
         .bind(org_id).bind(shipment_id).bind(line_number).bind(order_line_id)
         .bind(item_code).bind(item_name).bind(item_description)
@@ -554,11 +555,11 @@ impl ShippingRepository for PostgresShippingRepository {
 
     async fn update_line_shipped_quantity(&self, id: Uuid, shipped_qty: &str) -> AtlasResult<ShipmentLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipment_lines
+            r"UPDATE _atlas.shipment_lines
                SET shipped_quantity = $2,
                    backordered_quantity = requested_quantity - $2,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(shipped_qty.parse::<f64>().unwrap_or(0.0))
         .fetch_one(&self.pool).await
@@ -579,12 +580,12 @@ impl ShippingRepository for PostgresShippingRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<PackingSlip> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.packing_slips
+            r"INSERT INTO _atlas.packing_slips
                 (organization_id, shipment_id, packing_slip_number, package_number,
                  package_type, weight, weight_unit,
                  dimensions_length, dimensions_width, dimensions_height, dimensions_unit,
                  notes, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *",
         )
         .bind(org_id).bind(shipment_id).bind(packing_slip_number).bind(package_number)
         .bind(package_type)
@@ -633,10 +634,10 @@ impl ShippingRepository for PostgresShippingRepository {
         packed_quantity: &str, notes: Option<&str>,
     ) -> AtlasResult<PackingSlipLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.packing_slip_lines
+            r"INSERT INTO _atlas.packing_slip_lines
                 (organization_id, packing_slip_id, shipment_line_id,
                  line_number, item_code, item_name, packed_quantity, notes)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
         )
         .bind(org_id).bind(packing_slip_id).bind(shipment_line_id)
         .bind(line_number).bind(item_code).bind(item_name)
@@ -669,12 +670,12 @@ impl ShippingRepository for PostgresShippingRepository {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ShippingDashboard> {
 
         let summary_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status IN ('draft', 'confirmed', 'picked', 'packed')) as pending,
                 COUNT(*) FILTER (WHERE status = 'shipped' AND shipped_date >= date_trunc('month', now())) as shipped_month,
                 COUNT(*) FILTER (WHERE status = 'delivered' AND actual_delivery >= date_trunc('month', now())) as delivered_month
-               FROM _atlas.shipments WHERE organization_id = $1"#,
+               FROM _atlas.shipments WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -687,8 +688,8 @@ impl ShippingRepository for PostgresShippingRepository {
 
         // By status
         let status_rows = sqlx::query(
-            r#"SELECT status, COUNT(*) as cnt FROM _atlas.shipments
-               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC"#,
+            r"SELECT status, COUNT(*) as cnt FROM _atlas.shipments
+               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -721,9 +722,9 @@ impl ShippingRepository for PostgresShippingRepository {
 
         // Top carriers
         let carrier_rows = sqlx::query(
-            r#"SELECT carrier_name, COUNT(*) as cnt FROM _atlas.shipments
+            r"SELECT carrier_name, COUNT(*) as cnt FROM _atlas.shipments
                WHERE organization_id = $1 AND carrier_name IS NOT NULL
-               GROUP BY carrier_name ORDER BY cnt DESC LIMIT 10"#,
+               GROUP BY carrier_name ORDER BY cnt DESC LIMIT 10",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;

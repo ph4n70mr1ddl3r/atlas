@@ -94,7 +94,7 @@ impl CompensationEngine {
         }
         if self.repository.get_plan_by_code(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Compensation plan '{}' already exists", code_upper
+                "Compensation plan '{code_upper}' already exists"
             )));
         }
 
@@ -163,7 +163,7 @@ impl CompensationEngine {
         // Verify plan exists
         self.repository.get_plan(plan_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation plan {} not found", plan_id)
+                format!("Compensation plan {plan_id} not found")
             ))?;
 
         info!("Creating component '{}' for plan {}", component_name, plan_id);
@@ -261,7 +261,7 @@ impl CompensationEngine {
 
         let cycle = self.repository.get_cycle(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {} not found", id)
+                format!("Compensation cycle {id} not found")
             ))?;
 
         // Validate transition
@@ -291,7 +291,7 @@ impl CompensationEngine {
     pub async fn delete_cycle(&self, id: Uuid) -> AtlasResult<()> {
         let cycle = self.repository.get_cycle(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {} not found", id)
+                format!("Compensation cycle {id} not found")
             ))?;
         if cycle.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -343,7 +343,7 @@ impl CompensationEngine {
         // Verify cycle exists
         self.repository.get_cycle(cycle_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {} not found", cycle_id)
+                format!("Compensation cycle {cycle_id} not found")
             ))?;
 
         info!("Creating budget pool '{}' for cycle {}", pool_name, cycle_id);
@@ -386,7 +386,7 @@ impl CompensationEngine {
         // Verify cycle exists
         let cycle = self.repository.get_cycle(cycle_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {} not found", cycle_id)
+                format!("Compensation cycle {cycle_id} not found")
             ))?;
 
         if cycle.status != "allocation" {
@@ -400,7 +400,7 @@ impl CompensationEngine {
         if let Some(pid) = pool_id {
             self.repository.get_budget_pool(pid).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Budget pool {} not found", pid)
+                    format!("Budget pool {pid} not found")
                 ))?;
         }
 
@@ -432,7 +432,7 @@ impl CompensationEngine {
     pub async fn submit_worksheet(&self, id: Uuid) -> AtlasResult<CompensationWorksheet> {
         let ws = self.repository.get_worksheet(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {} not found", id)
+                format!("Worksheet {id} not found")
             ))?;
 
         if ws.status != "draft" {
@@ -457,7 +457,7 @@ impl CompensationEngine {
     pub async fn approve_worksheet(&self, id: Uuid) -> AtlasResult<CompensationWorksheet> {
         let ws = self.repository.get_worksheet(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {} not found", id)
+                format!("Worksheet {id} not found")
             ))?;
 
         if ws.status != "submitted" {
@@ -489,7 +489,7 @@ impl CompensationEngine {
     pub async fn reject_worksheet(&self, id: Uuid) -> AtlasResult<CompensationWorksheet> {
         let ws = self.repository.get_worksheet(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {} not found", id)
+                format!("Worksheet {id} not found")
             ))?;
 
         if ws.status != "submitted" {
@@ -506,7 +506,7 @@ impl CompensationEngine {
     pub async fn delete_worksheet(&self, id: Uuid) -> AtlasResult<()> {
         let ws = self.repository.get_worksheet(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {} not found", id)
+                format!("Worksheet {id} not found")
             ))?;
         if ws.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -540,7 +540,7 @@ impl CompensationEngine {
     ) -> AtlasResult<CompensationWorksheetLine> {
         let ws = self.repository.get_worksheet(worksheet_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {} not found", worksheet_id)
+                format!("Worksheet {worksheet_id} not found")
             ))?;
 
         if ws.status != "draft" {
@@ -573,10 +573,10 @@ impl CompensationEngine {
             org_id, worksheet_id, employee_id, employee_name,
             job_title, department_name,
             current_base_salary, proposed_base_salary,
-            &format!("{:.2}", change_amount),
-            &format!("{:.4}", change_percent),
+            &format!("{change_amount:.2}"),
+            &format!("{change_percent:.4}"),
             merit_amount, bonus_amount, equity_amount,
-            &format!("{:.2}", total_comp),
+            &format!("{total_comp:.2}"),
             performance_rating,
             &format!("{:.4}", if current > 0.0 { proposed / current } else { 0.0 }),
             manager_comments, created_by,
@@ -600,7 +600,7 @@ impl CompensationEngine {
     ) -> AtlasResult<CompensationWorksheetLine> {
         let line = self.repository.get_line(line_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet line {} not found", line_id)
+                format!("Worksheet line {line_id} not found")
             ))?;
 
         // Verify worksheet is still in draft
@@ -629,12 +629,12 @@ impl CompensationEngine {
         let updated = self.repository.update_worksheet_line(
             line_id,
             proposed_base_salary,
-            &format!("{:.2}", change_amount),
-            &format!("{:.4}", change_percent),
+            &format!("{change_amount:.2}"),
+            &format!("{change_percent:.4}"),
             merit_amount,
             bonus_amount,
             equity_amount,
-            &format!("{:.2}", total_comp),
+            &format!("{total_comp:.2}"),
             &format!("{:.4}", if current > 0.0 { proposed / current } else { 0.0 }),
             manager_comments,
         ).await?;
@@ -654,7 +654,7 @@ impl CompensationEngine {
     pub async fn delete_worksheet_line(&self, line_id: Uuid) -> AtlasResult<()> {
         let line = self.repository.get_line(line_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet line {} not found", line_id)
+                format!("Worksheet line {line_id} not found")
             ))?;
 
         let ws = self.repository.get_worksheet(line.worksheet_id).await?
@@ -704,7 +704,7 @@ impl CompensationEngine {
         // Verify cycle exists
         self.repository.get_cycle(cycle_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {} not found", cycle_id)
+                format!("Compensation cycle {cycle_id} not found")
             ))?;
 
         info!("Generating compensation statement for employee {} in cycle {}", employee_id, cycle_id);
@@ -713,9 +713,9 @@ impl CompensationEngine {
             org_id, cycle_id, employee_id, employee_name,
             chrono::Utc::now().date_naive(),
             base_salary, merit_increase, bonus, equity, benefits_value,
-            &format!("{:.2}", total),
-            &format!("{:.2}", direct),
-            &format!("{:.2}", indirect),
+            &format!("{total:.2}"),
+            &format!("{direct:.2}"),
+            &format!("{indirect:.2}"),
             "0", "0",
             currency_code, components,
         ).await
@@ -740,7 +740,7 @@ impl CompensationEngine {
     pub async fn publish_statement(&self, id: Uuid) -> AtlasResult<CompensationStatement> {
         let stmt = self.repository.get_statement(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Statement {} not found", id)
+                format!("Statement {id} not found")
             ))?;
 
         if stmt.status != "draft" {
@@ -796,12 +796,12 @@ impl CompensationEngine {
         self.repository.update_worksheet_totals(
             worksheet_id,
             total_employees,
-            &format!("{:.2}", total_current),
-            &format!("{:.2}", total_proposed),
-            &format!("{:.2}", total_merit),
-            &format!("{:.2}", total_bonus),
-            &format!("{:.2}", total_equity),
-            &format!("{:.2}", total_change),
+            &format!("{total_current:.2}"),
+            &format!("{total_proposed:.2}"),
+            &format!("{total_merit:.2}"),
+            &format!("{total_bonus:.2}"),
+            &format!("{total_equity:.2}"),
+            &format!("{total_change:.2}"),
         ).await
     }
 
@@ -819,7 +819,7 @@ impl CompensationEngine {
 
         self.repository.update_cycle_totals(
             cycle_id,
-            &format!("{:.2}", total_approved),
+            &format!("{total_approved:.2}"),
             total_employees,
         ).await
     }

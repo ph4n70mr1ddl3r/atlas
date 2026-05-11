@@ -542,8 +542,8 @@ pub struct CreateMatchingRuleRequest {
     pub stop_on_match: bool,
 }
 
-fn default_priority() -> i32 { 100 }
-fn default_true() -> bool { true }
+const fn default_priority() -> i32 { 100 }
+const fn default_true() -> bool { true }
 
 /// Create a matching rule
 pub async fn create_matching_rule(

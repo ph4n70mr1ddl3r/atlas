@@ -20,6 +20,7 @@ pub struct ActionResult {
 }
 
 impl ActionResult {
+    #[must_use] 
     pub fn success(action_name: &str, output: Option<serde_json::Value>) -> Self {
         Self {
             success: true,
@@ -29,6 +30,7 @@ impl ActionResult {
         }
     }
     
+    #[must_use] 
     pub fn failure(action_name: &str, error: String) -> Self {
         Self {
             success: false,
@@ -46,6 +48,7 @@ pub struct ActionExecutor {
 }
 
 impl ActionExecutor {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             handlers: Arc::new(RwLock::new(HashMap::new())),
@@ -72,7 +75,7 @@ impl ActionExecutor {
         record_data: &serde_json::Value,
     ) -> AtlasResult<ActionResult> {
         // Check for a registered custom handler first
-        let custom_handler_name = action_def.handler_name().map(|s| s.to_string());
+        let custom_handler_name = action_def.handler_name().map(std::string::ToString::to_string);
         if let Some(ref name) = custom_handler_name {
             let handler = {
                 let handlers = self.handlers.read().await;
@@ -180,7 +183,7 @@ impl ActionExecutor {
                 "record_id": record_id.to_string(),
                 "data": data
             });
-            publisher.publish(&format!("atlas.services.{}.action", service), &payload).await?;
+            publisher.publish(&format!("atlas.services.{service}.action"), &payload).await?;
         }
         
         Ok(ActionResult::success("invoke_action", Some(serde_json::json!({
@@ -199,7 +202,7 @@ impl ActionExecutor {
         
         // If user_field is specified, get the user ID from the record
         let user_id = if let Some(field) = user_field {
-            data.get(field).and_then(|v| v.as_str()).map(|s| s.to_string())
+            data.get(field).and_then(|v| v.as_str()).map(std::string::ToString::to_string)
         } else {
             None
         };
@@ -235,7 +238,7 @@ impl ActionExecutor {
                 "filter": filter,
                 "changes": changes
             });
-            publisher.publish(&format!("atlas.entity.{}.bulk_update", entity), &payload).await?;
+            publisher.publish(&format!("atlas.entity.{entity}.bulk_update"), &payload).await?;
         }
         
         Ok(ActionResult::success("update_related", Some(serde_json::json!({
@@ -257,7 +260,7 @@ impl ActionExecutor {
                 "entity": entity,
                 "values": values
             });
-            publisher.publish(&format!("atlas.entity.{}.create", entity), &payload).await?;
+            publisher.publish(&format!("atlas.entity.{entity}.create"), &payload).await?;
         }
         
         Ok(ActionResult::success("create_record", Some(serde_json::json!({

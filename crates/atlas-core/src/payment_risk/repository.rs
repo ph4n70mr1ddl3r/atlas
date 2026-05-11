@@ -1,6 +1,6 @@
 //! Payment Risk & Fraud Detection Repository
 //!
-//! PostgreSQL storage for risk profiles, fraud alerts, sanctions screening results,
+//! `PostgreSQL` storage for risk profiles, fraud alerts, sanctions screening results,
 //! and supplier risk assessments.
 
 use atlas_shared::{AtlasError, AtlasResult};
@@ -288,7 +288,8 @@ pub struct PostgresPaymentRiskRepository {
 }
 
 impl PostgresPaymentRiskRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -298,7 +299,7 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
     // Risk Profiles
     async fn create_risk_profile(&self, params: &RiskProfileCreateParams) -> AtlasResult<RiskProfile> {
         let row = sqlx::query_as::<_, RiskProfile>(
-            r#"INSERT INTO _atlas.payment_risk_profiles
+            r"INSERT INTO _atlas.payment_risk_profiles
                (organization_id, code, name, description, profile_type, default_risk_level,
                 duplicate_amount_tolerance_pct, duplicate_date_tolerance_days,
                 velocity_daily_limit, velocity_weekly_limit, amount_anomaly_std_dev,
@@ -307,7 +308,7 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
                 auto_block_critical, auto_block_high,
                 effective_from, effective_to, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(&params.code)
@@ -414,14 +415,14 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
     // Fraud Alerts
     async fn create_fraud_alert(&self, params: &FraudAlertCreateParams) -> AtlasResult<FraudAlert> {
         let row = sqlx::query_as::<_, FraudAlert>(
-            r#"INSERT INTO _atlas.payment_fraud_alerts
+            r"INSERT INTO _atlas.payment_fraud_alerts
                (organization_id, alert_type, severity, status,
                 payment_id, invoice_id, supplier_id, supplier_number, supplier_name,
                 amount, currency_code, risk_score, detection_rule,
                 description, evidence, assigned_to, assigned_team,
                 detected_date, related_alert_ids, created_by)
                VALUES ($1,$2,$3,'open',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,CURRENT_DATE,$17,$18)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(&params.alert_type)
@@ -486,12 +487,12 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
 
     async fn update_fraud_alert_status(&self, id: Uuid, status: &str, resolution_notes: Option<&str>, resolved_by: Option<Uuid>) -> AtlasResult<FraudAlert> {
         let row = sqlx::query_as::<_, FraudAlert>(
-            r#"UPDATE _atlas.payment_fraud_alerts
+            r"UPDATE _atlas.payment_fraud_alerts
                SET status = $2, resolution_notes = COALESCE($3, resolution_notes),
                    resolution_date = CASE WHEN $2 IN ('confirmed_fraud','false_positive','closed') THEN CURRENT_DATE ELSE resolution_date END,
                    resolved_by = COALESCE($4, resolved_by),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(status)
@@ -505,9 +506,9 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
 
     async fn assign_fraud_alert(&self, id: Uuid, assigned_to: Option<&str>, assigned_team: Option<&str>) -> AtlasResult<FraudAlert> {
         let row = sqlx::query_as::<_, FraudAlert>(
-            r#"UPDATE _atlas.payment_fraud_alerts
+            r"UPDATE _atlas.payment_fraud_alerts
                SET assigned_to = $2, assigned_team = $3, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(assigned_to)
@@ -533,13 +534,13 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
     // Sanctions Screening
     async fn create_screening_result(&self, params: &SanctionsScreeningCreateParams) -> AtlasResult<SanctionsScreeningResult> {
         let row = sqlx::query_as::<_, SanctionsScreeningResult>(
-            r#"INSERT INTO _atlas.sanctions_screening_results
+            r"INSERT INTO _atlas.sanctions_screening_results
                (organization_id, screening_type, supplier_id, supplier_name, payment_id,
                 screened_list, match_name, match_type, match_score, match_status,
                 sanctions_list_entry, sanctions_list_program, match_details,
                 action_taken, screening_date, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,CURRENT_DATE,$15)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(&params.screening_type)
@@ -589,9 +590,9 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
 
     async fn review_screening_result(&self, id: Uuid, reviewed_by: &str, review_notes: Option<&str>, action_taken: &str) -> AtlasResult<SanctionsScreeningResult> {
         let row = sqlx::query_as::<_, SanctionsScreeningResult>(
-            r#"UPDATE _atlas.sanctions_screening_results
+            r"UPDATE _atlas.sanctions_screening_results
                SET reviewed_by = $2, review_notes = $3, action_taken = $4, reviewed_date = CURRENT_DATE
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(reviewed_by)
@@ -618,7 +619,7 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
     // Supplier Risk Assessments
     async fn create_assessment(&self, params: &SupplierRiskAssessmentCreateParams) -> AtlasResult<SupplierRiskAssessment> {
         let row = sqlx::query_as::<_, SupplierRiskAssessment>(
-            r#"INSERT INTO _atlas.supplier_risk_assessments
+            r"INSERT INTO _atlas.supplier_risk_assessments
                (organization_id, supplier_id, supplier_name, assessment_date, assessment_type,
                 overall_risk_level, status,
                 financial_risk_score, operational_risk_score, compliance_risk_score,
@@ -632,7 +633,7 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
                        $5,$6,$7,$8,'0.00',
                        $9,$10,$11,$12,$13,$14,$15,
                        $16,$17,$18,$19,$20,$21,$22,$23)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(params.supplier_id)

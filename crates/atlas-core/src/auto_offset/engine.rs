@@ -10,7 +10,7 @@
 //!
 //! Oracle Fusion Cloud ERP: Financials > General Ledger > Automatic Offsets
 
-use super::*;
+use super::{AutoOffsetRepository, AtlasResult, AutoOffsetTemplate, AutoOffsetTemplateLine, AutoOffsetGeneration, AutoOffsetLine, AutoOffsetActivity, AutoOffsetDashboard};
 use atlas_shared::AtlasError;
 use std::sync::Arc;
 use tracing::info;
@@ -97,7 +97,7 @@ impl AutoOffsetEngine {
         // Check duplicate
         if let Some(_existing) = self.repository.get_template_by_code(org_id, template_code).await? {
             return Err(AtlasError::Conflict(format!(
-                "Offset template code '{}' already exists", template_code
+                "Offset template code '{template_code}' already exists"
             )));
         }
 
@@ -187,7 +187,7 @@ impl AutoOffsetEngine {
         // Verify template exists
         let _template = self.repository.get_template(template_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Template {} not found", template_id)
+                format!("Template {template_id} not found")
             ))?;
 
         info!("Auto Offset Engine: Adding line {} for segment '{}' to template {}",
@@ -243,7 +243,7 @@ impl AutoOffsetEngine {
         // Validate template exists and is active
         let template = self.repository.get_template(template_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Template {} not found", template_id)
+                format!("Template {template_id} not found")
             ))?;
 
         if !template.is_active {
@@ -387,7 +387,7 @@ impl AutoOffsetEngine {
 
         let gen = self.repository.get_generation(generation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Generation {} not found", generation_id)
+                format!("Generation {generation_id} not found")
             ))?;
 
         if gen.status != "generated" {
@@ -414,7 +414,7 @@ impl AutoOffsetEngine {
 
         let gen = self.repository.get_generation(generation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Generation {} not found", generation_id)
+                format!("Generation {generation_id} not found")
             ))?;
 
         if gen.status != "posted" {
@@ -441,7 +441,7 @@ impl AutoOffsetEngine {
 
         let gen = self.repository.get_generation(generation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Generation {} not found", generation_id)
+                format!("Generation {generation_id} not found")
             ))?;
 
         if gen.status != "generated" {

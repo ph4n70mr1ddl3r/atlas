@@ -1,6 +1,6 @@
 //! Multi-Book Accounting Repository
 //!
-//! PostgreSQL storage for accounting books, account mappings,
+//! `PostgreSQL` storage for accounting books, account mappings,
 //! book journal entries, journal lines, and propagation logs.
 
 use atlas_shared::{
@@ -147,13 +147,14 @@ pub trait MultiBookAccountingRepository: Send + Sync {
     ) -> AtlasResult<Vec<PropagationLog>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresMultiBookAccountingRepository {
     pool: PgPool,
 }
 
 impl PostgresMultiBookAccountingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -284,7 +285,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingBook> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.accounting_books
                 (organization_id, code, name, description, book_type,
                  chart_of_accounts_code, calendar_code, currency_code,
@@ -296,7 +297,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
                     currency_code = $8, auto_propagation_enabled = $9,
                     mapping_level = $10, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(book_type)
         .bind(chart_of_accounts_code).bind(calendar_code).bind(currency_code)
@@ -354,12 +355,12 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
 
     async fn update_book_status(&self, id: Uuid, status: &str) -> AtlasResult<AccountingBook> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.accounting_books
             SET status = $2, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool)
@@ -397,7 +398,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountMapping> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.account_mappings
                 (organization_id, source_book_id, target_book_id,
                  source_account_code, target_account_code,
@@ -405,7 +406,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
                  effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(source_book_id).bind(target_book_id)
         .bind(source_account_code).bind(target_account_code)
@@ -460,7 +461,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         let today = chrono::Utc::now().date_naive();
         // Try exact match first, then prefix match
         let row = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.account_mappings
             WHERE organization_id = $1
               AND source_book_id = $2
@@ -471,7 +472,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
               AND (effective_to IS NULL OR effective_to >= $5)
             ORDER BY priority
             LIMIT 1
-            "#,
+            ",
         )
         .bind(org_id).bind(source_book_id).bind(target_book_id)
         .bind(source_account_code).bind(today)
@@ -479,37 +480,34 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        match row {
-            Some(r) => Ok(Some(self.row_to_mapping(&r))),
-            None => {
-                // Try prefix/wildcard match
-                let prefix = if source_account_code.len() > 4 {
-                    &source_account_code[..4]
-                } else {
-                    source_account_code
-                };
-                let pattern = format!("{}%", prefix);
-                let row = sqlx::query(
-                    r#"
-                    SELECT * FROM _atlas.account_mappings
-                    WHERE organization_id = $1
-                      AND source_book_id = $2
-                      AND target_book_id = $3
-                      AND source_account_code LIKE $4
-                      AND is_active = true
-                      AND (effective_from IS NULL OR effective_from <= $5)
-                      AND (effective_to IS NULL OR effective_to >= $5)
-                    ORDER BY priority
-                    LIMIT 1
-                    "#,
-                )
-                .bind(org_id).bind(source_book_id).bind(target_book_id)
-                .bind(&pattern).bind(today)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-                Ok(row.map(|r| self.row_to_mapping(&r)))
-            }
+        if let Some(r) = row { Ok(Some(self.row_to_mapping(&r))) } else {
+            // Try prefix/wildcard match
+            let prefix = if source_account_code.len() > 4 {
+                &source_account_code[..4]
+            } else {
+                source_account_code
+            };
+            let pattern = format!("{prefix}%");
+            let row = sqlx::query(
+                r"
+                SELECT * FROM _atlas.account_mappings
+                WHERE organization_id = $1
+                  AND source_book_id = $2
+                  AND target_book_id = $3
+                  AND source_account_code LIKE $4
+                  AND is_active = true
+                  AND (effective_from IS NULL OR effective_from <= $5)
+                  AND (effective_to IS NULL OR effective_to >= $5)
+                ORDER BY priority
+                LIMIT 1
+                ",
+            )
+            .bind(org_id).bind(source_book_id).bind(target_book_id)
+            .bind(&pattern).bind(today)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            Ok(row.map(|r| self.row_to_mapping(&r)))
         }
     }
 
@@ -549,7 +547,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BookJournalEntry> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.book_journal_entries
                 (organization_id, book_id, entry_number, header_description,
                  source_book_id, source_entry_id, external_reference,
@@ -559,7 +557,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
                     $10::numeric, $11::numeric, $12, $13, $14, $15::numeric, $16, $17)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(book_id).bind(entry_number).bind(header_description)
         .bind(source_book_id).bind(source_entry_id).bind(external_reference)
@@ -615,11 +613,10 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
     ) -> AtlasResult<BookJournalEntry> {
         let posted_at_expr = if status == "posted" { "COALESCE(posted_at, now())" } else { "posted_at" };
         let query_str = format!(
-            r#"UPDATE _atlas.book_journal_entries
-            SET status = $2, posted_by = $3, posted_at = {}, updated_at = now()
+            r"UPDATE _atlas.book_journal_entries
+            SET status = $2, posted_by = $3, posted_at = {posted_at_expr}, updated_at = now()
             WHERE id = $1
-            RETURNING *"#,
-            posted_at_expr
+            RETURNING *"
         );
         let row = sqlx::query(&query_str)
             .bind(id).bind(status).bind(posted_by)
@@ -648,14 +645,14 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         metadata: serde_json::Value,
     ) -> AtlasResult<BookJournalLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.book_journal_lines
                 (organization_id, entry_id, line_number, account_code, account_name,
                  debit_amount, credit_amount, description, tax_code,
                  source_line_id, metadata)
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7::numeric, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(entry_id).bind(line_number).bind(account_code)
         .bind(account_name).bind(debit_amount).bind(credit_amount)
@@ -696,7 +693,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         metadata: serde_json::Value,
     ) -> AtlasResult<PropagationLog> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.propagation_logs
                 (organization_id, source_book_id, target_book_id,
                  source_entry_id, target_entry_id,
@@ -704,7 +701,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
                  error_message, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(source_book_id).bind(target_book_id)
         .bind(source_entry_id).bind(target_entry_id)

@@ -1,6 +1,6 @@
 //! Tax Repository
 //!
-//! PostgreSQL storage for tax regimes, jurisdictions, rates,
+//! `PostgreSQL` storage for tax regimes, jurisdictions, rates,
 //! determination rules, tax lines, and reports.
 
 use atlas_shared::{
@@ -138,13 +138,14 @@ pub trait TaxRepository: Send + Sync {
     async fn list_tax_reports(&self, org_id: Uuid, regime_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::TaxReport>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresTaxRepository {
     pool: PgPool,
 }
 
 impl PostgresTaxRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -296,7 +297,7 @@ impl TaxRepository for PostgresTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxRegime> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_regimes
                 (organization_id, code, name, description, tax_type,
                  default_inclusive, allows_recovery, rounding_rule, rounding_precision,
@@ -308,7 +309,7 @@ impl TaxRepository for PostgresTaxRepository {
                     rounding_rule = $8, rounding_precision = $9,
                     effective_from = $10, effective_to = $11, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(tax_type)
         .bind(default_inclusive).bind(allows_recovery).bind(rounding_rule).bind(rounding_precision)
@@ -383,7 +384,7 @@ impl TaxRepository for PostgresTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxJurisdiction> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_jurisdictions
                 (organization_id, regime_id, code, name, geographic_level,
                  country_code, state_code, county, city, postal_code_pattern, created_by)
@@ -393,7 +394,7 @@ impl TaxRepository for PostgresTaxRepository {
                     state_code = $7, county = $8, city = $9,
                     postal_code_pattern = $10, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(regime_id).bind(code).bind(name).bind(geographic_level)
         .bind(country_code).bind(state_code).bind(county).bind(city)
@@ -464,7 +465,7 @@ impl TaxRepository for PostgresTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxRate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_rates
                 (organization_id, regime_id, jurisdiction_id, code, name,
                  rate_percentage, rate_type, tax_account_code, recoverable,
@@ -476,7 +477,7 @@ impl TaxRepository for PostgresTaxRepository {
                     recovery_percentage = $10::numeric, effective_from = $11,
                     effective_to = $12, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(regime_id).bind(jurisdiction_id).bind(code).bind(name)
         .bind(rate_percentage).bind(rate_type).bind(tax_account_code).bind(recoverable)
@@ -522,10 +523,10 @@ impl TaxRepository for PostgresTaxRepository {
 
     async fn get_effective_tax_rates(&self, org_id: Uuid, regime_id: Uuid, on_date: chrono::NaiveDate) -> AtlasResult<Vec<TaxRate>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.tax_rates
+            r"SELECT * FROM _atlas.tax_rates
             WHERE organization_id = $1 AND regime_id = $2 AND is_active = true
               AND effective_from <= $3 AND (effective_to IS NULL OR effective_to >= $3)
-            ORDER BY code"#
+            ORDER BY code"
         )
         .bind(org_id).bind(regime_id).bind(on_date)
         .fetch_all(&self.pool)
@@ -575,13 +576,13 @@ impl TaxRepository for PostgresTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxDeterminationRule> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_determination_rules
                 (organization_id, regime_id, name, description, priority,
                  condition, action, stop_on_match, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(regime_id).bind(name).bind(description).bind(priority)
         .bind(condition).bind(action).bind(stop_on_match)
@@ -628,7 +629,7 @@ impl TaxRepository for PostgresTaxRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_lines
                 (organization_id, entity_type, entity_id, line_id,
                  regime_id, jurisdiction_id, tax_rate_id,
@@ -640,7 +641,7 @@ impl TaxRepository for PostgresTaxRepository {
                     $11, $12::numeric, $13::numeric, $14::numeric,
                     $15, $16, $17)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(entity_type).bind(entity_id).bind(line_id)
         .bind(regime_id).bind(jurisdiction_id).bind(tax_rate_id)
@@ -679,7 +680,7 @@ impl TaxRepository for PostgresTaxRepository {
     ) -> AtlasResult<atlas_shared::TaxReport> {
         // Aggregate tax lines for the period
         let agg = sqlx::query(
-            r#"
+            r"
             SELECT
                 COALESCE(SUM(taxable_amount), 0) as total_taxable,
                 COALESCE(SUM(tax_amount), 0) as total_tax,
@@ -689,7 +690,7 @@ impl TaxRepository for PostgresTaxRepository {
             FROM _atlas.tax_lines
             WHERE organization_id = $1 AND regime_id = $2
               AND created_at >= $3 AND created_at <= $4
-            "#,
+            ",
         )
         .bind(org_id).bind(regime_id)
         .bind(period_start).bind(period_end)
@@ -704,7 +705,7 @@ impl TaxRepository for PostgresTaxRepository {
         let txn_count: i64 = agg.try_get("txn_count").unwrap_or(0);
 
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.tax_reports
                 (organization_id, regime_id, jurisdiction_id,
                  period_start, period_end,
@@ -718,7 +719,7 @@ impl TaxRepository for PostgresTaxRepository {
                 total_recoverable_amount = $8::numeric, total_non_recoverable_amount = $9::numeric,
                 transaction_count = $10, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(regime_id).bind(jurisdiction_id)
         .bind(period_start).bind(period_end)

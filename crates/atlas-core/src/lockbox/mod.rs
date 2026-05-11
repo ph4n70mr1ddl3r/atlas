@@ -132,7 +132,8 @@ pub trait LockboxRepository: Send + Sync {
 #[allow(dead_code)]
 pub struct PostgresLockboxRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresLockboxRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresLockboxRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl LockboxRepository for PostgresLockboxRepository {

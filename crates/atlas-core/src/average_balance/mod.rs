@@ -184,10 +184,11 @@ pub trait AverageBalanceRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<AverageBalanceDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresAverageBalanceRepository { #[allow(dead_code)] pool: PgPool }
-impl PostgresAverageBalanceRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresAverageBalanceRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl AverageBalanceRepository for PostgresAverageBalanceRepository {

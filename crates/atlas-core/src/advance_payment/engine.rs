@@ -9,7 +9,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Accounts Payable > Advance Payments
 
-use super::*;
+use super::{AdvancePaymentRepository, AtlasResult, AdvancePayment, AtlasError, AdvanceApplication, AdvancePaymentDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -92,7 +92,7 @@ impl AdvancePaymentEngine {
             }
         }
         if self.repository.get_advance_by_number(org_id, advance_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Advance number '{}' already exists", advance_number)));
+            return Err(AtlasError::Conflict(format!("Advance number '{advance_number}' already exists")));
         }
 
         info!("Creating advance payment {} for supplier {} ({})", advance_number, supplier_name, supplier_id);
@@ -139,7 +139,7 @@ impl AdvancePaymentEngine {
     /// Approve a draft advance payment
     pub async fn approve_advance(&self, advance_id: Uuid, _approved_by: Uuid) -> AtlasResult<AdvancePayment> {
         let adv = self.repository.get_advance(advance_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Advance {} not found", advance_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Advance {advance_id} not found")))?;
 
         if adv.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -154,7 +154,7 @@ impl AdvancePaymentEngine {
     /// Record payment for an approved advance
     pub async fn pay_advance(&self, advance_id: Uuid, payment_reference: Option<&str>, paid_by: Option<Uuid>) -> AtlasResult<AdvancePayment> {
         let adv = self.repository.get_advance(advance_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Advance {} not found", advance_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Advance {advance_id} not found")))?;
 
         if adv.status != "approved" {
             return Err(AtlasError::WorkflowError(
@@ -170,7 +170,7 @@ impl AdvancePaymentEngine {
     /// Cancel a draft or approved advance
     pub async fn cancel_advance(&self, advance_id: Uuid, _reason: Option<&str>) -> AtlasResult<AdvancePayment> {
         let adv = self.repository.get_advance(advance_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Advance {} not found", advance_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Advance {advance_id} not found")))?;
 
         if adv.status != "draft" && adv.status != "approved" {
             return Err(AtlasError::WorkflowError(
@@ -199,7 +199,7 @@ impl AdvancePaymentEngine {
         applied_by: Option<Uuid>,
     ) -> AtlasResult<AdvanceApplication> {
         let adv = self.repository.get_advance(advance_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Advance {} not found", advance_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Advance {advance_id} not found")))?;
 
         if adv.status != "paid" && adv.status != "partially_applied" {
             return Err(AtlasError::WorkflowError(
@@ -215,7 +215,7 @@ impl AdvancePaymentEngine {
         let unapplied: f64 = adv.unapplied_amount.parse().unwrap_or(0.0);
         if amount > unapplied + 0.01 {
             return Err(AtlasError::ValidationFailed(
-                format!("Applied amount {} exceeds unapplied amount {}", amount, unapplied)
+                format!("Applied amount {amount} exceeds unapplied amount {unapplied}")
             ));
         }
 
@@ -241,8 +241,8 @@ impl AdvancePaymentEngine {
 
         self.repository.update_advance_amounts(
             advance_id,
-            &format!("{:.2}", total_applied),
-            &format!("{:.2}", new_unapplied),
+            &format!("{total_applied:.2}"),
+            &format!("{new_unapplied:.2}"),
             new_status,
         ).await?;
 
@@ -252,7 +252,7 @@ impl AdvancePaymentEngine {
     /// Unapply (reverse) an advance application
     pub async fn unapply_application(&self, application_id: Uuid, reversed_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<AdvanceApplication> {
         let app = self.repository.get_application(application_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {} not found", application_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {application_id} not found")))?;
 
         if app.status != "applied" {
             return Err(AtlasError::WorkflowError(
@@ -278,8 +278,8 @@ impl AdvancePaymentEngine {
             let new_status = if total_applied.abs() < 0.01 { "paid" } else { "partially_applied" };
             self.repository.update_advance_amounts(
                 app.advance_id,
-                &format!("{:.2}", total_applied),
-                &format!("{:.2}", new_unapplied),
+                &format!("{total_applied:.2}"),
+                &format!("{new_unapplied:.2}"),
                 new_status,
             ).await?;
         }

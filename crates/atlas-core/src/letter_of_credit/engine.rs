@@ -59,7 +59,7 @@ const VALID_PRESENTATION_STATUSES: &[&str] = &[
     "accepted", "paid", "rejected", "returned",
 ];
 
-/// Valid available_by values
+/// Valid `available_by` values
 const VALID_AVAILABLE_BY: &[&str] = &[
     "payment", "acceptance", "negotiation", "deferred_payment", "mixed",
 ];
@@ -127,13 +127,13 @@ impl LetterOfCreditEngine {
             return Err(AtlasError::ValidationFailed("LC number is required".to_string()));
         }
         if !VALID_LC_TYPES.contains(&lc_type) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid LC type: {}", lc_type)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid LC type: {lc_type}")));
         }
         if !VALID_LC_FORMS.contains(&lc_form) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid LC form: {}", lc_form)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid LC form: {lc_form}")));
         }
         if !VALID_AVAILABLE_BY.contains(&available_by) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid available_by: {}", available_by)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid available_by: {available_by}")));
         }
         let amount_val: f64 = lc_amount.parse()
             .map_err(|_| AtlasError::ValidationFailed("Invalid LC amount".to_string()))?;
@@ -152,7 +152,7 @@ impl LetterOfCreditEngine {
 
         // Check uniqueness
         if self.repository.get_lc_by_number(org_id, lc_number).await?.is_some() {
-            return Err(AtlasError::ValidationFailed(format!("LC number already exists: {}", lc_number)));
+            return Err(AtlasError::ValidationFailed(format!("LC number already exists: {lc_number}")));
         }
 
         let lc = LetterOfCredit {
@@ -161,45 +161,45 @@ impl LetterOfCreditEngine {
             lc_number: lc_number.to_string(),
             lc_type: lc_type.to_string(),
             lc_form: lc_form.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             applicant_name: applicant_name.to_string(),
-            applicant_address: applicant_address.map(|s| s.to_string()),
+            applicant_address: applicant_address.map(std::string::ToString::to_string),
             applicant_bank_name: applicant_bank_name.to_string(),
-            applicant_bank_swift: applicant_bank_swift.map(|s| s.to_string()),
+            applicant_bank_swift: applicant_bank_swift.map(std::string::ToString::to_string),
             beneficiary_name: beneficiary_name.to_string(),
-            beneficiary_address: beneficiary_address.map(|s| s.to_string()),
-            beneficiary_bank_name: beneficiary_bank_name.map(|s| s.to_string()),
-            beneficiary_bank_swift: beneficiary_bank_swift.map(|s| s.to_string()),
-            advising_bank_name: advising_bank_name.map(|s| s.to_string()),
-            advising_bank_swift: advising_bank_swift.map(|s| s.to_string()),
-            confirming_bank_name: confirming_bank_name.map(|s| s.to_string()),
-            confirming_bank_swift: confirming_bank_swift.map(|s| s.to_string()),
+            beneficiary_address: beneficiary_address.map(std::string::ToString::to_string),
+            beneficiary_bank_name: beneficiary_bank_name.map(std::string::ToString::to_string),
+            beneficiary_bank_swift: beneficiary_bank_swift.map(std::string::ToString::to_string),
+            advising_bank_name: advising_bank_name.map(std::string::ToString::to_string),
+            advising_bank_swift: advising_bank_swift.map(std::string::ToString::to_string),
+            confirming_bank_name: confirming_bank_name.map(std::string::ToString::to_string),
+            confirming_bank_swift: confirming_bank_swift.map(std::string::ToString::to_string),
             lc_amount: lc_amount.to_string(),
             currency_code: currency_code.to_string(),
             tolerance_plus: tolerance_plus.to_string(),
             tolerance_minus: tolerance_minus.to_string(),
-            available_with: available_with.map(|s| s.to_string()),
+            available_with: available_with.map(std::string::ToString::to_string),
             available_by: available_by.to_string(),
-            draft_at: draft_at.map(|s| s.to_string()),
+            draft_at: draft_at.map(std::string::ToString::to_string),
             issue_date: None,
             expiry_date,
-            place_of_expiry: place_of_expiry.map(|s| s.to_string()),
+            place_of_expiry: place_of_expiry.map(std::string::ToString::to_string),
             partial_shipments: partial_shipments.to_string(),
             transshipment: transshipment.to_string(),
-            port_of_loading: port_of_loading.map(|s| s.to_string()),
-            port_of_discharge: port_of_discharge.map(|s| s.to_string()),
+            port_of_loading: port_of_loading.map(std::string::ToString::to_string),
+            port_of_discharge: port_of_discharge.map(std::string::ToString::to_string),
             shipment_period,
             latest_shipment_date,
-            goods_description: goods_description.map(|s| s.to_string()),
-            incoterms: incoterms.map(|s| s.to_string()),
-            additional_conditions: additional_conditions.map(|s| s.to_string()),
+            goods_description: goods_description.map(std::string::ToString::to_string),
+            incoterms: incoterms.map(std::string::ToString::to_string),
+            additional_conditions: additional_conditions.map(std::string::ToString::to_string),
             bank_charges: bank_charges.to_string(),
             status: "draft".to_string(),
             amendment_count: 0,
             latest_amendment_number: None,
-            reference_po_number: reference_po_number.map(|s| s.to_string()),
-            reference_contract_number: reference_contract_number.map(|s| s.to_string()),
-            notes: notes.map(|s| s.to_string()),
+            reference_po_number: reference_po_number.map(std::string::ToString::to_string),
+            reference_contract_number: reference_contract_number.map(std::string::ToString::to_string),
+            notes: notes.map(std::string::ToString::to_string),
             created_by_id: created_by,
             approved_by_id: None,
             created_at: chrono::Utc::now(),
@@ -364,7 +364,7 @@ impl LetterOfCreditEngine {
         }
 
         if !VALID_AMENDMENT_TYPES.contains(&amendment_type) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid amendment type: {}", amendment_type)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid amendment type: {amendment_type}")));
         }
 
         let amendment_number = format!("AMD-{:03}", lc.amendment_count + 1);
@@ -376,14 +376,14 @@ impl LetterOfCreditEngine {
             lc_number: lc.lc_number.clone(),
             amendment_number: amendment_number.clone(),
             amendment_type: amendment_type.to_string(),
-            previous_amount: previous_amount.map(|s| s.to_string()),
-            new_amount: new_amount.map(|s| s.to_string()),
+            previous_amount: previous_amount.map(std::string::ToString::to_string),
+            new_amount: new_amount.map(std::string::ToString::to_string),
             previous_expiry_date,
             new_expiry_date,
-            previous_terms: previous_terms.map(|s| s.to_string()),
-            new_terms: new_terms.map(|s| s.to_string()),
-            reason: reason.map(|s| s.to_string()),
-            bank_reference: bank_reference.map(|s| s.to_string()),
+            previous_terms: previous_terms.map(std::string::ToString::to_string),
+            new_terms: new_terms.map(std::string::ToString::to_string),
+            reason: reason.map(std::string::ToString::to_string),
+            bank_reference: bank_reference.map(std::string::ToString::to_string),
             status: "draft".to_string(),
             effective_date,
             approved_by_id: None,
@@ -470,12 +470,12 @@ impl LetterOfCreditEngine {
             org_id,
             lc_id,
             document_type: document_type.to_string(),
-            document_code: document_code.map(|s| s.to_string()),
-            description: description.map(|s| s.to_string()),
+            document_code: document_code.map(std::string::ToString::to_string),
+            description: description.map(std::string::ToString::to_string),
             original_copies,
             copy_count,
             is_mandatory,
-            special_instructions: special_instructions.map(|s| s.to_string()),
+            special_instructions: special_instructions.map(std::string::ToString::to_string),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
@@ -535,24 +535,24 @@ impl LetterOfCreditEngine {
             org_id,
             lc_id,
             shipment_number: shipment_number.to_string(),
-            vessel_name: vessel_name.map(|s| s.to_string()),
-            voyage_number: voyage_number.map(|s| s.to_string()),
-            bill_of_lading_number: bill_of_lading_number.map(|s| s.to_string()),
-            carrier_name: carrier_name.map(|s| s.to_string()),
-            port_of_loading: port_of_loading.map(|s| s.to_string()),
-            port_of_discharge: port_of_discharge.map(|s| s.to_string()),
+            vessel_name: vessel_name.map(std::string::ToString::to_string),
+            voyage_number: voyage_number.map(std::string::ToString::to_string),
+            bill_of_lading_number: bill_of_lading_number.map(std::string::ToString::to_string),
+            carrier_name: carrier_name.map(std::string::ToString::to_string),
+            port_of_loading: port_of_loading.map(std::string::ToString::to_string),
+            port_of_discharge: port_of_discharge.map(std::string::ToString::to_string),
             shipment_date,
             expected_arrival_date,
             actual_arrival_date: None,
             shipping_marks: None,
             container_numbers: None,
-            goods_description: goods_description.map(|s| s.to_string()),
-            quantity: quantity.map(|s| s.to_string()),
-            unit_price: unit_price.map(|s| s.to_string()),
+            goods_description: goods_description.map(std::string::ToString::to_string),
+            quantity: quantity.map(std::string::ToString::to_string),
+            unit_price: unit_price.map(std::string::ToString::to_string),
             shipment_amount: shipment_amount.to_string(),
             currency_code: currency_code.to_string(),
             status: "pending".to_string(),
-            notes: notes.map(|s| s.to_string()),
+            notes: notes.map(std::string::ToString::to_string),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
@@ -569,7 +569,7 @@ impl LetterOfCreditEngine {
     /// Update shipment status
     pub async fn update_shipment_status(&self, shipment_id: Uuid, status: &str) -> AtlasResult<LcShipment> {
         if !VALID_SHIPMENT_STATUSES.contains(&status) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid shipment status: {}", status)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid shipment status: {status}")));
         }
         self.repository.get_shipment_by_id(shipment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound("Shipment not found".to_string()))?;
@@ -619,19 +619,19 @@ impl LetterOfCreditEngine {
             presentation_number: presentation_number.to_string(),
             shipment_id,
             presentation_date,
-            presenting_bank_name: presenting_bank_name.map(|s| s.to_string()),
+            presenting_bank_name: presenting_bank_name.map(std::string::ToString::to_string),
             total_amount: total_amount.to_string(),
             currency_code: currency_code.to_string(),
             document_count: 0,
             discrepant,
-            discrepancies: discrepancies.map(|s| s.to_string()),
+            discrepancies: discrepancies.map(std::string::ToString::to_string),
             bank_response: None,
             response_date: None,
             payment_due_date: None,
             payment_date: None,
             paid_amount: None,
             status: "submitted".to_string(),
-            notes: notes.map(|s| s.to_string()),
+            notes: notes.map(std::string::ToString::to_string),
             created_by_id: created_by,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
@@ -720,12 +720,12 @@ impl LetterOfCreditEngine {
             presentation_id,
             required_document_id,
             document_type: document_type.to_string(),
-            document_reference: document_reference.map(|s| s.to_string()),
-            description: description.map(|s| s.to_string()),
+            document_reference: document_reference.map(std::string::ToString::to_string),
+            description: description.map(std::string::ToString::to_string),
             original_copies,
             copy_count,
             is_compliant,
-            discrepancies: discrepancies.map(|s| s.to_string()),
+            discrepancies: discrepancies.map(std::string::ToString::to_string),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };

@@ -100,7 +100,7 @@ impl Lexer {
                 },
                 '>' => Some(Token::Operator(">".to_string())),
                 '<' => Some(Token::Operator("<".to_string())),
-                _ => return Err(format!("Unexpected character: {}", ch)),
+                _ => return Err(format!("Unexpected character: {ch}")),
             };
             
             if let Some(tok) = token {
@@ -121,7 +121,7 @@ impl Lexer {
         self.input.chars().nth(self.pos + 1).unwrap_or('\0')
     }
     
-    fn advance(&mut self) {
+    const fn advance(&mut self) {
         self.pos += 1;
     }
     
@@ -198,7 +198,8 @@ pub struct FormulaParser {
 }
 
 impl FormulaParser {
-    pub fn new(tokens: Vec<Token>) -> Self {
+    #[must_use] 
+    pub const fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, pos: 0 }
     }
     
@@ -356,7 +357,7 @@ impl FormulaParser {
                 self.expect(&Token::RParen)?;
                 Ok(expr)
             }
-            _ => Err(format!("Unexpected token: {:?}", token)),
+            _ => Err(format!("Unexpected token: {token:?}")),
         }
     }
     
@@ -379,7 +380,7 @@ impl FormulaParser {
         self.tokens.get(self.pos).unwrap_or(&Token::Eof)
     }
     
-    fn advance(&mut self) {
+    const fn advance(&mut self) {
         if self.pos < self.tokens.len() {
             self.pos += 1;
         }
@@ -404,10 +405,10 @@ pub enum AstNode {
     Null,
     Identifier(String),
     Field(String),
-    BinaryOp { op: String, left: Box<AstNode>, right: Box<AstNode> },
-    UnaryOp { op: String, operand: Box<AstNode> },
-    Function { name: String, args: Vec<AstNode> },
-    If { condition: Box<AstNode>, then: Box<AstNode>, else_: Box<AstNode> },
+    BinaryOp { op: String, left: Box<Self>, right: Box<Self> },
+    UnaryOp { op: String, operand: Box<Self> },
+    Function { name: String, args: Vec<Self> },
+    If { condition: Box<Self>, then: Box<Self>, else_: Box<Self> },
 }
 
 /// Parse a formula string into an AST

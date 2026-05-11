@@ -22,12 +22,13 @@ pub struct RlsRule {
 /// RLS filter builder
 pub struct RlsFilterBuilder {
     /// Rules stored in insertion order so that parameter binding is
-    /// deterministic across runs (HashMap iteration order is not defined).
+    /// deterministic across runs (`HashMap` iteration order is not defined).
     rules: Vec<(String, Vec<RlsRule>)>,
 }
 
 impl RlsFilterBuilder {
-    pub fn new() -> Self {
+    #[must_use] 
+    pub const fn new() -> Self {
         Self { rules: Vec::new() }
     }
 
@@ -52,6 +53,7 @@ impl RlsFilterBuilder {
     /// **Stability guarantee**: rules are applied in insertion order so that
     /// `$N` placeholders produced here always line up with the values
     /// returned by `bind_rls_values`.
+    #[must_use] 
     pub fn build_filter(&self, entity: &str, ctx: &SecurityContext) -> Option<String> {
         let (_, rules) = self.rules.iter().find(|(e, _)| e == entity)?;
 
@@ -80,12 +82,12 @@ impl RlsFilterBuilder {
         let mut idx = start_idx;
 
         if ctx.user_id.is_some() && result.contains("{{user_id}}") {
-            result = result.replace("{{user_id}}", &format!("${}", idx));
+            result = result.replace("{{user_id}}", &format!("${idx}"));
             idx += 1;
         }
 
         if ctx.organization_id.is_some() && result.contains("{{organization_id}}") {
-            result = result.replace("{{organization_id}}", &format!("${}", idx));
+            result = result.replace("{{organization_id}}", &format!("${idx}"));
             idx += 1;
         }
 
@@ -96,6 +98,7 @@ impl RlsFilterBuilder {
     /// in the same order as the `$N` placeholders produced by `build_filter`.
     ///
     /// The caller is responsible for binding these values to the query.
+    #[must_use] 
     pub fn bind_rls_values(&self, entity: &str, ctx: &SecurityContext) -> Vec<uuid::Uuid> {
         let Some((_, rules)) = self.rules.iter().find(|(e, _)| e == entity) else {
             return vec![];
@@ -124,6 +127,7 @@ impl RlsFilterBuilder {
     /// Build INSERT check (for checking if user can insert).
     ///
     /// Same parameterized approach as `build_filter`.
+    #[must_use] 
     pub fn build_insert_check(&self, entity: &str, ctx: &SecurityContext) -> Option<String> {
         let (_, rules) = self.rules.iter().find(|(e, _)| e == entity)?;
 
@@ -151,9 +155,10 @@ pub mod patterns {
     use crate::security::rls::RlsRule;
 
     /// Organization-based RLS
+    #[must_use] 
     pub fn org_filter(field: &str) -> RlsRule {
         RlsRule {
-            condition: format!("{} = {{{{organization_id}}}}", field),
+            condition: format!("{field} = {{{{organization_id}}}}"),
             roles: vec![],
             for_insert: true,
             for_update: true,
@@ -162,9 +167,10 @@ pub mod patterns {
     }
 
     /// Owner-based RLS
+    #[must_use] 
     pub fn owner_filter(field: &str) -> RlsRule {
         RlsRule {
-            condition: format!("{} = {{{{user_id}}}}", field),
+            condition: format!("{field} = {{{{user_id}}}}"),
             roles: vec![],
             for_insert: true,
             for_update: true,
@@ -173,10 +179,11 @@ pub mod patterns {
     }
 
     /// Role-based RLS
+    #[must_use] 
     pub fn role_filter(condition: &str, roles: Vec<&str>) -> RlsRule {
         RlsRule {
             condition: condition.to_string(),
-            roles: roles.into_iter().map(|s| s.to_string()).collect(),
+            roles: roles.into_iter().map(std::string::ToString::to_string).collect(),
             for_insert: true,
             for_update: true,
             for_delete: true,

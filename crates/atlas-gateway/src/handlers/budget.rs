@@ -43,7 +43,7 @@ pub struct CreateBudgetDefinitionRequest {
 
 fn default_budget_type() -> String { "operating".to_string() }
 fn default_control_level() -> String { "none".to_string() }
-fn default_true_fn() -> bool { true }
+const fn default_true_fn() -> bool { true }
 fn default_usd() -> String { "USD".to_string() }
 
 /// Create or update a budget definition

@@ -51,13 +51,14 @@ struct EntityRow {
     metadata: Value,
 }
 
-/// PostgreSQL implementation of SchemaRepository
+/// `PostgreSQL` implementation of `SchemaRepository`
 pub struct PostgresSchemaRepository {
     pool: PgPool,
 }
 
 impl PostgresSchemaRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -66,37 +67,37 @@ impl PostgresSchemaRepository {
 impl SchemaRepository for PostgresSchemaRepository {
     async fn get_all_entities(&self) -> AtlasResult<Vec<EntityDefinition>> {
         let rows = sqlx::query_as::<_, EntityRow>(
-            r#"
+            r"
             SELECT 
                 id, name, label, plural_label, table_name, description,
                 fields, indexes, workflow, security,
                 is_audit_enabled, is_soft_delete, icon, color, metadata
             FROM _atlas.entities
             ORDER BY name
-            "#
+            "
         )
         .fetch_all(&self.pool)
         .await?;
         
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
     
     async fn get_entity(&self, name: &str) -> AtlasResult<Option<EntityDefinition>> {
         let row = sqlx::query_as::<_, EntityRow>(
-            r#"
+            r"
             SELECT 
                 id, name, label, plural_label, table_name, description,
                 fields, indexes, workflow, security,
                 is_audit_enabled, is_soft_delete, icon, color, metadata
             FROM _atlas.entities
             WHERE name = $1
-            "#
+            "
         )
         .bind(name)
         .fetch_optional(&self.pool)
         .await?;
         
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
     
     async fn upsert_entity(&self, entity: &EntityDefinition) -> AtlasResult<()> {
@@ -107,7 +108,7 @@ impl SchemaRepository for PostgresSchemaRepository {
         let security_json = entity.security.as_ref().and_then(|s| serde_json::to_value(s).ok());
         
         sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.entities (
                 id, name, label, plural_label, table_name, description,
                 fields, indexes, workflow, security,
@@ -128,7 +129,7 @@ impl SchemaRepository for PostgresSchemaRepository {
                 color = EXCLUDED.color,
                 metadata = EXCLUDED.metadata,
                 updated_at = now()
-            "#
+            "
         )
         .bind(id)
         .bind(&entity.name)
@@ -161,11 +162,11 @@ impl SchemaRepository for PostgresSchemaRepository {
     
     async fn get_entity_version(&self, name: &str) -> AtlasResult<Option<i64>> {
         let row = sqlx::query_scalar::<_, i64>(
-            r#"
+            r"
             SELECT version FROM _atlas.config_versions 
             WHERE entity_name = $1
             ORDER BY version DESC LIMIT 1
-            "#
+            "
         )
         .bind(name)
         .fetch_optional(&self.pool)
@@ -178,10 +179,10 @@ impl SchemaRepository for PostgresSchemaRepository {
         let config = serde_json::json!({});
         
         sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.config_versions (entity_name, version, config)
             VALUES ($1, $2, $3)
-            "#
+            "
         )
         .bind(name)
         .bind(version)
@@ -220,7 +221,7 @@ impl From<EntityRow> for EntityDefinition {
                 }).ok()
             });
 
-        EntityDefinition {
+        Self {
             id: row.id,
             name: row.name,
             label: row.label,

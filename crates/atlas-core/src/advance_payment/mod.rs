@@ -32,7 +32,7 @@ pub struct AdvancePayment {
     pub supplier_name: String,
     pub supplier_site_id: Option<Uuid>,
     pub description: Option<String>,
-    /// 'draft', 'approved', 'paid', 'partially_applied', 'fully_applied', 'cancelled'
+    /// 'draft', 'approved', 'paid', '`partially_applied`', '`fully_applied`', 'cancelled'
     pub status: String,
     pub currency_code: String,
     pub advance_amount: String,
@@ -114,11 +114,12 @@ pub trait AdvancePaymentRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<AdvancePaymentDashboard>;
 }
 
-/// PostgreSQL implementation (stub)
+/// `PostgreSQL` implementation (stub)
 #[allow(dead_code)]
 pub struct PostgresAdvancePaymentRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresAdvancePaymentRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresAdvancePaymentRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl AdvancePaymentRepository for PostgresAdvancePaymentRepository {

@@ -97,13 +97,14 @@ pub trait NettingRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<NettingDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresNettingRepository {
     pool: PgPool,
 }
 
 impl PostgresNettingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -212,7 +213,7 @@ impl NettingRepository for PostgresNettingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<NettingAgreement> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.netting_agreements
                 (organization_id, agreement_number, name, description,
                  partner_id, partner_number, partner_name,
@@ -225,7 +226,7 @@ impl NettingRepository for PostgresNettingRepository {
                     $11::double precision, $12::double precision,
                     $13, $14, $15, $16, $17, $18, $19, $20, $21)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(agreement_number).bind(name).bind(description)
         .bind(partner_id).bind(partner_number).bind(partner_name)
@@ -263,11 +264,11 @@ impl NettingRepository for PostgresNettingRepository {
 
     async fn list_agreements(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<NettingAgreement>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.netting_agreements
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -295,7 +296,7 @@ impl NettingRepository for PostgresNettingRepository {
         currency_code: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<NettingBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.netting_batches
                 (organization_id, batch_number, agreement_id,
                  netting_date, gl_date, partner_id, partner_name,
@@ -304,7 +305,7 @@ impl NettingRepository for PostgresNettingRepository {
                  payable_transaction_count, receivable_transaction_count, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 0, 0, 'zero', 'draft', 0, 0, $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(batch_number).bind(agreement_id)
         .bind(netting_date).bind(gl_date).bind(partner_id).bind(partner_name)
@@ -326,13 +327,13 @@ impl NettingRepository for PostgresNettingRepository {
 
     async fn list_batches(&self, org_id: Uuid, agreement_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<NettingBatch>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.netting_batches
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR agreement_id = $2)
               AND ($3::text IS NULL OR status = $3)
             ORDER BY netting_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(agreement_id).bind(status)
         .fetch_all(&self.pool)
@@ -347,7 +348,7 @@ impl NettingRepository for PostgresNettingRepository {
         rejected_reason: Option<&str>,
     ) -> AtlasResult<NettingBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.netting_batches
             SET status = $2,
                 submitted_by = COALESCE($3, submitted_by),
@@ -359,7 +360,7 @@ impl NettingRepository for PostgresNettingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(submitted_by).bind(approved_by).bind(rejected_reason)
         .fetch_one(&self.pool)
@@ -375,7 +376,7 @@ impl NettingRepository for PostgresNettingRepository {
         payable_count: i32, receivable_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.netting_batches
             SET total_payables_amount = $2::double precision,
                 total_receivables_amount = $3::double precision,
@@ -385,7 +386,7 @@ impl NettingRepository for PostgresNettingRepository {
                 receivable_transaction_count = $7,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(total_payables).bind(total_receivables)
         .bind(net_difference).bind(settlement_direction)
@@ -405,7 +406,7 @@ impl NettingRepository for PostgresNettingRepository {
         currency_code: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<NettingTransactionLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.netting_transaction_lines
                 (organization_id, batch_id, line_number,
                  source_type, source_id, source_number, source_date,
@@ -415,7 +416,7 @@ impl NettingRepository for PostgresNettingRepository {
                     $8::double precision, $9::double precision, $10::double precision,
                     $11, 'selected', $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(batch_id).bind(line_number)
         .bind(source_type).bind(source_id).bind(source_number).bind(source_date)
@@ -452,12 +453,12 @@ impl NettingRepository for PostgresNettingRepository {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<NettingDashboardSummary> {
         // Query agreement counts
         let aggr_row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active
             FROM _atlas.netting_agreements WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -469,7 +470,7 @@ impl NettingRepository for PostgresNettingRepository {
 
         // Query batch counts and totals
         let batch_row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft,
@@ -479,7 +480,7 @@ impl NettingRepository for PostgresNettingRepository {
                 COALESCE(SUM(total_receivables_amount) FILTER (WHERE status = 'settled'), 0) as total_receivables,
                 COALESCE(SUM(ABS(net_difference)) FILTER (WHERE status = 'settled'), 0) as total_net
             FROM _atlas.netting_batches WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)

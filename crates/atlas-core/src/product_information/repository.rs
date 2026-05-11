@@ -1,6 +1,6 @@
 //! Product Information Management Repository
 //!
-//! PostgreSQL storage for product items, categories, cross-references,
+//! `PostgreSQL` storage for product items, categories, cross-references,
 //! new item requests, and item templates.
 
 use atlas_shared::{
@@ -176,13 +176,14 @@ pub trait ProductInformationRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PimDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresProductInformationRepository {
     pool: PgPool,
 }
 
 impl PostgresProductInformationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -376,7 +377,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProductItem> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pim_items (
                 organization_id, item_number, item_name, description, long_description,
                 item_type, status, lifecycle_phase,
@@ -397,7 +398,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                 $30, $31, $32, $33
             )
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(item_number).bind(item_name)
         .bind(description).bind(long_description)
@@ -452,7 +453,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
     ) -> AtlasResult<Vec<ProductItem>> {
         let rows = if category_id.is_some() {
             sqlx::query(
-                r#"
+                r"
                 SELECT i.* FROM _atlas.pim_items i
                 JOIN _atlas.pim_item_category_assignments ica ON i.id = ica.item_id
                 WHERE i.organization_id = $1
@@ -460,20 +461,20 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                   AND ($3::text IS NULL OR i.item_type = $3)
                   AND ica.category_id = $4
                 ORDER BY i.item_number
-                "#
+                "
             )
             .bind(org_id).bind(status).bind(item_type).bind(category_id)
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else {
             sqlx::query(
-                r#"
+                r"
                 SELECT * FROM _atlas.pim_items
                 WHERE organization_id = $1
                   AND ($2::text IS NULL OR status = $2)
                   AND ($3::text IS NULL OR item_type = $3)
                 ORDER BY item_number
-                "#
+                "
             )
             .bind(org_id).bind(status).bind(item_type)
             .fetch_all(&self.pool).await
@@ -485,24 +486,24 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
     async fn update_item_status(&self, id: Uuid, status: &str, lifecycle_phase: Option<&str>) -> AtlasResult<ProductItem> {
         let row = if let Some(phase) = lifecycle_phase {
             sqlx::query(
-                r#"
+                r"
                 UPDATE _atlas.pim_items
                 SET status = $2, lifecycle_phase = $3, updated_at = now()
                 WHERE id = $1
                 RETURNING *
-                "#
+                "
             )
             .bind(id).bind(status).bind(phase)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else {
             sqlx::query(
-                r#"
+                r"
                 UPDATE _atlas.pim_items
                 SET status = $2, updated_at = now()
                 WHERE id = $1
                 RETURNING *
-                "#
+                "
             )
             .bind(id).bind(status)
             .fetch_one(&self.pool).await
@@ -513,12 +514,12 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
 
     async fn update_item_lifecycle(&self, id: Uuid, lifecycle_phase: &str) -> AtlasResult<ProductItem> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.pim_items
             SET lifecycle_phase = $2, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#
+            "
         )
         .bind(id).bind(lifecycle_phase)
         .fetch_one(&self.pool).await
@@ -548,14 +549,14 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimCategory> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pim_categories (
                 organization_id, code, name, description,
                 parent_category_id, level_number, created_by
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(parent_category_id).bind(level_number).bind(created_by)
@@ -585,12 +586,12 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
 
     async fn list_categories(&self, org_id: Uuid, parent_id: Option<Uuid>) -> AtlasResult<Vec<PimCategory>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.pim_categories
             WHERE organization_id = $1 AND is_active = true
               AND ($2::uuid IS NULL AND parent_category_id IS NULL OR parent_category_id = $2)
             ORDER BY code
-            "#
+            "
         )
         .bind(org_id).bind(parent_id)
         .fetch_all(&self.pool).await
@@ -618,13 +619,13 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimCategoryAssignment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pim_item_category_assignments (
                 organization_id, item_id, category_id, is_primary, created_by
             )
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(item_id).bind(category_id).bind(is_primary).bind(created_by)
         .fetch_one(&self.pool).await
@@ -677,14 +678,14 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimCrossReference> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pim_item_cross_references (
                 organization_id, item_id, cross_reference_type, cross_reference_value,
                 description, source_system, effective_from, effective_to, created_by
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(item_id).bind(cross_reference_type).bind(cross_reference_value)
         .bind(description).bind(source_system)
@@ -697,10 +698,10 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
 
     async fn get_cross_reference_by_value(&self, org_id: Uuid, xref_type: &str, value: &str) -> AtlasResult<Option<PimCrossReference>> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.pim_item_cross_references
             WHERE organization_id = $1 AND cross_reference_type = $2 AND cross_reference_value = $3 AND is_active = true
-            "#
+            "
         )
         .bind(org_id).bind(xref_type).bind(value)
         .fetch_optional(&self.pool).await
@@ -720,12 +721,12 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
 
     async fn list_all_cross_references(&self, org_id: Uuid, xref_type: Option<&str>) -> AtlasResult<Vec<PimCrossReference>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.pim_item_cross_references
             WHERE organization_id = $1 AND is_active = true
               AND ($2::text IS NULL OR cross_reference_type = $2)
             ORDER BY cross_reference_type, cross_reference_value
-            "#
+            "
         )
         .bind(org_id).bind(xref_type)
         .fetch_all(&self.pool).await
@@ -761,7 +762,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimItemTemplate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pim_item_templates (
                 organization_id, code, name, description, item_type,
                 default_uom_code, default_category_id,
@@ -771,7 +772,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(item_type)
         .bind(default_uom_code).bind(default_category_id)
@@ -842,7 +843,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimNewItemRequest> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pim_new_item_requests (
                 organization_id, request_number, title, description,
                 item_type, priority, status,
@@ -853,7 +854,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(request_number).bind(title).bind(description)
         .bind(item_type).bind(priority).bind(status)
@@ -878,11 +879,11 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
 
     async fn list_new_item_requests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PimNewItemRequest>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.pim_new_item_requests
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
             ORDER BY created_at DESC
-            "#
+            "
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -899,7 +900,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         rejection_reason: Option<&str>,
     ) -> AtlasResult<PimNewItemRequest> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.pim_new_item_requests
             SET status = $2, approved_by = COALESCE($3, approved_by),
                 approved_at = COALESCE($4, approved_at),
@@ -907,7 +908,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#
+            "
         )
         .bind(id).bind(status).bind(approved_by)
         .bind(approved_at).bind(rejection_reason)
@@ -923,12 +924,12 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         implemented_at: Option<DateTime<Utc>>,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.pim_new_item_requests
             SET status = 'implemented', implemented_item_id = $2,
                 implemented_at = COALESCE($3, now()), updated_at = now()
             WHERE id = $1
-            "#
+            "
         )
         .bind(id).bind(implemented_item_id).bind(implemented_at)
         .execute(&self.pool).await
@@ -942,7 +943,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PimDashboard> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) as total_items,
                 COUNT(*) FILTER (WHERE status = 'active') as active_items,
@@ -955,7 +956,7 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                 (SELECT COUNT(*) FROM _atlas.pim_items WHERE organization_id = $1 AND created_at > now() - interval '30 days') as recently_created_items
             FROM _atlas.pim_items
             WHERE organization_id = $1
-            "#
+            "
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -963,12 +964,12 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
 
         // Items by type breakdown
         let type_rows = sqlx::query(
-            r#"
+            r"
             SELECT item_type, COUNT(*) as count
             FROM _atlas.pim_items
             WHERE organization_id = $1
             GROUP BY item_type
-            "#
+            "
         )
         .bind(org_id)
         .fetch_all(&self.pool).await

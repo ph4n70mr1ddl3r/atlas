@@ -1,6 +1,6 @@
 //! Promotions Management Repository
 //!
-//! PostgreSQL storage for promotions data.
+//! `PostgreSQL` storage for promotions data.
 
 use atlas_shared::{
     PromoMgmtPromotion, PromoMgmtOffer, PromoMgmtFund, PromoMgmtClaim, PromoMgmtDashboard,
@@ -117,13 +117,14 @@ pub trait PromotionsManagementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PromoMgmtDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresPromotionsManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresPromotionsManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -151,7 +152,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PromoMgmtPromotion> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.promotions
+            r"INSERT INTO _atlas.promotions
                 (organization_id, code, name, description, promotion_type,
                  start_date, end_date, customer_id, customer_name, territory_id,
                  product_id, product_name, budget_amount, currency_code,
@@ -162,7 +163,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
                  product_id, product_name,
                  budget_amount::text as budget_amount, spent_amount::text as spent_amount,
                  currency_code, owner_id, owner_name, is_active, metadata,
-                 created_by, created_at, updated_at"#,
+                 created_by, created_at, updated_at",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(promotion_type)
         .bind(start_date).bind(end_date).bind(customer_id).bind(customer_name)
@@ -203,28 +204,28 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         let cols = "id, organization_id, code, name, description, promotion_type, status, start_date, end_date, customer_id, customer_name, territory_id, product_id, product_name, budget_amount::text as budget_amount, spent_amount::text as spent_amount, currency_code, owner_id, owner_name, is_active, metadata, created_by, created_at, updated_at";
         let rows = match (promotion_type, status, include_inactive) {
             (Some(pt), Some(s), true) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotions WHERE organization_id = $1 AND promotion_type = $2 AND status = $3 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.promotions WHERE organization_id = $1 AND promotion_type = $2 AND status = $3 ORDER BY name"))
                 .bind(org_id).bind(pt).bind(s).fetch_all(&self.pool).await,
             (Some(pt), Some(s), false) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotions WHERE organization_id = $1 AND promotion_type = $2 AND status = $3 AND is_active = true ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.promotions WHERE organization_id = $1 AND promotion_type = $2 AND status = $3 AND is_active = true ORDER BY name"))
                 .bind(org_id).bind(pt).bind(s).fetch_all(&self.pool).await,
             (Some(pt), None, false) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotions WHERE organization_id = $1 AND promotion_type = $2 AND is_active = true ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.promotions WHERE organization_id = $1 AND promotion_type = $2 AND is_active = true ORDER BY name"))
                 .bind(org_id).bind(pt).fetch_all(&self.pool).await,
             (Some(pt), None, true) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotions WHERE organization_id = $1 AND promotion_type = $2 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.promotions WHERE organization_id = $1 AND promotion_type = $2 ORDER BY name"))
                 .bind(org_id).bind(pt).fetch_all(&self.pool).await,
             (None, Some(s), false) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotions WHERE organization_id = $1 AND status = $2 AND is_active = true ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.promotions WHERE organization_id = $1 AND status = $2 AND is_active = true ORDER BY name"))
                 .bind(org_id).bind(s).fetch_all(&self.pool).await,
             (None, Some(s), true) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotions WHERE organization_id = $1 AND status = $2 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.promotions WHERE organization_id = $1 AND status = $2 ORDER BY name"))
                 .bind(org_id).bind(s).fetch_all(&self.pool).await,
             (None, None, false) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotions WHERE organization_id = $1 AND is_active = true ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.promotions WHERE organization_id = $1 AND is_active = true ORDER BY name"))
                 .bind(org_id).fetch_all(&self.pool).await,
             (None, None, true) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotions WHERE organization_id = $1 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.promotions WHERE organization_id = $1 ORDER BY name"))
                 .bind(org_id).fetch_all(&self.pool).await,
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_promo_mgmt_promotion).collect())
@@ -242,7 +243,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         owner_name: Option<&str>,
     ) -> AtlasResult<PromoMgmtPromotion> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.promotions SET
+            r"UPDATE _atlas.promotions SET
                 name = COALESCE($2, name),
                 description = COALESCE($3, description),
                 start_date = CASE WHEN $4::boolean THEN $5 ELSE start_date END,
@@ -257,7 +258,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
                  product_id, product_name,
                  budget_amount::text as budget_amount, spent_amount::text as spent_amount,
                  currency_code, owner_id, owner_name, is_active, metadata,
-                 created_by, created_at, updated_at"#,
+                 created_by, created_at, updated_at",
         )
         .bind(id).bind(name).bind(description)
         .bind(start_date.is_some()).bind(start_date)
@@ -271,13 +272,13 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
 
     async fn update_promotion_status(&self, id: Uuid, status: &str) -> AtlasResult<PromoMgmtPromotion> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.promotions SET status = $2, updated_at = now() WHERE id = $1
+            r"UPDATE _atlas.promotions SET status = $2, updated_at = now() WHERE id = $1
                RETURNING id, organization_id, code, name, description, promotion_type, status,
                  start_date, end_date, customer_id, customer_name, territory_id,
                  product_id, product_name,
                  budget_amount::text as budget_amount, spent_amount::text as spent_amount,
                  currency_code, owner_id, owner_name, is_active, metadata,
-                 created_by, created_at, updated_at"#,
+                 created_by, created_at, updated_at",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -287,13 +288,13 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
 
     async fn update_promotion_spent(&self, id: Uuid, spent_amount: &str) -> AtlasResult<PromoMgmtPromotion> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.promotions SET spent_amount = $2::numeric, updated_at = now() WHERE id = $1
+            r"UPDATE _atlas.promotions SET spent_amount = $2::numeric, updated_at = now() WHERE id = $1
                RETURNING id, organization_id, code, name, description, promotion_type, status,
                  start_date, end_date, customer_id, customer_name, territory_id,
                  product_id, product_name,
                  budget_amount::text as budget_amount, spent_amount::text as spent_amount,
                  currency_code, owner_id, owner_name, is_active, metadata,
-                 created_by, created_at, updated_at"#,
+                 created_by, created_at, updated_at",
         )
         .bind(id).bind(spent_amount.parse::<f64>().unwrap_or(0.0))
         .fetch_one(&self.pool).await
@@ -324,7 +325,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PromoMgmtOffer> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.promotion_offers
+            r"INSERT INTO _atlas.promotion_offers
                 (organization_id, promotion_id, offer_type, description,
                  discount_type, discount_value, buy_quantity, get_quantity,
                  minimum_purchase, maximum_discount, created_by)
@@ -334,7 +335,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
                  buy_quantity, get_quantity,
                  minimum_purchase::text as minimum_purchase,
                  maximum_discount::text as maximum_discount,
-                 is_active, created_by, created_at, updated_at"#,
+                 is_active, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(promotion_id).bind(offer_type).bind(description)
         .bind(discount_type).bind(discount_value.parse::<f64>().unwrap_or(0.0))
@@ -383,14 +384,14 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PromoMgmtFund> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.promotion_funds
+            r"INSERT INTO _atlas.promotion_funds
                 (organization_id, promotion_id, fund_type, allocated_amount, currency_code, created_by)
                VALUES ($1,$2,$3,$4,$5,$6)
                RETURNING id, organization_id, promotion_id, fund_type,
                  allocated_amount::text as allocated_amount,
                  committed_amount::text as committed_amount,
                  spent_amount::text as spent_amount,
-                 currency_code, is_active, created_by, created_at, updated_at"#,
+                 currency_code, is_active, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(promotion_id).bind(fund_type)
         .bind(allocated_amount.parse::<f64>().unwrap_or(0.0))
@@ -411,12 +412,12 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
 
     async fn update_fund_committed(&self, id: Uuid, committed_amount: &str) -> AtlasResult<PromoMgmtFund> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.promotion_funds SET committed_amount = $2::numeric, updated_at = now() WHERE id = $1
+            r"UPDATE _atlas.promotion_funds SET committed_amount = $2::numeric, updated_at = now() WHERE id = $1
                RETURNING id, organization_id, promotion_id, fund_type,
                  allocated_amount::text as allocated_amount,
                  committed_amount::text as committed_amount,
                  spent_amount::text as spent_amount,
-                 currency_code, is_active, created_by, created_at, updated_at"#,
+                 currency_code, is_active, created_by, created_at, updated_at",
         )
         .bind(id).bind(committed_amount.parse::<f64>().unwrap_or(0.0))
         .fetch_one(&self.pool).await
@@ -426,12 +427,12 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
 
     async fn update_fund_spent(&self, id: Uuid, spent_amount: &str) -> AtlasResult<PromoMgmtFund> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.promotion_funds SET spent_amount = $2::numeric, updated_at = now() WHERE id = $1
+            r"UPDATE _atlas.promotion_funds SET spent_amount = $2::numeric, updated_at = now() WHERE id = $1
                RETURNING id, organization_id, promotion_id, fund_type,
                  allocated_amount::text as allocated_amount,
                  committed_amount::text as committed_amount,
                  spent_amount::text as spent_amount,
-                 currency_code, is_active, created_by, created_at, updated_at"#,
+                 currency_code, is_active, created_by, created_at, updated_at",
         )
         .bind(id).bind(spent_amount.parse::<f64>().unwrap_or(0.0))
         .fetch_one(&self.pool).await
@@ -462,7 +463,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PromoMgmtClaim> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.promotion_claims
+            r"INSERT INTO _atlas.promotion_claims
                 (organization_id, promotion_id, claim_number, claim_type, amount,
                  currency_code, claim_date, customer_id, customer_name, description, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
@@ -470,7 +471,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
                  amount::text as amount, approved_amount::text as approved_amount,
                  paid_amount::text as paid_amount, currency_code, claim_date,
                  settlement_date, customer_id, customer_name, description,
-                 rejection_reason, created_by, created_at, updated_at"#,
+                 rejection_reason, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(promotion_id).bind(claim_number).bind(claim_type)
         .bind(amount.parse::<f64>().unwrap_or(0.0))
@@ -494,10 +495,10 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         let cols = "id, organization_id, promotion_id, claim_number, claim_type, status, amount::text as amount, approved_amount::text as approved_amount, paid_amount::text as paid_amount, currency_code, claim_date, settlement_date, customer_id, customer_name, description, rejection_reason, created_by, created_at, updated_at";
         let rows = match status {
             Some(s) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotion_claims WHERE promotion_id = $1 AND status = $2 ORDER BY claim_date DESC", cols))
+                "SELECT {cols} FROM _atlas.promotion_claims WHERE promotion_id = $1 AND status = $2 ORDER BY claim_date DESC"))
                 .bind(promotion_id).bind(s).fetch_all(&self.pool).await,
             None => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.promotion_claims WHERE promotion_id = $1 ORDER BY claim_date DESC", cols))
+                "SELECT {cols} FROM _atlas.promotion_claims WHERE promotion_id = $1 ORDER BY claim_date DESC"))
                 .bind(promotion_id).fetch_all(&self.pool).await,
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_promo_mgmt_claim).collect())
@@ -511,7 +512,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         rejection_reason: Option<&str>,
     ) -> AtlasResult<PromoMgmtClaim> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.promotion_claims SET
+            r"UPDATE _atlas.promotion_claims SET
                 status = $2,
                 approved_amount = COALESCE($3::numeric, approved_amount),
                 rejection_reason = COALESCE($4, rejection_reason),
@@ -521,7 +522,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
                  amount::text as amount, approved_amount::text as approved_amount,
                  paid_amount::text as paid_amount, currency_code, claim_date,
                  settlement_date, customer_id, customer_name, description,
-                 rejection_reason, created_by, created_at, updated_at"#,
+                 rejection_reason, created_by, created_at, updated_at",
         )
         .bind(id).bind(status)
         .bind(approved_amount.map(|v| v.parse::<f64>().unwrap_or(0.0)))
@@ -533,7 +534,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
 
     async fn settle_claim(&self, id: Uuid, paid_amount: &str, settlement_date: chrono::NaiveDate) -> AtlasResult<PromoMgmtClaim> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.promotion_claims SET
+            r"UPDATE _atlas.promotion_claims SET
                 status = 'paid', paid_amount = $2::numeric, settlement_date = $3,
                 updated_at = now()
                WHERE id = $1
@@ -541,7 +542,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
                  amount::text as amount, approved_amount::text as approved_amount,
                  paid_amount::text as paid_amount, currency_code, claim_date,
                  settlement_date, customer_id, customer_name, description,
-                 rejection_reason, created_by, created_at, updated_at"#,
+                 rejection_reason, created_by, created_at, updated_at",
         )
         .bind(id).bind(paid_amount.parse::<f64>().unwrap_or(0.0)).bind(settlement_date)
         .fetch_one(&self.pool).await
@@ -559,21 +560,21 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PromoMgmtDashboard> {
         let promo_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active,
                 COALESCE(SUM(budget_amount), 0) as total_budget,
                 COALESCE(SUM(spent_amount), 0) as total_spent
-               FROM _atlas.promotions WHERE organization_id = $1"#,
+               FROM _atlas.promotions WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let claim_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total_claims,
                 COUNT(*) FILTER (WHERE status IN ('submitted', 'under_review')) as pending_claims
-               FROM _atlas.promotion_claims WHERE organization_id = $1"#,
+               FROM _atlas.promotion_claims WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -584,15 +585,15 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         let util_pct = if total_budget > 0.0 { (total_spent / total_budget) * 100.0 } else { 0.0 };
 
         let by_status_row = sqlx::query(
-            r#"SELECT status, COUNT(*) as cnt FROM _atlas.promotions
-               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC"#,
+            r"SELECT status, COUNT(*) as cnt FROM _atlas.promotions
+               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let by_type_row = sqlx::query(
-            r#"SELECT promotion_type, COUNT(*) as cnt FROM _atlas.promotions
-               WHERE organization_id = $1 GROUP BY promotion_type ORDER BY cnt DESC"#,
+            r"SELECT promotion_type, COUNT(*) as cnt FROM _atlas.promotions
+               WHERE organization_id = $1 GROUP BY promotion_type ORDER BY cnt DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -614,9 +615,9 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         Ok(PromoMgmtDashboard {
             total_promotions: promo_row.get::<i64, _>("total") as i32,
             active_promotions: promo_row.get::<i64, _>("active") as i32,
-            total_budget: format!("{:.2}", total_budget),
-            total_spent: format!("{:.2}", total_spent),
-            utilization_percent: format!("{:.1}", util_pct),
+            total_budget: format!("{total_budget:.2}"),
+            total_spent: format!("{total_spent:.2}"),
+            utilization_percent: format!("{util_pct:.1}"),
             total_claims: claim_row.get::<i64, _>("total_claims") as i32,
             pending_claims: claim_row.get::<i64, _>("pending_claims") as i32,
             by_status,
@@ -651,8 +652,8 @@ fn row_to_promo_mgmt_promotion(row: &sqlx::postgres::PgRow) -> PromoMgmtPromotio
         territory_id: row.get("territory_id"),
         product_id: row.get("product_id"),
         product_name: row.get("product_name"),
-        budget_amount: format!("{:.2}", budget),
-        spent_amount: format!("{:.2}", spent),
+        budget_amount: format!("{budget:.2}"),
+        spent_amount: format!("{spent:.2}"),
         currency_code: row.get("currency_code"),
         owner_id: row.get("owner_id"),
         owner_name: row.get("owner_name"),

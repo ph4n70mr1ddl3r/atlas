@@ -40,7 +40,7 @@ pub struct CreateAssetCategoryRequest {
 }
 
 fn default_depreciation_method() -> String { "straight_line".to_string() }
-fn default_useful_life() -> i32 { 60 }
+const fn default_useful_life() -> i32 { 60 }
 
 /// Create or update an asset category
 pub async fn create_asset_category(
@@ -136,7 +136,7 @@ pub struct CreateAssetBookRequest {
 }
 
 fn default_book_type() -> String { "corporate".to_string() }
-fn default_true() -> bool { true }
+const fn default_true() -> bool { true }
 fn default_calendar() -> String { "monthly".to_string() }
 
 /// Create or update an asset book

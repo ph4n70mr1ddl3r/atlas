@@ -21,7 +21,8 @@ pub struct EmployeeService {
 }
 
 impl EmployeeService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -70,7 +71,7 @@ impl EmployeeService {
     
     /// Transfer an employee to a new department
     /// 
-    /// Updates the department_id and logs the change in the audit trail.
+    /// Updates the `department_id` and logs the change in the audit trail.
     pub async fn transfer(
         &self,
         employee_id: RecordId,
@@ -124,6 +125,7 @@ impl EmployeeService {
         Ok(())
     }
     
+    #[must_use] 
     pub fn get_entity_definitions() -> Vec<(&'static str, EntityDefinitionFactory)> {
         vec![
             ("employees", crate::entities::employee_definition),

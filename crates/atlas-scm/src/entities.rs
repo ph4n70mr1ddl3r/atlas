@@ -5,6 +5,7 @@ use atlas_core::schema::WorkflowBuilder;
 use atlas_shared::EntityDefinition;
 
 /// Supplier entity
+#[must_use] 
 pub fn supplier_definition() -> EntityDefinition {
     SchemaBuilder::new("suppliers", "Supplier")
         .plural_label("Suppliers")
@@ -31,6 +32,7 @@ pub fn supplier_definition() -> EntityDefinition {
 }
 
 /// Purchase Order entity with approval workflow
+#[must_use] 
 pub fn purchase_order_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("po_approval_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -75,6 +77,7 @@ pub fn purchase_order_definition() -> EntityDefinition {
 }
 
 /// Product entity
+#[must_use] 
 pub fn product_definition() -> EntityDefinition {
     SchemaBuilder::new("products", "Product")
         .plural_label("Products")
@@ -102,6 +105,7 @@ pub fn product_definition() -> EntityDefinition {
 }
 
 /// Inventory Item entity
+#[must_use] 
 pub fn inventory_item_definition() -> EntityDefinition {
     SchemaBuilder::new("inventory_items", "Inventory Item")
         .plural_label("Inventory Items")
@@ -120,6 +124,7 @@ pub fn inventory_item_definition() -> EntityDefinition {
 }
 
 /// Warehouse entity
+#[must_use] 
 pub fn warehouse_definition() -> EntityDefinition {
     SchemaBuilder::new("warehouses", "Warehouse")
         .plural_label("Warehouses")
@@ -135,6 +140,7 @@ pub fn warehouse_definition() -> EntityDefinition {
 }
 
 /// Sales Order entity with workflow
+#[must_use] 
 pub fn sales_order_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("sales_order_workflow", "draft")
         .initial_state("draft", "Draft")

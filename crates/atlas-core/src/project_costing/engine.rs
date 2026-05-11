@@ -109,9 +109,9 @@ impl ProjectCostingEngine {
             project_id, project_number,
             task_id, task_number,
             cost_type,
-            &format!("{:.2}", raw_cost),
-            &format!("{:.2}", burdened_cost),
-            &format!("{:.2}", burden_amount),
+            &format!("{raw_cost:.2}"),
+            &format!("{burdened_cost:.2}"),
+            &format!("{burden_amount:.2}"),
             currency_code,
             transaction_date, gl_date, description,
             supplier_id, supplier_name,
@@ -162,7 +162,7 @@ impl ProjectCostingEngine {
     ) -> AtlasResult<ProjectCostTransaction> {
         let txn = self.repository.get_cost_transaction(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Cost transaction {} not found", id)
+                format!("Cost transaction {id} not found")
             ))?;
 
         if txn.status != "draft" {
@@ -185,7 +185,7 @@ impl ProjectCostingEngine {
     ) -> AtlasResult<ProjectCostTransaction> {
         let txn = self.repository.get_cost_transaction(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Cost transaction {} not found", id)
+                format!("Cost transaction {id} not found")
             ))?;
 
         if txn.status == "reversed" {
@@ -279,7 +279,7 @@ impl ProjectCostingEngine {
     pub async fn activate_burden_schedule(&self, id: Uuid) -> AtlasResult<BurdenSchedule> {
         let schedule = self.repository.get_burden_schedule_by_id(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Burden schedule {} not found", id)
+                format!("Burden schedule {id} not found")
             ))?;
 
         if schedule.status != "draft" {
@@ -320,7 +320,7 @@ impl ProjectCostingEngine {
 
         let schedule = self.repository.get_burden_schedule_by_id(schedule_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Burden schedule {} not found", schedule_id)
+                format!("Burden schedule {schedule_id} not found")
             ))?;
 
         let lines = self.repository.list_burden_schedule_lines(schedule_id).await?;
@@ -373,7 +373,7 @@ impl ProjectCostingEngine {
 
         let original = self.repository.get_cost_transaction(original_transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Original cost transaction {} not found", original_transaction_id)
+                format!("Original cost transaction {original_transaction_id} not found")
             ))?;
 
         if original.status != "approved" && original.status != "distributed" {
@@ -394,7 +394,7 @@ impl ProjectCostingEngine {
         let original_raw: f64 = original.raw_cost_amount.parse().unwrap_or(0.0);
         let original_burdened: f64 = original.burdened_cost_amount.parse().unwrap_or(0.0);
         let original_burden: f64 = original.burden_amount.parse().unwrap_or(0.0);
-        let burden_rate = if original_raw != 0.0 { original_burden / original_raw * 100.0 } else { 0.0 };
+        let burden_rate = if original_raw == 0.0 { 0.0 } else { original_burden / original_raw * 100.0 };
 
         let (new_raw, new_burdened) = match adjustment_type {
             "increase" => {
@@ -406,7 +406,7 @@ impl ProjectCostingEngine {
                 let new = original_raw - adj_amount;
                 if new < 0.0 {
                     return Err(AtlasError::ValidationFailed(
-                        format!("Decrease of {:.2} would result in negative cost (current: {:.2})", adj_amount, original_raw)
+                        format!("Decrease of {adj_amount:.2} would result in negative cost (current: {original_raw:.2})")
                     ));
                 }
                 (new, original_burdened - adj_amount - adj_burden)
@@ -426,8 +426,8 @@ impl ProjectCostingEngine {
             original_transaction_id,
             adjustment_type,
             adjustment_amount,
-            &format!("{:.2}", new_raw),
-            &format!("{:.2}", new_burdened),
+            &format!("{new_raw:.2}"),
+            &format!("{new_burdened:.2}"),
             reason, description,
             effective_date,
             transfer_to_project_id, transfer_to_task_id,
@@ -443,7 +443,7 @@ impl ProjectCostingEngine {
     ) -> AtlasResult<ProjectCostAdjustment> {
         let adjustment = self.repository.get_cost_adjustment(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Cost adjustment {} not found", id)
+                format!("Cost adjustment {id} not found")
             ))?;
 
         if adjustment.status != "pending" {
@@ -491,7 +491,7 @@ impl ProjectCostingEngine {
     ) -> AtlasResult<Vec<ProjectCostDistribution>> {
         let txn = self.repository.get_cost_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Cost transaction {} not found", transaction_id)
+                format!("Cost transaction {transaction_id} not found")
             ))?;
 
         if txn.status != "approved" {
@@ -588,6 +588,7 @@ impl ProjectCostingEngine {
     }
 
     /// Calculate burden for a given raw cost amount
+    #[must_use] 
     pub fn calculate_burden(&self, raw_cost: f64, burden_rate_percent: f64) -> (f64, f64) {
         let burden = raw_cost * burden_rate_percent / 100.0;
         let burdened = raw_cost + burden;

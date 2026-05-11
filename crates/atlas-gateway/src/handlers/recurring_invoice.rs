@@ -46,20 +46,20 @@ pub async fn create_template(
 
     let template_number = body["templateNumber"].as_str().unwrap_or("").to_string();
     let template_name = body["templateName"].as_str().unwrap_or("").to_string();
-    let description = body["description"].as_str().map(|s| s.to_string());
+    let description = body["description"].as_str().map(std::string::ToString::to_string);
     let supplier_id = body["supplierId"].as_str().and_then(|s| s.parse().ok());
-    let supplier_number = body["supplierNumber"].as_str().map(|s| s.to_string());
-    let supplier_name = body["supplierName"].as_str().map(|s| s.to_string());
-    let supplier_site = body["supplierSite"].as_str().map(|s| s.to_string());
+    let supplier_number = body["supplierNumber"].as_str().map(std::string::ToString::to_string);
+    let supplier_name = body["supplierName"].as_str().map(std::string::ToString::to_string);
+    let supplier_site = body["supplierSite"].as_str().map(std::string::ToString::to_string);
     let invoice_type = body["invoiceType"].as_str().unwrap_or("standard").to_string();
     let invoice_currency_code = body["invoiceCurrencyCode"].as_str().unwrap_or("USD").to_string();
-    let payment_currency_code = body["paymentCurrencyCode"].as_str().map(|s| s.to_string());
-    let exchange_rate_type = body["exchangeRateType"].as_str().map(|s| s.to_string());
-    let payment_terms = body["paymentTerms"].as_str().map(|s| s.to_string());
-    let payment_method = body["paymentMethod"].as_str().map(|s| s.to_string());
+    let payment_currency_code = body["paymentCurrencyCode"].as_str().map(std::string::ToString::to_string);
+    let exchange_rate_type = body["exchangeRateType"].as_str().map(std::string::ToString::to_string);
+    let payment_terms = body["paymentTerms"].as_str().map(std::string::ToString::to_string);
+    let payment_method = body["paymentMethod"].as_str().map(std::string::ToString::to_string);
     let payment_due_days = body["paymentDueDays"].as_i64().unwrap_or(30) as i32;
-    let liability_account_code = body["liabilityAccountCode"].as_str().map(|s| s.to_string());
-    let expense_account_code = body["expenseAccountCode"].as_str().map(|s| s.to_string());
+    let liability_account_code = body["liabilityAccountCode"].as_str().map(std::string::ToString::to_string);
+    let expense_account_code = body["expenseAccountCode"].as_str().map(std::string::ToString::to_string);
     let amount_type = body["amountType"].as_str().unwrap_or("fixed").to_string();
     let recurrence_type = body["recurrenceType"].as_str().unwrap_or("monthly").to_string();
     let recurrence_interval = body["recurrenceInterval"].as_i64().unwrap_or(1) as i32;
@@ -74,7 +74,7 @@ pub async fn create_template(
     let auto_submit = body["autoSubmit"].as_bool().unwrap_or(false);
     let auto_approve = body["autoApprove"].as_bool().unwrap_or(false);
     let hold_for_review = body["holdForReview"].as_bool().unwrap_or(true);
-    let po_number = body["poNumber"].as_str().map(|s| s.to_string());
+    let po_number = body["poNumber"].as_str().map(std::string::ToString::to_string);
     let gl_date_basis = body["glDateBasis"].as_str().unwrap_or("generation_date").to_string();
 
     match state.recurring_invoice_engine.create_template(
@@ -196,19 +196,19 @@ pub async fn add_template_line(
     };
 
     let line_type = body["lineType"].as_str().unwrap_or("item").to_string();
-    let description = body["description"].as_str().map(|s| s.to_string());
-    let item_code = body["itemCode"].as_str().map(|s| s.to_string());
-    let unit_of_measure = body["unitOfMeasure"].as_str().map(|s| s.to_string());
+    let description = body["description"].as_str().map(std::string::ToString::to_string);
+    let item_code = body["itemCode"].as_str().map(std::string::ToString::to_string);
+    let unit_of_measure = body["unitOfMeasure"].as_str().map(std::string::ToString::to_string);
     let amount = body["amount"].as_f64().unwrap_or(0.0);
     let quantity = body["quantity"].as_f64().unwrap_or(1.0);
     let unit_price = body["unitPrice"].as_f64();
     let gl_account_code = body["glAccountCode"].as_str().unwrap_or("").to_string();
-    let cost_center = body["costCenter"].as_str().map(|s| s.to_string());
-    let department = body["department"].as_str().map(|s| s.to_string());
-    let tax_code = body["taxCode"].as_str().map(|s| s.to_string());
+    let cost_center = body["costCenter"].as_str().map(std::string::ToString::to_string);
+    let department = body["department"].as_str().map(std::string::ToString::to_string);
+    let tax_code = body["taxCode"].as_str().map(std::string::ToString::to_string);
     let tax_amount = body["taxAmount"].as_f64().unwrap_or(0.0);
     let project_id = body["projectId"].as_str().and_then(|s| s.parse().ok());
-    let expenditure_type = body["expenditureType"].as_str().map(|s| s.to_string());
+    let expenditure_type = body["expenditureType"].as_str().map(std::string::ToString::to_string);
 
     match state.recurring_invoice_engine.add_template_line(
         org_id,
@@ -273,7 +273,7 @@ pub async fn generate_invoice(
     let invoice_date = body["invoiceDate"].as_str()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
         .unwrap_or(chrono::Utc::now().naive_utc().date());
-    let period_name = body["periodName"].as_str().map(|s| s.to_string());
+    let period_name = body["periodName"].as_str().map(std::string::ToString::to_string);
     let fiscal_year = body["fiscalYear"].as_i64().map(|v| v as i32);
     let period_number = body["periodNumber"].as_i64().map(|v| v as i32);
 

@@ -215,7 +215,7 @@ impl RecurringJournalEngine {
             .repository
             .get_schedule_by_id(schedule_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
 
         if schedule.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -245,8 +245,7 @@ impl RecurringJournalEngine {
 
             if (total_debits - total_credits).abs() > f64::EPSILON {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Schedule lines must be balanced. Total debits ({:.2}) != total credits ({:.2})",
-                    total_debits, total_credits
+                    "Schedule lines must be balanced. Total debits ({total_debits:.2}) != total credits ({total_credits:.2})"
                 )));
             }
         }
@@ -263,7 +262,7 @@ impl RecurringJournalEngine {
             .repository
             .get_schedule_by_id(schedule_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
 
         if schedule.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -284,7 +283,7 @@ impl RecurringJournalEngine {
             .repository
             .get_schedule(org_id, schedule_number)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_number)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_number} not found")))?;
 
         if schedule.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -331,7 +330,7 @@ impl RecurringJournalEngine {
             .repository
             .get_schedule_by_id(schedule_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
 
         if schedule.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -400,7 +399,7 @@ impl RecurringJournalEngine {
             .repository
             .get_schedule_by_id(schedule_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
 
         if schedule.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -413,16 +412,14 @@ impl RecurringJournalEngine {
         if let Some(from) = schedule.effective_from {
             if generation_date < from {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Generation date {} is before effective from date {}",
-                    generation_date, from
+                    "Generation date {generation_date} is before effective from date {from}"
                 )));
             }
         }
         if let Some(to) = schedule.effective_to {
             if generation_date > to {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Generation date {} is after effective to date {}",
-                    generation_date, to
+                    "Generation date {generation_date} is after effective to date {to}"
                 )));
             }
         }
@@ -461,8 +458,8 @@ impl RecurringJournalEngine {
             gen_number,
             generation_date,
             Some(&period_name),
-            &format!("{:.2}", total_debit),
-            &format!("{:.2}", total_credit),
+            &format!("{total_debit:.2}"),
+            &format!("{total_credit:.2}"),
             gen_lines.len() as i32,
             generated_by,
         ).await?;
@@ -472,7 +469,7 @@ impl RecurringJournalEngine {
             self.repository.create_generation_line(
                 schedule.organization_id,
                 generation.id,
-                if line.schedule_line_id != Uuid::nil() { Some(line.schedule_line_id) } else { None },
+                if line.schedule_line_id == Uuid::nil() { None } else { Some(line.schedule_line_id) },
                 idx as i32 + 1,
                 &line.line_type,
                 &line.account_code,
@@ -520,7 +517,7 @@ impl RecurringJournalEngine {
             .repository
             .get_generation(generation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Generation {} not found", generation_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Generation {generation_id} not found")))?;
 
         if gen.status != "generated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -541,7 +538,7 @@ impl RecurringJournalEngine {
             .repository
             .get_generation(generation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Generation {} not found", generation_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Generation {generation_id} not found")))?;
 
         if gen.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -562,7 +559,7 @@ impl RecurringJournalEngine {
             .repository
             .get_generation(generation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Generation {} not found", generation_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Generation {generation_id} not found")))?;
 
         if gen.status != "generated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -614,9 +611,7 @@ impl RecurringJournalEngine {
                         // For skeleton, look for override amount by line number
                         if let Some(ref overrides) = override_amounts {
                             overrides.iter()
-                                .find(|(num, _)| *num == line.line_number)
-                                .map(|(_, amt)| amt.clone())
-                                .unwrap_or_else(|| "0.00".to_string())
+                                .find(|(num, _)| *num == line.line_number).map_or_else(|| "0.00".to_string(), |(_, amt)| amt.clone())
                         } else {
                             "0.00".to_string()
                         }
@@ -630,7 +625,7 @@ impl RecurringJournalEngine {
                             .unwrap_or(0.0);
                         let factor = 1.0 + (pct / 100.0);
                         let incremental_amount = base * factor.powi(gen_number - 1);
-                        format!("{:.2}", incremental_amount)
+                        format!("{incremental_amount:.2}")
                     }
                     _ => line.amount.clone(),
                 };
@@ -664,8 +659,7 @@ impl RecurringJournalEngine {
 
             if (total_debits - total_credits).abs() > f64::EPSILON {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Generated lines are not balanced: debits={:.2}, credits={:.2}",
-                    total_debits, total_credits
+                    "Generated lines are not balanced: debits={total_debits:.2}, credits={total_credits:.2}"
                 )));
             }
         }

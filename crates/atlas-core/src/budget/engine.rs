@@ -130,7 +130,7 @@ impl BudgetEngine {
     ) -> AtlasResult<BudgetVersion> {
         let definition = self.get_definition(org_id, budget_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget definition '{}' not found", budget_code)
+                format!("Budget definition '{budget_code}' not found")
             ))?;
 
         if let (Some(from), Some(to)) = (effective_from, effective_to) {
@@ -175,7 +175,7 @@ impl BudgetEngine {
     pub async fn submit_version(&self, version_id: Uuid, submitted_by: Uuid) -> AtlasResult<BudgetVersion> {
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         if version.status != "draft" {
@@ -200,7 +200,7 @@ impl BudgetEngine {
     pub async fn approve_version(&self, version_id: Uuid, approved_by: Uuid) -> AtlasResult<BudgetVersion> {
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         if version.status != "submitted" {
@@ -217,7 +217,7 @@ impl BudgetEngine {
     pub async fn activate_version(&self, version_id: Uuid) -> AtlasResult<BudgetVersion> {
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         if version.status != "approved" {
@@ -241,7 +241,7 @@ impl BudgetEngine {
     pub async fn reject_version(&self, version_id: Uuid, reason: Option<&str>) -> AtlasResult<BudgetVersion> {
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         if version.status != "submitted" {
@@ -258,7 +258,7 @@ impl BudgetEngine {
     pub async fn close_version(&self, version_id: Uuid) -> AtlasResult<BudgetVersion> {
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         if version.status != "active" {
@@ -299,7 +299,7 @@ impl BudgetEngine {
         // Validate version exists and is in draft status
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         if version.status != "draft" {
@@ -328,7 +328,7 @@ impl BudgetEngine {
             version_id, account_code, period_name, department_id.as_ref(), cost_center,
         ).await? {
             return Err(AtlasError::ValidationFailed(
-                format!("A budget line already exists for account '{}' with the same period/department/cost center", account_code)
+                format!("A budget line already exists for account '{account_code}' with the same period/department/cost center")
             ));
         }
 
@@ -358,7 +358,7 @@ impl BudgetEngine {
     pub async fn update_line_amount(&self, version_id: Uuid, line_id: Uuid, new_amount: &str) -> AtlasResult<BudgetLine> {
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         if version.status != "draft" {
@@ -388,7 +388,7 @@ impl BudgetEngine {
     pub async fn delete_line(&self, version_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         if version.status != "draft" {
@@ -434,7 +434,7 @@ impl BudgetEngine {
     ) -> AtlasResult<BudgetTransfer> {
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         // Check definition allows transfers
@@ -469,7 +469,7 @@ impl BudgetEngine {
             version_id, from_account_code, from_period_name, from_department_id.as_ref(), from_cost_center,
         ).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Source budget line not found for account '{}'", from_account_code)
+                format!("Source budget line not found for account '{from_account_code}'")
             ))?;
 
         let from_budget: f64 = from_line.budget_amount.parse().unwrap_or(0.0);
@@ -477,7 +477,7 @@ impl BudgetEngine {
         let available = from_budget - from_transferred_out;
         if available < amount_val {
             return Err(AtlasError::ValidationFailed(
-                format!("Insufficient budget available for transfer. Available: {:.2}, Requested: {:.2}", available, amount_val)
+                format!("Insufficient budget available for transfer. Available: {available:.2}, Requested: {amount_val:.2}")
             ));
         }
 
@@ -486,7 +486,7 @@ impl BudgetEngine {
             version_id, to_account_code, to_period_name, to_department_id.as_ref(), to_cost_center,
         ).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Destination budget line not found for account '{}'", to_account_code)
+                format!("Destination budget line not found for account '{to_account_code}'")
             ))?;
 
         info!("Creating budget transfer {} for version {}", transfer_number, version_id);
@@ -503,7 +503,7 @@ impl BudgetEngine {
     pub async fn approve_transfer(&self, transfer_id: Uuid, approved_by: Uuid) -> AtlasResult<BudgetTransfer> {
         let transfer = self.repository.get_transfer(transfer_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget transfer {} not found", transfer_id)
+                format!("Budget transfer {transfer_id} not found")
             ))?;
 
         if transfer.status != "pending" {
@@ -542,7 +542,7 @@ impl BudgetEngine {
     pub async fn reject_transfer(&self, transfer_id: Uuid, reason: Option<&str>) -> AtlasResult<BudgetTransfer> {
         let transfer = self.repository.get_transfer(transfer_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget transfer {} not found", transfer_id)
+                format!("Budget transfer {transfer_id} not found")
             ))?;
 
         if transfer.status != "pending" {
@@ -568,7 +568,7 @@ impl BudgetEngine {
     pub async fn get_variance_report(&self, version_id: Uuid) -> AtlasResult<BudgetVarianceReport> {
         let version = self.repository.get_version(version_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget version {} not found", version_id)
+                format!("Budget version {version_id} not found")
             ))?;
 
         let definition = self.repository.get_definition_by_id(version.definition_id).await?
@@ -587,7 +587,7 @@ impl BudgetEngine {
             let actual: f64 = line.actual_amount.parse().unwrap_or(0.0);
             let committed: f64 = line.committed_amount.parse().unwrap_or(0.0);
             let variance = budget - actual;
-            let variance_pct = if budget != 0.0 { (variance / budget) * 100.0 } else { 0.0 };
+            let variance_pct = if budget == 0.0 { 0.0 } else { (variance / budget) * 100.0 };
 
             total_budget += budget;
             total_actual += actual;
@@ -601,19 +601,19 @@ impl BudgetEngine {
                 department_name: line.department_name.clone(),
                 project_name: line.project_name.clone(),
                 cost_center: line.cost_center.clone(),
-                budget_amount: format!("{:.2}", budget),
-                committed_amount: format!("{:.2}", committed),
-                actual_amount: format!("{:.2}", actual),
-                variance_amount: format!("{:.2}", variance),
-                variance_percent: format!("{:.2}", variance_pct),
+                budget_amount: format!("{budget:.2}"),
+                committed_amount: format!("{committed:.2}"),
+                actual_amount: format!("{actual:.2}"),
+                variance_amount: format!("{variance:.2}"),
+                variance_percent: format!("{variance_pct:.2}"),
                 is_over_budget: actual > budget,
             });
         }
 
-        let total_variance_pct = if total_budget != 0.0 {
-            (total_variance / total_budget) * 100.0
-        } else {
+        let total_variance_pct = if total_budget == 0.0 {
             0.0
+        } else {
+            (total_variance / total_budget) * 100.0
         };
 
         Ok(BudgetVarianceReport {
@@ -623,11 +623,11 @@ impl BudgetEngine {
             version_id: version.id,
             version_label: version.label,
             fiscal_year: definition.fiscal_year,
-            total_budget: format!("{:.2}", total_budget),
-            total_actual: format!("{:.2}", total_actual),
-            total_committed: format!("{:.2}", total_committed),
-            total_variance: format!("{:.2}", total_variance),
-            variance_percent: format!("{:.2}", total_variance_pct),
+            total_budget: format!("{total_budget:.2}"),
+            total_actual: format!("{total_actual:.2}"),
+            total_committed: format!("{total_committed:.2}"),
+            total_variance: format!("{total_variance:.2}"),
+            variance_percent: format!("{total_variance_pct:.2}"),
             lines: report_lines,
         })
     }
@@ -646,7 +646,7 @@ impl BudgetEngine {
     ) -> AtlasResult<BudgetControlResult> {
         let definition = self.get_definition(org_id, budget_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Budget definition '{}' not found", budget_code)
+                format!("Budget definition '{budget_code}' not found")
             ))?;
 
         if definition.control_level == "none" {
@@ -657,14 +657,14 @@ impl BudgetEngine {
                 actual_amount: "0".to_string(),
                 committed_amount: "0".to_string(),
                 available_amount: "0".to_string(),
-                proposed_amount: format!("{:.2}", proposed_amount),
+                proposed_amount: format!("{proposed_amount:.2}"),
                 message: "No budget control".to_string(),
             });
         }
 
         let active_version = self.get_active_version(definition.id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("No active budget version for '{}'", budget_code)
+                format!("No active budget version for '{budget_code}'")
             ))?;
 
         let line = self.repository.find_line(
@@ -682,17 +682,17 @@ impl BudgetEngine {
                 let message = if within {
                     "Within budget".to_string()
                 } else {
-                    format!("Over budget: available={:.2}, proposed={:.2}", available, proposed_amount)
+                    format!("Over budget: available={available:.2}, proposed={proposed_amount:.2}")
                 };
 
                 Ok(BudgetControlResult {
                     within_budget: within,
                     control_level: definition.control_level.clone(),
-                    budget_amount: format!("{:.2}", budget),
-                    actual_amount: format!("{:.2}", actual),
-                    committed_amount: format!("{:.2}", committed),
-                    available_amount: format!("{:.2}", available),
-                    proposed_amount: format!("{:.2}", proposed_amount),
+                    budget_amount: format!("{budget:.2}"),
+                    actual_amount: format!("{actual:.2}"),
+                    committed_amount: format!("{committed:.2}"),
+                    available_amount: format!("{available:.2}"),
+                    proposed_amount: format!("{proposed_amount:.2}"),
                     message,
                 })
             }
@@ -705,7 +705,7 @@ impl BudgetEngine {
                     actual_amount: "0".to_string(),
                     committed_amount: "0".to_string(),
                     available_amount: "0".to_string(),
-                    proposed_amount: format!("{:.2}", proposed_amount),
+                    proposed_amount: format!("{proposed_amount:.2}"),
                     message: "No budget line found for this account".to_string(),
                 })
             }
@@ -734,10 +734,10 @@ impl BudgetEngine {
 
         self.repository.update_version_totals(
             version_id,
-            &format!("{:.2}", total_budget),
-            &format!("{:.2}", total_committed),
-            &format!("{:.2}", total_actual),
-            &format!("{:.2}", total_variance),
+            &format!("{total_budget:.2}"),
+            &format!("{total_committed:.2}"),
+            &format!("{total_actual:.2}"),
+            &format!("{total_variance:.2}"),
         ).await?;
 
         Ok(())

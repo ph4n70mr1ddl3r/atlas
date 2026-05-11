@@ -1,6 +1,6 @@
 //! Receiving Repository
 //!
-//! PostgreSQL storage for receiving locations, receipts, lines,
+//! `PostgreSQL` storage for receiving locations, receipts, lines,
 //! inspections, inspection details, deliveries, and returns.
 
 use atlas_shared::{
@@ -115,13 +115,14 @@ pub trait ReceivingRepository: Send + Sync {
     ) -> AtlasResult<ReceiptReturn>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresReceivingRepository {
     pool: PgPool,
 }
 
 impl PostgresReceivingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -129,9 +130,9 @@ impl PostgresReceivingRepository {
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
     if v == v.floor() {
-        format!("{:.0}", v)
+        format!("{v:.0}")
     } else {
-        let s = format!("{:.10}", v);
+        let s = format!("{v:.10}");
         s.trim_end_matches('0').trim_end_matches('.').to_string()
     }
 }
@@ -216,7 +217,7 @@ fn row_to_line(row: &sqlx::postgres::PgRow) -> ReceiptLine {
         serial_numbers: row.try_get("serial_numbers").unwrap_or(serde_json::json!([])),
         expiration_date: row.get("expiration_date"),
         manufacture_date: row.get("manufacture_date"),
-        unit_price: row.try_get::<Option<f64>, _>("unit_price").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.2}", v) }),
+        unit_price: row.try_get::<Option<f64>, _>("unit_price").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.2}") }),
         currency: row.get("currency"),
         notes: row.get("notes"),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
@@ -237,13 +238,13 @@ fn row_to_inspection(row: &sqlx::postgres::PgRow) -> ReceiptInspection {
         inspector_id: row.get("inspector_id"),
         inspector_name: row.get("inspector_name"),
         inspection_date: row.get("inspection_date"),
-        sample_size: row.try_get::<Option<f64>, _>("sample_size").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.2}", v) }),
+        sample_size: row.try_get::<Option<f64>, _>("sample_size").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.2}") }),
         quantity_inspected: get_num(row, "quantity_inspected"),
         quantity_accepted: get_num(row, "quantity_accepted"),
         quantity_rejected: get_num(row, "quantity_rejected"),
         disposition: row.get("disposition"),
         rejection_reason: row.get("rejection_reason"),
-        quality_score: row.try_get::<Option<f64>, _>("quality_score").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.2}", v) }),
+        quality_score: row.try_get::<Option<f64>, _>("quality_score").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.2}") }),
         notes: row.get("notes"),
         status: row.get("status"),
         completed_at: row.get("completed_at"),
@@ -313,7 +314,7 @@ fn row_to_return(row: &sqlx::postgres::PgRow) -> ReceiptReturn {
         item_description: row.get("item_description"),
         quantity_returned: get_num(row, "quantity_returned"),
         uom: row.get("uom"),
-        unit_price: row.try_get::<Option<f64>, _>("unit_price").ok().flatten().map(|v| if v == v.floor() { format!("{:.0}", v) } else { format!("{:.2}", v) }),
+        unit_price: row.try_get::<Option<f64>, _>("unit_price").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.2}") }),
         currency: row.get("currency"),
         return_reason: row.get("return_reason"),
         return_date: row.get("return_date"),
@@ -344,7 +345,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReceivingLocation> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.receiving_locations
                 (organization_id, code, name, description, location_type,
                  address, city, state, country, postal_code, created_by)
@@ -354,7 +355,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
                     address = $6, city = $7, state = $8, country = $9,
                     postal_code = $10, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(location_type)
         .bind(address).bind(city).bind(state).bind(country).bind(postal_code)
@@ -413,7 +414,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
         waybill_number: Option<&str>, notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptHeader> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.receipt_headers
                 (organization_id, receipt_number, receipt_type, receipt_source,
                  supplier_id, supplier_name, supplier_number,
@@ -423,7 +424,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
                  carrier, tracking_number, waybill_number, notes, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(receipt_number).bind(receipt_type).bind(receipt_source)
         .bind(supplier_id).bind(supplier_name).bind(supplier_number)
@@ -436,7 +437,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
         .await
         .map_err(|e| {
             if e.to_string().contains("duplicate") || e.to_string().contains("violates unique constraint") {
-                AtlasError::Conflict(format!("Receipt number '{}' already exists", receipt_number))
+                AtlasError::Conflict(format!("Receipt number '{receipt_number}' already exists"))
             } else {
                 AtlasError::DatabaseError(e.to_string())
             }
@@ -466,13 +467,13 @@ impl ReceivingRepository for PostgresReceivingRepository {
 
     async fn list_receipts(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptHeader>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.receipt_headers
             WHERE organization_id = $1
               AND ($2 IS NULL OR status = $2)
               AND ($3::uuid IS NULL OR supplier_id = $3)
             ORDER BY receiving_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(supplier_id)
         .fetch_all(&self.pool)
@@ -485,7 +486,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
         &self, id: Uuid, status: &str, received_by: Option<Uuid>, _closed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ReceiptHeader> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.receipt_headers
             SET status = $2,
                 received_by = COALESCE($3, received_by),
@@ -494,7 +495,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(received_by)
         .fetch_one(&self.pool)
@@ -519,7 +520,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.receipt_lines
                 (organization_id, receipt_id, line_number,
                  purchase_order_line_id, item_id, item_code, item_description,
@@ -529,7 +530,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
                     $12, $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(receipt_id).bind(line_number)
         .bind(purchase_order_line_id).bind(item_id).bind(item_code).bind(item_description)
@@ -575,14 +576,14 @@ impl ReceivingRepository for PostgresReceivingRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptInspection> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.receipt_inspections
                 (organization_id, receipt_id, receipt_line_id, inspection_number,
                  inspection_template, inspector_id, inspector_name,
                  inspection_date, sample_size, notes, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(receipt_id).bind(receipt_line_id).bind(inspection_number)
         .bind(inspection_template).bind(inspector_id).bind(inspector_name)
@@ -604,11 +605,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
 
     async fn list_inspections(&self, org_id: Uuid, receipt_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptInspection>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.receipt_inspections
             WHERE organization_id = $1 AND ($2::uuid IS NULL OR receipt_id = $2)
             ORDER BY inspection_date DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(receipt_id)
         .fetch_all(&self.pool)
@@ -623,7 +624,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
         rejection_reason: Option<&str>, notes: Option<&str>,
     ) -> AtlasResult<ReceiptInspection> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.receipt_inspections
             SET status = 'completed',
                 quantity_inspected = $2,
@@ -637,7 +638,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id)
         .bind(quantity_inspected.parse::<f64>().unwrap_or(0.0)).bind(quantity_accepted.parse::<f64>().unwrap_or(0.0)).bind(quantity_rejected.parse::<f64>().unwrap_or(0.0))
@@ -659,13 +660,13 @@ impl ReceivingRepository for PostgresReceivingRepository {
         notes: Option<&str>,
     ) -> AtlasResult<InspectionDetail> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.inspection_details
                 (organization_id, inspection_id, check_number, check_name,
                  check_type, specification, result, measured_value, expected_value, notes)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(inspection_id).bind(check_number).bind(check_name)
         .bind(check_type).bind(specification).bind(result)
@@ -700,7 +701,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
         account_code: Option<&str>, notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptDelivery> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.receipt_deliveries
                 (organization_id, receipt_id, receipt_line_id, delivery_number,
                  subinventory, locator, quantity_delivered, uom,
@@ -709,7 +710,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
                     $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(receipt_id).bind(receipt_line_id).bind(delivery_number)
         .bind(subinventory).bind(locator).bind(quantity_delivered.parse::<f64>().unwrap_or(0.0)).bind(uom)
@@ -732,11 +733,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
 
     async fn list_deliveries(&self, org_id: Uuid, receipt_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptDelivery>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.receipt_deliveries
             WHERE organization_id = $1 AND ($2::uuid IS NULL OR receipt_id = $2)
             ORDER BY delivery_date DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(receipt_id)
         .fetch_all(&self.pool)
@@ -760,7 +761,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptReturn> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.receipt_returns
                 (organization_id, return_number, receipt_id, receipt_line_id,
                  supplier_id, supplier_name, return_type,
@@ -770,7 +771,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16, $17)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(return_number).bind(receipt_id).bind(receipt_line_id)
         .bind(supplier_id).bind(supplier_name).bind(return_type)
@@ -794,11 +795,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
 
     async fn list_returns(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ReceiptReturn>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.receipt_returns
             WHERE organization_id = $1 AND ($2 IS NULL OR status = $2)
             ORDER BY return_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -811,7 +812,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
         &self, id: Uuid, status: &str, carrier: Option<&str>, tracking_number: Option<&str>,
     ) -> AtlasResult<ReceiptReturn> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.receipt_returns
             SET status = $2,
                 carrier = COALESCE($3, carrier),
@@ -821,7 +822,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(carrier).bind(tracking_number)
         .fetch_one(&self.pool)

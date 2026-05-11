@@ -114,7 +114,8 @@ pub struct PostgresAssetRetirementRepository {
 }
 
 impl PostgresAssetRetirementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -168,14 +169,14 @@ impl AssetRetirementRepository for PostgresAssetRetirementRepository {
         reason: Option<&str>, status: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<AssetRetirement> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.asset_retirements
+            r"INSERT INTO _atlas.asset_retirements
                 (organization_id, retirement_number, asset_id, asset_number, asset_description,
                  retirement_type, retirement_date, cost, accumulated_depreciation, net_book_value,
                  proceeds, removal_cost, gain_loss_amount, gain_loss_account, asset_account,
                  depreciation_account, proceeds_account, removal_cost_account, buyer_name,
                  reason, status, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(retirement_number).bind(asset_id)
         .bind(asset_number).bind(asset_description)
@@ -212,11 +213,11 @@ impl AssetRetirementRepository for PostgresAssetRetirementRepository {
 
     async fn list(&self, org_id: Uuid, status: Option<&str>, retirement_type: Option<&str>) -> AtlasResult<Vec<AssetRetirement>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.asset_retirements
+            r"SELECT * FROM _atlas.asset_retirements
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::text IS NULL OR retirement_type = $3)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(retirement_type)
         .fetch_all(&self.pool).await
@@ -226,10 +227,10 @@ impl AssetRetirementRepository for PostgresAssetRetirementRepository {
 
     async fn update_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<AssetRetirement> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.asset_retirements
+            r"UPDATE _atlas.asset_retirements
             SET status = $2, approved_by = COALESCE($3, approved_by), updated_at = now()
             WHERE id = $1
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool).await
@@ -239,10 +240,10 @@ impl AssetRetirementRepository for PostgresAssetRetirementRepository {
 
     async fn mark_posted(&self, id: Uuid, gl_batch_id: Uuid) -> AtlasResult<AssetRetirement> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.asset_retirements
+            r"UPDATE _atlas.asset_retirements
             SET posted_to_gl = TRUE, gl_batch_id = $2, updated_at = now()
             WHERE id = $1
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(id).bind(gl_batch_id)
         .fetch_one(&self.pool).await
@@ -252,14 +253,14 @@ impl AssetRetirementRepository for PostgresAssetRetirementRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RetirementDashboard> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'pending') as pending,
                 COUNT(*) FILTER (WHERE status = 'completed') as completed,
                 COALESCE(SUM(proceeds::NUMERIC) FILTER (WHERE status = 'completed'), 0) as total_proceeds,
                 COALESCE(SUM(gain_loss_amount::NUMERIC) FILTER (WHERE status = 'completed' AND gain_loss_amount::NUMERIC > 0), 0) as total_gain,
                 COALESCE(SUM(gain_loss_amount::NUMERIC) FILTER (WHERE status = 'completed' AND gain_loss_amount::NUMERIC < 0), 0) as total_loss
-            FROM _atlas.asset_retirements WHERE organization_id = $1"#,
+            FROM _atlas.asset_retirements WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -274,13 +275,13 @@ impl AssetRetirementRepository for PostgresAssetRetirementRepository {
 
         // By-type breakdown
         let type_rows = sqlx::query(
-            r#"SELECT retirement_type, COUNT(*) as count,
+            r"SELECT retirement_type, COUNT(*) as count,
                 COALESCE(SUM(proceeds::NUMERIC), 0) as total_proceeds,
                 COALESCE(SUM(gain_loss_amount::NUMERIC), 0) as net_gain_loss
             FROM _atlas.asset_retirements
             WHERE organization_id = $1 AND status = 'completed'
             GROUP BY retirement_type
-            ORDER BY retirement_type"#,
+            ORDER BY retirement_type",
         )
         .bind(org_id)
         .fetch_all(&self.pool).await
@@ -300,9 +301,9 @@ impl AssetRetirementRepository for PostgresAssetRetirementRepository {
             total_retirements: total as i32,
             pending_retirements: pending as i32,
             completed_retirements: completed as i32,
-            total_proceeds: total_proceeds.to_string(),
-            total_gain: total_gain.to_string(),
-            total_loss: total_loss.to_string(),
+            total_proceeds: total_proceeds.clone(),
+            total_gain: total_gain.clone(),
+            total_loss: total_loss.clone(),
             by_type: serde_json::Value::Array(by_type),
         })
     }
@@ -402,12 +403,12 @@ impl AssetRetirementEngine {
     pub async fn list(&self, org_id: Uuid, status: Option<&str>, retirement_type: Option<&str>) -> AtlasResult<Vec<AssetRetirement>> {
         if let Some(s) = status {
             if !VALID_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'")));
             }
         }
         if let Some(t) = retirement_type {
             if !VALID_RETIREMENT_TYPES.contains(&t) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid retirement type '{}'", t)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid retirement type '{t}'")));
             }
         }
         self.repository.list(org_id, status, retirement_type).await
@@ -416,7 +417,7 @@ impl AssetRetirementEngine {
     /// Approve a pending retirement
     pub async fn approve(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<AssetRetirement> {
         let ret = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Retirement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Retirement {id} not found")))?;
         if ret.status != "pending" {
             return Err(AtlasError::WorkflowError(format!("Cannot approve retirement in '{}' status", ret.status)));
         }
@@ -427,7 +428,7 @@ impl AssetRetirementEngine {
     /// Complete an approved retirement (post to GL)
     pub async fn complete(&self, id: Uuid, gl_batch_id: Option<Uuid>) -> AtlasResult<AssetRetirement> {
         let ret = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Retirement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Retirement {id} not found")))?;
         if ret.status != "approved" {
             return Err(AtlasError::WorkflowError(format!("Cannot complete retirement in '{}' status", ret.status)));
         }
@@ -442,7 +443,7 @@ impl AssetRetirementEngine {
     /// Reverse a completed retirement
     pub async fn reverse(&self, id: Uuid) -> AtlasResult<AssetRetirement> {
         let ret = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Retirement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Retirement {id} not found")))?;
         if ret.status != "completed" {
             return Err(AtlasError::WorkflowError(format!("Cannot reverse retirement in '{}' status", ret.status)));
         }
@@ -453,7 +454,7 @@ impl AssetRetirementEngine {
     /// Cancel a pending retirement
     pub async fn cancel(&self, id: Uuid) -> AtlasResult<AssetRetirement> {
         let ret = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Retirement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Retirement {id} not found")))?;
         if ret.status != "pending" {
             return Err(AtlasError::WorkflowError(format!("Cannot cancel retirement in '{}' status", ret.status)));
         }

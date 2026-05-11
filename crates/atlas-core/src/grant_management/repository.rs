@@ -1,6 +1,6 @@
 //! Grant Management Repository
 //!
-//! PostgreSQL storage for grant sponsors, awards, budgets, expenditures,
+//! `PostgreSQL` storage for grant sponsors, awards, budgets, expenditures,
 //! billings, and compliance reports.
 
 use atlas_shared::{
@@ -125,13 +125,14 @@ pub trait GrantManagementRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<GrantDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresGrantManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresGrantManagementRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self { Self { pool } }
 
     fn get_numeric(&self, row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: serde_json::Value = row.try_get(col).unwrap_or(serde_json::json!("0"));
@@ -214,13 +215,13 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
         credit_limit: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GrantSponsor> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.grant_sponsors
+            r"INSERT INTO _atlas.grant_sponsors
                 (organization_id, sponsor_code, name, sponsor_type, country_code,
                  taxpayer_id, contact_name, contact_email, contact_phone,
                  address_line1, address_line2, city, state_province, postal_code,
                  payment_terms, billing_frequency, currency_code, credit_limit, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::numeric,$19)
-            RETURNING *"#,
+            RETURNING *",
         ).bind(org_id).bind(sponsor_code).bind(name).bind(sponsor_type)
         .bind(country_code).bind(taxpayer_id).bind(contact_name).bind(contact_email)
         .bind(contact_phone).bind(address_line1).bind(address_line2)
@@ -261,10 +262,10 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
         negotiated_by: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GrantIndirectCostRate> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.grant_indirect_cost_rates
+            r"INSERT INTO _atlas.grant_indirect_cost_rates
                 (organization_id, rate_name, rate_type, rate_percentage, base_type,
                  effective_from, effective_to, negotiated_by, created_by)
-            VALUES ($1,$2,$3,$4::numeric,$5,$6,$7,$8,$9) RETURNING *"#,
+            VALUES ($1,$2,$3,$4::numeric,$5,$6,$7,$8,$9) RETURNING *",
         ).bind(org_id).bind(rate_name).bind(rate_type).bind(rate_percentage)
         .bind(base_type).bind(effective_from).bind(effective_to).bind(negotiated_by).bind(created_by)
         .fetch_one(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -321,7 +322,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GrantAward> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.grant_awards
+            r"INSERT INTO _atlas.grant_awards
                 (organization_id, award_number, award_title, sponsor_id, sponsor_name,
                  sponsor_award_number, award_type, award_purpose, start_date, end_date,
                  total_award_amount, direct_costs_total, indirect_costs_total, cost_sharing_total,
@@ -335,7 +336,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
                     $11::numeric,$12::numeric,$13::numeric,$14::numeric,
                     $15,$16,$17::numeric,$18,$19::numeric,
                     $20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
-            RETURNING *"#,
+            RETURNING *",
         ).bind(org_id).bind(award_number).bind(award_title).bind(sponsor_id)
         .bind(sponsor_name).bind(sponsor_award_number).bind(award_type).bind(award_purpose)
         .bind(start_date).bind(end_date).bind(total_award_amount).bind(direct_costs_total)
@@ -366,9 +367,9 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn list_awards(&self, org_id: Uuid, status: Option<&str>, sponsor_id: Option<Uuid>) -> AtlasResult<Vec<GrantAward>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.grant_awards
+            r"SELECT * FROM _atlas.grant_awards
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2) AND ($3::uuid IS NULL OR sponsor_id=$3)
-            ORDER BY award_number"#,
+            ORDER BY award_number",
         ).bind(org_id).bind(status).bind(sponsor_id)
         .fetch_all(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| self.row_to_award(r)).collect())
@@ -376,10 +377,10 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn update_award_status(&self, id: Uuid, status: &str, closeout_date: Option<chrono::NaiveDate>, closeout_notes: Option<&str>) -> AtlasResult<GrantAward> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.grant_awards SET status=$2,
+            r"UPDATE _atlas.grant_awards SET status=$2,
                 closeout_date=COALESCE($3, closeout_date),
                 closeout_notes=COALESCE($4, closeout_notes),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         ).bind(id).bind(status).bind(closeout_date).bind(closeout_notes)
         .fetch_one(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_award(&row))
@@ -387,8 +388,8 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn update_award_totals(&self, id: Uuid, total_expenditures: &str, total_commitments: &str, total_billed: &str, total_collected: &str, available_balance: &str) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.grant_awards SET total_expenditures=$2::numeric, total_commitments=$3::numeric,
-                total_billed=$4::numeric, total_collected=$5::numeric, available_balance=$6::numeric, updated_at=now() WHERE id=$1"#,
+            r"UPDATE _atlas.grant_awards SET total_expenditures=$2::numeric, total_commitments=$3::numeric,
+                total_billed=$4::numeric, total_collected=$5::numeric, available_balance=$6::numeric, updated_at=now() WHERE id=$1",
         ).bind(id).bind(total_expenditures).bind(total_commitments).bind(total_billed).bind(total_collected).bind(available_balance)
         .execute(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
@@ -401,10 +402,10 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GrantBudgetLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.grant_budget_lines
+            r"INSERT INTO _atlas.grant_budget_lines
                 (organization_id, award_id, line_number, budget_category, description,
                  account_code, budget_amount, period_start, period_end, fiscal_year, notes, created_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8,$9,$10,$11,$12) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8,$9,$10,$11,$12) RETURNING *",
         ).bind(org_id).bind(award_id).bind(line_number).bind(budget_category)
         .bind(description).bind(account_code).bind(budget_amount)
         .bind(period_start).bind(period_end).bind(fiscal_year).bind(notes).bind(created_by)
@@ -429,8 +430,8 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn update_budget_line_amounts(&self, id: Uuid, committed: &str, expended: &str, billed: &str, available: &str) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.grant_budget_lines SET committed_amount=$2::numeric, expended_amount=$3::numeric,
-                billed_amount=$4::numeric, available_balance=$5::numeric, updated_at=now() WHERE id=$1"#,
+            r"UPDATE _atlas.grant_budget_lines SET committed_amount=$2::numeric, expended_amount=$3::numeric,
+                billed_amount=$4::numeric, available_balance=$5::numeric, updated_at=now() WHERE id=$1",
         ).bind(id).bind(committed).bind(expended).bind(billed).bind(available)
         .execute(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
@@ -450,7 +451,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
         status: &str, notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GrantExpenditure> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.grant_expenditures
+            r"INSERT INTO _atlas.grant_expenditures
                 (organization_id, award_id, expenditure_number, expenditure_type, expenditure_date,
                  description, budget_line_id, budget_category, amount, indirect_cost_amount,
                  total_amount, cost_sharing_amount, employee_id, employee_name,
@@ -458,7 +459,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
                  gl_debit_account, gl_credit_account, status, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10::numeric,
                     $11::numeric,$12::numeric,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
-            RETURNING *"#,
+            RETURNING *",
         ).bind(org_id).bind(award_id).bind(expenditure_number).bind(expenditure_type)
         .bind(expenditure_date).bind(description).bind(budget_line_id).bind(budget_category)
         .bind(amount).bind(indirect_cost_amount).bind(total_amount).bind(cost_sharing_amount)
@@ -478,8 +479,8 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn list_expenditures(&self, award_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<GrantExpenditure>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.grant_expenditures
-            WHERE award_id=$1 AND ($2::text IS NULL OR status=$2) ORDER BY expenditure_date"#,
+            r"SELECT * FROM _atlas.grant_expenditures
+            WHERE award_id=$1 AND ($2::text IS NULL OR status=$2) ORDER BY expenditure_date",
         ).bind(award_id).bind(status).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_expenditure).collect())
@@ -487,10 +488,10 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn update_expenditure_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<GrantExpenditure> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.grant_expenditures SET status=$2,
+            r"UPDATE _atlas.grant_expenditures SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approved_at=CASE WHEN $3 IS NOT NULL AND approved_at IS NULL THEN now() ELSE approved_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         ).bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_expenditure(&row))
@@ -505,12 +506,12 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GrantBilling> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.grant_billings
+            r"INSERT INTO _atlas.grant_billings
                 (organization_id, award_id, invoice_number, invoice_date, period_start, period_end,
                  due_date, direct_costs_billed, indirect_costs_billed, cost_sharing_billed,
                  total_amount, expenditure_ids, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9::numeric,$10::numeric,$11::numeric,$12,$13,$14)
-            RETURNING *"#,
+            RETURNING *",
         ).bind(org_id).bind(award_id).bind(invoice_number).bind(invoice_date)
         .bind(period_start).bind(period_end).bind(due_date)
         .bind(direct_costs_billed).bind(indirect_costs_billed).bind(cost_sharing_billed)
@@ -528,8 +529,8 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn list_billings(&self, award_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<GrantBilling>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.grant_billings
-            WHERE award_id=$1 AND ($2::text IS NULL OR status=$2) ORDER BY invoice_date"#,
+            r"SELECT * FROM _atlas.grant_billings
+            WHERE award_id=$1 AND ($2::text IS NULL OR status=$2) ORDER BY invoice_date",
         ).bind(award_id).bind(status).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_billing).collect())
@@ -537,12 +538,12 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn update_billing_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, payment_reference: Option<&str>) -> AtlasResult<GrantBilling> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.grant_billings SET status=$2,
+            r"UPDATE _atlas.grant_billings SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approved_at=CASE WHEN $3 IS NOT NULL AND approved_at IS NULL THEN now() ELSE approved_at END,
                 paid_at=CASE WHEN $2='paid' AND paid_at IS NULL THEN now() ELSE paid_at END,
                 payment_reference=COALESCE($4, payment_reference),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         ).bind(id).bind(status).bind(approved_by).bind(payment_reference)
         .fetch_one(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_billing(&row))
@@ -556,13 +557,13 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GrantComplianceReport> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.grant_compliance_reports
+            r"INSERT INTO _atlas.grant_compliance_reports
                 (organization_id, award_id, report_type, report_title,
                  reporting_period_start, reporting_period_end, due_date,
                  total_expenditures, total_billed, total_received, cash_draws, obligations,
                  content, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9::numeric,$10::numeric,$11::numeric,$12::numeric,$13,$14,$15)
-            RETURNING *"#,
+            RETURNING *",
         ).bind(org_id).bind(award_id).bind(report_type).bind(report_title)
         .bind(reporting_period_start).bind(reporting_period_end).bind(due_date)
         .bind(total_expenditures).bind(total_billed).bind(total_received).bind(cash_draws).bind(obligations)
@@ -580,8 +581,8 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn list_compliance_reports(&self, award_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<GrantComplianceReport>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.grant_compliance_reports
-            WHERE award_id=$1 AND ($2::text IS NULL OR report_type=$2) ORDER BY reporting_period_start"#,
+            r"SELECT * FROM _atlas.grant_compliance_reports
+            WHERE award_id=$1 AND ($2::text IS NULL OR report_type=$2) ORDER BY reporting_period_start",
         ).bind(award_id).bind(report_type).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_compliance_report).collect())
@@ -589,11 +590,11 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn update_compliance_report_status(&self, id: Uuid, status: &str, reviewed_by: Option<Uuid>, approved_by: Option<Uuid>) -> AtlasResult<GrantComplianceReport> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.grant_compliance_reports SET status=$2,
+            r"UPDATE _atlas.grant_compliance_reports SET status=$2,
                 reviewed_by=COALESCE($3, reviewed_by),
                 approved_by=COALESCE($4, approved_by),
                 submitted_at=CASE WHEN $2='submitted' AND submitted_at IS NULL THEN now() ELSE submitted_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         ).bind(id).bind(status).bind(reviewed_by).bind(approved_by)
         .fetch_one(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_compliance_report(&row))
@@ -601,7 +602,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<GrantDashboardSummary> {
         let rows = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_count,
                 COUNT(DISTINCT sponsor_id) FILTER (WHERE status = 'active') as sponsor_count,
                 COALESCE(SUM(total_award_amount) FILTER (WHERE status = 'active'), 0) as total_value,
@@ -611,7 +612,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
                 COUNT(*) FILTER (WHERE status = 'active' AND end_date <= CURRENT_DATE + INTERVAL '30 days') as expiring_30,
                 0 as pending_bills,
                 0 as overdue_reports
-            FROM _atlas.grant_awards WHERE organization_id = $1"#,
+            FROM _atlas.grant_awards WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
@@ -640,7 +641,7 @@ impl GrantManagementRepository for PostgresGrantManagementRepository {
             total_pending_billings: pending as i32,
             total_overdue_reports: overdue as i32,
             awards_expiring_30_days: expiring as i32,
-            budget_utilization_percent: format!("{:.1}", utilization),
+            budget_utilization_percent: format!("{utilization:.1}"),
             awards_by_status: serde_json::json!({}),
             expenditures_by_category: serde_json::json!({}),
             top_sponsors: serde_json::json!({}),

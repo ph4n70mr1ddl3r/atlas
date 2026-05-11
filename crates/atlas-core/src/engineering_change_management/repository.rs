@@ -1,6 +1,6 @@
 //! Engineering Change Management Repository
 //!
-//! PostgreSQL storage for engineering change types, changes, change lines,
+//! `PostgreSQL` storage for engineering change types, changes, change lines,
 //! affected items, approvals, and dashboard.
 
 use atlas_shared::{
@@ -142,13 +142,14 @@ pub trait EngineeringChangeManagementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<EcmDashboard>;
 }
 
-/// PostgreSQL implementation of the Engineering Change Management repository
+/// `PostgreSQL` implementation of the Engineering Change Management repository
 pub struct PostgresEngineeringChangeManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresEngineeringChangeManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -166,12 +167,12 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         statuses: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<EngineeringChangeType> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.engineering_change_types
+            r"INSERT INTO _atlas.engineering_change_types
                (organization_id, type_code, name, description, category,
                 approval_required, default_priority, number_prefix, description_template,
                 statuses, metadata, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, '{}'::jsonb, $11)
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(org_id).bind(type_code).bind(name).bind(description)
             .bind(category).bind(approval_required).bind(default_priority)
@@ -203,17 +204,17 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
     async fn list_change_types(&self, org_id: Uuid, category: Option<&str>) -> AtlasResult<Vec<EngineeringChangeType>> {
         let rows = if let Some(cat) = category {
             sqlx::query(
-                r#"SELECT * FROM _atlas.engineering_change_types
+                r"SELECT * FROM _atlas.engineering_change_types
                    WHERE organization_id = $1 AND category = $2 AND status = 'active'
-                   ORDER BY type_code"#,
+                   ORDER BY type_code",
             )
                 .bind(org_id).bind(cat)
                 .fetch_all(&self.pool).await?
         } else {
             sqlx::query(
-                r#"SELECT * FROM _atlas.engineering_change_types
+                r"SELECT * FROM _atlas.engineering_change_types
                    WHERE organization_id = $1 AND status = 'active'
-                   ORDER BY type_code"#,
+                   ORDER BY type_code",
             )
                 .bind(org_id)
                 .fetch_all(&self.pool).await?
@@ -230,7 +231,7 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
 
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound(format!(
-                "Change type '{}' not found", type_code
+                "Change type '{type_code}' not found"
             )));
         }
         Ok(())
@@ -268,7 +269,7 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         created_by: Option<Uuid>,
     ) -> AtlasResult<EngineeringChange> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.engineering_changes
+            r"INSERT INTO _atlas.engineering_changes
                (organization_id, change_number, change_type_id, category, title, description,
                 change_reason, change_reason_description, priority, status, revision,
                 assigned_to, assigned_to_name, submitted_at, approved_at, implemented_at,
@@ -279,7 +280,7 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
                 validation_required, metadata, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
                        $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,'{}'::jsonb,$32)
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(org_id).bind(change_number).bind(change_type_id).bind(category)
             .bind(title).bind(description).bind(change_reason).bind(change_reason_description)
@@ -328,19 +329,19 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         let mut param_idx = 2u32;
 
         if status.is_some() {
-            query.push_str(&format!(" AND status = ${}", param_idx));
+            query.push_str(&format!(" AND status = ${param_idx}"));
             param_idx += 1;
         }
         if category.is_some() {
-            query.push_str(&format!(" AND category = ${}", param_idx));
+            query.push_str(&format!(" AND category = ${param_idx}"));
             param_idx += 1;
         }
         if priority.is_some() {
-            query.push_str(&format!(" AND priority = ${}", param_idx));
+            query.push_str(&format!(" AND priority = ${param_idx}"));
             param_idx += 1;
         }
         if assigned_to.is_some() {
-            query.push_str(&format!(" AND assigned_to = ${}", param_idx));
+            query.push_str(&format!(" AND assigned_to = ${param_idx}"));
         }
         query.push_str(" ORDER BY created_at DESC");
 
@@ -361,19 +362,19 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         implemented_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<EngineeringChange> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.engineering_changes
+            r"UPDATE _atlas.engineering_changes
                SET status = $2,
                    submitted_at = COALESCE($3, submitted_at),
                    approved_at = COALESCE($4, approved_at),
                    implemented_at = COALESCE($5, implemented_at),
                    updated_at = now()
                WHERE id = $1
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(id).bind(status)
             .bind(submitted_at).bind(approved_at).bind(implemented_at)
             .fetch_one(&self.pool).await
-            .map_err(|_| AtlasError::EntityNotFound(format!("Change {} not found", id)))?;
+            .map_err(|_| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         Ok(row_to_change(&row))
     }
@@ -384,14 +385,14 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         resolution_code: Option<&str>,
     ) -> AtlasResult<EngineeringChange> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.engineering_changes
+            r"UPDATE _atlas.engineering_changes
                SET status = $2, resolution_notes = $3, resolution_code = $4, updated_at = now()
                WHERE id = $1
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(id).bind(status).bind(resolution_notes).bind(resolution_code)
             .fetch_one(&self.pool).await
-            .map_err(|_| AtlasError::EntityNotFound(format!("Change {} not found", id)))?;
+            .map_err(|_| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         Ok(row_to_change(&row))
     }
@@ -403,7 +404,7 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         implemented_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<EngineeringChange> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.engineering_changes
+            r"UPDATE _atlas.engineering_changes
                SET status = 'implemented',
                    actual_cost = COALESCE($2, actual_cost),
                    actual_hours = COALESCE($3, actual_hours),
@@ -411,11 +412,11 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
                    resolution_code = 'implemented',
                    updated_at = now()
                WHERE id = $1
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(id).bind(actual_cost).bind(actual_hours).bind(implemented_at)
             .fetch_one(&self.pool).await
-            .map_err(|_| AtlasError::EntityNotFound(format!("Change {} not found", id)))?;
+            .map_err(|_| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         Ok(row_to_change(&row))
     }
@@ -425,14 +426,14 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         comments: Option<&str>,
     ) -> AtlasResult<EngineeringChange> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.engineering_changes
+            r"UPDATE _atlas.engineering_changes
                SET status = 'draft', resolution_notes = $2, submitted_at = NULL, updated_at = now()
                WHERE id = $1
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(id).bind(comments)
             .fetch_one(&self.pool).await
-            .map_err(|_| AtlasError::EntityNotFound(format!("Change {} not found", id)))?;
+            .map_err(|_| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         Ok(row_to_change(&row))
     }
@@ -446,7 +447,7 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
 
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound(format!(
-                "Change '{}' not found", change_number
+                "Change '{change_number}' not found"
             )));
         }
         Ok(())
@@ -471,14 +472,14 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         sequence_number: i32, created_by: Option<Uuid>,
     ) -> AtlasResult<EngineeringChangeLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.engineering_change_lines
+            r"INSERT INTO _atlas.engineering_change_lines
                (organization_id, change_id, line_number, item_id, item_number, item_name,
                 change_category, field_name, old_value, new_value, old_revision, new_revision,
                 component_item_id, component_item_number,
                 bom_quantity_old, bom_quantity_new, effectivity_date, effectivity_end_date,
                 status, completion_notes, sequence_number, metadata, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,'{}'::jsonb,$22)
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(org_id).bind(change_id).bind(line_number)
             .bind(item_id).bind(item_number).bind(item_name)
@@ -516,14 +517,14 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         &self, id: Uuid, status: &str, completion_notes: Option<&str>,
     ) -> AtlasResult<EngineeringChangeLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.engineering_change_lines
+            r"UPDATE _atlas.engineering_change_lines
                SET status = $2, completion_notes = $3, updated_at = now()
                WHERE id = $1
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(id).bind(status).bind(completion_notes)
             .fetch_one(&self.pool).await
-            .map_err(|_| AtlasError::EntityNotFound(format!("Change line {} not found", id)))?;
+            .map_err(|_| AtlasError::EntityNotFound(format!("Change line {id} not found")))?;
 
         Ok(row_to_change_line(&row))
     }
@@ -552,13 +553,13 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         created_by: Option<Uuid>,
     ) -> AtlasResult<EngineeringChangeAffectedItem> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.engineering_change_affected_items
+            r"INSERT INTO _atlas.engineering_change_affected_items
                (organization_id, change_id, item_id, item_number, item_name,
                 impact_type, impact_description, current_revision, new_revision,
                 disposition, old_item_status, new_item_status,
                 phase_in_date, phase_out_date, metadata, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'{}'::jsonb,$15)
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(org_id).bind(change_id).bind(item_id).bind(item_number).bind(item_name)
             .bind(impact_type).bind(impact_description)
@@ -618,12 +619,12 @@ impl EngineeringChangeManagementRepository for PostgresEngineeringChangeManageme
         approval_conditions: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<EngineeringChangeApproval> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.engineering_change_approvals
+            r"INSERT INTO _atlas.engineering_change_approvals
                (organization_id, change_id, approval_level,
                 approver_id, approver_name, approver_role, status,
                 action_date, comments, delegated_from_id, approval_conditions, metadata, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'{}'::jsonb,$12)
-               RETURNING *"#,
+               RETURNING *",
         )
             .bind(org_id).bind(change_id).bind(approval_level)
             .bind(approver_id).bind(approver_name).bind(approver_role)

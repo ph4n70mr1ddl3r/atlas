@@ -34,6 +34,7 @@ const VALID_DELIVERY_METHODS: &[&str] = &["email", "print", "xml", "edi"];
 
 /// Calculate the closing balance from opening balance and activity.
 /// closing = opening + charges - payments - credits + adjustments
+#[must_use] 
 pub fn calculate_closing_balance(
     opening_balance: f64,
     total_charges: f64,
@@ -45,17 +46,18 @@ pub fn calculate_closing_balance(
 }
 
 /// Calculate the amount due (positive closing balance, or zero).
-pub fn calculate_amount_due(closing_balance: f64) -> f64 {
+#[must_use] 
+pub const fn calculate_amount_due(closing_balance: f64) -> f64 {
     closing_balance.max(0.0)
 }
 
 /// Compute running balances for a sorted list of statement lines.
 /// The running balance starts from the opening balance and is updated
 /// by each line based on its type:
-///   - invoice, debit_memo, finance_charge: increase balance
-///   - payment, credit_memo: decrease balance
+///   - invoice, `debit_memo`, `finance_charge`: increase balance
+///   - payment, `credit_memo`: decrease balance
 ///   - adjustment: increase balance (positive) or decrease (negative)
-///   - opening_balance, closing_balance: no change to running balance
+///   - `opening_balance`, `closing_balance`: no change to running balance
 pub fn compute_running_balances(
     lines: &mut [(String, f64, Option<f64>)], // (line_type, amount, running_balance)
     opening_balance: f64,
@@ -81,8 +83,9 @@ pub fn compute_running_balances(
     }
 }
 
-/// Compute aging breakdown from a reference date and a list of (due_date, amount) pairs.
-/// Returns (current, aging_1_30, aging_31_60, aging_61_90, aging_91_120, aging_121_plus).
+/// Compute aging breakdown from a reference date and a list of (`due_date`, amount) pairs.
+/// Returns (current, `aging_1_30`, `aging_31_60`, `aging_61_90`, `aging_91_120`, `aging_121_plus`).
+#[must_use] 
 pub fn compute_aging_breakdown(
     reference_date: chrono::NaiveDate,
     items: &[(chrono::NaiveDate, f64)], // (due_date, outstanding_amount)
@@ -201,7 +204,7 @@ impl CustomerStatementEngine {
 
         // Generate statement number
         let next_num = self.repository.get_next_statement_number(org_id).await?;
-        let statement_number = format!("CS-{:05}", next_num);
+        let statement_number = format!("CS-{next_num:05}");
 
         info!(
             "Creating customer statement {} for customer {} in org {}",
@@ -212,8 +215,8 @@ impl CustomerStatementEngine {
             org_id, &statement_number, customer_id, customer_number, customer_name,
             statement_date, billing_period_from, billing_period_to, billing_cycle,
             opening_balance, total_charges, total_payments, total_credits, total_adjustments,
-            &format!("{:.2}", closing),
-            &format!("{:.2}", amount_due),
+            &format!("{closing:.2}"),
+            &format!("{amount_due:.2}"),
             aging_current, aging_1_30, aging_31_60, aging_61_90, aging_91_120, aging_121_plus,
             currency_code, delivery_method, delivery_email,
             previous_statement_id, notes, created_by,
@@ -269,7 +272,7 @@ impl CustomerStatementEngine {
     pub async fn generate_statement(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
         let stmt = self.repository.get_statement(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {} not found", id)
+                format!("Customer statement {id} not found")
             ))?;
 
         if stmt.status != "draft" {
@@ -287,7 +290,7 @@ impl CustomerStatementEngine {
     pub async fn send_statement(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
         let stmt = self.repository.get_statement(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {} not found", id)
+                format!("Customer statement {id} not found")
             ))?;
 
         if stmt.status != "generated" {
@@ -305,7 +308,7 @@ impl CustomerStatementEngine {
     pub async fn mark_viewed(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
         let stmt = self.repository.get_statement(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {} not found", id)
+                format!("Customer statement {id} not found")
             ))?;
 
         if stmt.status != "sent" {
@@ -323,7 +326,7 @@ impl CustomerStatementEngine {
     pub async fn archive_statement(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
         let stmt = self.repository.get_statement(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {} not found", id)
+                format!("Customer statement {id} not found")
             ))?;
 
         if stmt.status != "viewed" && stmt.status != "sent" && stmt.status != "generated" {
@@ -341,7 +344,7 @@ impl CustomerStatementEngine {
     pub async fn cancel_statement(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<CustomerStatement> {
         let stmt = self.repository.get_statement(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {} not found", id)
+                format!("Customer statement {id} not found")
             ))?;
 
         if stmt.status != "draft" {
@@ -360,11 +363,11 @@ impl CustomerStatementEngine {
         self.repository.update_statement_status(id, "cancelled").await
     }
 
-    /// Resend a statement (transition from sent/viewed back to sent, updating sent_at)
+    /// Resend a statement (transition from sent/viewed back to sent, updating `sent_at`)
     pub async fn resend_statement(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
         let stmt = self.repository.get_statement(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {} not found", id)
+                format!("Customer statement {id} not found")
             ))?;
 
         if stmt.status != "sent" && stmt.status != "viewed" {
@@ -408,7 +411,7 @@ impl CustomerStatementEngine {
 
         let stmt = self.repository.get_statement(statement_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Statement {} not found", statement_id)
+                format!("Statement {statement_id} not found")
             ))?;
 
         if stmt.organization_id != org_id {
@@ -444,7 +447,7 @@ impl CustomerStatementEngine {
             org_id, statement_id, line_type,
             transaction_id, transaction_number, transaction_date, due_date,
             original_amount.map(|_s| format!("{:.2}", orig_amt.unwrap_or(0.0))).as_deref(),
-            &format!("{:.2}", amt),
+            &format!("{amt:.2}"),
             description, reference_type, reference_id,
             next_order, metadata,
         ).await
@@ -462,7 +465,7 @@ impl CustomerStatementEngine {
     pub async fn remove_statement_line(&self, statement_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
         let stmt = self.repository.get_statement(statement_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Statement {} not found", statement_id)
+                format!("Statement {statement_id} not found")
             ))?;
 
         if stmt.status != "draft" {

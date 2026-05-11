@@ -33,7 +33,7 @@ pub struct CreateCurrencyRequest {
     pub is_base_currency: bool,
 }
 
-fn default_precision() -> i32 { 2 }
+const fn default_precision() -> i32 { 2 }
 
 /// Create or update a currency definition
 pub async fn create_currency(

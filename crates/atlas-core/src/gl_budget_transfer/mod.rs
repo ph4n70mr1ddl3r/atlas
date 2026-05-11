@@ -92,11 +92,12 @@ pub trait GlBudgetTransferRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<BudgetTransferDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresGlBudgetTransferRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresGlBudgetTransferRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresGlBudgetTransferRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl GlBudgetTransferRepository for PostgresGlBudgetTransferRepository {
@@ -207,7 +208,7 @@ impl GlBudgetTransferEngine {
     /// Submit a draft transfer for approval
     pub async fn submit(&self, id: Uuid) -> AtlasResult<GlBudgetTransfer> {
         let bt = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {id} not found")))?;
 
         if bt.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -221,7 +222,7 @@ impl GlBudgetTransferEngine {
     /// Approve a pending transfer
     pub async fn approve(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<GlBudgetTransfer> {
         let bt = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {id} not found")))?;
 
         if bt.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(format!(
@@ -235,7 +236,7 @@ impl GlBudgetTransferEngine {
     /// Complete an approved transfer (post to GL)
     pub async fn complete(&self, id: Uuid) -> AtlasResult<GlBudgetTransfer> {
         let bt = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {id} not found")))?;
 
         if bt.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
@@ -249,7 +250,7 @@ impl GlBudgetTransferEngine {
     /// Reject a pending transfer
     pub async fn reject(&self, id: Uuid) -> AtlasResult<GlBudgetTransfer> {
         let bt = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {id} not found")))?;
 
         if bt.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(format!(
@@ -262,7 +263,7 @@ impl GlBudgetTransferEngine {
     /// Cancel a draft transfer
     pub async fn cancel(&self, id: Uuid) -> AtlasResult<GlBudgetTransfer> {
         let bt = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Budget transfer {id} not found")))?;
 
         if bt.status != "draft" && bt.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(format!(

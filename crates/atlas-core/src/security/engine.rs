@@ -22,6 +22,7 @@ pub struct SecurityEngine {
 }
 
 impl SecurityEngine {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             policies: HashMap::new(),
@@ -44,6 +45,7 @@ impl SecurityEngine {
     }
     
     /// Check if user can perform an action on an entity
+    #[must_use] 
     pub fn check_access(&self, entity: &str, action: &str, ctx: &SecurityContext, record_data: Option<&serde_json::Value>) -> AccessDecision {
         // Admin bypass
         if ctx.roles.contains(&"admin".to_string()) || ctx.roles.contains(&"system".to_string()) {
@@ -71,7 +73,7 @@ impl SecurityEngine {
                 AccessDecision { allowed: true, reason: Some("Default read/action allowed".to_string()) }
             }
             "create" | "update" | "delete" => AccessDecision { allowed: false, reason: Some("No write access".to_string()) },
-            _ => AccessDecision { allowed: false, reason: Some(format!("Unknown action: {}", action)) },
+            _ => AccessDecision { allowed: false, reason: Some(format!("Unknown action: {action}")) },
         }
     }
     
@@ -170,6 +172,7 @@ impl SecurityEngine {
     }
     
     /// Check field-level security
+    #[must_use] 
     pub fn check_field_access(&self, entity: &str, field: &str, ctx: &SecurityContext) -> FieldCheck {
         // Admin bypass
         if ctx.roles.contains(&"admin".to_string()) {
@@ -205,6 +208,7 @@ impl SecurityEngine {
     }
     
     /// Filter record data based on field security
+    #[must_use] 
     pub fn filter_record(&self, entity: &str, data: &serde_json::Value, ctx: &SecurityContext) -> serde_json::Value {
         if let Some(obj) = data.as_object() {
             let mut filtered = serde_json::Map::new();
@@ -223,6 +227,7 @@ impl SecurityEngine {
     }
     
     /// Build SQL filter for row-level security
+    #[must_use] 
     pub fn build_rls_filter(&self, _entity: &str, ctx: &SecurityContext) -> Option<String> {
         if ctx.roles.contains(&"admin".to_string()) || ctx.roles.contains(&"system".to_string()) {
             return None; // No filter for admins

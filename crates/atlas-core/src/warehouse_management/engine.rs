@@ -67,9 +67,9 @@ impl WarehouseManagementEngine {
     /// Delete a warehouse (org-scoped)
     pub async fn delete_warehouse(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let wh = self.repository.get_warehouse(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {id}")))?;
         if wh.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {id}")));
         }
         info!("Deleting warehouse {}", id);
         self.repository.delete_warehouse(id).await
@@ -99,10 +99,10 @@ impl WarehouseManagementEngine {
 
         // Verify warehouse exists
         let warehouse = self.repository.get_warehouse(warehouse_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")))?;
 
         if warehouse.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)));
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")));
         }
 
         self.repository.create_zone(org_id, warehouse_id, code, name, zone_type, description, aisle_count).await
@@ -121,9 +121,9 @@ impl WarehouseManagementEngine {
     pub async fn list_zones(&self, org_id: Uuid, warehouse_id: Uuid) -> AtlasResult<Vec<WarehouseZone>> {
         // Verify warehouse belongs to org before listing
         let warehouse = self.repository.get_warehouse(warehouse_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")))?;
         if warehouse.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)));
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")));
         }
         self.repository.list_zones(warehouse_id).await
     }
@@ -131,9 +131,9 @@ impl WarehouseManagementEngine {
     /// Delete a zone (org-scoped)
     pub async fn delete_zone(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let zone = self.repository.get_zone(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Zone {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Zone {id}")))?;
         if zone.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Zone {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Zone {id}")));
         }
         self.repository.delete_zone(id).await
     }
@@ -170,10 +170,10 @@ impl WarehouseManagementEngine {
 
         // Verify warehouse exists
         let warehouse = self.repository.get_warehouse(warehouse_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")))?;
 
         if warehouse.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)));
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")));
         }
 
         self.repository.create_put_away_rule(org_id, warehouse_id, rule_name, description, priority, item_category, target_zone_type, strategy).await
@@ -192,9 +192,9 @@ impl WarehouseManagementEngine {
     pub async fn list_put_away_rules(&self, org_id: Uuid, warehouse_id: Uuid) -> AtlasResult<Vec<PutAwayRule>> {
         // Verify warehouse belongs to org before listing
         let warehouse = self.repository.get_warehouse(warehouse_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")))?;
         if warehouse.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)));
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")));
         }
         self.repository.list_put_away_rules(warehouse_id).await
     }
@@ -202,9 +202,9 @@ impl WarehouseManagementEngine {
     /// Delete a put-away rule (org-scoped)
     pub async fn delete_put_away_rule(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let rule = self.repository.get_put_away_rule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Put-away rule {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Put-away rule {id}")))?;
         if rule.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Put-away rule {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Put-away rule {id}")));
         }
         self.repository.delete_put_away_rule(id).await
     }
@@ -252,16 +252,16 @@ impl WarehouseManagementEngine {
 
         // Verify warehouse exists
         let warehouse = self.repository.get_warehouse(warehouse_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")))?;
 
         if warehouse.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)));
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")));
         }
 
         // Verify wave exists if specified
         if let Some(wid) = wave_id {
             let wave = self.repository.get_wave(wid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", wid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {wid}")))?;
             if wave.status != "draft" && wave.status != "released" {
                 return Err(AtlasError::WorkflowError(
                     format!("Cannot add task to wave in status '{}'. Wave must be draft or released.", wave.status)
@@ -303,15 +303,15 @@ impl WarehouseManagementEngine {
         self.repository.list_tasks(org_id, warehouse_id, status, task_type).await
     }
 
-    /// Start a task (transition from pending to in_progress) — org-scoped
+    /// Start a task (transition from pending to `in_progress`) — org-scoped
     pub async fn start_task(&self, org_id: Uuid, id: Uuid, assigned_to: Option<Uuid>) -> AtlasResult<WarehouseTask> {
         info!("Starting warehouse task {}", id);
 
         let task = self.repository.get_task(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {id}")))?;
 
         if task.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Task {id}")));
         }
 
         if task.status != "pending" {
@@ -322,7 +322,7 @@ impl WarehouseManagementEngine {
 
         self.repository.update_task_status(id, "in_progress", assigned_to).await?;
         self.repository.get_task(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {id}")))
     }
 
     /// Complete a task — org-scoped
@@ -330,10 +330,10 @@ impl WarehouseManagementEngine {
         info!("Completing warehouse task {}", id);
 
         let task = self.repository.get_task(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {id}")))?;
 
         if task.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Task {id}")));
         }
 
         if task.status != "in_progress" {
@@ -344,7 +344,7 @@ impl WarehouseManagementEngine {
 
         self.repository.update_task_status(id, "completed", None).await?;
         self.repository.get_task(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {id}")))
     }
 
     /// Cancel a task — org-scoped
@@ -352,10 +352,10 @@ impl WarehouseManagementEngine {
         info!("Cancelling warehouse task {}", id);
 
         let task = self.repository.get_task(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {id}")))?;
 
         if task.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Task {id}")));
         }
 
         if task.status == "completed" || task.status == "cancelled" {
@@ -366,15 +366,15 @@ impl WarehouseManagementEngine {
 
         self.repository.update_task_status(id, "cancelled", None).await?;
         self.repository.get_task(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {id}")))
     }
 
     /// Delete a task — org-scoped
     pub async fn delete_task(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let task = self.repository.get_task(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Task {id}")))?;
         if task.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Task {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Task {id}")));
         }
         self.repository.delete_task(id).await
     }
@@ -403,10 +403,10 @@ impl WarehouseManagementEngine {
 
         // Verify warehouse exists
         let warehouse = self.repository.get_warehouse(warehouse_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")))?;
 
         if warehouse.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Warehouse {}", warehouse_id)));
+            return Err(AtlasError::EntityNotFound(format!("Warehouse {warehouse_id}")));
         }
 
         self.repository.create_wave(org_id, warehouse_id, wave_number, priority, cut_off_date, shipping_method, created_by).await
@@ -441,10 +441,10 @@ impl WarehouseManagementEngine {
         info!("Releasing pick wave {}", id);
 
         let wave = self.repository.get_wave(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {id}")))?;
 
         if wave.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Wave {id}")));
         }
 
         if wave.status != "draft" {
@@ -455,7 +455,7 @@ impl WarehouseManagementEngine {
 
         self.repository.update_wave_status(id, "released").await?;
         self.repository.get_wave(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {id}")))
     }
 
     /// Close a pick wave (mark as completed) — org-scoped
@@ -463,10 +463,10 @@ impl WarehouseManagementEngine {
         info!("Completing pick wave {}", id);
 
         let wave = self.repository.get_wave(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {id}")))?;
 
         if wave.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Wave {id}")));
         }
 
         if wave.status != "released" && wave.status != "in_progress" {
@@ -477,7 +477,7 @@ impl WarehouseManagementEngine {
 
         self.repository.update_wave_status(id, "completed").await?;
         self.repository.get_wave(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {id}")))
     }
 
     /// Cancel a pick wave — org-scoped
@@ -485,10 +485,10 @@ impl WarehouseManagementEngine {
         info!("Cancelling pick wave {}", id);
 
         let wave = self.repository.get_wave(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {id}")))?;
 
         if wave.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Wave {id}")));
         }
 
         if wave.status == "completed" || wave.status == "cancelled" {
@@ -499,15 +499,15 @@ impl WarehouseManagementEngine {
 
         self.repository.update_wave_status(id, "cancelled").await?;
         self.repository.get_wave(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {id}")))
     }
 
     /// Delete a wave — org-scoped
     pub async fn delete_wave(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let wave = self.repository.get_wave(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Wave {id}")))?;
         if wave.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Wave {}", id)));
+            return Err(AtlasError::EntityNotFound(format!("Wave {id}")));
         }
         self.repository.delete_wave(id).await
     }

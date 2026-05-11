@@ -113,7 +113,7 @@ pub struct CreateProfileRequest {
     pub review_frequency_days: i32,
 }
 
-fn default_ninety() -> i32 { 90 }
+const fn default_ninety() -> i32 { 90 }
 
 pub async fn create_profile(
     State(state): State<Arc<AppState>>,
@@ -374,7 +374,7 @@ pub struct CreateCheckRuleRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-fn default_ten() -> i32 { 10 }
+const fn default_ten() -> i32 { 10 }
 
 pub async fn create_check_rule(
     State(state): State<Arc<AppState>>,

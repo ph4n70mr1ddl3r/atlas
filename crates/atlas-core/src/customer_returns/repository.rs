@@ -1,6 +1,6 @@
 //! Customer Returns Repository
 //!
-//! PostgreSQL storage for return reason codes, RMAs, return lines,
+//! `PostgreSQL` storage for return reason codes, RMAs, return lines,
 //! and credit memos.
 
 use atlas_shared::{
@@ -163,13 +163,14 @@ pub trait CustomerReturnsRepository: Send + Sync {
     ) -> AtlasResult<CreditMemo>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCustomerReturnsRepository {
     pool: PgPool,
 }
 
 impl PostgresCustomerReturnsRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -322,7 +323,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReturnReason> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.return_reasons
                 (organization_id, code, name, description, return_type,
                  default_disposition, requires_approval, credit_issued_automatically, created_by)
@@ -332,7 +333,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
                     default_disposition = $6, requires_approval = $7,
                     credit_issued_automatically = $8, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(return_type)
         .bind(default_disposition).bind(requires_approval).bind(credit_issued_automatically)
@@ -409,7 +410,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReturnAuthorization> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.return_authorizations
                 (organization_id, rma_number, customer_id, customer_number, customer_name,
                  return_type, reason_code, reason_name, original_order_number, original_order_id,
@@ -417,7 +418,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
                  return_date, expected_receipt_date, currency_code, notes, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(rma_number).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(return_type).bind(reason_code).bind(reason_name)
@@ -471,15 +472,15 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         let return_type_val;
 
         if status.is_some() {
-            query.push_str(&format!(" AND status = ${}", bind_idx));
+            query.push_str(&format!(" AND status = ${bind_idx}"));
             bind_idx += 1;
         }
         if customer_id.is_some() {
-            query.push_str(&format!(" AND customer_id = ${}", bind_idx));
+            query.push_str(&format!(" AND customer_id = ${bind_idx}"));
             bind_idx += 1;
         }
         if return_type.is_some() {
-            query.push_str(&format!(" AND return_type = ${}", bind_idx));
+            query.push_str(&format!(" AND return_type = ${bind_idx}"));
             // bind_idx incremented for potential future filters
         }
         query.push_str(" ORDER BY created_at DESC");
@@ -512,13 +513,13 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         rejected_reason: Option<&str>,
     ) -> AtlasResult<ReturnAuthorization> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.return_authorizations
             SET status = $2, approved_by = $3, approved_at = CASE WHEN $3 IS NOT NULL THEN now() ELSE approved_at END,
                 rejected_reason = $4, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
         .fetch_one(&self.pool)
@@ -535,12 +536,12 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         total_credit_amount: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.return_authorizations
             SET total_quantity = $2::numeric, total_amount = $3::numeric,
                 total_credit_amount = $4::numeric, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(total_quantity).bind(total_amount).bind(total_credit_amount)
         .execute(&self.pool)
@@ -556,11 +557,11 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         credit_memo_number: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.return_authorizations
             SET credit_memo_id = $2, credit_memo_number = $3, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(credit_memo_id).bind(credit_memo_number)
         .execute(&self.pool)
@@ -596,7 +597,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReturnLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.return_lines
                 (organization_id, rma_id, line_number, item_id, item_code, item_description,
                  original_line_id, original_quantity, return_quantity, unit_price,
@@ -605,7 +606,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::numeric, $9::numeric, $10::numeric,
                     $11::numeric, $12::numeric, $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(rma_id).bind(line_number).bind(item_id).bind(item_code).bind(item_description)
         .bind(original_line_id).bind(original_quantity).bind(return_quantity).bind(unit_price)
@@ -647,12 +648,12 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         received_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ReturnLine> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.return_lines
             SET received_quantity = $2::numeric, received_date = $3, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(received_quantity).bind(received_date)
         .fetch_one(&self.pool)
@@ -669,12 +670,12 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         disposition: Option<&str>,
     ) -> AtlasResult<ReturnLine> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.return_lines
             SET inspection_status = $2, inspection_notes = $3, disposition = COALESCE($4, disposition), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(inspection_status).bind(inspection_notes).bind(disposition)
         .fetch_one(&self.pool)
@@ -689,12 +690,12 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         credit_status: &str,
     ) -> AtlasResult<ReturnLine> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.return_lines
             SET credit_status = $2, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(credit_status)
         .fetch_one(&self.pool)
@@ -723,14 +724,14 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CreditMemo> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.credit_memos
                 (organization_id, credit_memo_number, rma_id, rma_number,
                  customer_id, customer_number, customer_name,
                  amount, remaining_amount, currency_code, gl_account_code, notes, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::numeric, $8::numeric, $9, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(credit_memo_number).bind(rma_id).bind(rma_number)
         .bind(customer_id).bind(customer_number).bind(customer_name)
@@ -803,8 +804,7 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
     ) -> AtlasResult<CreditMemo> {
         let issued_at_expr = if status == "issued" { "CASE WHEN issue_date IS NULL THEN CURRENT_DATE ELSE issue_date END" } else { "issue_date" };
         let query_str = format!(
-            r#"UPDATE _atlas.credit_memos SET status = $2, issue_date = {}, updated_at = now() WHERE id = $1 RETURNING *"#,
-            issued_at_expr
+            r"UPDATE _atlas.credit_memos SET status = $2, issue_date = {issued_at_expr}, updated_at = now() WHERE id = $1 RETURNING *"
         );
         let row = sqlx::query(&query_str)
             .bind(id).bind(status)

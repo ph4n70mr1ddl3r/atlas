@@ -2,7 +2,7 @@
 //!
 //! Manages the complete lifecycle of purchase requisitions:
 //! creation, line items, accounting distributions, approval workflow,
-//! and AutoCreate conversion to purchase orders.
+//! and `AutoCreate` conversion to purchase orders.
 //!
 //! Oracle Fusion Cloud ERP equivalent: Self-Service Procurement > Requisitions
 
@@ -89,7 +89,7 @@ impl PurchaseRequisitionEngine {
                 .map_err(|_| AtlasError::ValidationFailed("Invalid amount_limit".to_string()))?;
             if total_amount > limit {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Requisition total {} exceeds amount limit {}", total_amount, limit
+                    "Requisition total {total_amount} exceeds amount limit {limit}"
                 )));
             }
         }
@@ -105,7 +105,7 @@ impl PurchaseRequisitionEngine {
             request.justification.as_deref(),
             request.budget_code.as_deref(),
             request.amount_limit.as_deref(),
-            &format!("{:.2}", total_amount),
+            &format!("{total_amount:.2}"),
             request.currency_code.as_deref().unwrap_or("USD"),
             request.charge_account_code.as_deref(),
             request.delivery_address.as_deref(),
@@ -129,10 +129,10 @@ impl PurchaseRequisitionEngine {
                 line_req.item_code.as_deref(),
                 &line_req.item_description,
                 line_req.category.as_deref(),
-                &format!("{:.4}", qty),
+                &format!("{qty:.4}"),
                 line_req.unit_of_measure.as_deref().unwrap_or("EACH"),
-                &format!("{:.4}", price),
-                &format!("{:.4}", line_amount),
+                &format!("{price:.4}"),
+                &format!("{line_amount:.4}"),
                 line_req.currency_code.as_deref().unwrap_or("USD"),
                 line_req.charge_account_code.as_deref(),
                 line_req.requested_delivery_date,
@@ -154,7 +154,7 @@ impl PurchaseRequisitionEngine {
                         (d_idx + 1) as i32,
                         &dist_req.charge_account_code,
                         dist_req.allocation_percentage.as_deref().unwrap_or("100.0000"),
-                        dist_req.amount.as_deref().unwrap_or(&format!("{:.4}", line_amount)),
+                        dist_req.amount.as_deref().unwrap_or(&format!("{line_amount:.4}")),
                         dist_req.project_code.as_deref(),
                         dist_req.cost_center.as_deref(),
                     ).await?;
@@ -200,7 +200,7 @@ impl PurchaseRequisitionEngine {
         updated_by: Option<Uuid>,
     ) -> AtlasResult<PurchaseRequisition> {
         let requisition = self.repository.get_requisition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
 
         if requisition.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -234,7 +234,7 @@ impl PurchaseRequisitionEngine {
             request.department.as_deref(),
             request.justification.as_deref(),
             request.budget_code.as_deref(),
-            &format!("{:.2}", total_amount),
+            &format!("{total_amount:.2}"),
             request.charge_account_code.as_deref(),
             request.delivery_address.as_deref(),
             request.requested_delivery_date,
@@ -246,7 +246,7 @@ impl PurchaseRequisitionEngine {
     /// Delete a requisition (only in draft status)
     pub async fn delete_requisition(&self, id: Uuid) -> AtlasResult<()> {
         let requisition = self.repository.get_requisition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
 
         if requisition.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -271,7 +271,7 @@ impl PurchaseRequisitionEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RequisitionLine> {
         let requisition = self.repository.get_requisition_by_id(requisition_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", requisition_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {requisition_id} not found")))?;
 
         if requisition.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -293,10 +293,10 @@ impl PurchaseRequisitionEngine {
             request.item_code.as_deref(),
             &request.item_description,
             request.category.as_deref(),
-            &format!("{:.4}", qty),
+            &format!("{qty:.4}"),
             request.unit_of_measure.as_deref().unwrap_or("EACH"),
-            &format!("{:.4}", price),
-            &format!("{:.4}", line_amount),
+            &format!("{price:.4}"),
+            &format!("{line_amount:.4}"),
             request.currency_code.as_deref().unwrap_or("USD"),
             request.charge_account_code.as_deref(),
             request.requested_delivery_date,
@@ -320,7 +320,7 @@ impl PurchaseRequisitionEngine {
                     (d_idx + 1) as i32,
                     &dist_req.charge_account_code,
                     dist_req.allocation_percentage.as_deref().unwrap_or("100.0000"),
-                    dist_req.amount.as_deref().unwrap_or(&format!("{:.4}", dist_amount)),
+                    dist_req.amount.as_deref().unwrap_or(&format!("{dist_amount:.4}")),
                     dist_req.project_code.as_deref(),
                     dist_req.cost_center.as_deref(),
                 ).await?;
@@ -331,7 +331,7 @@ impl PurchaseRequisitionEngine {
         let total = requisition.lines.iter()
             .filter_map(|l| l.line_amount.parse::<f64>().ok())
             .sum::<f64>() + line_amount;
-        self.repository.update_requisition_total(requisition_id, &format!("{:.2}", total)).await?;
+        self.repository.update_requisition_total(requisition_id, &format!("{total:.2}")).await?;
 
         Ok(line)
     }
@@ -339,7 +339,7 @@ impl PurchaseRequisitionEngine {
     /// List lines for a requisition
     pub async fn list_lines(&self, requisition_id: Uuid) -> AtlasResult<Vec<RequisitionLine>> {
         let requisition = self.repository.get_requisition_by_id(requisition_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", requisition_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {requisition_id} not found")))?;
         Ok(requisition.lines)
     }
 
@@ -363,7 +363,7 @@ impl PurchaseRequisitionEngine {
     ) -> AtlasResult<RequisitionDistribution> {
         // Verify line belongs to requisition
         let requisition = self.repository.get_requisition_by_id(requisition_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", requisition_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {requisition_id} not found")))?;
 
         if requisition.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -373,7 +373,7 @@ impl PurchaseRequisitionEngine {
 
         let line = requisition.lines.iter()
             .find(|l| l.id == line_id)
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Line {} not found in requisition", line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Line {line_id} not found in requisition")))?;
 
         let next_dist_num = line.distributions.len() as i32 + 1;
 
@@ -402,7 +402,7 @@ impl PurchaseRequisitionEngine {
     /// Submit a requisition for approval
     pub async fn submit_requisition(&self, id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<PurchaseRequisition> {
         let requisition = self.repository.get_requisition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
 
         if requisition.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -429,7 +429,7 @@ impl PurchaseRequisitionEngine {
         comments: Option<&str>,
     ) -> AtlasResult<PurchaseRequisition> {
         let requisition = self.repository.get_requisition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
 
         if requisition.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -466,7 +466,7 @@ impl PurchaseRequisitionEngine {
         comments: Option<&str>,
     ) -> AtlasResult<PurchaseRequisition> {
         let requisition = self.repository.get_requisition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
 
         if requisition.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -495,7 +495,7 @@ impl PurchaseRequisitionEngine {
     /// Cancel a requisition
     pub async fn cancel_requisition(&self, id: Uuid) -> AtlasResult<PurchaseRequisition> {
         let requisition = self.repository.get_requisition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
 
         if requisition.status == "closed" || requisition.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
@@ -514,7 +514,7 @@ impl PurchaseRequisitionEngine {
     /// Close a requisition
     pub async fn close_requisition(&self, id: Uuid) -> AtlasResult<PurchaseRequisition> {
         let requisition = self.repository.get_requisition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
 
         if requisition.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
@@ -533,7 +533,7 @@ impl PurchaseRequisitionEngine {
     /// Return a requisition to draft (for re-editing)
     pub async fn return_requisition(&self, id: Uuid) -> AtlasResult<PurchaseRequisition> {
         let requisition = self.repository.get_requisition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
 
         if requisition.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -558,7 +558,7 @@ impl PurchaseRequisitionEngine {
     // AutoCreate (Convert Requisitions to Purchase Orders)
     // ========================================================================
 
-    /// Create purchase orders from approved requisition lines (AutoCreate)
+    /// Create purchase orders from approved requisition lines (`AutoCreate`)
     pub async fn autocreate(
         &self,
         org_id: Uuid,
@@ -575,7 +575,7 @@ impl PurchaseRequisitionEngine {
         let mut links = Vec::new();
         for line_id in &request.requisition_line_ids {
             let line = self.repository.get_line_by_id(*line_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition line {} not found", line_id)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition line {line_id} not found")))?;
 
             if line.status != "approved" {
                 return Err(AtlasError::WorkflowError(format!(
@@ -624,12 +624,12 @@ impl PurchaseRequisitionEngine {
         Ok(links)
     }
 
-    /// List AutoCreate links for a requisition
+    /// List `AutoCreate` links for a requisition
     pub async fn list_autocreate_links(&self, requisition_id: Uuid) -> AtlasResult<Vec<AutocreateLink>> {
         self.repository.list_autocreate_links(requisition_id).await
     }
 
-    /// Cancel an AutoCreate link
+    /// Cancel an `AutoCreate` link
     pub async fn cancel_autocreate_link(&self, link_id: Uuid) -> AtlasResult<()> {
         info!("Cancelling AutoCreate link {}", link_id);
         self.repository.update_autocreate_link_status(link_id, "cancelled").await

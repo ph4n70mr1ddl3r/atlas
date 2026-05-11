@@ -21,16 +21,16 @@ pub enum ConfigSource {
 pub async fn load_from_yaml(path: &Path) -> Result<HashMap<String, ConfigValue>, String> {
     let content = fs::read_to_string(path)
         .await
-        .map_err(|e| format!("Failed to read config file: {}", e))?;
+        .map_err(|e| format!("Failed to read config file: {e}"))?;
     
     let yaml: serde_yaml::Value = serde_yaml::from_str(&content)
-        .map_err(|e| format!("Failed to parse YAML: {}", e))?;
+        .map_err(|e| format!("Failed to parse YAML: {e}"))?;
     
     parse_yaml_value("", &yaml)
-        .map_err(|e| format!("Failed to parse config: {}", e))
+        .map_err(|e| format!("Failed to parse config: {e}"))
 }
 
-/// Parse YAML value into ConfigValue recursively
+/// Parse YAML value into `ConfigValue` recursively
 fn parse_yaml_value(prefix: &str, value: &serde_yaml::Value) -> Result<HashMap<String, ConfigValue>, String> {
     let mut map = HashMap::new();
     
@@ -41,7 +41,7 @@ fn parse_yaml_value(prefix: &str, value: &serde_yaml::Value) -> Result<HashMap<S
                 let full_key = if prefix.is_empty() {
                     key.to_string()
                 } else {
-                    format!("{}.{}", prefix, key)
+                    format!("{prefix}.{key}")
                 };
                 
                 match v {
@@ -62,7 +62,7 @@ fn parse_yaml_value(prefix: &str, value: &serde_yaml::Value) -> Result<HashMap<S
     Ok(map)
 }
 
-/// Convert YAML value to ConfigValue
+/// Convert YAML value to `ConfigValue`
 fn yaml_to_config(value: &serde_yaml::Value) -> ConfigValue {
     match value {
         serde_yaml::Value::Null => ConfigValue::Null,
@@ -127,13 +127,13 @@ pub fn load_from_env(prefix: &str) -> HashMap<String, ConfigValue> {
 pub async fn load_from_json(path: &Path) -> Result<HashMap<String, ConfigValue>, String> {
     let content = fs::read_to_string(path)
         .await
-        .map_err(|e| format!("Failed to read config file: {}", e))?;
+        .map_err(|e| format!("Failed to read config file: {e}"))?;
     
     let json: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+        .map_err(|e| format!("Failed to parse JSON: {e}"))?;
     
     flatten_json("", &json)
-        .map_err(|e| format!("Failed to parse config: {}", e))
+        .map_err(|e| format!("Failed to parse config: {e}"))
 }
 
 /// Flatten nested JSON into dot-notation keys
@@ -146,7 +146,7 @@ fn flatten_json(prefix: &str, value: &serde_json::Value) -> Result<HashMap<Strin
                 let full_key = if prefix.is_empty() {
                     key.clone()
                 } else {
-                    format!("{}.{}", prefix, key)
+                    format!("{prefix}.{key}")
                 };
                 
                 match val {
@@ -161,7 +161,7 @@ fn flatten_json(prefix: &str, value: &serde_json::Value) -> Result<HashMap<Strin
         }
         serde_json::Value::Array(arr) => {
             for (i, val) in arr.iter().enumerate() {
-                let full_key = format!("{}[{}]", prefix, i);
+                let full_key = format!("{prefix}[{i}]");
                 match val {
                     serde_json::Value::Object(_) | serde_json::Value::Array(_) => {
                         map.extend(flatten_json(&full_key, val)?);
@@ -180,7 +180,7 @@ fn flatten_json(prefix: &str, value: &serde_json::Value) -> Result<HashMap<Strin
     Ok(map)
 }
 
-/// Convert JSON value to ConfigValue
+/// Convert JSON value to `ConfigValue`
 fn json_to_config(value: &serde_json::Value) -> ConfigValue {
     match value {
         serde_json::Value::Null => ConfigValue::Null,
@@ -213,16 +213,19 @@ pub struct ConfigLoader {
 }
 
 impl ConfigLoader {
-    pub fn new() -> Self {
+    #[must_use] 
+    pub const fn new() -> Self {
         Self { sources: vec![] }
     }
     
+    #[must_use] 
     pub fn add_source(mut self, source: ConfigSource, values: HashMap<String, ConfigValue>) -> Self {
         self.sources.push((source, values));
         self
     }
     
     /// Merge all sources with priority (later sources override earlier)
+    #[must_use] 
     pub fn merge(&self) -> HashMap<String, ConfigValue> {
         let mut result = HashMap::new();
         

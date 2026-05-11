@@ -196,7 +196,7 @@ impl FinancialReportingEngine {
         // Validate template exists
         let template = self.repository.get_template_by_id(template_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report template {} not found", template_id)
+                format!("Report template {template_id} not found")
             ))?;
 
         if template.organization_id != org_id {
@@ -283,7 +283,7 @@ impl FinancialReportingEngine {
         // Validate template exists
         let template = self.repository.get_template_by_id(template_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report template {} not found", template_id)
+                format!("Report template {template_id} not found")
             ))?;
 
         if template.organization_id != org_id {
@@ -333,7 +333,7 @@ impl FinancialReportingEngine {
     ) -> AtlasResult<FinancialReportRun> {
         let template = self.repository.get_template(org_id, template_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report template '{}' not found", template_code)
+                format!("Report template '{template_code}' not found")
             ))?;
 
         if !template.is_active {
@@ -411,17 +411,17 @@ impl FinancialReportingEngine {
                 total_beginning += begin_bal;
                 total_ending += end_bal;
 
-                let amount_str = format!("{:.2}", amount);
+                let amount_str = format!("{amount:.2}");
                 let display = format_amount(&amount_str, &template.rounding_option);
 
                 self.repository.create_result(
                     org_id, run.id, row.id, col.id,
                     row.row_number, col.column_number,
-                    &format!("{:.2}", amount),
-                    &format!("{:.2}", debit),
-                    &format!("{:.2}", credit),
-                    &format!("{:.2}", begin_bal),
-                    &format!("{:.2}", end_bal),
+                    &format!("{amount:.2}"),
+                    &format!("{debit:.2}"),
+                    &format!("{credit:.2}"),
+                    &format!("{begin_bal:.2}"),
+                    &format!("{end_bal:.2}"),
                     row.compute_action.is_some(),
                     row.compute_action.as_deref(),
                     Some(&display),
@@ -437,11 +437,11 @@ impl FinancialReportingEngine {
         // Update run totals
         self.repository.update_run_totals(
             run.id,
-            &format!("{:.2}", total_debit),
-            &format!("{:.2}", total_credit),
-            &format!("{:.2}", net_change),
-            &format!("{:.2}", total_beginning),
-            &format!("{:.2}", total_ending),
+            &format!("{total_debit:.2}"),
+            &format!("{total_credit:.2}"),
+            &format!("{net_change:.2}"),
+            &format!("{total_beginning:.2}"),
+            &format!("{total_ending:.2}"),
             result_count,
         ).await?;
 
@@ -535,7 +535,7 @@ impl FinancialReportingEngine {
     ) -> AtlasResult<FinancialReportRun> {
         let run = self.repository.get_run(run_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report run {} not found", run_id)
+                format!("Report run {run_id} not found")
             ))?;
 
         if run.status != "generated" {
@@ -556,7 +556,7 @@ impl FinancialReportingEngine {
     ) -> AtlasResult<FinancialReportRun> {
         let run = self.repository.get_run(run_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report run {} not found", run_id)
+                format!("Report run {run_id} not found")
             ))?;
 
         if run.status != "approved" {
@@ -573,7 +573,7 @@ impl FinancialReportingEngine {
     pub async fn archive_report(&self, run_id: Uuid) -> AtlasResult<FinancialReportRun> {
         let run = self.repository.get_run(run_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report run {} not found", run_id)
+                format!("Report run {run_id} not found")
             ))?;
 
         if run.status != "published" {
@@ -709,7 +709,7 @@ impl FinancialReportingEngine {
 
             self.repository.create_row(
                 org_id, template.id, *row_num, line_type, label,
-                if *line_type == "header" { 0 } else if *line_type == "data" { 1 } else { 0 },
+                if *line_type == "header" { 0 } else { i32::from(*line_type == "data") },
                 account_from, account_to, serde_json::json!({}),
                 compute, serde_json::json!([]),
                 true,
@@ -784,7 +784,7 @@ impl FinancialReportingEngine {
 
         for (row_num, line_type, label) in &sections {
             let indent = match *line_type {
-                "header" => if label.starts_with("ASSETS") || label.starts_with("LIABILITIES") || label.starts_with("STOCKHOLDERS") { 0 } else { 1 },
+                "header" => i32::from(!(label.starts_with("ASSETS") || label.starts_with("LIABILITIES") || label.starts_with("STOCKHOLDERS"))),
                 "data" => 2,
                 _ => 0,
             };
@@ -826,7 +826,7 @@ impl FinancialReportingEngine {
         // Validate template exists
         let template = self.repository.get_template_by_id(template_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Template {} not found", template_id)
+                format!("Template {template_id} not found")
             ))?;
 
         if template.organization_id != org_id {
@@ -881,8 +881,8 @@ fn format_amount(amount: &str, rounding_option: &str) -> String {
     match rounding_option {
         "thousands" => format!("{:.0}K", value / 1000.0),
         "millions" => format!("{:.1}M", value / 1_000_000.0),
-        "units" => format!("{:.0}", value),
-        _ => format!("{:.2}", value),
+        "units" => format!("{value:.0}"),
+        _ => format!("{value:.2}"),
     }
 }
 

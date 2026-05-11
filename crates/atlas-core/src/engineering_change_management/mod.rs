@@ -3,7 +3,7 @@
 //! Oracle Fusion Cloud: Product Development > Engineering Change Management
 //! Provides:
 //! - Engineering Change Types (ECR, ECO, ECN configuration)
-//! - Engineering Change Orders with full lifecycle (draft → submitted → in_review → approved/rejected → implemented → closed)
+//! - Engineering Change Orders with full lifecycle (draft → submitted → `in_review` → approved/rejected → implemented → closed)
 //! - Change lines tracking individual field/BOM changes
 //! - Affected items with impact analysis
 //! - Multi-level approval workflow

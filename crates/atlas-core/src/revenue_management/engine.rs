@@ -5,7 +5,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Revenue Management
 
-use super::*;
+use super::{RevenueManagementRepository, AtlasResult, RevMgmtContract, AtlasError, RevMgmtObligation, RevMgmtSSP, RevMgmtRecognitionEvent, RevMgmtDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -32,7 +32,7 @@ impl RevenueManagementEngine {
         if price < 0.0 { return Err(AtlasError::ValidationFailed("Transaction price must be non-negative".into())); }
         if currency_code.is_empty() { return Err(AtlasError::ValidationFailed("Currency code is required".into())); }
         if let Some(end) = contract_end_date { if end < contract_start_date { return Err(AtlasError::ValidationFailed("Contract end date must be after start date".into())); } }
-        if self.repository.get_contract(org_id, contract_number).await?.is_some() { return Err(AtlasError::Conflict(format!("Contract number '{}' already exists", contract_number))); }
+        if self.repository.get_contract(org_id, contract_number).await?.is_some() { return Err(AtlasError::Conflict(format!("Contract number '{contract_number}' already exists"))); }
         info!("Creating revenue contract {} for org {}", contract_number, org_id);
         self.repository.create_contract(org_id, contract_number, customer_id, customer_name, description, transaction_price, currency_code, contract_start_date, contract_end_date, created_by).await
     }
@@ -46,14 +46,14 @@ impl RevenueManagementEngine {
     }
 
     pub async fn activate_contract(&self, contract_id: Uuid) -> AtlasResult<RevMgmtContract> {
-        let c = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+        let c = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
         if c.status != "draft" { return Err(AtlasError::WorkflowError(format!("Cannot activate contract in '{}' status", c.status))); }
         info!("Activating revenue contract {}", c.contract_number);
         self.repository.update_contract_status(contract_id, "active").await
     }
 
     pub async fn complete_contract(&self, contract_id: Uuid) -> AtlasResult<RevMgmtContract> {
-        let c = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+        let c = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
         if c.status != "active" { return Err(AtlasError::WorkflowError(format!("Cannot complete contract in '{}' status", c.status))); }
         let obs = self.repository.list_obligations_by_contract(contract_id).await?;
         if !obs.iter().all(|o| o.satisfaction_status == "satisfied") { return Err(AtlasError::WorkflowError("Not all obligations satisfied".into())); }
@@ -62,18 +62,18 @@ impl RevenueManagementEngine {
     }
 
     pub async fn cancel_contract(&self, contract_id: Uuid) -> AtlasResult<RevMgmtContract> {
-        let c = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+        let c = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
         if c.status != "draft" && c.status != "active" { return Err(AtlasError::WorkflowError(format!("Cannot cancel contract in '{}' status", c.status))); }
         self.repository.update_contract_status(contract_id, "cancelled").await
     }
 
     pub async fn create_obligation(&self, org_id: Uuid, contract_id: Uuid, obligation_number: &str, description: &str, obligation_type: &str, satisfaction_method: &str, recognition_pattern: &str, standalone_selling_price: &str, recognition_start_date: Option<chrono::NaiveDate>, recognition_end_date: Option<chrono::NaiveDate>) -> AtlasResult<RevMgmtObligation> {
-        let contract = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+        let contract = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
         if contract.status != "draft" && contract.status != "active" { return Err(AtlasError::WorkflowError("Can only add obligations to draft/active contracts".into())); }
         if description.is_empty() { return Err(AtlasError::ValidationFailed("Description is required".into())); }
-        if !VALID_OBLIGATION_TYPES.contains(&obligation_type) { return Err(AtlasError::ValidationFailed(format!("Invalid obligation_type '{}'", obligation_type))); }
-        if !VALID_SATISFACTION_METHODS.contains(&satisfaction_method) { return Err(AtlasError::ValidationFailed(format!("Invalid satisfaction_method '{}'", satisfaction_method))); }
-        if !VALID_RECOGNITION_PATTERNS.contains(&recognition_pattern) { return Err(AtlasError::ValidationFailed(format!("Invalid recognition_pattern '{}'", recognition_pattern))); }
+        if !VALID_OBLIGATION_TYPES.contains(&obligation_type) { return Err(AtlasError::ValidationFailed(format!("Invalid obligation_type '{obligation_type}'"))); }
+        if !VALID_SATISFACTION_METHODS.contains(&satisfaction_method) { return Err(AtlasError::ValidationFailed(format!("Invalid satisfaction_method '{satisfaction_method}'"))); }
+        if !VALID_RECOGNITION_PATTERNS.contains(&recognition_pattern) { return Err(AtlasError::ValidationFailed(format!("Invalid recognition_pattern '{recognition_pattern}'"))); }
         let ssp: f64 = standalone_selling_price.parse().unwrap_or(-1.0);
         if ssp < 0.0 { return Err(AtlasError::ValidationFailed("SSP must be non-negative".into())); }
         self.repository.create_obligation(org_id, contract_id, Some(&contract.contract_number), obligation_number, description, obligation_type, satisfaction_method, recognition_pattern, standalone_selling_price, standalone_selling_price, recognition_start_date, recognition_end_date).await
@@ -82,7 +82,7 @@ impl RevenueManagementEngine {
     pub async fn list_obligations(&self, contract_id: Uuid) -> AtlasResult<Vec<RevMgmtObligation>> { self.repository.list_obligations_by_contract(contract_id).await }
 
     pub async fn allocate_transaction_price(&self, contract_id: Uuid) -> AtlasResult<Vec<RevMgmtObligation>> {
-        let contract = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {} not found", contract_id)))?;
+        let contract = self.repository.get_contract_by_id(contract_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Contract {contract_id} not found")))?;
         if contract.status != "active" { return Err(AtlasError::WorkflowError("Can only allocate for active contracts".into())); }
         let obs = self.repository.list_obligations_by_contract(contract_id).await?;
         if obs.is_empty() { return Err(AtlasError::ValidationFailed("No obligations to allocate to".into())); }
@@ -97,7 +97,7 @@ impl RevenueManagementEngine {
             allocated_total += alloc;
             let unrec = alloc - o.recognized_amount.parse::<f64>().unwrap_or(0.0);
             let pct = if alloc > 0.0 { o.recognized_amount.parse::<f64>().unwrap_or(0.0) / alloc * 100.0 } else { 0.0 };
-            let u = self.repository.update_obligation_status(o.id, &o.satisfaction_status, &o.recognized_amount, &unrec.to_string(), &format!("{:.2}", pct)).await?;
+            let u = self.repository.update_obligation_status(o.id, &o.satisfaction_status, &o.recognized_amount, &unrec.to_string(), &format!("{pct:.2}")).await?;
             updated.push(u);
         }
         let tot_rec: f64 = updated.iter().map(|o| o.recognized_amount.parse::<f64>().unwrap_or(0.0)).sum();
@@ -108,7 +108,7 @@ impl RevenueManagementEngine {
 
     pub async fn create_ssp(&self, org_id: Uuid, item_code: &str, item_name: &str, estimation_method: &str, price: &str, currency_code: &str, effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>, created_by: Option<Uuid>) -> AtlasResult<RevMgmtSSP> {
         if item_code.is_empty() || item_name.is_empty() { return Err(AtlasError::ValidationFailed("Item code and name required".into())); }
-        if !VALID_SSP_METHODS.contains(&estimation_method) { return Err(AtlasError::ValidationFailed(format!("Invalid estimation_method '{}'", estimation_method))); }
+        if !VALID_SSP_METHODS.contains(&estimation_method) { return Err(AtlasError::ValidationFailed(format!("Invalid estimation_method '{estimation_method}'"))); }
         let p: f64 = price.parse().unwrap_or(-1.0);
         if p < 0.0 { return Err(AtlasError::ValidationFailed("Price must be non-negative".into())); }
         if let Some(to) = effective_to { if to < effective_from { return Err(AtlasError::ValidationFailed("Effective to must be after from".into())); } }
@@ -119,13 +119,13 @@ impl RevenueManagementEngine {
     pub async fn list_ssps(&self, org_id: Uuid) -> AtlasResult<Vec<RevMgmtSSP>> { self.repository.list_ssps(org_id).await }
 
     pub async fn satisfy_obligation(&self, obligation_id: Uuid, amount: &str, recognition_date: chrono::NaiveDate, gl_account_code: Option<&str>, created_by: Option<Uuid>) -> AtlasResult<RevMgmtRecognitionEvent> {
-        let o = self.repository.get_obligation(obligation_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Obligation {} not found", obligation_id)))?;
+        let o = self.repository.get_obligation(obligation_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Obligation {obligation_id} not found")))?;
         let rec_amt: f64 = amount.parse().unwrap_or(-1.0);
         if rec_amt <= 0.0 { return Err(AtlasError::ValidationFailed("Amount must be positive".into())); }
         let cur_rec: f64 = o.recognized_amount.parse().unwrap_or(0.0);
         let alloc: f64 = o.allocated_amount.parse().unwrap_or(0.0);
         let new_total = cur_rec + rec_amt;
-        if new_total > alloc + 0.01 { return Err(AtlasError::ValidationFailed(format!("Amount {} exceeds allocated {}", new_total, alloc))); }
+        if new_total > alloc + 0.01 { return Err(AtlasError::ValidationFailed(format!("Amount {new_total} exceeds allocated {alloc}"))); }
         let full = (new_total - alloc).abs() < 0.01;
         let etype = if full { "satisfaction" } else { "partial_satisfaction" };
         let new_status = if full { "satisfied" } else { "in_progress" };
@@ -133,7 +133,7 @@ impl RevenueManagementEngine {
         let new_pct = if alloc > 0.0 { new_total / alloc * 100.0 } else { 0.0 };
         let evnum = format!("RRE-{}", &Uuid::new_v4().to_string()[..8].to_uppercase());
         let event = self.repository.create_recognition_event(o.organization_id, o.contract_id, obligation_id, &evnum, &format!("{} of obligation {}", etype, o.obligation_number), etype, amount, recognition_date, gl_account_code, created_by).await?;
-        self.repository.update_obligation_status(obligation_id, new_status, &new_total.to_string(), &new_unrec.to_string(), &format!("{:.2}", new_pct)).await?;
+        self.repository.update_obligation_status(obligation_id, new_status, &new_total.to_string(), &new_unrec.to_string(), &format!("{new_pct:.2}")).await?;
         let all_obs = self.repository.list_obligations_by_contract(o.contract_id).await?;
         let tot_rec: f64 = all_obs.iter().map(|ob| ob.recognized_amount.parse::<f64>().unwrap_or(0.0)).sum();
         let tot_alloc: f64 = all_obs.iter().map(|ob| ob.allocated_amount.parse::<f64>().unwrap_or(0.0)).sum();

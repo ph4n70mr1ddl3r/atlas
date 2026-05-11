@@ -1,7 +1,7 @@
 //! Financial Ratio Analysis Engine
 //! Oracle Fusion: Financial Reporting Center > Ratio Analysis
 
-use super::*;
+use super::{FinancialRatioRepository, AtlasResult, RatioDefinition, AtlasError, RatioSnapshot, RatioResult, RatioBenchmark, RatioDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -57,7 +57,7 @@ impl FinancialRatioEngine {
             )));
         }
         if self.repository.get_definition(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Ratio '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Ratio '{code}' already exists")));
         }
         info!("Creating financial ratio definition {} for org {}", code, org_id);
         self.repository.create_definition(org_id, code, name, description, category, formula, numerator_accounts, denominator_accounts, unit, created_by).await
@@ -74,14 +74,14 @@ impl FinancialRatioEngine {
     pub async fn list_definitions(&self, org_id: Uuid, category: Option<&str>) -> AtlasResult<Vec<RatioDefinition>> {
         if let Some(c) = category {
             if !VALID_CATEGORIES.contains(&c) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid category '{}'", c)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid category '{c}'")));
             }
         }
         self.repository.list_definitions(org_id, category).await
     }
 
     pub async fn delete_definition(&self, id: Uuid) -> AtlasResult<()> {
-        self.repository.get_definition_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {} not found", id)))?;
+        self.repository.get_definition_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {id} not found")))?;
         self.repository.delete_definition(id).await
     }
 
@@ -90,6 +90,7 @@ impl FinancialRatioEngine {
     // ========================================================================
 
     /// Compute a ratio from numerator and denominator values
+    #[must_use] 
     pub fn compute_ratio(&self, numerator: f64, denominator: f64, unit: &str) -> String {
         if denominator.abs() < 0.0001 {
             return "N/A".to_string();
@@ -97,13 +98,14 @@ impl FinancialRatioEngine {
         let result = numerator / denominator;
         match unit {
             "percent" => format!("{:.2}", result * 100.0),
-            "times" => format!("{:.2}x", result),
-            "days" => format!("{:.0}", result),
-            _ => format!("{:.4}", result),
+            "times" => format!("{result:.2}x"),
+            "days" => format!("{result:.0}"),
+            _ => format!("{result:.4}"),
         }
     }
 
     /// Determine trend direction based on current vs previous value
+    #[must_use] 
     pub fn determine_trend(&self, current: &str, previous: &str) -> Option<String> {
         let cur: f64 = current.parse().ok()?;
         let prev: f64 = previous.parse().ok()?;
@@ -118,6 +120,7 @@ impl FinancialRatioEngine {
     }
 
     /// Compute change amount and percent between current and previous values
+    #[must_use] 
     pub fn compute_change(&self, current: &str, previous: &str) -> (Option<String>, Option<String>) {
         let cur: f64 = match current.parse() {
             Ok(v) => v,
@@ -133,10 +136,11 @@ impl FinancialRatioEngine {
         } else {
             None
         };
-        (Some(format!("{:.4}", change)), change_pct)
+        (Some(format!("{change:.4}")), change_pct)
     }
 
     /// Determine status flag by comparing result to benchmark thresholds
+    #[must_use] 
     pub fn evaluate_status(&self, result: &str, min_acceptable: Option<&str>, max_acceptable: Option<&str>) -> String {
         let val: f64 = match result.parse() {
             Ok(v) => v,
@@ -188,7 +192,7 @@ impl FinancialRatioEngine {
     pub async fn list_snapshots(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<RatioSnapshot>> {
         if let Some(s) = status {
             if !VALID_SNAPSHOT_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'")));
             }
         }
         self.repository.list_snapshots(org_id, status).await
@@ -205,7 +209,7 @@ impl FinancialRatioEngine {
             return Err(AtlasError::ValidationFailed("Ratio code and name are required".into()));
         }
         if !VALID_CATEGORIES.contains(&category) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid category '{}'", category)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid category '{category}'")));
         }
         let num: f64 = numerator_value.parse().map_err(|_| AtlasError::ValidationFailed("Invalid numerator".into()))?;
         let _denom: f64 = denominator_value.parse().map_err(|_| AtlasError::ValidationFailed("Invalid denominator".into()))?;
@@ -241,7 +245,7 @@ impl FinancialRatioEngine {
 
     pub async fn list_ratio_results_by_category(&self, snapshot_id: Uuid, category: &str) -> AtlasResult<Vec<RatioResult>> {
         if !VALID_CATEGORIES.contains(&category) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid category '{}'", category)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid category '{category}'")));
         }
         self.repository.list_ratio_results_by_category(snapshot_id, category).await
     }
@@ -256,7 +260,7 @@ impl FinancialRatioEngine {
         industry: Option<&str>, effective_from: chrono::NaiveDate,
         effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<RatioBenchmark> {
-        self.repository.get_definition_by_id(ratio_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Ratio {} not found", ratio_id)))?;
+        self.repository.get_definition_by_id(ratio_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Ratio {ratio_id} not found")))?;
         if name.is_empty() {
             return Err(AtlasError::ValidationFailed("Benchmark name is required".into()));
         }
@@ -288,6 +292,7 @@ impl FinancialRatioEngine {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use super::*;
 
     struct MockRepo {

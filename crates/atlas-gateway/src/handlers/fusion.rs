@@ -138,13 +138,12 @@ pub async fn list_saved_searches(
     let bind_count = 3;
 
     if let Some(ref _entity) = params.entity {
-        where_clauses.push(format!("entity_type = ${}", bind_count));
+        where_clauses.push(format!("entity_type = ${bind_count}"));
     }
 
     let where_sql = where_clauses.join(" AND ");
     let query_str = format!(
-        "SELECT * FROM _atlas.saved_searches WHERE {} ORDER BY created_at DESC",
-        where_sql
+        "SELECT * FROM _atlas.saved_searches WHERE {where_sql} ORDER BY created_at DESC"
     );
 
     let mut query = sqlx::query(&query_str).bind(org_id).bind(user_id);
@@ -189,14 +188,14 @@ pub async fn create_saved_search(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let row = sqlx::query(
-        r#"
+        r"
         INSERT INTO _atlas.saved_searches 
             (organization_id, user_id, name, description, entity_type, 
              filters, sort_by, sort_direction, columns, columns_widths,
              page_size, is_shared, is_default, color, icon, metadata)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, '{}'::jsonb)
         RETURNING *
-        "#
+        "
     )
     .bind(org_id)
     .bind(user_id)
@@ -264,13 +263,13 @@ pub async fn create_approval_chain(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let row = sqlx::query(
-        r#"
+        r"
         INSERT INTO _atlas.approval_chains 
             (organization_id, name, description, entity_type, condition_expression,
              chain_definition, escalation_enabled, escalation_hours, escalation_to_roles, allow_delegation)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
-        "#
+        "
     )
     .bind(org_id)
     .bind(&payload.name)
@@ -503,17 +502,17 @@ pub async fn check_duplicates(
 
                 match match_type {
                     "exact" => {
-                        conditions.push(format!("\"{}\" = ${}::text", safe_field, bind_idx));
+                        conditions.push(format!("\"{safe_field}\" = ${bind_idx}::text"));
                         bind_values.push(text_value);
                         bind_idx += 1;
                     }
                     "case_insensitive" => {
-                        conditions.push(format!("LOWER(\"{}\") = LOWER(${}::text)", safe_field, bind_idx));
+                        conditions.push(format!("LOWER(\"{safe_field}\") = LOWER(${bind_idx}::text)"));
                         bind_values.push(text_value);
                         bind_idx += 1;
                     }
                     _ => {
-                        conditions.push(format!("\"{}\" = ${}::text", safe_field, bind_idx));
+                        conditions.push(format!("\"{safe_field}\" = ${bind_idx}::text"));
                         bind_values.push(text_value);
                         bind_idx += 1;
                     }
@@ -531,7 +530,7 @@ pub async fn check_duplicates(
             conditions.join(" OR ")
         );
 
-        let query_str = format!("SELECT id, * FROM \"{}\" WHERE {} LIMIT 5", safe_table, where_sql);
+        let query_str = format!("SELECT id, * FROM \"{safe_table}\" WHERE {where_sql} LIMIT 5");
 
         let mut query = sqlx::query(&query_str).bind(org_id);
         for val in &bind_values {
@@ -602,13 +601,13 @@ pub async fn create_duplicate_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let row = sqlx::query(
-        r#"
+        r"
         INSERT INTO _atlas.duplicate_rules
             (organization_id, name, entity_type, description, match_criteria,
              filter_condition, on_duplicate, is_active)
         VALUES ($1, $2, $3, $4, $5, $6, $7, true)
         RETURNING *
-        "#
+        "
     )
     .bind(org_id)
     .bind(&payload.name)

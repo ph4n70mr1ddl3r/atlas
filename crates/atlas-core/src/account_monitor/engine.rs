@@ -91,7 +91,7 @@ impl AccountMonitorEngine {
         // Check for duplicate code
         if self.repository.get_account_group_by_code(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Account group with code '{}' already exists", code_upper
+                "Account group with code '{code_upper}' already exists"
             )));
         }
 
@@ -151,7 +151,7 @@ impl AccountMonitorEngine {
         // Verify group exists
         let _group = self.repository.get_account_group(group_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Account group {} not found", group_id
+                "Account group {group_id} not found"
             )))?;
 
         info!("Adding member '{}' to account group {}", account_segment, group_id);
@@ -188,7 +188,7 @@ impl AccountMonitorEngine {
     ) -> AtlasResult<Vec<BalanceSnapshot>> {
         let group = self.repository.get_account_group(group_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Account group {} not found", group_id
+                "Account group {group_id} not found"
             )))?;
 
         if group.status != "active" {
@@ -230,7 +230,7 @@ impl AccountMonitorEngine {
                     let prev = if period_number > 1 { period_number - 1 } else { 12 };
                     let (b, d, c, _) = compute_mock_balance(&member.account_segment, fiscal_year, prev);
                     let comp_end = b + (d - c);
-                    (Some(comp_end), Some(format!("P{}", prev)))
+                    (Some(comp_end), Some(format!("P{prev}")))
                 }
                 "prior_year" => {
                     let (b, d, c, _) = compute_mock_balance(&member.account_segment, fiscal_year - 1, period_number);
@@ -248,16 +248,16 @@ impl AccountMonitorEngine {
             let snapshot = self.repository.create_balance_snapshot(
                 org_id, group_id, Some(member.id), &member.account_segment,
                 period_name, period_start, period_end, fiscal_year, period_number,
-                &format!("{:.4}", beginning),
-                &format!("{:.4}", debits),
-                &format!("{:.4}", credits),
-                &format!("{:.4}", net),
-                &format!("{:.4}", ending),
+                &format!("{beginning:.4}"),
+                &format!("{debits:.4}"),
+                &format!("{credits:.4}"),
+                &format!("{net:.4}"),
+                &format!("{ending:.4}"),
                 je_count,
-                comp_balance.map(|v| format!("{:.4}", v)).as_deref(),
+                comp_balance.map(|v| format!("{v:.4}")).as_deref(),
                 comp_period.as_deref(),
-                variance_amt.map(|v| format!("{:.4}", v)).as_deref(),
-                variance_pct.map(|v| format!("{:.4}", v)).as_deref(),
+                variance_amt.map(|v| format!("{v:.4}")).as_deref(),
+                variance_pct.map(|v| format!("{v:.4}")).as_deref(),
                 &alert,
             ).await?;
             snapshots.push(snapshot);
@@ -391,10 +391,10 @@ impl AccountMonitorEngine {
 /// In production this would query the actual GL trial balance.
 fn compute_mock_balance(account_segment: &str, fiscal_year: i32, period_number: i32) -> (f64, f64, f64, i32) {
     // Deterministic pseudo-balance based on account segment hash
-    let hash: u64 = account_segment.bytes().fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
+    let hash: u64 = account_segment.bytes().fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(u64::from(b)));
     let base = ((hash % 1_000_000) as f64) / 100.0;
-    let period_factor = 1.0 + (period_number as f64 / 12.0);
-    let year_factor = 1.0 + ((fiscal_year - 2020).max(0) as f64 * 0.05);
+    let period_factor = 1.0 + (f64::from(period_number) / 12.0);
+    let year_factor = 1.0 + (f64::from((fiscal_year - 2020).max(0)) * 0.05);
 
     let beginning = base * period_factor * year_factor;
     let debits = beginning * 0.3 + (hash % 1000) as f64 / 10.0;
@@ -405,7 +405,7 @@ fn compute_mock_balance(account_segment: &str, fiscal_year: i32, period_number: 
 }
 
 /// Compute variance between current and comparison balance, returning
-/// (variance_amount, variance_pct, alert_status)
+/// (`variance_amount`, `variance_pct`, `alert_status`)
 fn compute_variance(
     current: f64,
     comparison: Option<f64>,

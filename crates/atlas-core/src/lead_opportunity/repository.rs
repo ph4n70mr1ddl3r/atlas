@@ -1,6 +1,6 @@
 //! Lead and Opportunity Repository
 //!
-//! PostgreSQL storage for sales lead and opportunity data.
+//! `PostgreSQL` storage for sales lead and opportunity data.
 
 use atlas_shared::{
     LeadSource, LeadRatingModel, SalesLead, OpportunityStage,
@@ -193,13 +193,14 @@ pub trait LeadOpportunityRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<SalesPipelineDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresLeadOpportunityRepository {
     pool: PgPool,
 }
 
 impl PostgresLeadOpportunityRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -216,8 +217,8 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LeadSource> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.lead_sources (organization_id, code, name, description, created_by)
-               VALUES ($1, $2, $3, $4, $5) RETURNING *"#,
+            r"INSERT INTO _atlas.lead_sources (organization_id, code, name, description, created_by)
+               VALUES ($1, $2, $3, $4, $5) RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(created_by)
         .fetch_one(&self.pool).await
@@ -263,8 +264,8 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LeadRatingModel> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.lead_rating_models (organization_id, code, name, description, scoring_criteria, created_by)
-               VALUES ($1, $2, $3, $4, $5, $6) RETURNING *"#,
+            r"INSERT INTO _atlas.lead_rating_models (organization_id, code, name, description, scoring_criteria, created_by)
+               VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(&scoring_criteria).bind(created_by)
         .fetch_one(&self.pool).await
@@ -331,13 +332,13 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesLead> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.sales_leads
+            r"INSERT INTO _atlas.sales_leads
                 (organization_id, lead_number, first_name, last_name, company, title,
                  email, phone, website, industry, lead_source_id, lead_source_name,
                  lead_rating_model_id, estimated_value, currency_code, owner_id, owner_name,
                  notes, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id).bind(lead_number).bind(first_name).bind(last_name)
         .bind(company).bind(title).bind(email).bind(phone).bind(website)
@@ -411,10 +412,10 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         customer_id: Option<Uuid>,
     ) -> AtlasResult<SalesLead> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sales_leads
+            r"UPDATE _atlas.sales_leads
                SET status = 'converted', converted_opportunity_id = $2,
                    converted_customer_id = $3, converted_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(opportunity_id).bind(customer_id)
         .fetch_one(&self.pool).await
@@ -443,9 +444,9 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<OpportunityStage> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.opportunity_stages
+            r"INSERT INTO _atlas.opportunity_stages
                 (organization_id, code, name, description, probability, display_order, is_won, is_lost, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(probability.parse::<f64>().unwrap_or(0.0))
@@ -513,14 +514,14 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         let prob_val: f64 = probability.parse().unwrap_or(0.0);
         let weighted = amount_val * prob_val / 100.0;
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.sales_opportunities
+            r"INSERT INTO _atlas.sales_opportunities
                 (organization_id, opportunity_number, name, description,
                  customer_id, customer_name, lead_id, stage_id, stage_name,
                  amount, currency_code, probability, weighted_amount,
                  expected_close_date, owner_id, owner_name,
                  contact_id, contact_name, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id).bind(opportunity_number).bind(name).bind(description)
         .bind(customer_id).bind(customer_name).bind(lead_id).bind(stage_id).bind(stage_name)
@@ -578,9 +579,9 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         weighted_amount: &str,
     ) -> AtlasResult<SalesOpportunity> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sales_opportunities
+            r"UPDATE _atlas.sales_opportunities
                SET stage_id = $2, stage_name = $3, probability = $4, weighted_amount = $5, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(stage_id).bind(stage_name)
         .bind(probability.parse::<f64>().unwrap_or(0.0))
@@ -602,10 +603,10 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
 
     async fn close_opportunity_won(&self, id: Uuid) -> AtlasResult<SalesOpportunity> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sales_opportunities
+            r"UPDATE _atlas.sales_opportunities
                SET status = 'won', probability = 100, weighted_amount = amount,
                    actual_close_date = CURRENT_DATE, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -614,10 +615,10 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
 
     async fn close_opportunity_lost(&self, id: Uuid, lost_reason: Option<&str>) -> AtlasResult<SalesOpportunity> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sales_opportunities
+            r"UPDATE _atlas.sales_opportunities
                SET status = 'lost', probability = 0, weighted_amount = 0,
                    lost_reason = $2, actual_close_date = CURRENT_DATE, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(lost_reason).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -646,10 +647,10 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         discount_percent: &str,
     ) -> AtlasResult<OpportunityLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.opportunity_lines
+            r"INSERT INTO _atlas.opportunity_lines
                 (organization_id, opportunity_id, line_number, product_name, product_code,
                  description, quantity, unit_price, line_amount, discount_percent)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",
         )
         .bind(org_id).bind(opportunity_id).bind(line_number).bind(product_name)
         .bind(product_code).bind(description)
@@ -697,11 +698,11 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesActivity> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.sales_activities
+            r"INSERT INTO _atlas.sales_activities
                 (organization_id, subject, description, activity_type, priority,
                  lead_id, opportunity_id, contact_id, contact_name,
                  owner_id, owner_name, start_at, end_at, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *",
         )
         .bind(org_id).bind(subject).bind(description).bind(activity_type).bind(priority)
         .bind(lead_id).bind(opportunity_id).bind(contact_id).bind(contact_name)
@@ -770,9 +771,9 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         notes: Option<&str>,
     ) -> AtlasResult<OpportunityStageHistory> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.opportunity_stage_history
+            r"INSERT INTO _atlas.opportunity_stage_history
                 (organization_id, opportunity_id, from_stage, to_stage, changed_by, changed_by_name, notes)
-               VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *",
         )
         .bind(org_id).bind(opportunity_id).bind(from_stage).bind(to_stage)
         .bind(changed_by).bind(changed_by_name).bind(notes)
@@ -794,19 +795,19 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<SalesPipelineDashboard> {
         // Lead counts
         let lead_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'new') as new_leads,
                 COUNT(*) FILTER (WHERE status = 'qualified') as qualified,
                 COUNT(*) FILTER (WHERE status = 'converted') as converted
-               FROM _atlas.sales_leads WHERE organization_id = $1"#,
+               FROM _atlas.sales_leads WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         // Opportunity counts and values
         let opp_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'open') as open_opp,
                 COUNT(*) FILTER (WHERE status = 'won') as won,
@@ -814,7 +815,7 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                 COALESCE(SUM(amount), 0) as total_pipeline,
                 COALESCE(SUM(weighted_amount), 0) as weighted_pipeline,
                 COALESCE(SUM(amount) FILTER (WHERE status = 'won'), 0) as won_value
-               FROM _atlas.sales_opportunities WHERE organization_id = $1"#,
+               FROM _atlas.sales_opportunities WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -828,10 +829,10 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
 
         // By stage
         let stage_rows = sqlx::query(
-            r#"SELECT stage_name, COUNT(*) as cnt, COALESCE(SUM(amount), 0) as total
+            r"SELECT stage_name, COUNT(*) as cnt, COALESCE(SUM(amount), 0) as total
                FROM _atlas.sales_opportunities
                WHERE organization_id = $1 AND status = 'open'
-               GROUP BY stage_name ORDER BY stage_name"#,
+               GROUP BY stage_name ORDER BY stage_name",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -847,10 +848,10 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
 
         // By owner
         let owner_rows = sqlx::query(
-            r#"SELECT owner_name, COUNT(*) as cnt, COALESCE(SUM(amount), 0) as total
+            r"SELECT owner_name, COUNT(*) as cnt, COALESCE(SUM(amount), 0) as total
                FROM _atlas.sales_opportunities
                WHERE organization_id = $1 AND status = 'open'
-               GROUP BY owner_name ORDER BY total DESC"#,
+               GROUP BY owner_name ORDER BY total DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -874,9 +875,9 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
             lost_opportunities: opp_row.get::<i64, _>("lost") as i32,
             total_pipeline_value: format!("{:.2}", opp_row.try_get::<f64, _>("total_pipeline").unwrap_or(0.0)),
             weighted_pipeline_value: format!("{:.2}", opp_row.try_get::<f64, _>("weighted_pipeline").unwrap_or(0.0)),
-            total_won_value: format!("{:.2}", won_value),
-            average_deal_size: format!("{:.2}", avg_deal),
-            win_rate: format!("{:.1}", win_rate),
+            total_won_value: format!("{won_value:.2}"),
+            average_deal_size: format!("{avg_deal:.2}"),
+            win_rate: format!("{win_rate:.1}"),
             by_stage,
             by_owner,
         })
@@ -891,7 +892,7 @@ use sqlx::Row;
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    format!("{v:.2}")
 }
 
 fn row_to_lead_source(row: &sqlx::postgres::PgRow) -> LeadSource {

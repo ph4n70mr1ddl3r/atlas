@@ -1,6 +1,6 @@
 //! Deferred Revenue Repository
 //!
-//! PostgreSQL storage for deferral templates, schedules, and schedule lines.
+//! `PostgreSQL` storage for deferral templates, schedules, and schedule lines.
 
 use atlas_shared::{
     DeferralTemplate, DeferralSchedule, DeferralScheduleLine, DeferralDashboardSummary,
@@ -75,13 +75,14 @@ pub trait DeferredRevenueRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<DeferralDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresDeferredRevenueRepository {
     pool: PgPool,
 }
 
 impl PostgresDeferredRevenueRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -198,14 +199,14 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DeferralTemplate> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.deferral_templates
+            r"INSERT INTO _atlas.deferral_templates
                 (organization_id, code, name, description, deferral_type, recognition_method,
                  deferral_account_code, recognition_account_code, contra_account_code,
                  default_periods, period_type, start_date_basis, end_date_basis,
                  prorate_partial_periods, auto_generate_schedule, auto_post,
                  rounding_threshold, currency_code, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(deferral_type).bind(recognition_method)
@@ -286,7 +287,7 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DeferralSchedule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.deferral_schedules
+            r"INSERT INTO _atlas.deferral_schedules
                 (organization_id, schedule_number, template_id, template_code,
                  deferral_type, source_type, source_id, source_number, source_line_id,
                  description, total_amount, recognized_amount, remaining_amount,
@@ -294,7 +295,7 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
                  recognition_method, start_date, end_date, total_periods, status,
                  original_journal_entry_id, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(schedule_number).bind(template_id).bind(template_code)
         .bind(deferral_type).bind(source_type).bind(source_id).bind(source_number).bind(source_line_id)
@@ -337,9 +338,9 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
     async fn list_schedules(&self, org_id: Uuid, status: Option<&str>, deferral_type: Option<&str>, source_type: Option<&str>) -> AtlasResult<Vec<DeferralSchedule>> {
         let mut query = String::from("SELECT * FROM _atlas.deferral_schedules WHERE organization_id = $1");
         let mut param_idx = 2;
-        if status.is_some() { query.push_str(&format!(" AND status = ${}", param_idx)); param_idx += 1; }
-        if deferral_type.is_some() { query.push_str(&format!(" AND deferral_type = ${}", param_idx)); param_idx += 1; }
-        if source_type.is_some() { query.push_str(&format!(" AND source_type = ${}", param_idx)); }
+        if status.is_some() { query.push_str(&format!(" AND status = ${param_idx}")); param_idx += 1; }
+        if deferral_type.is_some() { query.push_str(&format!(" AND deferral_type = ${param_idx}")); param_idx += 1; }
+        if source_type.is_some() { query.push_str(&format!(" AND source_type = ${param_idx}")); }
         query.push_str(" ORDER BY start_date DESC, created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -354,11 +355,11 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
 
     async fn update_schedule_status(&self, id: Uuid, status: &str, hold_reason: Option<&str>) -> AtlasResult<DeferralSchedule> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.deferral_schedules
+            r"UPDATE _atlas.deferral_schedules
             SET status = $1, hold_reason = $2, updated_at = now(),
                 completion_date = CASE WHEN $1 = 'completed' THEN now() ELSE completion_date END
             WHERE id = $3
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(status).bind(hold_reason).bind(id)
         .fetch_one(&self.pool)
@@ -369,10 +370,10 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
 
     async fn update_schedule_amounts(&self, id: Uuid, recognized_amount: &str, remaining_amount: &str, completed_periods: i32) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.deferral_schedules
+            r"UPDATE _atlas.deferral_schedules
             SET recognized_amount = $1, remaining_amount = $2, completed_periods = $3,
                 last_recognition_date = CURRENT_DATE, updated_at = now()
-            WHERE id = $4"#,
+            WHERE id = $4",
         )
         .bind(recognized_amount.parse::<f64>().unwrap_or(0.0))
         .bind(remaining_amount.parse::<f64>().unwrap_or(0.0))
@@ -391,12 +392,12 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
         amount: &str, status: &str,
     ) -> AtlasResult<DeferralScheduleLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.deferral_schedule_lines
+            r"INSERT INTO _atlas.deferral_schedule_lines
                 (organization_id, schedule_id, line_number, period_name,
                  period_start_date, period_end_date, days_in_period,
                  amount, recognized_amount, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(schedule_id).bind(line_number).bind(period_name)
         .bind(period_start_date).bind(period_end_date).bind(days_in_period)
@@ -420,11 +421,11 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
 
     async fn get_pending_lines(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<DeferralScheduleLine>> {
         let rows = sqlx::query(
-            r#"SELECT l.* FROM _atlas.deferral_schedule_lines l
+            r"SELECT l.* FROM _atlas.deferral_schedule_lines l
             JOIN _atlas.deferral_schedules s ON l.schedule_id = s.id
             WHERE s.organization_id = $1 AND l.status = 'pending'
               AND l.period_end_date <= $2 AND s.status = 'active'
-            ORDER BY l.period_start_date"#,
+            ORDER BY l.period_start_date",
         )
         .bind(org_id).bind(as_of_date)
         .fetch_all(&self.pool)
@@ -435,10 +436,10 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
 
     async fn update_line_status(&self, id: Uuid, status: &str, recognized_amount: &str, recognition_date: Option<chrono::NaiveDate>, journal_entry_id: Option<Uuid>) -> AtlasResult<DeferralScheduleLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.deferral_schedule_lines
+            r"UPDATE _atlas.deferral_schedule_lines
             SET status = $1, recognized_amount = $2, recognition_date = $3, journal_entry_id = $4, updated_at = now()
             WHERE id = $5
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(status)
         .bind(recognized_amount.parse::<f64>().unwrap_or(0.0))
@@ -506,13 +507,13 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
             active_schedules,
             completed_schedules,
             on_hold_schedules,
-            total_deferred_amount: format!("{:.2}", total_deferred),
-            total_recognized_amount: format!("{:.2}", total_recognized),
-            total_remaining_amount: format!("{:.2}", total_remaining),
+            total_deferred_amount: format!("{total_deferred:.2}"),
+            total_recognized_amount: format!("{total_recognized:.2}"),
+            total_remaining_amount: format!("{total_remaining:.2}"),
             pending_recognition_count: pending_count,
-            pending_recognition_amount: format!("{:.2}", pending_amount),
-            revenue_deferred: format!("{:.2}", revenue_deferred),
-            cost_deferred: format!("{:.2}", cost_deferred),
+            pending_recognition_amount: format!("{pending_amount:.2}"),
+            revenue_deferred: format!("{revenue_deferred:.2}"),
+            cost_deferred: format!("{cost_deferred:.2}"),
         })
     }
 }

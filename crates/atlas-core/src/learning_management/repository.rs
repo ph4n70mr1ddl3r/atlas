@@ -1,6 +1,6 @@
 //! Learning Management Repository
 //!
-//! PostgreSQL storage for learning items, categories, enrollments,
+//! `PostgreSQL` storage for learning items, categories, enrollments,
 //! learning paths, path items, assignments, and dashboard analytics.
 
 use atlas_shared::{
@@ -120,7 +120,8 @@ pub struct PostgresLearningManagementRepository {
 }
 
 impl PostgresLearningManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -263,14 +264,14 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         max_enrollments: Option<i32>, created_by: Option<Uuid>,
     ) -> AtlasResult<LearningItem> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.learning_items
+            r"INSERT INTO _atlas.learning_items
                 (organization_id, code, title, description, item_type, format,
                  category, provider, duration_hours, currency_code, cost,
                  credits, credit_type, validity_months, recertification_required,
                  max_enrollments, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::NUMERIC,
                     $12::NUMERIC, $13, $14, $15, $16, '{}'::jsonb, $17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(title).bind(description)
         .bind(item_type).bind(format).bind(category).bind(provider)
@@ -301,11 +302,11 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         let mut query = String::from("SELECT * FROM _atlas.learning_items WHERE organization_id = $1");
         let mut bind_idx = 2u32;
         let has_type = item_type.is_some();
-        if has_type { query.push_str(&format!(" AND item_type = ${}", bind_idx)); bind_idx += 1; }
+        if has_type { query.push_str(&format!(" AND item_type = ${bind_idx}")); bind_idx += 1; }
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${}", bind_idx)); bind_idx += 1; }
+        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); bind_idx += 1; }
         let has_cat = category.is_some();
-        if has_cat { query.push_str(&format!(" AND category = ${}", bind_idx)); }
+        if has_cat { query.push_str(&format!(" AND category = ${bind_idx}")); }
         query.push_str(" ORDER BY title");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -329,7 +330,7 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
             "DELETE FROM _atlas.learning_items WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Learning item '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Learning item '{code}' not found")));
         }
         Ok(())
     }
@@ -343,11 +344,11 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         parent_category_id: Option<Uuid>, display_order: i32,
     ) -> AtlasResult<LearningCategory> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.learning_categories
+            r"INSERT INTO _atlas.learning_categories
                 (organization_id, code, name, description, parent_category_id,
                  display_order, status, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, 'active', '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(parent_category_id).bind(display_order)
@@ -386,7 +387,7 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
             "DELETE FROM _atlas.learning_categories WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Learning category '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Learning category '{code}' not found")));
         }
         Ok(())
     }
@@ -402,12 +403,12 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         due_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<LearningEnrollment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.learning_enrollments
+            r"INSERT INTO _atlas.learning_enrollments
                 (organization_id, learning_item_id, person_id, person_name,
                  enrollment_type, enrolled_by, status, progress_pct,
                  enrollment_date, due_date, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, 'enrolled', 0::NUMERIC, $7, $8, '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(learning_item_id).bind(person_id).bind(person_name)
         .bind(enrollment_type).bind(enrolled_by).bind(enrollment_date).bind(due_date)
@@ -428,11 +429,11 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         let mut query = String::from("SELECT * FROM _atlas.learning_enrollments WHERE organization_id = $1");
         let mut bind_idx = 2u32;
         let has_item = learning_item_id.is_some();
-        if has_item { query.push_str(&format!(" AND learning_item_id = ${}", bind_idx)); bind_idx += 1; }
+        if has_item { query.push_str(&format!(" AND learning_item_id = ${bind_idx}")); bind_idx += 1; }
         let has_person = person_id.is_some();
-        if has_person { query.push_str(&format!(" AND person_id = ${}", bind_idx)); bind_idx += 1; }
+        if has_person { query.push_str(&format!(" AND person_id = ${bind_idx}")); bind_idx += 1; }
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${}", bind_idx)); }
+        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); }
         query.push_str(" ORDER BY created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -450,14 +451,14 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         certification_expiry: Option<chrono::NaiveDate>,
     ) -> AtlasResult<LearningEnrollment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.learning_enrollments SET
+            r"UPDATE _atlas.learning_enrollments SET
                 progress_pct = COALESCE($1::NUMERIC, progress_pct),
                 score = COALESCE($2::NUMERIC, score),
                 status = COALESCE($3, status),
                 completion_date = COALESCE($4, completion_date),
                 certification_expiry = COALESCE($5, certification_expiry),
                 updated_at = now()
-            WHERE id = $6 RETURNING *"#,
+            WHERE id = $6 RETURNING *",
         )
         .bind(progress_pct).bind(score).bind(status)
         .bind(completion_date).bind(certification_expiry).bind(id)
@@ -484,12 +485,12 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         estimated_duration_hours: Option<f64>, created_by: Option<Uuid>,
     ) -> AtlasResult<LearningPath> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.learning_paths
+            r"INSERT INTO _atlas.learning_paths
                 (organization_id, code, name, description, path_type,
                  target_role, target_job_id, estimated_duration_hours,
                  total_items, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, '{}'::jsonb, $9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(path_type)
         .bind(target_role).bind(target_job_id).bind(estimated_duration_hours)
@@ -517,9 +518,9 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         let mut query = String::from("SELECT * FROM _atlas.learning_paths WHERE organization_id = $1");
         let mut bind_idx = 2u32;
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${}", bind_idx)); bind_idx += 1; }
+        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); bind_idx += 1; }
         let has_type = path_type.is_some();
-        if has_type { query.push_str(&format!(" AND path_type = ${}", bind_idx)); }
+        if has_type { query.push_str(&format!(" AND path_type = ${bind_idx}")); }
         query.push_str(" ORDER BY name");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -549,7 +550,7 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
             "DELETE FROM _atlas.learning_paths WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Learning path '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Learning path '{code}' not found")));
         }
         Ok(())
     }
@@ -563,11 +564,11 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         sequence_number: i32, is_required: bool, milestone_name: Option<&str>,
     ) -> AtlasResult<LearningPathItem> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.learning_path_items
+            r"INSERT INTO _atlas.learning_path_items
                 (organization_id, learning_path_id, learning_item_id,
                  sequence_number, is_required, milestone_name, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(learning_path_id).bind(learning_item_id)
         .bind(sequence_number).bind(is_required).bind(milestone_name)
@@ -602,12 +603,12 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         due_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<LearningAssignment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.learning_assignments
+            r"INSERT INTO _atlas.learning_assignments
                 (organization_id, learning_item_id, learning_path_id,
                  title, description, assignment_type, target_id,
                  assigned_by, priority, due_date, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(learning_item_id).bind(learning_path_id)
         .bind(title).bind(description).bind(assignment_type)
@@ -628,9 +629,9 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         let mut query = String::from("SELECT * FROM _atlas.learning_assignments WHERE organization_id = $1");
         let mut bind_idx = 2u32;
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${}", bind_idx)); bind_idx += 1; }
+        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); bind_idx += 1; }
         let has_type = assignment_type.is_some();
-        if has_type { query.push_str(&format!(" AND assignment_type = ${}", bind_idx)); }
+        if has_type { query.push_str(&format!(" AND assignment_type = ${bind_idx}")); }
         query.push_str(" ORDER BY created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -695,7 +696,7 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
         }
 
         let completion_rate = if total_enrollments > 0 {
-            Some(format!("{:.1}", (completed_count as f64 / total_enrollments as f64) * 100.0))
+            Some(format!("{:.1}", (f64::from(completed_count) / f64::from(total_enrollments)) * 100.0))
         } else {
             None
         };
@@ -726,7 +727,7 @@ impl LearningManagementRepository for PostgresLearningManagementRepository {
             total_learning_paths: total_learning_paths as i32,
             total_active_assignments: total_active_assignments as i32,
             overdue_enrollments: overdue_enrollments as i32,
-            avg_score: avg_score.map(|v| format!("{:.1}", v)),
+            avg_score: avg_score.map(|v| format!("{v:.1}")),
         })
     }
 }

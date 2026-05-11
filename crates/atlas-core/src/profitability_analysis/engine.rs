@@ -90,11 +90,10 @@ impl ProfitabilityAnalysisEngine {
             ("reviewed", "cancelled") => Ok(()),
             ("reviewed", "calculated") => Ok(()),
             _ => Err(AtlasError::WorkflowError(format!(
-                "Invalid status transition from '{}' to '{}'. \
+                "Invalid status transition from '{current}' to '{target}'. \
                  Valid transitions: draft→calculated, draft→cancelled, \
                  calculated→reviewed, calculated→cancelled, calculated→draft, \
-                 reviewed→completed, reviewed→cancelled, reviewed→calculated",
-                current, target
+                 reviewed→completed, reviewed→cancelled, reviewed→calculated"
             ))),
         }
     }
@@ -104,11 +103,13 @@ impl ProfitabilityAnalysisEngine {
     // ========================================================================
 
     /// Calculate gross margin = revenue - COGS
+    #[must_use] 
     pub fn calculate_gross_margin(revenue: f64, cogs: f64) -> f64 {
         revenue - cogs
     }
 
     /// Calculate gross margin percentage
+    #[must_use] 
     pub fn calculate_gross_margin_pct(revenue: f64, gross_margin: f64) -> f64 {
         if revenue.abs() > 0.0 {
             (gross_margin / revenue) * 100.0
@@ -118,11 +119,13 @@ impl ProfitabilityAnalysisEngine {
     }
 
     /// Calculate operating margin = gross margin - operating expenses
+    #[must_use] 
     pub fn calculate_operating_margin(gross_margin: f64, operating_expenses: f64) -> f64 {
         gross_margin - operating_expenses
     }
 
     /// Calculate operating margin percentage
+    #[must_use] 
     pub fn calculate_operating_margin_pct(revenue: f64, operating_margin: f64) -> f64 {
         if revenue.abs() > 0.0 {
             (operating_margin / revenue) * 100.0
@@ -132,11 +135,13 @@ impl ProfitabilityAnalysisEngine {
     }
 
     /// Calculate net margin = operating margin + other income - other expense
+    #[must_use] 
     pub fn calculate_net_margin(operating_margin: f64, other_income: f64, other_expense: f64) -> f64 {
         operating_margin + other_income - other_expense
     }
 
     /// Calculate net margin percentage
+    #[must_use] 
     pub fn calculate_net_margin_pct(revenue: f64, net_margin: f64) -> f64 {
         if revenue.abs() > 0.0 {
             (net_margin / revenue) * 100.0
@@ -146,6 +151,7 @@ impl ProfitabilityAnalysisEngine {
     }
 
     /// Calculate percentage change between two values
+    #[must_use] 
     pub fn calculate_pct_change(prior: f64, current: f64) -> f64 {
         if prior.abs() > 0.0 {
             ((current - prior) / prior.abs()) * 100.0
@@ -186,7 +192,7 @@ impl ProfitabilityAnalysisEngine {
             segment_code: segment_code.to_string(),
             segment_name: segment_name.to_string(),
             segment_type: segment_type.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             parent_segment_id,
             sort_order,
             metadata: None,
@@ -268,7 +274,7 @@ impl ProfitabilityAnalysisEngine {
             period_to,
             currency_code: currency_code.to_string(),
             comparison_run_id,
-            notes: notes.map(|s| s.to_string()),
+            notes: notes.map(std::string::ToString::to_string),
             created_by,
         };
 
@@ -354,9 +360,9 @@ impl ProfitabilityAnalysisEngine {
             org_id,
             run_id,
             segment_id,
-            segment_code: segment_code.map(|s| s.to_string()),
-            segment_name: segment_name.map(|s| s.to_string()),
-            segment_type: segment_type.map(|s| s.to_string()),
+            segment_code: segment_code.map(std::string::ToString::to_string),
+            segment_name: segment_name.map(std::string::ToString::to_string),
+            segment_type: segment_type.map(std::string::ToString::to_string),
             line_number,
             revenue,
             cost_of_goods_sold,
@@ -495,7 +501,7 @@ impl ProfitabilityAnalysisEngine {
             org_id,
             template_code: template_code.to_string(),
             template_name: template_name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             segment_type: segment_type.to_string(),
             includes_cogs,
             includes_operating,
@@ -541,9 +547,12 @@ impl ProfitabilityAnalysisEngine {
     // Exported validation for handler use
     // ========================================================================
 
-    pub fn valid_segment_types() -> &'static [&'static str] { VALID_SEGMENT_TYPES }
-    pub fn valid_analysis_types() -> &'static [&'static str] { VALID_ANALYSIS_TYPES }
-    pub fn valid_run_statuses() -> &'static [&'static str] { VALID_RUN_STATUSES }
+    #[must_use] 
+    pub const fn valid_segment_types() -> &'static [&'static str] { VALID_SEGMENT_TYPES }
+    #[must_use] 
+    pub const fn valid_analysis_types() -> &'static [&'static str] { VALID_ANALYSIS_TYPES }
+    #[must_use] 
+    pub const fn valid_run_statuses() -> &'static [&'static str] { VALID_RUN_STATUSES }
 }
 
 // ============================================================================

@@ -1,7 +1,7 @@
 //! Cash Flow Forecasting Engine
 //! Oracle Fusion: Treasury > Cash Forecasting
 
-use super::*;
+use super::{CashFlowForecastRepository, AtlasResult, CashForecast, AtlasError, CashScenario, CashEntry, CashForecastDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -18,33 +18,33 @@ impl CashFlowForecastEngine {
 
     pub async fn create_forecast(&self, org_id: Uuid, forecast_number: &str, name: &str, description: Option<&str>, forecast_horizon: &str, periods_out: i32, start_date: chrono::NaiveDate, end_date: chrono::NaiveDate, base_currency_code: &str, opening_balance: &str, created_by: Option<Uuid>) -> AtlasResult<CashForecast> {
         if forecast_number.is_empty() || name.is_empty() { return Err(AtlasError::ValidationFailed("Forecast number and name required".into())); }
-        if !VALID_HORIZONS.contains(&forecast_horizon) { return Err(AtlasError::ValidationFailed(format!("Invalid horizon '{}'", forecast_horizon))); }
+        if !VALID_HORIZONS.contains(&forecast_horizon) { return Err(AtlasError::ValidationFailed(format!("Invalid horizon '{forecast_horizon}'"))); }
         if !(1..=120).contains(&periods_out) { return Err(AtlasError::ValidationFailed("Periods out must be 1-120".into())); }
         if end_date <= start_date { return Err(AtlasError::ValidationFailed("End date must be after start".into())); }
         let bal: f64 = opening_balance.parse().map_err(|_| AtlasError::ValidationFailed("Invalid balance".into()))?;
         if bal < 0.0 { return Err(AtlasError::ValidationFailed("Balance must be non-negative".into())); }
-        if self.repository.get_forecast(org_id, forecast_number).await?.is_some() { return Err(AtlasError::Conflict(format!("Forecast '{}' already exists", forecast_number))); }
+        if self.repository.get_forecast(org_id, forecast_number).await?.is_some() { return Err(AtlasError::Conflict(format!("Forecast '{forecast_number}' already exists"))); }
         info!("Creating forecast {} for org {}", forecast_number, org_id);
         self.repository.create_forecast(org_id, forecast_number, name, description, forecast_horizon, periods_out, start_date, end_date, base_currency_code, opening_balance, created_by).await
     }
     pub async fn get_forecast(&self, org_id: Uuid, fn_: &str) -> AtlasResult<Option<CashForecast>> { self.repository.get_forecast(org_id, fn_).await }
     pub async fn get_forecast_by_id(&self, id: Uuid) -> AtlasResult<Option<CashForecast>> { self.repository.get_forecast_by_id(id).await }
     pub async fn list_forecasts(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CashForecast>> {
-        if let Some(s) = status { if !VALID_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s))); } }
+        if let Some(s) = status { if !VALID_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'"))); } }
         self.repository.list_forecasts(org_id, status).await
     }
     pub async fn activate_forecast(&self, fid: Uuid) -> AtlasResult<CashForecast> {
-        let f = self.repository.get_forecast_by_id(fid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Forecast {} not found", fid)))?;
+        let f = self.repository.get_forecast_by_id(fid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Forecast {fid} not found")))?;
         if f.status != "draft" { return Err(AtlasError::WorkflowError(format!("Cannot activate in '{}' status", f.status))); }
         self.repository.update_forecast_status(fid, "active", None).await
     }
     pub async fn approve_forecast(&self, fid: Uuid, ab: Uuid) -> AtlasResult<CashForecast> {
-        let f = self.repository.get_forecast_by_id(fid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Forecast {} not found", fid)))?;
+        let f = self.repository.get_forecast_by_id(fid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Forecast {fid} not found")))?;
         if f.status != "active" { return Err(AtlasError::WorkflowError("Must be active to approve".into())); }
         self.repository.update_forecast_status(fid, "approved", Some(ab)).await
     }
     pub async fn recalculate(&self, fid: Uuid) -> AtlasResult<CashForecast> {
-        let f = self.repository.get_forecast_by_id(fid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Forecast {} not found", fid)))?;
+        let f = self.repository.get_forecast_by_id(fid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Forecast {fid} not found")))?;
         let entries = self.repository.list_entries(fid).await?;
         let inf: f64 = entries.iter().filter(|e| e.flow_direction == "inflow").map(|e| e.weighted_amount.parse::<f64>().unwrap_or(0.0)).sum();
         let out: f64 = entries.iter().filter(|e| e.flow_direction == "outflow").map(|e| e.weighted_amount.parse::<f64>().unwrap_or(0.0)).sum();
@@ -54,9 +54,9 @@ impl CashFlowForecastEngine {
         self.repository.get_forecast_by_id(fid).await?.ok_or(AtlasError::EntityNotFound("gone".into()))
     }
     pub async fn create_scenario(&self, org_id: Uuid, fid: Uuid, sn: &str, name: &str, desc: Option<&str>, st: &str, af: &str) -> AtlasResult<CashScenario> {
-        self.repository.get_forecast_by_id(fid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Forecast {} not found", fid)))?;
+        self.repository.get_forecast_by_id(fid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Forecast {fid} not found")))?;
         if name.is_empty() { return Err(AtlasError::ValidationFailed("Name required".into())); }
-        if !VALID_SCENARIO_TYPES.contains(&st) { return Err(AtlasError::ValidationFailed(format!("Invalid scenario_type '{}'", st))); }
+        if !VALID_SCENARIO_TYPES.contains(&st) { return Err(AtlasError::ValidationFailed(format!("Invalid scenario_type '{st}'"))); }
         let factor: f64 = af.parse().unwrap_or(0.0);
         if !(0.0..=10.0).contains(&factor) { return Err(AtlasError::ValidationFailed("Factor must be 0.0-10.0".into())); }
         self.repository.create_scenario(org_id, fid, sn, name, desc, st, af).await
@@ -64,8 +64,8 @@ impl CashFlowForecastEngine {
     pub async fn list_scenarios(&self, fid: Uuid) -> AtlasResult<Vec<CashScenario>> { self.repository.list_scenarios(fid).await }
     pub async fn create_entry(&self, org_id: Uuid, fid: Uuid, sid: Option<Uuid>, pn: &str, ps: chrono::NaiveDate, pe: chrono::NaiveDate, cat: &str, dir: &str, amt: &str, prob: &str, man: bool, desc: Option<&str>) -> AtlasResult<CashEntry> {
         if pn.is_empty() { return Err(AtlasError::ValidationFailed("Period name required".into())); }
-        if !VALID_CATEGORIES.contains(&cat) { return Err(AtlasError::ValidationFailed(format!("Invalid category '{}'", cat))); }
-        if !VALID_DIRECTIONS.contains(&dir) { return Err(AtlasError::ValidationFailed(format!("Invalid direction '{}'", dir))); }
+        if !VALID_CATEGORIES.contains(&cat) { return Err(AtlasError::ValidationFailed(format!("Invalid category '{cat}'"))); }
+        if !VALID_DIRECTIONS.contains(&dir) { return Err(AtlasError::ValidationFailed(format!("Invalid direction '{dir}'"))); }
         let a: f64 = amt.parse().map_err(|_| AtlasError::ValidationFailed("Invalid amount".into()))?;
         if a < 0.0 { return Err(AtlasError::ValidationFailed("Amount must be non-negative".into())); }
         let p: f64 = prob.parse().map_err(|_| AtlasError::ValidationFailed("Invalid probability".into()))?;
@@ -80,6 +80,7 @@ impl CashFlowForecastEngine {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use super::*;
     struct Mock { forecasts: std::sync::Mutex<Vec<CashForecast>> }
     impl Mock { fn new() -> Self { Mock { forecasts: std::sync::Mutex::new(vec![]) } } }

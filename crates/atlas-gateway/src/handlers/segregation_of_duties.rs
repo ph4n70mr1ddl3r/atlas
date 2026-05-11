@@ -2,7 +2,7 @@
 //!
 //! Oracle Fusion Cloud ERP: Advanced Access Control > Segregation of Duties
 //!
-//! Endpoints for managing SoD rules, role assignments, conflict detection,
+//! Endpoints for managing `SoD` rules, role assignments, conflict detection,
 //! violations, mitigating controls, and compliance dashboard.
 
 use axum::{
@@ -43,7 +43,7 @@ pub struct ListAssignmentsQuery {
 // SoD Rule Management
 // ============================================================================
 
-/// Create a new SoD rule
+/// Create a new `SoD` rule
 pub async fn create_sod_rule(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
@@ -391,7 +391,7 @@ pub async fn revoke_sod_mitigation(
 // Dashboard
 // ============================================================================
 
-/// Get SoD compliance dashboard
+/// Get `SoD` compliance dashboard
 pub async fn get_sod_dashboard(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,

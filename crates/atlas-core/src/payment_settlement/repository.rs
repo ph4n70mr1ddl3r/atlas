@@ -1,6 +1,6 @@
 //! Payment Settlement Repository
 //!
-//! PostgreSQL storage for settlement batches, settlement lines, and activity audit trail.
+//! `PostgreSQL` storage for settlement batches, settlement lines, and activity audit trail.
 
 use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
@@ -224,7 +224,8 @@ pub struct PostgresPaymentSettlementRepository {
 }
 
 impl PostgresPaymentSettlementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -233,17 +234,17 @@ impl PostgresPaymentSettlementRepository {
 impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
     async fn create_batch(&self, params: &SettlementBatchCreateParams) -> AtlasResult<SettlementBatch> {
         let seq = self.get_next_batch_number(params.org_id).await.unwrap_or(1);
-        let batch_number = format!("STL-{:06}", seq);
+        let batch_number = format!("STL-{seq:06}");
 
         let row = sqlx::query_as::<_, SettlementBatch>(
-            r#"INSERT INTO _atlas.settlement_batches
+            r"INSERT INTO _atlas.settlement_batches
                (organization_id, batch_number, batch_name, description,
                 bank_account_id, bank_account_name,
                 currency_code, exchange_rate_type, exchange_rate,
                 settlement_date, gl_date, settlement_method, settlement_type,
                 status, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'draft',$14)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(&batch_number)
@@ -290,10 +291,10 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 
     async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SettlementBatch>> {
         let rows = sqlx::query_as::<_, SettlementBatch>(
-            r#"SELECT * FROM _atlas.settlement_batches
+            r"SELECT * FROM _atlas.settlement_batches
                WHERE organization_id = $1
                AND ($2::text IS NULL OR status = $2)
-               ORDER BY settlement_date DESC, batch_number"#,
+               ORDER BY settlement_date DESC, batch_number",
         )
         .bind(org_id)
         .bind(status)
@@ -305,8 +306,8 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 
     async fn update_batch_status(&self, id: Uuid, status: &str) -> AtlasResult<SettlementBatch> {
         let row = sqlx::query_as::<_, SettlementBatch>(
-            r#"UPDATE _atlas.settlement_batches SET status = $2, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+            r"UPDATE _atlas.settlement_batches SET status = $2, updated_at = now()
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(status)
@@ -318,9 +319,9 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 
     async fn update_batch_submission(&self, id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<SettlementBatch> {
         let row = sqlx::query_as::<_, SettlementBatch>(
-            r#"UPDATE _atlas.settlement_batches
+            r"UPDATE _atlas.settlement_batches
                SET submitted_by = $2, submitted_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(submitted_by)
@@ -332,9 +333,9 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 
     async fn update_batch_approval(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<SettlementBatch> {
         let row = sqlx::query_as::<_, SettlementBatch>(
-            r#"UPDATE _atlas.settlement_batches
+            r"UPDATE _atlas.settlement_batches
                SET approved_by = $2, approved_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(approved_by)
@@ -346,9 +347,9 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 
     async fn update_batch_settlement(&self, id: Uuid, settled_by: Option<Uuid>) -> AtlasResult<SettlementBatch> {
         let row = sqlx::query_as::<_, SettlementBatch>(
-            r#"UPDATE _atlas.settlement_batches
+            r"UPDATE _atlas.settlement_batches
                SET settled_by = $2, settled_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(settled_by)
@@ -360,9 +361,9 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 
     async fn update_batch_cancellation(&self, id: Uuid, cancelled_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<SettlementBatch> {
         let row = sqlx::query_as::<_, SettlementBatch>(
-            r#"UPDATE _atlas.settlement_batches
+            r"UPDATE _atlas.settlement_batches
                SET cancelled_by = $2, cancelled_at = now(), cancel_reason = $3, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(cancelled_by)
@@ -375,11 +376,11 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 
     async fn update_batch_totals(&self, id: Uuid, invoices: i32, invoice_amt: f64, discount: f64, settled: f64, charges: f64, net: f64) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.settlement_batches
+            r"UPDATE _atlas.settlement_batches
                SET total_invoices = $2, total_invoice_amount = $3,
                    total_discount_taken = $4, total_settled_amount = $5,
                    total_charges = $6, total_net_payment = $7, updated_at = now()
-               WHERE id = $1"#,
+               WHERE id = $1",
         )
         .bind(id)
         .bind(invoices)
@@ -428,7 +429,7 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         let net_settlement = params.amount_paid - params.discount_taken - params.bank_charges + params.adjustment_amount;
 
         let row = sqlx::query_as::<_, SettlementLine>(
-            r#"INSERT INTO _atlas.settlement_lines
+            r"INSERT INTO _atlas.settlement_lines
                (organization_id, batch_id, line_number,
                 invoice_id, invoice_number, invoice_date, invoice_amount,
                 supplier_id, supplier_number, supplier_name, supplier_site,
@@ -439,7 +440,7 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
                 settlement_type, liability_account, discount_account, charges_account,
                 status)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,'pending')
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(params.batch_id)
@@ -497,9 +498,9 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 
     async fn update_line_status(&self, id: Uuid, status: &str, error_message: Option<&str>) -> AtlasResult<SettlementLine> {
         let row = sqlx::query_as::<_, SettlementLine>(
-            r#"UPDATE _atlas.settlement_lines
+            r"UPDATE _atlas.settlement_lines
                SET status = $2, error_message = COALESCE($3, error_message), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(status)
@@ -546,11 +547,11 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         details: Option<serde_json::Value>,
     ) -> AtlasResult<SettlementActivity> {
         let row = sqlx::query_as::<_, SettlementActivity>(
-            r#"INSERT INTO _atlas.settlement_activities
+            r"INSERT INTO _atlas.settlement_activities
                (organization_id, batch_id, line_id, activity_type, description,
                 old_status, new_status, performed_by, performed_by_name, details)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id)
         .bind(batch_id)
@@ -582,7 +583,7 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<SettlementSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft_cnt,
                 COUNT(*) FILTER (WHERE status = 'submitted') as submitted_cnt,
@@ -592,7 +593,7 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
                 COALESCE(SUM(total_settled_amount), 0) as total_settled,
                 COALESCE(SUM(total_discount_taken), 0) as total_discount,
                 COALESCE(SUM(total_invoices), 0) as total_inv
-               FROM _atlas.settlement_batches WHERE organization_id = $1"#,
+               FROM _atlas.settlement_batches WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -621,8 +622,7 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 impl PostgresPaymentSettlementRepository {
     async fn get_grouped_counts(&self, org_id: Uuid, column: &str) -> AtlasResult<serde_json::Value> {
         let query = format!(
-            "SELECT {} as key, COUNT(*) as cnt, COALESCE(SUM(total_net_payment), 0) as total FROM _atlas.settlement_batches WHERE organization_id = $1 GROUP BY {}",
-            column, column
+            "SELECT {column} as key, COUNT(*) as cnt, COALESCE(SUM(total_net_payment), 0) as total FROM _atlas.settlement_batches WHERE organization_id = $1 GROUP BY {column}"
         );
         let rows = sqlx::query(&query)
             .bind(org_id)

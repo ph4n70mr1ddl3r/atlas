@@ -1,6 +1,6 @@
 //! Succession Planning Repository
 //!
-//! PostgreSQL storage for succession plans, candidates, talent pools,
+//! `PostgreSQL` storage for succession plans, candidates, talent pools,
 //! pool members, talent reviews, assessments, and career paths.
 
 use atlas_shared::{
@@ -155,7 +155,8 @@ pub struct PostgresSuccessionPlanningRepository {
 }
 
 impl PostgresSuccessionPlanningRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -331,14 +332,14 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SuccessionPlan> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.succession_plans
+            r"INSERT INTO _atlas.succession_plans
                 (organization_id, code, name, description, plan_type,
                  position_id, position_title, job_id, department_id,
                  current_incumbent_id, current_incumbent_name,
                  risk_level, urgency, effective_date, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
                     $12, $13, $14, '{}'::jsonb, $15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(plan_type)
         .bind(position_id).bind(position_title).bind(job_id).bind(department_id)
@@ -367,9 +368,9 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         let mut query = String::from("SELECT * FROM _atlas.succession_plans WHERE organization_id = $1");
         let mut bind_idx = 2u32;
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${}", bind_idx)); bind_idx += 1; }
+        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); bind_idx += 1; }
         let has_risk = risk_level.is_some();
-        if has_risk { query.push_str(&format!(" AND risk_level = ${}", bind_idx)); }
+        if has_risk { query.push_str(&format!(" AND risk_level = ${bind_idx}")); }
         query.push_str(" ORDER BY created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -392,7 +393,7 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
             "DELETE FROM _atlas.succession_plans WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Succession plan '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Succession plan '{code}' not found")));
         }
         Ok(())
     }
@@ -409,14 +410,14 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         recommended_actions: Option<&str>, status: &str, added_by: Option<Uuid>,
     ) -> AtlasResult<SuccessionCandidate> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.succession_candidates
+            r"INSERT INTO _atlas.succession_candidates
                 (organization_id, plan_id, person_id, person_name, employee_number,
                  readiness, ranking, performance_rating, potential_rating,
                  flight_risk, development_notes, recommended_actions,
                  status, metadata, added_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
                     $10, $11, $12, $13, '{}'::jsonb, $14)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(plan_id).bind(person_id).bind(person_name)
         .bind(employee_number).bind(readiness).bind(ranking)
@@ -473,11 +474,11 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TalentPool> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.talent_pools
+            r"INSERT INTO _atlas.talent_pools
                 (organization_id, code, name, description, pool_type,
                  owner_id, max_members, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, '{}'::jsonb, $8)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(pool_type)
         .bind(owner_id).bind(max_members).bind(created_by)
@@ -504,9 +505,9 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         let mut query = String::from("SELECT * FROM _atlas.talent_pools WHERE organization_id = $1");
         let mut bind_idx = 2u32;
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${}", bind_idx)); bind_idx += 1; }
+        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); bind_idx += 1; }
         let has_type = pool_type.is_some();
-        if has_type { query.push_str(&format!(" AND pool_type = ${}", bind_idx)); }
+        if has_type { query.push_str(&format!(" AND pool_type = ${bind_idx}")); }
         query.push_str(" ORDER BY name");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -529,7 +530,7 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
             "DELETE FROM _atlas.talent_pools WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Talent pool '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Talent pool '{code}' not found")));
         }
         Ok(())
     }
@@ -546,14 +547,14 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         added_by: Option<Uuid>,
     ) -> AtlasResult<TalentPoolMember> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.talent_pool_members
+            r"INSERT INTO _atlas.talent_pool_members
                 (organization_id, pool_id, person_id, person_name,
                  performance_rating, potential_rating, readiness,
                  development_plan, notes, added_date, review_date,
                  metadata, added_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
                     '{}'::jsonb, $12)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(pool_id).bind(person_id).bind(person_name)
         .bind(performance_rating).bind(potential_rating).bind(readiness)
@@ -603,11 +604,11 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TalentReview> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.talent_reviews
+            r"INSERT INTO _atlas.talent_reviews
                 (organization_id, code, name, description, review_type,
                  facilitator_id, department_id, review_date, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '{}'::jsonb, $9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(review_type)
         .bind(facilitator_id).bind(department_id).bind(review_date).bind(created_by)
@@ -634,9 +635,9 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         let mut query = String::from("SELECT * FROM _atlas.talent_reviews WHERE organization_id = $1");
         let mut bind_idx = 2u32;
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${}", bind_idx)); bind_idx += 1; }
+        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); bind_idx += 1; }
         let has_type = review_type.is_some();
-        if has_type { query.push_str(&format!(" AND review_type = ${}", bind_idx)); }
+        if has_type { query.push_str(&format!(" AND review_type = ${bind_idx}")); }
         query.push_str(" ORDER BY review_date DESC NULLS LAST, created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -659,7 +660,7 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
             "DELETE FROM _atlas.talent_reviews WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Talent review '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Talent review '{code}' not found")));
         }
         Ok(())
     }
@@ -677,14 +678,14 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         assessor_id: Option<Uuid>, notes: Option<&str>,
     ) -> AtlasResult<TalentReviewAssessment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.talent_review_assessments
+            r"INSERT INTO _atlas.talent_review_assessments
                 (organization_id, review_id, person_id, person_name,
                  performance_rating, potential_rating, nine_box_position,
                  strengths, weaknesses, career_aspiration, development_needs,
                  succession_readiness, assessor_id, notes, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
                     $12, $13, $14, '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(review_id).bind(person_id).bind(person_name)
         .bind(performance_rating).bind(potential_rating).bind(nine_box_position)
@@ -730,7 +731,7 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         development_activities: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<CareerPath> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.career_paths
+            r"INSERT INTO _atlas.career_paths
                 (organization_id, code, name, description, path_type,
                  from_job_id, from_job_title, to_job_id, to_job_title,
                  typical_duration_months, required_competencies,
@@ -738,7 +739,7 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
                  metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, '{}'::jsonb, $14)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(path_type)
         .bind(from_job_id).bind(from_job_title).bind(to_job_id).bind(to_job_title)
@@ -768,9 +769,9 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
         let mut query = String::from("SELECT * FROM _atlas.career_paths WHERE organization_id = $1");
         let mut bind_idx = 2u32;
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${}", bind_idx)); bind_idx += 1; }
+        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); bind_idx += 1; }
         let has_type = path_type.is_some();
-        if has_type { query.push_str(&format!(" AND path_type = ${}", bind_idx)); }
+        if has_type { query.push_str(&format!(" AND path_type = ${bind_idx}")); }
         query.push_str(" ORDER BY name");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -793,7 +794,7 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
             "DELETE FROM _atlas.career_paths WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Career path '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Career path '{code}' not found")));
         }
         Ok(())
     }
@@ -869,14 +870,14 @@ impl SuccessionPlanningRepository for PostgresSuccessionPlanningRepository {
 
         // Coverage %: plans with at least 1 ready_now candidate / total active plans
         let covered: i64 = sqlx::query_scalar(
-            r#"SELECT COUNT(DISTINCT sp.id) FROM _atlas.succession_plans sp
+            r"SELECT COUNT(DISTINCT sp.id) FROM _atlas.succession_plans sp
                JOIN _atlas.succession_candidates sc ON sc.plan_id = sp.id
                WHERE sp.organization_id = $1 AND sp.status = 'active'
-                 AND sc.readiness = 'ready_now' AND sc.status = 'approved'"#
+                 AND sc.readiness = 'ready_now' AND sc.status = 'approved'"
         ).bind(org_id).fetch_one(&self.pool).await.unwrap_or(0);
 
         let coverage_pct = if active_plans > 0 {
-            Some(format!("{:.1}", (covered as f64 / active_plans as f64) * 100.0))
+            Some(format!("{:.1}", (covered as f64 / f64::from(active_plans)) * 100.0))
         } else {
             None
         };

@@ -1,10 +1,10 @@
-//! AutoInvoice Module
+//! `AutoInvoice` Module
 //!
-//! Oracle Fusion Cloud Receivables AutoInvoice implementation.
+//! Oracle Fusion Cloud Receivables `AutoInvoice` implementation.
 //! Automatically creates AR invoices from imported transaction data
 //! with validation rules, grouping rules, and line ordering.
 //!
-//! Oracle Fusion equivalent: Receivables > AutoInvoice
+//! Oracle Fusion equivalent: Receivables > `AutoInvoice`
 
 mod engine;
 mod repository;

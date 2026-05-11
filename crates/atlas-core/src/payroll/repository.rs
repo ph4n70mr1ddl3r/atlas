@@ -1,6 +1,6 @@
 //! Payroll Repository
 //!
-//! PostgreSQL storage for payroll definitions, elements, entries, runs, and pay slips.
+//! `PostgreSQL` storage for payroll definitions, elements, entries, runs, and pay slips.
 
 use atlas_shared::{
     PayrollDefinition, PayrollElement, PayrollElementEntry,
@@ -148,13 +148,14 @@ pub trait PayrollRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PayrollDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresPayrollRepository {
     pool: PgPool,
 }
 
 impl PostgresPayrollRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -179,14 +180,14 @@ impl PayrollRepository for PostgresPayrollRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PayrollDefinition> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.payroll_definitions
                 (organization_id, name, description, pay_frequency, currency_code,
                  salary_expense_account, liability_account, employer_tax_account,
                  payment_account, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(name).bind(description).bind(pay_frequency)
         .bind(currency_code).bind(salary_expense_account)
@@ -331,7 +332,7 @@ impl PayrollRepository for PostgresPayrollRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PayrollElement> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.payroll_elements
                 (organization_id, code, name, description, element_type, category,
                  calculation_method, default_value, is_recurring,
@@ -341,7 +342,7 @@ impl PayrollRepository for PostgresPayrollRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::numeric, $9, $10,
                     $11::numeric, $12, $13, $14, $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(element_type).bind(category).bind(calculation_method)
@@ -521,14 +522,14 @@ impl PayrollRepository for PostgresPayrollRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PayrollElementEntry> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.payroll_element_entries
                 (organization_id, employee_id, element_id, element_code, element_name,
                  element_type, entry_value, remaining_periods,
                  effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(employee_id).bind(element_id)
         .bind(element_code).bind(element_name).bind(element_type)
@@ -616,7 +617,7 @@ impl PayrollRepository for PostgresPayrollRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PayrollRun> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.payroll_runs
                 (organization_id, payroll_id, run_number, status,
                  period_start, period_end, pay_date,
@@ -624,7 +625,7 @@ impl PayrollRepository for PostgresPayrollRepository {
                  employee_count, created_by)
             VALUES ($1, $2, $3, 'open', $4, $5, $6, '0', '0', '0', '0', 0, $7)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(payroll_id).bind(run_number)
         .bind(period_start).bind(period_end).bind(pay_date)
@@ -677,7 +678,7 @@ impl PayrollRepository for PostgresPayrollRepository {
 
     async fn update_run_status(&self, id: Uuid, status: &str, action_by: Option<Uuid>) -> AtlasResult<PayrollRun> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.payroll_runs
             SET status = $2,
                 confirmed_by = CASE WHEN $2 IN ('confirmed') THEN $3 ELSE confirmed_by END,
@@ -687,7 +688,7 @@ impl PayrollRepository for PostgresPayrollRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(action_by)
         .fetch_one(&self.pool)
@@ -706,13 +707,13 @@ impl PayrollRepository for PostgresPayrollRepository {
         employee_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.payroll_runs
             SET total_gross = $2::numeric, total_deductions = $3::numeric,
                 total_net = $4::numeric, total_employer_cost = $5::numeric,
                 employee_count = $6, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(total_gross).bind(total_deductions)
         .bind(total_net).bind(total_employer_cost).bind(employee_count)
@@ -741,7 +742,7 @@ impl PayrollRepository for PostgresPayrollRepository {
         bank_account_last4: Option<&str>,
     ) -> AtlasResult<PaySlip> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pay_slips
                 (organization_id, payroll_run_id, employee_id, employee_name,
                  gross_earnings, total_deductions, net_pay, employer_cost,
@@ -749,7 +750,7 @@ impl PayrollRepository for PostgresPayrollRepository {
             VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7::numeric, $8::numeric,
                     $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(payroll_run_id).bind(employee_id).bind(employee_name)
         .bind(gross_earnings).bind(total_deductions).bind(net_pay).bind(employer_cost)
@@ -830,13 +831,13 @@ impl PayrollRepository for PostgresPayrollRepository {
         gl_account_code: Option<&str>,
     ) -> AtlasResult<PaySlipLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.pay_slip_lines
                 (pay_slip_id, element_code, element_name, element_type, category,
                  hours_or_units, rate, amount, is_pretax, is_employer, gl_account_code)
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7::numeric, $8::numeric, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(pay_slip_id).bind(element_code).bind(element_name)
         .bind(element_type).bind(category)
@@ -899,7 +900,7 @@ impl PayrollRepository for PostgresPayrollRepository {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PayrollDashboard> {
         // Get totals from recent runs
         let row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COALESCE(SUM(total_gross), 0) as total_gross,
                 COALESCE(SUM(total_deductions), 0) as total_deductions,
@@ -908,7 +909,7 @@ impl PayrollRepository for PostgresPayrollRepository {
                 COALESCE(SUM(employee_count), 0) as employee_count
             FROM _atlas.payroll_runs
             WHERE organization_id = $1 AND status IN ('confirmed', 'paid')
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -931,9 +932,7 @@ impl PayrollRepository for PostgresPayrollRepository {
 
 fn numeric_to_string(row: &sqlx::postgres::PgRow, field: &str) -> String {
     row.try_get::<serde_json::Value, _>(field)
-        .ok()
-        .map(|v| v.to_string().trim_matches('"').to_string())
-        .unwrap_or_else(|| "0".to_string())
+        .ok().map_or_else(|| "0".to_string(), |v| v.to_string().trim_matches('"').to_string())
 }
 
 fn row_to_run(row: &sqlx::postgres::PgRow) -> PayrollRun {

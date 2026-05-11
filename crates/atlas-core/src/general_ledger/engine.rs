@@ -105,7 +105,7 @@ impl GeneralLedgerEngine {
         // Check uniqueness
         if self.repository.get_account_by_code(org_id, account_code).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Account code '{}' already exists", account_code)
+                format!("Account code '{account_code}' already exists")
             ));
         }
 
@@ -227,7 +227,7 @@ impl GeneralLedgerEngine {
     ) -> AtlasResult<GlJournalLine> {
         let je = self.repository.get_journal_entry(journal_entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", journal_entry_id)
+                format!("Journal entry {journal_entry_id} not found")
             ))?;
 
         if je.status != "draft" {
@@ -245,7 +245,7 @@ impl GeneralLedgerEngine {
         // Validate account exists
         let account = self.repository.get_account_by_code(org_id, account_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Account code '{}' not found", account_code)
+                format!("Account code '{account_code}' not found")
             ))?;
 
         let dr: f64 = entered_dr.parse().map_err(|_| AtlasError::ValidationFailed(
@@ -304,7 +304,7 @@ impl GeneralLedgerEngine {
     pub async fn post_journal_entry(&self, journal_entry_id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<GlJournalEntry> {
         let je = self.repository.get_journal_entry(journal_entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", journal_entry_id)
+                format!("Journal entry {journal_entry_id} not found")
             ))?;
 
         if je.status != "draft" && je.status != "submitted" {
@@ -338,7 +338,7 @@ impl GeneralLedgerEngine {
     pub async fn reverse_journal_entry(&self, journal_entry_id: Uuid) -> AtlasResult<GlJournalEntry> {
         let je = self.repository.get_journal_entry(journal_entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", journal_entry_id)
+                format!("Journal entry {journal_entry_id} not found")
             ))?;
 
         if je.status != "posted" {
@@ -405,11 +405,11 @@ impl GeneralLedgerEngine {
                     account_code: account.account_code.clone(),
                     account_name: account.account_name.clone(),
                     account_type: account.account_type.clone(),
-                    beginning_balance: format!("{:.2}", beginning),
-                    period_debit: format!("{:.2}", period_debit),
-                    period_credit: format!("{:.2}", period_credit),
-                    ending_balance: format!("{:.2}", ending),
-                    net_activity: format!("{:.2}", net),
+                    beginning_balance: format!("{beginning:.2}"),
+                    period_debit: format!("{period_debit:.2}"),
+                    period_credit: format!("{period_credit:.2}"),
+                    ending_balance: format!("{ending:.2}"),
+                    net_activity: format!("{net:.2}"),
                 });
             }
         }
@@ -421,9 +421,9 @@ impl GeneralLedgerEngine {
             as_of_date,
             ledger_id: None,
             lines,
-            total_debit: format!("{:.2}", total_debit),
-            total_credit: format!("{:.2}", total_credit),
-            total_net: format!("{:.2}", total_net),
+            total_debit: format!("{total_debit:.2}"),
+            total_credit: format!("{total_credit:.2}"),
+            total_net: format!("{total_net:.2}"),
         })
     }
 
@@ -443,8 +443,8 @@ impl GeneralLedgerEngine {
 
         self.repository.update_journal_totals(
             journal_entry_id,
-            &format!("{:.2}", total_dr),
-            &format!("{:.2}", total_cr),
+            &format!("{total_dr:.2}"),
+            &format!("{total_cr:.2}"),
             balanced,
         ).await?;
 

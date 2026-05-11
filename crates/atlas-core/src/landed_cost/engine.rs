@@ -104,7 +104,7 @@ impl LandedCostEngine {
 
         let template = self.repository.get_template(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Template '{}' not found", code)
+                format!("Template '{code}' not found")
             ))?;
 
         info!("Updating template {} status to {}", code, status);
@@ -199,7 +199,7 @@ impl LandedCostEngine {
 
         let component = self.repository.get_component(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Component '{}' not found", code)
+                format!("Component '{code}' not found")
             ))?;
 
         info!("Updating component {} status to {}", code, status);
@@ -293,7 +293,7 @@ impl LandedCostEngine {
     pub async fn submit_charge(&self, charge_id: Uuid) -> AtlasResult<LandedCostCharge> {
         let charge = self.repository.get_charge(charge_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {} not found", charge_id)
+                format!("Charge {charge_id} not found")
             ))?;
 
         if charge.status != "draft" {
@@ -310,7 +310,7 @@ impl LandedCostEngine {
     pub async fn cancel_charge(&self, charge_id: Uuid) -> AtlasResult<LandedCostCharge> {
         let charge = self.repository.get_charge(charge_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {} not found", charge_id)
+                format!("Charge {charge_id} not found")
             ))?;
 
         if charge.status != "draft" && charge.status != "submitted" {
@@ -346,7 +346,7 @@ impl LandedCostEngine {
     ) -> AtlasResult<LandedCostChargeLine> {
         let charge = self.repository.get_charge(charge_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {} not found", charge_id)
+                format!("Charge {charge_id} not found")
             ))?;
 
         if charge.status != "draft" {
@@ -402,7 +402,7 @@ impl LandedCostEngine {
     pub async fn allocate_charge(&self, charge_id: Uuid) -> AtlasResult<Vec<LandedCostAllocation>> {
         let charge = self.repository.get_charge(charge_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {} not found", charge_id)
+                format!("Charge {charge_id} not found")
             ))?;
 
         if charge.status != "submitted" {
@@ -475,10 +475,10 @@ impl LandedCostEngine {
                         Some(rl.receipt_line_id),
                         rl.item_id,
                         rl.item_code.as_deref(),
-                        &format!("{:.6}", allocated),
+                        &format!("{allocated:.6}"),
                         "equal",
-                        Some(&format!("{:.6}", count)),
-                        Some(&format!("{:.6}", count)),
+                        Some(&format!("{count:.6}")),
+                        Some(&format!("{count:.6}")),
                         Some(&format!("{:.4}", 1.0 / count * 100.0)),
                         rl.unit_price.as_deref(),
                     ).await?;
@@ -504,7 +504,7 @@ impl LandedCostEngine {
 
                 if total_basis.abs() < f64::EPSILON {
                     return Err(AtlasError::WorkflowError(
-                        format!("Total {} basis is zero — cannot allocate", basis)
+                        format!("Total {basis} basis is zero — cannot allocate")
                     ));
                 }
 
@@ -530,10 +530,10 @@ impl LandedCostEngine {
                         Some(rl.receipt_line_id),
                         rl.item_id,
                         rl.item_code.as_deref(),
-                        &format!("{:.6}", allocated),
+                        &format!("{allocated:.6}"),
                         basis,
-                        Some(&format!("{:.6}", line_basis)),
-                        Some(&format!("{:.6}", total_basis)),
+                        Some(&format!("{line_basis:.6}")),
+                        Some(&format!("{total_basis:.6}")),
                         Some(&format!("{:.4}", pct * 100.0)),
                         rl.unit_price.as_deref(),
                     ).await?;
@@ -542,7 +542,7 @@ impl LandedCostEngine {
                 Ok(results)
             }
             _ => Err(AtlasError::ValidationFailed(format!(
-                "Unsupported allocation basis: {}", basis
+                "Unsupported allocation basis: {basis}"
             ))),
         }
     }
@@ -561,7 +561,7 @@ impl LandedCostEngine {
     pub async fn post_charge(&self, charge_id: Uuid) -> AtlasResult<LandedCostCharge> {
         let charge = self.repository.get_charge(charge_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {} not found", charge_id)
+                format!("Charge {charge_id} not found")
             ))?;
 
         if charge.status != "allocated" {
@@ -667,8 +667,8 @@ impl LandedCostEngine {
             purchase_order_id, item_id, item_code, item_description,
             estimated_quantity, unit_price, currency,
             &serde_json::json!(estimated_charges),
-            &format!("{:.6}", estimated_landed_cost),
-            &format!("{:.6}", estimated_landed_cost_per_unit),
+            &format!("{estimated_landed_cost:.6}"),
+            &format!("{estimated_landed_cost_per_unit:.6}"),
             created_by,
         ).await
     }
@@ -694,7 +694,7 @@ impl LandedCostEngine {
     pub async fn archive_simulation(&self, simulation_id: Uuid) -> AtlasResult<LandedCostSimulation> {
         let sim = self.repository.get_simulation(simulation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Simulation {} not found", simulation_id)
+                format!("Simulation {simulation_id} not found")
             ))?;
 
         if sim.status != "completed" && sim.status != "draft" {
@@ -757,7 +757,7 @@ impl LandedCostEngine {
         let all_lines: Vec<_> = futures::future::join_all(
             charges.iter().map(|c| self.repository.list_charge_lines(c.id))
         ).await.into_iter()
-            .filter_map(|r| r.ok())
+            .filter_map(std::result::Result::ok)
             .flatten()
             .collect();
 
@@ -779,8 +779,8 @@ impl LandedCostEngine {
             total_charges,
             pending_charges,
             allocated_charges,
-            total_charge_amount: format!("{:.2}", total_charge_amount),
-            total_allocated_amount: format!("{:.2}", total_allocated_amount),
+            total_charge_amount: format!("{total_charge_amount:.2}"),
+            total_allocated_amount: format!("{total_allocated_amount:.2}"),
             total_simulations,
             charges_by_type,
             recent_charges,
@@ -802,6 +802,7 @@ pub struct ReceiptLineInfo {
 
 impl ReceiptLineInfo {
     /// Get the basis value for a given allocation basis
+    #[must_use] 
     pub fn basis_value(&self, basis: &str) -> f64 {
         match basis {
             "quantity" => self.quantity,

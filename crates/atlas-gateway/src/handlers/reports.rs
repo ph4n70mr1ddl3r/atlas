@@ -56,7 +56,7 @@ pub async fn generate_entity_report(
 
     // Get total count
     let count_row = sqlx::query(
-        format!("SELECT COUNT(*) as count FROM \"{}\"{}", table_name, where_clause).as_str()
+        format!("SELECT COUNT(*) as count FROM \"{table_name}\"{where_clause}").as_str()
     )
     .bind(org_id)
     .fetch_one(&state.db_pool)
@@ -71,8 +71,7 @@ pub async fn generate_entity_report(
     // Get recent records (parameterize org_id as $1, limit as $2)
     let recent = sqlx::query(
         format!(
-            "SELECT * FROM \"{}\"{} ORDER BY created_at DESC LIMIT $2",
-            table_name, where_clause
+            "SELECT * FROM \"{table_name}\"{where_clause} ORDER BY created_at DESC LIMIT $2"
         ).as_str()
     )
     .bind(org_id)
@@ -90,8 +89,7 @@ pub async fn generate_entity_report(
     let by_state = if entity_def.workflow.is_some() {
         let state_rows = sqlx::query(
             format!(
-                "SELECT workflow_state, COUNT(*) as count FROM \"{}\"{} GROUP BY workflow_state",
-                table_name, where_clause
+                "SELECT workflow_state, COUNT(*) as count FROM \"{table_name}\"{where_clause} GROUP BY workflow_state"
             ).as_str()
         )
         .bind(org_id)
@@ -111,7 +109,7 @@ pub async fn generate_entity_report(
     };
 
     Ok(Json(ReportResponse {
-        report_type: format!("{}_summary", entity),
+        report_type: format!("{entity}_summary"),
         generated_at: chrono::Utc::now().to_rfc3339(),
         data: serde_json::json!({
             "entity": entity,
@@ -146,7 +144,7 @@ pub async fn dashboard_report(
             };
             let where_clause = if def.is_soft_delete { " WHERE organization_id = $1 AND deleted_at IS NULL" } else { " WHERE organization_id = $1" };
             let count = sqlx::query(
-                format!("SELECT COUNT(*) as count FROM \"{}\"{}", table, where_clause).as_str()
+                format!("SELECT COUNT(*) as count FROM \"{table}\"{where_clause}").as_str()
             )
             .bind(org_id)
             .fetch_one(&state.db_pool)
@@ -204,7 +202,7 @@ pub struct ImportResponse {
 
 /// Import data for an entity
 ///
-/// Automatically injects the caller's organization_id for multi-tenancy.
+/// Automatically injects the caller's `organization_id` for multi-tenancy.
 pub async fn import_data(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
@@ -252,7 +250,7 @@ pub async fn import_data(
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| StatusCode::BAD_REQUEST)?;
             let placeholders: Vec<String> = (1..=sanitized_fields.len())
-                .map(|i| format!("${}::text", i))
+                .map(|i| format!("${i}::text"))
                 .collect();
             let org_placeholder = format!("${}::uuid", sanitized_fields.len() + 1);
 
@@ -260,7 +258,7 @@ pub async fn import_data(
                 format!(
                     "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, {}) ON CONFLICT DO NOTHING",
                     table_name,
-                    sanitized_fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
+                    sanitized_fields.iter().map(|f| format!("\"{f}\"")).collect::<Vec<_>>().join(", "),
                     placeholders.join(", "),
                     org_placeholder
                 )
@@ -268,7 +266,7 @@ pub async fn import_data(
                 format!(
                     "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, {})",
                     table_name,
-                    sanitized_fields.iter().map(|f| format!("\"{}\"", f)).collect::<Vec<_>>().join(", "),
+                    sanitized_fields.iter().map(|f| format!("\"{f}\"")).collect::<Vec<_>>().join(", "),
                     placeholders.join(", "),
                     org_placeholder
                 )
@@ -335,7 +333,7 @@ pub async fn export_data(
 
     let where_clause = if entity_def.is_soft_delete { " WHERE organization_id = $1 AND deleted_at IS NULL" } else { " WHERE organization_id = $1" };
     let rows = sqlx::query(
-        format!("SELECT * FROM \"{}\"{} ORDER BY created_at DESC", safe_table, where_clause).as_str()
+        format!("SELECT * FROM \"{safe_table}\"{where_clause} ORDER BY created_at DESC").as_str()
     )
     .bind(org_id)
     .fetch_all(&state.db_pool)

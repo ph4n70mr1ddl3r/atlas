@@ -139,13 +139,13 @@ pub async fn login(
     
     // Fetch user from database using proper column names
     let user_row = sqlx::query_as::<_, UserRow>(
-        r#"
+        r"
         SELECT id, email, name, password_hash,
                roles::text AS roles_text,
                organization_id 
         FROM _atlas.users 
         WHERE email = $1 AND is_active = true
-        "#
+        "
     )
     .bind(&email)
     .fetch_optional(&state.db_pool)
@@ -155,18 +155,15 @@ pub async fn login(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
     
-    let user = match user_row {
-        Some(row) => row,
-        None => {
-            // Perform dummy verification to prevent timing attacks
-            // Use a valid Argon2 hash format (will never match real passwords)
-            let _ = verify_password_internal(
-                &payload.password,
-                DUMMY_ARGON2_HASH
-            );
-            warn!("Login failed for unknown email: {}", email);
-            return Err(StatusCode::UNAUTHORIZED);
-        }
+    let user = if let Some(row) = user_row { row } else {
+        // Perform dummy verification to prevent timing attacks
+        // Use a valid Argon2 hash format (will never match real passwords)
+        let _ = verify_password_internal(
+            &payload.password,
+            DUMMY_ARGON2_HASH
+        );
+        warn!("Login failed for unknown email: {}", email);
+        return Err(StatusCode::UNAUTHORIZED);
     };
     
     // Verify password using Argon2
@@ -217,7 +214,7 @@ fn parse_roles(raw: &str) -> Vec<String> {
         return match val {
             serde_json::Value::Array(arr) => arr
                 .into_iter()
-                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .filter_map(|v| v.as_str().map(std::string::ToString::to_string))
                 .collect(),
             serde_json::Value::String(s) => vec![s],
             _ => vec![],
@@ -246,7 +243,7 @@ fn verify_password_internal(password: &str, hash: &str) -> Result<(), &'static s
 
 /// Verify a JWT token and return the claims
 ///
-/// Reads the JWT secret from the AppState global singleton so the same
+/// Reads the JWT secret from the `AppState` global singleton so the same
 /// secret used during `login()` is always used, avoiding the previous
 /// inconsistency where the env var could change between calls.
 pub fn verify_token(token: &str) -> Result<Claims, StatusCode> {

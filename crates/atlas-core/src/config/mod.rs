@@ -26,8 +26,8 @@ pub enum ConfigValue {
     String(String),
     Number(f64),
     Boolean(bool),
-    Array(Vec<ConfigValue>),
-    Object(HashMap<String, ConfigValue>),
+    Array(Vec<Self>),
+    Object(HashMap<String, Self>),
     #[default]
     Null,
 }
@@ -62,6 +62,7 @@ pub struct ConfigWatcherRegistry {
 }
 
 impl ConfigWatcherRegistry {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             watchers: RwLock::new(HashMap::new()),
@@ -99,7 +100,7 @@ impl ConfigWatcherRegistry {
             return key.starts_with(prefix) && key.len() > prefix.len();
         }
         
-        if pattern.contains("*") {
+        if pattern.contains('*') {
             // Glob matching
             let parts: Vec<&str> = pattern.split('*').collect();
             let mut pos = 0;

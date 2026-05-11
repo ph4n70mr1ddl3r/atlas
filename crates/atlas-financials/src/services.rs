@@ -38,7 +38,8 @@ pub struct AccountsPayableService {
 }
 
 impl AccountsPayableService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -176,7 +177,8 @@ const VALID_ADJUSTMENT_TYPES: &[&str] = &[
 ];
 
 impl AccountsReceivableService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -495,7 +497,8 @@ pub struct FixedAssetsService {
 }
 
 impl FixedAssetsService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -760,7 +763,8 @@ const VALID_OVERHEAD_METHODS: &[&str] = &[
 ];
 
 impl CostManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1010,11 +1014,13 @@ impl CostManagementService {
     }
 
     /// Calculate total item cost across all cost elements
+    #[must_use] 
     pub fn calculate_total_item_cost(element_costs: &[(&str, f64)]) -> f64 {
         element_costs.iter().map(|(_, cost)| *cost).sum()
     }
 
     /// Calculate variance percentage
+    #[must_use] 
     pub fn calculate_variance_percent(standard: f64, actual: f64) -> f64 {
         if standard > 0.0 {
             ((actual - standard) / standard) * 100.0
@@ -1024,6 +1030,7 @@ impl CostManagementService {
     }
 
     /// Calculate adjustment amount
+    #[must_use] 
     pub fn calculate_adjustment_amount(old_cost: f64, new_cost: f64) -> f64 {
         new_cost - old_cost
     }
@@ -1086,7 +1093,8 @@ const VALID_MODIFICATION_TYPES: &[&str] = &[
 ];
 
 impl RevenueRecognitionService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1167,6 +1175,7 @@ impl RevenueRecognitionService {
     }
 
     /// Calculate straight-line revenue allocation for performance obligations
+    #[must_use] 
     pub fn calculate_straight_line_allocation(
         total_price: f64,
         obligation_count: usize,
@@ -1179,6 +1188,7 @@ impl RevenueRecognitionService {
     }
 
     /// Calculate standalone selling price allocation
+    #[must_use] 
     pub fn calculate_ssp_allocation(
         total_price: f64,
         standalone_prices: &[f64],
@@ -1193,6 +1203,7 @@ impl RevenueRecognitionService {
     }
 
     /// Calculate percentage complete for over-time recognition
+    #[must_use] 
     pub fn calculate_percentage_complete(
         costs_incurred: f64,
         total_estimated_costs: f64,
@@ -1204,6 +1215,7 @@ impl RevenueRecognitionService {
     }
 
     /// Calculate revenue to date based on percentage complete
+    #[must_use] 
     pub fn calculate_revenue_to_date(
         total_transaction_price: f64,
         percentage_complete: f64,
@@ -1250,7 +1262,8 @@ const VALID_SLA_ENTRY_STATUSES: &[&str] = &[
 ];
 
 impl SubledgerAccountingService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1374,7 +1387,8 @@ const VALID_FORECAST_STATUSES: &[&str] = &[
 ];
 
 impl CashManagementFinService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1419,11 +1433,13 @@ impl CashManagementFinService {
     }
 
     /// Calculate projected net cash flow
+    #[must_use] 
     pub fn calculate_net_cash_flow(inflows: f64, outflows: f64) -> f64 {
         inflows - outflows
     }
 
     /// Calculate closing balance
+    #[must_use] 
     pub fn calculate_closing_balance(opening: f64, net_cash_flow: f64) -> f64 {
         opening + net_cash_flow
     }
@@ -1467,7 +1483,8 @@ const VALID_GEOGRAPHIC_LEVELS: &[&str] = &[
 ];
 
 impl TaxManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1513,6 +1530,7 @@ impl TaxManagementService {
     }
 
     /// Calculate inclusive tax amount
+    #[must_use] 
     pub fn calculate_inclusive_tax(
         total_amount: f64,
         tax_rate: f64,
@@ -1522,6 +1540,7 @@ impl TaxManagementService {
     }
 
     /// Calculate exclusive tax amount
+    #[must_use] 
     pub fn calculate_exclusive_tax(
         net_amount: f64,
         tax_rate: f64,
@@ -1562,7 +1581,8 @@ const VALID_IC_SETTLEMENT_METHODS: &[&str] = &[
 ];
 
 impl IntercompanyFinService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1626,7 +1646,8 @@ const VALID_PERIOD_SUBLEDGERS: &[&str] = &[
 ];
 
 impl PeriodCloseFinService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1707,7 +1728,8 @@ const VALID_LEASE_TERM_TYPES: &[&str] = &[
 ];
 
 impl LeaseAccountingFinService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1755,6 +1777,7 @@ impl LeaseAccountingFinService {
     }
 
     /// Calculate present value of lease payments (PV of annuity)
+    #[must_use] 
     pub fn calculate_lease_liability(
         periodic_payment: f64,
         periodic_rate: f64,
@@ -1763,11 +1786,12 @@ impl LeaseAccountingFinService {
         if periodic_rate <= 0.0 || number_of_periods <= 0 {
             return 0.0;
         }
-        let n = number_of_periods as f64;
+        let n = f64::from(number_of_periods);
         periodic_payment * (1.0 - (1.0 + periodic_rate).powf(-n)) / periodic_rate
     }
 
     /// Calculate monthly interest expense on lease liability
+    #[must_use] 
     pub fn calculate_lease_interest(
         liability_balance: f64,
         monthly_rate: f64,
@@ -1776,6 +1800,7 @@ impl LeaseAccountingFinService {
     }
 
     /// Calculate principal reduction
+    #[must_use] 
     pub fn calculate_principal_reduction(
         payment: f64,
         interest: f64,
@@ -1798,7 +1823,8 @@ pub struct BankReconciliationService {
 }
 
 impl BankReconciliationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1836,6 +1862,7 @@ impl BankReconciliationService {
     }
 
     /// Calculate reconciliation difference
+    #[must_use] 
     pub fn calculate_recon_difference(
         bank_balance: f64,
         book_balance: f64,
@@ -1876,7 +1903,8 @@ const VALID_ENCUMBRANCE_STATUSES: &[&str] = &[
 ];
 
 impl EncumbranceManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -1908,6 +1936,7 @@ impl EncumbranceManagementService {
     }
 
     /// Calculate remaining encumbrance
+    #[must_use] 
     pub fn calculate_remaining_encumbrance(
         encumbered: f64,
         liquidated: f64,
@@ -1936,7 +1965,8 @@ const VALID_EXCHANGE_RATE_TYPES: &[&str] = &[
 ];
 
 impl CurrencyManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -2002,6 +2032,7 @@ impl CurrencyManagementService {
     }
 
     /// Convert an amount between currencies
+    #[must_use] 
     pub fn convert_currency(
         amount: f64,
         exchange_rate: f64,
@@ -2010,6 +2041,7 @@ impl CurrencyManagementService {
     }
 
     /// Calculate unrealized gain/loss
+    #[must_use] 
     pub fn calculate_unrealized_gain_loss(
         original_amount: f64,
         original_rate: f64,
@@ -2043,7 +2075,8 @@ const VALID_BOOK_TYPES: &[&str] = &["primary", "secondary"];
 const VALID_MAPPING_LEVELS: &[&str] = &["journal", "subledger"];
 
 impl MultiBookAccountingFinService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -2136,7 +2169,8 @@ const VALID_SCENARIO_STATUSES: &[&str] = &[
 ];
 
 impl FinancialConsolidationFinService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -2204,6 +2238,7 @@ impl FinancialConsolidationFinService {
     }
 
     /// Calculate minority interest
+    #[must_use] 
     pub fn calculate_minority_interest(
         net_income: f64,
         ownership_percentage: f64,
@@ -2212,6 +2247,7 @@ impl FinancialConsolidationFinService {
     }
 
     /// Calculate proportional share
+    #[must_use] 
     pub fn calculate_proportional_share(
         total_amount: f64,
         ownership_percentage: f64,
@@ -2229,7 +2265,8 @@ pub struct PurchaseOrderService {
 }
 
 impl PurchaseOrderService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -2324,7 +2361,8 @@ pub struct InvoiceService {
 }
 
 impl InvoiceService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -2379,7 +2417,8 @@ pub struct GeneralLedgerService {
 }
 
 impl GeneralLedgerService {
-    pub fn new(schema_engine: Arc<SchemaEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>) -> Self {
         Self { schema_engine }
     }
 
@@ -2482,7 +2521,8 @@ const VALID_RESOLUTION_TYPES: &[&str] = &[
 ];
 
 impl CollectionsManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -2531,6 +2571,7 @@ impl CollectionsManagementService {
     }
 
     /// Check if customer has available credit
+    #[must_use] 
     pub fn check_credit_available(
         credit_limit: f64,
         credit_used: f64,
@@ -2545,6 +2586,7 @@ impl CollectionsManagementService {
     }
 
     /// Calculate credit utilization percentage
+    #[must_use] 
     pub fn calculate_utilization(credit_used: f64, credit_limit: f64) -> f64 {
         if credit_limit <= 0.0 {
             return 0.0;
@@ -2553,7 +2595,8 @@ impl CollectionsManagementService {
     }
 
     /// Calculate aging bucket from overdue days
-    pub fn aging_bucket_from_days(days_overdue: i32) -> &'static str {
+    #[must_use] 
+    pub const fn aging_bucket_from_days(days_overdue: i32) -> &'static str {
         match days_overdue {
             d if d <= 0 => "current",
             d if d <= 30 => "1_30",
@@ -2586,6 +2629,7 @@ impl CollectionsManagementService {
     }
 
     /// Calculate days sales outstanding (DSO)
+    #[must_use] 
     pub fn calculate_dso(
         total_accounts_receivable: f64,
         total_credit_sales: f64,
@@ -2594,10 +2638,11 @@ impl CollectionsManagementService {
         if total_credit_sales <= 0.0 {
             return 0.0;
         }
-        (total_accounts_receivable / total_credit_sales) * number_of_days as f64
+        (total_accounts_receivable / total_credit_sales) * f64::from(number_of_days)
     }
 
     /// Calculate bad debt provision
+    #[must_use] 
     pub fn calculate_bad_debt_provision(
         total_outstanding: f64,
         historical_bad_debt_rate: f64,
@@ -2606,6 +2651,7 @@ impl CollectionsManagementService {
     }
 
     /// Calculate collection effectiveness index (CEI)
+    #[must_use] 
     pub fn calculate_cei(
         beginning_receivables: f64,
         credit_sales: f64,
@@ -2690,7 +2736,8 @@ const VALID_CREDIT_REVIEW_TYPES: &[&str] = &[
 ];
 
 impl CreditManagementFinService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -2787,6 +2834,7 @@ impl CreditManagementFinService {
     }
 
     /// Calculate credit exposure
+    #[must_use] 
     pub fn calculate_exposure(
         open_receivables: f64,
         open_orders: f64,
@@ -2798,6 +2846,7 @@ impl CreditManagementFinService {
     }
 
     /// Calculate utilization percentage
+    #[must_use] 
     pub fn calculate_credit_utilization(
         total_exposure: f64,
         credit_limit: f64,
@@ -2809,6 +2858,7 @@ impl CreditManagementFinService {
     }
 
     /// Calculate available credit
+    #[must_use] 
     pub fn calculate_available_credit(
         credit_limit: f64,
         temp_increase: f64,
@@ -2818,6 +2868,7 @@ impl CreditManagementFinService {
     }
 
     /// Determine risk level from credit score
+    #[must_use] 
     pub fn risk_level_from_score(score: f64) -> &'static str {
         if score >= 80.0 {
             "low"
@@ -2864,7 +2915,8 @@ const VALID_WHT_CERT_STATUSES: &[&str] = &[
 ];
 
 impl WithholdingTaxService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -2914,6 +2966,7 @@ impl WithholdingTaxService {
     }
 
     /// Calculate withholding tax amount
+    #[must_use] 
     pub fn calculate_withholding(
         taxable_amount: f64,
         rate_percentage: f64,
@@ -2945,6 +2998,7 @@ impl WithholdingTaxService {
     }
 
     /// Calculate net payment amount after withholding
+    #[must_use] 
     pub fn calculate_net_payment(
         gross_amount: f64,
         withheld_amount: f64,
@@ -2953,6 +3007,7 @@ impl WithholdingTaxService {
     }
 
     /// Calculate year-to-date withholding total
+    #[must_use] 
     pub fn calculate_ytd_withholding(
         lines: &[f64],
     ) -> f64 {
@@ -3017,7 +3072,8 @@ const VALID_LINE_SOURCES: &[&str] = &[
 ];
 
 impl ProjectBillingService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -3093,6 +3149,7 @@ impl ProjectBillingService {
     }
 
     /// Calculate bill amount for time and materials
+    #[must_use] 
     pub fn calculate_tm_bill_amount(
         hours: f64,
         bill_rate: f64,
@@ -3103,6 +3160,7 @@ impl ProjectBillingService {
     }
 
     /// Calculate retention amount
+    #[must_use] 
     pub fn calculate_retention(
         bill_amount: f64,
         retention_pct: f64,
@@ -3117,6 +3175,7 @@ impl ProjectBillingService {
     }
 
     /// Calculate net billable amount (after retention)
+    #[must_use] 
     pub fn calculate_net_billable(
         bill_amount: f64,
         retention_amount: f64,
@@ -3126,6 +3185,7 @@ impl ProjectBillingService {
     }
 
     /// Calculate progress billing percentage
+    #[must_use] 
     pub fn calculate_progress_pct(
         completed_value: f64,
         total_contract_value: f64,
@@ -3137,6 +3197,7 @@ impl ProjectBillingService {
     }
 
     /// Calculate earned revenue for fixed-price project
+    #[must_use] 
     pub fn calculate_earned_revenue(
         total_contract_value: f64,
         completion_pct: f64,
@@ -3145,6 +3206,7 @@ impl ProjectBillingService {
     }
 
     /// Calculate cost-plus billing
+    #[must_use] 
     pub fn calculate_cost_plus_bill(
         actual_cost: f64,
         markup_pct: f64,
@@ -3179,7 +3241,8 @@ const VALID_DAYS_OF_MONTH: &[&str] = &[
 ];
 
 impl PaymentTermsService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -3231,22 +3294,25 @@ impl PaymentTermsService {
     }
 
     /// Calculate discount date from invoice date and payment term
+    #[must_use] 
     pub fn calculate_discount_date(
         invoice_date: chrono::NaiveDate,
         discount_days: i32,
     ) -> chrono::NaiveDate {
-        invoice_date + chrono::Duration::days(discount_days as i64)
+        invoice_date + chrono::Duration::days(i64::from(discount_days))
     }
 
     /// Calculate net due date from invoice date and payment term
+    #[must_use] 
     pub fn calculate_net_due_date(
         invoice_date: chrono::NaiveDate,
         net_due_days: i32,
     ) -> chrono::NaiveDate {
-        invoice_date + chrono::Duration::days(net_due_days as i64)
+        invoice_date + chrono::Duration::days(i64::from(net_due_days))
     }
 
     /// Calculate discount amount for early payment
+    #[must_use] 
     pub fn calculate_discount_amount(
         invoice_amount: f64,
         discount_percentage: f64,
@@ -3255,6 +3321,7 @@ impl PaymentTermsService {
     }
 
     /// Calculate net payment amount after discount
+    #[must_use] 
     pub fn calculate_net_payment_amount(
         invoice_amount: f64,
         discount_amount: f64,
@@ -3263,6 +3330,7 @@ impl PaymentTermsService {
     }
 
     /// Determine if discount is still available based on payment date
+    #[must_use] 
     pub fn is_discount_available(
         payment_date: chrono::NaiveDate,
         discount_date: chrono::NaiveDate,
@@ -3271,7 +3339,8 @@ impl PaymentTermsService {
     }
 
     /// Calculate effective annualized cost of not taking a discount
-    /// Formula: (discount% / (100% - discount%)) * (365 / (net_days - discount_days))
+    /// Formula: (discount% / (100% - discount%)) * (365 / (`net_days` - `discount_days`))
+    #[must_use] 
     pub fn calculate_annualized_cost_of_discount(
         discount_percentage: f64,
         net_due_days: i32,
@@ -3282,10 +3351,11 @@ impl PaymentTermsService {
             return 0.0;
         }
         let discount_factor = discount_percentage / (100.0 - discount_percentage);
-        discount_factor * (365.0 / additional_days as f64) * 100.0
+        discount_factor * (365.0 / f64::from(additional_days)) * 100.0
     }
 
     /// Calculate payment amount, applying discount if applicable
+    #[must_use] 
     pub fn calculate_payment_with_discount(
         invoice_amount: f64,
         discount_percentage: f64,
@@ -3328,7 +3398,8 @@ const VALID_ROW_TYPES: &[&str] = &[
 ];
 
 impl FinancialStatementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -3365,6 +3436,7 @@ impl FinancialStatementService {
     }
 
     /// Calculate balance sheet totals from account balances
+    #[must_use] 
     pub fn calculate_balance_sheet(
         total_assets: f64,
         total_liabilities: f64,
@@ -3376,6 +3448,7 @@ impl FinancialStatementService {
     }
 
     /// Calculate net income from revenue and expenses
+    #[must_use] 
     pub fn calculate_net_income(
         total_revenue: f64,
         total_expenses: f64,
@@ -3384,6 +3457,7 @@ impl FinancialStatementService {
     }
 
     /// Calculate retained earnings
+    #[must_use] 
     pub fn calculate_retained_earnings(
         beginning_retained_earnings: f64,
         net_income: f64,
@@ -3393,6 +3467,7 @@ impl FinancialStatementService {
     }
 
     /// Calculate working capital
+    #[must_use] 
     pub fn calculate_working_capital(
         current_assets: f64,
         current_liabilities: f64,
@@ -3401,6 +3476,7 @@ impl FinancialStatementService {
     }
 
     /// Calculate current ratio
+    #[must_use] 
     pub fn calculate_current_ratio(
         current_assets: f64,
         current_liabilities: f64,
@@ -3412,6 +3488,7 @@ impl FinancialStatementService {
     }
 
     /// Calculate debt-to-equity ratio
+    #[must_use] 
     pub fn calculate_debt_to_equity(
         total_liabilities: f64,
         total_equity: f64,
@@ -3423,6 +3500,7 @@ impl FinancialStatementService {
     }
 
     /// Calculate gross profit margin
+    #[must_use] 
     pub fn calculate_gross_profit_margin(
         revenue: f64,
         cost_of_goods_sold: f64,
@@ -3434,6 +3512,7 @@ impl FinancialStatementService {
     }
 
     /// Calculate operating margin
+    #[must_use] 
     pub fn calculate_operating_margin(
         revenue: f64,
         operating_income: f64,
@@ -3445,6 +3524,7 @@ impl FinancialStatementService {
     }
 
     /// Calculate return on equity (ROE)
+    #[must_use] 
     pub fn calculate_return_on_equity(
         net_income: f64,
         total_equity: f64,
@@ -3456,7 +3536,8 @@ impl FinancialStatementService {
     }
 
     /// Generate a cash flow statement using the indirect method
-    /// Returns (operating, investing, financing, net_change)
+    /// Returns (operating, investing, financing, `net_change`)
+    #[must_use] 
     pub fn calculate_cash_flow_indirect(
         net_income: f64,
         depreciation_amortization: f64,
@@ -3475,6 +3556,7 @@ impl FinancialStatementService {
     }
 
     /// Sum account balances for a range
+    #[must_use] 
     pub fn sum_account_range(
         balances: &[(String, f64)],
         from_prefix: &str,
@@ -3531,7 +3613,8 @@ const VALID_TAX_PAYMENT_METHODS: &[&str] = &[
 ];
 
 impl TaxFilingService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -3576,14 +3659,16 @@ impl TaxFilingService {
     }
 
     /// Calculate filing due date from period end
+    #[must_use] 
     pub fn calculate_filing_due_date(
         period_end: chrono::NaiveDate,
         due_days_after_period: i32,
     ) -> chrono::NaiveDate {
-        period_end + chrono::Duration::days(due_days_after_period as i64)
+        period_end + chrono::Duration::days(i64::from(due_days_after_period))
     }
 
     /// Calculate total tax liability from transaction lines
+    #[must_use] 
     pub fn calculate_tax_liability(
         tax_lines: &[(f64, f64)], // (taxable_amount, rate_percentage)
     ) -> (f64, f64) {
@@ -3595,27 +3680,30 @@ impl TaxFilingService {
     }
 
     /// Calculate late filing penalty
+    #[must_use] 
     pub fn calculate_late_penalty(
         tax_amount: f64,
         days_late: i32,
         daily_penalty_rate: f64,
         max_penalty_pct: f64,
     ) -> f64 {
-        let penalty = tax_amount * (daily_penalty_rate / 100.0) * days_late as f64;
+        let penalty = tax_amount * (daily_penalty_rate / 100.0) * f64::from(days_late);
         let max_penalty = tax_amount * (max_penalty_pct / 100.0);
         penalty.min(max_penalty)
     }
 
     /// Calculate interest on late payment
+    #[must_use] 
     pub fn calculate_late_interest(
         tax_amount: f64,
         days_late: i32,
         annual_interest_rate: f64,
     ) -> f64 {
-        tax_amount * (annual_interest_rate / 100.0) * (days_late as f64 / 365.0)
+        tax_amount * (annual_interest_rate / 100.0) * (f64::from(days_late) / 365.0)
     }
 
     /// Determine filing period dates from frequency
+    #[must_use] 
     pub fn calculate_filing_period(
         year: i32,
         period_number: i32,
@@ -3684,7 +3772,8 @@ const VALID_REVERSAL_REASONS: &[&str] = &[
 ];
 
 impl JournalReversalService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -3732,7 +3821,8 @@ impl JournalReversalService {
     }
 
     /// Reverse a journal entry line using switch debit/credit method
-    pub fn reverse_line_switch_dr_cr(
+    #[must_use] 
+    pub const fn reverse_line_switch_dr_cr(
         debit_amount: f64,
         credit_amount: f64,
     ) -> (f64, f64) {
@@ -3741,6 +3831,7 @@ impl JournalReversalService {
     }
 
     /// Reverse a journal entry line using sign reversal method
+    #[must_use] 
     pub fn reverse_line_sign(
         debit_amount: f64,
         credit_amount: f64,
@@ -3750,6 +3841,7 @@ impl JournalReversalService {
     }
 
     /// Validate that a reversal entry balances
+    #[must_use] 
     pub fn validate_reversal_balances(
         original_total_debit: f64,
         original_total_credit: f64,
@@ -3763,6 +3855,7 @@ impl JournalReversalService {
     }
 
     /// Calculate the net effect of an original + reversal entry
+    #[must_use] 
     pub fn calculate_net_effect(
         original_debit: f64,
         original_credit: f64,
@@ -3813,7 +3906,8 @@ const VALID_INDEX_TYPES: &[&str] = &["cpi", "gdp_deflator", "custom"];
 const VALID_ADJUSTMENT_METHODS: &[&str] = &["historical", "current"];
 
 impl InflationAdjustmentService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -3822,6 +3916,7 @@ impl InflationAdjustmentService {
     }
 
     /// Calculate the inflation restatement factor between two periods
+    #[must_use] 
     pub fn calculate_restatement_factor(
         current_index_value: f64,
         base_index_value: f64,
@@ -3834,6 +3929,7 @@ impl InflationAdjustmentService {
 
     /// Restate a non-monetary balance using the inflation factor
     /// IAS 29: Non-monetary items restated from acquisition date index
+    #[must_use] 
     pub fn restate_non_monetary_balance(
         historical_balance: f64,
         restatement_factor: f64,
@@ -3843,6 +3939,7 @@ impl InflationAdjustmentService {
 
     /// Calculate monetary gain/loss (purchasing power gain/loss)
     /// IAS 29: Monetary items are NOT restated; gain/loss recognized in P&L
+    #[must_use] 
     pub fn calculate_monetary_gain_loss(
         monetary_balance: f64,
         restatement_factor: f64,
@@ -3851,6 +3948,7 @@ impl InflationAdjustmentService {
     }
 
     /// Calculate inflation adjustment amount for an account
+    #[must_use] 
     pub fn calculate_adjustment_amount(
         original_balance: f64,
         restated_balance: f64,
@@ -3889,7 +3987,8 @@ const VALID_TEST_TYPES: &[&str] = &["individual", "cash_generating_unit"];
 const VALID_TEST_METHODS: &[&str] = &["value_in_use", "fair_value_less_costs"];
 
 impl ImpairmentManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -3899,6 +3998,7 @@ impl ImpairmentManagementService {
 
     /// Calculate impairment loss
     /// IAS 36: Loss = Carrying Amount - Recoverable Amount (only if carrying > recoverable)
+    #[must_use] 
     pub fn calculate_impairment_loss(
         carrying_amount: f64,
         recoverable_amount: f64,
@@ -3911,6 +4011,7 @@ impl ImpairmentManagementService {
     }
 
     /// Calculate present value of future cash flows (value-in-use)
+    #[must_use] 
     pub fn calculate_present_value(
         cash_flows: &[(f64, f64)], // (cash_flow, discount_factor)
     ) -> f64 {
@@ -3919,6 +4020,7 @@ impl ImpairmentManagementService {
 
     /// Calculate discount factor for a given period
     /// DF = 1 / (1 + r)^n
+    #[must_use] 
     pub fn calculate_discount_factor(
         discount_rate: f64,
         period_number: i32,
@@ -3930,6 +4032,7 @@ impl ImpairmentManagementService {
     }
 
     /// Calculate terminal value present value
+    #[must_use] 
     pub fn calculate_terminal_value_pv(
         terminal_value: f64,
         discount_rate: f64,
@@ -3939,12 +4042,14 @@ impl ImpairmentManagementService {
     }
 
     /// Determine if asset is impaired
+    #[must_use] 
     pub fn is_impaired(carrying_amount: f64, recoverable_amount: f64) -> bool {
         carrying_amount > recoverable_amount
     }
 
     /// Calculate impairment reversal cap
     /// IAS 36: Reversal limited to what carrying amount would have been
+    #[must_use] 
     pub fn calculate_reversal_cap(
         current_carrying: f64,
         original_carrying: f64,
@@ -3973,7 +4078,8 @@ pub struct BankAccountTransferService {
 const VALID_SETTLEMENT_METHODS: &[&str] = &["immediate", "scheduled", "batch"];
 
 impl BankAccountTransferService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -3982,11 +4088,13 @@ impl BankAccountTransferService {
     }
 
     /// Calculate cross-currency transfer amount
+    #[must_use] 
     pub fn calculate_cross_currency_amount(amount: f64, exchange_rate: f64) -> f64 {
         amount * exchange_rate
     }
 
     /// Check if transfer requires approval based on threshold
+    #[must_use] 
     pub fn requires_approval(amount: f64, threshold: f64) -> bool {
         if threshold <= 0.0 {
             return false;
@@ -4015,7 +4123,8 @@ const VALID_TAX_REPORT_TYPES: &[&str] = &[
 ];
 
 impl TaxReportingService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -4024,21 +4133,25 @@ impl TaxReportingService {
     }
 
     /// Calculate net tax due from input/output tax
+    #[must_use] 
     pub fn calculate_net_tax_due(output_tax: f64, input_tax: f64) -> f64 {
         output_tax - input_tax
     }
 
     /// Calculate total amount due including penalties and interest
+    #[must_use] 
     pub fn calculate_total_amount_due(net_tax: f64, penalty: f64, interest: f64) -> f64 {
         net_tax + penalty + interest
     }
 
     /// Calculate net refund or payment
+    #[must_use] 
     pub fn calculate_payment_or_refund(total_amount_due: f64, payments_made: f64) -> f64 {
         total_amount_due - payments_made
     }
 
     /// Calculate effective tax rate
+    #[must_use] 
     pub fn calculate_effective_tax_rate(total_tax: f64, total_taxable: f64) -> f64 {
         if total_taxable <= 0.0 {
             return 0.0;
@@ -4067,7 +4180,8 @@ const VALID_SPONSOR_TYPES: &[&str] = &[
 ];
 
 impl GrantManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -4076,16 +4190,19 @@ impl GrantManagementService {
     }
 
     /// Calculate indirect costs
+    #[must_use] 
     pub fn calculate_indirect_costs(direct_costs: f64, indirect_cost_rate: f64) -> f64 {
         direct_costs * (indirect_cost_rate / 100.0)
     }
 
     /// Calculate total award amount (direct + indirect)
+    #[must_use] 
     pub fn calculate_total_award(direct_costs: f64, indirect_costs: f64) -> f64 {
         direct_costs + indirect_costs
     }
 
     /// Calculate available balance
+    #[must_use] 
     pub fn calculate_available_balance(
         total_award: f64,
         total_expenditures: f64,
@@ -4095,17 +4212,20 @@ impl GrantManagementService {
     }
 
     /// Calculate budget utilization percentage
+    #[must_use] 
     pub fn calculate_budget_utilization(expended: f64, budget: f64) -> f64 {
         if budget <= 0.0 { return 0.0; }
         (expended / budget) * 100.0
     }
 
     /// Calculate cost sharing amount
+    #[must_use] 
     pub fn calculate_cost_sharing(total_expenditures: f64, cost_sharing_percent: f64) -> f64 {
         total_expenditures * (cost_sharing_percent / 100.0)
     }
 
     /// Check if expenditure exceeds budget line
+    #[must_use] 
     pub fn is_budget_line_exceeded(
         budget_amount: f64,
         expended_amount: f64,
@@ -4141,7 +4261,8 @@ const VALID_CARD_TYPES: &[&str] = &["corporate", "purchasing", "travel"];
 const VALID_MATCHING_METHODS: &[&str] = &["auto", "manual", "semi"];
 
 impl CorporateCardManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -4150,6 +4271,7 @@ impl CorporateCardManagementService {
     }
 
     /// Check if a purchase is within spending limits
+    #[must_use] 
     pub fn check_spending_limit(
         purchase_amount: f64,
         single_purchase_limit: f64,
@@ -4162,12 +4284,14 @@ impl CorporateCardManagementService {
     }
 
     /// Calculate available monthly spend
+    #[must_use] 
     pub fn calculate_available_spend(monthly_limit: f64, current_cycle_spend: f64) -> f64 {
         if monthly_limit <= 0.0 { return f64::MAX; }
         (monthly_limit - current_cycle_spend).max(0.0)
     }
 
     /// Calculate statement balance
+    #[must_use] 
     pub fn calculate_statement_balance(
         opening_balance: f64,
         total_charges: f64,
@@ -4178,6 +4302,7 @@ impl CorporateCardManagementService {
     }
 
     /// Calculate match confidence score (0-100)
+    #[must_use] 
     pub fn calculate_match_confidence(
         amount_match: bool,
         date_proximity_days: i32,
@@ -4186,7 +4311,7 @@ impl CorporateCardManagementService {
         let mut score = 0.0;
         if amount_match { score += 40.0; }
         if merchant_match { score += 30.0; }
-        let date_score = (30 - date_proximity_days * 2).max(0) as f64;
+        let date_score = f64::from((30 - date_proximity_days * 2).max(0));
         score += date_score;
         score
     }
@@ -4221,7 +4346,8 @@ const VALID_TREASURY_DEAL_STATUSES: &[&str] = &["draft", "authorized", "settled"
 const VALID_INTEREST_BASES: &[&str] = &["actual_360", "actual_365", "30_360"];
 
 impl TreasuryService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -4302,27 +4428,31 @@ impl TreasuryService {
     }
 
     /// Calculate simple interest
+    #[must_use] 
     pub fn calculate_simple_interest(principal: f64, annual_rate: f64, days: i32, basis_days: i32) -> f64 {
         if basis_days <= 0 { return 0.0; }
-        principal * (annual_rate / 100.0) * (days as f64 / basis_days as f64)
+        principal * (annual_rate / 100.0) * (f64::from(days) / f64::from(basis_days))
     }
 
     /// Calculate compound interest
+    #[must_use] 
     pub fn calculate_compound_interest(principal: f64, annual_rate: f64, years: i32, compounding_periods_per_year: i32) -> f64 {
         if years <= 0 || compounding_periods_per_year <= 0 { return 0.0; }
-        let rate_per_period = (annual_rate / 100.0) / compounding_periods_per_year as f64;
+        let rate_per_period = (annual_rate / 100.0) / f64::from(compounding_periods_per_year);
         let total_periods = years * compounding_periods_per_year;
-        principal * (1.0 + rate_per_period).powi(total_periods) - principal
+        principal.mul_add((1.0 + rate_per_period).powi(total_periods), -principal)
     }
 
     /// Calculate FX forward points
+    #[must_use] 
     pub fn calculate_forward_points(spot_rate: f64, domestic_rate: f64, foreign_rate: f64, days: i32, basis_days: i32) -> f64 {
         if basis_days <= 0 { return 0.0; }
-        let t = days as f64 / basis_days as f64;
-        spot_rate * ((1.0 + domestic_rate / 100.0 * t) / (1.0 + foreign_rate / 100.0 * t) - 1.0)
+        let t = f64::from(days) / f64::from(basis_days);
+        spot_rate * ((domestic_rate / 100.0).mul_add(t, 1.0) / (foreign_rate / 100.0).mul_add(t, 1.0) - 1.0)
     }
 
     /// Calculate FX forward rate
+    #[must_use] 
     pub fn calculate_forward_rate(spot_rate: f64, domestic_rate: f64, foreign_rate: f64, days: i32, basis_days: i32) -> f64 {
         spot_rate + Self::calculate_forward_points(spot_rate, domestic_rate, foreign_rate, days, basis_days)
     }
@@ -4351,7 +4481,8 @@ const VALID_RECURRING_JOURNAL_RECURRENCE_TYPES: &[&str] = &[
 const VALID_RECURRING_JOURNAL_TYPES: &[&str] = &["standard", "skeleton", "incremental"];
 
 impl RecurringJournalService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -4377,12 +4508,12 @@ impl RecurringJournalService {
         }
         if !VALID_RECURRING_JOURNAL_RECURRENCE_TYPES.contains(&recurrence_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid recurrence_type '{}'", recurrence_type
+                "Invalid recurrence_type '{recurrence_type}'"
             )));
         }
         if !VALID_RECURRING_JOURNAL_TYPES.contains(&journal_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid journal_type '{}'", journal_type
+                "Invalid journal_type '{journal_type}'"
             )));
         }
         self.rj_engine.create_schedule(
@@ -4440,8 +4571,9 @@ impl RecurringJournalService {
     }
 
     /// Calculate next execution date
+    #[must_use] 
     pub fn calculate_next_execution(current_date: chrono::NaiveDate, recurrence_type: &str, interval: i32) -> Option<chrono::NaiveDate> {
-        let i = if interval <= 0 { 1 } else { interval } as i64;
+        let i = i64::from(if interval <= 0 { 1 } else { interval });
         match recurrence_type {
             "daily" => Some(current_date + chrono::Duration::days(i)),
             "weekly" => Some(current_date + chrono::Duration::weeks(i)),
@@ -4478,6 +4610,7 @@ impl RecurringJournalService {
     }
 
     /// Get months per recurrence
+    #[must_use] 
     pub fn months_per_recurrence(recurrence: &str) -> u32 {
         match recurrence {
             "monthly" => 1, "quarterly" => 3, "semi_annual" => 6, "annual" => 12, _ => 0,
@@ -4489,8 +4622,8 @@ impl RecurringJournalService {
 // AutoInvoice Service
 // ============================================================================
 
-/// AutoInvoice service
-/// Oracle Fusion: Receivables > AutoInvoice
+/// `AutoInvoice` service
+/// Oracle Fusion: Receivables > `AutoInvoice`
 #[allow(dead_code)]
 pub struct AutoInvoiceService {
     schema_engine: Arc<SchemaEngine>,
@@ -4499,19 +4632,20 @@ pub struct AutoInvoiceService {
     ai_engine: Arc<AutoInvoiceEngine>,
 }
 
-/// Valid AutoInvoice transaction types
+/// Valid `AutoInvoice` transaction types
 const VALID_AI_TRANSACTION_TYPES: &[&str] = &[
     "invoice", "credit_memo", "debit_memo", "on_account_credit",
 ];
 
-/// Valid AutoInvoice batch statuses
+/// Valid `AutoInvoice` batch statuses
 #[allow(dead_code)]
 const VALID_AI_BATCH_STATUSES: &[&str] = &[
     "pending", "validating", "validated", "processing", "completed", "failed", "cancelled",
 ];
 
 impl AutoInvoiceService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -4520,7 +4654,7 @@ impl AutoInvoiceService {
         Self { schema_engine, workflow_engine, validation_engine, ai_engine }
     }
 
-    /// Import a batch of lines for AutoInvoice processing
+    /// Import a batch of lines for `AutoInvoice` processing
     pub async fn import_batch(
         &self,
         org_id: RecordId,
@@ -4533,7 +4667,7 @@ impl AutoInvoiceService {
         // Create a minimal import request - in production this would be populated
         let request = atlas_shared::AutoInvoiceImportRequest {
             batch_source: batch_source.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             grouping_rule_id: None,
             lines: vec![],
         };
@@ -4554,11 +4688,13 @@ impl AutoInvoiceService {
     }
 
     /// Calculate tax amount
+    #[must_use] 
     pub fn calculate_tax_amount(line_amount: f64, tax_rate_percent: f64) -> f64 {
         line_amount * tax_rate_percent / 100.0
     }
 
     /// Calculate line total including tax
+    #[must_use] 
     pub fn calculate_line_total(line_amount: f64, tax_rate_percent: f64) -> f64 {
         line_amount + Self::calculate_tax_amount(line_amount, tax_rate_percent)
     }
@@ -4566,7 +4702,7 @@ impl AutoInvoiceService {
     /// Validate line required fields
     pub fn validate_line_required_fields(transaction_type: &str, currency_code: &str, amount: f64) -> Result<(), String> {
         if !VALID_AI_TRANSACTION_TYPES.contains(&transaction_type) {
-            return Err(format!("Invalid transaction type: {}", transaction_type));
+            return Err(format!("Invalid transaction type: {transaction_type}"));
         }
         if currency_code.is_empty() {
             return Err("Currency code is required".to_string());
@@ -4600,7 +4736,8 @@ const VALID_NETTING_AGREEMENT_TYPES: &[&str] = &["bilateral", "multilateral"];
 const VALID_NETTING_SETTLEMENT_METHODS: &[&str] = &["wire", "ach", "offset", "check"];
 
 impl NettingService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -4626,7 +4763,7 @@ impl NettingService {
         }
         if !VALID_NETTING_SETTLEMENT_METHODS.contains(&settlement_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid settlement_method '{}'", settlement_method
+                "Invalid settlement_method '{settlement_method}'"
             )));
         }
         self.netting_engine.create_agreement(
@@ -4689,6 +4826,7 @@ impl NettingService {
     }
 
     /// Calculate net position
+    #[must_use] 
     pub fn calculate_net_position(payables: f64, receivables: f64) -> (f64, String) {
         let difference = receivables - payables;
         let position = if difference > 0.0 { "net_receivable" }
@@ -4698,12 +4836,14 @@ impl NettingService {
     }
 
     /// Check netting eligibility
+    #[must_use] 
     pub fn is_eligible_for_netting(transaction_date: chrono::NaiveDate, netting_date: chrono::NaiveDate, max_age_days: i32) -> bool {
         let age = (netting_date - transaction_date).num_days();
-        age >= 0 && age <= max_age_days as i64
+        age >= 0 && age <= i64::from(max_age_days)
     }
 
     /// Calculate settlement amount
+    #[must_use] 
     pub fn calculate_settlement_amount(
         entity_a_payables: f64, entity_a_receivables: f64,
         entity_b_payables: f64, entity_b_receivables: f64,
@@ -4744,7 +4884,8 @@ const VALID_SUB_AMENDMENT_TYPES: &[&str] = &[
 ];
 
 impl SubscriptionService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -4771,7 +4912,7 @@ impl SubscriptionService {
         }
         if !VALID_SUB_BILLING_FREQUENCIES.contains(&billing_frequency) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid billing_frequency '{}'", billing_frequency
+                "Invalid billing_frequency '{billing_frequency}'"
             )));
         }
         self.sub_engine.create_product(
@@ -4838,30 +4979,35 @@ impl SubscriptionService {
     }
 
     /// Calculate MRR
+    #[must_use] 
     pub fn calculate_mrr(unit_price: f64, quantity: i32) -> f64 {
-        unit_price * quantity as f64
+        unit_price * f64::from(quantity)
     }
 
     /// Calculate ARR
+    #[must_use] 
     pub fn calculate_arr(mrr: f64) -> f64 {
         mrr * 12.0
     }
 
     /// Calculate TCV
+    #[must_use] 
     pub fn calculate_tcv(unit_price: f64, quantity: i32, billing_months: i32) -> f64 {
-        unit_price * quantity as f64 * billing_months as f64
+        unit_price * f64::from(quantity) * f64::from(billing_months)
     }
 
     /// Calculate churn rate
+    #[must_use] 
     pub fn calculate_churn_rate(subscriptions_cancelled: i32, total_subscriptions: i32) -> f64 {
         if total_subscriptions <= 0 { return 0.0; }
-        (subscriptions_cancelled as f64 / total_subscriptions as f64) * 100.0
+        (f64::from(subscriptions_cancelled) / f64::from(total_subscriptions)) * 100.0
     }
 
     /// Calculate renewal rate
+    #[must_use] 
     pub fn calculate_renewal_rate(subscriptions_renewed: i32, subscriptions_eligible: i32) -> f64 {
         if subscriptions_eligible <= 0 { return 0.0; }
-        (subscriptions_renewed as f64 / subscriptions_eligible as f64) * 100.0
+        (f64::from(subscriptions_renewed) / f64::from(subscriptions_eligible)) * 100.0
     }
 }
 
@@ -4890,7 +5036,8 @@ const VALID_FR_STATUSES: &[&str] = &[
 ];
 
 impl FundsReservationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -4960,17 +5107,20 @@ impl FundsReservationService {
     }
 
     /// Calculate remaining balance
+    #[must_use] 
     pub fn calculate_remaining_balance(reserved_amount: f64, consumed_amount: f64, released_amount: f64) -> f64 {
         (reserved_amount - consumed_amount - released_amount).max(0.0)
     }
 
     /// Calculate utilization percent
+    #[must_use] 
     pub fn calculate_utilization_percent(consumed_amount: f64, reserved_amount: f64) -> f64 {
         if reserved_amount <= 0.0 { return 0.0; }
         ((consumed_amount / reserved_amount) * 100.0).min(100.0)
     }
 
     /// Check if budget exceeded
+    #[must_use] 
     pub fn is_budget_exceeded(available_budget: f64, total_reserved: f64, new_reservation_amount: f64) -> bool {
         (total_reserved + new_reservation_amount) > available_budget
     }
@@ -5002,21 +5152,25 @@ const VALID_BASES: &[&str] = &["revenue", "quantity", "margin", "points"];
 const VALID_CALC_METHODS: &[&str] = &["percentage", "fixed_amount", "tiered", "per_unit"];
 
 impl RebateManagementService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Calculate a percentage-based rebate amount
+    #[must_use] 
     pub fn calculate_percentage_rebate(qualifying_amount: f64, rebate_rate: f64) -> f64 {
         qualifying_amount * (rebate_rate / 100.0)
     }
 
     /// Calculate a per-unit rebate
+    #[must_use] 
     pub fn calculate_per_unit_rebate(quantity: i32, rate_per_unit: f64) -> f64 {
-        quantity as f64 * rate_per_unit
+        f64::from(quantity) * rate_per_unit
     }
 
     /// Calculate a tiered rebate amount
+    #[must_use] 
     pub fn calculate_tiered_rebate(qualifying_amount: f64, tiers: &[(f64, f64, f64)]) -> f64 {
         let mut total = 0.0;
         for &(from, to, rate) in tiers {
@@ -5029,17 +5183,20 @@ impl RebateManagementService {
     }
 
     /// Calculate growth-based rebate (rebate on incremental growth over baseline)
+    #[must_use] 
     pub fn calculate_growth_rebate(current_amount: f64, baseline_amount: f64, rebate_rate: f64) -> f64 {
         let growth = (current_amount - baseline_amount).max(0.0);
         growth * (rebate_rate / 100.0)
     }
 
     /// Calculate rebate accrual (qualifying value minus already accrued)
+    #[must_use] 
     pub fn calculate_accrual(qualifying_value: f64, already_accrued: f64) -> f64 {
         (qualifying_value - already_accrued).max(0.0)
     }
 
     /// Calculate remaining rebate balance
+    #[must_use] 
     pub fn calculate_remaining_balance(maximum: f64, accrued: f64, paid: f64) -> f64 {
         (maximum - accrued - paid).max(0.0)
     }
@@ -5071,22 +5228,26 @@ const VALID_TIERS: &[&str] = &["platinum", "gold", "silver", "bronze"];
 const VALID_INCENTIVE_TYPES: &[&str] = &["mdf", "co_op", "spiff", "volume_bonus", "market_development"];
 
 impl ChannelRevenueManagementService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Calculate fund utilization percentage
+    #[must_use] 
     pub fn calculate_fund_utilization(claimed_amount: f64, fund_amount: f64) -> f64 {
         if fund_amount <= 0.0 { return 0.0; }
         (claimed_amount / fund_amount) * 100.0
     }
 
     /// Calculate remaining fund amount
+    #[must_use] 
     pub fn calculate_remaining_funds(fund_amount: f64, claimed_amount: f64) -> f64 {
         (fund_amount - claimed_amount).max(0.0)
     }
 
     /// Check if a claim is eligible (within available funds)
+    #[must_use] 
     pub fn is_claim_eligible(fund_amount: f64, claimed_amount: f64, new_claim: f64) -> bool {
         claimed_amount + new_claim <= fund_amount
     }
@@ -5118,30 +5279,34 @@ const VALID_APPLIES_TO: &[&str] = &["gl_journals", "ap_invoices", "ar_transactio
 const VALID_SEVERITIES: &[&str] = &["error", "warning", "information"];
 
 impl FinancialControlsService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Check if a transaction amount is within the limit
     pub fn check_amount_limit(amount: f64, limit: f64) -> Result<(), String> {
         if limit > 0.0 && amount > limit {
-            Err(format!("Amount {:.2} exceeds limit {:.2}", amount, limit))
+            Err(format!("Amount {amount:.2} exceeds limit {limit:.2}"))
         } else {
             Ok(())
         }
     }
 
     /// Check if a date is within an allowed period
+    #[must_use] 
     pub fn is_date_in_period(date: chrono::NaiveDate, start: chrono::NaiveDate, end: chrono::NaiveDate) -> bool {
         date >= start && date <= end
     }
 
     /// Check if a transaction requires approval based on amount threshold
+    #[must_use] 
     pub fn requires_approval(amount: f64, threshold: f64) -> bool {
         amount > threshold
     }
 
     /// Check if a delegation is currently active
+    #[must_use] 
     pub fn is_delegation_active(start_date: chrono::NaiveDate, end_date: chrono::NaiveDate, today: chrono::NaiveDate) -> bool {
         today >= start_date && today <= end_date
     }
@@ -5169,14 +5334,15 @@ const VALID_SOURCE_TYPES: &[&str] = &["erp", "crm", "payroll", "banking", "ecomm
 const VALID_EVENT_CLASSES: &[&str] = &["create", "update", "delete", "reverse", "adjust"];
 
 impl AccountingHubService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Validate an accounting source
     pub fn validate_source(source_type: &str, code: &str, status: &str) -> Result<(), String> {
         if !VALID_SOURCE_TYPES.contains(&source_type) {
-            return Err(format!("Invalid source_type '{}'", source_type));
+            return Err(format!("Invalid source_type '{source_type}'"));
         }
         if code.is_empty() {
             return Err("Source code is required".to_string());
@@ -5188,11 +5354,13 @@ impl AccountingHubService {
     }
 
     /// Count events for a given source
+    #[must_use] 
     pub fn count_events_for_source(events: &[(uuid::Uuid, &str)], source_id: uuid::Uuid) -> usize {
         events.iter().filter(|(id, _)| *id == source_id).count()
     }
 
     /// Check if sync is required (no last sync or stale)
+    #[must_use] 
     pub fn is_sync_required(last_sync_date: Option<chrono::NaiveDate>) -> bool {
         match last_sync_date {
             None => true,
@@ -5223,11 +5391,13 @@ const VALID_SEQUENCE_TYPES: &[&str] = &["gapless", "gap_allowed", "restart_yearl
 const VALID_DOCUMENT_TYPES: &[&str] = &["gl_journal", "ap_invoice", "ar_invoice", "payment", "receipt", "purchase_order", "credit_memo", "asset"];
 
 impl DocumentSequencingService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Generate the next document number
+    #[must_use] 
     pub fn generate_next(prefix: &str, suffix: &str, current_value: i32, padding_length: i32, padding_char: char) -> (String, i32) {
         let padded = if padding_length > 0 {
             format!("{:0>width$}", current_value, width = padding_length as usize).replace('0', &padding_char.to_string())
@@ -5235,12 +5405,13 @@ impl DocumentSequencingService {
         } else {
             current_value.to_string()
         };
-        let number = format!("{}{}{}", prefix, padded, suffix);
+        let number = format!("{prefix}{padded}{suffix}");
         (number, current_value + 1)
     }
 
     /// Check if current value is within allowed range
-    pub fn is_within_range(current: i32, start: Option<i32>, end: Option<i32>) -> bool {
+    #[must_use] 
+    pub const fn is_within_range(current: i32, start: Option<i32>, end: Option<i32>) -> bool {
         if let Some(s) = start { if current < s { return false; } }
         if let Some(e) = end { if current > e { return false; } }
         true
@@ -5265,11 +5436,13 @@ pub struct CrossValidationRuleService {
 const VALID_RULE_TYPES: &[&str] = &["allow", "deny"];
 
 impl CrossValidationRuleService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Validate an account is within a range
+    #[must_use] 
     pub fn validate_account_in_range(account: &str, from: &str, to: &str) -> bool {
         account >= from && account <= to
     }
@@ -5293,20 +5466,19 @@ impl CrossValidationRuleService {
         match rule_type {
             "allow" => {
                 if seg1_in_range && !seg2_in_range {
-                    Err(format!("Combination {} not allowed: segment {} not in range {}-{}",
-                        combination, seg2, from_segment2, to_segment2))
+                    Err(format!("Combination {combination} not allowed: segment {seg2} not in range {from_segment2}-{to_segment2}"))
                 } else {
                     Ok(())
                 }
             }
             "deny" => {
                 if seg1_in_range && seg2_in_range {
-                    Err(format!("Combination {} is denied by cross-validation rule", combination))
+                    Err(format!("Combination {combination} is denied by cross-validation rule"))
                 } else {
                     Ok(())
                 }
             }
-            _ => Err(format!("Invalid rule type: {}", rule_type)),
+            _ => Err(format!("Invalid rule type: {rule_type}")),
         }
     }
 }
@@ -5329,7 +5501,8 @@ pub struct DescriptiveFlexfieldService {
 const VALID_DATA_TYPES: &[&str] = &["string", "number", "date", "boolean", "list_of_values"];
 
 impl DescriptiveFlexfieldService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
@@ -5344,13 +5517,14 @@ impl DescriptiveFlexfieldService {
     /// Validate a data type
     pub fn validate_data_type(data_type: &str) -> Result<(), String> {
         if !VALID_DATA_TYPES.contains(&data_type) {
-            return Err(format!("Invalid data type: {}", data_type));
+            return Err(format!("Invalid data type: {data_type}"));
         }
         Ok(())
     }
 
     /// Count active segments
-    pub fn count_active_segments(segments: &[&str]) -> usize {
+    #[must_use] 
+    pub const fn count_active_segments(segments: &[&str]) -> usize {
         segments.len()
     }
 }
@@ -5381,16 +5555,19 @@ const VALID_JV_COST_ALLOCATION_METHODS: &[&str] = &["working_interest", "equal_s
 const VALID_JV_PARTNER_ROLES: &[&str] = &["operator", "non_operator", "carried", "earning"];
 
 impl JointVentureManagementService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Calculate cost distribution based on working interest
+    #[must_use] 
     pub fn calculate_working_interest_distribution(total_cost: f64, ownership_pct: f64) -> f64 {
         total_cost * (ownership_pct / 100.0)
     }
 
     /// Calculate equal split distribution
+    #[must_use] 
     pub fn calculate_equal_split_distribution(total_cost: f64, partner_count: usize) -> f64 {
         if partner_count == 0 { return 0.0; }
         total_cost / partner_count as f64
@@ -5400,15 +5577,16 @@ impl JointVentureManagementService {
     pub fn validate_ownership_total(percentages: &[f64]) -> Result<(), String> {
         let total: f64 = percentages.iter().sum();
         if (total - 100.0).abs() > 0.01 {
-            Err(format!("Ownership percentages sum to {:.2}%, must equal 100%", total))
+            Err(format!("Ownership percentages sum to {total:.2}%, must equal 100%"))
         } else {
             Ok(())
         }
     }
 
     /// Calculate billing amount for a partner
+    #[must_use] 
     pub fn calculate_billing_amount(total_cost: f64, ownership_pct: f64, partner_own_cost: f64) -> f64 {
-        (total_cost * (ownership_pct / 100.0)) - partner_own_cost
+        total_cost.mul_add(ownership_pct / 100.0, -partner_own_cost)
     }
 }
 
@@ -5434,22 +5612,26 @@ const VALID_PAYMENT_TYPES: &[&str] = &["advance", "deposit", "prepayment", "on_a
 const VALID_PAYMENT_METHODS: &[&str] = &["check", "electronic", "wire", "ach", "cash"];
 
 impl AdvancePaymentService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Calculate unapplied amount
+    #[must_use] 
     pub fn calculate_unapplied_amount(payment_amount: f64, applied_amount: f64) -> f64 {
         (payment_amount - applied_amount).max(0.0)
     }
 
     /// Check if amount can be applied
+    #[must_use] 
     pub fn can_apply_amount(payment_amount: f64, applied_amount: f64, amount_to_apply: f64) -> bool {
         let unapplied = Self::calculate_unapplied_amount(payment_amount, applied_amount);
         amount_to_apply <= unapplied && amount_to_apply > 0.0
     }
 
     /// Calculate refund amount (unapplied minus processing fee)
+    #[must_use] 
     pub fn calculate_refund_amount(payment_amount: f64, applied_amount: f64, processing_fee: f64) -> f64 {
         let unapplied = Self::calculate_unapplied_amount(payment_amount, applied_amount);
         (unapplied - processing_fee).max(0.0)
@@ -5474,21 +5656,25 @@ pub struct CustomerDepositService {
 const VALID_DEPOSIT_TYPES: &[&str] = &["security", "performance", "advance", "retention", "other"];
 
 impl CustomerDepositService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Calculate available draw amount
+    #[must_use] 
     pub fn calculate_draw_amount(deposit_amount: f64, drawn_amount: f64) -> f64 {
         (deposit_amount - drawn_amount).max(0.0)
     }
 
     /// Check if deposit is expired
+    #[must_use] 
     pub fn is_expired(expiry_date: chrono::NaiveDate, today: chrono::NaiveDate) -> bool {
         today > expiry_date
     }
 
     /// Calculate refund amount
+    #[must_use] 
     pub fn calculate_refund(deposit_amount: f64, drawn_amount: f64, processing_fee: f64) -> f64 {
         ((deposit_amount - drawn_amount) - processing_fee).max(0.0)
     }
@@ -5520,11 +5706,13 @@ const VALID_ALLOCATION_METHODS: &[&str] = &["fixed_percentage", "equal_share", "
 const VALID_COST_POOL_ALLOCATION_BASES: &[&str] = &["direct_labor_hours", "machine_hours", "square_footage", "headcount", "revenue", "custom"];
 
 impl CostAllocationService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>, validation_engine: Arc<ValidationEngine>) -> Self {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
     /// Calculate allocation using fixed percentages
+    #[must_use] 
     pub fn calculate_fixed_percentage(pool_amount: f64, targets: &[(&str, f64)]) -> Vec<(String, f64)> {
         targets.iter()
             .map(|&(name, pct)| (name.to_string(), pool_amount * (pct / 100.0)))
@@ -5532,6 +5720,7 @@ impl CostAllocationService {
     }
 
     /// Calculate allocation using equal share
+    #[must_use] 
     pub fn calculate_equal_share(pool_amount: f64, targets: &[&str]) -> Vec<(String, f64)> {
         if targets.is_empty() { return vec![]; }
         let share = pool_amount / targets.len() as f64;
@@ -5539,6 +5728,7 @@ impl CostAllocationService {
     }
 
     /// Calculate allocation using statistical basis
+    #[must_use] 
     pub fn calculate_statistical_allocation(pool_amount: f64, basis_values: &[(&str, f64)]) -> Vec<(String, f64)> {
         let total_basis: f64 = basis_values.iter().map(|(_, v)| *v).sum();
         if total_basis <= 0.0 { return vec![]; }
@@ -5551,7 +5741,7 @@ impl CostAllocationService {
     pub fn validate_percentages(percentages: &[f64]) -> Result<(), String> {
         let total: f64 = percentages.iter().sum();
         if (total - 100.0).abs() > 0.01 {
-            Err(format!("Allocation percentages sum to {:.2}%, must equal 100%", total))
+            Err(format!("Allocation percentages sum to {total:.2}%, must equal 100%"))
         } else {
             Ok(())
         }
@@ -5582,7 +5772,8 @@ const VALID_DEPR_RUN_STATUSES: &[&str] = &[
 ];
 
 impl DepreciationRunService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -5591,35 +5782,39 @@ impl DepreciationRunService {
     }
 
     /// Calculate straight-line depreciation per period
+    #[must_use] 
     pub fn calculate_straight_line(cost: f64, salvage: f64, useful_life_months: i32) -> f64 {
         if useful_life_months <= 0 { return 0.0; }
         let depreciable_basis = (cost - salvage).max(0.0);
-        depreciable_basis / useful_life_months as f64
+        depreciable_basis / f64::from(useful_life_months)
     }
 
     /// Calculate declining balance depreciation for a period
+    #[must_use] 
     pub fn calculate_declining_balance(
         net_book_value: f64, rate_percent: f64, period_months: i32,
     ) -> f64 {
         let annual_rate = rate_percent / 100.0;
         let monthly_rate = annual_rate / 12.0;
-        net_book_value * monthly_rate * period_months as f64
+        net_book_value * monthly_rate * f64::from(period_months)
     }
 
     /// Calculate sum-of-years-digits depreciation for a period
+    #[must_use] 
     pub fn calculate_sum_of_years_digits(
         cost: f64, salvage: f64, useful_life_months: i32, periods_elapsed: i32,
     ) -> f64 {
         if useful_life_months <= 0 { return 0.0; }
         let depreciable_basis = (cost - salvage).max(0.0);
         let total_periods = useful_life_months;
-        let sum_of_periods: f64 = (1..=total_periods).map(|i| i as f64).sum();
+        let sum_of_periods: f64 = (1..=total_periods).map(f64::from).sum();
         let remaining_life = (total_periods - periods_elapsed).max(1);
-        let year_depr = depreciable_basis * (remaining_life as f64 / sum_of_periods);
+        let year_depr = depreciable_basis * (f64::from(remaining_life) / sum_of_periods);
         year_depr / 12.0
     }
 
     /// Calculate net book value after depreciation
+    #[must_use] 
     pub fn calculate_net_book_value(
         cost: f64, accumulated_depreciation: f64,
     ) -> f64 {
@@ -5627,6 +5822,7 @@ impl DepreciationRunService {
     }
 
     /// Check if asset is fully depreciated
+    #[must_use] 
     pub fn is_fully_depreciated(
         cost: f64, salvage: f64, accumulated_depreciation: f64,
     ) -> bool {
@@ -5637,7 +5833,7 @@ impl DepreciationRunService {
     /// Validate depreciation run status
     pub fn validate_status(status: &str) -> Result<(), String> {
         if !VALID_DEPR_RUN_STATUSES.contains(&status) {
-            return Err(format!("Invalid depreciation run status '{}'", status));
+            return Err(format!("Invalid depreciation run status '{status}'"));
         }
         Ok(())
     }
@@ -5657,7 +5853,8 @@ pub struct DistributionSetService {
 }
 
 impl DistributionSetService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -5669,13 +5866,14 @@ impl DistributionSetService {
     pub fn validate_distribution_percentages(percentages: &[f64]) -> Result<(), String> {
         let total: f64 = percentages.iter().sum();
         if (total - 100.0).abs() > 0.01 {
-            Err(format!("Distribution percentages sum to {:.2}%, must equal 100%", total))
+            Err(format!("Distribution percentages sum to {total:.2}%, must equal 100%"))
         } else {
             Ok(())
         }
     }
 
     /// Calculate distributed amounts based on percentages
+    #[must_use] 
     pub fn calculate_distribution(
         total_amount: f64, percentages: &[f64],
     ) -> Vec<f64> {
@@ -5685,6 +5883,7 @@ impl DistributionSetService {
     }
 
     /// Round distribution amounts ensuring they sum to total
+    #[must_use] 
     pub fn round_distribution(amounts: Vec<f64>, total: f64) -> Vec<f64> {
         let sum: f64 = amounts.iter().sum();
         let rounding_diff = total - sum;
@@ -5713,7 +5912,8 @@ pub struct BudgetOrganizationService {
 const VALID_FUNDS_CHECK_LEVELS: &[&str] = &["none", "advisory", "absolute"];
 
 impl BudgetOrganizationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -5722,6 +5922,7 @@ impl BudgetOrganizationService {
     }
 
     /// Check funds availability
+    #[must_use] 
     pub fn check_funds_available(
         budget_amount: f64, committed: f64, consumed: f64, requested: f64,
     ) -> (bool, f64) {
@@ -5730,12 +5931,14 @@ impl BudgetOrganizationService {
     }
 
     /// Calculate budget consumption percentage
+    #[must_use] 
     pub fn calculate_consumption(budget_amount: f64, consumed: f64) -> f64 {
         if budget_amount <= 0.0 { return 0.0; }
         (consumed / budget_amount) * 100.0
     }
 
     /// Calculate remaining budget
+    #[must_use] 
     pub fn calculate_remaining_budget(
         budget_amount: f64, committed: f64, consumed: f64,
     ) -> f64 {
@@ -5743,6 +5946,7 @@ impl BudgetOrganizationService {
     }
 
     /// Check if budget is exceeded
+    #[must_use] 
     pub fn is_budget_exceeded(
         budget_amount: f64, committed: f64, consumed: f64,
     ) -> bool {
@@ -5750,17 +5954,20 @@ impl BudgetOrganizationService {
     }
 
     /// Calculate budget utilization
+    #[must_use] 
     pub fn calculate_utilization(budget_amount: f64, consumed: f64) -> f64 {
         if budget_amount <= 0.0 { return 0.0; }
         (consumed / budget_amount) * 100.0
     }
 
     /// Calculate variance between budget and actual
+    #[must_use] 
     pub fn calculate_variance(budget: f64, actual: f64) -> f64 {
         budget - actual
     }
 
     /// Calculate variance percentage
+    #[must_use] 
     pub fn calculate_variance_percent(budget: f64, actual: f64) -> f64 {
         if budget <= 0.0 { return 0.0; }
         ((budget - actual) / budget) * 100.0
@@ -5800,7 +6007,8 @@ const VALID_REG_GEO_LEVELS: &[&str] = &[
 ];
 
 impl TaxRegistrationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -5856,6 +6064,7 @@ impl TaxRegistrationService {
     }
 
     /// Check if a tax registration is currently active
+    #[must_use] 
     pub fn is_registration_active(
         status: &str,
         effective_from: chrono::NaiveDate,
@@ -5877,6 +6086,7 @@ impl TaxRegistrationService {
     }
 
     /// Calculate days until registration expiry
+    #[must_use] 
     pub fn days_until_expiry(
         effective_to: chrono::NaiveDate,
         today: chrono::NaiveDate,
@@ -5885,6 +6095,7 @@ impl TaxRegistrationService {
     }
 
     /// Check if registration is expiring within warning days
+    #[must_use] 
     pub fn is_expiring_soon(
         effective_to: chrono::NaiveDate,
         today: chrono::NaiveDate,
@@ -5916,7 +6127,8 @@ const VALID_RECOVERY_TYPES: &[&str] = &[
 ];
 
 impl TaxRecoveryRateService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -5961,6 +6173,7 @@ impl TaxRecoveryRateService {
     }
 
     /// Calculate recoverable tax amount
+    #[must_use] 
     pub fn calculate_recoverable_tax(
         total_tax: f64,
         recovery_percentage: f64,
@@ -5969,6 +6182,7 @@ impl TaxRecoveryRateService {
     }
 
     /// Calculate non-recoverable (expense) tax amount
+    #[must_use] 
     pub fn calculate_non_recoverable_tax(
         total_tax: f64,
         recovery_percentage: f64,
@@ -5977,6 +6191,7 @@ impl TaxRecoveryRateService {
     }
 
     /// Calculate effective tax rate after recovery
+    #[must_use] 
     pub fn calculate_effective_rate(
         gross_rate: f64,
         recovery_percentage: f64,
@@ -6014,7 +6229,8 @@ const VALID_GL_POSTING_OPTIONS: &[&str] = &[
 ];
 
 impl ReceivableActivityService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -6062,11 +6278,13 @@ impl ReceivableActivityService {
     }
 
     /// Determine if an activity type requires approval
+    #[must_use] 
     pub fn requires_approval(activity_type: &str) -> bool {
         matches!(activity_type, "write_off" | "chargeback" | "adjustment")
     }
 
     /// Determine if an activity type affects customer balance
+    #[must_use] 
     pub fn affects_customer_balance(activity_type: &str) -> bool {
         matches!(
             activity_type,
@@ -6075,6 +6293,7 @@ impl ReceivableActivityService {
     }
 
     /// Calculate the net effect on customer balance
+    #[must_use] 
     pub fn calculate_balance_effect(
         activity_type: &str,
         amount: f64,
@@ -6112,7 +6331,8 @@ const VALID_BOOK_DEPR_METHODS: &[&str] = &[
 ];
 
 impl AssetBookAssignmentService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -6158,6 +6378,7 @@ impl AssetBookAssignmentService {
     }
 
     /// Calculate depreciable basis for a book assignment
+    #[must_use] 
     pub fn calculate_depreciable_basis(
         original_cost: f64,
         salvage_value: f64,
@@ -6166,6 +6387,7 @@ impl AssetBookAssignmentService {
     }
 
     /// Calculate monthly depreciation for a book assignment
+    #[must_use] 
     pub fn calculate_monthly_depreciation(
         depreciable_basis: f64,
         useful_life_months: i32,
@@ -6173,10 +6395,11 @@ impl AssetBookAssignmentService {
         if useful_life_months <= 0 {
             return 0.0;
         }
-        depreciable_basis / useful_life_months as f64
+        depreciable_basis / f64::from(useful_life_months)
     }
 
     /// Calculate remaining depreciation periods
+    #[must_use] 
     pub fn calculate_remaining_periods(
         total_periods: i32,
         periods_depreciated: i32,
@@ -6185,6 +6408,7 @@ impl AssetBookAssignmentService {
     }
 
     /// Check if asset is fully depreciated in this book
+    #[must_use] 
     pub fn is_fully_depreciated(
         accumulated_depreciation: f64,
         depreciable_basis: f64,
@@ -6227,7 +6451,8 @@ const VALID_MEMO_UOM_CODES: &[&str] = &[
 ];
 
 impl MemoLineService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -6286,6 +6511,7 @@ impl MemoLineService {
     }
 
     /// Calculate line amount for a memo line
+    #[must_use] 
     pub fn calculate_line_amount(
         unit_price: f64,
         quantity: f64,
@@ -6294,6 +6520,7 @@ impl MemoLineService {
     }
 
     /// Calculate line total including tax
+    #[must_use] 
     pub fn calculate_line_total_with_tax(
         line_amount: f64,
         tax_rate_percent: f64,
@@ -6302,6 +6529,7 @@ impl MemoLineService {
     }
 
     /// Calculate tax amount for a memo line
+    #[must_use] 
     pub fn calculate_tax_amount(
         line_amount: f64,
         tax_rate_percent: f64,
@@ -6310,6 +6538,7 @@ impl MemoLineService {
     }
 
     /// Validate memo line status
+    #[must_use] 
     pub fn is_active(status: &str) -> bool {
         status == "active"
     }
@@ -6337,7 +6566,8 @@ const VALID_INTEREST_INVOICE_BASES: &[&str] = &["daily", "monthly", "annual"];
 const VALID_COMPOUNDING_METHODS: &[&str] = &["simple", "compound_daily", "compound_monthly"];
 
 impl InterestInvoiceService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -6347,6 +6577,7 @@ impl InterestInvoiceService {
 
     /// Calculate simple interest for overdue balance
     /// Oracle Fusion: Receivables > Finance Charges > Calculate
+    #[must_use] 
     pub fn calculate_simple_interest(
         principal: f64,
         annual_rate: f64,
@@ -6356,10 +6587,11 @@ impl InterestInvoiceService {
         if year_basis <= 0 || days_overdue <= 0 {
             return 0.0;
         }
-        principal * (annual_rate / 100.0) * (days_overdue as f64 / year_basis as f64)
+        principal * (annual_rate / 100.0) * (f64::from(days_overdue) / f64::from(year_basis))
     }
 
     /// Calculate compound interest (daily compounding)
+    #[must_use] 
     pub fn calculate_compound_interest_daily(
         principal: f64,
         annual_rate: f64,
@@ -6369,11 +6601,12 @@ impl InterestInvoiceService {
         if year_basis <= 0 || days_overdue <= 0 {
             return 0.0;
         }
-        let daily_rate = annual_rate / 100.0 / year_basis as f64;
+        let daily_rate = annual_rate / 100.0 / f64::from(year_basis);
         principal * ((1.0 + daily_rate).powi(days_overdue) - 1.0)
     }
 
     /// Calculate compound interest (monthly compounding)
+    #[must_use] 
     pub fn calculate_compound_interest_monthly(
         principal: f64,
         annual_rate: f64,
@@ -6387,16 +6620,19 @@ impl InterestInvoiceService {
     }
 
     /// Calculate days between two dates
+    #[must_use] 
     pub fn calculate_days_overdue(due_date: chrono::NaiveDate, as_of_date: chrono::NaiveDate) -> i32 {
         (as_of_date - due_date).num_days() as i32
     }
 
     /// Check if overdue (past grace period)
-    pub fn is_overdue(days_overdue: i32, grace_period_days: i32) -> bool {
+    #[must_use] 
+    pub const fn is_overdue(days_overdue: i32, grace_period_days: i32) -> bool {
         days_overdue > grace_period_days
     }
 
     /// Apply minimum/maximum interest limits
+    #[must_use] 
     pub fn apply_interest_limits(
         interest_amount: f64,
         minimum: f64,
@@ -6415,6 +6651,7 @@ impl InterestInvoiceService {
     }
 
     /// Calculate tax on interest amount
+    #[must_use] 
     pub fn calculate_interest_tax(
         interest_amount: f64,
         tax_rate_percent: f64,
@@ -6423,6 +6660,7 @@ impl InterestInvoiceService {
     }
 
     /// Calculate total interest invoice amount (interest + tax)
+    #[must_use] 
     pub fn calculate_total_amount(
         interest_amount: f64,
         tax_amount: f64,
@@ -6457,7 +6695,8 @@ const VALID_BATCH_PAYMENT_METHODS: &[&str] = &[
 ];
 
 impl PaymentBatchService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -6466,16 +6705,19 @@ impl PaymentBatchService {
     }
 
     /// Calculate total batch payment amount from line items
+    #[must_use] 
     pub fn calculate_batch_total(payment_amounts: &[f64]) -> f64 {
         payment_amounts.iter().sum()
     }
 
     /// Calculate total discount taken in a batch
+    #[must_use] 
     pub fn calculate_total_discount(discounts: &[f64]) -> f64 {
         discounts.iter().sum()
     }
 
     /// Calculate net batch amount (total payments - total discounts)
+    #[must_use] 
     pub fn calculate_net_batch_amount(
         total_payments: f64,
         total_discounts: f64,
@@ -6484,6 +6726,7 @@ impl PaymentBatchService {
     }
 
     /// Check if payment amount is within tolerance for the invoice
+    #[must_use] 
     pub fn is_within_tolerance(
         payment_amount: f64,
         invoice_amount: f64,
@@ -6498,6 +6741,7 @@ impl PaymentBatchService {
     }
 
     /// Validate that batch totals match line totals
+    #[must_use] 
     pub fn validate_batch_totals(
         batch_total: f64,
         line_totals: &[f64],
@@ -6508,6 +6752,7 @@ impl PaymentBatchService {
     }
 
     /// Calculate payment count from lines
+    #[must_use] 
     pub fn count_payments(line_statuses: &[&str]) -> (usize, usize) {
         let total = line_statuses.len();
         let active = line_statuses.iter()
@@ -6543,7 +6788,8 @@ const VALID_REVENUE_DIMENSIONS: &[&str] = &[
 ];
 
 impl RevenueBudgetService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -6552,11 +6798,13 @@ impl RevenueBudgetService {
     }
 
     /// Calculate revenue budget variance
+    #[must_use] 
     pub fn calculate_variance(budget_amount: f64, actual_amount: f64) -> f64 {
         actual_amount - budget_amount
     }
 
     /// Calculate variance percentage
+    #[must_use] 
     pub fn calculate_variance_percent(budget_amount: f64, actual_amount: f64) -> f64 {
         if budget_amount <= 0.0 {
             return 0.0;
@@ -6565,6 +6813,7 @@ impl RevenueBudgetService {
     }
 
     /// Calculate remaining budget
+    #[must_use] 
     pub fn calculate_remaining_budget(
         budget_amount: f64,
         actual_amount: f64,
@@ -6574,6 +6823,7 @@ impl RevenueBudgetService {
     }
 
     /// Calculate budget utilization percentage
+    #[must_use] 
     pub fn calculate_utilization(
         actual_amount: f64,
         committed_amount: f64,
@@ -6586,6 +6836,7 @@ impl RevenueBudgetService {
     }
 
     /// Calculate forecast accuracy (how close actual was to budget)
+    #[must_use] 
     pub fn calculate_forecast_accuracy(
         budget_amount: f64,
         actual_amount: f64,
@@ -6601,6 +6852,7 @@ impl RevenueBudgetService {
     }
 
     /// Distribute annual budget across periods
+    #[must_use] 
     pub fn distribute_budget_to_periods(
         annual_budget: f64,
         period_weights: &[f64],
@@ -6615,6 +6867,7 @@ impl RevenueBudgetService {
     }
 
     /// Calculate rolling forecast adjustment
+    #[must_use] 
     pub fn calculate_rolling_adjustment(
         original_budget: f64,
         actual_ytd: f64,
@@ -6627,12 +6880,12 @@ impl RevenueBudgetService {
         let elapsed_periods = total_periods - remaining_periods;
         let _remaining_budget = original_budget - actual_ytd;
         let average_actual = if elapsed_periods > 0 {
-            actual_ytd / elapsed_periods as f64
+            actual_ytd / f64::from(elapsed_periods)
         } else {
-            original_budget / total_periods as f64
+            original_budget / f64::from(total_periods)
         };
         // Forecast = average actual * remaining + actual YTD
-        let forecast = average_actual * total_periods as f64;
+        let forecast = average_actual * f64::from(total_periods);
         forecast - original_budget
     }
 }
@@ -6664,7 +6917,8 @@ const VALID_DIMENSION_VALUE_STATUSES: &[&str] = &[
 ];
 
 impl FinancialDimensionService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -6673,15 +6927,17 @@ impl FinancialDimensionService {
     }
 
     /// Build tree path for a dimension value
+    #[must_use] 
     pub fn build_tree_path(parent_path: &str, value_code: &str) -> String {
         if parent_path.is_empty() {
-            format!("/{}", value_code)
+            format!("/{value_code}")
         } else {
-            format!("{}/{}", parent_path, value_code)
+            format!("{parent_path}/{value_code}")
         }
     }
 
     /// Get tree level from path (count of segments)
+    #[must_use] 
     pub fn get_tree_level(tree_path: &str) -> i32 {
         if tree_path.is_empty() {
             return 0;
@@ -6690,11 +6946,13 @@ impl FinancialDimensionService {
     }
 
     /// Check if a value is descendant of another
+    #[must_use] 
     pub fn is_descendant(child_path: &str, parent_path: &str) -> bool {
         child_path.starts_with(parent_path) && child_path != parent_path
     }
 
     /// Get all ancestor paths for a given tree path
+    #[must_use] 
     pub fn get_ancestors(tree_path: &str) -> Vec<String> {
         let parts: Vec<&str> = tree_path.split('/').filter(|s| !s.is_empty()).collect();
         let mut ancestors = Vec::new();
@@ -6706,6 +6964,7 @@ impl FinancialDimensionService {
     }
 
     /// Check if a dimension value is within a date range
+    #[must_use] 
     pub fn is_value_effective(
         value_from: Option<chrono::NaiveDate>,
         value_to: Option<chrono::NaiveDate>,
@@ -6721,8 +6980,8 @@ impl FinancialDimensionService {
 // AutoOffset Service
 // ============================================================================
 
-/// AutoOffset service
-/// Oracle Fusion: Intercompany > AutoOffsets
+/// `AutoOffset` service
+/// Oracle Fusion: Intercompany > `AutoOffsets`
 #[allow(dead_code)]
 pub struct AutoOffsetService {
     schema_engine: Arc<SchemaEngine>,
@@ -6749,7 +7008,8 @@ const VALID_CLEARING_METHODS: &[&str] = &[
 ];
 
 impl AutoOffsetService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -6758,6 +7018,7 @@ impl AutoOffsetService {
     }
 
     /// Calculate netting offset between two entities
+    #[must_use] 
     pub fn calculate_netting_offset(
         entity_a_payable: f64,
         entity_a_receivable: f64,
@@ -6772,6 +7033,7 @@ impl AutoOffsetService {
     }
 
     /// Calculate proportional offset based on transaction ratios
+    #[must_use] 
     pub fn calculate_proportional_offset(
         total_amount: f64,
         entity_percentage: f64,
@@ -6780,6 +7042,7 @@ impl AutoOffsetService {
     }
 
     /// Validate that offset entries balance
+    #[must_use] 
     pub fn validate_offset_balance(
         debit_amount: f64,
         credit_amount: f64,
@@ -6789,6 +7052,7 @@ impl AutoOffsetService {
     }
 
     /// Calculate imbalance amount
+    #[must_use] 
     pub fn calculate_imbalance(
         debit_total: f64,
         credit_total: f64,
@@ -6797,6 +7061,7 @@ impl AutoOffsetService {
     }
 
     /// Check if auto-offset rule is within effective date range
+    #[must_use] 
     pub fn is_rule_effective(
         effective_from: Option<chrono::NaiveDate>,
         effective_to: Option<chrono::NaiveDate>,
@@ -6843,7 +7108,8 @@ const VALID_LANDED_COST_ASSIGNMENT_STATUSES: &[&str] = &[
 ];
 
 impl LandedCostManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -6900,6 +7166,7 @@ impl LandedCostManagementService {
     }
 
     /// Allocate landed cost across shipment lines by quantity
+    #[must_use] 
     pub fn allocate_by_quantity(
         total_cost: f64,
         line_quantities: &[f64],
@@ -6914,6 +7181,7 @@ impl LandedCostManagementService {
     }
 
     /// Allocate landed cost across shipment lines by value
+    #[must_use] 
     pub fn allocate_by_value(
         total_cost: f64,
         line_values: &[f64],
@@ -6928,6 +7196,7 @@ impl LandedCostManagementService {
     }
 
     /// Allocate landed cost equally across shipment lines
+    #[must_use] 
     pub fn allocate_equally(
         total_cost: f64,
         line_count: usize,
@@ -6939,6 +7208,7 @@ impl LandedCostManagementService {
     }
 
     /// Calculate total landed cost from components
+    #[must_use] 
     pub fn calculate_total_landed_cost(
         item_cost: f64,
         component_costs: &[f64],
@@ -6947,6 +7217,7 @@ impl LandedCostManagementService {
     }
 
     /// Calculate variance between estimated and actual landed cost
+    #[must_use] 
     pub fn calculate_landed_cost_variance(
         estimated: f64,
         actual: f64,
@@ -6989,7 +7260,8 @@ const VALID_REVAL_ACCOUNT_TYPES: &[&str] = &[
 ];
 
 impl CurrencyRevaluationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -7030,6 +7302,7 @@ impl CurrencyRevaluationService {
     }
 
     /// Calculate unrealized gain/loss on a single monetary item
+    #[must_use] 
     pub fn calculate_unrealized_gain_loss_item(
         foreign_currency_amount: f64,
         original_rate: f64,
@@ -7041,6 +7314,7 @@ impl CurrencyRevaluationService {
     }
 
     /// Calculate total unrealized gains/losses for a set of items
+    #[must_use] 
     pub fn calculate_total_unrealized(
         items: &[(f64, f64, f64)], // (amount, original_rate, reval_rate)
     ) -> (f64, f64) {
@@ -7070,6 +7344,7 @@ impl CurrencyRevaluationService {
     }
 
     /// Calculate net revaluation impact (gain - loss)
+    #[must_use] 
     pub fn calculate_net_impact(total_gain: f64, total_loss: f64) -> f64 {
         total_gain - total_loss
     }
@@ -7102,7 +7377,8 @@ const VALID_ALLOCATION_RULE_STATUSES: &[&str] = &[
 ];
 
 impl GLAllocationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -7140,6 +7416,7 @@ impl GLAllocationService {
     }
 
     /// Allocate pool amount by fixed percentages
+    #[must_use] 
     pub fn allocate_by_percentage(
         pool_amount: f64,
         target_percentages: &[f64],
@@ -7150,6 +7427,7 @@ impl GLAllocationService {
     }
 
     /// Allocate pool amount by ratios
+    #[must_use] 
     pub fn allocate_by_ratio(
         pool_amount: f64,
         ratios: &[f64],
@@ -7164,6 +7442,7 @@ impl GLAllocationService {
     }
 
     /// Allocate pool amount by statistical data (headcount, sqft, etc.)
+    #[must_use] 
     pub fn allocate_by_statistical(
         pool_amount: f64,
         statistical_values: &[f64],
@@ -7178,12 +7457,14 @@ impl GLAllocationService {
     }
 
     /// Validate that allocation percentages sum to 100
+    #[must_use] 
     pub fn validate_percentages_total_100(percentages: &[f64]) -> bool {
         let total: f64 = percentages.iter().sum();
         (total - 100.0).abs() < 0.01
     }
 
     /// Calculate rounding adjustment to ensure allocation totals match pool
+    #[must_use] 
     pub fn calculate_rounding_adjustment(
         pool_amount: f64,
         allocated_amounts: &[f64],
@@ -7226,7 +7507,8 @@ const VALID_COST_POOL_SOURCE_TYPES: &[&str] = &[
 ];
 
 impl CostPoolManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -7264,6 +7546,7 @@ impl CostPoolManagementService {
     }
 
     /// Calculate total pool amount from sources
+    #[must_use] 
     pub fn calculate_pool_total(source_amounts: &[f64]) -> f64 {
         source_amounts.iter().sum()
     }
@@ -7288,6 +7571,7 @@ impl CostPoolManagementService {
     }
 
     /// Calculate absorption rate per unit of allocation base
+    #[must_use] 
     pub fn calculate_absorption_rate(
         total_pool_amount: f64,
         total_allocation_base: f64,
@@ -7299,6 +7583,7 @@ impl CostPoolManagementService {
     }
 
     /// Calculate over/under absorption
+    #[must_use] 
     pub fn calculate_absorption_variance(
         actual_pool_amount: f64,
         absorbed_amount: f64,
@@ -7341,7 +7626,8 @@ const VALID_WRITEOFF_APPROVAL_LEVELS: &[&str] = &[
 ];
 
 impl WriteOffRequestService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -7391,6 +7677,7 @@ impl WriteOffRequestService {
     }
 
     /// Determine required approval level based on amount threshold
+    #[must_use] 
     pub fn determine_approval_level(
         amount: f64,
         small_threshold: f64,
@@ -7409,11 +7696,13 @@ impl WriteOffRequestService {
     }
 
     /// Calculate total write-off amount for a batch of requests
+    #[must_use] 
     pub fn calculate_batch_total(amounts: &[f64]) -> f64 {
         amounts.iter().sum()
     }
 
     /// Check if write-off is within auto-approval threshold
+    #[must_use] 
     pub fn is_auto_approved(
         amount: f64,
         auto_approval_limit: f64,
@@ -7424,6 +7713,7 @@ impl WriteOffRequestService {
     }
 
     /// Calculate net recoverable value after write-off
+    #[must_use] 
     pub fn calculate_net_recoverable(
         outstanding_balance: f64,
         write_off_amount: f64,
@@ -7467,7 +7757,8 @@ const VALID_LOCKBOX_RECORD_TYPES: &[&str] = &[
 ];
 
 impl LockboxProcessingService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -7519,6 +7810,7 @@ impl LockboxProcessingService {
     }
 
     /// Match a lockbox receipt to a customer invoice
+    #[must_use] 
     pub fn match_receipt_to_invoice(
         lockbox_amount: f64,
         invoice_amount: f64,
@@ -7535,6 +7827,7 @@ impl LockboxProcessingService {
     }
 
     /// Calculate lockbox processing totals
+    #[must_use] 
     pub fn calculate_processing_summary(
         total_imported: f64,
         applied_amount: f64,
@@ -7555,6 +7848,7 @@ impl LockboxProcessingService {
     }
 
     /// Validate that lockbox control totals match
+    #[must_use] 
     pub fn validate_control_totals(
         file_control_total: f64,
         calculated_total: f64,
@@ -7598,7 +7892,8 @@ pub struct FinancialRatioAnalysisService {
 }
 
 impl FinancialRatioAnalysisService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -7611,24 +7906,28 @@ impl FinancialRatioAnalysisService {
     // ========================================================================
 
     /// Current Ratio = Current Assets / Current Liabilities
+    #[must_use] 
     pub fn current_ratio(current_assets: f64, current_liabilities: f64) -> f64 {
         if current_liabilities == 0.0 { return 0.0; }
         current_assets / current_liabilities
     }
 
     /// Quick Ratio (Acid Test) = (Current Assets - Inventory) / Current Liabilities
+    #[must_use] 
     pub fn quick_ratio(current_assets: f64, inventory: f64, current_liabilities: f64) -> f64 {
         if current_liabilities == 0.0 { return 0.0; }
         (current_assets - inventory) / current_liabilities
     }
 
     /// Cash Ratio = Cash / Current Liabilities
+    #[must_use] 
     pub fn cash_ratio(cash: f64, current_liabilities: f64) -> f64 {
         if current_liabilities == 0.0 { return 0.0; }
         cash / current_liabilities
     }
 
     /// Working Capital = Current Assets - Current Liabilities
+    #[must_use] 
     pub fn working_capital(current_assets: f64, current_liabilities: f64) -> f64 {
         current_assets - current_liabilities
     }
@@ -7638,24 +7937,28 @@ impl FinancialRatioAnalysisService {
     // ========================================================================
 
     /// Gross Profit Margin = (Revenue - COGS) / Revenue
+    #[must_use] 
     pub fn gross_profit_margin(revenue: f64, cogs: f64) -> f64 {
         if revenue == 0.0 { return 0.0; }
         (revenue - cogs) / revenue
     }
 
     /// Net Profit Margin = Net Income / Revenue
+    #[must_use] 
     pub fn net_profit_margin(net_income: f64, revenue: f64) -> f64 {
         if revenue == 0.0 { return 0.0; }
         net_income / revenue
     }
 
     /// Return on Assets (ROA) = Net Income / Total Assets
+    #[must_use] 
     pub fn return_on_assets(net_income: f64, total_assets: f64) -> f64 {
         if total_assets == 0.0 { return 0.0; }
         net_income / total_assets
     }
 
     /// Return on Equity (ROE) = Net Income / Shareholders' Equity
+    #[must_use] 
     pub fn return_on_equity(net_income: f64, shareholders_equity: f64) -> f64 {
         if shareholders_equity == 0.0 { return 0.0; }
         net_income / shareholders_equity
@@ -7666,18 +7969,21 @@ impl FinancialRatioAnalysisService {
     // ========================================================================
 
     /// Debt to Equity Ratio = Total Liabilities / Shareholders' Equity
+    #[must_use] 
     pub fn debt_to_equity(total_liabilities: f64, shareholders_equity: f64) -> f64 {
         if shareholders_equity == 0.0 { return 0.0; }
         total_liabilities / shareholders_equity
     }
 
     /// Debt Ratio = Total Liabilities / Total Assets
+    #[must_use] 
     pub fn debt_ratio(total_liabilities: f64, total_assets: f64) -> f64 {
         if total_assets == 0.0 { return 0.0; }
         total_liabilities / total_assets
     }
 
     /// Interest Coverage = EBIT / Interest Expense
+    #[must_use] 
     pub fn interest_coverage(ebit: f64, interest_expense: f64) -> f64 {
         if interest_expense == 0.0 { return 0.0; }
         ebit / interest_expense
@@ -7688,30 +7994,35 @@ impl FinancialRatioAnalysisService {
     // ========================================================================
 
     /// Asset Turnover = Revenue / Total Assets
+    #[must_use] 
     pub fn asset_turnover(revenue: f64, total_assets: f64) -> f64 {
         if total_assets == 0.0 { return 0.0; }
         revenue / total_assets
     }
 
     /// Inventory Turnover = COGS / Average Inventory
+    #[must_use] 
     pub fn inventory_turnover(cogs: f64, average_inventory: f64) -> f64 {
         if average_inventory == 0.0 { return 0.0; }
         cogs / average_inventory
     }
 
     /// Days Sales Outstanding = (AR / Revenue) * 365
+    #[must_use] 
     pub fn days_sales_outstanding(accounts_receivable: f64, revenue: f64) -> f64 {
         if revenue == 0.0 { return 0.0; }
         (accounts_receivable / revenue) * 365.0
     }
 
     /// Days Payable Outstanding = (AP / COGS) * 365
+    #[must_use] 
     pub fn days_payable_outstanding(accounts_payable: f64, cogs: f64) -> f64 {
         if cogs == 0.0 { return 0.0; }
         (accounts_payable / cogs) * 365.0
     }
 
     /// Compute a comprehensive set of ratios
+    #[must_use] 
     pub fn compute_all_ratios(data: &FinancialStatementData) -> FinancialRatios {
         FinancialRatios {
             current_ratio: Self::current_ratio(data.current_assets, data.current_liabilities),
@@ -7788,7 +8099,8 @@ pub struct ReceivableAgingSnapshotService {
 }
 
 impl ReceivableAgingSnapshotService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -7820,6 +8132,7 @@ impl ReceivableAgingSnapshotService {
     }
 
     /// Calculate aging buckets from a list of overdue amounts and days
+    #[must_use] 
     pub fn calculate_aging_buckets(
         items: &[(f64, i32)], // (amount, days_overdue)
     ) -> AgingBuckets {
@@ -7839,6 +8152,7 @@ impl ReceivableAgingSnapshotService {
     }
 
     /// Calculate aging percentages
+    #[must_use] 
     pub fn calculate_aging_percentages(buckets: &AgingBuckets) -> AgingPercentages {
         if buckets.total == 0.0 {
             return AgingPercentages::default();
@@ -7853,18 +8167,20 @@ impl ReceivableAgingSnapshotService {
     }
 
     /// Calculate weighted average days overdue
+    #[must_use] 
     pub fn calculate_weighted_average_days(items: &[(f64, i32)]) -> f64 {
         let total_amount: f64 = items.iter().map(|(a, _)| *a).sum();
         if total_amount == 0.0 {
             return 0.0;
         }
         let weighted_sum: f64 = items.iter()
-            .map(|(amount, days)| amount * (*days as f64))
+            .map(|(amount, days)| amount * f64::from(*days))
             .sum();
         weighted_sum / total_amount
     }
 
     /// Compare two aging snapshots to calculate trend
+    #[must_use] 
     pub fn calculate_aging_trend(
         previous: &AgingBuckets,
         current: &AgingBuckets,
@@ -7938,7 +8254,8 @@ const VALID_MASS_ADD_ASSET_TYPES: &[&str] = &[
 ];
 
 impl MassAdditionService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8052,11 +8369,13 @@ impl MassAdditionService {
     }
 
     /// Calculate default salvage value (10% of cost)
+    #[must_use] 
     pub fn calculate_default_salvage(cost: f64) -> f64 {
         cost * 0.10
     }
 
     /// Calculate depreciable basis
+    #[must_use] 
     pub fn calculate_depreciable_basis(cost: f64, salvage_value: f64) -> f64 {
         (cost - salvage_value).max(0.0)
     }
@@ -8083,7 +8402,8 @@ const VALID_RECLASSIFICATION_TYPES: &[&str] = &[
 ];
 
 impl AssetReclassificationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8155,6 +8475,7 @@ impl AssetReclassificationService {
     }
 
     /// Calculate depreciation adjustment when changing useful life
+    #[must_use] 
     pub fn calculate_useful_life_adjustment(
         nbv: f64,
         remaining_periods_old: i32,
@@ -8164,11 +8485,11 @@ impl AssetReclassificationService {
             return 0.0;
         }
         let old_per_period = if remaining_periods_old > 0 {
-            nbv / remaining_periods_old as f64
+            nbv / f64::from(remaining_periods_old)
         } else {
             0.0
         };
-        let new_per_period = nbv / remaining_periods_new as f64;
+        let new_per_period = nbv / f64::from(remaining_periods_new);
         new_per_period - old_per_period
     }
 }
@@ -8193,7 +8514,8 @@ const VALID_BUDGET_TRANSFER_TYPES: &[&str] = &[
 ];
 
 impl GLBudgetTransferService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8286,8 +8608,7 @@ impl GLBudgetTransferService {
         let available = budget_amount - spent_amount;
         if proposed_transfer > available {
             return Err(AtlasError::ValidationFailed(format!(
-                "Insufficient budget. Available: {:.2}, Requested: {:.2}",
-                available, proposed_transfer
+                "Insufficient budget. Available: {available:.2}, Requested: {proposed_transfer:.2}"
             )));
         }
         Ok(())
@@ -8314,7 +8635,8 @@ const VALID_PAYMENT_FORMAT_TYPES: &[&str] = &[
 ];
 
 impl PaymentFormatService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8372,8 +8694,7 @@ impl PaymentFormatService {
         };
         if !compatible {
             return Err(AtlasError::ValidationFailed(format!(
-                "Format type '{}' is not compatible with payment method '{}'",
-                format_type, payment_method
+                "Format type '{format_type}' is not compatible with payment method '{payment_method}'"
             )));
         }
         Ok(())
@@ -8394,7 +8715,8 @@ pub struct FinancialDimensionSetService {
 }
 
 impl FinancialDimensionSetService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8432,11 +8754,10 @@ impl FinancialDimensionSetService {
     pub fn validate_unique_members(members: &[(&str, &str)]) -> AtlasResult<()> {
         let mut seen = std::collections::HashSet::new();
         for (dim_code, value_code) in members {
-            let key = format!("{}:{}", dim_code, value_code);
+            let key = format!("{dim_code}:{value_code}");
             if !seen.insert(key.clone()) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Duplicate dimension member: {}",
-                    key
+                    "Duplicate dimension member: {key}"
                 )));
             }
         }
@@ -8469,7 +8790,8 @@ const VALID_RECEIPT_WRITE_OFF_TYPES: &[&str] = &[
 const MAX_AUTO_APPROVE_AMOUNT: f64 = 100.0;
 
 impl ReceiptWriteOffService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8525,6 +8847,7 @@ impl ReceiptWriteOffService {
     }
 
     /// Check if a write-off qualifies for auto-approval
+    #[must_use] 
     pub fn is_auto_approvable(amount: f64) -> bool {
         amount <= MAX_AUTO_APPROVE_AMOUNT && amount > 0.0
     }
@@ -8536,8 +8859,7 @@ impl ReceiptWriteOffService {
     ) -> AtlasResult<()> {
         if write_off_amount > unapplied_balance {
             return Err(AtlasError::ValidationFailed(format!(
-                "Write-off amount ({:.2}) exceeds unapplied balance ({:.2})",
-                write_off_amount, unapplied_balance
+                "Write-off amount ({write_off_amount:.2}) exceeds unapplied balance ({unapplied_balance:.2})"
             )));
         }
         Ok(())
@@ -8558,7 +8880,8 @@ pub struct PrepaymentApplicationService {
 }
 
 impl PrepaymentApplicationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8621,14 +8944,14 @@ impl PrepaymentApplicationService {
         let available = prepayment_total - already_applied;
         if proposed_apply > available {
             return Err(AtlasError::ValidationFailed(format!(
-                "Insufficient prepayment balance. Available: {:.2}, Requested: {:.2}",
-                available, proposed_apply
+                "Insufficient prepayment balance. Available: {available:.2}, Requested: {proposed_apply:.2}"
             )));
         }
         Ok(())
     }
 
     /// Calculate remaining prepayment after application
+    #[must_use] 
     pub fn calculate_remaining_prepayment(
         prepayment_total: f64,
         applied_amount: f64,
@@ -8672,7 +8995,8 @@ const DEFAULT_MILEAGE_RATE: f64 = 0.67;
 const RECEIPT_THRESHOLD: f64 = 75.0;
 
 impl ExpenseReportLineService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8718,12 +9042,14 @@ impl ExpenseReportLineService {
     }
 
     /// Calculate mileage reimbursement
+    #[must_use] 
     pub fn calculate_mileage_reimbursement(miles: f64, rate: f64) -> f64 {
         if miles < 0.0 || rate < 0.0 { return 0.0; }
         miles * rate
     }
 
     /// Calculate total report amount from lines
+    #[must_use] 
     pub fn calculate_report_total(lines: &[(f64, bool)]) -> (f64, f64) {
         // Returns (total_amount, reimbursable_amount)
         let total: f64 = lines.iter().map(|(amt, _)| *amt).sum();
@@ -8735,6 +9061,7 @@ impl ExpenseReportLineService {
     }
 
     /// Check if receipt is required for a line
+    #[must_use] 
     pub fn is_receipt_required(expense_type: &str, amount: f64) -> bool {
         if RECEIPT_REQUIRED_TYPES.contains(&expense_type) {
             return amount >= RECEIPT_THRESHOLD;
@@ -8751,8 +9078,7 @@ impl ExpenseReportLineService {
         for (limit_type, limit_amount) in limits {
             if *limit_type == expense_type && amount > *limit_amount {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Expense amount {:.2} exceeds {} limit of {:.2}",
-                    amount, expense_type, limit_amount
+                    "Expense amount {amount:.2} exceeds {expense_type} limit of {limit_amount:.2}"
                 )));
             }
         }
@@ -8760,6 +9086,7 @@ impl ExpenseReportLineService {
     }
 
     /// Calculate per-diem allowance
+    #[must_use] 
     pub fn calculate_per_diem(
         daily_rate: f64,
         trip_days: i32,
@@ -8767,9 +9094,9 @@ impl ExpenseReportLineService {
         meal_deduction_rate: f64,
     ) -> f64 {
         if trip_days <= 0 { return 0.0; }
-        let meal_deductions = (provided_meals as f64) * meal_deduction_rate;
+        let meal_deductions = f64::from(provided_meals) * meal_deduction_rate;
         let daily_allowance = (daily_rate - meal_deductions).max(0.0);
-        daily_allowance * trip_days as f64
+        daily_allowance * f64::from(trip_days)
     }
 }
 
@@ -8799,7 +9126,8 @@ const VALID_SELECTION_CRITERIA: &[&str] = &[
 ];
 
 impl PaymentProcessRequestService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8864,6 +9192,7 @@ impl PaymentProcessRequestService {
     }
 
     /// Calculate available discount for early payment
+    #[must_use] 
     pub fn calculate_available_discount(
         invoice_amount: f64,
         discount_percentage: f64,
@@ -8878,6 +9207,7 @@ impl PaymentProcessRequestService {
     }
 
     /// Select invoices eligible for payment
+    #[must_use] 
     pub fn select_invoices_for_payment(
         invoices: &[(f64, chrono::NaiveDate, bool)], // (amount, due_date, is_on_hold)
         cutoff_date: chrono::NaiveDate,
@@ -8892,6 +9222,7 @@ impl PaymentProcessRequestService {
     }
 
     /// Calculate total payment amount with discounts
+    #[must_use] 
     pub fn calculate_ppr_totals(
         invoices: &[(f64, f64)], // (invoice_amount, discount_taken)
     ) -> (f64, f64, f64) {
@@ -8928,7 +9259,8 @@ const VALID_CASH_SWEEP_FREQUENCIES: &[&str] = &[
 ];
 
 impl CashPoolingService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -8982,6 +9314,7 @@ impl CashPoolingService {
 
     /// Calculate concentration sweep amounts
     /// Moves all available balances from sub-accounts to header account
+    #[must_use] 
     pub fn calculate_concentration_sweeps(
         sub_accounts: &[(String, f64, f64)], // (account, balance, minimum_balance)
     ) -> Vec<(String, f64)> {
@@ -8995,6 +9328,7 @@ impl CashPoolingService {
 
     /// Calculate zero-balancing sweep amounts
     /// Sweeps to bring sub-accounts to zero or target
+    #[must_use] 
     pub fn calculate_zero_balancing_sweeps(
         sub_accounts: &[(String, f64, f64)], // (account, balance, target)
     ) -> Vec<(String, f64)> {
@@ -9007,6 +9341,7 @@ impl CashPoolingService {
     }
 
     /// Calculate target balance sweep amounts
+    #[must_use] 
     pub fn calculate_target_balance_sweeps(
         accounts: &[(String, f64, f64)], // (account, balance, target)
     ) -> Vec<(String, f64, String)> {
@@ -9024,6 +9359,7 @@ impl CashPoolingService {
     }
 
     /// Calculate pool position (total balances across all members)
+    #[must_use] 
     pub fn calculate_pool_position(
         header_balance: f64,
         sub_account_balances: &[f64],
@@ -9039,14 +9375,12 @@ impl CashPoolingService {
     ) -> AtlasResult<()> {
         if minimum_transfer > 0.0 && amount < minimum_transfer {
             return Err(AtlasError::ValidationFailed(format!(
-                "Sweep amount {:.2} is below minimum transfer {:.2}",
-                amount, minimum_transfer
+                "Sweep amount {amount:.2} is below minimum transfer {minimum_transfer:.2}"
             )));
         }
         if maximum_transfer > 0.0 && amount > maximum_transfer {
             return Err(AtlasError::ValidationFailed(format!(
-                "Sweep amount {:.2} exceeds maximum transfer {:.2}",
-                amount, maximum_transfer
+                "Sweep amount {amount:.2} exceeds maximum transfer {maximum_transfer:.2}"
             )));
         }
         Ok(())
@@ -9080,7 +9414,8 @@ const VALID_STATISTICAL_CATEGORIES: &[&str] = &[
 ];
 
 impl StatisticalAccountService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -9123,15 +9458,17 @@ impl StatisticalAccountService {
     }
 
     /// Calculate average daily balance for a statistical account
+    #[must_use] 
     pub fn calculate_average_daily(
         daily_quantities: &[f64],
         days_in_period: i32,
     ) -> f64 {
         if days_in_period <= 0 { return 0.0; }
-        daily_quantities.iter().sum::<f64>() / days_in_period as f64
+        daily_quantities.iter().sum::<f64>() / f64::from(days_in_period)
     }
 
     /// Calculate period-over-period change
+    #[must_use] 
     pub fn calculate_period_change(
         current_period: f64,
         prior_period: f64,
@@ -9148,6 +9485,7 @@ impl StatisticalAccountService {
     }
 
     /// Allocate a statistical total across departments based on proportions
+    #[must_use] 
     pub fn allocate_statistical_total(
         total: f64,
         proportions: &[f64],
@@ -9158,6 +9496,7 @@ impl StatisticalAccountService {
     }
 
     /// Calculate statistical ratio
+    #[must_use] 
     pub fn calculate_statistical_ratio(
         numerator: f64,
         denominator: f64,
@@ -9181,7 +9520,8 @@ pub struct AssetSplitService {
 }
 
 impl AssetSplitService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -9199,8 +9539,7 @@ impl AssetSplitService {
         let total: f64 = percentages.iter().sum();
         if (total - 100.0).abs() > 0.01 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Split percentages must sum to 100%. Got: {:.2}%",
-                total
+                "Split percentages must sum to 100%. Got: {total:.2}%"
             )));
         }
         for (i, pct) in percentages.iter().enumerate() {
@@ -9215,6 +9554,7 @@ impl AssetSplitService {
     }
 
     /// Calculate proportional cost allocation for split
+    #[must_use] 
     pub fn calculate_split_allocation(
         original_cost: f64,
         accumulated_depreciation: f64,
@@ -9232,6 +9572,7 @@ impl AssetSplitService {
     }
 
     /// Verify that all split costs balance back to the source
+    #[must_use] 
     pub fn verify_split_balances(
         source_cost: f64,
         source_accum_depr: f64,
@@ -9262,7 +9603,8 @@ pub struct AssetMergerService {
 }
 
 impl AssetMergerService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -9281,6 +9623,7 @@ impl AssetMergerService {
     }
 
     /// Calculate target asset values from source assets
+    #[must_use] 
     pub fn calculate_merger_totals(
         sources: &[(f64, f64, f64)], // (cost, accum_depr, nbv)
     ) -> (f64, f64, f64) {
@@ -9291,6 +9634,7 @@ impl AssetMergerService {
     }
 
     /// Verify merger balances (sources sum to target)
+    #[must_use] 
     pub fn verify_merger_balances(
         target_cost: f64,
         target_accum_depr: f64,
@@ -9304,13 +9648,14 @@ impl AssetMergerService {
     }
 
     /// Calculate remaining useful life for merged asset (weighted average)
+    #[must_use] 
     pub fn calculate_weighted_useful_life(
         assets: &[(f64, i32)], // (cost, remaining_months)
     ) -> i32 {
         let total_cost: f64 = assets.iter().map(|(c, _)| *c).sum();
         if total_cost <= 0.0 { return 0; }
         let weighted: f64 = assets.iter()
-            .map(|(cost, months)| cost * *months as f64)
+            .map(|(cost, months)| cost * f64::from(*months))
             .sum();
         (weighted / total_cost).round() as i32
     }
@@ -9346,7 +9691,8 @@ const VALID_DUNNING_ACTIONS: &[&str] = &[
 ];
 
 impl DunningLetterService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -9355,6 +9701,7 @@ impl DunningLetterService {
     }
 
     /// Calculate days overdue for an invoice
+    #[must_use] 
     pub fn calculate_days_overdue(
         due_date: chrono::NaiveDate,
         as_of_date: chrono::NaiveDate,
@@ -9363,7 +9710,8 @@ impl DunningLetterService {
     }
 
     /// Determine the dunning level based on days overdue
-    /// Returns (level_number, level_name)
+    /// Returns (`level_number`, `level_name`)
+    #[must_use] 
     pub fn determine_dunning_level(
         days_overdue: i32,
         level_thresholds: &[(i32, &str)], // (days_threshold, level_name) sorted ascending
@@ -9380,6 +9728,7 @@ impl DunningLetterService {
     }
 
     /// Calculate total overdue amount for a customer
+    #[must_use] 
     pub fn calculate_total_overdue(
         invoices: &[(f64, chrono::NaiveDate, bool)], // (amount, due_date, is_paid)
         as_of_date: chrono::NaiveDate,
@@ -9392,6 +9741,7 @@ impl DunningLetterService {
     }
 
     /// Calculate late payment charges (interest on overdue balance)
+    #[must_use] 
     pub fn calculate_late_payment_charge(
         overdue_amount: f64,
         annual_rate: f64,
@@ -9400,11 +9750,12 @@ impl DunningLetterService {
         if days_overdue <= 0 || annual_rate <= 0.0 {
             return 0.0;
         }
-        overdue_amount * (annual_rate / 100.0) * (days_overdue as f64 / 365.0)
+        overdue_amount * (annual_rate / 100.0) * (f64::from(days_overdue) / 365.0)
     }
 
     /// Check if a customer should be escalated to the next dunning level
-    pub fn should_escalate(
+    #[must_use] 
+    pub const fn should_escalate(
         current_level: i32,
         days_overdue: i32,
         next_level_threshold: i32,
@@ -9418,6 +9769,7 @@ impl DunningLetterService {
 
     /// Calculate dunning score for prioritization (0-100)
     /// Higher score = higher priority
+    #[must_use] 
     pub fn calculate_dunning_score(
         days_overdue: i32,
         overdue_amount: f64,
@@ -9427,7 +9779,7 @@ impl DunningLetterService {
     ) -> f64 {
         let mut score = 0.0;
         // Days overdue component (0-40 points)
-        score += (days_overdue.min(180) as f64 / 180.0 * 40.0).min(40.0);
+        score += (f64::from(days_overdue.min(180)) / 180.0 * 40.0).min(40.0);
         // Amount component (0-30 points)
         let utilization = if credit_limit > 0.0 {
             (overdue_amount / credit_limit * 100.0).min(100.0)
@@ -9436,7 +9788,7 @@ impl DunningLetterService {
         };
         score += utilization / 100.0 * 30.0;
         // Previous dunning level component (0-20 points)
-        score += (previous_dunning_level as f64 / 5.0 * 20.0).min(20.0);
+        score += (f64::from(previous_dunning_level) / 5.0 * 20.0).min(20.0);
         // Dispute penalty (-10 points)
         if has_dispute {
             score -= 10.0;
@@ -9445,6 +9797,7 @@ impl DunningLetterService {
     }
 
     /// Generate a dunning summary for a customer
+    #[must_use] 
     pub fn generate_dunning_summary(
         customer_id: RecordId,
         customer_name: &str,
@@ -9566,7 +9919,8 @@ pub struct WaterfallLineItem {
 }
 
 impl RevenueWaterfallService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -9576,6 +9930,7 @@ impl RevenueWaterfallService {
 
     /// Calculate ending deferred balance for a single period
     /// Formula: Beginning + New Deferrals - Recognized +/- Reclassifications
+    #[must_use] 
     pub fn calculate_period_ending(
         beginning_deferred: f64,
         new_deferrals: f64,
@@ -9586,6 +9941,7 @@ impl RevenueWaterfallService {
     }
 
     /// Build a waterfall report from period data
+    #[must_use] 
     pub fn build_waterfall_report(
         period_names: &[&str],
         beginning_deferred: f64,
@@ -9636,6 +9992,7 @@ impl RevenueWaterfallService {
 
     /// Calculate straight-line recognition schedule
     /// Distributes total amount evenly across periods
+    #[must_use] 
     pub fn calculate_straight_line_schedule(
         total_amount: f64,
         number_of_periods: i32,
@@ -9643,11 +10000,12 @@ impl RevenueWaterfallService {
         if number_of_periods <= 0 || total_amount <= 0.0 {
             return vec![0.0; number_of_periods.max(0) as usize];
         }
-        let per_period = total_amount / number_of_periods as f64;
+        let per_period = total_amount / f64::from(number_of_periods);
         vec![per_period; number_of_periods as usize]
     }
 
     /// Calculate ratable recognition based on days in each period
+    #[must_use] 
     pub fn calculate_ratable_schedule(
         total_amount: f64,
         period_days: &[i32],
@@ -9657,12 +10015,13 @@ impl RevenueWaterfallService {
             return vec![0.0; period_days.len()];
         }
         period_days.iter()
-            .map(|days| total_amount * (*days as f64 / total_days as f64))
+            .map(|days| total_amount * (f64::from(*days) / f64::from(total_days)))
             .collect()
     }
 
     /// Validate waterfall report balance
     /// Beginning Deferred + New Deferrals - Recognized + Reclassifications = Ending Deferred
+    #[must_use] 
     pub fn validate_waterfall_balance(report: &WaterfallReport) -> bool {
         let calculated_ending = report.total_beginning_deferred
             + report.total_new_deferrals
@@ -9672,6 +10031,7 @@ impl RevenueWaterfallService {
     }
 
     /// Calculate remaining deferred revenue
+    #[must_use] 
     pub fn calculate_remaining_deferred(
         total_contract_value: f64,
         recognized_to_date: f64,
@@ -9680,6 +10040,7 @@ impl RevenueWaterfallService {
     }
 
     /// Calculate percentage of revenue recognized
+    #[must_use] 
     pub fn calculate_recognition_percentage(
         recognized: f64,
         total: f64,
@@ -9689,6 +10050,7 @@ impl RevenueWaterfallService {
     }
 
     /// Forecast future revenue from deferred balance
+    #[must_use] 
     pub fn forecast_revenue_from_deferred(
         deferred_balance: f64,
         remaining_periods: i32,
@@ -9697,7 +10059,7 @@ impl RevenueWaterfallService {
         if remaining_periods <= 0 || deferred_balance <= 0.0 {
             return vec![];
         }
-        let n = remaining_periods as f64;
+        let n = f64::from(remaining_periods);
         match recognition_pattern {
             "straight_line" => vec![deferred_balance / n; remaining_periods as usize],
             "front_loaded" => {
@@ -9775,7 +10137,8 @@ pub struct ReconciliationReport {
 }
 
 impl SubledgerReconciliationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -9806,6 +10169,7 @@ impl SubledgerReconciliationService {
     }
 
     /// Reconcile a single subledger balance against GL
+    #[must_use] 
     pub fn reconcile_subledger(
         subledger_type: &str,
         gl_account: &str,
@@ -9822,11 +10186,12 @@ impl SubledgerReconciliationService {
             subledger_balance,
             difference,
             is_balanced,
-            exception_count: if is_balanced { 0 } else { 1 },
+            exception_count: usize::from(!is_balanced),
         }
     }
 
     /// Build a full reconciliation report
+    #[must_use] 
     pub fn build_reconciliation_report(
         results: Vec<ReconciliationResult>,
         reconciled_at: chrono::NaiveDate,
@@ -9852,6 +10217,7 @@ impl SubledgerReconciliationService {
 
     /// Identify potential reconciliation exceptions
     /// Returns a list of (description, amount) tuples
+    #[must_use] 
     pub fn identify_exceptions(
         gl_balance: f64,
         subledger_balance: f64,
@@ -9894,6 +10260,7 @@ impl SubledgerReconciliationService {
     }
 
     /// Calculate AP subledger balance from outstanding invoices
+    #[must_use] 
     pub fn calculate_ap_subledger_balance(
         invoices: &[(f64, &str)], // (amount, status)
     ) -> f64 {
@@ -9904,6 +10271,7 @@ impl SubledgerReconciliationService {
     }
 
     /// Calculate AR subledger balance from open transactions
+    #[must_use] 
     pub fn calculate_ar_subledger_balance(
         transactions: &[(f64, &str)], // (amount, status)
     ) -> f64 {
@@ -9914,6 +10282,7 @@ impl SubledgerReconciliationService {
     }
 
     /// Calculate the tolerance threshold
+    #[must_use] 
     pub fn calculate_tolerance(materiality: f64, tolerance_percent: f64) -> f64 {
         materiality * (tolerance_percent / 100.0)
     }
@@ -9966,7 +10335,8 @@ pub struct RateCardEntry {
 }
 
 impl CostRateCardService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -10014,6 +10384,7 @@ impl CostRateCardService {
     }
 
     /// Get the effective rate for a given date
+    #[must_use] 
     pub fn get_effective_rate(
         entries: &[RateCardEntry],
         cost_element: &str,
@@ -10028,6 +10399,7 @@ impl CostRateCardService {
     }
 
     /// Calculate cost using a rate card
+    #[must_use] 
     pub fn calculate_cost(
         rate: f64,
         quantity: f64,
@@ -10042,6 +10414,7 @@ impl CostRateCardService {
     }
 
     /// Calculate total cost across multiple rate card entries
+    #[must_use] 
     pub fn calculate_total_cost(
         entries: &[(f64, f64, &str)], // (rate, quantity, rate_basis)
     ) -> f64 {
@@ -10051,6 +10424,7 @@ impl CostRateCardService {
     }
 
     /// Calculate rate change percentage
+    #[must_use] 
     pub fn calculate_rate_change(
         old_rate: f64,
         new_rate: f64,
@@ -10060,6 +10434,7 @@ impl CostRateCardService {
     }
 
     /// Create a new rate card version
+    #[must_use] 
     pub fn create_new_version(
         current: &RateCardEntry,
         new_rate: f64,
@@ -10097,8 +10472,7 @@ impl CostRateCardService {
                 let expected_next = end + chrono::Duration::days(1);
                 if curr_start > expected_next {
                     return Err(format!(
-                        "Gap in rate card dates: {} to {}",
-                        end, curr_start
+                        "Gap in rate card dates: {end} to {curr_start}"
                     ));
                 }
             }
@@ -10107,14 +10481,15 @@ impl CostRateCardService {
     }
 
     /// Calculate blended rate across multiple rate periods
+    #[must_use] 
     pub fn calculate_blended_rate(
         entries: &[(f64, i32)], // (rate, days_in_period)
     ) -> f64 {
         let total_days: i32 = entries.iter().map(|(_, days)| *days).sum();
         if total_days <= 0 { return 0.0; }
         entries.iter()
-            .map(|(rate, days)| rate * *days as f64)
-            .sum::<f64>() / total_days as f64
+            .map(|(rate, days)| rate * f64::from(*days))
+            .sum::<f64>() / f64::from(total_days)
     }
 }
 
@@ -10146,7 +10521,8 @@ const VALID_DELIVERY_METHODS: &[&str] = &[
 ];
 
 impl CustomerStatementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -10209,6 +10585,7 @@ impl CustomerStatementService {
     }
 
     /// Calculate ending balance from statement activity
+    #[must_use] 
     pub fn calculate_ending_balance(
         beginning_balance: f64,
         charges: f64,
@@ -10219,11 +10596,13 @@ impl CustomerStatementService {
     }
 
     /// Calculate total amount due (ending balance + late charges)
+    #[must_use] 
     pub fn calculate_amount_due(ending_balance: f64, late_charges: f64) -> f64 {
         ending_balance + late_charges
     }
 
     /// Calculate days overdue from payment due date
+    #[must_use] 
     pub fn calculate_days_overdue(
         due_date: chrono::NaiveDate,
         statement_date: chrono::NaiveDate,
@@ -10232,7 +10611,8 @@ impl CustomerStatementService {
     }
 
     /// Determine aging bucket for a line item
-    pub fn determine_aging_bucket(days_overdue: i32) -> &'static str {
+    #[must_use] 
+    pub const fn determine_aging_bucket(days_overdue: i32) -> &'static str {
         match days_overdue {
             0 => "current",
             d if d <= 30 => "1_30",
@@ -10243,7 +10623,8 @@ impl CustomerStatementService {
     }
 
     /// Calculate statement summary from line items
-    /// Returns (total_charges, total_credits, total_payments, transaction_count)
+    /// Returns (`total_charges`, `total_credits`, `total_payments`, `transaction_count`)
+    #[must_use] 
     pub fn calculate_statement_summary(
         lines: &[(String, f64)], // (line_type, amount)
     ) -> (f64, f64, f64, usize) {
@@ -10266,8 +10647,8 @@ impl CustomerStatementService {
 // AutoCash Application Service
 // ===========================================================================
 
-/// AutoCash Application service
-/// Oracle Fusion: Receivables > Receipts > AutoCash
+/// `AutoCash` Application service
+/// Oracle Fusion: Receivables > Receipts > `AutoCash`
 /// Automatically applies customer payments to open transactions based
 /// on configurable matching rules.
 #[allow(dead_code)]
@@ -10294,7 +10675,8 @@ const VALID_MATCHING_PRIORITIES: &[&str] = &[
 ];
 
 impl AutoCashApplicationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -10302,8 +10684,8 @@ impl AutoCashApplicationService {
         Self { schema_engine, workflow_engine, validation_engine }
     }
 
-    /// Validate an AutoCash rule set
-    /// Oracle Fusion: Receivables > Receipts > AutoCash Rules
+    /// Validate an `AutoCash` rule set
+    /// Oracle Fusion: Receivables > Receipts > `AutoCash` Rules
     pub async fn validate_rule_set(
         &self,
         code: &str,
@@ -10332,6 +10714,7 @@ impl AutoCashApplicationService {
     }
 
     /// Match a receipt to an open transaction by transaction number
+    #[must_use] 
     pub fn match_by_transaction_number(
         receipt_number: &str,
         receipt_amount: f64,
@@ -10343,7 +10726,7 @@ impl AutoCashApplicationService {
 
         if candidates.is_empty() {
             return AutoCashMatchResult::NoMatch {
-                reason: format!("No open transaction found for number: {}", receipt_number),
+                reason: format!("No open transaction found for number: {receipt_number}"),
             };
         }
         if candidates.len() > 1 {
@@ -10368,6 +10751,7 @@ impl AutoCashApplicationService {
     }
 
     /// Match a receipt to transactions by amount within tolerance
+    #[must_use] 
     pub fn match_by_amount(
         receipt_amount: f64,
         tolerance_amount: f64,
@@ -10382,6 +10766,7 @@ impl AutoCashApplicationService {
     }
 
     /// Calculate the unapplied amount after application
+    #[must_use] 
     pub fn calculate_unapplied(
         receipt_amount: f64,
         applied_amounts: &[f64],
@@ -10391,6 +10776,7 @@ impl AutoCashApplicationService {
     }
 
     /// Calculate the over-application amount
+    #[must_use] 
     pub fn calculate_over_application(
         receipt_amount: f64,
         applied_amounts: &[f64],
@@ -10404,6 +10790,7 @@ impl AutoCashApplicationService {
     }
 
     /// Determine if a chargeback should be created
+    #[must_use] 
     pub fn should_create_chargeback(
         receipt_amount: f64,
         invoice_amount: f64,
@@ -10418,6 +10805,7 @@ impl AutoCashApplicationService {
     }
 
     /// Determine if on-account credit should be created for overpayment
+    #[must_use] 
     pub fn should_create_on_account(
         receipt_amount: f64,
         invoice_amount: f64,
@@ -10456,7 +10844,8 @@ const VALID_PRICE_SOURCES: &[&str] = &[
 ];
 
 impl RevenuePriceProfileService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -10523,6 +10912,7 @@ impl RevenuePriceProfileService {
     }
 
     /// Allocate transaction price across performance obligations using SSP
+    #[must_use] 
     pub fn allocate_by_ssp(
         total_transaction_price: f64,
         standalone_prices: &[f64],
@@ -10537,6 +10927,7 @@ impl RevenuePriceProfileService {
     }
 
     /// Allocate using residual method (first obligation gets residual)
+    #[must_use] 
     pub fn allocate_by_residual(
         total_transaction_price: f64,
         other_obligation_prices: &[f64],
@@ -10547,6 +10938,7 @@ impl RevenuePriceProfileService {
     }
 
     /// Calculate SSP using cost-plus-margin method
+    #[must_use] 
     pub fn calculate_cost_plus_margin(
         cost: f64,
         margin_percent: f64,
@@ -10555,6 +10947,7 @@ impl RevenuePriceProfileService {
     }
 
     /// Validate that allocated amounts sum to transaction price
+    #[must_use] 
     pub fn validate_allocation(
         total_transaction_price: f64,
         allocated_amounts: &[f64],
@@ -10565,6 +10958,7 @@ impl RevenuePriceProfileService {
     }
 
     /// Estimate SSP from historical transactions
+    #[must_use] 
     pub fn estimate_from_historical(
         historical_prices: &[f64],
     ) -> f64 {
@@ -10574,6 +10968,7 @@ impl RevenuePriceProfileService {
     }
 
     /// Apply discount cap to SSP
+    #[must_use] 
     pub fn apply_discount_cap(
         ssp: f64,
         discount_cap_percent: f64,
@@ -10607,7 +11002,8 @@ const VALID_ESTIMATION_METHODS: &[&str] = &[
 ];
 
 impl DoubtfulAccountAllowanceService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -10656,6 +11052,7 @@ impl DoubtfulAccountAllowanceService {
 
     /// Calculate provision using aging analysis method
     /// Each aging bucket has a different default probability
+    #[must_use] 
     pub fn calculate_aging_provision(
         aging_balances: &[(f64, f64)], // (balance, provision_percent)
     ) -> f64 {
@@ -10665,6 +11062,7 @@ impl DoubtfulAccountAllowanceService {
     }
 
     /// Calculate provision using percentage of sales method
+    #[must_use] 
     pub fn calculate_percent_of_sales_provision(
         credit_sales: f64,
         historical_bad_debt_rate: f64,
@@ -10673,7 +11071,8 @@ impl DoubtfulAccountAllowanceService {
     }
 
     /// Calculate the adjustment to the allowance account
-    /// adjustment = calculated_provision - existing_allowance
+    /// adjustment = `calculated_provision` - `existing_allowance`
+    #[must_use] 
     pub fn calculate_allowance_adjustment(
         calculated_provision: f64,
         existing_allowance: f64,
@@ -10683,6 +11082,7 @@ impl DoubtfulAccountAllowanceService {
 
     /// Calculate roll-forward of allowance
     /// Beginning + Provision - Write-offs - Recoveries = Ending
+    #[must_use] 
     pub fn calculate_roll_forward(
         beginning_allowance: f64,
         new_provision: f64,
@@ -10693,6 +11093,7 @@ impl DoubtfulAccountAllowanceService {
     }
 
     /// Calculate net realizable value of AR
+    #[must_use] 
     pub fn calculate_net_realizable_value(
         total_accounts_receivable: f64,
         allowance_for_doubtful_accounts: f64,
@@ -10701,7 +11102,8 @@ impl DoubtfulAccountAllowanceService {
     }
 
     /// Default aging provision percentages
-    /// (bucket_max_days, default_provision_percent)
+    /// (`bucket_max_days`, `default_provision_percent`)
+    #[must_use] 
     pub fn default_aging_rates() -> Vec<(i32, f64)> {
         vec![
             (0, 0.5),    // Current: 0.5%
@@ -10736,7 +11138,8 @@ const VALID_BFB_BILLING_CYCLES: &[&str] = &[
 ];
 
 impl BalanceForwardBillingService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -10787,6 +11190,7 @@ impl BalanceForwardBillingService {
     }
 
     /// Calculate the balance forward amount
+    #[must_use] 
     pub fn calculate_balance_forward(
         previous_balance: f64,
         new_charges: f64,
@@ -10798,6 +11202,7 @@ impl BalanceForwardBillingService {
     }
 
     /// Calculate total amount due
+    #[must_use] 
     pub fn calculate_total_due(
         balance_forward: f64,
         late_charges: f64,
@@ -10806,6 +11211,7 @@ impl BalanceForwardBillingService {
     }
 
     /// Calculate late charges for overdue balances
+    #[must_use] 
     pub fn calculate_late_charges(
         overdue_balance: f64,
         annual_rate: f64,
@@ -10814,15 +11220,16 @@ impl BalanceForwardBillingService {
         if overdue_balance <= 0.0 || annual_rate <= 0.0 || days_in_period <= 0 {
             return 0.0;
         }
-        overdue_balance * (annual_rate / 100.0) * (days_in_period as f64 / 365.0)
+        overdue_balance * (annual_rate / 100.0) * (f64::from(days_in_period) / 365.0)
     }
 
     /// Calculate the payment due date from bill date and terms
+    #[must_use] 
     pub fn calculate_payment_due_date(
         bill_date: chrono::NaiveDate,
         net_due_days: i32,
     ) -> chrono::NaiveDate {
-        bill_date + chrono::Duration::days(net_due_days as i64)
+        bill_date + chrono::Duration::days(i64::from(net_due_days))
     }
 }
 
@@ -10853,7 +11260,8 @@ const VALID_CIP_STATUSES: &[&str] = &[
 ];
 
 impl AssetCapitalizationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -10935,11 +11343,13 @@ impl AssetCapitalizationService {
     }
 
     /// Calculate total CIP cost from additions
+    #[must_use] 
     pub fn calculate_total_cip_cost(additions: &[f64]) -> f64 {
         additions.iter().sum()
     }
 
     /// Calculate percentage complete based on costs
+    #[must_use] 
     pub fn calculate_percent_complete(
         accumulated_cost: f64,
         estimated_total_cost: f64,
@@ -10949,6 +11359,7 @@ impl AssetCapitalizationService {
     }
 
     /// Check if CIP is ready for capitalization
+    #[must_use] 
     pub fn is_ready_for_capitalization(
         status: &str,
         actual_completion_date: Option<chrono::NaiveDate>,
@@ -10958,7 +11369,8 @@ impl AssetCapitalizationService {
     }
 
     /// Calculate capitalization amounts
-    /// Returns (asset_cost, salvage_value, depreciable_basis)
+    /// Returns (`asset_cost`, `salvage_value`, `depreciable_basis`)
+    #[must_use] 
     pub fn calculate_capitalization_amounts(
         total_cip_cost: f64,
         salvage_value: f64,
@@ -10968,6 +11380,7 @@ impl AssetCapitalizationService {
     }
 
     /// Calculate variance between estimated and actual cost
+    #[must_use] 
     pub fn calculate_cost_variance(
         estimated_cost: f64,
         actual_cost: f64,
@@ -11027,7 +11440,8 @@ pub struct InvoiceMatchOutcome {
 }
 
 impl InvoiceToleranceMatchingService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -11083,7 +11497,8 @@ impl InvoiceToleranceMatchingService {
     }
 
     /// Compare actual vs ordered with tolerance
-    /// Returns MatchResult with variance information
+    /// Returns `MatchResult` with variance information
+    #[must_use] 
     pub fn compare_with_tolerance(
         actual: f64,
         expected: f64,
@@ -11095,10 +11510,10 @@ impl InvoiceToleranceMatchingService {
             return MatchResult::Matched;
         }
         let variance = actual - expected;
-        let variance_pct = if expected != 0.0 {
-            (variance.abs() / expected.abs()) * 100.0
+        let variance_pct = if expected == 0.0 {
+            if actual == 0.0 { 0.0 } else { f64::MAX }
         } else {
-            if actual != 0.0 { f64::MAX } else { 0.0 }
+            (variance.abs() / expected.abs()) * 100.0
         };
 
         if variance.abs() < 0.001 {
@@ -11120,6 +11535,7 @@ impl InvoiceToleranceMatchingService {
     }
 
     /// Perform full 2-way match (Invoice vs PO)
+    #[must_use] 
     pub fn perform_two_way_match(
         invoiced_qty: f64,
         ordered_qty: f64,
@@ -11154,6 +11570,7 @@ impl InvoiceToleranceMatchingService {
     }
 
     /// Perform full 3-way match (Invoice vs PO vs Receipt)
+    #[must_use] 
     pub fn perform_three_way_match(
         invoiced_qty: f64,
         ordered_qty: f64,
@@ -11180,6 +11597,7 @@ impl InvoiceToleranceMatchingService {
     }
 
     /// Perform full 4-way match (Invoice vs PO vs Receipt vs Accepted)
+    #[must_use] 
     pub fn perform_four_way_match(
         invoiced_qty: f64,
         ordered_qty: f64,
@@ -11218,20 +11636,19 @@ impl InvoiceToleranceMatchingService {
             MatchResult::Matched => {}
             MatchResult::WithinTolerance { variance, variance_pct } => {
                 warnings.push(format!(
-                    "{} within tolerance: variance={:.2} ({:.1}%)",
-                    dimension, variance, variance_pct
+                    "{dimension} within tolerance: variance={variance:.2} ({variance_pct:.1}%)"
                 ));
             }
             MatchResult::OutsideTolerance { variance, variance_pct } => {
                 holds.push(format!(
-                    "{} outside tolerance: variance={:.2} ({:.1}%)",
-                    dimension, variance, variance_pct
+                    "{dimension} outside tolerance: variance={variance:.2} ({variance_pct:.1}%)"
                 ));
             }
         }
     }
 
     /// Calculate quantity variance amount in currency
+    #[must_use] 
     pub fn calculate_quantity_variance_amount(
         invoiced_qty: f64,
         ordered_qty: f64,
@@ -11241,6 +11658,7 @@ impl InvoiceToleranceMatchingService {
     }
 
     /// Calculate price variance amount in currency
+    #[must_use] 
     pub fn calculate_price_variance_amount(
         invoiced_price: f64,
         ordered_price: f64,
@@ -11289,7 +11707,8 @@ pub struct DiscountTier {
 }
 
 impl PaymentMaturityDiscountService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -11298,6 +11717,7 @@ impl PaymentMaturityDiscountService {
     }
 
     /// Calculate the maturity (due) date based on payment terms
+    #[must_use] 
     pub fn calculate_maturity_date(
         base_date: chrono::NaiveDate,
         net_days: i32,
@@ -11310,10 +11730,11 @@ impl PaymentMaturityDiscountService {
             "invoice_received_date" => invoice_received_date.unwrap_or(base_date),
             _ => base_date,
         };
-        effective_date + chrono::Duration::days(net_days as i64)
+        effective_date + chrono::Duration::days(i64::from(net_days))
     }
 
     /// Calculate the discount due date
+    #[must_use] 
     pub fn calculate_discount_due_date(
         base_date: chrono::NaiveDate,
         discount_days: i32,
@@ -11326,10 +11747,11 @@ impl PaymentMaturityDiscountService {
             "invoice_received_date" => invoice_received_date.unwrap_or(base_date),
             _ => base_date,
         };
-        effective_date + chrono::Duration::days(discount_days as i64)
+        effective_date + chrono::Duration::days(i64::from(discount_days))
     }
 
     /// Calculate discount amount
+    #[must_use] 
     pub fn calculate_discount_amount(
         invoice_amount: f64,
         discount_pct: f64,
@@ -11341,6 +11763,7 @@ impl PaymentMaturityDiscountService {
     }
 
     /// Determine the best discount tier from a tiered schedule
+    #[must_use] 
     pub fn determine_discount_tier(
         days_since_basis: i32,
         tiers: &[DiscountTier],
@@ -11349,6 +11772,7 @@ impl PaymentMaturityDiscountService {
     }
 
     /// Calculate net payment amount after discount
+    #[must_use] 
     pub fn calculate_net_payment(
         invoice_amount: f64,
         discount_amount: f64,
@@ -11357,6 +11781,7 @@ impl PaymentMaturityDiscountService {
     }
 
     /// Check if a discount is still eligible given a reference date
+    #[must_use] 
     pub fn is_discount_eligible(
         reference_date: chrono::NaiveDate,
         discount_due_date: chrono::NaiveDate,
@@ -11365,6 +11790,7 @@ impl PaymentMaturityDiscountService {
     }
 
     /// Calculate days until maturity from a reference date
+    #[must_use] 
     pub fn calculate_days_until_maturity(
         reference_date: chrono::NaiveDate,
         maturity_date: chrono::NaiveDate,
@@ -11373,6 +11799,7 @@ impl PaymentMaturityDiscountService {
     }
 
     /// Full maturity calculation
+    #[must_use] 
     pub fn calculate_payment_maturity(
         invoice_date: chrono::NaiveDate,
         invoice_amount: f64,
@@ -11395,8 +11822,7 @@ impl PaymentMaturityDiscountService {
         });
 
         let discount_eligible = discount_due_date
-            .map(|ddd| Self::is_discount_eligible(reference_date, ddd))
-            .unwrap_or(false);
+            .is_some_and(|ddd| Self::is_discount_eligible(reference_date, ddd));
 
         let discount_available = if discount_eligible {
             invoice_amount * (discount_pct / 100.0)
@@ -11467,7 +11893,8 @@ pub struct BankValidationResult {
 }
 
 impl SupplierBankValidationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -11476,6 +11903,7 @@ impl SupplierBankValidationService {
     }
 
     /// Validate IBAN format and checksum
+    #[must_use] 
     pub fn validate_iban(iban: &str) -> (bool, Option<String>) {
         let cleaned: String = iban.chars().filter(|c| !c.is_whitespace()).collect();
         if cleaned.len() < 5 {
@@ -11518,8 +11946,9 @@ impl SupplierBankValidationService {
     }
 
     /// Validate ABA routing number (US)
+    #[must_use] 
     pub fn validate_routing_number(routing: &str) -> (bool, Option<String>) {
-        let cleaned: String = routing.chars().filter(|c| c.is_ascii_digit()).collect();
+        let cleaned: String = routing.chars().filter(char::is_ascii_digit).collect();
         if cleaned.len() != 9 {
             return (false, Some("US routing number must be exactly 9 digits".to_string()));
         }
@@ -11535,6 +11964,7 @@ impl SupplierBankValidationService {
     }
 
     /// Validate SWIFT/BIC code
+    #[must_use] 
     pub fn validate_swift_bic(swift: &str) -> (bool, Option<String>) {
         let cleaned: String = swift.chars().filter(|c| !c.is_whitespace()).collect();
         if cleaned.len() != 8 && cleaned.len() != 11 {
@@ -11556,6 +11986,7 @@ impl SupplierBankValidationService {
     }
 
     /// Full bank account validation
+    #[must_use] 
     pub fn validate_bank_account(
         account_number: &str,
         iban: Option<&str>,
@@ -11628,6 +12059,7 @@ impl SupplierBankValidationService {
     }
 
     /// Normalize IBAN (remove spaces, uppercase)
+    #[must_use] 
     pub fn normalize_iban(iban: &str) -> String {
         iban.chars()
             .filter(|c| !c.is_whitespace())
@@ -11687,7 +12119,8 @@ pub struct TaxRule {
 }
 
 impl AutomaticTaxDeterminationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -11723,6 +12156,7 @@ impl AutomaticTaxDeterminationService {
     }
 
     /// Calculate tax amount from rate and base
+    #[must_use] 
     pub fn calculate_tax_amount(
         taxable_amount: f64,
         tax_rate: f64,
@@ -11732,6 +12166,7 @@ impl AutomaticTaxDeterminationService {
     }
 
     /// Calculate recovery amount
+    #[must_use] 
     pub fn calculate_recovery_amount(
         tax_amount: f64,
         recovery_rate: f64,
@@ -11740,6 +12175,7 @@ impl AutomaticTaxDeterminationService {
     }
 
     /// Find the best matching tax rule from a set of rules
+    #[must_use] 
     pub fn find_matching_rule<'a>(
         rules: &'a [TaxRule],
         product_classification: Option<&str>,
@@ -11801,6 +12237,7 @@ impl AutomaticTaxDeterminationService {
     }
 
     /// Determine tax for a transaction line
+    #[must_use] 
     pub fn determine_tax(
         rules: &[TaxRule],
         product_classification: Option<&str>,
@@ -11837,7 +12274,7 @@ impl AutomaticTaxDeterminationService {
                     taxable_amount: line_amount,
                     tax_amount,
                     is_exempt,
-                    exemption_reason: exemption_reason.map(|s| s.to_string()),
+                    exemption_reason: exemption_reason.map(std::string::ToString::to_string),
                     recovery_eligible: r.is_recovery_eligible,
                     recovery_rate: if r.is_recovery_eligible { r.recovery_rate } else { 0.0 },
                 }
@@ -11849,7 +12286,7 @@ impl AutomaticTaxDeterminationService {
                 taxable_amount: line_amount,
                 tax_amount: 0.0,
                 is_exempt: true,
-                exemption_reason: exemption_reason.map(|s| s.to_string())
+                exemption_reason: exemption_reason.map(std::string::ToString::to_string)
                     .or_else(|| Some("No matching tax rule found".to_string())),
                 recovery_eligible: false,
                 recovery_rate: 0.0,
@@ -11858,11 +12295,13 @@ impl AutomaticTaxDeterminationService {
     }
 
     /// Calculate total tax for multiple lines
+    #[must_use] 
     pub fn calculate_total_tax(results: &[TaxDeterminationResult]) -> f64 {
         results.iter().map(|r| r.tax_amount).sum()
     }
 
     /// Calculate total taxable amount
+    #[must_use] 
     pub fn calculate_total_taxable(results: &[TaxDeterminationResult]) -> f64 {
         results.iter().map(|r| r.taxable_amount).sum()
     }
@@ -11916,7 +12355,8 @@ pub struct ArchiveRunStatistics {
 }
 
 impl TransactionPurgeArchiveService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -11971,6 +12411,7 @@ impl TransactionPurgeArchiveService {
     }
 
     /// Check if a record is eligible for archival
+    #[must_use] 
     pub fn check_archive_eligibility(
         entity_type: &str,
         record_date: chrono::NaiveDate,
@@ -12001,6 +12442,7 @@ impl TransactionPurgeArchiveService {
     }
 
     /// Check if a record is eligible for purging
+    #[must_use] 
     pub fn check_purge_eligibility(
         entity_type: &str,
         record_date: chrono::NaiveDate,
@@ -12028,6 +12470,7 @@ impl TransactionPurgeArchiveService {
     }
 
     /// Calculate archive run statistics
+    #[must_use] 
     pub fn calculate_run_statistics(
         scanned: i64,
         archived: i64,
@@ -12060,6 +12503,7 @@ impl TransactionPurgeArchiveService {
     }
 
     /// Calculate the cutoff date for an archive policy
+    #[must_use] 
     pub fn calculate_cutoff_date(
         reference_date: chrono::NaiveDate,
         archive_after_days: i32,
@@ -12123,7 +12567,7 @@ pub struct ApprovalRoutingResult {
 }
 
 /// Approval action result
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApprovalAction {
     Approved,
     Rejected { reason: String },
@@ -12133,7 +12577,8 @@ pub enum ApprovalAction {
 }
 
 impl MultiLevelApprovalService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -12189,6 +12634,7 @@ impl MultiLevelApprovalService {
     }
 
     /// Route a document to the appropriate approval levels
+    #[must_use] 
     pub fn route_for_approval(
         document_type: &str,
         document_amount: f64,
@@ -12205,8 +12651,7 @@ impl MultiLevelApprovalService {
         let is_auto_approved = auto_approve_within_limit && required_levels.is_empty();
         let auto_approve_reason = if is_auto_approved {
             Some(format!(
-                "Auto-approved: amount {:.2} is below all approval thresholds",
-                document_amount
+                "Auto-approved: amount {document_amount:.2} is below all approval thresholds"
             ))
         } else if required_levels.is_empty() {
             Some("No approval levels configured".to_string())
@@ -12254,15 +12699,17 @@ impl MultiLevelApprovalService {
     }
 
     /// Calculate the current approval progress
+    #[must_use] 
     pub fn calculate_approval_progress(
         total_levels: i32,
         completed_levels: i32,
     ) -> f64 {
         if total_levels == 0 { return 100.0; }
-        (completed_levels as f64 / total_levels as f64 * 100.0).min(100.0)
+        (f64::from(completed_levels) / f64::from(total_levels) * 100.0).min(100.0)
     }
 
     /// Determine timeout action
+    #[must_use] 
     pub fn determine_timeout_action(
         hours_elapsed: i32,
         timeout_hours: i32,
@@ -12281,6 +12728,7 @@ impl MultiLevelApprovalService {
     }
 
     /// Get the next approval level after the current one
+    #[must_use] 
     pub fn get_next_level(
         levels: &[ApprovalLevelDef],
         current_level: i32,
@@ -12299,7 +12747,7 @@ impl MultiLevelApprovalService {
 pub struct CashFlowStatementService;
 
 /// Cash flow category
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CashFlowCategory {
     Operating,
     Investing,
@@ -12336,6 +12784,7 @@ pub struct CashFlowStatementResult {
 impl CashFlowStatementService {
     /// Build an indirect method cash flow statement
     /// Adjusts net income for non-cash items and working capital changes
+    #[must_use] 
     pub fn build_indirect(
         net_income: f64,
         depreciation_amortization: f64,
@@ -12527,6 +12976,7 @@ impl CashFlowStatementService {
     }
 
     /// Calculate cash from operations (indirect method)
+    #[must_use] 
     pub fn calculate_operating_cash_flow(
         net_income: f64,
         non_cash_adjustments: f64,
@@ -12536,6 +12986,7 @@ impl CashFlowStatementService {
     }
 
     /// Calculate working capital change
+    #[must_use] 
     pub fn calculate_working_capital_change(
         receivables_change: f64,  // positive = increase
         payables_change: f64,     // positive = increase
@@ -12546,6 +12997,7 @@ impl CashFlowStatementService {
     }
 
     /// Validate the cash flow statement balances
+    #[must_use] 
     pub fn validate_balance(result: &CashFlowStatementResult) -> bool {
         let expected_closing = result.opening_cash_balance
             + result.net_operating_cash
@@ -12556,6 +13008,7 @@ impl CashFlowStatementService {
     }
 
     /// Calculate free cash flow
+    #[must_use] 
     pub fn calculate_free_cash_flow(
         operating_cash_flow: f64,
         capital_expenditures: f64,
@@ -12600,6 +13053,7 @@ pub enum ApplicationMatchResult {
 #[allow(dead_code)]
 impl ReceivableApplicationEngine {
     /// Apply a receipt to open transactions using transaction number matching
+    #[must_use] 
     pub fn apply_by_transaction_number(
         receipt_amount: f64,
         transactions: &[(String, f64, bool)],  // (number, balance_due, is_matched)
@@ -12635,6 +13089,7 @@ impl ReceivableApplicationEngine {
     }
 
     /// Apply a receipt to the oldest open transactions first (FIFO)
+    #[must_use] 
     pub fn apply_oldest_first(
         receipt_amount: f64,
         transactions: &[(String, f64, bool, chrono::NaiveDate)],  // (number, balance, matched, date)
@@ -12662,6 +13117,7 @@ impl ReceivableApplicationEngine {
     }
 
     /// Calculate unapplied amount after application
+    #[must_use] 
     pub fn calculate_unapplied(receipt_amount: f64, applications: &[(String, f64)]) -> f64 {
         let total_applied: f64 = applications.iter().map(|(_, amt)| *amt).sum();
         (receipt_amount - total_applied).max(0.0)
@@ -12676,8 +13132,7 @@ impl ReceivableApplicationEngine {
         let total_applied: f64 = applications.iter().map(|(_, amt)| *amt).sum();
         if total_applied > receipt_amount + 0.01 {
             return Err(format!(
-                "Total applied ({:.2}) exceeds receipt amount ({:.2})",
-                total_applied, receipt_amount
+                "Total applied ({total_applied:.2}) exceeds receipt amount ({receipt_amount:.2})"
             ));
         }
 
@@ -12685,8 +13140,7 @@ impl ReceivableApplicationEngine {
             if let Some((_, balance)) = transaction_balances.iter().find(|(id, _)| id == txn_id) {
                 if *apply_amt > *balance + 0.01 {
                     return Err(format!(
-                        "Application ({:.2}) exceeds transaction {} balance ({:.2})",
-                        apply_amt, txn_id, balance
+                        "Application ({apply_amt:.2}) exceeds transaction {txn_id} balance ({balance:.2})"
                     ));
                 }
             }
@@ -12696,11 +13150,13 @@ impl ReceivableApplicationEngine {
     }
 
     /// Calculate on-account amount (unapplied receipt balance)
+    #[must_use] 
     pub fn calculate_on_account(receipt_amount: f64, total_applied: f64) -> f64 {
         (receipt_amount - total_applied).max(0.0)
     }
 
     /// Check if receipt is fully applied
+    #[must_use] 
     pub fn is_fully_applied(receipt_amount: f64, total_applied: f64) -> bool {
         (receipt_amount - total_applied).abs() < 0.01
     }
@@ -12741,6 +13197,7 @@ pub struct AccountingEventResult {
 #[allow(dead_code)]
 impl AccountingEventProcessor {
     /// Process a standard AP invoice create event into journal lines
+    #[must_use] 
     pub fn process_ap_invoice_create(
         invoice_amount: f64,
         tax_amount: f64,
@@ -12803,6 +13260,7 @@ impl AccountingEventProcessor {
     }
 
     /// Process an AR transaction create event
+    #[must_use] 
     pub fn process_ar_transaction_create(
         revenue_amount: f64,
         tax_amount: f64,
@@ -12863,6 +13321,7 @@ impl AccountingEventProcessor {
     }
 
     /// Validate that a set of journal lines is balanced
+    #[must_use] 
     pub fn validate_balanced(lines: &[GeneratedJournalLine]) -> bool {
         let total_debits: f64 = lines.iter().map(|l| l.debit_amount).sum();
         let total_credits: f64 = lines.iter().map(|l| l.credit_amount).sum();
@@ -12870,6 +13329,7 @@ impl AccountingEventProcessor {
     }
 
     /// Reverse a set of journal lines (swap debits and credits)
+    #[must_use] 
     pub fn reverse_lines(lines: &[GeneratedJournalLine]) -> Vec<GeneratedJournalLine> {
         lines
             .iter()
@@ -12909,6 +13369,7 @@ pub struct DepreciationSchedulePeriod {
 #[allow(dead_code)]
 impl AssetDepreciationScheduleService {
     /// Generate a full straight-line depreciation schedule
+    #[must_use] 
     pub fn generate_straight_line_schedule(
         original_cost: f64,
         salvage_value: f64,
@@ -12919,7 +13380,7 @@ impl AssetDepreciationScheduleService {
         }
 
         let depreciable_basis = (original_cost - salvage_value).max(0.0);
-        let monthly_depreciation = depreciable_basis / useful_life_months as f64;
+        let monthly_depreciation = depreciable_basis / f64::from(useful_life_months);
         let mut schedule = Vec::new();
         let mut accumulated = 0.0;
         let mut remaining_basis = depreciable_basis;
@@ -12955,6 +13416,7 @@ impl AssetDepreciationScheduleService {
     }
 
     /// Generate a declining balance depreciation schedule
+    #[must_use] 
     pub fn generate_declining_balance_schedule(
         original_cost: f64,
         salvage_value: f64,
@@ -13007,11 +13469,13 @@ impl AssetDepreciationScheduleService {
     }
 
     /// Calculate total depreciation for a schedule
+    #[must_use] 
     pub fn calculate_total_depreciation(schedule: &[DepreciationSchedulePeriod]) -> f64 {
         schedule.iter().map(|p| p.depreciation_amount).sum()
     }
 
     /// Validate the schedule (total depreciation should equal depreciable basis)
+    #[must_use] 
     pub fn validate_schedule(
         schedule: &[DepreciationSchedulePeriod],
         original_cost: f64,
@@ -13024,6 +13488,7 @@ impl AssetDepreciationScheduleService {
     }
 
     /// Get schedule for a specific fiscal year
+    #[must_use] 
     pub fn get_year_schedule(
         schedule: &[DepreciationSchedulePeriod],
         fiscal_year: i32,
@@ -13032,6 +13497,7 @@ impl AssetDepreciationScheduleService {
     }
 
     /// Calculate annual depreciation for a specific year
+    #[must_use] 
     pub fn calculate_annual_depreciation(
         schedule: &[DepreciationSchedulePeriod],
         fiscal_year: i32,
@@ -13148,7 +13614,8 @@ const RISK_MEDIUM_THRESHOLD: f64 = 60.0;
 const RISK_HIGH_THRESHOLD: f64 = 40.0;
 
 impl ExpensePolicyComplianceService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -13211,6 +13678,7 @@ impl ExpensePolicyComplianceService {
     }
 
     /// Evaluate a single expense line against a single policy rule
+    #[must_use] 
     pub fn evaluate_rule(
         rule: &ExpensePolicyRuleData,
         line: &ExpenseLineData,
@@ -13380,6 +13848,7 @@ impl ExpensePolicyComplianceService {
     }
 
     /// Evaluate daily aggregate limits for a set of expense lines
+    #[must_use] 
     pub fn evaluate_daily_limits(
         rules: &[ExpensePolicyRuleData],
         lines: &[ExpenseLineData],
@@ -13426,6 +13895,7 @@ impl ExpensePolicyComplianceService {
     }
 
     /// Detect duplicate expenses across lines
+    #[must_use] 
     pub fn detect_duplicates(
         lines: &[ExpenseLineData],
         amount_tolerance: f64,
@@ -13457,6 +13927,7 @@ impl ExpensePolicyComplianceService {
     }
 
     /// Generate a full compliance report for an expense report
+    #[must_use] 
     pub fn generate_compliance_report(
         rules: &[ExpensePolicyRuleData],
         lines: &[ExpenseLineData],
@@ -13527,6 +13998,7 @@ impl ExpensePolicyComplianceService {
     }
 
     /// Calculate compliance score (0-100)
+    #[must_use] 
     pub fn calculate_compliance_score(
         total_evaluations: usize,
         passed_evaluations: usize,
@@ -13543,6 +14015,7 @@ impl ExpensePolicyComplianceService {
     }
 
     /// Determine risk level from compliance score
+    #[must_use] 
     pub fn determine_risk_level(compliance_score: f64) -> String {
         if compliance_score >= RISK_LOW_THRESHOLD {
             "low".to_string()
@@ -13556,6 +14029,7 @@ impl ExpensePolicyComplianceService {
     }
 
     /// Check if an expense report should be flagged for audit based on risk
+    #[must_use] 
     pub fn should_flag_for_audit(report: &ComplianceReport) -> bool {
         report.risk_level == "high"
             || report.risk_level == "critical"
@@ -13564,6 +14038,7 @@ impl ExpensePolicyComplianceService {
     }
 
     /// Calculate total flagged amount from all violations
+    #[must_use] 
     pub fn calculate_total_flagged_amount(report: &ComplianceReport) -> f64 {
         report.violations.iter()
             .chain(report.warnings.iter())
@@ -13573,6 +14048,7 @@ impl ExpensePolicyComplianceService {
     }
 
     /// Get a summary of violations by category
+    #[must_use] 
     pub fn violations_by_category(
         violations: &[PolicyEvaluationResult],
     ) -> std::collections::HashMap<String, i32> {
@@ -13631,16 +14107,19 @@ impl Default for BankGuaranteeManagementService {
 #[allow(dead_code)]
 impl BankGuaranteeManagementService {
     /// Create a new bank guarantee service instance
-    pub fn new() -> Self {
+    #[must_use] 
+    pub const fn new() -> Self {
         Self
     }
 
     /// Validate guarantee type
+    #[must_use] 
     pub fn validate_guarantee_type(guarantee_type: &str) -> bool {
         BG_VALID_TYPES.contains(&guarantee_type)
     }
 
     /// Validate guarantee status transition
+    #[must_use] 
     pub fn validate_status_transition(current: &str, target: &str) -> bool {
         match current {
             "draft" => ["pending_approval", "cancelled"].contains(&target),
@@ -13654,26 +14133,31 @@ impl BankGuaranteeManagementService {
     }
 
     /// Validate collateral type
+    #[must_use] 
     pub fn validate_collateral_type(collateral_type: &str) -> bool {
         BG_VALID_COLLATERAL_TYPES.contains(&collateral_type)
     }
 
     /// Validate amendment type
+    #[must_use] 
     pub fn validate_amendment_type(amendment_type: &str) -> bool {
         BG_VALID_AMENDMENT_TYPES.contains(&amendment_type)
     }
 
     /// Calculate margin amount from guarantee amount and margin percentage
+    #[must_use] 
     pub fn calculate_margin_amount(guarantee_amount: f64, margin_percentage: f64) -> f64 {
         guarantee_amount * margin_percentage / 100.0
     }
 
     /// Calculate commission amount from guarantee amount and commission rate
+    #[must_use] 
     pub fn calculate_commission_amount(guarantee_amount: f64, commission_rate: f64) -> f64 {
         guarantee_amount * commission_rate / 100.0
     }
 
     /// Calculate days until expiry
+    #[must_use] 
     pub fn days_until_expiry(
         expiry_date: chrono::NaiveDate,
         as_of_date: chrono::NaiveDate,
@@ -13682,6 +14166,7 @@ impl BankGuaranteeManagementService {
     }
 
     /// Check if a guarantee is expiring soon
+    #[must_use] 
     pub fn is_expiring_soon(
         expiry_date: chrono::NaiveDate,
         as_of_date: chrono::NaiveDate,
@@ -13792,7 +14277,8 @@ impl Default for HedgeManagementService {
 }
 
 impl HedgeManagementService {
-    pub fn new() -> Self {
+    #[must_use] 
+    pub const fn new() -> Self {
         Self
     }
 
@@ -13801,31 +14287,37 @@ impl HedgeManagementService {
     // ========================================================================
 
     /// Validate instrument type
+    #[must_use] 
     pub fn validate_instrument_type(instrument_type: &str) -> bool {
         HDG_VALID_INSTRUMENT_TYPES.contains(&instrument_type)
     }
 
     /// Validate underlying type
+    #[must_use] 
     pub fn validate_underlying_type(underlying_type: &str) -> bool {
         HDG_VALID_UNDERLYING_TYPES.contains(&underlying_type)
     }
 
     /// Validate option type
+    #[must_use] 
     pub fn validate_option_type(option_type: &str) -> bool {
         HDG_VALID_OPTION_TYPES.contains(&option_type)
     }
 
     /// Validate settlement type
+    #[must_use] 
     pub fn validate_settlement_type(settlement_type: &str) -> bool {
         HDG_VALID_SETTLEMENT_TYPES.contains(&settlement_type)
     }
 
     /// Validate accounting treatment
+    #[must_use] 
     pub fn validate_accounting_treatment(treatment: &str) -> bool {
         HDG_VALID_ACCOUNTING_TREATMENTS.contains(&treatment)
     }
 
     /// Validate derivative status transition
+    #[must_use] 
     pub fn validate_derivative_status_transition(current: &str, target: &str) -> bool {
         match current {
             "draft" => ["active", "cancelled"].contains(&target),
@@ -13843,11 +14335,13 @@ impl HedgeManagementService {
     // ========================================================================
 
     /// Calculate forward points (difference between forward and spot rate)
+    #[must_use] 
     pub fn calculate_forward_points(forward_rate: f64, spot_rate: f64) -> f64 {
         forward_rate - spot_rate
     }
 
     /// Calculate forward premium/discount as annualized percentage
+    #[must_use] 
     pub fn calculate_forward_premium_annualized(
         forward_rate: f64,
         spot_rate: f64,
@@ -13856,10 +14350,11 @@ impl HedgeManagementService {
         if spot_rate == 0.0 || days_to_maturity == 0 {
             return 0.0;
         }
-        ((forward_rate - spot_rate) / spot_rate) * (365.0 / days_to_maturity as f64) * 100.0
+        ((forward_rate - spot_rate) / spot_rate) * (365.0 / f64::from(days_to_maturity)) * 100.0
     }
 
     /// Calculate intrinsic value of an option
+    #[must_use] 
     pub fn calculate_option_intrinsic_value(
         option_type: &str,
         spot_rate: f64,
@@ -13880,6 +14375,7 @@ impl HedgeManagementService {
     }
 
     /// Calculate time value of an option (premium - intrinsic value)
+    #[must_use] 
     pub fn calculate_option_time_value(
         premium: f64,
         intrinsic_value: f64,
@@ -13888,6 +14384,7 @@ impl HedgeManagementService {
     }
 
     /// Mark-to-market: compute unrealized P&L on a forward contract
+    #[must_use] 
     pub fn calculate_forward_unrealized_pnl(
         contracted_rate: f64,
         current_forward_rate: f64,
@@ -13902,18 +14399,20 @@ impl HedgeManagementService {
     }
 
     /// Calculate swap pay/receive net cash flow
+    #[must_use] 
     pub fn calculate_swap_net_cashflow(
         receive_rate: f64,
         pay_rate: f64,
         notional_amount: f64,
         days_in_period: i32,
     ) -> f64 {
-        let receive_amount = receive_rate * notional_amount * (days_in_period as f64 / 360.0);
-        let pay_amount = pay_rate * notional_amount * (days_in_period as f64 / 360.0);
+        let receive_amount = receive_rate * notional_amount * (f64::from(days_in_period) / 360.0);
+        let pay_amount = pay_rate * notional_amount * (f64::from(days_in_period) / 360.0);
         receive_amount - pay_amount
     }
 
     /// Calculate present value of a future cash flow
+    #[must_use] 
     pub fn present_value(
         future_value: f64,
         discount_rate: f64,
@@ -13926,6 +14425,7 @@ impl HedgeManagementService {
     }
 
     /// Calculate days to maturity
+    #[must_use] 
     pub fn days_to_maturity(
         maturity_date: chrono::NaiveDate,
         as_of_date: chrono::NaiveDate,
@@ -13938,21 +14438,25 @@ impl HedgeManagementService {
     // ========================================================================
 
     /// Validate hedge type
+    #[must_use] 
     pub fn validate_hedge_type(hedge_type: &str) -> bool {
         HDG_VALID_HEDGE_TYPES.contains(&hedge_type)
     }
 
     /// Validate hedged risk
+    #[must_use] 
     pub fn validate_hedged_risk(hedged_risk: &str) -> bool {
         HDG_VALID_HEDGED_RISKS.contains(&hedged_risk)
     }
 
     /// Validate effectiveness method
+    #[must_use] 
     pub fn validate_effectiveness_method(method: &str) -> bool {
         HDG_VALID_EFFECTIVENESS_METHODS.contains(&method)
     }
 
     /// Validate hedge relationship status transition
+    #[must_use] 
     pub fn validate_hedge_status_transition(current: &str, target: &str) -> bool {
         match current {
             "draft" => ["documented", "cancelled"].contains(&target),
@@ -13964,6 +14468,7 @@ impl HedgeManagementService {
     }
 
     /// Validate hedge ratio (must be between 0.0 and 2.0)
+    #[must_use] 
     pub fn validate_hedge_ratio(ratio: f64) -> bool {
         ratio > 0.0 && ratio <= 2.0
     }
@@ -13974,6 +14479,7 @@ impl HedgeManagementService {
 
     /// Dollar-offset method effectiveness test
     /// Returns the ratio of derivative FV change to hedged item FV change
+    #[must_use] 
     pub fn dollar_offset_ratio(
         derivative_fv_change: f64,
         hedged_item_fv_change: f64,
@@ -13985,6 +14491,7 @@ impl HedgeManagementService {
     }
 
     /// Test effectiveness using dollar-offset method (IFRS 9: 80-125% corridor)
+    #[must_use] 
     pub fn test_dollar_offset_effectiveness(
         derivative_fv_change: f64,
         hedged_item_fv_change: f64,
@@ -14012,8 +14519,9 @@ impl HedgeManagementService {
     }
 
     /// Calculate regression-based effectiveness (simplified)
-    /// Returns (R-squared, is_effective)
+    /// Returns (R-squared, `is_effective`)
     /// IFRS 9: R-squared >= 0.80 indicates effective hedge
+    #[must_use] 
     pub fn regression_effectiveness(
         derivative_changes: &[f64],
         hedged_item_changes: &[f64],
@@ -14035,8 +14543,8 @@ impl HedgeManagementService {
         let sum_x2: f64 = hedged_item_changes.iter().map(|x| x * x).sum();
         let sum_y2: f64 = derivative_changes.iter().map(|y| y * y).sum();
 
-        let numerator = n * sum_xy - sum_x * sum_y;
-        let denominator = ((n * sum_x2 - sum_x * sum_x) * (n * sum_y2 - sum_y * sum_y)).sqrt();
+        let numerator = n.mul_add(sum_xy, -(sum_x * sum_y));
+        let denominator = (n.mul_add(sum_x2, -(sum_x * sum_x)) * n.mul_add(sum_y2, -(sum_y * sum_y))).sqrt();
 
         if denominator == 0.0 {
             return (0.0, false);
@@ -14050,6 +14558,7 @@ impl HedgeManagementService {
 
     /// Calculate variance reduction effectiveness
     /// Measures how much of the hedged item's variability is offset by the derivative
+    #[must_use] 
     pub fn variance_reduction_ratio(
         unhedged_variability: f64,
         residual_variability: f64,
@@ -14067,6 +14576,7 @@ impl HedgeManagementService {
     /// Calculate hedge ineffectiveness for the period
     /// Fair value hedge: all gain/loss on derivative + gain/loss on hedged item
     /// Cash flow hedge: effective portion goes to OCI, ineffective to P&L
+    #[must_use] 
     pub fn calculate_hedge_ineffectiveness(
         derivative_gain_loss: f64,
         hedged_item_gain_loss: f64,
@@ -14120,6 +14630,7 @@ impl HedgeManagementService {
     }
 
     /// Calculate collateral requirements for a derivative
+    #[must_use] 
     pub fn calculate_collateral_requirement(
         mark_to_market: f64,
         threshold_amount: f64,
@@ -14136,6 +14647,7 @@ impl HedgeManagementService {
     }
 
     /// Calculate credit valuation adjustment (CVA) for a derivative
+    #[must_use] 
     pub fn calculate_cva(
         expected_exposure: f64,
         counterparty_default_probability: f64,
@@ -14145,6 +14657,7 @@ impl HedgeManagementService {
     }
 
     /// Calculate debt valuation adjustment (DVA)
+    #[must_use] 
     pub fn calculate_dva(
         expected_negative_exposure: f64,
         own_default_probability: f64,
@@ -14291,6 +14804,7 @@ impl PaymentRiskDetectionService {
 
     /// Detect potential duplicate payments by comparing key fields
     /// Oracle Fusion: Payables > Payment Risk > Duplicate Detection
+    #[must_use] 
     pub fn detect_duplicate_payment(
         supplier_id: &str,
         amount: &str,
@@ -14351,7 +14865,7 @@ impl PaymentRiskDetectionService {
                     is_duplicate,
                     confidence_score: confidence.min(100.0),
                     matched_fields,
-                    original_payment_ref: Some(format!("PAY-{}", existing_invoice)),
+                    original_payment_ref: Some(format!("PAY-{existing_invoice}")),
                     reason: if is_duplicate {
                         "High confidence duplicate detected".to_string()
                     } else {
@@ -14374,7 +14888,7 @@ impl PaymentRiskDetectionService {
         let duplicate_count = detections.iter().filter(|d| d.is_duplicate).count() as f64;
         // Weight: 70% max confidence + 30% count factor
         let count_factor = (duplicate_count / 5.0).min(1.0) * 100.0;
-        (max_confidence * 0.7 + count_factor * 0.3).min(100.0)
+        max_confidence.mul_add(0.7, count_factor * 0.3).min(100.0)
     }
 
     // ========================================================================
@@ -14383,6 +14897,7 @@ impl PaymentRiskDetectionService {
 
     /// Calculate overall payment risk score based on multiple factors
     /// Oracle Fusion: Payables > Payment Risk > Risk Scoring
+    #[must_use] 
     pub fn calculate_risk_score(
         supplier_risk_score: f64,
         amount_risk_score: f64,
@@ -14445,6 +14960,7 @@ impl PaymentRiskDetectionService {
     }
 
     /// Determine risk level from a numeric score
+    #[must_use] 
     pub fn determine_risk_level(score: f64) -> String {
         if score >= 80.0 {
             "critical".to_string()
@@ -14459,6 +14975,7 @@ impl PaymentRiskDetectionService {
 
     /// Calculate amount anomaly score using z-score methodology
     /// Compares a payment amount against historical mean and standard deviation
+    #[must_use] 
     pub fn calculate_amount_anomaly_score(
         amount: f64,
         historical_mean: f64,
@@ -14473,11 +14990,11 @@ impl PaymentRiskDetectionService {
         if z_score <= 1.0 {
             z_score * 25.0
         } else if z_score <= 2.0 {
-            25.0 + (z_score - 1.0) * 25.0
+            (z_score - 1.0).mul_add(25.0, 25.0)
         } else if z_score <= 3.0 {
-            50.0 + (z_score - 2.0) * 25.0
+            (z_score - 2.0).mul_add(25.0, 50.0)
         } else {
-            (75.0 + (z_score - 3.0).min(1.0) * 25.0).min(100.0)
+            (z_score - 3.0).min(1.0).mul_add(25.0, 75.0).min(100.0)
         }
     }
 
@@ -14487,6 +15004,7 @@ impl PaymentRiskDetectionService {
 
     /// Check payment velocity against configured limits
     /// Oracle Fusion: Payables > Payment Risk > Velocity Rules
+    #[must_use] 
     pub fn check_velocity(
         current_amount: f64,
         daily_payments: &[(f64, chrono::NaiveDate)], // (amount, date)
@@ -14532,7 +15050,8 @@ impl PaymentRiskDetectionService {
     }
 
     /// Calculate velocity risk score from check result
-    pub fn calculate_velocity_risk_score(result: &VelocityCheckResult) -> f64 {
+    #[must_use] 
+    pub const fn calculate_velocity_risk_score(result: &VelocityCheckResult) -> f64 {
         if result.velocity_breached {
             if result.daily_limit_exceeded && result.weekly_limit_exceeded {
                 95.0 // Both breached - critical
@@ -14552,6 +15071,7 @@ impl PaymentRiskDetectionService {
 
     /// Screen a supplier name against a sanctions list
     /// Oracle Fusion: Payables > Payment Risk > Sanctions Screening
+    #[must_use] 
     pub fn screen_against_sanctions_list(
         supplier_name: &str,
         sanctions_list: &[&str], // List of sanctioned entity names
@@ -14646,6 +15166,7 @@ impl PaymentRiskDetectionService {
 
     /// Calculate composite supplier risk assessment score
     /// Oracle Fusion: Payables > Payment Risk > Supplier Risk Assessment
+    #[must_use] 
     pub fn calculate_supplier_risk_score(
         financial_score: f64,
         operational_score: f64,
@@ -14653,10 +15174,7 @@ impl PaymentRiskDetectionService {
         payment_history_score: f64,
     ) -> f64 {
         // Weighted average: financial 30%, operational 20%, compliance 30%, history 20%
-        let overall = financial_score * 0.30
-            + operational_score * 0.20
-            + compliance_score * 0.30
-            + payment_history_score * 0.20;
+        let overall = payment_history_score.mul_add(0.20, compliance_score.mul_add(0.30, financial_score.mul_add(0.30, operational_score * 0.20)));
         overall.min(100.0)
     }
 
@@ -14664,6 +15182,7 @@ impl PaymentRiskDetectionService {
     /// Score range: 0-100 where 100 is excellent payment behavior.
     /// Components: On-time ratio (0-50), Payment speed (0-15),
     ///             Fraud penalty (0-20 deducted), Duplicate penalty (0-15 deducted).
+    #[must_use] 
     pub fn calculate_payment_behavior_score(
         total_payments: i32,
         on_time_payments: i32,
@@ -14676,14 +15195,14 @@ impl PaymentRiskDetectionService {
         }
 
         // On-time ratio (0-50 points)
-        let on_time_ratio = on_time_payments as f64 / total_payments as f64;
+        let on_time_ratio = f64::from(on_time_payments) / f64::from(total_payments);
         let on_time_score = on_time_ratio * 50.0;
 
         // Fraud penalty (0-20 points deducted)
-        let fraud_penalty = (fraud_alerts as f64 * 10.0).min(20.0);
+        let fraud_penalty = (f64::from(fraud_alerts) * 10.0).min(20.0);
 
         // Duplicate penalty (0-15 points deducted)
-        let duplicate_penalty = (duplicate_count as f64 * 5.0).min(15.0);
+        let duplicate_penalty = (f64::from(duplicate_count) * 5.0).min(15.0);
 
         // Payment speed (0-15 points)
         let speed_score = if avg_days_to_pay <= 15.0 {
@@ -14702,6 +15221,7 @@ impl PaymentRiskDetectionService {
     }
 
     /// Determine supplier risk rating from score
+    #[must_use] 
     pub fn determine_supplier_rating(score: f64) -> String {
         if score >= 80.0 {
             "excellent".to_string()
@@ -14720,6 +15240,7 @@ impl PaymentRiskDetectionService {
 
     /// Calculate behavioral anomaly score based on deviation from historical patterns
     /// Tracks patterns like payment timing, amounts, and frequency per supplier
+    #[must_use] 
     pub fn calculate_behavioral_anomaly_score(
         payment_amount: f64,
         avg_payment_amount: f64,
@@ -14754,7 +15275,7 @@ impl PaymentRiskDetectionService {
 
         // Timing anomaly (0-30 points)
         if avg_days_between_payments > 0.0 {
-            let timing_deviation = (time_since_last_payment_days as f64 - avg_days_between_payments).abs()
+            let timing_deviation = (f64::from(time_since_last_payment_days) - avg_days_between_payments).abs()
                 / avg_days_between_payments * 100.0;
             if timing_deviation > 200.0 {
                 score += 30.0;
@@ -14835,7 +15356,8 @@ pub struct TaxRegistrationManagementService {
 
 #[allow(dead_code)]
 impl TaxRegistrationManagementService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -14921,6 +15443,7 @@ impl TaxRegistrationManagementService {
 
     /// Check compliance gaps for required tax registrations
     /// Oracle Fusion: Tax > Tax Registrations > Compliance Dashboard
+    #[must_use] 
     pub fn check_compliance_gaps(
         registrations: &[atlas_shared::TaxRegistration],
         required_jurisdictions: &[(&str, &str)],
@@ -14933,6 +15456,7 @@ impl TaxRegistrationManagementService {
     }
 
     /// Get registrations expiring within N days
+    #[must_use] 
     pub fn get_expiring_registrations(
         registrations: &[atlas_shared::TaxRegistration],
         as_of: chrono::NaiveDate,
@@ -15027,7 +15551,8 @@ pub struct BankReconciliationDashboard {
 }
 
 impl BankStatementReconciliationService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -15061,7 +15586,7 @@ impl BankStatementReconciliationService {
         }
         if !VALID_BS_IMPORT_SOURCES.contains(&import_source) {
             return Err(AtlasError::ValidationFailed(
-                format!("Invalid import source: '{}'", import_source),
+                format!("Invalid import source: '{import_source}'"),
             ));
         }
 
@@ -15097,7 +15622,7 @@ impl BankStatementReconciliationService {
         }
         if transaction_type != "credit" && transaction_type != "debit" {
             return Err(AtlasError::ValidationFailed(
-                format!("Invalid transaction type: '{}'. Must be 'credit' or 'debit'", transaction_type),
+                format!("Invalid transaction type: '{transaction_type}'. Must be 'credit' or 'debit'"),
             ));
         }
 
@@ -15131,17 +15656,17 @@ impl BankStatementReconciliationService {
         }
         if !VALID_BS_MATCH_STRATEGIES.contains(&match_strategy) {
             return Err(AtlasError::ValidationFailed(
-                format!("Invalid match strategy: '{}'", match_strategy),
+                format!("Invalid match strategy: '{match_strategy}'"),
             ));
         }
         if matches!(match_strategy, "amount_tolerance" | "combined_amount_reference" | "combined_amount_date") && tolerance_pct.is_none() {
             return Err(AtlasError::ValidationFailed(
-                format!("Match strategy '{}' requires amount tolerance percentage", match_strategy),
+                format!("Match strategy '{match_strategy}' requires amount tolerance percentage"),
             ));
         }
         if matches!(match_strategy, "date_range" | "combined_amount_date") && date_tolerance_days.is_none() {
             return Err(AtlasError::ValidationFailed(
-                format!("Match strategy '{}' requires date tolerance days", match_strategy),
+                format!("Match strategy '{match_strategy}' requires date tolerance days"),
             ));
         }
 
@@ -15221,12 +15746,12 @@ impl BankStatementReconciliationService {
     ) -> AtlasResult<()> {
         if !VALID_BS_EXCEPTION_TYPES.contains(&exception_type) {
             return Err(AtlasError::ValidationFailed(
-                format!("Invalid exception type: '{}'", exception_type),
+                format!("Invalid exception type: '{exception_type}'"),
             ));
         }
         if !VALID_BS_RESOLUTION_STATUSES.contains(&resolution_status) {
             return Err(AtlasError::ValidationFailed(
-                format!("Invalid resolution status: '{}'", resolution_status),
+                format!("Invalid resolution status: '{resolution_status}'"),
             ));
         }
 
@@ -15244,6 +15769,7 @@ impl BankStatementReconciliationService {
 
     /// Generate the bank reconciliation dashboard
     /// Oracle Fusion: Cash Management > Dashboard
+    #[must_use] 
     pub fn generate_dashboard(
         total_statements: i32,
         reconciled_statements: i32,
@@ -15252,7 +15778,7 @@ impl BankStatementReconciliationService {
         total_exceptions_open: i32,
     ) -> BankReconciliationDashboard {
         let avg_match_rate = if total_statements > 0 {
-            (reconciled_statements as f64 / total_statements as f64) * 100.0
+            (f64::from(reconciled_statements) / f64::from(total_statements)) * 100.0
         } else {
             0.0
         };
@@ -15269,6 +15795,7 @@ impl BankStatementReconciliationService {
 
     /// Calculate reconciliation difference (full formula)
     /// Oracle Fusion: Cash Management > Bank Statements > Reconcile
+    #[must_use] 
     pub fn calculate_reconciliation_difference(
         bank_closing_balance: f64,
         book_balance: f64,
@@ -33564,7 +34091,8 @@ pub struct AutomaticOffsetService;
 
 impl AutomaticOffsetService {
     /// Calculate the net imbalance per balancing segment from journal lines
-    /// Returns a map of segment_value -> net_amount (positive = debit surplus, negative = credit surplus)
+    /// Returns a map of `segment_value` -> `net_amount` (positive = debit surplus, negative = credit surplus)
+    #[must_use] 
     pub fn calculate_segment_imbalances(
         lines: &[(&str, f64, f64)], // (segment_value, debit, credit)
     ) -> std::collections::HashMap<String, f64> {
@@ -33577,6 +34105,7 @@ impl AutomaticOffsetService {
     }
 
     /// Determine if offsets are needed (any individual segment is imbalanced)
+    #[must_use] 
     pub fn offsets_needed(imbalances: &std::collections::HashMap<String, f64>) -> bool {
         // If ANY individual segment has a non-zero net, offsets are needed
         // (even if the total across all segments sums to zero)
@@ -33584,7 +34113,8 @@ impl AutomaticOffsetService {
     }
 
     /// Calculate the offset entries needed to balance all segments
-    /// Returns a list of (from_segment, to_segment, offset_type, amount)
+    /// Returns a list of (`from_segment`, `to_segment`, `offset_type`, amount)
+    #[must_use] 
     pub fn calculate_offset_entries(
         imbalances: &std::collections::HashMap<String, f64>,
     ) -> Vec<(String, String, String, f64)> {

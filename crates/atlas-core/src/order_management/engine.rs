@@ -132,7 +132,7 @@ impl OrderManagementEngine {
     /// Submit a draft order
     pub async fn submit_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<SalesOrder> {
         let order = self.repository.get_order_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {id} not found")))?;
 
         if order.organization_id != org_id {
             return Err(AtlasError::Forbidden("Order does not belong to your organization".to_string()));
@@ -168,7 +168,7 @@ impl OrderManagementEngine {
     /// Confirm a submitted order (begins fulfillment)
     pub async fn confirm_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<SalesOrder> {
         let order = self.repository.get_order_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {id} not found")))?;
 
         if order.organization_id != org_id {
             return Err(AtlasError::Forbidden("Order does not belong to your organization".to_string()));
@@ -189,7 +189,7 @@ impl OrderManagementEngine {
     /// Close a completed order
     pub async fn close_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<SalesOrder> {
         let order = self.repository.get_order_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {id} not found")))?;
 
         if order.organization_id != org_id {
             return Err(AtlasError::Forbidden("Order does not belong to your organization".to_string()));
@@ -209,7 +209,7 @@ impl OrderManagementEngine {
     /// Cancel an order
     pub async fn cancel_order(&self, org_id: Uuid, id: Uuid, reason: Option<&str>) -> AtlasResult<SalesOrder> {
         let order = self.repository.get_order_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {id} not found")))?;
 
         if order.organization_id != org_id {
             return Err(AtlasError::Forbidden("Order does not belong to your organization".to_string()));
@@ -333,7 +333,7 @@ impl OrderManagementEngine {
         quantity_shipped: &str,
     ) -> AtlasResult<SalesOrderLine> {
         let line = self.repository.get_order_line(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {id} not found")))?;
 
         if line.organization_id != org_id {
             return Err(AtlasError::Forbidden("Order line does not belong to your organization".to_string()));
@@ -372,9 +372,9 @@ impl OrderManagementEngine {
 
         self.repository.update_line_quantities(
             id,
-            Some(&format!("{:.4}", total_shipped)),
+            Some(&format!("{total_shipped:.4}")),
             None,
-            Some(&format!("{:.4}", backordered)),
+            Some(&format!("{backordered:.4}")),
         ).await?;
 
         // update_line_status re-reads the row, so it will have both the
@@ -386,7 +386,7 @@ impl OrderManagementEngine {
     /// Cancel an order line
     pub async fn cancel_order_line(&self, org_id: Uuid, id: Uuid, reason: Option<&str>) -> AtlasResult<SalesOrderLine> {
         let line = self.repository.get_order_line(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {id} not found")))?;
 
         if line.organization_id != org_id {
             return Err(AtlasError::Forbidden("Order line does not belong to your organization".to_string()));
@@ -405,7 +405,7 @@ impl OrderManagementEngine {
         self.repository.update_line_quantities(
             id,
             None,
-            Some(&format!("{:.4}", to_cancel)),
+            Some(&format!("{to_cancel:.4}")),
             Some("0"),
         ).await?;
 
@@ -441,12 +441,12 @@ impl OrderManagementEngine {
 
         // Verify order exists
         let _order = self.repository.get_order_by_id(order_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", order_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {order_id} not found")))?;
 
         // Verify line exists if specified
         if let Some(line_id) = order_line_id {
             let line = self.repository.get_order_line(line_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {} not found", line_id)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Order line {line_id} not found")))?;
             if line.order_id != order_id {
                 return Err(AtlasError::ValidationFailed(
                     "Order line does not belong to the specified order".to_string(),
@@ -471,7 +471,7 @@ impl OrderManagementEngine {
         released_by_name: Option<&str>,
     ) -> AtlasResult<OrderHold> {
         let hold = self.repository.get_hold(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hold {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hold {id} not found")))?;
 
         if hold.organization_id != org_id {
             return Err(AtlasError::Forbidden("Hold does not belong to your organization".to_string()));
@@ -542,7 +542,7 @@ impl OrderManagementEngine {
 
         // Verify order exists and is in processable state
         let order = self.repository.get_order_by_id(order_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {} not found", order_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Order {order_id} not found")))?;
 
         if order.status != "confirmed" && order.status != "processing" && order.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -604,7 +604,7 @@ impl OrderManagementEngine {
         ship_date: chrono::NaiveDate,
     ) -> AtlasResult<FulfillmentShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {id} not found")))?;
 
         if shipment.organization_id != org_id {
             return Err(AtlasError::Forbidden("Shipment does not belong to your organization".to_string()));
@@ -645,7 +645,7 @@ impl OrderManagementEngine {
         estimated_delivery: Option<chrono::NaiveDate>,
     ) -> AtlasResult<FulfillmentShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {id} not found")))?;
 
         if shipment.organization_id != org_id {
             return Err(AtlasError::Forbidden("Shipment does not belong to your organization".to_string()));
@@ -670,7 +670,7 @@ impl OrderManagementEngine {
         delivery_confirmation: Option<&str>,
     ) -> AtlasResult<FulfillmentShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {id} not found")))?;
 
         if shipment.organization_id != org_id {
             return Err(AtlasError::Forbidden("Shipment does not belong to your organization".to_string()));

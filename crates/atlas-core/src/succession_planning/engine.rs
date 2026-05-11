@@ -80,7 +80,7 @@ impl SuccessionPlanningEngine {
         validate_enum("urgency", urgency, VALID_URGENCIES)?;
 
         if self.repository.get_succession_plan_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Succession plan '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Succession plan '{code_upper}' already exists")));
         }
 
         info!("Creating succession plan '{}' for org {}", code_upper, org_id);
@@ -118,11 +118,11 @@ impl SuccessionPlanningEngine {
         validate_enum("status", status, VALID_PLAN_STATUSES)?;
 
         let plan = self.repository.get_succession_plan(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Succession plan {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Succession plan {id} not found")))?;
 
         // Validate status transitions
         match (plan.status.as_str(), status) {
-            ("draft", "active") | ("active", "completed") | ("active", "cancelled") | ("draft", "cancelled") => {}
+            ("draft", "active" | "cancelled") | ("active", "completed" | "cancelled") => {}
             _ => return Err(AtlasError::ValidationFailed(format!(
                 "Cannot transition plan from '{}' to '{}'", plan.status, status
             ))),
@@ -174,7 +174,7 @@ impl SuccessionPlanningEngine {
 
         // Verify plan exists and is not cancelled
         let plan = self.repository.get_succession_plan(plan_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Succession plan {} not found", plan_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Succession plan {plan_id} not found")))?;
         if plan.status == "cancelled" {
             return Err(AtlasError::ValidationFailed("Cannot add candidates to a cancelled plan".to_string()));
         }
@@ -205,7 +205,7 @@ impl SuccessionPlanningEngine {
     pub async fn update_candidate_status(&self, id: Uuid, status: &str) -> AtlasResult<SuccessionCandidate> {
         validate_enum("status", status, VALID_CANDIDATE_STATUSES)?;
         let _candidate = self.repository.get_succession_candidate(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {id} not found")))?;
         info!("Updating candidate {} status to {}", id, status);
         self.repository.update_candidate_status(id, status).await
     }
@@ -214,7 +214,7 @@ impl SuccessionPlanningEngine {
     pub async fn update_candidate_readiness(&self, id: Uuid, readiness: &str) -> AtlasResult<SuccessionCandidate> {
         validate_enum("readiness", readiness, VALID_READINESS_LEVELS)?;
         let _candidate = self.repository.get_succession_candidate(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {id} not found")))?;
         info!("Updating candidate {} readiness to {}", id, readiness);
         self.repository.update_candidate_readiness(id, readiness).await
     }
@@ -254,7 +254,7 @@ impl SuccessionPlanningEngine {
         }
 
         if self.repository.get_talent_pool_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Talent pool '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Talent pool '{code_upper}' already exists")));
         }
 
         info!("Creating talent pool '{}' for org {}", code_upper, org_id);
@@ -289,7 +289,7 @@ impl SuccessionPlanningEngine {
     pub async fn update_talent_pool_status(&self, id: Uuid, status: &str) -> AtlasResult<TalentPool> {
         validate_enum("status", status, VALID_POOL_STATUSES)?;
         let pool = self.repository.get_talent_pool(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent pool {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent pool {id} not found")))?;
 
         match (pool.status.as_str(), status) {
             ("draft", "active") | ("active", "archived") => {}
@@ -332,7 +332,7 @@ impl SuccessionPlanningEngine {
         validate_enum("readiness", readiness, VALID_READINESS_LEVELS)?;
 
         let pool = self.repository.get_talent_pool(pool_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent pool {} not found", pool_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent pool {pool_id} not found")))?;
         if pool.status != "active" {
             return Err(AtlasError::ValidationFailed("Cannot add members to a non-active pool".to_string()));
         }
@@ -346,7 +346,7 @@ impl SuccessionPlanningEngine {
             let active_count = current_members.iter().filter(|m| m.status == "active").count() as i32;
             if active_count >= max {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Talent pool has reached max members ({})", max
+                    "Talent pool has reached max members ({max})"
                 )));
             }
         }
@@ -373,7 +373,7 @@ impl SuccessionPlanningEngine {
     pub async fn update_pool_member_status(&self, id: Uuid, status: &str) -> AtlasResult<TalentPoolMember> {
         validate_enum("status", status, VALID_MEMBER_STATUSES)?;
         let _member = self.repository.get_talent_pool_member(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool member {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool member {id} not found")))?;
         info!("Updating pool member {} status to {}", id, status);
         self.repository.update_pool_member_status(id, status).await
     }
@@ -409,7 +409,7 @@ impl SuccessionPlanningEngine {
         validate_enum("review_type", review_type, VALID_REVIEW_TYPES)?;
 
         if self.repository.get_talent_review_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Talent review '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Talent review '{code_upper}' already exists")));
         }
 
         info!("Creating talent review '{}' for org {}", code_upper, org_id);
@@ -444,13 +444,11 @@ impl SuccessionPlanningEngine {
     pub async fn update_talent_review_status(&self, id: Uuid, status: &str) -> AtlasResult<TalentReview> {
         validate_enum("status", status, VALID_REVIEW_STATUSES)?;
         let review = self.repository.get_talent_review(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent review {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent review {id} not found")))?;
 
         match (review.status.as_str(), status) {
-            ("scheduled", "in_progress") |
-            ("in_progress", "completed") |
-            ("scheduled", "cancelled") |
-            ("in_progress", "cancelled") => {}
+            ("scheduled", "in_progress" | "cancelled") |
+("in_progress", "completed" | "cancelled") => {}
             _ => return Err(AtlasError::ValidationFailed(format!(
                 "Cannot transition review from '{}' to '{}'", review.status, status
             ))),
@@ -498,7 +496,7 @@ impl SuccessionPlanningEngine {
 
         // Verify review exists and is in_progress
         let review = self.repository.get_talent_review(review_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent review {} not found", review_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent review {review_id} not found")))?;
         if review.status != "in_progress" {
             return Err(AtlasError::ValidationFailed(
                 "Assessments can only be added to reviews in progress".to_string(),
@@ -570,7 +568,7 @@ impl SuccessionPlanningEngine {
         }
 
         if self.repository.get_career_path_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Career path '{}' already exists", code_upper)));
+            return Err(AtlasError::Conflict(format!("Career path '{code_upper}' already exists")));
         }
 
         info!("Creating career path '{}' for org {}", code_upper, org_id);
@@ -607,7 +605,7 @@ impl SuccessionPlanningEngine {
     pub async fn update_career_path_status(&self, id: Uuid, status: &str) -> AtlasResult<CareerPath> {
         validate_enum("status", status, VALID_PATH_STATUSES)?;
         let path = self.repository.get_career_path(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Career path {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Career path {id} not found")))?;
 
         match (path.status.as_str(), status) {
             ("draft", "active") | ("active", "archived") => {}

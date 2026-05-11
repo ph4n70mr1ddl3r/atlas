@@ -339,7 +339,8 @@ pub struct PostgresDunningLetterManagementRepository {
 }
 
 impl PostgresDunningLetterManagementRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self { Self { pool } }
 }
 
 #[async_trait]

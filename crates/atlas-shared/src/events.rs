@@ -22,6 +22,7 @@ pub struct AtlasEvent {
 }
 
 impl AtlasEvent {
+    #[must_use] 
     pub fn new(source_service: &str, payload: EventPayload) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -33,13 +34,14 @@ impl AtlasEvent {
         }
     }
     
-    pub fn with_org(mut self, org_id: OrganizationId) -> Self {
+    #[must_use] 
+    pub const fn with_org(mut self, org_id: OrganizationId) -> Self {
         self.organization_id = Some(org_id);
         self
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum EventType {
     // Schema events
@@ -139,29 +141,30 @@ pub enum EventPayload {
 }
 
 impl EventPayload {
-    pub fn event_type(&self) -> EventType {
+    #[must_use] 
+    pub const fn event_type(&self) -> EventType {
         match self {
-            EventPayload::EntityCreated(_) => EventType::EntityCreated,
-            EventPayload::EntityUpdated(_) => EventType::EntityUpdated,
-            EventPayload::FieldCreated(_) => EventType::FieldCreated,
-            EventPayload::FieldUpdated(_) => EventType::FieldUpdated,
-            EventPayload::RecordCreated(_) => EventType::RecordCreated,
-            EventPayload::RecordUpdated(_) => EventType::RecordUpdated,
-            EventPayload::RecordDeleted(_) => EventType::RecordDeleted,
-            EventPayload::WorkflowTransition(_) => EventType::WorkflowTransition,
-            EventPayload::ApprovalRequested(_) => EventType::ApprovalRequested,
-            EventPayload::ApprovalStepCompleted(_) => EventType::ApprovalStepCompleted,
-            EventPayload::ApprovalDelegated(_) => EventType::ApprovalDelegated,
-            EventPayload::ApprovalEscalated(_) => EventType::ApprovalEscalated,
-            EventPayload::NotificationCreated(_) => EventType::NotificationCreated,
-            EventPayload::DuplicateDetected(_) => EventType::DuplicateDetected,
-            EventPayload::ImportCompleted(_) => EventType::ImportCompleted,
-            EventPayload::ImportFailed(_) => EventType::ImportFailed,
-            EventPayload::ConfigChanged(_) => EventType::ConfigChanged,
-            EventPayload::UserLoggedIn(_) => EventType::UserLoggedIn,
-            EventPayload::UserLoggedOut(_) => EventType::UserLoggedOut,
-            EventPayload::ServiceStarted(_) => EventType::ServiceStarted,
-            EventPayload::HealthCheck(_) => EventType::HealthCheck,
+            Self::EntityCreated(_) => EventType::EntityCreated,
+            Self::EntityUpdated(_) => EventType::EntityUpdated,
+            Self::FieldCreated(_) => EventType::FieldCreated,
+            Self::FieldUpdated(_) => EventType::FieldUpdated,
+            Self::RecordCreated(_) => EventType::RecordCreated,
+            Self::RecordUpdated(_) => EventType::RecordUpdated,
+            Self::RecordDeleted(_) => EventType::RecordDeleted,
+            Self::WorkflowTransition(_) => EventType::WorkflowTransition,
+            Self::ApprovalRequested(_) => EventType::ApprovalRequested,
+            Self::ApprovalStepCompleted(_) => EventType::ApprovalStepCompleted,
+            Self::ApprovalDelegated(_) => EventType::ApprovalDelegated,
+            Self::ApprovalEscalated(_) => EventType::ApprovalEscalated,
+            Self::NotificationCreated(_) => EventType::NotificationCreated,
+            Self::DuplicateDetected(_) => EventType::DuplicateDetected,
+            Self::ImportCompleted(_) => EventType::ImportCompleted,
+            Self::ImportFailed(_) => EventType::ImportFailed,
+            Self::ConfigChanged(_) => EventType::ConfigChanged,
+            Self::UserLoggedIn(_) => EventType::UserLoggedIn,
+            Self::UserLoggedOut(_) => EventType::UserLoggedOut,
+            Self::ServiceStarted(_) => EventType::ServiceStarted,
+            Self::HealthCheck(_) => EventType::HealthCheck,
         }
     }
 }
@@ -342,7 +345,7 @@ pub struct ImportEventPayload {
     pub errors: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum HealthStatus {
     Healthy,
@@ -370,61 +373,74 @@ pub mod subjects {
     pub const SCHEMA_CHANGED: &str = "atlas.schema.changed";
     
     /// Organization-scoped subjects
+    #[must_use] 
     pub fn org_events(org_id: &str) -> String {
-        format!("atlas.org.{}.events", org_id)
+        format!("atlas.org.{org_id}.events")
     }
     
     /// Entity-specific subjects
+    #[must_use] 
     pub fn entity_created(entity: &str) -> String {
-        format!("atlas.entity.{}.created", entity)
+        format!("atlas.entity.{entity}.created")
     }
     
+    #[must_use] 
     pub fn entity_updated(entity: &str) -> String {
-        format!("atlas.entity.{}.updated", entity)
+        format!("atlas.entity.{entity}.updated")
     }
     
+    #[must_use] 
     pub fn entity_deleted(entity: &str) -> String {
-        format!("atlas.entity.{}.deleted", entity)
+        format!("atlas.entity.{entity}.deleted")
     }
     
     /// Workflow subjects
+    #[must_use] 
     pub fn workflow_transition(entity: &str) -> String {
-        format!("atlas.workflow.{}.transition", entity)
+        format!("atlas.workflow.{entity}.transition")
     }
     
     /// Audit subjects
+    #[must_use] 
     pub fn audit_log() -> String {
         "atlas.audit".to_string()
     }
     
     /// Approval subjects
+    #[must_use] 
     pub fn approval_requested() -> String {
         "atlas.approval.requested".to_string()
     }
     
+    #[must_use] 
     pub fn approval_completed() -> String {
         "atlas.approval.completed".to_string()
     }
     
+    #[must_use] 
     pub fn approval_delegated() -> String {
         "atlas.approval.delegated".to_string()
     }
     
+    #[must_use] 
     pub fn approval_escalated() -> String {
         "atlas.approval.escalated".to_string()
     }
     
     /// Notification subjects
+    #[must_use] 
     pub fn notification_created() -> String {
         "atlas.notification.created".to_string()
     }
     
     /// Import status
+    #[must_use] 
     pub fn import_status() -> String {
         "atlas.import.status".to_string()
     }
     
     /// Duplicate detection
+    #[must_use] 
     pub fn duplicate_detected() -> String {
         "atlas.duplicate.detected".to_string()
     }

@@ -152,7 +152,7 @@ impl CurrencyEngine {
         // Compute inverse rate
         let inverse = 1.0 / rate_value;
         // Format to 10 decimal places to preserve precision
-        let inverse_str = format!("{:.10}", inverse);
+        let inverse_str = format!("{inverse:.10}");
 
         info!(
             "Setting exchange rate {} -> {} = {} (type: {}, date: {})",
@@ -380,15 +380,14 @@ impl CurrencyEngine {
         let rate = self.get_latest_rate(org_id, &from_upper, &to_upper, rate_type, effective_date)
             .await?
             .ok_or_else(|| AtlasError::ValidationFailed(format!(
-                "No exchange rate found for {} -> {} (type: {}) on or before {}",
-                from_upper, to_upper, rate_type, effective_date
+                "No exchange rate found for {from_upper} -> {to_upper} (type: {rate_type}) on or before {effective_date}"
             )))?;
 
         let rate_value: f64 = rate.rate.parse()
             .map_err(|_| AtlasError::Internal("Invalid rate stored in database".to_string()))?;
 
         let to_amount = amount_value * rate_value;
-        let to_amount_str = format!("{:.2}", to_amount);
+        let to_amount_str = format!("{to_amount:.2}");
 
         // Record the conversion
         self.repository.record_conversion(
@@ -487,7 +486,7 @@ impl CurrencyEngine {
             currency: currency_upper,
             original_amount: original_amount.to_string(),
             original_rate: original_rate.to_string(),
-            revalued_amount: format!("{:.2}", revalued_base),
+            revalued_amount: format!("{revalued_base:.2}"),
             current_rate: current_rate.rate,
             gain_loss_amount: format!("{:.2}", gain_loss.abs()),
             gain_loss_type: gain_loss_type.to_string(),
@@ -586,7 +585,7 @@ impl CurrencyEngine {
 
                 // Cross rate: from -> to = from -> base * base -> to
                 let cross_rate = rate1 * rate2;
-                let cross_rate_str = format!("{:.10}", cross_rate);
+                let cross_rate_str = format!("{cross_rate:.10}");
 
                 info!(
                     "Triangulated rate {} -> {} via {}: {} ({} * {})",
@@ -631,7 +630,7 @@ impl CurrencyEngine {
                         // from -> base = 1/(base -> from), then base -> to = 1/(to -> base)
                         // cross = (1/rate1_inv) * (1/rate2_inv)
                         let cross_rate = (1.0 / rate1_inv) * (1.0 / rate2_inv);
-                        let cross_rate_str = format!("{:.10}", cross_rate);
+                        let cross_rate_str = format!("{cross_rate:.10}");
 
                         Ok(Some(ExchangeRate {
                             id: Uuid::nil(),

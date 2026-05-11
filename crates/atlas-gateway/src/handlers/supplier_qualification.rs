@@ -328,7 +328,7 @@ pub async fn list_invitations(
     }
 }
 
-/// Submit supplier response (transition invitation to pending_response)
+/// Submit supplier response (transition invitation to `pending_response`)
 pub async fn submit_invitation_response(
     State(state): State<Arc<AppState>>,
     Extension(_claims): Extension<Claims>,

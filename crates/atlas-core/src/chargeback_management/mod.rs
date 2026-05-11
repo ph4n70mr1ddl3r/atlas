@@ -2,7 +2,7 @@
 //!
 //! Oracle Fusion Cloud ERP-inspired Chargeback Management.
 //! Manages customer-initiated payment deductions with full lifecycle:
-//! open → under_review → accepted → rejected → written_off
+//! open → `under_review` → accepted → rejected → `written_off`
 //!
 //! Oracle Fusion equivalent: Financials > Receivables > Chargebacks
 

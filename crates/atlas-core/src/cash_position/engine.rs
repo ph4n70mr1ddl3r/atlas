@@ -8,7 +8,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Treasury > Cash Position
 
-use super::*;
+use super::{CashPositionRepository, AtlasResult, CashPosition, AtlasError, CashPositionSummary, CashPositionDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -64,8 +64,7 @@ impl CashPositionEngine {
         let expected_closing = opening + inflows - outflows;
         if (closing - expected_closing).abs() > 0.01 {
             return Err(AtlasError::ValidationFailed(
-                format!("Closing balance {} doesn't match opening({}) + inflows({}) - outflows({}) = {}",
-                    closing, opening, inflows, outflows, expected_closing)
+                format!("Closing balance {closing} doesn't match opening({opening}) + inflows({inflows}) - outflows({outflows}) = {expected_closing}")
             ));
         }
 
@@ -130,7 +129,7 @@ impl CashPositionEngine {
 
         if currency_positions.is_empty() {
             return Err(AtlasError::ValidationFailed(
-                format!("No positions found for currency {}", currency_code)
+                format!("No positions found for currency {currency_code}")
             ));
         }
 
@@ -162,13 +161,13 @@ impl CashPositionEngine {
 
         self.repository.create_summary(
             org_id, currency_code, position_date,
-            &format!("{:.2}", total_opening),
-            &format!("{:.2}", total_inflows),
-            &format!("{:.2}", total_outflows),
-            &format!("{:.2}", total_closing),
-            &format!("{:.2}", total_ledger),
-            &format!("{:.2}", total_available),
-            &format!("{:.2}", total_hold),
+            &format!("{total_opening:.2}"),
+            &format!("{total_inflows:.2}"),
+            &format!("{total_outflows:.2}"),
+            &format!("{total_closing:.2}"),
+            &format!("{total_ledger:.2}"),
+            &format!("{total_available:.2}"),
+            &format!("{total_hold:.2}"),
             currency_positions.len() as i32,
             serde_json::json!(accounts),
         ).await

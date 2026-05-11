@@ -4,10 +4,9 @@ use super::{ConfigValue, ConfigChange, ConfigWatcher, ConfigWatcherRegistry};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use once_cell::sync::Lazy;
 
 /// Global config registry
-pub static CONFIG_REGISTRY: Lazy<Arc<ConfigEngine>> = Lazy::new(|| {
+pub static CONFIG_REGISTRY: std::sync::LazyLock<Arc<ConfigEngine>> = std::sync::LazyLock::new(|| {
     Arc::new(ConfigEngine::new())
 });
 
@@ -18,6 +17,7 @@ pub struct ConfigEngine {
 }
 
 impl ConfigEngine {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             values: RwLock::new(HashMap::new()),
@@ -26,7 +26,7 @@ impl ConfigEngine {
     }
     
     /// Get global config engine
-    pub fn global() -> Arc<ConfigEngine> {
+    pub fn global() -> Arc<Self> {
         CONFIG_REGISTRY.clone()
     }
     

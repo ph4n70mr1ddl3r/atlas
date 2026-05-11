@@ -1,6 +1,6 @@
 //! Marketing Campaign Repository
 //!
-//! PostgreSQL storage for marketing campaign data.
+//! `PostgreSQL` storage for marketing campaign data.
 
 use atlas_shared::{
     CampaignType, MarketingCampaign, CampaignMember, CampaignResponse,
@@ -102,20 +102,21 @@ pub trait MarketingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<MarketingDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresMarketingRepository {
     pool: PgPool,
 }
 
 impl PostgresMarketingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    format!("{v:.2}")
 }
 
 use sqlx::Row;
@@ -234,8 +235,8 @@ impl MarketingRepository for PostgresMarketingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CampaignType> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.campaign_types (organization_id, code, name, description, channel, created_by)
-               VALUES ($1, $2, $3, $4, $5, $6) RETURNING *"#,
+            r"INSERT INTO _atlas.campaign_types (organization_id, code, name, description, channel, created_by)
+               VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(channel).bind(created_by)
         .fetch_one(&self.pool).await
@@ -295,14 +296,14 @@ impl MarketingRepository for PostgresMarketingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<MarketingCampaign> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.marketing_campaigns
+            r"INSERT INTO _atlas.marketing_campaigns
                 (organization_id, campaign_number, name, description,
                  campaign_type_id, campaign_type_name, channel, budget, currency_code,
                  start_date, end_date, owner_id, owner_name,
                  expected_responses, expected_revenue,
                  parent_campaign_id, parent_campaign_name, tags, notes, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id).bind(campaign_number).bind(name).bind(description)
         .bind(campaign_type_id).bind(campaign_type_name).bind(channel)
@@ -363,9 +364,9 @@ impl MarketingRepository for PostgresMarketingRepository {
 
     async fn activate_campaign(&self, id: Uuid) -> AtlasResult<MarketingCampaign> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.marketing_campaigns
+            r"UPDATE _atlas.marketing_campaigns
                SET status = 'active', activated_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -374,9 +375,9 @@ impl MarketingRepository for PostgresMarketingRepository {
 
     async fn complete_campaign(&self, id: Uuid) -> AtlasResult<MarketingCampaign> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.marketing_campaigns
+            r"UPDATE _atlas.marketing_campaigns
                SET status = 'completed', completed_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -385,9 +386,9 @@ impl MarketingRepository for PostgresMarketingRepository {
 
     async fn cancel_campaign(&self, id: Uuid) -> AtlasResult<MarketingCampaign> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.marketing_campaigns
+            r"UPDATE _atlas.marketing_campaigns
                SET status = 'cancelled', cancelled_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -396,11 +397,11 @@ impl MarketingRepository for PostgresMarketingRepository {
 
     async fn update_campaign_actuals(&self, id: Uuid, actual_cost: &str, actual_responses: i32, actual_revenue: &str, converted_leads: i32, converted_opportunities: i32, converted_won: i32) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.marketing_campaigns
+            r"UPDATE _atlas.marketing_campaigns
                SET actual_cost = $2, actual_responses = $3, actual_revenue = $4,
                    converted_leads = $5, converted_opportunities = $6, converted_won = $7,
                    updated_at = now()
-               WHERE id = $1"#,
+               WHERE id = $1",
         )
         .bind(id)
         .bind(actual_cost.parse::<f64>().unwrap_or(0.0))
@@ -434,9 +435,9 @@ impl MarketingRepository for PostgresMarketingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CampaignMember> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.campaign_members
+            r"INSERT INTO _atlas.campaign_members
                 (organization_id, campaign_id, contact_id, contact_name, contact_email, lead_id, lead_number, created_by)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *"#,
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
         )
         .bind(org_id).bind(campaign_id).bind(contact_id).bind(contact_name)
         .bind(contact_email).bind(lead_id).bind(lead_number).bind(created_by)
@@ -468,15 +469,15 @@ impl MarketingRepository for PostgresMarketingRepository {
     async fn update_member_status(&self, id: Uuid, status: &str, response: Option<&str>) -> AtlasResult<CampaignMember> {
         let row = if response.is_some() {
             sqlx::query(
-                r#"UPDATE _atlas.campaign_members
+                r"UPDATE _atlas.campaign_members
                    SET status = $2, response = $3, responded_at = now(), updated_at = now()
-                   WHERE id = $1 RETURNING *"#,
+                   WHERE id = $1 RETURNING *",
             ).bind(id).bind(status).bind(response).fetch_one(&self.pool).await
         } else {
             sqlx::query(
-                r#"UPDATE _atlas.campaign_members
+                r"UPDATE _atlas.campaign_members
                    SET status = $2, updated_at = now()
-                   WHERE id = $1 RETURNING *"#,
+                   WHERE id = $1 RETURNING *",
             ).bind(id).bind(status).fetch_one(&self.pool).await
         }.map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_member(&row))
@@ -507,11 +508,11 @@ impl MarketingRepository for PostgresMarketingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CampaignResponse> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.campaign_responses
+            r"INSERT INTO _atlas.campaign_responses
                 (organization_id, campaign_id, member_id, response_type,
                  contact_id, contact_name, contact_email, lead_id,
                  description, value, currency_code, source_url, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *",
         )
         .bind(org_id).bind(campaign_id).bind(member_id).bind(response_type)
         .bind(contact_id).bind(contact_name).bind(contact_email).bind(lead_id)
@@ -545,7 +546,7 @@ impl MarketingRepository for PostgresMarketingRepository {
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<MarketingDashboard> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active,
                 COUNT(*) FILTER (WHERE status = 'completed') as completed,
@@ -555,7 +556,7 @@ impl MarketingRepository for PostgresMarketingRepository {
                 COALESCE(SUM(actual_revenue), 0) as actual_rev,
                 COALESCE(SUM(actual_responses), 0) as total_responses,
                 COALESCE(SUM(converted_leads), 0) as total_leads
-               FROM _atlas.marketing_campaigns WHERE organization_id = $1"#,
+               FROM _atlas.marketing_campaigns WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -570,9 +571,9 @@ impl MarketingRepository for PostgresMarketingRepository {
 
         // By status
         let status_rows = sqlx::query(
-            r#"SELECT status, COUNT(*) as cnt, COALESCE(SUM(budget), 0) as total_budget
+            r"SELECT status, COUNT(*) as cnt, COALESCE(SUM(budget), 0) as total_budget
                FROM _atlas.marketing_campaigns WHERE organization_id = $1
-               GROUP BY status ORDER BY status"#,
+               GROUP BY status ORDER BY status",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -587,9 +588,9 @@ impl MarketingRepository for PostgresMarketingRepository {
 
         // By channel
         let channel_rows = sqlx::query(
-            r#"SELECT channel, COUNT(*) as cnt, COALESCE(SUM(budget), 0) as total_budget
+            r"SELECT channel, COUNT(*) as cnt, COALESCE(SUM(budget), 0) as total_budget
                FROM _atlas.marketing_campaigns WHERE organization_id = $1
-               GROUP BY channel ORDER BY total_budget DESC"#,
+               GROUP BY channel ORDER BY total_budget DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -604,9 +605,9 @@ impl MarketingRepository for PostgresMarketingRepository {
 
         // Top campaigns by actual_revenue
         let top_rows = sqlx::query(
-            r#"SELECT campaign_number, name, actual_revenue as actual_revenue, actual_cost as actual_cost, actual_responses
+            r"SELECT campaign_number, name, actual_revenue as actual_revenue, actual_cost as actual_cost, actual_responses
                FROM _atlas.marketing_campaigns WHERE organization_id = $1 AND status IN ('active', 'completed')
-               ORDER BY actual_revenue DESC LIMIT 5"#,
+               ORDER BY actual_revenue DESC LIMIT 5",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -626,12 +627,12 @@ impl MarketingRepository for PostgresMarketingRepository {
             active_campaigns: row.get::<i64, _>("active") as i32,
             completed_campaigns: row.get::<i64, _>("completed") as i32,
             total_budget: format!("{:.2}", row.try_get::<f64, _>("total_budget").unwrap_or(0.0)),
-            total_actual_cost: format!("{:.2}", total_cost),
+            total_actual_cost: format!("{total_cost:.2}"),
             total_expected_revenue: format!("{:.2}", row.try_get::<f64, _>("expected_rev").unwrap_or(0.0)),
-            total_actual_revenue: format!("{:.2}", actual_rev),
+            total_actual_revenue: format!("{actual_rev:.2}"),
             total_responses: row.get::<i64, _>("total_responses") as i32,
             total_converted_leads: row.get::<i64, _>("total_leads") as i32,
-            overall_roi: format!("{:.1}", roi),
+            overall_roi: format!("{roi:.1}"),
             campaigns_by_status: by_status,
             campaigns_by_channel: by_channel,
             top_campaigns,

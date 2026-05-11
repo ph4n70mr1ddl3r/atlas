@@ -1,6 +1,6 @@
 //! Manufacturing Repository
 //!
-//! PostgreSQL storage for work definitions, work orders, operations, and materials.
+//! `PostgreSQL` storage for work definitions, work orders, operations, and materials.
 
 use atlas_shared::{
     WorkDefinition, WorkDefinitionComponent, WorkDefinitionOperation,
@@ -155,13 +155,14 @@ pub trait ManufacturingRepository: Send + Sync {
     async fn get_manufacturing_dashboard(&self, org_id: Uuid) -> AtlasResult<ManufacturingDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresManufacturingRepository {
     pool: PgPool,
 }
 
 impl PostgresManufacturingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -385,14 +386,14 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WorkDefinition> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.work_definitions
+            r"INSERT INTO _atlas.work_definitions
                 (organization_id, definition_number, description,
                  item_id, item_code, item_description,
                  production_type, planning_type, standard_lot_size,
                  unit_of_measure, lead_time_days, cost_type, standard_cost,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10,$11,$12,$13::numeric,$14,$15,$16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(definition_number).bind(description)
         .bind(item_id).bind(item_code).bind(item_description)
@@ -427,9 +428,9 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
 
     async fn list_work_definitions(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WorkDefinition>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.work_definitions
+            r"SELECT * FROM _atlas.work_definitions
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -472,7 +473,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<WorkDefinitionComponent> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.work_definition_components
+            r"INSERT INTO _atlas.work_definition_components
                 (organization_id, work_definition_id, line_number,
                  component_item_id, component_item_code, component_item_description,
                  quantity_required, unit_of_measure,
@@ -480,7 +481,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
                  supply_type, supply_subinventory, wip_supply_type,
                  operation_sequence, effective_from, effective_to)
             VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8,$9,$10::numeric,$11::numeric,$12,$13,$14,$15,$16,$17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(work_definition_id).bind(line_number)
         .bind(component_item_id).bind(component_item_code).bind(component_item_description)
@@ -531,7 +532,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         count_point_type: &str, yield_percent: &str, scrap_percent: &str,
     ) -> AtlasResult<WorkDefinitionOperation> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.work_definition_operations
+            r"INSERT INTO _atlas.work_definition_operations
                 (organization_id, work_definition_id, operation_sequence,
                  operation_name, operation_description,
                  work_center_code, work_center_name, department_code,
@@ -542,7 +543,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
                  yield_percent, scrap_percent)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10::numeric,$11,$12::numeric,
                     $13,$14,$15,$16::numeric,$17::numeric,$18::numeric,$19,$20,$21,$22::numeric,$23::numeric)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(work_definition_id).bind(operation_sequence)
         .bind(operation_name).bind(operation_description)
@@ -599,7 +600,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WorkOrder> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.work_orders
+            r"INSERT INTO _atlas.work_orders
                 (organization_id, work_order_number, description,
                  work_definition_id, item_id, item_code, item_description,
                  quantity_ordered, unit_of_measure,
@@ -611,7 +612,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
                  firm_planned, company_id, plant_code, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9,$10,$11,$12,$13,$14,$15,$16,
                     $17,$18::numeric,$19::numeric,$20::numeric,$21::numeric,$22,$23,$24,$25,$26,$27)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(work_order_number).bind(description)
         .bind(work_definition_id).bind(item_id).bind(item_code).bind(item_description)
@@ -650,9 +651,9 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
 
     async fn list_work_orders(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WorkOrder>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.work_orders
+            r"SELECT * FROM _atlas.work_orders
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -663,7 +664,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
 
     async fn update_work_order_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkOrder> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_orders SET status=$2,
+            r"UPDATE _atlas.work_orders SET status=$2,
                 submitted_at=CASE WHEN $2='draft' AND submitted_at IS NULL THEN now() ELSE submitted_at END,
                 released_at=CASE WHEN $2='released' AND released_at IS NULL THEN now() ELSE released_at END,
                 started_at=CASE WHEN $2='started' AND started_at IS NULL THEN now() ELSE started_at END,
@@ -671,7 +672,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
                 closed_at=CASE WHEN $2='closed' AND closed_at IS NULL THEN now() ELSE closed_at END,
                 cancelled_at=CASE WHEN $2='cancelled' AND cancelled_at IS NULL THEN now() ELSE cancelled_at END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -686,11 +687,11 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         quantity_scrapped: Option<&str>,
     ) -> AtlasResult<WorkOrder> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_orders SET
+            r"UPDATE _atlas.work_orders SET
                 quantity_completed = CASE WHEN $2::numeric IS NOT NULL THEN $2::numeric ELSE quantity_completed END,
                 quantity_scrapped = CASE WHEN $3::numeric IS NOT NULL THEN $3::numeric ELSE quantity_scrapped END,
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(quantity_completed).bind(quantity_scrapped)
         .fetch_one(&self.pool).await
@@ -707,13 +708,13 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         actual_total_cost: Option<&str>,
     ) -> AtlasResult<WorkOrder> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_orders SET
+            r"UPDATE _atlas.work_orders SET
                 actual_material_cost = CASE WHEN $2::numeric IS NOT NULL THEN $2::numeric ELSE actual_material_cost END,
                 actual_labor_cost = CASE WHEN $3::numeric IS NOT NULL THEN $3::numeric ELSE actual_labor_cost END,
                 actual_overhead_cost = CASE WHEN $4::numeric IS NOT NULL THEN $4::numeric ELSE actual_overhead_cost END,
                 actual_total_cost = CASE WHEN $5::numeric IS NOT NULL THEN $5::numeric ELSE actual_total_cost END,
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(actual_material_cost).bind(actual_labor_cost)
         .bind(actual_overhead_cost).bind(actual_total_cost)
@@ -729,11 +730,11 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         actual_completion_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<WorkOrder> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_orders SET
+            r"UPDATE _atlas.work_orders SET
                 actual_start_date = COALESCE($2, actual_start_date),
                 actual_completion_date = COALESCE($3, actual_completion_date),
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(actual_start_date).bind(actual_completion_date)
         .fetch_one(&self.pool).await
@@ -765,12 +766,12 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         resource_code: Option<&str>, resource_type: &str,
     ) -> AtlasResult<WorkOrderOperation> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.work_order_operations
+            r"INSERT INTO _atlas.work_order_operations
                 (organization_id, work_order_id, operation_sequence,
                  operation_name, work_center_code, work_center_name, department_code,
                  quantity_in_queue, resource_code, resource_type)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9,$10)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(work_order_id).bind(operation_sequence)
         .bind(operation_name).bind(work_center_code).bind(work_center_name).bind(department_code)
@@ -803,11 +804,11 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
 
     async fn update_work_order_operation_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkOrderOperation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_order_operations SET status=$2,
+            r"UPDATE _atlas.work_order_operations SET status=$2,
                 actual_start_date=CASE WHEN $2='running' AND actual_start_date IS NULL THEN now()::date ELSE actual_start_date END,
                 actual_completion_date=CASE WHEN $2='completed' AND actual_completion_date IS NULL THEN now()::date ELSE actual_completion_date END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -823,12 +824,12 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         quantity_rejected: Option<&str>,
     ) -> AtlasResult<WorkOrderOperation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_order_operations SET
+            r"UPDATE _atlas.work_order_operations SET
                 quantity_completed = CASE WHEN $2::numeric IS NOT NULL THEN $2::numeric ELSE quantity_completed END,
                 quantity_scrapped = CASE WHEN $3::numeric IS NOT NULL THEN $3::numeric ELSE quantity_scrapped END,
                 quantity_rejected = CASE WHEN $4::numeric IS NOT NULL THEN $4::numeric ELSE quantity_rejected END,
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(quantity_completed).bind(quantity_scrapped).bind(quantity_rejected)
         .fetch_one(&self.pool).await
@@ -843,11 +844,11 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         actual_run_hours: Option<&str>,
     ) -> AtlasResult<WorkOrderOperation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_order_operations SET
+            r"UPDATE _atlas.work_order_operations SET
                 actual_setup_hours = CASE WHEN $2::numeric IS NOT NULL THEN $2::numeric ELSE actual_setup_hours END,
                 actual_run_hours = CASE WHEN $3::numeric IS NOT NULL THEN $3::numeric ELSE actual_run_hours END,
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(actual_setup_hours).bind(actual_run_hours)
         .fetch_one(&self.pool).await
@@ -863,12 +864,12 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         actual_machine_cost: Option<&str>,
     ) -> AtlasResult<WorkOrderOperation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_order_operations SET
+            r"UPDATE _atlas.work_order_operations SET
                 actual_labor_cost = CASE WHEN $2::numeric IS NOT NULL THEN $2::numeric ELSE actual_labor_cost END,
                 actual_overhead_cost = CASE WHEN $3::numeric IS NOT NULL THEN $3::numeric ELSE actual_overhead_cost END,
                 actual_machine_cost = CASE WHEN $4::numeric IS NOT NULL THEN $4::numeric ELSE actual_machine_cost END,
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(actual_labor_cost).bind(actual_overhead_cost).bind(actual_machine_cost)
         .fetch_one(&self.pool).await
@@ -883,11 +884,11 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         actual_completion_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<WorkOrderOperation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_order_operations SET
+            r"UPDATE _atlas.work_order_operations SET
                 actual_start_date = COALESCE($2, actual_start_date),
                 actual_completion_date = COALESCE($3, actual_completion_date),
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(actual_start_date).bind(actual_completion_date)
         .fetch_one(&self.pool).await
@@ -909,13 +910,13 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         wip_supply_type: &str,
     ) -> AtlasResult<WorkOrderMaterial> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.work_order_materials
+            r"INSERT INTO _atlas.work_order_materials
                 (organization_id, work_order_id, operation_sequence,
                  component_item_id, component_item_code, component_item_description,
                  quantity_required, unit_of_measure,
                  supply_type, supply_subinventory, wip_supply_type)
             VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8,$9,$10,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(work_order_id).bind(operation_sequence)
         .bind(component_item_id).bind(component_item_code).bind(component_item_description)
@@ -949,14 +950,14 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
 
     async fn update_work_order_material_issue(&self, id: Uuid, quantity_issued: &str) -> AtlasResult<WorkOrderMaterial> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_order_materials SET
+            r"UPDATE _atlas.work_order_materials SET
                 quantity_issued = quantity_issued + $2::numeric,
                 status = CASE
                     WHEN quantity_issued + $2::numeric >= quantity_required THEN 'fully_issued'
                     ELSE 'partially_issued'
                 END,
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(quantity_issued)
         .fetch_one(&self.pool).await
@@ -967,10 +968,10 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
 
     async fn update_work_order_material_return(&self, id: Uuid, quantity_returned: &str) -> AtlasResult<WorkOrderMaterial> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_order_materials SET
+            r"UPDATE _atlas.work_order_materials SET
                 quantity_returned = quantity_returned + $2::numeric,
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(quantity_returned)
         .fetch_one(&self.pool).await
@@ -996,7 +997,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
 
     async fn get_manufacturing_dashboard(&self, org_id: Uuid) -> AtlasResult<ManufacturingDashboard> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 (SELECT COUNT(*) FROM _atlas.work_orders WHERE organization_id=$1) as total_work_orders,
                 (SELECT COUNT(*) FROM _atlas.work_orders WHERE organization_id=$1 AND status IN ('draft','released')) as open_work_orders,
                 (SELECT COUNT(*) FROM _atlas.work_orders WHERE organization_id=$1 AND status='started') as in_progress_work_orders,
@@ -1006,7 +1007,7 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
                 (SELECT COUNT(*) FROM _atlas.work_definitions WHERE organization_id=$1 AND status='active') as active_definitions,
                 (SELECT COUNT(*) FROM _atlas.work_orders WHERE organization_id=$1 AND due_date < now()::date AND status NOT IN ('completed','closed','cancelled')) as overdue_orders,
                 (SELECT COALESCE(SUM(estimated_total_cost),0) FROM _atlas.work_orders WHERE organization_id=$1 AND status != 'cancelled') as total_estimated_cost,
-                (SELECT COALESCE(SUM(actual_total_cost),0) FROM _atlas.work_orders WHERE organization_id=$1 AND status IN ('completed','closed')) as total_actual_cost"#,
+                (SELECT COALESCE(SUM(actual_total_cost),0) FROM _atlas.work_orders WHERE organization_id=$1 AND status IN ('completed','closed')) as total_actual_cost",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -1057,11 +1058,11 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
             overdue_orders: overdue_orders as i32,
             total_estimated_cost: total_estimated_cost.to_string(),
             total_actual_cost: total_actual_cost.to_string(),
-            cost_variance_pct: format!("{:.1}", cost_variance),
+            cost_variance_pct: format!("{cost_variance:.1}"),
             orders_by_status: serde_json::json!({}),
             orders_by_priority: serde_json::json!({}),
-            completion_rate_pct: format!("{:.1}", completion_rate),
-            on_time_completion_pct: format!("{:.1}", on_time_pct),
+            completion_rate_pct: format!("{completion_rate:.1}"),
+            on_time_completion_pct: format!("{on_time_pct:.1}"),
         })
     }
 }

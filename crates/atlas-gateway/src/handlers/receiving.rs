@@ -216,7 +216,7 @@ pub async fn add_receipt_line(
         payload.received_qty.as_deref().unwrap_or("0"),
         payload.received_uom.as_deref(),
         payload.lot_number.as_deref(),
-        payload.serial_numbers.as_ref().cloned().unwrap_or(serde_json::json!([])),
+        payload.serial_numbers.clone().unwrap_or(serde_json::json!([])),
         payload.expiration_date, payload.manufacture_date,
         payload.unit_price.as_deref(), payload.currency.as_deref(),
         payload.notes.as_deref(), user_id,

@@ -114,7 +114,7 @@ impl CostAccountingEngine {
         }
         // Check uniqueness
         if self.repository.get_cost_book_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Cost book '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Cost book '{code}' already exists")));
         }
         info!("Creating cost book '{}' ({}) for org {}", name, code, org_id);
         self.repository.create_cost_book(
@@ -138,7 +138,7 @@ impl CostAccountingEngine {
         if let Some(cm) = costing_method {
             if !VALID_COSTING_METHODS.contains(&cm) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid costing method '{}'", cm
+                    "Invalid costing method '{cm}'"
                 )));
             }
         }
@@ -156,12 +156,12 @@ impl CostAccountingEngine {
         effective_to: Option<chrono::NaiveDate>,
     ) -> atlas_shared::AtlasResult<atlas_shared::CostBook> {
         let existing = self.repository.get_cost_book(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {id} not found")))?;
 
         if let Some(cm) = costing_method {
             if !VALID_COSTING_METHODS.contains(&cm) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid costing method '{}'", cm
+                    "Invalid costing method '{cm}'"
                 )));
             }
         }
@@ -186,7 +186,7 @@ impl CostAccountingEngine {
     /// Deactivate a cost book
     pub async fn deactivate_cost_book(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::CostBook> {
         let book = self.repository.get_cost_book(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {id} not found")))?;
         if !book.is_active {
             return Err(AtlasError::ValidationFailed("Cost book is already inactive".to_string()));
         }
@@ -197,7 +197,7 @@ impl CostAccountingEngine {
     /// Activate a cost book
     pub async fn activate_cost_book(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::CostBook> {
         let book = self.repository.get_cost_book(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {id} not found")))?;
         if book.is_active {
             return Err(AtlasError::ValidationFailed("Cost book is already active".to_string()));
         }
@@ -208,7 +208,7 @@ impl CostAccountingEngine {
     /// Delete a cost book
     pub async fn delete_cost_book(&self, id: Uuid) -> atlas_shared::AtlasResult<()> {
         let book = self.repository.get_cost_book(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {id} not found")))?;
         info!("Deleting cost book {} ({})", book.code, id);
         self.repository.delete_cost_book(id).await
     }
@@ -254,10 +254,10 @@ impl CostAccountingEngine {
         }
         if let Some(cb_id) = cost_book_id {
             self.repository.get_cost_book(cb_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", cb_id)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {cb_id} not found")))?;
         }
         if self.repository.get_cost_element_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Cost element '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Cost element '{code}' already exists")));
         }
         info!("Creating cost element '{}' ({}) for org {}", name, code, org_id);
         self.repository.create_cost_element(
@@ -281,7 +281,7 @@ impl CostAccountingEngine {
         if let Some(et) = element_type {
             if !VALID_ELEMENT_TYPES.contains(&et) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid element type '{}'", et
+                    "Invalid element type '{et}'"
                 )));
             }
         }
@@ -310,7 +310,7 @@ impl CostAccountingEngine {
     /// Delete a cost element
     pub async fn delete_cost_element(&self, id: Uuid) -> atlas_shared::AtlasResult<()> {
         self.repository.get_cost_element(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost element {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost element {id} not found")))?;
         self.repository.delete_cost_element(id).await
     }
 
@@ -359,11 +359,11 @@ impl CostAccountingEngine {
         }
         // Verify cost book exists
         self.repository.get_cost_book(cost_book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", cost_book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {cost_book_id} not found")))?;
 
         // Check uniqueness
         if self.repository.get_cost_profile_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Cost profile '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Cost profile '{code}' already exists")));
         }
 
         info!("Creating cost profile '{}' for org {}", name, org_id);
@@ -392,7 +392,7 @@ impl CostAccountingEngine {
     /// Delete a cost profile
     pub async fn delete_cost_profile(&self, id: Uuid) -> atlas_shared::AtlasResult<()> {
         self.repository.get_cost_profile(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost profile {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost profile {id} not found")))?;
         self.repository.delete_cost_profile(id).await
     }
 
@@ -416,10 +416,10 @@ impl CostAccountingEngine {
     ) -> atlas_shared::AtlasResult<atlas_shared::StandardCost> {
         // Verify cost book
         self.repository.get_cost_book(cost_book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", cost_book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {cost_book_id} not found")))?;
         // Verify cost element
         self.repository.get_cost_element(cost_element_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost element {} not found", cost_element_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost element {cost_element_id} not found")))?;
 
         let cost: f64 = standard_cost.parse().map_err(|_| {
             AtlasError::ValidationFailed("Standard cost must be a valid number".to_string())
@@ -459,7 +459,7 @@ impl CostAccountingEngine {
             return Err(AtlasError::ValidationFailed("Standard cost cannot be negative".to_string()));
         }
         self.repository.get_standard_cost(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Standard cost {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Standard cost {id} not found")))?;
         info!("Updating standard cost {} to {}", id, standard_cost);
         self.repository.update_standard_cost(id, standard_cost).await
     }
@@ -467,7 +467,7 @@ impl CostAccountingEngine {
     /// Supersede a standard cost (mark as replaced)
     pub async fn supersede_standard_cost(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::StandardCost> {
         let sc = self.repository.get_standard_cost(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Standard cost {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Standard cost {id} not found")))?;
         if sc.status != "active" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot supersede standard cost in '{}' status. Must be 'active'.", sc.status)
@@ -480,7 +480,7 @@ impl CostAccountingEngine {
     /// Delete a standard cost (only pending)
     pub async fn delete_standard_cost(&self, id: Uuid) -> atlas_shared::AtlasResult<()> {
         let sc = self.repository.get_standard_cost(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Standard cost {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Standard cost {id} not found")))?;
         if sc.status != "pending" {
             return Err(AtlasError::ValidationFailed(
                 "Can only delete standard costs in 'pending' status".to_string(),
@@ -507,7 +507,7 @@ impl CostAccountingEngine {
     ) -> atlas_shared::AtlasResult<atlas_shared::CostAdjustment> {
         // Verify cost book
         self.repository.get_cost_book(cost_book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", cost_book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {cost_book_id} not found")))?;
 
         if !VALID_ADJUSTMENT_TYPES.contains(&adjustment_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -545,12 +545,12 @@ impl CostAccountingEngine {
     ) -> atlas_shared::AtlasResult<Vec<atlas_shared::CostAdjustment>> {
         if let Some(s) = status {
             if !VALID_ADJUSTMENT_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'")));
             }
         }
         if let Some(at) = adjustment_type {
             if !VALID_ADJUSTMENT_TYPES.contains(&at) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid adjustment type '{}'", at)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid adjustment type '{at}'")));
             }
         }
         self.repository.list_cost_adjustments(org_id, status, adjustment_type).await
@@ -559,7 +559,7 @@ impl CostAccountingEngine {
     /// Submit a cost adjustment for approval
     pub async fn submit_adjustment(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::CostAdjustment> {
         let adj = self.repository.get_cost_adjustment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {id} not found")))?;
         if adj.status != "draft" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot submit adjustment in '{}' status. Must be 'draft'.", adj.status)
@@ -576,7 +576,7 @@ impl CostAccountingEngine {
         approved_by: Uuid,
     ) -> atlas_shared::AtlasResult<atlas_shared::CostAdjustment> {
         let adj = self.repository.get_cost_adjustment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {id} not found")))?;
         if adj.status != "submitted" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot approve adjustment in '{}' status. Must be 'submitted'.", adj.status)
@@ -587,7 +587,7 @@ impl CostAccountingEngine {
         let total: f64 = lines.iter().map(|l| l.adjustment_amount.parse::<f64>().unwrap_or(0.0)).sum();
         info!("Approving cost adjustment {} with total {}", adj.adjustment_number, total);
         self.repository.update_adjustment_status(
-            id, "approved", Some(approved_by), None, Some(&format!("{:.6}", total)),
+            id, "approved", Some(approved_by), None, Some(&format!("{total:.6}")),
         ).await
     }
 
@@ -599,7 +599,7 @@ impl CostAccountingEngine {
         reason: &str,
     ) -> atlas_shared::AtlasResult<atlas_shared::CostAdjustment> {
         let adj = self.repository.get_cost_adjustment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {id} not found")))?;
         if adj.status != "submitted" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot reject adjustment in '{}' status. Must be 'submitted'.", adj.status)
@@ -619,7 +619,7 @@ impl CostAccountingEngine {
         posted_by: Uuid,
     ) -> atlas_shared::AtlasResult<atlas_shared::CostAdjustment> {
         let adj = self.repository.get_cost_adjustment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {id} not found")))?;
         if adj.status != "approved" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot post adjustment in '{}' status. Must be 'approved'.", adj.status)
@@ -632,7 +632,7 @@ impl CostAccountingEngine {
     /// Delete a cost adjustment (only in draft)
     pub async fn delete_cost_adjustment(&self, id: Uuid) -> atlas_shared::AtlasResult<()> {
         let adj = self.repository.get_cost_adjustment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {id} not found")))?;
         if adj.status != "draft" {
             return Err(AtlasError::ValidationFailed(
                 "Can only delete adjustments in 'draft' status".to_string(),
@@ -660,7 +660,7 @@ impl CostAccountingEngine {
         effective_date: Option<chrono::NaiveDate>,
     ) -> atlas_shared::AtlasResult<atlas_shared::CostAdjustmentLine> {
         let adj = self.repository.get_cost_adjustment(adjustment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {} not found", adjustment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost adjustment {adjustment_id} not found")))?;
         if adj.status != "draft" {
             return Err(AtlasError::ValidationFailed(
                 "Can only add lines to adjustments in 'draft' status".to_string(),
@@ -685,7 +685,7 @@ impl CostAccountingEngine {
         info!("Adding adjustment line {} for item {} ({} -> {})", line_number, item_id, old_cost, new_cost);
         self.repository.create_adjustment_line(
             org_id, adjustment_id, line_number, item_id, item_name,
-            cost_element_id, old_cost, new_cost, &format!("{:.6}", adj_amount),
+            cost_element_id, old_cost, new_cost, &format!("{adj_amount:.6}"),
             currency_code, effective_date,
         ).await
     }
@@ -729,7 +729,7 @@ impl CostAccountingEngine {
     ) -> atlas_shared::AtlasResult<atlas_shared::CostVariance> {
         // Verify cost book
         self.repository.get_cost_book(cost_book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {} not found", cost_book_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost book {cost_book_id} not found")))?;
 
         if !VALID_VARIANCE_TYPES.contains(&variance_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -771,8 +771,8 @@ impl CostAccountingEngine {
             org_id, cost_book_id, variance_type, variance_date,
             item_id, item_name, cost_element_id, source_type, source_id, source_number,
             standard_cost, actual_cost,
-            &format!("{:.6}", variance_amount),
-            &format!("{:.4}", variance_percent),
+            &format!("{variance_amount:.6}"),
+            &format!("{variance_percent:.4}"),
             quantity, currency_code, accounting_period, created_by,
         ).await
     }
@@ -792,7 +792,7 @@ impl CostAccountingEngine {
     ) -> atlas_shared::AtlasResult<Vec<atlas_shared::CostVariance>> {
         if let Some(vt) = variance_type {
             if !VALID_VARIANCE_TYPES.contains(&vt) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid variance type '{}'", vt)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid variance type '{vt}'")));
             }
         }
         self.repository.list_cost_variances(org_id, variance_type, item_id, cost_book_id).await
@@ -805,7 +805,7 @@ impl CostAccountingEngine {
         notes: &str,
     ) -> atlas_shared::AtlasResult<atlas_shared::CostVariance> {
         let v = self.repository.get_cost_variance(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost variance {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cost variance {id} not found")))?;
         if v.is_analyzed {
             return Err(AtlasError::ValidationFailed("Variance is already analyzed".to_string()));
         }

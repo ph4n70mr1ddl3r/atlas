@@ -134,7 +134,7 @@ impl ExpenseEngine {
         let category_id = if let Some(cc) = category_code {
             let cat = self.get_category(org_id, cc).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Expense category '{}' not found", cc)
+                    format!("Expense category '{cc}' not found")
                 ))?;
             Some(cat.id)
         } else {
@@ -164,7 +164,7 @@ impl ExpenseEngine {
         let category_id = if let Some(cc) = category_code {
             let cat = self.get_category(org_id, cc).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Expense category '{}' not found", cc)
+                    format!("Expense category '{cc}' not found")
                 ))?;
             Some(cat.id)
         } else {
@@ -266,7 +266,7 @@ impl ExpenseEngine {
     pub async fn submit_report(&self, report_id: Uuid) -> AtlasResult<ExpenseReport> {
         let report = self.repository.get_report(report_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {} not found", report_id)
+                format!("Expense report {report_id} not found")
             ))?;
 
         if report.status != "draft" {
@@ -295,7 +295,7 @@ impl ExpenseEngine {
     ) -> AtlasResult<ExpenseReport> {
         let report = self.repository.get_report(report_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {} not found", report_id)
+                format!("Expense report {report_id} not found")
             ))?;
 
         if report.status != "submitted" {
@@ -317,7 +317,7 @@ impl ExpenseEngine {
     ) -> AtlasResult<ExpenseReport> {
         let report = self.repository.get_report(report_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {} not found", report_id)
+                format!("Expense report {report_id} not found")
             ))?;
 
         if report.status != "submitted" {
@@ -337,7 +337,7 @@ impl ExpenseEngine {
     ) -> AtlasResult<ExpenseReport> {
         let report = self.repository.get_report(report_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {} not found", report_id)
+                format!("Expense report {report_id} not found")
             ))?;
 
         if report.status != "approved" {
@@ -356,7 +356,7 @@ impl ExpenseEngine {
     pub async fn cancel_report(&self, report_id: Uuid) -> AtlasResult<ExpenseReport> {
         let report = self.repository.get_report(report_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {} not found", report_id)
+                format!("Expense report {report_id} not found")
             ))?;
 
         if report.status != "draft" {
@@ -404,7 +404,7 @@ impl ExpenseEngine {
         // Validate report exists and is in draft status
         let report = self.repository.get_report(report_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {} not found", report_id)
+                format!("Expense report {report_id} not found")
             ))?;
 
         if report.status != "draft" {
@@ -438,7 +438,7 @@ impl ExpenseEngine {
         if let Some(cc) = category_code {
             let cat = self.get_category(org_id, cc).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Expense category '{}' not found", cc)
+                    format!("Expense category '{cc}' not found")
                 ))?;
             category_id = Some(cat.id);
             category_name = Some(cat.name);
@@ -481,7 +481,7 @@ impl ExpenseEngine {
             org_id, report_id, line_number,
             category_id, category_name.as_deref(), &resolved_expense_type,
             description, expense_date,
-            &format!("{:.2}", resolved_amount),
+            &format!("{resolved_amount:.2}"),
             original_currency, original_amount, exchange_rate,
             is_reimb,
             has_receipt.unwrap_or(false), receipt_reference,
@@ -503,7 +503,7 @@ impl ExpenseEngine {
     pub async fn delete_line(&self, report_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
         let report = self.repository.get_report(report_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {} not found", report_id)
+                format!("Expense report {report_id} not found")
             ))?;
 
         if report.status != "draft" {
@@ -612,9 +612,9 @@ impl ExpenseEngine {
 
         self.repository.update_report_totals(
             report_id,
-            &format!("{:.2}", total),
-            &format!("{:.2}", reimbursable),
-            &format!("{:.2}", receipt_required),
+            &format!("{total:.2}"),
+            &format!("{reimbursable:.2}"),
+            &format!("{receipt_required:.2}"),
             receipt_count,
         ).await?;
 

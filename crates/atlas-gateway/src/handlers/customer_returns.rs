@@ -38,7 +38,7 @@ pub struct CreateReturnReasonRequest {
     pub credit_issued_automatically: bool,
 }
 
-fn default_true() -> bool { true }
+const fn default_true() -> bool { true }
 
 pub async fn create_return_reason(
     State(state): State<Arc<AppState>>,

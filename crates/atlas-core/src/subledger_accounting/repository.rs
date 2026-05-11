@@ -1,6 +1,6 @@
 //! Subledger Accounting Repository
 //!
-//! PostgreSQL storage for accounting methods, derivation rules,
+//! `PostgreSQL` storage for accounting methods, derivation rules,
 //! subledger journal entries, journal lines, SLA events, and GL transfer logs.
 
 use atlas_shared::{
@@ -238,13 +238,14 @@ pub trait SubledgerAccountingRepository: Send + Sync {
     async fn count_entries_by_status(&self, org_id: Uuid) -> AtlasResult<serde_json::Value>;
 }
 
-/// PostgreSQL implementation of the Subledger Accounting repository
+/// `PostgreSQL` implementation of the Subledger Accounting repository
 pub struct PostgresSubledgerAccountingRepository {
     pool: PgPool,
 }
 
 impl PostgresSubledgerAccountingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -455,13 +456,13 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingMethod> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.accounting_methods
+            r"INSERT INTO _atlas.accounting_methods
                 (organization_id, code, name, description, application, transaction_type,
                  event_class, auto_accounting, allow_manual_entries, apply_rounding,
                  rounding_account_code, rounding_threshold, require_balancing,
                  intercompany_balancing_account, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(application).bind(transaction_type).bind(event_class)
@@ -547,13 +548,13 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingDerivationRule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.accounting_derivation_rules
+            r"INSERT INTO _atlas.accounting_derivation_rules
                 (organization_id, accounting_method_id, code, name, description,
                  line_type, priority, conditions, source_field, derivation_type,
                  fixed_account_code, account_derivation_lookup, formula_expression,
                  sequence, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(accounting_method_id).bind(code).bind(name).bind(description)
         .bind(line_type).bind(priority).bind(&conditions).bind(source_field)
@@ -592,12 +593,12 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn list_active_derivation_rules(&self, org_id: Uuid, method_id: Uuid, line_type: &str) -> AtlasResult<Vec<AccountingDerivationRule>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.accounting_derivation_rules
+            r"SELECT * FROM _atlas.accounting_derivation_rules
             WHERE organization_id = $1 AND accounting_method_id = $2 AND line_type = $3
               AND is_active = true
               AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
               AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-            ORDER BY priority ASC, sequence ASC"#
+            ORDER BY priority ASC, sequence ASC"
         )
         .bind(org_id).bind(method_id).bind(line_type)
         .fetch_all(&self.pool)
@@ -639,7 +640,7 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SubledgerJournalEntry> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.subledger_journal_entries
+            r"INSERT INTO _atlas.subledger_journal_entries
                 (organization_id, source_application, source_transaction_type,
                  source_transaction_id, source_transaction_number, accounting_method_id,
                  entry_number, description, reference_number,
@@ -652,7 +653,7 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                  created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
                     $17, $18, $19, $20, $21, $22, $23, 'pending', false, $24)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(source_application).bind(source_transaction_type)
         .bind(source_transaction_id).bind(source_transaction_number).bind(accounting_method_id)
@@ -708,23 +709,23 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         let mut param_idx = 2;
 
         if status.is_some() {
-            query.push_str(&format!(" AND status = ${}", param_idx));
+            query.push_str(&format!(" AND status = ${param_idx}"));
             param_idx += 1;
         }
         if source_application.is_some() {
-            query.push_str(&format!(" AND source_application = ${}", param_idx));
+            query.push_str(&format!(" AND source_application = ${param_idx}"));
             param_idx += 1;
         }
         if source_transaction_type.is_some() {
-            query.push_str(&format!(" AND source_transaction_type = ${}", param_idx));
+            query.push_str(&format!(" AND source_transaction_type = ${param_idx}"));
             param_idx += 1;
         }
         if accounting_date_from.is_some() {
-            query.push_str(&format!(" AND accounting_date >= ${}", param_idx));
+            query.push_str(&format!(" AND accounting_date >= ${param_idx}"));
             param_idx += 1;
         }
         if accounting_date_to.is_some() {
-            query.push_str(&format!(" AND accounting_date <= ${}", param_idx));
+            query.push_str(&format!(" AND accounting_date <= ${param_idx}"));
             // param_idx incremented for potential future filters
         }
         query.push_str(" ORDER BY accounting_date DESC, created_at DESC");
@@ -749,12 +750,12 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         is_balanced: Option<bool>, posted_by: Option<Uuid>, accounted_by: Option<Uuid>,
     ) -> AtlasResult<SubledgerJournalEntry> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.subledger_journal_entries
+            r"UPDATE _atlas.subledger_journal_entries
             SET status = $1, error_message = $2, is_balanced = COALESCE($3, is_balanced),
                 posted_by = COALESCE($4, posted_by), accounted_by = COALESCE($5, accounted_by),
                 updated_at = now()
             WHERE id = $6
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(status).bind(error_message).bind(is_balanced)
         .bind(posted_by).bind(accounted_by).bind(id)
@@ -771,12 +772,12 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         entered_debit: &str, entered_credit: &str, is_balanced: bool,
     ) -> AtlasResult<SubledgerJournalEntry> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.subledger_journal_entries
+            r"UPDATE _atlas.subledger_journal_entries
             SET total_debit = $1, total_credit = $2,
                 entered_debit = $3, entered_credit = $4,
                 is_balanced = $5, updated_at = now()
             WHERE id = $6
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(total_debit.parse::<f64>().unwrap_or(0.0)).bind(total_credit.parse::<f64>().unwrap_or(0.0)).bind(entered_debit.parse::<f64>().unwrap_or(0.0)).bind(entered_credit.parse::<f64>().unwrap_or(0.0))
         .bind(is_balanced).bind(id)
@@ -805,7 +806,7 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         tax_code: Option<&str>, tax_rate: Option<&str>, tax_amount: Option<&str>,
     ) -> AtlasResult<SubledgerJournalLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.subledger_journal_lines
+            r"INSERT INTO _atlas.subledger_journal_lines
                 (organization_id, journal_entry_id, line_number, line_type,
                  account_code, account_description, derivation_rule_id,
                  entered_amount, accounted_amount,
@@ -815,7 +816,7 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                  tax_code, tax_rate, tax_amount)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
                     $19, $20, $21, $22, $23)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(journal_entry_id).bind(line_number).bind(line_type)
         .bind(account_code).bind(account_description).bind(derivation_rule_id)
@@ -868,13 +869,13 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         processed_by: Option<Uuid>,
     ) -> AtlasResult<SlaEvent> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.sla_events
+            r"INSERT INTO _atlas.sla_events
                 (organization_id, event_number, event_type,
                  source_application, source_transaction_type, source_transaction_id,
                  journal_entry_id, event_date, event_status, description,
                  error_message, processed_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(event_number).bind(event_type)
         .bind(source_application).bind(source_transaction_type).bind(source_transaction_id)
@@ -897,11 +898,11 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         let mut param_idx = 2;
 
         if source_application.is_some() {
-            query.push_str(&format!(" AND source_application = ${}", param_idx));
+            query.push_str(&format!(" AND source_application = ${param_idx}"));
             param_idx += 1;
         }
         if event_type.is_some() {
-            query.push_str(&format!(" AND event_type = ${}", param_idx));
+            query.push_str(&format!(" AND event_type = ${param_idx}"));
             // param_idx incremented for potential future filters
         }
         query.push_str(" ORDER BY event_date DESC, created_at DESC");
@@ -929,12 +930,12 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         entries: serde_json::Value,
     ) -> AtlasResult<GlTransferLog> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.gl_transfer_log
+            r"INSERT INTO _atlas.gl_transfer_log
                 (organization_id, transfer_number, from_period, status,
                  total_entries, total_debit, total_credit,
                  included_applications, transferred_by, entries)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(transfer_number).bind(from_period).bind(status)
         .bind(total_entries).bind(total_debit.parse::<f64>().unwrap_or(0.0)).bind(total_credit.parse::<f64>().unwrap_or(0.0))
@@ -952,10 +953,10 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         completed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<GlTransferLog> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.gl_transfer_log
+            r"UPDATE _atlas.gl_transfer_log
             SET status = $1, error_message = $2, completed_at = $3, updated_at = now()
             WHERE id = $4
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(status).bind(error_message).bind(completed_at).bind(id)
         .fetch_one(&self.pool)
@@ -1003,10 +1004,10 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn count_entries_by_status(&self, org_id: Uuid) -> AtlasResult<serde_json::Value> {
         let rows = sqlx::query(
-            r#"SELECT status, COUNT(*) as count, SUM(total_debit) as total_debit, SUM(total_credit) as total_credit
+            r"SELECT status, COUNT(*) as count, SUM(total_debit) as total_debit, SUM(total_credit) as total_credit
             FROM _atlas.subledger_journal_entries
             WHERE organization_id = $1
-            GROUP BY status"#
+            GROUP BY status"
         )
         .bind(org_id)
         .fetch_all(&self.pool)
@@ -1027,10 +1028,10 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         }).collect();
 
         let app_rows = sqlx::query(
-            r#"SELECT source_application, COUNT(*) as count
+            r"SELECT source_application, COUNT(*) as count
             FROM _atlas.subledger_journal_entries
             WHERE organization_id = $1
-            GROUP BY source_application"#
+            GROUP BY source_application"
         )
         .bind(org_id)
         .fetch_all(&self.pool)

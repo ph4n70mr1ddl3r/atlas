@@ -1,6 +1,6 @@
 //! Encumbrance Repository
 //!
-//! PostgreSQL storage for encumbrance types, entries, lines,
+//! `PostgreSQL` storage for encumbrance types, entries, lines,
 //! liquidations, and carry-forward processing.
 
 use atlas_shared::{
@@ -186,13 +186,14 @@ pub trait EncumbranceRepository: Send + Sync {
     ) -> AtlasResult<EncumbranceCarryForward>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresEncumbranceRepository {
     pool: PgPool,
 }
 
 impl PostgresEncumbranceRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -349,7 +350,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EncumbranceType> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.encumbrance_types
                 (organization_id, code, name, description, category,
                  allow_manual_entry, default_encumbrance_account_code,
@@ -362,7 +363,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
                     allow_carry_forward = $8, priority = $9,
                     is_enabled = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(category)
         .bind(allow_manual_entry).bind(default_encumbrance_account_code)
@@ -442,7 +443,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EncumbranceEntry> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.encumbrance_entries
                 (organization_id, entry_number, encumbrance_type_id, encumbrance_type_code,
                  source_type, source_id, source_number, description,
@@ -452,7 +453,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
                     $10::numeric, $11::numeric, $12, $13, $14, $15, $16, $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(entry_number).bind(encumbrance_type_id).bind(encumbrance_type_code)
         .bind(source_type).bind(source_id).bind(source_number).bind(description)
@@ -495,7 +496,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         fiscal_year: Option<i32>,
     ) -> AtlasResult<Vec<EncumbranceEntry>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.encumbrance_entries
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
@@ -503,7 +504,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
               AND ($4::text IS NULL OR source_type = $4)
               AND ($5::int IS NULL OR fiscal_year = $5)
             ORDER BY encumbrance_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(encumbrance_type_code).bind(source_type).bind(fiscal_year)
         .fetch_all(&self.pool)
@@ -521,13 +522,13 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         status: &str,
     ) -> AtlasResult<EncumbranceEntry> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.encumbrance_entries
             SET current_amount = $2::numeric, liquidated_amount = $3::numeric,
                 adjusted_amount = $4::numeric, status = $5, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(current_amount).bind(liquidated_amount).bind(adjusted_amount).bind(status)
         .fetch_one(&self.pool)
@@ -545,7 +546,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         cancellation_reason: Option<&str>,
     ) -> AtlasResult<EncumbranceEntry> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.encumbrance_entries
             SET status = $2,
                 approved_by = CASE WHEN $2 = 'active' THEN $3 ELSE approved_by END,
@@ -555,7 +556,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(cancelled_by).bind(cancellation_reason)
         .fetch_one(&self.pool)
@@ -587,7 +588,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EncumbranceLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.encumbrance_lines
                 (organization_id, entry_id, line_number, account_code, account_description,
                  department_id, department_name, project_id, project_name, cost_center,
@@ -596,7 +597,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11::numeric, $12::numeric, $13, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(entry_id).bind(line_number).bind(account_code).bind(account_description)
         .bind(department_id).bind(department_name).bind(project_id).bind(project_name).bind(cost_center)
@@ -636,13 +637,13 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         liquidated_amount: &str,
     ) -> AtlasResult<EncumbranceLine> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.encumbrance_lines
             SET current_amount = $2::numeric, liquidated_amount = $3::numeric,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(current_amount).bind(liquidated_amount)
         .fetch_one(&self.pool)
@@ -680,7 +681,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EncumbranceLiquidation> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.encumbrance_liquidations
                 (organization_id, liquidation_number, encumbrance_entry_id,
                  encumbrance_line_id, liquidation_type, liquidation_amount,
@@ -688,7 +689,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
                  liquidation_date, created_by)
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8, $9, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(liquidation_number).bind(encumbrance_entry_id)
         .bind(encumbrance_line_id).bind(liquidation_type).bind(liquidation_amount)
@@ -717,13 +718,13 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         status: Option<&str>,
     ) -> AtlasResult<Vec<EncumbranceLiquidation>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.encumbrance_liquidations
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR encumbrance_entry_id = $2)
               AND ($3::text IS NULL OR status = $3)
             ORDER BY liquidation_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(entry_id).bind(status)
         .fetch_all(&self.pool)
@@ -740,13 +741,13 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         reversal_reason: Option<&str>,
     ) -> AtlasResult<EncumbranceLiquidation> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.encumbrance_liquidations
             SET status = $2, reversed_by_id = $3, reversal_reason = $4,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(reversed_by_id).bind(reversal_reason)
         .fetch_one(&self.pool)
@@ -769,13 +770,13 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EncumbranceCarryForward> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.encumbrance_carry_forwards
                 (organization_id, batch_number, from_fiscal_year, to_fiscal_year,
                  description, created_by)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(batch_number).bind(from_fiscal_year).bind(to_fiscal_year)
         .bind(description).bind(created_by)
@@ -815,7 +816,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         processed_by: Option<Uuid>,
     ) -> AtlasResult<EncumbranceCarryForward> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.encumbrance_carry_forwards
             SET status = $2, entry_count = $3, total_amount = $4::numeric,
                 processed_by = $5,
@@ -823,7 +824,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(entry_count).bind(total_amount).bind(processed_by)
         .fetch_one(&self.pool)

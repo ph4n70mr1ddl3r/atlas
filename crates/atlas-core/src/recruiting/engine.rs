@@ -137,7 +137,7 @@ impl RecruitingEngine {
             )));
         }
         if self.repository.get_requisition_by_number(org_id, requisition_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Requisition '{}' already exists", requisition_number)));
+            return Err(AtlasError::Conflict(format!("Requisition '{requisition_number}' already exists")));
         }
         info!("Creating requisition '{}' for org {}", requisition_number, org_id);
         self.repository.create_requisition(
@@ -174,7 +174,7 @@ impl RecruitingEngine {
     /// Open a requisition for applications
     pub async fn open_requisition(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::JobRequisition> {
         let req = self.repository.get_requisition(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
         if req.status != "draft" && req.status != "on_hold" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot open requisition in '{}' status. Must be 'draft' or 'on_hold'.", req.status
@@ -187,7 +187,7 @@ impl RecruitingEngine {
     /// Put a requisition on hold
     pub async fn hold_requisition(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::JobRequisition> {
         let req = self.repository.get_requisition(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
         if req.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot hold requisition in '{}' status. Must be 'open'.", req.status
@@ -200,7 +200,7 @@ impl RecruitingEngine {
     /// Close a requisition
     pub async fn close_requisition(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::JobRequisition> {
         let req = self.repository.get_requisition(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
         if req.status == "closed" || req.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
                 "Requisition is already '{}'.", req.status
@@ -213,7 +213,7 @@ impl RecruitingEngine {
     /// Cancel a requisition
     pub async fn cancel_requisition(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::JobRequisition> {
         let req = self.repository.get_requisition(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
         if req.status == "filled" || req.status == "cancelled" || req.status == "closed" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot cancel requisition in '{}' status.", req.status
@@ -226,7 +226,7 @@ impl RecruitingEngine {
     /// Mark a requisition as filled
     pub async fn fill_requisition(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::JobRequisition> {
         let req = self.repository.get_requisition(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {id} not found")))?;
         if req.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot fill requisition in '{}' status. Must be 'open'.", req.status
@@ -326,7 +326,7 @@ impl RecruitingEngine {
             )));
         }
         let candidate = self.repository.get_candidate(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {id} not found")))?;
         info!("Updating candidate {} {} status to {}", candidate.first_name, candidate.last_name, status);
         self.repository.update_candidate_status(id, status).await
     }
@@ -350,7 +350,7 @@ impl RecruitingEngine {
     ) -> atlas_shared::AtlasResult<atlas_shared::JobApplication> {
         // Verify requisition exists and is open
         let req = self.repository.get_requisition(requisition_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {} not found", requisition_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Requisition {requisition_id} not found")))?;
         if req.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot apply to requisition in '{}' status. Must be 'open'.", req.status
@@ -358,7 +358,7 @@ impl RecruitingEngine {
         }
         // Verify candidate exists
         let _candidate = self.repository.get_candidate(candidate_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {} not found", candidate_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {candidate_id} not found")))?;
 
         info!("Creating application for candidate {} on requisition {}", candidate_id, req.requisition_number);
         self.repository.create_application(org_id, requisition_id, candidate_id, created_by).await
@@ -400,7 +400,7 @@ impl RecruitingEngine {
             )));
         }
         let app = self.repository.get_application(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {id} not found")))?;
         info!("Updating application {} status to {}", app.application_number.as_deref().unwrap_or("N/A"), status);
 
         let result = self.repository.update_application_status(id, status, notes).await?;
@@ -420,7 +420,7 @@ impl RecruitingEngine {
     /// Withdraw an application
     pub async fn withdraw_application(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::JobApplication> {
         let app = self.repository.get_application(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {id} not found")))?;
         if app.status == "hired" || app.status == "rejected" || app.status == "withdrawn" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot withdraw application in '{}' status.", app.status
@@ -464,7 +464,7 @@ impl RecruitingEngine {
         }
         // Verify application exists
         let _app = self.repository.get_application(application_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {} not found", application_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {application_id} not found")))?;
 
         info!("Scheduling {} interview round {} for application {}", interview_type, round, application_id);
         self.repository.create_interview(
@@ -496,7 +496,7 @@ impl RecruitingEngine {
         recommendation: Option<&str>,
     ) -> atlas_shared::AtlasResult<atlas_shared::Interview> {
         let interview = self.repository.get_interview(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Interview {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Interview {id} not found")))?;
         if interview.status != "scheduled" && interview.status != "in_progress" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot complete interview in '{}' status.", interview.status
@@ -521,7 +521,7 @@ impl RecruitingEngine {
     /// Cancel an interview
     pub async fn cancel_interview(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::Interview> {
         let interview = self.repository.get_interview(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Interview {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Interview {id} not found")))?;
         if interview.status == "completed" {
             return Err(AtlasError::WorkflowError("Cannot cancel a completed interview".to_string()));
         }
@@ -569,7 +569,7 @@ impl RecruitingEngine {
         }
         // Verify application exists
         let _app = self.repository.get_application(application_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {} not found", application_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {application_id} not found")))?;
 
         info!("Creating offer for application {}", application_id);
         self.repository.create_offer(
@@ -607,7 +607,7 @@ impl RecruitingEngine {
         approved_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::JobOffer> {
         let offer = self.repository.get_offer(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {id} not found")))?;
         if offer.status != "draft" && offer.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot approve offer in '{}' status.", offer.status
@@ -620,7 +620,7 @@ impl RecruitingEngine {
     /// Extend (send) an offer to the candidate
     pub async fn extend_offer(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::JobOffer> {
         let offer = self.repository.get_offer(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {id} not found")))?;
         if offer.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot extend offer in '{}' status. Must be 'approved'.", offer.status
@@ -633,7 +633,7 @@ impl RecruitingEngine {
     /// Accept an offer
     pub async fn accept_offer(&self, id: Uuid, notes: Option<&str>) -> atlas_shared::AtlasResult<atlas_shared::JobOffer> {
         let offer = self.repository.get_offer(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {id} not found")))?;
         if offer.status != "extended" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot accept offer in '{}' status. Must be 'extended'.", offer.status
@@ -656,7 +656,7 @@ impl RecruitingEngine {
     /// Decline an offer
     pub async fn decline_offer(&self, id: Uuid, notes: Option<&str>) -> atlas_shared::AtlasResult<atlas_shared::JobOffer> {
         let offer = self.repository.get_offer(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {id} not found")))?;
         if offer.status != "extended" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot decline offer in '{}' status. Must be 'extended'.", offer.status
@@ -669,7 +669,7 @@ impl RecruitingEngine {
     /// Withdraw an offer
     pub async fn withdraw_offer(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::JobOffer> {
         let offer = self.repository.get_offer(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Offer {id} not found")))?;
         if offer.status == "accepted" || offer.status == "declined" || offer.status == "withdrawn" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot withdraw offer in '{}' status.", offer.status

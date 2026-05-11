@@ -67,7 +67,7 @@ pub enum FieldType {
     /// Computed field with formula
     Computed {
         formula: String,
-        return_type: Box<FieldType>,
+        return_type: Box<Self>,
     },
     /// File attachment
     Attachment,
@@ -91,7 +91,7 @@ pub enum FieldType {
 
 impl Default for FieldType {
     fn default() -> Self {
-        FieldType::String { max_length: None, pattern: None }
+        Self::String { max_length: None, pattern: None }
     }
 }
 
@@ -117,6 +117,7 @@ pub struct FieldDefinition {
 }
 
 impl FieldDefinition {
+    #[must_use] 
     pub fn new(name: &str, label: &str, field_type: FieldType) -> Self {
         Self {
             id: None,
@@ -212,7 +213,7 @@ pub struct EntityDefinition {
     pub metadata: serde_json::Value,
 }
 
-fn default_true() -> bool { true }
+const fn default_true() -> bool { true }
 
 /// Index definition for an entity
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -318,9 +319,10 @@ pub enum ActionDefinition {
 impl ActionDefinition {
     /// Returns a handler lookup key if this action maps to a registered handler.
     /// `InvokeAction` uses "service.action" as the key; other variants return None.
-    pub fn handler_name(&self) -> Option<&str> {
+    #[must_use] 
+    pub const fn handler_name(&self) -> Option<&str> {
         match self {
-            ActionDefinition::InvokeAction { service: _, action } => {
+            Self::InvokeAction { service: _, action } => {
                 // Return a combined key; the caller can split on '.' if needed.
                 // For now we just return the action name which is what handlers
                 // are registered under.
@@ -418,7 +420,7 @@ pub struct SortOrder {
     pub direction: SortDirection,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SortDirection {
     Asc,
@@ -836,8 +838,8 @@ pub struct AccountingCalendarRequest {
 }
 
 fn default_monthly() -> String { "monthly".to_string() }
-fn default_one() -> i32 { 1 }
-fn default_twelve() -> i32 { 12 }
+const fn default_one() -> i32 { 1 }
+const fn default_twelve() -> i32 { 12 }
 
 /// Period status within the financial close cycle
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -854,13 +856,15 @@ pub enum PeriodStatus {
 
 impl PeriodStatus {
     /// Whether posting is allowed in this period status
-    pub fn allows_posting(&self) -> bool {
-        matches!(self, PeriodStatus::Open | PeriodStatus::PendingClose)
+    #[must_use] 
+    pub const fn allows_posting(&self) -> bool {
+        matches!(self, Self::Open | Self::PendingClose)
     }
 
     /// Whether the status can be changed
-    pub fn is_changeable(&self) -> bool {
-        !matches!(self, PeriodStatus::PermanentlyClosed)
+    #[must_use] 
+    pub const fn is_changeable(&self) -> bool {
+        !matches!(self, Self::PermanentlyClosed)
     }
 }
 
@@ -1003,7 +1007,7 @@ pub struct CurrencyRequest {
     pub is_base_currency: bool,
 }
 
-fn default_precision() -> i32 { 2 }
+const fn default_precision() -> i32 { 2 }
 
 /// Exchange rate record
 /// Oracle Fusion: Daily Rates table with from/to currency and effective date
@@ -1204,7 +1208,7 @@ pub struct TaxRegimeRequest {
 
 fn default_tax_type() -> String { "vat".to_string() }
 fn default_rounding_rule() -> String { "nearest".to_string() }
-fn default_rounding_precision() -> i32 { 2 }
+const fn default_rounding_precision() -> i32 { 2 }
 
 /// Tax jurisdiction
 /// Oracle Fusion: Tax Configuration > Tax Jurisdictions
@@ -1343,7 +1347,7 @@ pub struct TaxLine {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaxCalculationRequest {
-    /// Entity type (e.g., "sales_orders", "purchase_orders")
+    /// Entity type (e.g., "`sales_orders`", "`purchase_orders`")
     pub entity_type: String,
     /// Entity ID
     pub entity_id: Option<Uuid>,
@@ -1472,7 +1476,7 @@ pub struct IntercompanyTransaction {
     pub organization_id: Uuid,
     pub batch_id: Uuid,
     pub transaction_number: String,
-    /// 'invoice', 'journal_entry', 'payment', 'charge', 'allocation'
+    /// 'invoice', '`journal_entry`', 'payment', 'charge', 'allocation'
     pub transaction_type: String,
     pub description: Option<String>,
     pub from_entity_id: Uuid,
@@ -1851,8 +1855,8 @@ pub struct MatchingRuleRequest {
     pub stop_on_match: bool,
 }
 
-fn default_priority() -> i32 { 100 }
-fn default_true_val() -> bool { true }
+const fn default_priority() -> i32 { 100 }
+const fn default_true_val() -> bool { true }
 
 /// Auto-match result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1895,11 +1899,11 @@ pub struct ExpenseCategory {
     pub receipt_threshold: Option<String>,
     /// Whether this category is eligible for per-diem
     pub is_per_diem: bool,
-    /// Default per-diem rate (if is_per_diem)
+    /// Default per-diem rate (if `is_per_diem`)
     pub default_per_diem_rate: Option<String>,
     /// Whether this category is eligible for mileage
     pub is_mileage: bool,
-    /// Default mileage rate per unit (if is_mileage)
+    /// Default mileage rate per unit (if `is_mileage`)
     pub default_mileage_rate: Option<String>,
     /// GL account code for posting
     pub expense_account_code: Option<String>,
@@ -1930,7 +1934,7 @@ pub struct ExpensePolicy {
     pub report_limit: Option<String>,
     /// Whether violations require manager approval
     pub requires_approval_on_violation: bool,
-    /// Action on violation: "warn", "block", "require_justification"
+    /// Action on violation: "warn", "block", "`require_justification`"
     pub violation_action: String,
     pub is_active: bool,
     pub effective_from: Option<chrono::NaiveDate>,
@@ -2002,7 +2006,7 @@ pub struct ExpenseLine {
     pub line_number: i32,
     pub expense_category_id: Option<Uuid>,
     pub expense_category_name: Option<String>,
-    /// 'expense', 'per_diem', 'mileage', 'credit_card'
+    /// 'expense', '`per_diem`', 'mileage', '`credit_card`'
     pub expense_type: String,
     /// Free-text description of the expense
     pub description: Option<String>,
@@ -2077,7 +2081,7 @@ pub struct ExpensePolicyViolation {
 pub struct BudgetDefinition {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Budget code (e.g., 'FY2024_OPEx', 'FY2024_CAPEx')
+    /// Budget code (e.g., '`FY2024_OPEx`', '`FY2024_CAPEx`')
     pub code: String,
     /// Display name
     pub name: String,
@@ -2086,7 +2090,7 @@ pub struct BudgetDefinition {
     pub calendar_id: Option<Uuid>,
     /// Fiscal year this budget covers
     pub fiscal_year: Option<i32>,
-    /// Budget type: 'operating', 'capital', 'project', 'cash_flow'
+    /// Budget type: 'operating', 'capital', 'project', '`cash_flow`'
     pub budget_type: String,
     /// Control level: 'none', 'advisory', 'absolute'
     pub control_level: String,
@@ -2349,7 +2353,7 @@ pub struct AssetCategory {
     pub name: String,
     pub description: Option<String>,
     /// Default depreciation method for assets in this category
-    /// 'straight_line', 'declining_balance', 'sum_of_years_digits'
+    /// '`straight_line`', '`declining_balance`', '`sum_of_years_digits`'
     pub default_depreciation_method: String,
     /// Default useful life in months
     pub default_useful_life_months: i32,
@@ -2406,7 +2410,7 @@ pub struct FixedAsset {
     pub book_code: Option<String>,
     /// Asset type: 'tangible', 'intangible', 'leased', 'cipc'
     pub asset_type: String,
-    /// Lifecycle status: 'draft', 'acquired', 'in_service', 'under_construction',
+    /// Lifecycle status: 'draft', 'acquired', '`in_service`', '`under_construction`',
     /// 'disposed', 'retired', 'transferred'
     pub status: String,
     // Financial details
@@ -2525,7 +2529,7 @@ pub struct AssetRetirement {
     pub organization_id: Uuid,
     pub retirement_number: String,
     pub asset_id: Uuid,
-    /// Retirement type: 'sale', 'scrap', 'donation', 'write_off', 'casualty'
+    /// Retirement type: 'sale', 'scrap', 'donation', '`write_off`', 'casualty'
     pub retirement_type: String,
     pub retirement_date: chrono::NaiveDate,
     // Financial details
@@ -2577,7 +2581,7 @@ pub struct CustomerCreditProfile {
     pub credit_used: String,
     /// Available credit (limit - used)
     pub credit_available: String,
-    /// Risk classification: 'low', 'medium', 'high', 'very_high', 'defaulted'
+    /// Risk classification: 'low', 'medium', 'high', '`very_high`', 'defaulted'
     pub risk_classification: String,
     /// Internal credit score (0-1000)
     pub credit_score: Option<i32>,
@@ -2675,9 +2679,9 @@ pub struct CollectionCase {
     /// Assigned collector
     pub assigned_to: Option<Uuid>,
     pub assigned_to_name: Option<String>,
-    /// 'collection', 'dispute', 'bankruptcy', 'skip_trace'
+    /// 'collection', 'dispute', 'bankruptcy', '`skip_trace`'
     pub case_type: String,
-    /// 'open', 'in_progress', 'resolved', 'closed', 'escalated', 'written_off'
+    /// 'open', '`in_progress`', 'resolved', 'closed', 'escalated', '`written_off`'
     pub status: String,
     /// 'low', 'medium', 'high', 'critical'
     pub priority: String,
@@ -2718,7 +2722,7 @@ pub struct CustomerInteraction {
     pub customer_id: Uuid,
     pub customer_number: Option<String>,
     pub customer_name: Option<String>,
-    /// 'phone_call', 'email', 'letter', 'meeting', 'note', 'sms'
+    /// '`phone_call`', 'email', 'letter', 'meeting', 'note', 'sms'
     pub interaction_type: String,
     /// 'outbound', 'inbound'
     pub direction: String,
@@ -2728,8 +2732,8 @@ pub struct CustomerInteraction {
     pub contact_email: Option<String>,
     pub subject: Option<String>,
     pub body: Option<String>,
-    /// Outcome: 'contacted', 'left_message', 'no_answer', 'promised_to_pay',
-    /// 'disputed', 'refused', 'agreed_payment_plan', 'escalated', 'no_action'
+    /// Outcome: 'contacted', '`left_message`', '`no_answer`', '`promised_to_pay`',
+    /// 'disputed', 'refused', '`agreed_payment_plan`', 'escalated', '`no_action`'
     pub outcome: Option<String>,
     pub follow_up_date: Option<chrono::NaiveDate>,
     pub follow_up_notes: Option<String>,
@@ -2753,7 +2757,7 @@ pub struct PromiseToPay {
     pub customer_id: Uuid,
     pub customer_number: Option<String>,
     pub customer_name: Option<String>,
-    /// 'single_payment', 'installment', 'full_balance'
+    /// '`single_payment`', 'installment', '`full_balance`'
     pub promise_type: String,
     pub promised_amount: String,
     pub paid_amount: String,
@@ -2761,7 +2765,7 @@ pub struct PromiseToPay {
     pub promise_date: chrono::NaiveDate,
     pub installment_count: Option<i32>,
     pub installment_frequency: Option<String>,
-    /// 'pending', 'partially_kept', 'kept', 'broken', 'cancelled'
+    /// 'pending', '`partially_kept`', 'kept', 'broken', 'cancelled'
     pub status: String,
     pub broken_date: Option<chrono::NaiveDate>,
     pub broken_reason: Option<String>,
@@ -2786,7 +2790,7 @@ pub struct DunningCampaign {
     pub campaign_number: String,
     pub name: String,
     pub description: Option<String>,
-    /// 'reminder', 'first_notice', 'second_notice', 'final_notice', 'pre_legal', 'legal'
+    /// 'reminder', '`first_notice`', '`second_notice`', '`final_notice`', '`pre_legal`', 'legal'
     pub dunning_level: String,
     /// 'email', 'letter', 'sms', 'phone'
     pub communication_method: String,
@@ -2801,7 +2805,7 @@ pub struct DunningCampaign {
     pub target_customer_count: i32,
     pub sent_count: i32,
     pub failed_count: i32,
-    /// 'draft', 'scheduled', 'in_progress', 'completed', 'cancelled'
+    /// 'draft', 'scheduled', '`in_progress`', 'completed', 'cancelled'
     pub status: String,
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
@@ -2890,7 +2894,7 @@ pub struct WriteOffRequest {
     pub customer_id: Uuid,
     pub customer_number: Option<String>,
     pub customer_name: Option<String>,
-    /// 'bad_debt', 'small_balance', 'dispute', 'adjustment'
+    /// '`bad_debt`', '`small_balance`', 'dispute', 'adjustment'
     pub write_off_type: String,
     pub write_off_amount: String,
     pub write_off_account_code: Option<String>,
@@ -2943,18 +2947,18 @@ pub struct AgingSummary {
 pub struct RevenuePolicy {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique policy code (e.g., "STD_SaaS", "STD_CONSULTING")
+    /// Unique policy code (e.g., "`STD_SaaS`", "`STD_CONSULTING`")
     pub code: String,
     /// Human-readable name
     pub name: String,
     /// Description of the policy
     pub description: Option<String>,
-    /// Recognition method: "over_time", "point_in_time"
+    /// Recognition method: "`over_time`", "`point_in_time`"
     pub recognition_method: String,
-    /// Over-time method (when recognition_method = over_time):
-    /// "output", "input", "straight_line"
+    /// Over-time method (when `recognition_method` = `over_time)`:
+    /// "output", "input", "`straight_line`"
     pub over_time_method: Option<String>,
-    /// Allocation basis: "standalone_selling_price", "residual", "equal"
+    /// Allocation basis: "`standalone_selling_price`", "residual", "equal"
     pub allocation_basis: String,
     /// Default standalone selling price (used when SSP is not determined per-product)
     pub default_selling_price: Option<String>,
@@ -3069,9 +3073,9 @@ pub struct PerformanceObligation {
     pub recognition_end_date: Option<chrono::NaiveDate>,
     /// Percent complete (for over-time recognition)
     pub percent_complete: Option<String>,
-    /// Satisfaction method: "over_time", "point_in_time"
+    /// Satisfaction method: "`over_time`", "`point_in_time`"
     pub satisfaction_method: String,
-    /// Status: "pending", "in_progress", "satisfied", "partially_satisfied", "cancelled"
+    /// Status: "pending", "`in_progress`", "satisfied", "`partially_satisfied`", "cancelled"
     pub status: String,
     /// Revenue account overrides
     pub revenue_account_code: Option<String>,
@@ -3134,7 +3138,7 @@ pub struct RevenueScheduleLine {
 pub struct PaymentTerm {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique code (e.g., "NET30", "2_10_NET30", "DUE_ON_RECEIPT")
+    /// Unique code (e.g., "NET30", "`2_10_NET30`", "`DUE_ON_RECEIPT`")
     pub code: String,
     /// Display name (e.g., "Net 30 Days")
     pub name: String,
@@ -3182,7 +3186,7 @@ pub struct PaymentTermRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-fn default_thirty() -> i32 { 30 }
+const fn default_thirty() -> i32 { 30 }
 
 /// Payment batch (payment run)
 /// Oracle Fusion: Payables > Payments > Payment Batches
@@ -3368,7 +3372,7 @@ pub struct PaymentFormat {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    /// Format type: 'file', 'printed_check', 'edi', 'xml', 'json'
+    /// Format type: 'file', '`printed_check`', 'edi', 'xml', 'json'
     pub format_type: String,
     pub template_reference: Option<String>,
     pub applicable_methods: serde_json::Value,
@@ -3435,8 +3439,8 @@ pub struct RevenueModification {
     pub contract_id: Uuid,
     /// Modification number (sequential)
     pub modification_number: i32,
-    /// Type of modification: "price_change", "scope_change", "term_extension",
-    /// "termination", "add_obligation", "remove_obligation"
+    /// Type of modification: "`price_change`", "`scope_change`", "`term_extension`",
+    /// "termination", "`add_obligation`", "`remove_obligation`"
     pub modification_type: String,
     /// Description of the change
     pub description: Option<String>,
@@ -3688,7 +3692,7 @@ pub struct GlTransferLog {
     pub transfer_number: String,
     pub transfer_date: DateTime<Utc>,
     pub from_period: Option<String>,
-    /// Status: 'pending', 'in_progress', 'completed', 'failed', 'reversed'
+    /// Status: 'pending', '`in_progress`', 'completed', 'failed', 'reversed'
     pub status: String,
     pub error_message: Option<String>,
     pub total_entries: i32,
@@ -3740,7 +3744,7 @@ pub struct SlaDashboardSummary {
 pub struct EncumbranceType {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique code (e.g., "PURCHASE_ORDER", "REQUISITION", "CONTRACT")
+    /// Unique code (e.g., "`PURCHASE_ORDER`", "REQUISITION", "CONTRACT")
     pub code: String,
     /// Human-readable name
     pub name: String,
@@ -3779,7 +3783,7 @@ pub struct EncumbranceEntry {
     pub encumbrance_type_id: Uuid,
     /// Encumbrance type code (denormalized)
     pub encumbrance_type_code: String,
-    /// Source document type (e.g., "purchase_order", "requisition", "contract")
+    /// Source document type (e.g., "`purchase_order`", "requisition", "contract")
     pub source_type: Option<String>,
     /// Source document ID
     pub source_id: Option<Uuid>,
@@ -3799,7 +3803,7 @@ pub struct EncumbranceEntry {
     pub adjusted_amount: String,
     /// Currency code
     pub currency_code: String,
-    /// Status: "draft", "active", "partially_liquidated", "fully_liquidated", "cancelled", "expired"
+    /// Status: "draft", "active", "`partially_liquidated`", "`fully_liquidated`", "cancelled", "expired"
     pub status: String,
     /// Budget period or fiscal year reference
     pub fiscal_year: Option<i32>,
@@ -3887,7 +3891,7 @@ pub struct EncumbranceLiquidation {
     pub liquidation_type: String,
     /// Amount being liquidated
     pub liquidation_amount: String,
-    /// Source document type (e.g., "invoice", "payment", "journal_entry")
+    /// Source document type (e.g., "invoice", "payment", "`journal_entry`")
     pub source_type: Option<String>,
     /// Source document ID
     pub source_id: Option<Uuid>,
@@ -4098,7 +4102,7 @@ pub struct CashForecastSource {
     pub name: String,
     /// Description
     pub description: Option<String>,
-    /// Source type: "accounts_payable", "accounts_receivable", "payroll",
+    /// Source type: "`accounts_payable`", "`accounts_receivable`", "payroll",
     ///             "purchasing", "manual", "budget", "intercompany"
     pub source_type: String,
     /// Cash flow direction: "inflow", "outflow", "both"
@@ -4289,10 +4293,10 @@ pub struct SourcingEvent {
     /// Event type: "rfq" (Request for Quote), "rfp" (Request for Proposal),
     /// "rfi" (Request for Information), "auction" (Reverse Auction)
     pub event_type: String,
-    /// Status: "draft", "published", "response_open", "evaluation", "awarded",
+    /// Status: "draft", "published", "`response_open`", "evaluation", "awarded",
     ///         "cancelled", "closed"
     pub status: String,
-    /// Style: "sealed" (blind bidding), "open" (visible bids), "reverse_auction"
+    /// Style: "sealed" (blind bidding), "open" (visible bids), "`reverse_auction`"
     pub style: String,
     /// Deadline for supplier responses
     pub response_deadline: chrono::NaiveDate,
@@ -4309,7 +4313,7 @@ pub struct SourcingEvent {
     /// Evaluation team lead
     pub evaluation_lead_id: Option<Uuid>,
     pub evaluation_lead_name: Option<String>,
-    /// Scoring method: "weighted", "pass_fail", "manual", "lowest_price"
+    /// Scoring method: "weighted", "`pass_fail`", "manual", "`lowest_price`"
     pub scoring_method: String,
     /// Whether supplier responses are visible to other suppliers
     pub are_bids_visible: bool,
@@ -4436,7 +4440,7 @@ pub struct SupplierResponse {
     pub supplier_id: Uuid,
     /// Supplier name (denormalized)
     pub supplier_name: Option<String>,
-    /// Status: "draft", "submitted", "under_review", "shortlisted", "rejected",
+    /// Status: "draft", "submitted", "`under_review`", "shortlisted", "rejected",
     ///         "awarded", "disqualified"
     pub status: String,
     /// Total bid amount (sum of all line amounts)
@@ -4490,7 +4494,7 @@ pub struct SupplierResponseLine {
     pub unit_price: String,
     /// Quoted quantity
     pub quantity: String,
-    /// Total line amount (unit_price × quantity)
+    /// Total line amount (`unit_price` × quantity)
     pub line_amount: String,
     /// Discount percentage offered
     pub discount_percent: Option<String>,
@@ -4553,7 +4557,7 @@ pub struct ResponseScore {
     pub response_id: Uuid,
     /// Scoring criterion reference
     pub criterion_id: Uuid,
-    /// Score given (0 to max_score)
+    /// Score given (0 to `max_score`)
     pub score: String,
     /// Weighted score (score × weight / 100)
     pub weighted_score: String,
@@ -4582,7 +4586,7 @@ pub struct SourcingAward {
     pub award_number: String,
     /// Status: "pending", "approved", "rejected", "cancelled"
     pub status: String,
-    /// Award method: "single", "split", "best_value", "lowest_price"
+    /// Award method: "single", "split", "`best_value`", "`lowest_price`"
     pub award_method: String,
     /// Total awarded amount
     pub total_awarded_amount: String,
@@ -4860,7 +4864,7 @@ pub struct LeaseModification {
     pub lease_id: Uuid,
     /// Modification number (sequential)
     pub modification_number: i32,
-    /// Type: "term_extension", "scope_change", "payment_change", "rate_change",
+    /// Type: "`term_extension`", "`scope_change`", "`payment_change`", "`rate_change`",
     ///       "reclassification"
     pub modification_type: String,
     /// Description of the modification
@@ -4900,7 +4904,7 @@ pub struct LeaseTermination {
     pub id: Uuid,
     pub organization_id: Uuid,
     pub lease_id: Uuid,
-    /// Termination type: "early", "end_of_term", "mutual_agreement", "default"
+    /// Termination type: "early", "`end_of_term`", "`mutual_agreement`", "default"
     pub termination_type: String,
     /// Termination date
     pub termination_date: chrono::NaiveDate,
@@ -5153,7 +5157,7 @@ pub struct ProjectCostDistribution {
     pub credit_account_code: String,
     /// Distribution amount
     pub amount: String,
-    /// Distribution type: "raw_cost", "burden", "total"
+    /// Distribution type: "`raw_cost`", "burden", "total"
     pub distribution_type: String,
     /// GL posting date
     pub gl_date: chrono::NaiveDate,
@@ -5220,16 +5224,16 @@ pub struct ProjectCostingSummary {
 pub struct AllocationPool {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique pool code (e.g., "RENT_POOL", "IT_OVERHEAD")
+    /// Unique pool code (e.g., "`RENT_POOL`", "`IT_OVERHEAD`")
     pub code: String,
     /// Display name
     pub name: String,
     /// Description
     pub description: Option<String>,
-    /// Pool type: "cost_center", "project", "department", "custom"
+    /// Pool type: "`cost_center`", "project", "department", "custom"
     pub pool_type: String,
     /// Account code filter for selecting pool source balances
-    /// (e.g., {"account_codes": ["6100", "6110"]})
+    /// (e.g., {"`account_codes"`: ["6100", "6110"]})
     pub source_account_codes: serde_json::Value,
     /// Department filter for pool source (optional)
     pub source_department_id: Option<Uuid>,
@@ -5263,7 +5267,7 @@ pub struct AllocationBase {
     pub base_type: String,
     /// For financial bases: the account code pattern to use as the base
     pub financial_account_code: Option<String>,
-    /// Unit of measure (e.g., "persons", "sq_meters", "USD")
+    /// Unit of measure (e.g., "persons", "`sq_meters`", "USD")
     pub unit_of_measure: Option<String>,
     /// Whether this base is active
     pub is_active: bool,
@@ -5326,7 +5330,7 @@ pub struct AllocationRule {
     pub base_id: Uuid,
     /// Base code (denormalized)
     pub base_code: String,
-    /// Allocation method: "proportional", "fixed_percent", "fixed_amount"
+    /// Allocation method: "proportional", "`fixed_percent`", "`fixed_amount`"
     pub allocation_method: String,
     /// Journal entry description template
     pub journal_description: Option<String>,
@@ -5372,9 +5376,9 @@ pub struct AllocationRuleTarget {
     pub project_name: Option<String>,
     /// Target debit account code (where the allocated cost goes)
     pub target_account_code: String,
-    /// Fixed percentage (for "fixed_percent" method)
+    /// Fixed percentage (for "`fixed_percent`" method)
     pub fixed_percent: Option<String>,
-    /// Fixed amount (for "fixed_amount" method)
+    /// Fixed amount (for "`fixed_amount`" method)
     pub fixed_amount: Option<String>,
     /// Whether this target line is active
     pub is_active: bool,
@@ -5502,11 +5506,11 @@ pub enum FinancialReportType {
 impl std::fmt::Display for FinancialReportType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FinancialReportType::TrialBalance => write!(f, "trial_balance"),
-            FinancialReportType::IncomeStatement => write!(f, "income_statement"),
-            FinancialReportType::BalanceSheet => write!(f, "balance_sheet"),
-            FinancialReportType::CashFlow => write!(f, "cash_flow"),
-            FinancialReportType::Custom => write!(f, "custom"),
+            Self::TrialBalance => write!(f, "trial_balance"),
+            Self::IncomeStatement => write!(f, "income_statement"),
+            Self::BalanceSheet => write!(f, "balance_sheet"),
+            Self::CashFlow => write!(f, "cash_flow"),
+            Self::Custom => write!(f, "custom"),
         }
     }
 }
@@ -5520,7 +5524,7 @@ pub struct FinancialReportTemplate {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    /// trial_balance, income_statement, balance_sheet, cash_flow, custom
+    /// `trial_balance`, `income_statement`, `balance_sheet`, `cash_flow`, custom
     pub report_type: String,
     pub currency_code: String,
     /// sequential, tree, grouped
@@ -5577,13 +5581,13 @@ pub struct FinancialReportColumn {
     pub organization_id: Uuid,
     pub template_id: Uuid,
     pub column_number: i32,
-    /// actuals, budget, variance, percent_variance, prior_year, ytd, qtd, custom
+    /// actuals, budget, variance, `percent_variance`, `prior_year`, ytd, qtd, custom
     pub column_type: String,
     pub header_label: String,
     pub sub_header_label: Option<String>,
     /// Period offset from the base period (-1 = prior period, 0 = current)
     pub period_offset: i32,
-    /// period, qtd, ytd, inception_to_date
+    /// period, qtd, ytd, `inception_to_date`
     pub period_type: String,
     /// Compute action for calculated columns
     pub compute_action: Option<String>,
@@ -5703,13 +5707,13 @@ pub struct FinancialReportingSummary {
 pub struct WithholdingTaxCode {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique code (e.g., "FEDERAL_WHT", "STATE_WHT", "VAT_WHT")
+    /// Unique code (e.g., "`FEDERAL_WHT`", "`STATE_WHT`", "`VAT_WHT`")
     pub code: String,
     /// Display name
     pub name: String,
     /// Description
     pub description: Option<String>,
-    /// Tax type: "income_tax", "vat", "service_tax", "contract_tax", "royalty",
+    /// Tax type: "`income_tax`", "vat", "`service_tax`", "`contract_tax`", "royalty",
     ///           "dividend", "interest", "other"
     pub tax_type: String,
     /// Withholding rate percentage
@@ -5764,7 +5768,7 @@ fn default_zero_str() -> String { "0".to_string() }
 pub struct WithholdingTaxGroup {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique group code (e.g., "STD_WHT", "CONTRACTOR_WHT")
+    /// Unique group code (e.g., "`STD_WHT`", "`CONTRACTOR_WHT`")
     pub code: String,
     /// Display name
     pub name: String,
@@ -6021,7 +6025,7 @@ pub struct WithholdingSummary {
 pub struct AccountingBook {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique book code (e.g., "PRIMARY_GAAP", "IFRS_BOOK", "LOCAL_STATUTORY")
+    /// Unique book code (e.g., "`PRIMARY_GAAP`", "`IFRS_BOOK`", "`LOCAL_STATUTORY`")
     pub code: String,
     /// Display name
     pub name: String,
@@ -6082,7 +6086,7 @@ pub struct AccountMapping {
     pub source_account_code: String,
     /// Target account code
     pub target_account_code: String,
-    /// Optional segment-level mappings (JSON: {"segment_name": "value"})
+    /// Optional segment-level mappings (JSON: {"`segment_name"`: "value"})
     pub segment_mappings: serde_json::Value,
     /// Priority (lower = higher priority)
     pub priority: i32,
@@ -6282,7 +6286,7 @@ pub struct ContractType {
     pub name: String,
     /// Human-readable description
     pub description: Option<String>,
-    /// Type classification: "blanket", "purchase_agreement", "service", "lease", "other"
+    /// Type classification: "blanket", "`purchase_agreement`", "service", "lease", "other"
     pub contract_classification: String,
     /// Whether this contract type requires approval before activation
     pub requires_approval: bool,
@@ -6329,9 +6333,9 @@ pub struct ProcurementContract {
     pub description: Option<String>,
     /// Contract type code
     pub contract_type_code: Option<String>,
-    /// Contract classification: "blanket", "purchase_agreement", "service", "lease", "other"
+    /// Contract classification: "blanket", "`purchase_agreement`", "service", "lease", "other"
     pub contract_classification: String,
-    /// Current status: "draft", "pending_approval", "active", "expired", "terminated", "closed"
+    /// Current status: "draft", "`pending_approval`", "active", "expired", "terminated", "closed"
     pub status: String,
     /// Supplier/vendor UUID
     pub supplier_id: Uuid,
@@ -6414,7 +6418,7 @@ pub struct ContractLine {
     pub quantity_released: String,
     /// Unit price
     pub unit_price: String,
-    /// Line amount (quantity_committed * unit_price)
+    /// Line amount (`quantity_committed` * `unit_price`)
     pub line_amount: String,
     /// Amount released (invoiced/spent so far)
     pub amount_released: String,
@@ -6459,7 +6463,7 @@ pub struct ContractMilestone {
     pub target_date: chrono::NaiveDate,
     /// Actual completion date
     pub actual_date: Option<chrono::NaiveDate>,
-    /// Status: "pending", "in_progress", "completed", "overdue", "cancelled"
+    /// Status: "pending", "`in_progress`", "completed", "overdue", "cancelled"
     pub status: String,
     /// Amount associated with this milestone
     pub amount: String,
@@ -6521,7 +6525,7 @@ pub struct ContractSpend {
     pub contract_id: Uuid,
     /// Optional parent contract line
     pub contract_line_id: Option<Uuid>,
-    /// Source document type (e.g. "purchase_order", "invoice")
+    /// Source document type (e.g. "`purchase_order`", "invoice")
     pub source_type: String,
     /// Source document ID
     pub source_id: Option<Uuid>,
@@ -6593,7 +6597,7 @@ pub struct InventoryOrganization {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    /// "warehouse", "store", "distribution_center", "manufacturing", "other"
+    /// "warehouse", "store", "`distribution_center`", "manufacturing", "other"
     pub org_type: String,
     pub location_code: Option<String>,
     pub address: Option<serde_json::Value>,
@@ -6643,7 +6647,7 @@ pub struct Item {
     pub long_description: Option<String>,
     pub category_id: Option<Uuid>,
     pub category_code: Option<String>,
-    /// "inventory", "non_inventory", "service", "expense", "capital"
+    /// "inventory", "`non_inventory`", "service", "expense", "capital"
     pub item_type: String,
     pub uom: String,
     pub secondary_uom: Option<String>,
@@ -6754,10 +6758,10 @@ pub struct InventoryTransactionType {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    /// "receive", "issue", "transfer", "adjustment", "return_to_vendor",
-    /// "return_to_customer", "cycle_count_adjustment", "misc_receipt", "misc_issue"
+    /// "receive", "issue", "transfer", "adjustment", "`return_to_vendor`",
+    /// "`return_to_customer`", "`cycle_count_adjustment`", "`misc_receipt`", "`misc_issue`"
     pub transaction_action: String,
-    /// "manual", "purchase_order", "sales_order", "work_order", "system"
+    /// "manual", "`purchase_order`", "`sales_order`", "`work_order`", "system"
     pub source_type: String,
     pub is_system: bool,
     pub is_active: bool,
@@ -6840,9 +6844,9 @@ pub struct CycleCountHeader {
     pub inventory_org_id: Uuid,
     pub subinventory_id: Option<Uuid>,
     pub count_date: chrono::NaiveDate,
-    /// "draft", "in_progress", "completed", "cancelled"
+    /// "draft", "`in_progress`", "completed", "cancelled"
     pub status: String,
-    /// "full", "abc", "random", "by_category"
+    /// "full", "abc", "random", "`by_category`"
     pub count_method: String,
     pub tolerance_percent: String,
     pub total_items: i32,
@@ -8104,7 +8108,7 @@ pub struct CorporateCardTransaction {
     pub original_amount: Option<String>,
     pub original_currency: Option<String>,
     pub exchange_rate: Option<String>,
-    /// "charge", "credit", "payment", "cash_withdrawal", "fee", "interest"
+    /// "charge", "credit", "payment", "`cash_withdrawal`", "fee", "interest"
     pub transaction_type: String,
     /// "unmatched", "matched", "disputed", "approved", "rejected"
     pub status: String,
@@ -8233,9 +8237,9 @@ pub struct ConsolidationLedger {
     pub name: String,
     pub description: Option<String>,
     pub base_currency_code: String,
-    /// "current_rate", "temporal", "weighted_average"
+    /// "`current_rate`", "temporal", "`weighted_average`"
     pub translation_method: String,
-    /// "full", "proportional", "equity_method"
+    /// "full", "proportional", "`equity_method`"
     pub equity_elimination_method: String,
     pub is_active: bool,
     pub metadata: serde_json::Value,
@@ -8257,7 +8261,7 @@ pub struct ConsolidationEntity {
     pub entity_code: String,
     pub local_currency_code: String,
     pub ownership_percentage: String,
-    /// "full", "proportional", "equity_method"
+    /// "full", "proportional", "`equity_method`"
     pub consolidation_method: String,
     pub is_active: bool,
     pub include_in_consolidation: bool,
@@ -8284,7 +8288,7 @@ pub struct ConsolidationScenario {
     pub period_name: String,
     pub period_start_date: chrono::NaiveDate,
     pub period_end_date: chrono::NaiveDate,
-    /// "draft", "in_progress", "pending_review", "approved", "posted", "reversed"
+    /// "draft", "`in_progress`", "`pending_review`", "approved", "posted", "reversed"
     pub status: String,
     pub translation_date: Option<chrono::NaiveDate>,
     pub translation_rate_type: Option<String>,
@@ -8353,8 +8357,8 @@ pub struct ConsolidationEliminationRule {
     pub rule_code: String,
     pub name: String,
     pub description: Option<String>,
-    /// "intercompany_receivable_payable", "intercompany_revenue_expense",
-    /// "investment_equity", "intercompany_inventory_profit", "other"
+    /// "`intercompany_receivable_payable`", "`intercompany_revenue_expense`",
+    /// "`investment_equity`", "`intercompany_inventory_profit`", "other"
     pub elimination_type: String,
     pub from_entity_id: Option<Uuid>,
     pub to_entity_id: Option<Uuid>,
@@ -8409,7 +8413,7 @@ pub struct ConsolidationTranslationRate {
     pub entity_id: Uuid,
     pub from_currency: String,
     pub to_currency: String,
-    /// "period_end", "average", "historical", "spot"
+    /// "`period_end`", "average", "historical", "spot"
     pub rate_type: String,
     pub exchange_rate: String,
     pub effective_date: chrono::NaiveDate,
@@ -8447,9 +8451,9 @@ pub struct QualificationArea {
     pub area_code: String,
     pub name: String,
     pub description: Option<String>,
-    /// "questionnaire", "certificate", "financial", "site_visit", "reference", "other"
+    /// "questionnaire", "certificate", "financial", "`site_visit`", "reference", "other"
     pub area_type: String,
-    /// "manual", "weighted", "pass_fail"
+    /// "manual", "weighted", "`pass_fail`"
     pub scoring_model: String,
     pub passing_score: String,
     pub is_mandatory: bool,
@@ -8472,7 +8476,7 @@ pub struct QualificationQuestion {
     pub question_number: i32,
     pub question_text: String,
     pub description: Option<String>,
-    /// "text", "yes_no", "numeric", "date", "multi_choice", "file_upload"
+    /// "text", "`yes_no`", "numeric", "date", "`multi_choice`", "`file_upload`"
     pub response_type: String,
     pub choices: Option<serde_json::Value>,
     pub is_required: bool,
@@ -8497,9 +8501,9 @@ pub struct SupplierQualificationInitiative {
     pub name: String,
     pub description: Option<String>,
     pub area_id: Uuid,
-    /// "new_supplier", "requalification", "compliance", "ad_hoc"
+    /// "`new_supplier`", "requalification", "compliance", "`ad_hoc`"
     pub qualification_purpose: String,
-    /// "draft", "active", "pending_evaluations", "completed", "cancelled"
+    /// "draft", "active", "`pending_evaluations`", "completed", "cancelled"
     pub status: String,
     pub deadline: Option<chrono::NaiveDate>,
     pub total_invited: i32,
@@ -8526,7 +8530,7 @@ pub struct SupplierQualificationInvitation {
     pub supplier_name: String,
     pub supplier_contact_name: Option<String>,
     pub supplier_contact_email: Option<String>,
-    /// "initiated", "pending_response", "under_evaluation", "qualified", "disqualified", "expired", "withdrawn"
+    /// "initiated", "`pending_response`", "`under_evaluation`", "qualified", "disqualified", "expired", "withdrawn"
     pub status: String,
     pub invitation_date: Option<DateTime<Utc>>,
     pub response_date: Option<DateTime<Utc>>,
@@ -8579,7 +8583,7 @@ pub struct SupplierCertification {
     pub certification_name: String,
     pub certifying_body: Option<String>,
     pub certificate_number: Option<String>,
-    /// "active", "expired", "revoked", "pending_renewal"
+    /// "active", "expired", "revoked", "`pending_renewal`"
     pub status: String,
     pub issued_date: Option<chrono::NaiveDate>,
     pub expiry_date: Option<chrono::NaiveDate>,
@@ -8867,6 +8871,7 @@ pub struct ManualJournalDashboardSummary {
 // ============================================================================
 
 /// A document sequence definition.
+///
 /// Controls automatic numbering of business documents (invoices, POs, journals, etc.)
 /// Supports gapless (regulatory compliance) and gap-permitted (operational) modes.
 /// Oracle Fusion: General Ledger > Setup > Sequences > Document Sequences
@@ -8986,7 +8991,7 @@ pub struct FlexfieldValueSet {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    /// Type of validation: "none", "independent", "dependent", "table", "format_only"
+    /// Type of validation: "none", "independent", "dependent", "table", "`format_only`"
     pub validation_type: String,
     /// Data type for values: "string", "number", "date", "datetime"
     pub data_type: String,
@@ -8994,7 +8999,7 @@ pub struct FlexfieldValueSet {
     pub max_length: i32,
     /// Minimum length for string values
     pub min_length: i32,
-    /// For format_only: regex or format pattern
+    /// For `format_only`: regex or format pattern
     pub format_mask: Option<String>,
     /// For table validation: table name, value column, meaning column, WHERE clause
     pub table_validation: Option<serde_json::Value>,
@@ -9040,9 +9045,9 @@ pub struct DescriptiveFlexfield {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    /// The entity/table this flexfield is attached to (e.g., "purchase_orders")
+    /// The entity/table this flexfield is attached to (e.g., "`purchase_orders`")
     pub entity_name: String,
-    /// The column on the entity table where the context value is stored (default: "dff_context")
+    /// The column on the entity table where the context value is stored (default: "`dff_context`")
     pub context_column: String,
     /// Default context code used when no context is specified
     pub default_context_code: Option<String>,
@@ -9129,7 +9134,7 @@ pub struct FlexfieldData {
     pub entity_id: Uuid,
     /// The context code selected for this record
     pub context_code: String,
-    /// Segment values as a JSON object: {"segment_code": "value", ...}
+    /// Segment values as a JSON object: {"`segment_code"`: "value", ...}
     pub segment_values: serde_json::Value,
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -9175,7 +9180,7 @@ pub struct FlexfieldDashboardSummary {
 pub struct CrossValidationRule {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique code for the rule, e.g. "CVR_CASH_MARKETING"
+    /// Unique code for the rule, e.g. "`CVR_CASH_MARKETING`"
     pub code: String,
     /// Human-readable name
     pub name: String,
@@ -9387,7 +9392,7 @@ pub struct ScheduledProcessDashboardSummary {
 // Oracle Fusion: Advanced Access Control > Segregation of Duties
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// An SoD rule defines a pair (or set) of incompatible duties/roles.
+/// An `SoD` rule defines a pair (or set) of incompatible duties/roles.
 /// For example: "Create Vendor" and "Approve Vendor Payments" must not be
 /// held by the same person.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -9416,7 +9421,7 @@ pub struct SodRule {
     pub updated_at: DateTime<Utc>,
 }
 
-/// An SoD violation detected for a specific user against a rule.
+/// An `SoD` violation detected for a specific user against a rule.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SodViolation {
@@ -9438,7 +9443,7 @@ pub struct SodViolation {
     pub updated_at: DateTime<Utc>,
 }
 
-/// A mitigating control applied to an SoD violation.
+/// A mitigating control applied to an `SoD` violation.
 /// In Oracle Fusion, this is a documented compensating control that
 /// reduces the risk of the conflict to an acceptable level.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -9463,7 +9468,7 @@ pub struct SodMitigatingControl {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Role assignment entry tracked for SoD analysis.
+/// Role assignment entry tracked for `SoD` analysis.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SodRoleAssignment {
@@ -9502,7 +9507,7 @@ pub struct SodConflictDetail {
     pub existing_duties_causing_conflict: Vec<String>,
 }
 
-/// Dashboard summary for SoD compliance.
+/// Dashboard summary for `SoD` compliance.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SodDashboardSummary {
@@ -9529,12 +9534,12 @@ pub struct SodDashboardSummary {
 pub struct GlAllocationPool {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique code for this pool (e.g., "RENT_POOL", "IT_OVERHEAD")
+    /// Unique code for this pool (e.g., "`RENT_POOL`", "`IT_OVERHEAD`")
     pub code: String,
     /// Human-readable name
     pub name: String,
     pub description: Option<String>,
-    /// Pool type: 'cost_center', 'account_range', 'manual'
+    /// Pool type: '`cost_center`', '`account_range`', 'manual'
     pub pool_type: String,
     /// Source account code or range for the pool
     pub source_account_code: Option<String>,
@@ -9594,7 +9599,7 @@ pub struct GlAllocationBasis {
     pub description: Option<String>,
     /// Basis type: 'statistical', 'financial', 'percentage'
     pub basis_type: String,
-    /// Unit of measure (e.g., 'people', 'USD', 'sq_ft')
+    /// Unit of measure (e.g., 'people', 'USD', '`sq_ft`')
     pub unit_of_measure: Option<String>,
     /// Whether the basis amounts are entered manually or sourced from GL
     pub is_manual: bool,
@@ -9683,7 +9688,7 @@ pub struct GlAllocationBasisDetailRequest {
 pub struct GlAllocationRule {
     pub id: Uuid,
     pub organization_id: Uuid,
-    /// Unique code (e.g., "RENT_ALLOC", "IT_OVERHEAD_ALLOC")
+    /// Unique code (e.g., "`RENT_ALLOC`", "`IT_OVERHEAD_ALLOC`")
     pub code: String,
     /// Human-readable name
     pub name: String,
@@ -9694,9 +9699,9 @@ pub struct GlAllocationRule {
     /// The basis to use for distribution
     pub basis_id: Uuid,
     pub basis_code: String,
-    /// Allocation method: 'proportional', 'fixed_percentage', 'step_down'
+    /// Allocation method: 'proportional', '`fixed_percentage`', '`step_down`'
     pub allocation_method: String,
-    /// Offset method: 'none', 'same_account', 'specified_account'
+    /// Offset method: 'none', '`same_account`', '`specified_account`'
     pub offset_method: String,
     /// Offset account for the credit side of the allocation
     pub offset_account_code: Option<String>,
@@ -10175,7 +10180,7 @@ pub struct RequisitionApproval {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// AutoCreate Link (requisition to PO tracking)
+/// `AutoCreate` Link (requisition to PO tracking)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutocreateLink {
@@ -10246,7 +10251,7 @@ pub struct RequisitionDistributionRequest {
     pub cost_center: Option<String>,
 }
 
-/// AutoCreate Request (convert requisitions to POs)
+/// `AutoCreate` Request (convert requisitions to POs)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutocreateRequest {
@@ -10286,7 +10291,7 @@ pub struct BenefitsPlan {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    /// Plan type: medical, dental, vision, life_insurance, disability, retirement, hsa, fsa
+    /// Plan type: medical, dental, vision, `life_insurance`, disability, retirement, hsa, fsa
     pub plan_type: String,
     /// Coverage tier options available for this plan
     pub coverage_tiers: serde_json::Value,
@@ -10322,7 +10327,7 @@ pub struct BenefitsPlan {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CoverageTier {
-    /// Tier code: employee_only, employee_spouse, employee_child, family
+    /// Tier code: `employee_only`, `employee_spouse`, `employee_child`, family
     pub tier_code: String,
     /// Human-readable tier name
     pub tier_name: String,
@@ -10349,7 +10354,7 @@ pub struct BenefitsEnrollment {
     pub plan_type: Option<String>,
     /// Selected coverage tier code
     pub coverage_tier: String,
-    /// Enrollment type: open_enrollment, new_hire, life_event, manual
+    /// Enrollment type: `open_enrollment`, `new_hire`, `life_event`, manual
     pub enrollment_type: String,
     /// Enrollment status: pending, active, waived, cancelled, suspended
     pub status: String,
@@ -10363,7 +10368,7 @@ pub struct BenefitsEnrollment {
     pub employer_cost: String,
     /// Total cost per pay period
     pub total_cost: String,
-    /// Payroll deduction frequency: per_pay_period, monthly, semi_monthly
+    /// Payroll deduction frequency: `per_pay_period`, monthly, `semi_monthly`
     pub deduction_frequency: String,
     /// GL account code for employee deduction
     pub deduction_account_code: Option<String>,
@@ -10441,8 +10446,8 @@ pub struct BenefitsSummary {
 // AutoInvoice (Oracle Fusion Receivables AutoInvoice)
 // ============================================================================
 
-/// AutoInvoice grouping rule definition.
-/// Oracle Fusion: Receivables > AutoInvoice > Grouping Rules
+/// `AutoInvoice` grouping rule definition.
+/// Oracle Fusion: Receivables > `AutoInvoice` > Grouping Rules
 /// Controls how imported transaction lines are grouped into invoices.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -10451,11 +10456,11 @@ pub struct AutoInvoiceGroupingRule {
     pub organization_id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    /// Transaction types this rule applies to (e.g., ["invoice", "credit_memo"])
+    /// Transaction types this rule applies to (e.g., ["invoice", "`credit_memo`"])
     pub transaction_types: serde_json::Value,
-    /// Fields to group by (e.g., ["bill_to_customer_id", "currency_code"])
+    /// Fields to group by (e.g., ["`bill_to_customer_id`", "`currency_code`"])
     pub group_by_fields: serde_json::Value,
-    /// Line ordering fields (e.g., ["line_number", "item_code"])
+    /// Line ordering fields (e.g., ["`line_number`", "`item_code`"])
     pub line_order_by: serde_json::Value,
     /// Whether this is the default grouping rule
     pub is_default: bool,
@@ -10466,8 +10471,8 @@ pub struct AutoInvoiceGroupingRule {
     pub updated_at: DateTime<Utc>,
 }
 
-/// AutoInvoice validation rule.
-/// Oracle Fusion: Receivables > AutoInvoice > Validation Rules
+/// `AutoInvoice` validation rule.
+/// Oracle Fusion: Receivables > `AutoInvoice` > Validation Rules
 /// Validates transaction lines before invoice creation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -10497,8 +10502,8 @@ pub struct AutoInvoiceValidationRule {
     pub updated_at: DateTime<Utc>,
 }
 
-/// AutoInvoice import batch (header for a batch of transaction lines being imported).
-/// Oracle Fusion: Receivables > AutoInvoice > Import
+/// `AutoInvoice` import batch (header for a batch of transaction lines being imported).
+/// Oracle Fusion: Receivables > `AutoInvoice` > Import
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutoInvoiceBatch {
@@ -10524,8 +10529,8 @@ pub struct AutoInvoiceBatch {
     pub updated_at: DateTime<Utc>,
 }
 
-/// AutoInvoice transaction line (raw line being imported).
-/// Oracle Fusion: Receivables > AutoInvoice > Interface Lines
+/// `AutoInvoice` transaction line (raw line being imported).
+/// Oracle Fusion: Receivables > `AutoInvoice` > Interface Lines
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutoInvoiceLine {
@@ -10535,7 +10540,7 @@ pub struct AutoInvoiceLine {
     pub line_number: i32,
     /// Source system identifier
     pub source_line_id: Option<String>,
-    /// Transaction type: "invoice", "credit_memo", "debit_memo", "on_account_credit"
+    /// Transaction type: "invoice", "`credit_memo`", "`debit_memo`", "`on_account_credit`"
     pub transaction_type: String,
     pub customer_id: Option<Uuid>,
     pub customer_number: Option<String>,
@@ -10577,7 +10582,7 @@ pub struct AutoInvoiceLine {
     pub updated_at: DateTime<Utc>,
 }
 
-/// AutoInvoice result - the generated AR invoice.
+/// `AutoInvoice` result - the generated AR invoice.
 /// Oracle Fusion: Receivables > Transactions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -10613,7 +10618,7 @@ pub struct AutoInvoiceResult {
     pub updated_at: DateTime<Utc>,
 }
 
-/// AutoInvoice result line
+/// `AutoInvoice` result line
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutoInvoiceResultLine {
@@ -10638,7 +10643,7 @@ pub struct AutoInvoiceResultLine {
     pub updated_at: DateTime<Utc>,
 }
 
-/// AutoInvoice import request
+/// `AutoInvoice` import request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutoInvoiceImportRequest {
@@ -10648,7 +10653,7 @@ pub struct AutoInvoiceImportRequest {
     pub grouping_rule_id: Option<Uuid>,
 }
 
-/// Single line in an AutoInvoice import
+/// Single line in an `AutoInvoice` import
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutoInvoiceLineRequest {
@@ -10685,7 +10690,7 @@ pub struct AutoInvoiceLineRequest {
     pub sales_order_line: Option<String>,
 }
 
-/// AutoInvoice processing summary
+/// `AutoInvoice` processing summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutoInvoiceSummary {
@@ -10698,7 +10703,7 @@ pub struct AutoInvoiceSummary {
     pub total_invoice_amount: String,
 }
 
-/// Validation error for an AutoInvoice line
+/// Validation error for an `AutoInvoice` line
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutoInvoiceValidationError {
@@ -10740,9 +10745,9 @@ pub struct PerformanceReviewCycle {
     pub organization_id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    /// Cycle type: annual, mid_year, quarterly, project_end, probation
+    /// Cycle type: annual, `mid_year`, quarterly, `project_end`, probation
     pub cycle_type: String,
-    /// Status: draft, planning, goal_setting, self_evaluation, manager_evaluation, calibration, completed, cancelled
+    /// Status: draft, planning, `goal_setting`, `self_evaluation`, `manager_evaluation`, calibration, completed, cancelled
     pub status: String,
     pub rating_model_id: Option<Uuid>,
     pub start_date: chrono::NaiveDate,
@@ -10798,7 +10803,7 @@ pub struct PerformanceDocument {
     pub manager_id: Option<Uuid>,
     pub manager_name: Option<String>,
     pub document_number: String,
-    /// Status: not_started, goal_setting, self_evaluation, manager_evaluation, calibration, completed, cancelled
+    /// Status: `not_started`, `goal_setting`, `self_evaluation`, `manager_evaluation`, calibration, completed, cancelled
     pub status: String,
     pub overall_rating: Option<String>,
     pub overall_rating_label: Option<String>,
@@ -10881,11 +10886,11 @@ pub struct PerformanceFeedback {
     pub employee_id: Uuid,
     pub from_user_id: Uuid,
     pub from_user_name: Option<String>,
-    /// Feedback type: peer, manager, direct_report, external, self
+    /// Feedback type: peer, manager, `direct_report`, external, self
     pub feedback_type: String,
     pub subject: Option<String>,
     pub content: String,
-    /// Visibility: private, manager_only, manager_and_employee, everyone
+    /// Visibility: private, `manager_only`, `manager_and_employee`, everyone
     pub visibility: String,
     /// Status: draft, submitted, acknowledged, withdrawn
     pub status: String,
@@ -11132,7 +11137,7 @@ pub struct CreditManagementDashboard {
 
 /// Item status within its lifecycle.
 /// Oracle Fusion: Product Development > Item > Status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ItemStatus {
     Draft,
@@ -11145,18 +11150,18 @@ pub enum ItemStatus {
 impl std::fmt::Display for ItemStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ItemStatus::Draft => write!(f, "draft"),
-            ItemStatus::Active => write!(f, "active"),
-            ItemStatus::Obsolete => write!(f, "obsolete"),
-            ItemStatus::Inactive => write!(f, "inactive"),
-            ItemStatus::PendingApproval => write!(f, "pending_approval"),
+            Self::Draft => write!(f, "draft"),
+            Self::Active => write!(f, "active"),
+            Self::Obsolete => write!(f, "obsolete"),
+            Self::Inactive => write!(f, "inactive"),
+            Self::PendingApproval => write!(f, "pending_approval"),
         }
     }
 }
 
 /// Lifecycle phase for an item.
 /// Oracle Fusion: Product Hub > Item Lifecycle
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum LifecyclePhase {
     Concept,
@@ -11170,12 +11175,12 @@ pub enum LifecyclePhase {
 impl std::fmt::Display for LifecyclePhase {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LifecyclePhase::Concept => write!(f, "concept"),
-            LifecyclePhase::Design => write!(f, "design"),
-            LifecyclePhase::Prototype => write!(f, "prototype"),
-            LifecyclePhase::Production => write!(f, "production"),
-            LifecyclePhase::PhaseOut => write!(f, "phase_out"),
-            LifecyclePhase::Obsolete => write!(f, "obsolete"),
+            Self::Concept => write!(f, "concept"),
+            Self::Design => write!(f, "design"),
+            Self::Prototype => write!(f, "prototype"),
+            Self::Production => write!(f, "production"),
+            Self::PhaseOut => write!(f, "phase_out"),
+            Self::Obsolete => write!(f, "obsolete"),
         }
     }
 }
@@ -11719,7 +11724,7 @@ pub struct BenchmarkComparable {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Documentation Package (BEPS / Local File / Master File / CbCR)
+/// Documentation Package (BEPS / Local File / Master File / `CbCR`)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferPricingDocumentation {
     pub id: Uuid,
@@ -11967,13 +11972,13 @@ pub struct ApprovalDelegationRule {
     pub delegate_to_id: Uuid,
     pub rule_name: String,
     pub description: Option<String>,
-    /// 'all', 'by_category', 'by_role', 'by_entity'
+    /// 'all', '`by_category`', '`by_role`', '`by_entity`'
     pub delegation_type: String,
-    /// For type 'by_category': categories as JSON array
+    /// For type '`by_category`': categories as JSON array
     pub categories: serde_json::Value,
-    /// For type 'by_role': roles as JSON array
+    /// For type '`by_role`': roles as JSON array
     pub roles: serde_json::Value,
-    /// For type 'by_entity': entity types as JSON array
+    /// For type '`by_entity`': entity types as JSON array
     pub entity_types: serde_json::Value,
     pub start_date: chrono::NaiveDate,
     pub end_date: chrono::NaiveDate,
@@ -12389,7 +12394,7 @@ pub struct PutAwayRule {
     pub item_category: Option<String>,
     /// Zone type to route to
     pub target_zone_type: String,
-    /// Strategy: closest, zone_rotation, fixed_location
+    /// Strategy: closest, `zone_rotation`, `fixed_location`
     pub strategy: String,
     pub is_active: bool,
     pub metadata: serde_json::Value,
@@ -12787,9 +12792,9 @@ pub struct ApprovalAuthorityLimit {
     pub description: Option<String>,
     /// "user" or "role"
     pub owner_type: String,
-    /// User ID when owner_type = "user"
+    /// User ID when `owner_type` = "user"
     pub user_id: Option<Uuid>,
-    /// Role name when owner_type = "role"
+    /// Role name when `owner_type` = "role"
     pub role_name: Option<String>,
     /// Document type this limit applies to
     pub document_type: String,
@@ -12892,7 +12897,7 @@ pub struct RetentionPolicy {
     pub description: Option<String>,
     pub entity_type: String,
     pub retention_days: i32,
-    /// "archive", "purge", "archive_then_purge"
+    /// "archive", "purge", "`archive_then_purge`"
     pub action_type: String,
     pub purge_after_days: Option<i32>,
     pub condition_expression: Option<String>,
@@ -12919,7 +12924,7 @@ pub struct CreateRetentionPolicyRequest {
     pub condition_expression: Option<String>,
 }
 
-fn default_365() -> i32 { 365 }
+const fn default_365() -> i32 { 365 }
 fn default_action_type() -> String { "archive_then_purge".to_string() }
 
 /// Legal hold - prevents archival or purging of specific records.
@@ -13100,9 +13105,9 @@ pub struct PayrollElement {
     pub element_type: String,
     /// "salary", "hourly", "overtime", "bonus", "commission", "benefit", "tax", "retirement", "garnishment", "other"
     pub category: String,
-    /// How the value is determined: "flat", "percentage", "hourly_rate", "formula"
+    /// How the value is determined: "flat", "percentage", "`hourly_rate`", "formula"
     pub calculation_method: String,
-    /// Default rate / value depending on calculation_method
+    /// Default rate / value depending on `calculation_method`
     pub default_value: Option<String>,
     /// Whether this element is recurring every pay period
     pub is_recurring: bool,
@@ -16768,7 +16773,7 @@ pub struct SustainabilityFacility {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Emission factor for converting activity data to CO2e
+/// Emission factor for converting activity data to `CO2e`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmissionFactor {
     pub id: Uuid,
@@ -17519,7 +17524,7 @@ pub struct ConfiguratorDashboard {
 // Transportation Management (Oracle Fusion Cloud SCM > Transportation Management)
 // ============================================================================
 
-/// Carrier - a shipping partner (FedEx, UPS, DHL, etc.)
+/// Carrier - a shipping partner (`FedEx`, UPS, DHL, etc.)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Carrier {
     pub id: Uuid,
@@ -18816,7 +18821,7 @@ pub struct FundReservation {
     pub reservation_date: chrono::NaiveDate,
     /// Expiry date (if funds not consumed by this date, auto-release)
     pub expiry_date: Option<chrono::NaiveDate>,
-    /// Status: "draft", "active", "partially_consumed", "fully_consumed", "released", "expired", "cancelled"
+    /// Status: "draft", "active", "`partially_consumed`", "`fully_consumed`", "released", "expired", "cancelled"
     pub status: String,
     /// Control level applied: "advisory", "absolute"
     pub control_level: String,
@@ -18895,7 +18900,7 @@ pub struct FundAvailability {
     pub total_consumed: f64,
     /// Total released
     pub total_released: f64,
-    /// Available balance = budget_amount - total_reserved + total_released - total_consumed
+    /// Available balance = `budget_amount` - `total_reserved` + `total_released` - `total_consumed`
     pub available_balance: f64,
     /// Whether the requested amount can be reserved
     pub check_passed: bool,
@@ -19830,7 +19835,7 @@ pub struct NettingAgreement {
     pub partner_name: Option<String>,
     /// Netting currency
     pub currency_code: String,
-    /// Netting direction: 'payables_to_receivables', 'receivables_to_payables', 'bi_directional'
+    /// Netting direction: '`payables_to_receivables`', '`receivables_to_payables`', '`bi_directional`'
     pub netting_direction: String,
     /// Settlement method for the net difference: 'automatic', 'manual'
     pub settlement_method: String,
@@ -19981,7 +19986,7 @@ pub struct NettingDashboardSummary {
 // - Trial Balance (already exists, but this is the formal report version)
 // - Statement of Changes in Equity
 
-/// Financial statement report type (re-exports the existing FinancialReportType)
+/// Financial statement report type (re-exports the existing `FinancialReportType`)
 pub use crate::types::FinancialReportType as FinancialStatementReportType;
 
 /// Balance sheet classification
@@ -20805,7 +20810,7 @@ pub struct DeferralTemplate {
     pub description: Option<String>,
     /// "revenue" or "cost"
     pub deferral_type: String,
-    /// Recognition method: "straight_line", "daily_rate", "front_loaded", "back_loaded", "fixed_schedule"
+    /// Recognition method: "`straight_line`", "`daily_rate`", "`front_loaded`", "`back_loaded`", "`fixed_schedule`"
     pub recognition_method: String,
     /// Deferral account (balance sheet: deferred revenue or prepaid expense)
     pub deferral_account_code: String,
@@ -20817,9 +20822,9 @@ pub struct DeferralTemplate {
     pub default_periods: i32,
     /// Period type: "monthly", "daily", "quarterly", "yearly"
     pub period_type: String,
-    /// Start date basis: "transaction_date", "period_start", "custom"
+    /// Start date basis: "`transaction_date`", "`period_start`", "custom"
     pub start_date_basis: String,
-    /// End date basis: "fixed_periods", "end_of_period", "custom"
+    /// End date basis: "`fixed_periods`", "`end_of_period`", "custom"
     pub end_date_basis: String,
     /// Whether to prorate partial periods
     pub prorate_partial_periods: bool,
@@ -20873,7 +20878,7 @@ pub struct DeferralSchedule {
     pub end_date: chrono::NaiveDate,
     pub total_periods: i32,
     pub completed_periods: i32,
-    /// "draft", "active", "on_hold", "completed", "cancelled"
+    /// "draft", "active", "`on_hold`", "completed", "cancelled"
     pub status: String,
     pub hold_reason: Option<String>,
     pub original_journal_entry_id: Option<Uuid>,
@@ -20901,7 +20906,7 @@ pub struct DeferralScheduleLine {
     pub amount: String,
     /// Recognized amount (may differ if partially recognized)
     pub recognized_amount: String,
-    /// "pending", "recognized", "reversed", "on_hold"
+    /// "pending", "recognized", "reversed", "`on_hold`"
     pub status: String,
     pub recognition_date: Option<chrono::NaiveDate>,
     pub journal_entry_id: Option<Uuid>,
@@ -21012,7 +21017,7 @@ pub struct TransactionMappingRule {
     pub priority: i32,
     /// Conditions to match (JSON map of field → expected value)
     pub conditions: serde_json::Value,
-    /// Mapping expressions (source_field → target_field)
+    /// Mapping expressions (`source_field` → `target_field`)
     pub field_mappings: serde_json::Value,
     /// Accounting method to use when this rule matches
     pub accounting_method_id: Option<Uuid>,
@@ -21054,7 +21059,7 @@ pub struct ControlMonitorRule {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    /// Control category: "transaction", "access", "master_data", "period_close", "master_record"
+    /// Control category: "transaction", "access", "`master_data`", "`period_close`", "`master_record`"
     pub category: String,
     /// Risk level: "critical", "high", "medium", "low"
     pub risk_level: String,
@@ -21107,7 +21112,7 @@ pub struct ControlViolation {
     pub findings: serde_json::Value,
     /// Risk level of this specific violation
     pub risk_level: String,
-    /// "open", "under_review", "resolved", "false_positive", "escalated", "waived"
+    /// "open", "`under_review`", "resolved", "`false_positive`", "escalated", "waived"
     pub status: String,
     /// Who is assigned to review
     pub assigned_to: Option<Uuid>,
@@ -22142,9 +22147,9 @@ pub struct TaxRegistration {
     pub organization_id: Uuid,
     /// The taxpayer identification number (e.g., VAT number, EIN, GSTIN)
     pub registration_number: String,
-    /// Type of registration (tin, vat, gst, ein, sst, pan, cst, sales_tax, withholding_tax, excise, customs, other)
+    /// Type of registration (tin, vat, gst, ein, sst, pan, cst, `sales_tax`, `withholding_tax`, excise, customs, other)
     pub registration_type: String,
-    /// Tax purpose of this registration (input_tax, output_tax, both, reporting_only, withholding, reverse_charge, intracommunity)
+    /// Tax purpose of this registration (`input_tax`, `output_tax`, both, `reporting_only`, withholding, `reverse_charge`, intracommunity)
     pub tax_purpose: String,
     /// Whether this is a first-party (own entity) or third-party registration
     pub party_type: String,
@@ -22531,9 +22536,9 @@ pub struct DoubtfulAccountPolicy {
     pub policy_code: String,
     pub policy_name: String,
     pub description: Option<String>,
-    /// Calculation method: aging_based, percentage_based, specific_identification
+    /// Calculation method: `aging_based`, `percentage_based`, `specific_identification`
     pub calculation_method: String,
-    /// Flat percentage for percentage_based method
+    /// Flat percentage for `percentage_based` method
     pub flat_percentage: String,
     /// GL account for provision credit (Allowance for Doubtful Accounts)
     pub default_provision_account: Option<String>,
@@ -22884,6 +22889,7 @@ pub struct AutoOffsetDashboard {
 // ============================================================================
 
 /// A transaction calendar definition.
+///
 /// Defines working days, holidays, and exception dates for business date calculations.
 /// Used by AP/AR for due date calculation, GL for posting date validation,
 /// and Cash Management for forecasting.
@@ -22915,7 +22921,7 @@ pub struct CalendarException {
     pub organization_id: Uuid,
     pub calendar_id: Uuid,
     pub exception_date: chrono::NaiveDate,
-    /// "holiday", "non_working", "special_working"
+    /// "holiday", "`non_working`", "`special_working`"
     pub exception_type: String,
     pub name: String,
     pub description: Option<String>,
@@ -22933,7 +22939,7 @@ pub struct CalendarDateCalculation {
     pub organization_id: Uuid,
     pub calendar_id: Uuid,
     pub calendar_code: String,
-    /// "next_business_day", "previous_business_day", "is_business_day", "add_business_days"
+    /// "`next_business_day`", "`previous_business_day`", "`is_business_day`", "`add_business_days`"
     pub operation: String,
     pub input_date: chrono::NaiveDate,
     pub result_date: Option<chrono::NaiveDate>,

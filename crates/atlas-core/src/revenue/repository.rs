@@ -1,6 +1,6 @@
 //! Revenue Recognition Repository
 //!
-//! PostgreSQL storage for revenue recognition data:
+//! `PostgreSQL` storage for revenue recognition data:
 //! revenue policies, revenue contracts, performance obligations,
 //! revenue schedule lines, and contract modifications.
 
@@ -171,13 +171,14 @@ pub trait RevenueRepository: Send + Sync {
     async fn list_modifications(&self, contract_id: Uuid) -> AtlasResult<Vec<RevenueModification>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresRevenueRepository {
     pool: PgPool,
 }
 
 impl PostgresRevenueRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -194,11 +195,11 @@ fn row_to_policy(row: &sqlx::postgres::PgRow) -> RevenuePolicy {
         allocation_basis: row.get("allocation_basis"),
         default_selling_price: row
             .try_get::<Option<f64>, _>("default_selling_price")
-            .ok().flatten().map(|v| format!("{:.2}", v)),
+            .ok().flatten().map(|v| format!("{v:.2}")),
         constrain_variable_consideration: row.get("constrain_variable_consideration"),
         constraint_threshold_percent: row
             .try_get::<Option<f64>, _>("constraint_threshold_percent")
-            .ok().flatten().map(|v| format!("{:.2}", v)),
+            .ok().flatten().map(|v| format!("{v:.2}")),
         revenue_account_code: row.get("revenue_account_code"),
         deferred_revenue_account_code: row.get("deferred_revenue_account_code"),
         contra_revenue_account_code: row.get("contra_revenue_account_code"),
@@ -213,7 +214,7 @@ fn row_to_policy(row: &sqlx::postgres::PgRow) -> RevenuePolicy {
 fn row_to_contract(row: &sqlx::postgres::PgRow) -> RevenueContract {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: f64 = row.try_get(col).unwrap_or(0.0);
-        format!("{:.2}", v)
+        format!("{v:.2}")
     }
     RevenueContract {
         id: row.get("id"),
@@ -250,7 +251,7 @@ fn row_to_contract(row: &sqlx::postgres::PgRow) -> RevenueContract {
 fn row_to_obligation(row: &sqlx::postgres::PgRow) -> PerformanceObligation {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: f64 = row.try_get(col).unwrap_or(0.0);
-        format!("{:.2}", v)
+        format!("{v:.2}")
     }
     PerformanceObligation {
         id: row.get("id"),
@@ -272,7 +273,7 @@ fn row_to_obligation(row: &sqlx::postgres::PgRow) -> PerformanceObligation {
         recognition_end_date: row.get("recognition_end_date"),
         percent_complete: row
             .try_get::<Option<f64>, _>("percent_complete")
-            .ok().flatten().map(|v| format!("{:.4}", v)),
+            .ok().flatten().map(|v| format!("{v:.4}")),
         satisfaction_method: row.get("satisfaction_method"),
         status: row.get("status"),
         revenue_account_code: row.get("revenue_account_code"),
@@ -287,7 +288,7 @@ fn row_to_obligation(row: &sqlx::postgres::PgRow) -> PerformanceObligation {
 fn row_to_schedule_line(row: &sqlx::postgres::PgRow) -> RevenueScheduleLine {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: f64 = row.try_get(col).unwrap_or(0.0);
-        format!("{:.2}", v)
+        format!("{v:.2}")
     }
     RevenueScheduleLine {
         id: row.get("id"),
@@ -302,7 +303,7 @@ fn row_to_schedule_line(row: &sqlx::postgres::PgRow) -> RevenueScheduleLine {
         recognition_method: row.get("recognition_method"),
         percent_of_total: row
             .try_get::<Option<f64>, _>("percent_of_total")
-            .ok().flatten().map(|v| format!("{:.4}", v)),
+            .ok().flatten().map(|v| format!("{v:.4}")),
         journal_entry_id: row.get("journal_entry_id"),
         recognized_at: row.get("recognized_at"),
         reversed_by_id: row.get("reversed_by_id"),
@@ -317,7 +318,7 @@ fn row_to_schedule_line(row: &sqlx::postgres::PgRow) -> RevenueScheduleLine {
 fn row_to_modification(row: &sqlx::postgres::PgRow) -> RevenueModification {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: f64 = row.try_get(col).unwrap_or(0.0);
-        format!("{:.2}", v)
+        format!("{v:.2}")
     }
     RevenueModification {
         id: row.get("id"),
@@ -363,7 +364,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RevenuePolicy> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.revenue_policies
                 (organization_id, code, name, description,
                  recognition_method, over_time_method, allocation_basis,
@@ -383,7 +384,7 @@ impl RevenueRepository for PostgresRevenueRepository {
                     revenue_account_code = $11, deferred_revenue_account_code = $12,
                     contra_revenue_account_code = $13, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(recognition_method).bind(over_time_method).bind(allocation_basis)
@@ -463,7 +464,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RevenueContract> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.revenue_contracts
                 (organization_id, contract_number,
                  source_type, source_id, source_number,
@@ -476,7 +477,7 @@ impl RevenueRepository for PostgresRevenueRepository {
                     $12::double precision, 0, 0, $12::double precision,
                     $13, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(contract_number)
         .bind(source_type).bind(source_id).bind(source_number)
@@ -513,13 +514,13 @@ impl RevenueRepository for PostgresRevenueRepository {
 
     async fn list_contracts(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<RevenueContract>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.revenue_contracts
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::uuid IS NULL OR customer_id = $3)
             ORDER BY contract_date DESC NULLS LAST, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(customer_id)
         .fetch_all(&self.pool)
@@ -544,7 +545,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         notes: Option<Option<&str>>,
     ) -> AtlasResult<RevenueContract> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.revenue_contracts
             SET status = COALESCE($2, status),
                 step1_contract_identified = COALESCE($3, step1_contract_identified),
@@ -560,7 +561,7 @@ impl RevenueRepository for PostgresRevenueRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .bind(step1_contract_identified).bind(step2_obligations_identified)
@@ -601,7 +602,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceObligation> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.performance_obligations
                 (organization_id, contract_id, line_number,
                  description, product_id, product_name, source_line_id,
@@ -614,7 +615,7 @@ impl RevenueRepository for PostgresRevenueRepository {
                     $11::double precision, $12::double precision, 0, $12::double precision,
                     $13, $14, $15, $16, $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(contract_id).bind(line_number)
         .bind(description).bind(product_id).bind(product_name).bind(source_line_id)
@@ -656,14 +657,14 @@ impl RevenueRepository for PostgresRevenueRepository {
         deferred_revenue: &str,
     ) -> AtlasResult<PerformanceObligation> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.performance_obligations
             SET allocated_transaction_price = $2::double precision,
                 deferred_revenue = $3::double precision,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(allocated_transaction_price).bind(deferred_revenue)
         .fetch_one(&self.pool)
@@ -680,7 +681,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         recognition_end_date: Option<&str>,
     ) -> AtlasResult<PerformanceObligation> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.performance_obligations
             SET status = $2,
                 recognition_start_date = COALESCE($3::date, recognition_start_date),
@@ -688,7 +689,7 @@ impl RevenueRepository for PostgresRevenueRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(recognition_start_date).bind(recognition_end_date)
         .fetch_one(&self.pool)
@@ -706,7 +707,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         status: &str,
     ) -> AtlasResult<PerformanceObligation> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.performance_obligations
             SET total_recognized_revenue = $2::double precision,
                 deferred_revenue = $3::double precision,
@@ -715,7 +716,7 @@ impl RevenueRepository for PostgresRevenueRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(total_recognized_revenue).bind(deferred_revenue)
         .bind(percent_complete).bind(status)
@@ -742,7 +743,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RevenueScheduleLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.revenue_schedule_lines
                 (organization_id, obligation_id, contract_id, line_number,
                  recognition_date, amount, recognized_amount,
@@ -750,7 +751,7 @@ impl RevenueRepository for PostgresRevenueRepository {
             VALUES ($1, $2, $3, $4, $5, $6::double precision, 0,
                     'planned', $7::double precision, $8, $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(obligation_id).bind(contract_id).bind(line_number)
         .bind(recognition_date).bind(amount)
@@ -801,7 +802,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         reversal_reason: Option<&str>,
     ) -> AtlasResult<RevenueScheduleLine> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.revenue_schedule_lines
             SET status = $2,
                 recognized_amount = COALESCE($3::double precision, recognized_amount),
@@ -810,7 +811,7 @@ impl RevenueRepository for PostgresRevenueRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(recognized_amount).bind(reversal_reason)
         .fetch_one(&self.pool)
@@ -838,7 +839,7 @@ impl RevenueRepository for PostgresRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RevenueModification> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.revenue_modifications
                 (organization_id, contract_id, modification_number,
                  modification_type, description,
@@ -847,7 +848,7 @@ impl RevenueRepository for PostgresRevenueRepository {
             VALUES ($1, $2, $3, $4, $5, $6::double precision, $7::double precision,
                     $8, $9, $10, 'active', $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(contract_id).bind(modification_number)
         .bind(modification_type).bind(description)

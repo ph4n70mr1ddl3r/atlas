@@ -1,6 +1,6 @@
 //! Supplier Qualification Repository
 //!
-//! PostgreSQL storage for qualification areas, questions, initiatives,
+//! `PostgreSQL` storage for qualification areas, questions, initiatives,
 //! invitations, responses, and certifications.
 
 use atlas_shared::{
@@ -103,13 +103,14 @@ pub trait SupplierQualificationRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<SupplierQualificationDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresSupplierQualificationRepository {
     pool: PgPool,
 }
 
 impl PostgresSupplierQualificationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -131,10 +132,10 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         is_mandatory: bool, renewal_period_days: i32, created_by: Option<Uuid>,
     ) -> AtlasResult<QualificationArea> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.qualification_areas
+            r"INSERT INTO _atlas.qualification_areas
                 (organization_id, area_code, name, description, area_type, scoring_model,
                  passing_score, is_mandatory, renewal_period_days, created_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8,$9,$10) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8,$9,$10) RETURNING *",
         )
         .bind(org_id).bind(area_code).bind(name).bind(description)
         .bind(area_type).bind(scoring_model).bind(passing_score)
@@ -266,10 +267,10 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         max_score: &str, help_text: Option<&str>, display_order: i32,
     ) -> AtlasResult<QualificationQuestion> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.qualification_questions
+            r"INSERT INTO _atlas.qualification_questions
                 (organization_id, area_id, question_number, question_text, description,
                  response_type, choices, is_required, weight, max_score, help_text, display_order)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10::numeric,$11,$12) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10::numeric,$11,$12) RETURNING *",
         )
         .bind(org_id).bind(area_id).bind(question_number).bind(question_text)
         .bind(description).bind(response_type).bind(choices).bind(is_required)
@@ -344,10 +345,10 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         deadline: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierQualificationInitiative> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.supplier_qualification_initiatives
+            r"INSERT INTO _atlas.supplier_qualification_initiatives
                 (organization_id, initiative_number, name, description, area_id,
                  qualification_purpose, deadline, created_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
         )
         .bind(org_id).bind(initiative_number).bind(name).bind(description)
         .bind(area_id).bind(qualification_purpose).bind(deadline).bind(created_by)
@@ -409,9 +410,9 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
 
     async fn list_initiatives(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SupplierQualificationInitiative>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.supplier_qualification_initiatives
+            r"SELECT * FROM _atlas.supplier_qualification_initiatives
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -442,9 +443,9 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
 
     async fn update_initiative_status(&self, id: Uuid, status: &str) -> AtlasResult<SupplierQualificationInitiative> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.supplier_qualification_initiatives SET status=$2,
+            r"UPDATE _atlas.supplier_qualification_initiatives SET status=$2,
                 completed_at=CASE WHEN $2='completed' AND completed_at IS NULL THEN now() ELSE completed_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -478,9 +479,9 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         disqualified: i32, pending: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.supplier_qualification_initiatives SET
+            r"UPDATE _atlas.supplier_qualification_initiatives SET
                 total_invited=$2, total_responded=$3, total_qualified=$4,
-                total_disqualified=$5, total_pending=$6, updated_at=now() WHERE id=$1"#,
+                total_disqualified=$5, total_pending=$6, updated_at=now() WHERE id=$1",
         )
         .bind(id).bind(invited).bind(responded).bind(qualified)
         .bind(disqualified).bind(pending)
@@ -500,10 +501,10 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierQualificationInvitation> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.supplier_qualification_invitations
+            r"INSERT INTO _atlas.supplier_qualification_invitations
                 (organization_id, initiative_id, supplier_id, supplier_name,
                  supplier_contact_name, supplier_contact_email, expiry_date, created_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
         )
         .bind(org_id).bind(initiative_id).bind(supplier_id).bind(supplier_name)
         .bind(supplier_contact_name).bind(supplier_contact_email)
@@ -549,10 +550,10 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         evaluation_date: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<SupplierQualificationInvitation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.supplier_qualification_invitations SET status=$2,
+            r"UPDATE _atlas.supplier_qualification_invitations SET status=$2,
                 response_date=COALESCE($3, response_date),
                 evaluation_date=COALESCE($4, evaluation_date),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(response_date).bind(evaluation_date)
         .fetch_one(&self.pool).await
@@ -567,12 +568,12 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         disqualified_reason: Option<&str>, evaluation_notes: Option<&str>,
     ) -> AtlasResult<SupplierQualificationInvitation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.supplier_qualification_invitations SET
+            r"UPDATE _atlas.supplier_qualification_invitations SET
                 overall_score=$2::numeric, max_possible_score=$3::numeric,
                 score_percentage=$4::numeric, qualified_by=COALESCE($5, qualified_by),
                 disqualified_reason=COALESCE($6, disqualified_reason),
                 evaluation_notes=COALESCE($7, evaluation_notes),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(overall_score).bind(max_possible_score).bind(score_percentage)
         .bind(qualified_by).bind(disqualified_reason).bind(evaluation_notes)
@@ -592,10 +593,10 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         file_reference: Option<&str>,
     ) -> AtlasResult<SupplierQualificationResponse> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.supplier_qualification_responses
+            r"INSERT INTO _atlas.supplier_qualification_responses
                 (organization_id, invitation_id, question_id, response_text,
                  response_value, file_reference)
-            VALUES ($1,$2,$3,$4,$5,$6) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
         )
         .bind(org_id).bind(invitation_id).bind(question_id).bind(response_text)
         .bind(response_value).bind(file_reference)
@@ -631,11 +632,11 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         evaluated_by: Option<Uuid>,
     ) -> AtlasResult<SupplierQualificationResponse> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.supplier_qualification_responses SET
+            r"UPDATE _atlas.supplier_qualification_responses SET
                 score=$2::numeric, evaluator_notes=COALESCE($3, evaluator_notes),
                 evaluated_by=COALESCE($4, evaluated_by),
                 evaluated_at=CASE WHEN evaluated_at IS NULL THEN now() ELSE evaluated_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(score).bind(evaluator_notes).bind(evaluated_by)
         .fetch_one(&self.pool).await
@@ -658,12 +659,12 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierCertification> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.supplier_certifications
+            r"INSERT INTO _atlas.supplier_certifications
                 (organization_id, supplier_id, supplier_name, certification_type,
                  certification_name, certifying_body, certificate_number, status,
                  issued_date, expiry_date, renewal_date, qualification_invitation_id,
                  document_reference, notes, created_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *",
         )
         .bind(org_id).bind(supplier_id).bind(supplier_name).bind(certification_type)
         .bind(certification_name).bind(certifying_body).bind(certificate_number)
@@ -727,10 +728,10 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
 
     async fn list_certifications(&self, org_id: Uuid, supplier_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<SupplierCertification>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.supplier_certifications
+            r"SELECT * FROM _atlas.supplier_certifications
             WHERE organization_id=$1 AND ($2::uuid IS NULL OR supplier_id=$2)
             AND ($3::text IS NULL OR status=$3)
-            ORDER BY certification_name"#,
+            ORDER BY certification_name",
         )
         .bind(org_id).bind(supplier_id).bind(status)
         .fetch_all(&self.pool).await
@@ -761,7 +762,7 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
 
     async fn update_certification_status(&self, id: Uuid, status: &str) -> AtlasResult<SupplierCertification> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.supplier_certifications SET status=$2, updated_at=now() WHERE id=$1 RETURNING *"#,
+            r"UPDATE _atlas.supplier_certifications SET status=$2, updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -796,7 +797,7 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<SupplierQualificationDashboardSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 (SELECT COUNT(*) FROM _atlas.qualification_areas WHERE organization_id=$1 AND is_active=true) as active_areas,
                 (SELECT COUNT(*) FROM _atlas.supplier_qualification_initiatives WHERE organization_id=$1 AND status IN ('active','pending_evaluations')) as active_initiatives,
                 (SELECT COUNT(*) FROM _atlas.supplier_qualification_invitations WHERE organization_id=$1 AND status='initiated') as pending_invitations,
@@ -804,7 +805,7 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
                 (SELECT COUNT(*) FROM _atlas.supplier_qualification_invitations WHERE organization_id=$1 AND status IN ('initiated','pending_response','under_evaluation')) as pending_suppliers,
                 (SELECT COUNT(*) FROM _atlas.supplier_qualification_invitations WHERE organization_id=$1 AND status='disqualified') as disqualified_suppliers,
                 (SELECT COUNT(*) FROM _atlas.supplier_certifications WHERE organization_id=$1 AND status='active') as active_certs,
-                (SELECT COUNT(*) FROM _atlas.supplier_certifications WHERE organization_id=$1 AND status='active' AND expiry_date <= CURRENT_DATE + INTERVAL '30 days') as expiring_certs"#,
+                (SELECT COUNT(*) FROM _atlas.supplier_certifications WHERE organization_id=$1 AND status='active' AND expiry_date <= CURRENT_DATE + INTERVAL '30 days') as expiring_certs",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -835,7 +836,7 @@ impl SupplierQualificationRepository for PostgresSupplierQualificationRepository
             total_suppliers_disqualified: disqualified_suppliers as i32,
             total_certifications_active: active_certs as i32,
             total_certifications_expiring_30_days: expiring_certs as i32,
-            qualification_rate_percent: format!("{:.1}", qual_rate),
+            qualification_rate_percent: format!("{qual_rate:.1}"),
             initiatives_by_status: serde_json::json!({}),
             certifications_by_type: serde_json::json!({}),
         })

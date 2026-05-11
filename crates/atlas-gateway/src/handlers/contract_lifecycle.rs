@@ -21,7 +21,7 @@ use crate::handlers::auth::Claims;
 use std::sync::Arc;
 use uuid::Uuid;
 
-fn err_status(e: &atlas_shared::AtlasError) -> StatusCode {
+const fn err_status(e: &atlas_shared::AtlasError) -> StatusCode {
     match e {
         atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
         atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,

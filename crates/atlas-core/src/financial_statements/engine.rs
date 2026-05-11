@@ -120,7 +120,7 @@ impl FinancialStatementEngine {
         // Check uniqueness
         if self.repository.get_definition_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Report definition code '{}' already exists", code)
+                format!("Report definition code '{code}' already exists")
             ));
         }
 
@@ -182,7 +182,7 @@ impl FinancialStatementEngine {
             "trial_balance" => self.generate_trial_balance_report(org_id, &request, currency_code, generated_by).await,
             "cash_flow_statement" => self.generate_cash_flow_statement(org_id, &request, currency_code, generated_by).await,
             "statement_of_changes_in_equity" => self.generate_equity_statement(org_id, &request, currency_code, generated_by).await,
-            _ => Err(AtlasError::ValidationFailed(format!("Unsupported report type: {}", report_type))),
+            _ => Err(AtlasError::ValidationFailed(format!("Unsupported report type: {report_type}"))),
         }
     }
 
@@ -212,7 +212,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 0,
             line_type: "header".to_string(), account_code_range: None,
             label: "ASSETS".to_string(), classification: None,
-            amount: "".to_string(), comparative_amount: None,
+            amount: String::new(), comparative_amount: None,
             variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: None, sign_convention: "normal".to_string(),
@@ -225,7 +225,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 1,
             line_type: "header".to_string(), account_code_range: None,
             label: "Current Assets".to_string(), classification: Some("current_asset".to_string()),
-            amount: "".to_string(), comparative_amount: None,
+            amount: String::new(), comparative_amount: None,
             variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: None, sign_convention: "normal".to_string(),
@@ -243,7 +243,7 @@ impl FinancialStatementEngine {
                     account_code_range: Some(acct.account_code.clone()),
                     label: acct.account_name.clone(),
                     classification: Some("current_asset".to_string()),
-                    amount: format!("{:.2}", balance),
+                    amount: format!("{balance:.2}"),
                     comparative_amount: None, variance_amount: None, variance_percent: None,
                     ytd_amount: None, budget_amount: None, budget_variance: None,
                     is_debit_nature: Some(true), sign_convention: "normal".to_string(),
@@ -258,7 +258,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 1,
             line_type: "subtotal".to_string(), account_code_range: None,
             label: "Total Current Assets".to_string(), classification: Some("current_asset".to_string()),
-            amount: format!("{:.2}", total_current_assets),
+            amount: format!("{total_current_assets:.2}"),
             comparative_amount: None, variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: Some(true), sign_convention: "normal".to_string(),
@@ -271,7 +271,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 1,
             line_type: "header".to_string(), account_code_range: None,
             label: "Non-Current Assets".to_string(), classification: Some("non_current_asset".to_string()),
-            amount: "".to_string(), comparative_amount: None,
+            amount: String::new(), comparative_amount: None,
             variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: None, sign_convention: "normal".to_string(),
@@ -289,7 +289,7 @@ impl FinancialStatementEngine {
                     account_code_range: Some(acct.account_code.clone()),
                     label: acct.account_name.clone(),
                     classification: Some("non_current_asset".to_string()),
-                    amount: format!("{:.2}", balance),
+                    amount: format!("{balance:.2}"),
                     comparative_amount: None, variance_amount: None, variance_percent: None,
                     ytd_amount: None, budget_amount: None, budget_variance: None,
                     is_debit_nature: Some(true), sign_convention: "normal".to_string(),
@@ -303,7 +303,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 1,
             line_type: "subtotal".to_string(), account_code_range: None,
             label: "Total Non-Current Assets".to_string(), classification: Some("non_current_asset".to_string()),
-            amount: format!("{:.2}", total_non_current_assets),
+            amount: format!("{total_non_current_assets:.2}"),
             comparative_amount: None, variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: Some(true), sign_convention: "normal".to_string(),
@@ -317,7 +317,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 0,
             line_type: "total".to_string(), account_code_range: None,
             label: "TOTAL ASSETS".to_string(), classification: None,
-            amount: format!("{:.2}", total_assets),
+            amount: format!("{total_assets:.2}"),
             comparative_amount: None, variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: Some(true), sign_convention: "normal".to_string(),
@@ -349,7 +349,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 0,
             line_type: "header".to_string(), account_code_range: None,
             label: "LIABILITIES AND EQUITY".to_string(), classification: None,
-            amount: "".to_string(), comparative_amount: None,
+            amount: String::new(), comparative_amount: None,
             variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: None, sign_convention: "normal".to_string(),
@@ -361,7 +361,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 1,
             line_type: "total".to_string(), account_code_range: None,
             label: "Total Current Liabilities".to_string(), classification: Some("current_liability".to_string()),
-            amount: format!("{:.2}", total_current_liabilities),
+            amount: format!("{total_current_liabilities:.2}"),
             comparative_amount: None, variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: Some(false), sign_convention: "normal".to_string(),
@@ -373,7 +373,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 1,
             line_type: "total".to_string(), account_code_range: None,
             label: "Total Non-Current Liabilities".to_string(), classification: Some("non_current_liability".to_string()),
-            amount: format!("{:.2}", total_non_current_liabilities),
+            amount: format!("{total_non_current_liabilities:.2}"),
             comparative_amount: None, variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: Some(false), sign_convention: "normal".to_string(),
@@ -385,7 +385,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 1,
             line_type: "total".to_string(), account_code_range: None,
             label: "Total Equity".to_string(), classification: Some("equity".to_string()),
-            amount: format!("{:.2}", total_equity),
+            amount: format!("{total_equity:.2}"),
             comparative_amount: None, variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: Some(false), sign_convention: "normal".to_string(),
@@ -397,7 +397,7 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 0,
             line_type: "total".to_string(), account_code_range: None,
             label: "TOTAL LIABILITIES AND EQUITY".to_string(), classification: None,
-            amount: format!("{:.2}", total_liabilities_and_equity),
+            amount: format!("{total_liabilities_and_equity:.2}"),
             comparative_amount: None, variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: Some(false), sign_convention: "normal".to_string(),
@@ -405,14 +405,14 @@ impl FinancialStatementEngine {
         });
 
         let bs_summary = BalanceSheetSummary {
-            total_current_assets: format!("{:.2}", total_current_assets),
-            total_non_current_assets: format!("{:.2}", total_non_current_assets),
-            total_assets: format!("{:.2}", total_assets),
-            total_current_liabilities: format!("{:.2}", total_current_liabilities),
-            total_non_current_liabilities: format!("{:.2}", total_non_current_liabilities),
-            total_liabilities: format!("{:.2}", total_liabilities),
-            total_equity: format!("{:.2}", total_equity),
-            total_liabilities_and_equity: format!("{:.2}", total_liabilities_and_equity),
+            total_current_assets: format!("{total_current_assets:.2}"),
+            total_non_current_assets: format!("{total_non_current_assets:.2}"),
+            total_assets: format!("{total_assets:.2}"),
+            total_current_liabilities: format!("{total_current_liabilities:.2}"),
+            total_non_current_liabilities: format!("{total_non_current_liabilities:.2}"),
+            total_liabilities: format!("{total_liabilities:.2}"),
+            total_equity: format!("{total_equity:.2}"),
+            total_liabilities_and_equity: format!("{total_liabilities_and_equity:.2}"),
             is_balanced,
         };
 
@@ -476,7 +476,7 @@ impl FinancialStatementEngine {
         }
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "total", "Total Revenue", &format!("{:.2}", total_revenue), None, None));
+        lines.push(Self::make_line(line_num, 0, "total", "Total Revenue", &format!("{total_revenue:.2}"), None, None));
 
         // Cost of Goods Sold
         for acct in &accounts {
@@ -487,14 +487,14 @@ impl FinancialStatementEngine {
 
         if total_cogs > 0.0 {
             line_num += 1;
-            lines.push(Self::make_line(line_num, 0, "total", "Cost of Goods Sold", &format!("{:.2}", total_cogs), None, None));
+            lines.push(Self::make_line(line_num, 0, "total", "Cost of Goods Sold", &format!("{total_cogs:.2}"), None, None));
         }
 
         let gross_profit = total_revenue - total_cogs;
         let gross_margin = if total_revenue > 0.0 { (gross_profit / total_revenue) * 100.0 } else { 0.0 };
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "subtotal", "Gross Profit", &format!("{:.2}", gross_profit), None, None));
+        lines.push(Self::make_line(line_num, 0, "subtotal", "Gross Profit", &format!("{gross_profit:.2}"), None, None));
 
         // Operating Expenses
         line_num += 1;
@@ -510,35 +510,35 @@ impl FinancialStatementEngine {
         }
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "total", "Total Operating Expenses", &format!("{:.2}", total_operating_expenses), None, None));
+        lines.push(Self::make_line(line_num, 0, "total", "Total Operating Expenses", &format!("{total_operating_expenses:.2}"), None, None));
 
         let operating_income = gross_profit - total_operating_expenses;
         let operating_margin = if total_revenue > 0.0 { (operating_income / total_revenue) * 100.0 } else { 0.0 };
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "subtotal", "Operating Income", &format!("{:.2}", operating_income), None, None));
+        lines.push(Self::make_line(line_num, 0, "subtotal", "Operating Income", &format!("{operating_income:.2}"), None, None));
 
         let income_before_tax = operating_income + total_other_income - total_other_expense - income_tax;
         let net_income = income_before_tax - income_tax;
         let net_margin = if total_revenue > 0.0 { (net_income / total_revenue) * 100.0 } else { 0.0 };
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "total", "NET INCOME", &format!("{:.2}", net_income), None, None));
+        lines.push(Self::make_line(line_num, 0, "total", "NET INCOME", &format!("{net_income:.2}"), None, None));
 
         let is_summary = IncomeStatementSummary {
-            total_revenue: format!("{:.2}", total_revenue),
-            total_cost_of_goods_sold: format!("{:.2}", total_cogs),
-            gross_profit: format!("{:.2}", gross_profit),
-            gross_profit_margin: format!("{:.2}%", gross_margin),
-            total_operating_expenses: format!("{:.2}", total_operating_expenses),
-            operating_income: format!("{:.2}", operating_income),
-            operating_margin: format!("{:.2}%", operating_margin),
-            total_other_income: format!("{:.2}", total_other_income),
-            total_other_expense: format!("{:.2}", total_other_expense),
-            income_before_tax: format!("{:.2}", income_before_tax),
-            income_tax_expense: format!("{:.2}", income_tax),
-            net_income: format!("{:.2}", net_income),
-            net_profit_margin: format!("{:.2}%", net_margin),
+            total_revenue: format!("{total_revenue:.2}"),
+            total_cost_of_goods_sold: format!("{total_cogs:.2}"),
+            gross_profit: format!("{gross_profit:.2}"),
+            gross_profit_margin: format!("{gross_margin:.2}%"),
+            total_operating_expenses: format!("{total_operating_expenses:.2}"),
+            operating_income: format!("{operating_income:.2}"),
+            operating_margin: format!("{operating_margin:.2}%"),
+            total_other_income: format!("{total_other_income:.2}"),
+            total_other_expense: format!("{total_other_expense:.2}"),
+            income_before_tax: format!("{income_before_tax:.2}"),
+            income_tax_expense: format!("{income_tax:.2}"),
+            net_income: format!("{net_income:.2}"),
+            net_profit_margin: format!("{net_margin:.2}%"),
         };
 
         let stmt = FinancialStatement {
@@ -588,10 +588,10 @@ impl FinancialStatementEngine {
 
             let (debit, credit) = if is_debit {
                 total_debit += balance;
-                (format!("{:.2}", balance), "".to_string())
+                (format!("{balance:.2}"), String::new())
             } else {
                 total_credit += balance;
-                ("".to_string(), format!("{:.2}", balance))
+                (String::new(), format!("{balance:.2}"))
             };
 
             line_num += 1;
@@ -618,8 +618,8 @@ impl FinancialStatementEngine {
             line_number: line_num, indent_level: 0,
             line_type: "total".to_string(), account_code_range: None,
             label: "TOTAL".to_string(), classification: None,
-            amount: format!("{:.2}", total_debit),
-            comparative_amount: Some(format!("{:.2}", total_credit)),
+            amount: format!("{total_debit:.2}"),
+            comparative_amount: Some(format!("{total_credit:.2}")),
             variance_amount: Some(format!("{:.2}", total_debit - total_credit)),
             variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
@@ -683,7 +683,7 @@ impl FinancialStatementEngine {
         lines.push(Self::make_line(line_num, 0, "header", "CASH FLOWS FROM OPERATING ACTIVITIES", "", None, None));
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 1, "detail", "Net Income", &format!("{:.2}", net_income), None, None));
+        lines.push(Self::make_line(line_num, 1, "detail", "Net Income", &format!("{net_income:.2}"), None, None));
 
         line_num += 1;
         lines.push(Self::make_line(line_num, 1, "detail", "Adjustments for changes in working capital", "", None, None));
@@ -691,7 +691,7 @@ impl FinancialStatementEngine {
         let operating_cash = net_income; // Simplified
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "subtotal", "Net Cash from Operating Activities", &format!("{:.2}", operating_cash), None, None));
+        lines.push(Self::make_line(line_num, 0, "subtotal", "Net Cash from Operating Activities", &format!("{operating_cash:.2}"), None, None));
 
         // Investing Activities
         line_num += 1;
@@ -700,7 +700,7 @@ impl FinancialStatementEngine {
         let investing_cash = 0.0; // Simplified: no investing activity data
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "subtotal", "Net Cash from Investing Activities", &format!("{:.2}", investing_cash), None, None));
+        lines.push(Self::make_line(line_num, 0, "subtotal", "Net Cash from Investing Activities", &format!("{investing_cash:.2}"), None, None));
 
         // Financing Activities
         line_num += 1;
@@ -709,12 +709,12 @@ impl FinancialStatementEngine {
         let financing_cash = 0.0; // Simplified
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "subtotal", "Net Cash from Financing Activities", &format!("{:.2}", financing_cash), None, None));
+        lines.push(Self::make_line(line_num, 0, "subtotal", "Net Cash from Financing Activities", &format!("{financing_cash:.2}"), None, None));
 
         let net_change = operating_cash + investing_cash + financing_cash;
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "total", "Net Change in Cash", &format!("{:.2}", net_change), None, None));
+        lines.push(Self::make_line(line_num, 0, "total", "Net Change in Cash", &format!("{net_change:.2}"), None, None));
 
         let stmt = FinancialStatement {
             id: Uuid::new_v4(),
@@ -769,15 +769,15 @@ impl FinancialStatementEngine {
         let ending_equity = beginning_equity + net_income - dividends + other_comprehensive;
 
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "detail", "Beginning Balance", &format!("{:.2}", beginning_equity), None, None));
+        lines.push(Self::make_line(line_num, 0, "detail", "Beginning Balance", &format!("{beginning_equity:.2}"), None, None));
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "detail", "Net Income", &format!("{:.2}", net_income), None, None));
+        lines.push(Self::make_line(line_num, 0, "detail", "Net Income", &format!("{net_income:.2}"), None, None));
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "detail", "Dividends", &format!("{:.2}", dividends), None, None));
+        lines.push(Self::make_line(line_num, 0, "detail", "Dividends", &format!("{dividends:.2}"), None, None));
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "detail", "Other Comprehensive Income", &format!("{:.2}", other_comprehensive), None, None));
+        lines.push(Self::make_line(line_num, 0, "detail", "Other Comprehensive Income", &format!("{other_comprehensive:.2}"), None, None));
         line_num += 1;
-        lines.push(Self::make_line(line_num, 0, "total", "Ending Balance", &format!("{:.2}", ending_equity), None, None));
+        lines.push(Self::make_line(line_num, 0, "total", "Ending Balance", &format!("{ending_equity:.2}"), None, None));
 
         let stmt = FinancialStatement {
             id: Uuid::new_v4(),
@@ -818,9 +818,9 @@ impl FinancialStatementEngine {
     ) -> FinancialStatementLine {
         FinancialStatementLine {
             line_number, indent_level, line_type: line_type.to_string(),
-            account_code_range: account_code_range.map(|s| s.to_string()),
+            account_code_range: account_code_range.map(std::string::ToString::to_string),
             label: label.to_string(),
-            classification: classification.map(|s| s.to_string()),
+            classification: classification.map(std::string::ToString::to_string),
             amount: amount.to_string(),
             comparative_amount: None, variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
@@ -837,9 +837,9 @@ impl FinancialStatementEngine {
         FinancialStatementLine {
             line_number, indent_level, line_type: "detail".to_string(),
             account_code_range: Some(account_code.to_string()),
-            label: format!("{} - {}", account_code, account_name),
+            label: format!("{account_code} - {account_name}"),
             classification: Some(classification.to_string()),
-            amount: format!("{:.2}", balance),
+            amount: format!("{balance:.2}"),
             comparative_amount: None, variance_amount: None, variance_percent: None,
             ytd_amount: None, budget_amount: None, budget_variance: None,
             is_debit_nature: None, sign_convention: "normal".to_string(),
@@ -848,6 +848,7 @@ impl FinancialStatementEngine {
     }
 
     /// Calculate financial ratios from balance sheet and income statement data
+    #[must_use] 
     pub fn calculate_ratios(
         total_current_assets: f64,
         total_current_liabilities: f64,

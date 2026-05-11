@@ -68,13 +68,14 @@ pub trait TaxRegistrationRepository: Send + Sync {
     async fn get_next_registration_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 }
 
-/// PostgreSQL implementation of the TaxRegistrationRepository
+/// `PostgreSQL` implementation of the `TaxRegistrationRepository`
 pub struct PostgresTaxRegistrationRepository {
     _pool: sqlx::PgPool,
 }
 
 impl PostgresTaxRegistrationRepository {
-    pub fn new(pool: sqlx::PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: sqlx::PgPool) -> Self {
         Self { _pool: pool }
     }
 }
@@ -109,15 +110,15 @@ impl TaxRegistrationRepository for PostgresTaxRegistrationRepository {
             tax_purpose: tax_purpose.to_string(),
             party_type: party_type.to_string(),
             party_id,
-            party_name: party_name.map(|s| s.to_string()),
+            party_name: party_name.map(std::string::ToString::to_string),
             jurisdiction_code: jurisdiction_code.to_string(),
             country_code: country_code.to_string(),
-            state_code: state_code.map(|s| s.to_string()),
+            state_code: state_code.map(std::string::ToString::to_string),
             status: "active".to_string(),
             effective_from,
             effective_to,
             is_default,
-            reporting_name: reporting_name.map(|s| s.to_string()),
+            reporting_name: reporting_name.map(std::string::ToString::to_string),
             legal_entity_id,
             validation_status: "pending".to_string(),
             last_validated_at: None,

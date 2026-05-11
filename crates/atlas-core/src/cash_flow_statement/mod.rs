@@ -101,11 +101,12 @@ pub trait CashFlowStatementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CashFlowDashboard>;
 }
 
-/// PostgreSQL stub
+/// `PostgreSQL` stub
 #[allow(dead_code)]
 pub struct PostgresCashFlowStatementRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresCashFlowStatementRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresCashFlowStatementRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl CashFlowStatementRepository for PostgresCashFlowStatementRepository {
@@ -151,7 +152,7 @@ impl CashFlowStatementEngine {
             return Err(AtlasError::ValidationFailed("Period end must be after period start".into()));
         }
         if self.repository.get_statement_by_number(org_id, statement_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Statement '{}' already exists", statement_number)));
+            return Err(AtlasError::Conflict(format!("Statement '{statement_number}' already exists")));
         }
         info!("Creating cash flow statement {} for org {}", statement_number, org_id);
         self.repository.create_statement(org_id, statement_number, method, period_type, period_start, period_end, created_by).await
@@ -160,13 +161,13 @@ impl CashFlowStatementEngine {
     pub async fn get_statement(&self, id: Uuid) -> AtlasResult<Option<CashFlowStatement>> { self.repository.get_statement(id).await }
 
     pub async fn list_statements(&self, org_id: Uuid, status: Option<&str>, method: Option<&str>) -> AtlasResult<Vec<CashFlowStatement>> {
-        if let Some(s) = status { if !VALID_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s))); } }
-        if let Some(m) = method { if !VALID_METHODS.contains(&m) { return Err(AtlasError::ValidationFailed(format!("Invalid method '{}'", m))); } }
+        if let Some(s) = status { if !VALID_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'"))); } }
+        if let Some(m) = method { if !VALID_METHODS.contains(&m) { return Err(AtlasError::ValidationFailed(format!("Invalid method '{m}'"))); } }
         self.repository.list_statements(org_id, status, method).await
     }
 
     pub async fn calculate(&self, id: Uuid) -> AtlasResult<CashFlowStatement> {
-        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {} not found", id)))?;
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {id} not found")))?;
         if stmt.status != "draft" {
             return Err(AtlasError::WorkflowError(format!("Cannot calculate statement in '{}' status", stmt.status)));
         }
@@ -192,7 +193,7 @@ impl CashFlowStatementEngine {
     }
 
     pub async fn review(&self, id: Uuid, reviewer_id: Uuid) -> AtlasResult<CashFlowStatement> {
-        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {} not found", id)))?;
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {id} not found")))?;
         if stmt.status != "calculated" {
             return Err(AtlasError::WorkflowError(format!("Cannot review statement in '{}' status", stmt.status)));
         }
@@ -200,7 +201,7 @@ impl CashFlowStatementEngine {
     }
 
     pub async fn publish(&self, id: Uuid) -> AtlasResult<CashFlowStatement> {
-        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {} not found", id)))?;
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {id} not found")))?;
         if stmt.status != "reviewed" {
             return Err(AtlasError::WorkflowError(format!("Cannot publish statement in '{}' status", stmt.status)));
         }
@@ -208,7 +209,7 @@ impl CashFlowStatementEngine {
     }
 
     pub async fn archive(&self, id: Uuid) -> AtlasResult<CashFlowStatement> {
-        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {} not found", id)))?;
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {id} not found")))?;
         if stmt.status != "published" {
             return Err(AtlasError::WorkflowError(format!("Cannot archive statement in '{}' status", stmt.status)));
         }
@@ -220,7 +221,7 @@ impl CashFlowStatementEngine {
         line_type: &str, amount: &str, account_range_from: Option<&str>, account_range_to: Option<&str>,
         is_non_cash: bool, display_order: i32,
     ) -> AtlasResult<CashFlowStatementLine> {
-        let stmt = self.repository.get_statement(statement_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {} not found", statement_id)))?;
+        let stmt = self.repository.get_statement(statement_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {statement_id} not found")))?;
         if stmt.status != "draft" {
             return Err(AtlasError::WorkflowError(format!("Cannot add lines to '{}' statement", stmt.status)));
         }
@@ -228,7 +229,7 @@ impl CashFlowStatementEngine {
             return Err(AtlasError::ValidationFailed(format!("Invalid category '{}'. Must be one of: {}", category, VALID_LINE_CATEGORIES.join(", "))));
         }
         if !VALID_LINE_TYPES.contains(&line_type) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid line type '{}'", line_type)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid line type '{line_type}'")));
         }
         if line_number <= 0 {
             return Err(AtlasError::ValidationFailed("Line number must be positive".into()));

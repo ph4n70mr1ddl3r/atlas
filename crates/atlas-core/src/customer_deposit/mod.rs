@@ -32,7 +32,7 @@ pub struct CustomerDeposit {
     pub customer_name: String,
     pub customer_site_id: Option<Uuid>,
     pub description: Option<String>,
-    /// 'draft', 'received', 'partially_applied', 'fully_applied', 'refunded', 'cancelled'
+    /// 'draft', 'received', '`partially_applied`', '`fully_applied`', 'refunded', 'cancelled'
     pub status: String,
     pub currency_code: String,
     pub deposit_amount: String,
@@ -115,11 +115,12 @@ pub trait CustomerDepositRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CustomerDepositDashboard>;
 }
 
-/// PostgreSQL implementation (stub)
+/// `PostgreSQL` implementation (stub)
 #[allow(dead_code)]
 pub struct PostgresCustomerDepositRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresCustomerDepositRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresCustomerDepositRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl CustomerDepositRepository for PostgresCustomerDepositRepository {

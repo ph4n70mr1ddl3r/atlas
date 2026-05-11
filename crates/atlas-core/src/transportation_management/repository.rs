@@ -1,6 +1,6 @@
 //! Transportation Management Repository
 //!
-//! PostgreSQL storage for carriers, services, lanes, shipments, stops,
+//! `PostgreSQL` storage for carriers, services, lanes, shipments, stops,
 //! lines, tracking events, freight rates, and dashboard analytics.
 
 use atlas_shared::{
@@ -500,7 +500,8 @@ pub struct PostgresTransportationManagementRepository {
 }
 
 impl PostgresTransportationManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -527,7 +528,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         created_by: Option<Uuid>,
     ) -> AtlasResult<Carrier> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.carriers
+            r"INSERT INTO _atlas.carriers
                 (organization_id, carrier_code, name, description,
                  carrier_type, status, scac_code, dot_number, mc_number, tax_id,
                  contact_name, contact_email, contact_phone,
@@ -536,7 +537,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
                  insurance_policy_number, insurance_expiry_date,
                  default_service_level, capabilities, metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(carrier_code).bind(name).bind(description)
         .bind(carrier_type).bind(status)
@@ -566,11 +567,11 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn list_carriers(&self, org_id: Uuid, status: Option<&str>, carrier_type: Option<&str>) -> AtlasResult<Vec<Carrier>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.carriers
+            r"SELECT * FROM _atlas.carriers
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR carrier_type = $3)
-               ORDER BY name"#,
+               ORDER BY name",
         ).bind(org_id).bind(status).bind(carrier_type)
         .fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_carrier).collect())
@@ -581,18 +582,18 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
             "UPDATE _atlas.carriers SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Carrier {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Carrier {id} not found")))?;
         Ok(row_to_carrier(&row))
     }
 
     async fn update_carrier_performance(&self, id: Uuid, rating: f64, on_time_pct: f64, claims: f64) -> AtlasResult<Carrier> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.carriers
+            r"UPDATE _atlas.carriers
                SET performance_rating = $2, on_time_delivery_pct = $3, claims_ratio = $4, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(rating).bind(on_time_pct).bind(claims)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Carrier {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Carrier {id} not found")))?;
         Ok(row_to_carrier(&row))
     }
 
@@ -601,7 +602,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
             "DELETE FROM _atlas.carriers WHERE organization_id = $1 AND carrier_code = $2"
         ).bind(org_id).bind(carrier_code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Carrier '{}' not found", carrier_code)));
+            return Err(AtlasError::EntityNotFound(format!("Carrier '{carrier_code}' not found")));
         }
         Ok(())
     }
@@ -622,7 +623,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         is_active: bool, metadata: serde_json::Value,
     ) -> AtlasResult<CarrierService> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.carrier_services
+            r"INSERT INTO _atlas.carrier_services
                 (organization_id, carrier_id, service_code, name, description,
                  service_level, transit_days_min, transit_days_max,
                  max_weight_kg, max_dimensions, cutoff_time,
@@ -630,7 +631,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
                  rate_per_kg, minimum_charge, fuel_surcharge_pct,
                  is_active, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(carrier_id).bind(service_code).bind(name).bind(description)
         .bind(service_level).bind(transit_days_min).bind(transit_days_max)
@@ -650,10 +651,10 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn list_carrier_services(&self, carrier_id: Uuid, active_only: bool) -> AtlasResult<Vec<CarrierService>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.carrier_services
+            r"SELECT * FROM _atlas.carrier_services
                WHERE carrier_id = $1
                  AND ($2::bool IS NULL OR $2 = false OR is_active = true)
-               ORDER BY service_level"#,
+               ORDER BY service_level",
         ).bind(carrier_id).bind(active_only)
         .fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_carrier_service).collect())
@@ -664,7 +665,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
             "UPDATE _atlas.carrier_services SET is_active = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(is_active)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Carrier service {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Carrier service {id} not found")))?;
         Ok(row_to_carrier_service(&row))
     }
 
@@ -695,7 +696,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         restrictions: serde_json::Value, metadata: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<TransportLane> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.transport_lanes
+            r"INSERT INTO _atlas.transport_lanes
                 (organization_id, lane_code, name, description,
                  origin_location_id, origin_location_name, origin_city, origin_state, origin_country, origin_postal_code,
                  destination_location_id, destination_location_name, destination_city, destination_state, destination_country, destination_postal_code,
@@ -704,7 +705,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
                  status, effective_from, effective_to,
                  restrictions, metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(lane_code).bind(name).bind(description)
         .bind(origin_location_id).bind(origin_location_name).bind(origin_city).bind(origin_state).bind(origin_country).bind(origin_postal_code)
@@ -732,11 +733,11 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn list_lanes(&self, org_id: Uuid, status: Option<&str>, lane_type: Option<&str>) -> AtlasResult<Vec<TransportLane>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.transport_lanes
+            r"SELECT * FROM _atlas.transport_lanes
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR lane_type = $3)
-               ORDER BY lane_code"#,
+               ORDER BY lane_code",
         ).bind(org_id).bind(status).bind(lane_type)
         .fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_lane).collect())
@@ -747,7 +748,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
             "UPDATE _atlas.transport_lanes SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Lane {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Lane {id} not found")))?;
         Ok(row_to_lane(&row))
     }
 
@@ -756,7 +757,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
             "DELETE FROM _atlas.transport_lanes WHERE organization_id = $1 AND lane_code = $2"
         ).bind(org_id).bind(lane_code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Lane '{}' not found", lane_code)));
+            return Err(AtlasError::EntityNotFound(format!("Lane '{lane_code}' not found")));
         }
         Ok(())
     }
@@ -791,7 +792,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         metadata: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.shipments
+            r"INSERT INTO _atlas.shipments
                 (organization_id, shipment_number, name, description,
                  status, shipment_type, priority,
                  carrier_id, carrier_code, carrier_name,
@@ -813,7 +814,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
                  metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
                     $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(shipment_number).bind(name).bind(description)
         .bind(status).bind(shipment_type).bind(priority)
@@ -853,11 +854,11 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn list_shipments(&self, org_id: Uuid, status: Option<&str>, shipment_type: Option<&str>) -> AtlasResult<Vec<TransportShipment>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.shipments
+            r"SELECT * FROM _atlas.shipments
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR shipment_type = $3)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         ).bind(org_id).bind(status).bind(shipment_type)
         .fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_shipment).collect())
@@ -868,7 +869,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
             "UPDATE _atlas.shipments SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
         Ok(row_to_shipment(&row))
     }
 
@@ -877,67 +878,67 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         carrier_name: Option<&str>, carrier_service_id: Option<Uuid>, carrier_service_code: Option<&str>,
     ) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipments
+            r"UPDATE _atlas.shipments
                SET carrier_id = $2, carrier_code = $3, carrier_name = $4,
                    carrier_service_id = $5, carrier_service_code = $6, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(carrier_id).bind(carrier_code).bind(carrier_name)
          .bind(carrier_service_id).bind(carrier_service_code)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
         Ok(row_to_shipment(&row))
     }
 
     async fn update_shipment_dates(&self, id: Uuid, actual_ship_date: Option<chrono::NaiveDate>, actual_delivery_date: Option<chrono::NaiveDate>) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipments
+            r"UPDATE _atlas.shipments
                SET actual_ship_date = COALESCE($2, actual_ship_date),
                    actual_delivery_date = COALESCE($3, actual_delivery_date),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(actual_ship_date).bind(actual_delivery_date)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
         Ok(row_to_shipment(&row))
     }
 
     async fn update_shipment_tracking(&self, id: Uuid, tracking_number: Option<&str>, tracking_url: Option<&str>, pro_number: Option<&str>, bill_of_lading: Option<&str>) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipments
+            r"UPDATE _atlas.shipments
                SET tracking_number = COALESCE($2, tracking_number),
                    tracking_url = COALESCE($3, tracking_url),
                    pro_number = COALESCE($4, pro_number),
                    bill_of_lading = COALESCE($5, bill_of_lading),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(tracking_number).bind(tracking_url).bind(pro_number).bind(bill_of_lading)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
         Ok(row_to_shipment(&row))
     }
 
     async fn update_shipment_totals(&self, id: Uuid, weight: f64, volume: f64, pieces: i32, freight: f64, fuel: f64, accessorial: f64, total: f64) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipments
+            r"UPDATE _atlas.shipments
                SET total_weight_kg = $2, total_volume_cbm = $3, total_pieces = $4,
                    freight_cost = $5, fuel_surcharge = $6, accessorial_charges = $7, total_cost = $8,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(weight).bind(volume).bind(pieces)
          .bind(freight).bind(fuel).bind(accessorial).bind(total)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
         Ok(row_to_shipment(&row))
     }
 
     async fn update_shipment_delivery(&self, id: Uuid, received_by: Option<Uuid>) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipments
+            r"UPDATE _atlas.shipments
                SET received_by = $2, actual_delivery_date = CURRENT_DATE, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(received_by)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
         Ok(row_to_shipment(&row))
     }
 
@@ -946,7 +947,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
             "DELETE FROM _atlas.shipments WHERE organization_id = $1 AND shipment_number = $2"
         ).bind(org_id).bind(shipment_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("TransportShipment '{}' not found", shipment_number)));
+            return Err(AtlasError::EntityNotFound(format!("TransportShipment '{shipment_number}' not found")));
         }
         Ok(())
     }
@@ -966,13 +967,13 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         metadata: serde_json::Value,
     ) -> AtlasResult<TransportShipmentStop> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.shipment_stops
+            r"INSERT INTO _atlas.shipment_stops
                 (organization_id, shipment_id, stop_number, stop_type,
                  location_id, location_name, address,
                  planned_arrival, planned_departure,
                  contact_name, contact_phone, special_instructions, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(shipment_id).bind(stop_number).bind(stop_type)
         .bind(location_id).bind(location_name).bind(&address)
@@ -997,13 +998,13 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn update_stop_status(&self, id: Uuid, status: &str, actual_arrival: Option<chrono::DateTime<chrono::Utc>>, actual_departure: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<TransportShipmentStop> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipment_stops
+            r"UPDATE _atlas.shipment_stops
                SET status = $2, actual_arrival = COALESCE($3, actual_arrival),
                    actual_departure = COALESCE($4, actual_departure), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(status).bind(actual_arrival).bind(actual_departure)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Stop {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Stop {id} not found")))?;
         Ok(row_to_stop(&row))
     }
 
@@ -1033,7 +1034,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         metadata: serde_json::Value,
     ) -> AtlasResult<TransportShipmentLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.shipment_lines
+            r"INSERT INTO _atlas.shipment_lines
                 (organization_id, shipment_id, line_number,
                  item_id, item_number, item_description,
                  quantity, unit_of_measure,
@@ -1042,7 +1043,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
                  source_line_id, source_line_type,
                  stop_id, freight_class, nmfc_code, hazmat_class, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(shipment_id).bind(line_number)
         .bind(item_id).bind(item_number).bind(item_description)
@@ -1070,12 +1071,12 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn update_shipment_line_quantities(&self, id: Uuid, shipped: i32, received: i32) -> AtlasResult<TransportShipmentLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.shipment_lines
+            r"UPDATE _atlas.shipment_lines
                SET quantity_shipped = $2, quantity_received = $3, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(shipped).bind(received)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment line {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment line {id} not found")))?;
         Ok(row_to_shipment_line(&row))
     }
 
@@ -1105,14 +1106,14 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         metadata: serde_json::Value,
     ) -> AtlasResult<TransportShipmentTrackingEvent> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.shipment_tracking_events
+            r"INSERT INTO _atlas.shipment_tracking_events
                 (organization_id, shipment_id, event_type, event_timestamp,
                  location_description, city, state, country,
                  latitude, longitude, description,
                  carrier_event_code, carrier_event_description,
                  updated_by, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(shipment_id).bind(event_type).bind(event_timestamp)
         .bind(location_description).bind(city).bind(state).bind(country)
@@ -1146,7 +1147,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         metadata: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<FreightRate> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.freight_rates
+            r"INSERT INTO _atlas.freight_rates
                 (organization_id, rate_code, name, description,
                  carrier_id, carrier_service_id, lane_id,
                  rate_type, rate_amount, minimum_charge, currency_code,
@@ -1156,7 +1157,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
                  volume_threshold_min, volume_threshold_max,
                  metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(rate_code).bind(name).bind(description)
         .bind(carrier_id).bind(carrier_service_id).bind(lane_id)
@@ -1185,11 +1186,11 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn list_freight_rates(&self, org_id: Uuid, carrier_id: Option<&Uuid>, status: Option<&str>) -> AtlasResult<Vec<FreightRate>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.freight_rates
+            r"SELECT * FROM _atlas.freight_rates
                WHERE organization_id = $1
                  AND ($2::uuid IS NULL OR carrier_id = $2)
                  AND ($3::text IS NULL OR status = $3)
-               ORDER BY effective_from DESC"#,
+               ORDER BY effective_from DESC",
         ).bind(org_id).bind(carrier_id.copied()).bind(status)
         .fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_freight_rate).collect())
@@ -1200,7 +1201,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
             "UPDATE _atlas.freight_rates SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Freight rate {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Freight rate {id} not found")))?;
         Ok(row_to_freight_rate(&row))
     }
 
@@ -1209,7 +1210,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
             "DELETE FROM _atlas.freight_rates WHERE organization_id = $1 AND rate_code = $2"
         ).bind(org_id).bind(rate_code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Freight rate '{}' not found", rate_code)));
+            return Err(AtlasError::EntityNotFound(format!("Freight rate '{rate_code}' not found")));
         }
         Ok(())
     }

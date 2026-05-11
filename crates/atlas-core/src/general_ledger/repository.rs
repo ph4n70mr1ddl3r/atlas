@@ -1,6 +1,6 @@
 //! General Ledger Repository
 //!
-//! PostgreSQL storage for GL accounts, journal entries, journal lines.
+//! `PostgreSQL` storage for GL accounts, journal entries, journal lines.
 
 use atlas_shared::{
     GlAccount, GlJournalEntry, GlJournalLine,
@@ -80,13 +80,14 @@ pub trait GeneralLedgerRepository: Send + Sync {
     async fn get_account_balance(&self, org_id: Uuid, account_code: &str, as_of_date: chrono::NaiveDate) -> AtlasResult<f64>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresGeneralLedgerRepository {
     pool: PgPool,
 }
 
 impl PostgresGeneralLedgerRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -186,13 +187,13 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GlAccount> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.gl_accounts
                 (organization_id, account_code, account_name, description,
                  account_type, subtype, parent_account_id, natural_balance, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(account_code).bind(account_name).bind(description)
         .bind(account_type).bind(subtype).bind(parent_account_id)
@@ -226,12 +227,12 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
 
     async fn list_accounts(&self, org_id: Uuid, account_type: Option<&str>) -> AtlasResult<Vec<GlAccount>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.gl_accounts
             WHERE organization_id = $1 AND is_active = true
               AND ($2::text IS NULL OR account_type = $2)
             ORDER BY account_code
-            "#,
+            ",
         )
         .bind(org_id).bind(account_type)
         .fetch_all(&self.pool)
@@ -254,7 +255,7 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GlJournalEntry> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.gl_journal_entries
                 (organization_id, entry_number, entry_date, gl_date, entry_type,
                  description, currency_code, total_debit, total_credit, is_balanced,
@@ -262,7 +263,7 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, false,
                     'draft', $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(entry_number).bind(entry_date).bind(gl_date).bind(entry_type)
         .bind(description).bind(currency_code).bind(source_type).bind(source_id).bind(created_by)
@@ -295,13 +296,13 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
 
     async fn list_journal_entries(&self, org_id: Uuid, status: Option<&str>, entry_type: Option<&str>) -> AtlasResult<Vec<GlJournalEntry>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.gl_journal_entries
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::text IS NULL OR entry_type = $3)
             ORDER BY gl_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(entry_type)
         .fetch_all(&self.pool)
@@ -312,7 +313,7 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
 
     async fn update_journal_status(&self, id: Uuid, status: &str, posted_by: Option<Uuid>, reversal_entry_id: Option<Uuid>) -> AtlasResult<GlJournalEntry> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.gl_journal_entries
             SET status = $2,
                 posted_by = CASE WHEN $2 = 'posted' THEN $3 ELSE posted_by END,
@@ -321,7 +322,7 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(posted_by).bind(reversal_entry_id)
         .fetch_one(&self.pool)
@@ -332,14 +333,14 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
 
     async fn update_journal_totals(&self, id: Uuid, total_debit: &str, total_credit: &str, is_balanced: bool) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.gl_journal_entries
             SET total_debit = $2,
                 total_credit = $3,
                 is_balanced = $4,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(total_debit).bind(total_credit).bind(is_balanced)
         .execute(&self.pool)
@@ -368,7 +369,7 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GlJournalLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.gl_journal_lines
                 (organization_id, journal_entry_id, line_number, line_type,
                  account_code, account_name, description,
@@ -379,7 +380,7 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
                     $10, $11,
                     $12, $13, $14, $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(journal_entry_id).bind(line_number).bind(line_type)
         .bind(account_code).bind(account_name).bind(description)
@@ -405,7 +406,7 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
 
     async fn get_account_period_activity(&self, org_id: Uuid, account_code: &str, as_of_date: chrono::NaiveDate) -> AtlasResult<(f64, f64)> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COALESCE(SUM(jl.accounted_dr), 0) as period_debit,
                 COALESCE(SUM(jl.accounted_cr), 0) as period_credit
@@ -415,7 +416,7 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
               AND jl.account_code = $2
               AND je.status = 'posted'
               AND je.gl_date <= $3
-            "#,
+            ",
         )
         .bind(org_id).bind(account_code).bind(as_of_date)
         .fetch_one(&self.pool)

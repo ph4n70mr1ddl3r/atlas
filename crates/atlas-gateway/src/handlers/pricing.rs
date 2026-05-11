@@ -273,7 +273,7 @@ pub struct CreateDiscountRuleRequest {
     pub max_usage: Option<i32>,
 }
 
-fn default_priority() -> i32 { 10 }
+const fn default_priority() -> i32 { 10 }
 
 pub async fn create_discount_rule(
     State(state): State<Arc<AppState>>,

@@ -1,6 +1,6 @@
 //! Benefits Repository
 //!
-//! PostgreSQL storage for benefits plans, enrollments, and deductions.
+//! `PostgreSQL` storage for benefits plans, enrollments, and deductions.
 
 use atlas_shared::{
     BenefitsPlan, BenefitsEnrollment, BenefitsDeduction,
@@ -106,13 +106,14 @@ pub trait BenefitsRepository: Send + Sync {
     async fn mark_deduction_processed(&self, id: Uuid) -> AtlasResult<()>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresBenefitsRepository {
     pool: PgPool,
 }
 
 impl PostgresBenefitsRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -237,7 +238,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BenefitsPlan> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.benefits_plans
                 (organization_id, code, name, description, plan_type,
                  coverage_tiers, provider_name, provider_plan_id,
@@ -254,7 +255,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
                     allow_life_event_changes = $13, requires_eoi = $14,
                     waiting_period_days = $15, max_dependents = $16, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(plan_type)
         .bind(&coverage_tiers).bind(provider_name).bind(provider_plan_id)
@@ -349,7 +350,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BenefitsEnrollment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.benefits_enrollments
                 (organization_id, employee_id, employee_name,
                  plan_id, plan_code, plan_name, plan_type,
@@ -364,7 +365,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
                     $11, $12, $13, $14, $15,
                     $16, $17, $18, $19, $20, $21, $22)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(employee_id).bind(employee_name)
         .bind(plan_id).bind(plan_code).bind(plan_name).bind(plan_type)
@@ -449,7 +450,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
         cancellation_reason: Option<&str>,
     ) -> AtlasResult<BenefitsEnrollment> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.benefits_enrollments
             SET status = $2, processed_by = COALESCE($3, processed_by),
                 processed_at = CASE WHEN $3 IS NOT NULL THEN now() ELSE processed_at END,
@@ -457,7 +458,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(processed_by).bind(cancellation_reason)
         .fetch_one(&self.pool)
@@ -472,13 +473,13 @@ impl BenefitsRepository for PostgresBenefitsRepository {
         cancellation_reason: Option<&str>,
     ) -> AtlasResult<BenefitsEnrollment> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.benefits_enrollments
             SET status = 'cancelled', cancellation_reason = $2,
                 cancelled_at = now(), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(cancellation_reason)
         .fetch_one(&self.pool)
@@ -508,7 +509,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BenefitsDeduction> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.benefits_deductions
                 (organization_id, enrollment_id, employee_id, plan_id,
                  plan_code, plan_name,
@@ -518,7 +519,7 @@ impl BenefitsRepository for PostgresBenefitsRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
                     $10, $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(enrollment_id).bind(employee_id).bind(plan_id)
         .bind(plan_code).bind(plan_name)

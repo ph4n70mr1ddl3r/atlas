@@ -117,11 +117,12 @@ pub trait AvailableFundsRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<FundsCheckDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresAvailableFundsRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresAvailableFundsRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresAvailableFundsRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl AvailableFundsRepository for PostgresAvailableFundsRepository {
@@ -185,7 +186,7 @@ impl AvailableFundsEngine {
         }
         if let Some(tt) = tolerance_type {
             if !VALID_TOLERANCE_LEVELS.contains(&tt) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid tolerance type '{}'", tt)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid tolerance type '{tt}'")));
             }
         }
 
@@ -244,7 +245,7 @@ impl AvailableFundsEngine {
     pub async fn list_checks(&self, org_id: Uuid, budget_code: Option<&str>, result: Option<&str>) -> AtlasResult<Vec<FundsCheckResult>> {
         if let Some(r) = result {
             if !VALID_CHECK_RESULTS.contains(&r) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid check result '{}'", r)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid check result '{r}'")));
             }
         }
         self.repository.list_checks(org_id, budget_code, result).await
@@ -265,7 +266,7 @@ impl AvailableFundsEngine {
         requested_by: Option<Uuid>,
     ) -> AtlasResult<FundsOverride> {
         let check = self.repository.get_check(check_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Check {} not found", check_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Check {check_id} not found")))?;
         if check.check_result != "fail" && check.check_result != "warning" {
             return Err(AtlasError::ValidationFailed("Override only allowed for failed or warning checks".into()));
         }
@@ -290,7 +291,7 @@ impl AvailableFundsEngine {
     pub async fn list_overrides(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<FundsOverride>> {
         if let Some(s) = status {
             if !VALID_OVERRIDE_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid override status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid override status '{s}'")));
             }
         }
         self.repository.list_overrides(org_id, status).await
@@ -299,7 +300,7 @@ impl AvailableFundsEngine {
     /// Approve an override
     pub async fn approve_override(&self, id: Uuid, approved_by: Uuid, notes: Option<&str>) -> AtlasResult<FundsOverride> {
         let ov = self.repository.get_override(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Override {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Override {id} not found")))?;
         if ov.status != "pending" {
             return Err(AtlasError::WorkflowError(format!("Cannot approve override in '{}' status", ov.status)));
         }
@@ -310,7 +311,7 @@ impl AvailableFundsEngine {
     /// Reject an override
     pub async fn reject_override(&self, id: Uuid, notes: Option<&str>) -> AtlasResult<FundsOverride> {
         let ov = self.repository.get_override(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Override {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Override {id} not found")))?;
         if ov.status != "pending" {
             return Err(AtlasError::WorkflowError(format!("Cannot reject override in '{}' status", ov.status)));
         }

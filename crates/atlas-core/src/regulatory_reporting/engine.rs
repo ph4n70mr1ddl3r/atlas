@@ -1,7 +1,7 @@
 //! Regulatory Reporting Engine
 //! Oracle Fusion: Financials > Regulatory Reporting
 
-use super::*;
+use super::{RegulatoryReportingRepository, AtlasResult, RegReportTemplate, AtlasError, RegReport, RegReportLine, RegFilingEntry, RegReportingDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -19,46 +19,46 @@ impl RegulatoryReportingEngine {
     pub async fn create_template(&self, org_id: Uuid, code: &str, name: &str, desc: Option<&str>, authority: &str, category: &str, frequency: &str, format: &str, rows: serde_json::Value, cols: serde_json::Value, rules: serde_json::Value, cb: Option<Uuid>) -> AtlasResult<RegReportTemplate> {
         if code.is_empty() || name.is_empty() { return Err(AtlasError::ValidationFailed("Code and name required".into())); }
         if authority.is_empty() { return Err(AtlasError::ValidationFailed("Authority required".into())); }
-        if !VALID_CATEGORIES.contains(&category) { return Err(AtlasError::ValidationFailed(format!("Invalid category '{}'", category))); }
-        if !VALID_FREQUENCIES.contains(&frequency) { return Err(AtlasError::ValidationFailed(format!("Invalid frequency '{}'", frequency))); }
-        if !VALID_FORMATS.contains(&format) { return Err(AtlasError::ValidationFailed(format!("Invalid format '{}'", format))); }
-        if self.repository.get_template(org_id, code).await?.is_some() { return Err(AtlasError::Conflict(format!("Template '{}' already exists", code))); }
+        if !VALID_CATEGORIES.contains(&category) { return Err(AtlasError::ValidationFailed(format!("Invalid category '{category}'"))); }
+        if !VALID_FREQUENCIES.contains(&frequency) { return Err(AtlasError::ValidationFailed(format!("Invalid frequency '{frequency}'"))); }
+        if !VALID_FORMATS.contains(&format) { return Err(AtlasError::ValidationFailed(format!("Invalid format '{format}'"))); }
+        if self.repository.get_template(org_id, code).await?.is_some() { return Err(AtlasError::Conflict(format!("Template '{code}' already exists"))); }
         info!("Creating regulatory template {} for {}", code, authority);
         self.repository.create_template(org_id, code, name, desc, authority, category, frequency, format, rows, cols, rules, cb).await
     }
     pub async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<RegReportTemplate>> { self.repository.get_template(org_id, code).await }
     pub async fn list_templates(&self, org_id: Uuid, auth: Option<&str>, cat: Option<&str>) -> AtlasResult<Vec<RegReportTemplate>> { self.repository.list_templates(org_id, auth, cat).await }
-    pub async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> { self.repository.get_template(org_id, code).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Template '{}' not found", code)))?; self.repository.delete_template(org_id, code).await }
+    pub async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> { self.repository.get_template(org_id, code).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Template '{code}' not found")))?; self.repository.delete_template(org_id, code).await }
     pub async fn create_report(&self, org_id: Uuid, template_code: &str, report_number: &str, name: &str, ps: chrono::NaiveDate, pe: chrono::NaiveDate, cb: Option<Uuid>) -> AtlasResult<RegReport> {
         if template_code.is_empty() || report_number.is_empty() || name.is_empty() { return Err(AtlasError::ValidationFailed("All fields required".into())); }
         if pe < ps { return Err(AtlasError::ValidationFailed("Period end must be after start".into())); }
-        let t = self.repository.get_template(org_id, template_code).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Template '{}' not found", template_code)))?;
-        if self.repository.get_report_by_number(org_id, report_number).await?.is_some() { return Err(AtlasError::Conflict(format!("Report '{}' exists", report_number))); }
+        let t = self.repository.get_template(org_id, template_code).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Template '{template_code}' not found")))?;
+        if self.repository.get_report_by_number(org_id, report_number).await?.is_some() { return Err(AtlasError::Conflict(format!("Report '{report_number}' exists"))); }
         self.repository.create_report(org_id, t.id, Some(template_code), report_number, name, ps, pe, &t.authority, &t.output_format, cb).await
     }
     pub async fn get_report(&self, id: Uuid) -> AtlasResult<Option<RegReport>> { self.repository.get_report(id).await }
     pub async fn list_reports(&self, org_id: Uuid, status: Option<&str>, auth: Option<&str>) -> AtlasResult<Vec<RegReport>> {
-        if let Some(s) = status { if !VALID_REPORT_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s))); } }
+        if let Some(s) = status { if !VALID_REPORT_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'"))); } }
         self.repository.list_reports(org_id, status, auth).await
     }
     pub async fn submit_for_review(&self, rid: Uuid, rv: Uuid) -> AtlasResult<RegReport> {
-        let r = self.repository.get_report(rid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Report {} not found", rid)))?;
+        let r = self.repository.get_report(rid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Report {rid} not found")))?;
         if r.status != "generated" { return Err(AtlasError::WorkflowError(format!("Cannot review in '{}' status", r.status))); }
         self.repository.update_report_status(rid, "under_review", Some(rv), None, None, None, None).await
     }
     pub async fn approve_report(&self, rid: Uuid, ap: Uuid) -> AtlasResult<RegReport> {
-        let r = self.repository.get_report(rid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Report {} not found", rid)))?;
+        let r = self.repository.get_report(rid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Report {rid} not found")))?;
         if r.status != "under_review" { return Err(AtlasError::WorkflowError("Must be under_review".into())); }
         self.repository.update_report_status(rid, "approved", None, Some(ap), None, None, None).await
     }
     pub async fn reject_report(&self, rid: Uuid, reason: &str) -> AtlasResult<RegReport> {
-        let r = self.repository.get_report(rid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Report {} not found", rid)))?;
+        let r = self.repository.get_report(rid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Report {rid} not found")))?;
         if r.status != "under_review" { return Err(AtlasError::WorkflowError("Must be under_review".into())); }
         if reason.is_empty() { return Err(AtlasError::ValidationFailed("Rejection reason required".into())); }
         self.repository.update_report_status(rid, "rejected", None, None, None, None, Some(reason)).await
     }
     pub async fn submit_report(&self, rid: Uuid, sb: Uuid, fr: Option<&str>) -> AtlasResult<RegReport> {
-        let r = self.repository.get_report(rid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Report {} not found", rid)))?;
+        let r = self.repository.get_report(rid).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Report {rid} not found")))?;
         if r.status != "approved" { return Err(AtlasError::WorkflowError("Must be approved".into())); }
         self.repository.update_report_status(rid, "submitted", None, None, Some(sb), fr, None).await
     }
@@ -71,13 +71,13 @@ impl RegulatoryReportingEngine {
     pub async fn list_report_lines(&self, rid: Uuid) -> AtlasResult<Vec<RegReportLine>> { self.repository.list_report_lines(rid).await }
     pub async fn create_filing(&self, org_id: Uuid, tc: Option<&str>, auth: &str, rn: &str, freq: &str, ps: chrono::NaiveDate, pe: chrono::NaiveDate, dd: chrono::NaiveDate, at: Option<Uuid>) -> AtlasResult<RegFilingEntry> {
         if rn.is_empty() || auth.is_empty() { return Err(AtlasError::ValidationFailed("Report name and authority required".into())); }
-        if !VALID_FREQUENCIES.contains(&freq) { return Err(AtlasError::ValidationFailed(format!("Invalid frequency '{}'", freq))); }
+        if !VALID_FREQUENCIES.contains(&freq) { return Err(AtlasError::ValidationFailed(format!("Invalid frequency '{freq}'"))); }
         if dd < pe { return Err(AtlasError::ValidationFailed("Due date must be on/after period end".into())); }
         let tid = if let Some(c) = tc { self.repository.get_template(org_id, c).await?.map(|t| t.id) } else { None };
         self.repository.create_filing(org_id, tid, tc, auth, rn, freq, ps, pe, dd, at).await
     }
     pub async fn list_filings(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<RegFilingEntry>> {
-        if let Some(s) = status { if !VALID_FILING_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s))); } }
+        if let Some(s) = status { if !VALID_FILING_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'"))); } }
         self.repository.list_filings(org_id, status).await
     }
     pub async fn mark_filed(&self, fid: Uuid, rid: Uuid, fb: Uuid, fr: Option<&str>) -> AtlasResult<RegFilingEntry> { self.repository.update_filing_status(fid, "filed", Some(rid), Some(fb), fr).await }
@@ -86,6 +86,7 @@ impl RegulatoryReportingEngine {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use super::*;
     struct Mock { templates: std::sync::Mutex<Vec<RegReportTemplate>> }
     impl Mock { fn new() -> Self { Mock { templates: std::sync::Mutex::new(vec![]) } } }

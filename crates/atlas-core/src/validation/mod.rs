@@ -38,7 +38,8 @@ pub struct ValidationResult {
 }
 
 impl ValidationResult {
-    pub fn new() -> Self {
+    #[must_use] 
+    pub const fn new() -> Self {
         Self { valid: true, errors: vec![] }
     }
     
@@ -52,7 +53,7 @@ impl ValidationResult {
         });
     }
     
-    pub fn merge(&mut self, other: ValidationResult) {
+    pub fn merge(&mut self, other: Self) {
         if !other.valid {
             self.valid = false;
             self.errors.extend(other.errors);

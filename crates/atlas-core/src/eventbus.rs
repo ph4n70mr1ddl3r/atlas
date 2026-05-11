@@ -49,6 +49,7 @@ impl NatsEventBus {
     }
     
     /// Create a no-op event bus (for testing/dev without NATS)
+    #[must_use] 
     pub fn noop(service_name: &str) -> Self {
         Self {
             client: None,
@@ -101,6 +102,7 @@ pub struct EventFactory;
 
 impl EventFactory {
     /// Create a record created event
+    #[must_use] 
     pub fn record_created(
         service: &str,
         entity_name: &str,
@@ -119,6 +121,7 @@ impl EventFactory {
     }
     
     /// Create a record updated event
+    #[must_use] 
     pub fn record_updated(
         service: &str,
         entity_name: &str,
@@ -137,6 +140,7 @@ impl EventFactory {
     }
     
     /// Create a record deleted event
+    #[must_use] 
     pub fn record_deleted(
         service: &str,
         entity_name: &str,
@@ -154,6 +158,7 @@ impl EventFactory {
     
     /// Create a workflow transition event
     #[allow(clippy::too_many_arguments)]
+    #[must_use] 
     pub fn workflow_transition(
         service: &str,
         entity_name: &str,
@@ -179,6 +184,7 @@ impl EventFactory {
     }
     
     /// Create a config changed event
+    #[must_use] 
     pub fn config_changed(
         service: &str,
         config_type: &str,
@@ -197,6 +203,7 @@ impl EventFactory {
     }
     
     /// Create a service started event
+    #[must_use] 
     pub fn service_started(
         service: &str,
         version: &str,

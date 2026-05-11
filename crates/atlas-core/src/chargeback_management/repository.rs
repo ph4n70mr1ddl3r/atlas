@@ -1,6 +1,6 @@
 //! Chargeback Management Repository
 //!
-//! PostgreSQL storage for chargebacks, chargeback lines, and activity audit trail.
+//! `PostgreSQL` storage for chargebacks, chargeback lines, and activity audit trail.
 
 use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
@@ -227,7 +227,8 @@ pub struct PostgresChargebackManagementRepository {
 }
 
 impl PostgresChargebackManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -236,10 +237,10 @@ impl PostgresChargebackManagementRepository {
 impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
     async fn create_chargeback(&self, params: &ChargebackCreateParams) -> AtlasResult<Chargeback> {
         let seq = self.get_next_chargeback_number(params.org_id).await.unwrap_or(1);
-        let chargeback_number = format!("CB-{:06}", seq);
+        let chargeback_number = format!("CB-{seq:06}");
 
         let row = sqlx::query_as::<_, Chargeback>(
-            r#"INSERT INTO _atlas.chargebacks
+            r"INSERT INTO _atlas.chargebacks
                (organization_id, chargeback_number, customer_id, customer_number, customer_name,
                 receipt_id, receipt_number, invoice_id, invoice_number,
                 chargeback_date, gl_date, currency_code, exchange_rate_type, exchange_rate,
@@ -248,7 +249,7 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
                 status, priority, assigned_to, assigned_team, due_date,
                 reference, customer_reference, sales_rep, notes, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,'open',$22,$23,$24,$25,$26,$27,$28,$29,$30)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(&chargeback_number)
@@ -314,14 +315,14 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
         reason_code: Option<&str>, category: Option<&str>, priority: Option<&str>,
     ) -> AtlasResult<Vec<Chargeback>> {
         let rows = sqlx::query_as::<_, Chargeback>(
-            r#"SELECT * FROM _atlas.chargebacks
+            r"SELECT * FROM _atlas.chargebacks
                WHERE organization_id = $1
                AND ($2::text IS NULL OR status = $2)
                AND ($3::uuid IS NULL OR customer_id = $3)
                AND ($4::text IS NULL OR reason_code = $4)
                AND ($5::text IS NULL OR category = $5)
                AND ($6::text IS NULL OR priority = $6)
-               ORDER BY chargeback_date DESC, chargeback_number"#,
+               ORDER BY chargeback_date DESC, chargeback_number",
         )
         .bind(org_id)
         .bind(status)
@@ -340,12 +341,12 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
         resolution_notes: Option<&str>, resolved_by: Option<Uuid>,
     ) -> AtlasResult<Chargeback> {
         let row = sqlx::query_as::<_, Chargeback>(
-            r#"UPDATE _atlas.chargebacks
+            r"UPDATE _atlas.chargebacks
                SET status = $2, resolution_date = COALESCE($3, resolution_date),
                    resolution_notes = COALESCE($4, resolution_notes),
                    resolved_by = COALESCE($5, resolved_by),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(status)
@@ -360,9 +361,9 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
 
     async fn assign_chargeback(&self, id: Uuid, assigned_to: Option<&str>, assigned_team: Option<&str>) -> AtlasResult<Chargeback> {
         let row = sqlx::query_as::<_, Chargeback>(
-            r#"UPDATE _atlas.chargebacks
+            r"UPDATE _atlas.chargebacks
                SET assigned_to = $2, assigned_team = $3, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(assigned_to)
@@ -375,7 +376,7 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
 
     async fn update_notes(&self, id: Uuid, notes: Option<&str>) -> AtlasResult<Chargeback> {
         let row = sqlx::query_as::<_, Chargeback>(
-            r#"UPDATE _atlas.chargebacks SET notes = $2, updated_at = now() WHERE id = $1 RETURNING *"#,
+            r"UPDATE _atlas.chargebacks SET notes = $2, updated_at = now() WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(notes)
@@ -387,9 +388,9 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
 
     async fn update_chargeback_totals(&self, id: Uuid, amount: f64, tax_amount: f64, total_amount: f64, open_amount: f64) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.chargebacks
+            r"UPDATE _atlas.chargebacks
                SET amount = $2, tax_amount = $3, total_amount = $4, open_amount = $5, updated_at = now()
-               WHERE id = $1"#,
+               WHERE id = $1",
         )
         .bind(id)
         .bind(amount)
@@ -434,13 +435,13 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
         let line_number = self.get_next_line_number(params.chargeback_id).await.unwrap_or(1);
 
         let row = sqlx::query_as::<_, ChargebackLine>(
-            r#"INSERT INTO _atlas.chargeback_lines
+            r"INSERT INTO _atlas.chargeback_lines
                (organization_id, chargeback_id, line_number, line_type, description,
                 quantity, unit_price, amount, tax_amount, total_amount,
                 reason_code, reason_description,
                 item_number, item_description, gl_account_code, gl_account_name, reference)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(params.chargeback_id)
@@ -510,11 +511,11 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
         performed_by: Option<Uuid>, performed_by_name: Option<&str>, notes: Option<&str>,
     ) -> AtlasResult<ChargebackActivity> {
         let row = sqlx::query_as::<_, ChargebackActivity>(
-            r#"INSERT INTO _atlas.chargeback_activities
+            r"INSERT INTO _atlas.chargeback_activities
                (organization_id, chargeback_id, activity_type, description,
                 old_status, new_status, performed_by, performed_by_name, notes)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id)
         .bind(chargeback_id)
@@ -545,7 +546,7 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ChargebackSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'open') as open_cnt,
                 COUNT(*) FILTER (WHERE status = 'under_review') as review_cnt,
@@ -554,7 +555,7 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
                 COUNT(*) FILTER (WHERE status = 'written_off') as written_off_cnt,
                 COALESCE(SUM(total_amount), 0) as total_amt,
                 COALESCE(SUM(open_amount), 0) as open_amt
-               FROM _atlas.chargebacks WHERE organization_id = $1"#,
+               FROM _atlas.chargebacks WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -584,8 +585,7 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
 impl PostgresChargebackManagementRepository {
     async fn get_grouped_counts(&self, org_id: Uuid, column: &str) -> AtlasResult<serde_json::Value> {
         let query = format!(
-            "SELECT {} as key, COUNT(*) as cnt, COALESCE(SUM(total_amount), 0) as total FROM _atlas.chargebacks WHERE organization_id = $1 GROUP BY {}",
-            column, column
+            "SELECT {column} as key, COUNT(*) as cnt, COALESCE(SUM(total_amount), 0) as total FROM _atlas.chargebacks WHERE organization_id = $1 GROUP BY {column}"
         );
         let rows = sqlx::query(&query)
             .bind(org_id)

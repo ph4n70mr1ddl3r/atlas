@@ -1,6 +1,6 @@
 //! Hedge Management Repository
 //!
-//! PostgreSQL storage for derivative instruments, hedge relationships,
+//! `PostgreSQL` storage for derivative instruments, hedge relationships,
 //! effectiveness tests, and hedge documentation.
 
 use atlas_shared::{
@@ -295,13 +295,14 @@ fn row_to_documentation(row: &sqlx::postgres::PgRow) -> HedgeDocumentation {
     }
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresHedgeManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresHedgeManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -314,7 +315,7 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn create_derivative(&self, p: &DerivativeCreateParams) -> AtlasResult<DerivativeInstrument> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.derivative_instruments
+            r"INSERT INTO _atlas.derivative_instruments
                 (organization_id, instrument_number, instrument_type, underlying_type,
                  underlying_description, currency_code, counter_currency_code,
                  notional_amount, strike_rate, forward_rate, spot_rate,
@@ -323,7 +324,7 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
                  counterparty_name, counterparty_reference, portfolio_code,
                  trading_book, accounting_treatment, risk_factor, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(p.org_id).bind(&p.instrument_number).bind(&p.instrument_type).bind(&p.underlying_type)
         .bind(&p.underlying_description).bind(&p.currency_code).bind(&p.counter_currency_code)
@@ -359,10 +360,10 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn list_derivatives(&self, org_id: Uuid, status: Option<&str>, instrument_type: Option<&str>) -> AtlasResult<Vec<DerivativeInstrument>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.derivative_instruments
+            r"SELECT * FROM _atlas.derivative_instruments
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::text IS NULL OR instrument_type=$3)
-            ORDER BY instrument_number"#,
+            ORDER BY instrument_number",
         )
         .bind(org_id).bind(status).bind(instrument_type)
         .fetch_all(&self.pool).await
@@ -382,12 +383,12 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn update_derivative_valuation(&self, id: Uuid, fair_value: &str, unrealized_gl: &str, valuation_method: Option<&str>, valuation_date: Option<chrono::NaiveDate>) -> AtlasResult<DerivativeInstrument> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.derivative_instruments
+            r"UPDATE _atlas.derivative_instruments
             SET fair_value=$2, unrealized_gain_loss=$3,
                 valuation_method=COALESCE($4, valuation_method),
                 last_valuation_date=COALESCE($5, last_valuation_date),
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(fair_value).bind(unrealized_gl).bind(valuation_method).bind(valuation_date)
         .fetch_one(&self.pool).await
@@ -421,14 +422,14 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn create_hedge_relationship(&self, p: &HedgeRelationshipCreateParams) -> AtlasResult<HedgeRelationship> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.hedge_relationships
+            r"INSERT INTO _atlas.hedge_relationships
                 (organization_id, hedge_id, hedge_type, derivative_id, derivative_number,
                  hedged_item_description, hedged_item_id, hedged_risk, hedge_strategy,
                  hedged_item_reference, hedged_item_currency, hedged_amount, hedge_ratio,
                  designated_start_date, designated_end_date, effectiveness_method,
                  critical_terms_match, hedge_documentation_ref, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(p.org_id).bind(&p.hedge_id).bind(&p.hedge_type)
         .bind(p.derivative_id).bind(&p.derivative_number)
@@ -464,10 +465,10 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn list_hedge_relationships(&self, org_id: Uuid, status: Option<&str>, hedge_type: Option<&str>) -> AtlasResult<Vec<HedgeRelationship>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.hedge_relationships
+            r"SELECT * FROM _atlas.hedge_relationships
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::text IS NULL OR hedge_type=$3)
-            ORDER BY hedge_id"#,
+            ORDER BY hedge_id",
         )
         .bind(org_id).bind(status).bind(hedge_type)
         .fetch_all(&self.pool).await
@@ -487,9 +488,9 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn update_hedge_effectiveness(&self, id: Uuid, test_date: chrono::NaiveDate, result: &str) -> AtlasResult<HedgeRelationship> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.hedge_relationships SET last_effectiveness_test_date=$2,
+            r"UPDATE _atlas.hedge_relationships SET last_effectiveness_test_date=$2,
                 last_effectiveness_result=$3, updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(test_date).bind(result)
         .fetch_one(&self.pool).await
@@ -523,7 +524,7 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn create_effectiveness_test(&self, p: &EffectivenessTestCreateParams) -> AtlasResult<HedgeEffectivenessTest> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.hedge_effectiveness_tests
+            r"INSERT INTO _atlas.hedge_effectiveness_tests
                 (organization_id, hedge_relationship_id, hedge_id, test_type,
                  effectiveness_method, test_date, test_period_start, test_period_end,
                  derivative_fair_value_change, hedged_item_fair_value_change,
@@ -531,7 +532,7 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
                  effectiveness_result, ineffective_amount, cumulative_gain_loss,
                  regression_r_squared, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(p.org_id).bind(p.hedge_relationship_id).bind(&p.hedge_id).bind(&p.test_type)
         .bind(&p.effectiveness_method).bind(p.test_date).bind(p.test_period_start).bind(p.test_period_end)
@@ -590,7 +591,7 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn create_hedge_documentation(&self, p: &DocumentationCreateParams) -> AtlasResult<HedgeDocumentation> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.hedge_documentation
+            r"INSERT INTO _atlas.hedge_documentation
                 (organization_id, hedge_relationship_id, hedge_id, document_number,
                  hedge_type, risk_management_objective, hedging_strategy_description,
                  hedged_item_description, hedged_risk_description,
@@ -598,7 +599,7 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
                  assessment_frequency, designation_date, documentation_date,
                  prepared_by, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(p.org_id).bind(p.hedge_relationship_id).bind(&p.hedge_id).bind(&p.document_number)
         .bind(&p.hedge_type).bind(&p.risk_management_objective).bind(&p.hedging_strategy_description)
@@ -633,9 +634,9 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn list_hedge_documentation(&self, org_id: Uuid, hedge_relationship_id: Option<Uuid>) -> AtlasResult<Vec<HedgeDocumentation>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.hedge_documentation
+            r"SELECT * FROM _atlas.hedge_documentation
             WHERE organization_id=$1 AND ($2::uuid IS NULL OR hedge_relationship_id=$2)
-            ORDER BY document_number"#,
+            ORDER BY document_number",
         )
         .bind(org_id).bind(hedge_relationship_id)
         .fetch_all(&self.pool).await
@@ -645,11 +646,11 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn update_documentation_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<HedgeDocumentation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.hedge_documentation SET status=$2,
+            r"UPDATE _atlas.hedge_documentation SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approval_date=CASE WHEN $3 IS NOT NULL THEN CURRENT_DATE ELSE approval_date END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool).await
@@ -674,11 +675,11 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<HedgeDashboard> {
         // Get derivative summary
         let deriv_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_deriv,
                 COALESCE(SUM(notional_amount::numeric) FILTER (WHERE status = 'active'), 0)::text as total_notional,
                 COALESCE(SUM(ABS(unrealized_gain_loss::numeric)) FILTER (WHERE status = 'active'), 0)::text as total_ugl
-            FROM _atlas.derivative_instruments WHERE organization_id = $1"#,
+            FROM _atlas.derivative_instruments WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -689,12 +690,12 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
         // Get hedge relationship summary
         let hedge_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_hedges,
                 COALESCE(SUM(hedged_amount::numeric) FILTER (WHERE status = 'active'), 0)::text as total_hedged,
                 COUNT(*) FILTER (WHERE status = 'active' AND last_effectiveness_result = 'effective') as effective,
                 COUNT(*) FILTER (WHERE status = 'active' AND last_effectiveness_result = 'ineffective') as ineffective
-            FROM _atlas.hedge_relationships WHERE organization_id = $1"#,
+            FROM _atlas.hedge_relationships WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -714,9 +715,9 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
         // By instrument type
         let type_rows = sqlx::query(
-            r#"SELECT instrument_type, COUNT(*) as count, COALESCE(SUM(notional_amount::numeric), 0)::text as total
+            r"SELECT instrument_type, COUNT(*) as count, COALESCE(SUM(notional_amount::numeric), 0)::text as total
             FROM _atlas.derivative_instruments WHERE organization_id = $1 AND status = 'active'
-            GROUP BY instrument_type"#
+            GROUP BY instrument_type"
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -731,9 +732,9 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
         // By hedge type
         let hedge_type_rows = sqlx::query(
-            r#"SELECT hedge_type, COUNT(*) as count, COALESCE(SUM(hedged_amount::numeric), 0)::text as total
+            r"SELECT hedge_type, COUNT(*) as count, COALESCE(SUM(hedged_amount::numeric), 0)::text as total
             FROM _atlas.hedge_relationships WHERE organization_id = $1 AND status = 'active'
-            GROUP BY hedge_type"#
+            GROUP BY hedge_type"
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

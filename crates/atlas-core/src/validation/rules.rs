@@ -3,6 +3,7 @@
 //! Built-in validation rules.
 
 /// Built-in validation rule types
+#[must_use] 
 pub fn builtin_rules() -> Vec<(&'static str, &'static str)> {
     vec![
         ("required", "Field cannot be empty"),

@@ -485,11 +485,11 @@ impl AppState {
             .min_connections(2)
             .max_connections(max_connections)
             .acquire_timeout(std::time::Duration::from_secs(10))
-            .idle_timeout(std::time::Duration::from_secs(300))
+            .idle_timeout(std::time::Duration::from_mins(5))
             .connect(&database_url)
             .await
             .map_err(|e| {
-                anyhow::anyhow!("Failed to connect to database: {}", e)
+                anyhow::anyhow!("Failed to connect to database: {e}")
             })?;
         
         info!("Connected to database");
@@ -1454,6 +1454,7 @@ impl AppState {
             distribution_set_engine,
             third_party_payment_engine,
             auto_offset_engine,
+            cash_flow_statement_engine,
             average_balance_engine,
             cash_receipt_engine,
             direct_debit_mandate_engine,
@@ -1464,7 +1465,6 @@ impl AppState {
             transaction_calendar_engine,
             asset_retirement_engine,
             mpa_engine,
-            cash_flow_statement_engine,
             event_bus,
             jwt_secret,
         };

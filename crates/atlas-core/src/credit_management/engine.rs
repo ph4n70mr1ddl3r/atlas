@@ -145,7 +145,7 @@ impl CreditManagementEngine {
         // Check uniqueness
         if self.repository.get_scoring_model_by_code(org_id, &code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Scoring model '{}' already exists", code
+                "Scoring model '{code}' already exists"
             )));
         }
 
@@ -234,7 +234,7 @@ impl CreditManagementEngine {
         if let Some(sm_id) = scoring_model_id {
             if self.repository.get_scoring_model(sm_id).await?.is_none() {
                 return Err(AtlasError::EntityNotFound(
-                    format!("Scoring model {} not found", sm_id)
+                    format!("Scoring model {sm_id} not found")
                 ));
             }
         }
@@ -242,7 +242,7 @@ impl CreditManagementEngine {
         // Check uniqueness
         if self.repository.get_profile_by_number(org_id, profile_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Credit profile '{}' already exists", profile_number
+                "Credit profile '{profile_number}' already exists"
             )));
         }
 
@@ -303,7 +303,7 @@ impl CreditManagementEngine {
 
         let profile = self.repository.get_profile(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {} not found", id)
+                format!("Credit profile {id} not found")
             ))?;
 
         info!("Updating credit profile {} status to {}", profile.profile_number, status);
@@ -381,7 +381,7 @@ impl CreditManagementEngine {
         // Verify profile exists
         self.repository.get_profile(profile_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {} not found", profile_id)
+                format!("Credit profile {profile_id} not found")
             ))?;
 
         info!("Creating {} credit limit of {} for profile {}", limit_type, credit_limit, profile_id);
@@ -486,7 +486,7 @@ impl CreditManagementEngine {
         // Check uniqueness
         if self.repository.get_check_rule_by_name(org_id, name).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Credit check rule '{}' already exists", name
+                "Credit check rule '{name}' already exists"
             )));
         }
 
@@ -534,7 +534,7 @@ impl CreditManagementEngine {
         // Verify profile exists
         self.repository.get_profile(profile_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {} not found", profile_id)
+                format!("Credit profile {profile_id} not found")
             ))?;
 
         let receivables: f64 = open_receivables.parse().unwrap_or(0.0);
@@ -551,8 +551,7 @@ impl CreditManagementEngine {
         let limits = self.repository.list_credit_limits(profile_id).await?;
         let overall_limit = limits.iter()
             .find(|l| l.limit_type == "overall")
-            .map(|l| l.credit_limit.parse::<f64>().unwrap_or(0.0))
-            .unwrap_or(0.0);
+            .map_or(0.0, |l| l.credit_limit.parse::<f64>().unwrap_or(0.0));
 
         let available_credit = if overall_limit > total_exposure {
             overall_limit - total_exposure
@@ -577,10 +576,10 @@ impl CreditManagementEngine {
             org_id, profile_id, today, currency_code,
             open_receivables, open_orders, open_shipments, open_invoices,
             unapplied_cash, on_hold_amount,
-            &format!("{:.2}", total_exposure),
-            &format!("{:.2}", overall_limit),
-            &format!("{:.2}", available_credit),
-            &format!("{:.2}", utilization),
+            &format!("{total_exposure:.2}"),
+            &format!("{overall_limit:.2}"),
+            &format!("{available_credit:.2}"),
+            &format!("{utilization:.2}"),
         ).await
     }
 
@@ -605,7 +604,7 @@ impl CreditManagementEngine {
     ) -> AtlasResult<CreditCheckResult> {
         let profile = self.repository.get_profile(profile_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {} not found", profile_id)
+                format!("Credit profile {profile_id} not found")
             ))?;
 
         if profile.status != "active" {
@@ -625,7 +624,7 @@ impl CreditManagementEngine {
         let limits = self.repository.list_credit_limits(profile_id).await?;
         let overall_limit = limits.iter()
             .find(|l| l.limit_type == "overall")
-            .map(|l| {
+            .map_or(0.0, |l| {
                 let base = l.credit_limit.parse::<f64>().unwrap_or(0.0);
                 let temp = l.temp_limit_increase.parse::<f64>().unwrap_or(0.0);
                 // Check temp limit expiry
@@ -638,12 +637,10 @@ impl CreditManagementEngine {
                 } else {
                     base
                 }
-            })
-            .unwrap_or(0.0);
+            });
 
         let current_exposure = exposure.as_ref()
-            .map(|e| e.total_exposure.parse::<f64>().unwrap_or(0.0))
-            .unwrap_or(0.0);
+            .map_or(0.0, |e| e.total_exposure.parse::<f64>().unwrap_or(0.0));
 
         let available = if overall_limit > current_exposure {
             overall_limit - current_exposure
@@ -653,15 +650,15 @@ impl CreditManagementEngine {
 
         let passed = requested <= available;
 
-        if !passed {
-            info!(
-                "Credit check FAILED for profile {}: requested {:.2}, available {:.2} (limit {:.2}, exposure {:.2})",
-                profile.profile_number, requested, available, overall_limit, current_exposure
-            );
-        } else {
+        if passed {
             info!(
                 "Credit check PASSED for profile {}: requested {:.2}, available {:.2}",
                 profile.profile_number, requested, available
+            );
+        } else {
+            info!(
+                "Credit check FAILED for profile {}: requested {:.2}, available {:.2} (limit {:.2}, exposure {:.2})",
+                profile.profile_number, requested, available, overall_limit, current_exposure
             );
         }
 
@@ -669,8 +666,7 @@ impl CreditManagementEngine {
             passed,
             reason: if passed { None } else {
                 Some(format!(
-                    "Credit limit exceeded: requested {:.2}, available {:.2} (limit {:.2}, exposure {:.2})",
-                    requested, available, overall_limit, current_exposure
+                    "Credit limit exceeded: requested {requested:.2}, available {available:.2} (limit {overall_limit:.2}, exposure {current_exposure:.2})"
                 ))
             },
             exposure,
@@ -704,7 +700,7 @@ impl CreditManagementEngine {
         // Verify profile exists
         self.repository.get_profile(profile_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {} not found", profile_id)
+                format!("Credit profile {profile_id} not found")
             ))?;
 
         let hold_number = format!("HLD-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
@@ -740,7 +736,7 @@ impl CreditManagementEngine {
     pub async fn release_hold(&self, id: Uuid, released_by: Option<Uuid>, release_reason: Option<&str>) -> AtlasResult<CreditHold> {
         let hold = self.repository.get_hold(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit hold {} not found", id)
+                format!("Credit hold {id} not found")
             ))?;
 
         if hold.status != "active" {
@@ -757,7 +753,7 @@ impl CreditManagementEngine {
     pub async fn override_hold(&self, id: Uuid, overridden_by: Option<Uuid>, override_reason: Option<&str>) -> AtlasResult<CreditHold> {
         let hold = self.repository.get_hold(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit hold {} not found", id)
+                format!("Credit hold {id} not found")
             ))?;
 
         if hold.status != "active" {
@@ -766,7 +762,7 @@ impl CreditManagementEngine {
             )));
         }
 
-        if override_reason.is_none() || override_reason.map(|r| r.is_empty()).unwrap_or(true) {
+        if override_reason.is_none() || override_reason.is_none_or(str::is_empty) {
             return Err(AtlasError::ValidationFailed(
                 "Override reason is required when overriding a credit hold".to_string(),
             ));
@@ -803,7 +799,7 @@ impl CreditManagementEngine {
         // Verify profile exists
         let profile = self.repository.get_profile(profile_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {} not found", profile_id)
+                format!("Credit profile {profile_id} not found")
             ))?;
 
         let review_number = format!("CR-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
@@ -840,11 +836,11 @@ impl CreditManagementEngine {
         self.repository.list_reviews(org_id, status, profile_id).await
     }
 
-    /// Start a review (transition from pending to in_review)
+    /// Start a review (transition from pending to `in_review`)
     pub async fn start_review(&self, id: Uuid) -> AtlasResult<CreditReview> {
         let review = self.repository.get_review(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {} not found", id)
+                format!("Credit review {id} not found")
             ))?;
 
         if review.status != "pending" {
@@ -870,7 +866,7 @@ impl CreditManagementEngine {
     ) -> AtlasResult<CreditReview> {
         let review = self.repository.get_review(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {} not found", id)
+                format!("Credit review {id} not found")
             ))?;
 
         if review.status != "in_review" {
@@ -904,7 +900,7 @@ impl CreditManagementEngine {
         // Update profile review dates
         let profile = self.repository.get_profile(profile_id).await?;
         if let Some(p) = profile {
-            let next_review = today + chrono::Duration::days(p.review_frequency_days as i64);
+            let next_review = today + chrono::Duration::days(i64::from(p.review_frequency_days));
             if let Err(e) = self.repository.update_profile_review_dates(
                 profile_id, Some(today), Some(next_review),
             ).await {
@@ -936,7 +932,7 @@ impl CreditManagementEngine {
     ) -> AtlasResult<CreditReview> {
         let review = self.repository.get_review(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {} not found", id)
+                format!("Credit review {id} not found")
             ))?;
 
         if review.status != "completed" {
@@ -953,7 +949,7 @@ impl CreditManagementEngine {
     pub async fn reject_review(&self, id: Uuid, _rejected_reason: Option<&str>) -> AtlasResult<CreditReview> {
         let review = self.repository.get_review(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {} not found", id)
+                format!("Credit review {id} not found")
             ))?;
 
         if review.status != "completed" {
@@ -965,11 +961,11 @@ impl CreditManagementEngine {
         self.repository.update_review_status(id, "rejected").await
     }
 
-    /// Cancel a pending or in_review review
+    /// Cancel a pending or `in_review` review
     pub async fn cancel_review(&self, id: Uuid) -> AtlasResult<CreditReview> {
         let review = self.repository.get_review(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {} not found", id)
+                format!("Credit review {id} not found")
             ))?;
 
         if !matches!(review.status.as_str(), "pending" | "in_review") {

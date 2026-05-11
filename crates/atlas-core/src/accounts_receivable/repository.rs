@@ -1,6 +1,6 @@
 //! Accounts Receivable Repository
 //!
-//! PostgreSQL storage for AR transactions, receipts, credit memos, and adjustments.
+//! `PostgreSQL` storage for AR transactions, receipts, credit memos, and adjustments.
 
 use atlas_shared::{
     ArTransaction, ArTransactionLine, ArReceipt, ArCreditMemo, ArAdjustment,
@@ -142,13 +142,14 @@ pub trait AccountsReceivableRepository: Send + Sync {
     async fn get_aging_by_customer(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<ArAgingByCustomer>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresAccountsReceivableRepository {
     pool: PgPool,
 }
 
 impl PostgresAccountsReceivableRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -178,7 +179,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ar_transactions
                 (organization_id, transaction_number, transaction_type, transaction_date,
                  customer_id, customer_number, customer_name,
@@ -191,7 +192,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                     $11, $11,
                     $12, $13, $14, $15, $16, $17, 'draft', $18, $19)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(transaction_number).bind(transaction_type).bind(transaction_date)
         .bind(customer_id).bind(customer_number).bind(customer_name)
@@ -226,14 +227,14 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn list_transactions(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>, transaction_type: Option<&str>) -> AtlasResult<Vec<ArTransaction>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.ar_transactions
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::uuid IS NULL OR customer_id = $3)
               AND ($4::text IS NULL OR transaction_type = $4)
             ORDER BY transaction_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(customer_id).bind(transaction_type)
         .fetch_all(&self.pool)
@@ -244,14 +245,14 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn update_transaction_status(&self, id: Uuid, status: &str, _posted_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<ArTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ar_transactions
             SET status = $2,
                 notes = COALESCE($3, notes),
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(reason)
         .fetch_one(&self.pool)
@@ -262,7 +263,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn update_transaction_amounts(&self, id: Uuid, amount_due_remaining: &str, amount_applied: Option<&str>, status: &str) -> AtlasResult<ArTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ar_transactions
             SET amount_due_remaining = $2,
                 amount_applied = COALESCE($3, amount_applied),
@@ -270,7 +271,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(amount_due_remaining).bind(amount_applied).bind(status)
         .fetch_one(&self.pool)
@@ -281,13 +282,13 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn update_transaction_adjusted(&self, id: Uuid, amount_adjusted: &str) -> AtlasResult<ArTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ar_transactions
             SET amount_adjusted = $2,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(amount_adjusted)
         .fetch_one(&self.pool)
@@ -298,7 +299,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn update_transaction_totals(&self, id: Uuid, entered_amount: &str, tax_amount: &str, total_amount: &str, amount_due_original: &str) -> AtlasResult<ArTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ar_transactions
             SET entered_amount = $2,
                 tax_amount = $3,
@@ -308,7 +309,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(entered_amount).bind(tax_amount).bind(total_amount).bind(amount_due_original)
         .fetch_one(&self.pool)
@@ -336,7 +337,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArTransactionLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ar_transaction_lines
                 (organization_id, transaction_id, line_number, line_type,
                  description, item_code, item_description, unit_of_measure,
@@ -345,7 +346,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(transaction_id).bind(line_number).bind(line_type)
         .bind(description).bind(item_code).bind(item_description).bind(unit_of_measure)
@@ -388,7 +389,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArReceipt> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ar_receipts
                 (organization_id, receipt_number, receipt_date, receipt_type, receipt_method,
                  amount, currency_code, customer_id, customer_number, customer_name,
@@ -396,7 +397,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, 'draft', $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(receipt_number).bind(receipt_date).bind(receipt_type).bind(receipt_method)
         .bind(amount).bind(currency_code).bind(customer_id).bind(customer_number).bind(customer_name)
@@ -419,13 +420,13 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn list_receipts(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<ArReceipt>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.ar_receipts
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::uuid IS NULL OR customer_id = $3)
             ORDER BY receipt_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(customer_id)
         .fetch_all(&self.pool)
@@ -436,12 +437,12 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn update_receipt_status(&self, id: Uuid, status: &str) -> AtlasResult<ArReceipt> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ar_receipts
             SET status = $2, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool)
@@ -469,7 +470,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArCreditMemo> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ar_credit_memos
                 (organization_id, credit_memo_number, customer_id, customer_number, customer_name,
                  transaction_id, transaction_number, credit_memo_date,
@@ -479,7 +480,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                     $11, $12, $13,
                     'draft', $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(credit_memo_number).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(transaction_id).bind(transaction_number).bind(credit_memo_date)
@@ -503,13 +504,13 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn list_credit_memos(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<ArCreditMemo>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.ar_credit_memos
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::uuid IS NULL OR customer_id = $3)
             ORDER BY credit_memo_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(customer_id)
         .fetch_all(&self.pool)
@@ -520,12 +521,12 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn update_credit_memo_status(&self, id: Uuid, status: &str) -> AtlasResult<ArCreditMemo> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ar_credit_memos
             SET status = $2, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool)
@@ -554,7 +555,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArAdjustment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ar_adjustments
                 (organization_id, adjustment_number, transaction_id, transaction_number,
                  customer_id, customer_number, adjustment_date, gl_date,
@@ -563,7 +564,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
                     $10, $11, $12, $13, $14, 'draft', $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(adjustment_number).bind(transaction_id).bind(transaction_number)
         .bind(customer_id).bind(customer_number).bind(adjustment_date).bind(gl_date)
@@ -587,13 +588,13 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn list_adjustments(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<ArAdjustment>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.ar_adjustments
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::uuid IS NULL OR customer_id = $3)
             ORDER BY adjustment_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(customer_id)
         .fetch_all(&self.pool)
@@ -604,12 +605,12 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn update_adjustment_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<ArAdjustment> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ar_adjustments
             SET status = $2, approved_by = COALESCE($3, approved_by), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool)
@@ -620,7 +621,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn get_aging_summary(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<ArAgingSummary> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT
                 COALESCE(SUM(amount_due_remaining), 0) as total_outstanding,
                 COALESCE(SUM(CASE WHEN due_date < $2 THEN amount_due_remaining ELSE 0 END), 0) as total_overdue,
@@ -633,7 +634,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
                 COUNT(DISTINCT CASE WHEN due_date < $2 THEN customer_id END) as overdue_customer_count
             FROM _atlas.ar_transactions
             WHERE organization_id = $1 AND status IN ('open', 'complete')
-            "#,
+            ",
         )
         .bind(org_id).bind(as_of_date)
         .fetch_one(&self.pool)
@@ -658,7 +659,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
 
     async fn get_aging_by_customer(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<ArAgingByCustomer>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT customer_id,
                    COALESCE(customer_name, '') as customer_name,
                    COALESCE(customer_number, '') as customer_number,
@@ -673,7 +674,7 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             WHERE organization_id = $1 AND status IN ('open', 'complete')
             GROUP BY customer_id, customer_name, customer_number
             ORDER BY total_outstanding DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(as_of_date)
         .fetch_all(&self.pool)

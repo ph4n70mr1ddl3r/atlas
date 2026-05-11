@@ -100,7 +100,7 @@ impl TaxReportingEngine {
 
         if self.repository.get_template_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Template code '{}' already exists", code)
+                format!("Template code '{code}' already exists")
             ));
         }
 
@@ -149,7 +149,7 @@ impl TaxReportingEngine {
     ) -> AtlasResult<TaxReturnTemplateLine> {
         let _template = self.repository.get_template(template_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Template {} not found", template_id)
+                format!("Template {template_id} not found")
             ))?;
 
         if !VALID_LINE_TYPES.contains(&line_type) {
@@ -191,7 +191,7 @@ impl TaxReportingEngine {
     ) -> AtlasResult<TaxReturn> {
         let template = self.repository.get_template(template_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Template {} not found", template_id)
+                format!("Template {template_id} not found")
             ))?;
 
         if !template.is_active {
@@ -262,7 +262,7 @@ impl TaxReportingEngine {
         override_amount: Option<&str>,
     ) -> AtlasResult<TaxReturnLine> {
         let _line = self.repository.get_return_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return line {} not found", line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return line {line_id} not found")))?;
 
         let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
             "Amount must be a valid number".to_string(),
@@ -278,7 +278,7 @@ impl TaxReportingEngine {
         };
 
         self.repository.update_return_line(
-            line_id, amount, override_amount, &format!("{:.2}", final_amount),
+            line_id, amount, override_amount, &format!("{final_amount:.2}"),
         ).await
     }
 
@@ -289,7 +289,7 @@ impl TaxReportingEngine {
     /// Submit return for review
     pub async fn submit_return(&self, return_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<TaxReturn> {
         let tax_return = self.repository.get_return(return_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return {} not found", return_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return {return_id} not found")))?;
 
         if tax_return.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -317,13 +317,13 @@ impl TaxReportingEngine {
 
         self.repository.update_return_totals(
             return_id,
-            &format!("{:.2}", total_tax),
-            &format!("{:.2}", output_tax), // total_taxable (approx)
+            &format!("{total_tax:.2}"),
+            &format!("{output_tax:.2}"), // total_taxable (approx)
             "0", // exempt
-            &format!("{:.2}", input_tax),
-            &format!("{:.2}", output_tax),
-            &format!("{:.2}", net_due),
-            &format!("{:.2}", net_due), // total_amount_due
+            &format!("{input_tax:.2}"),
+            &format!("{output_tax:.2}"),
+            &format!("{net_due:.2}"),
+            &format!("{net_due:.2}"), // total_amount_due
         ).await?;
 
         info!("Submitting tax return {} (net due: {:.2})", tax_return.return_number, net_due);
@@ -339,7 +339,7 @@ impl TaxReportingEngine {
         filed_by: Option<Uuid>,
     ) -> AtlasResult<TaxReturn> {
         let tax_return = self.repository.get_return(return_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return {} not found", return_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return {return_id} not found")))?;
 
         if tax_return.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -367,7 +367,7 @@ impl TaxReportingEngine {
         payment_reference: Option<&str>,
     ) -> AtlasResult<TaxReturn> {
         let tax_return = self.repository.get_return(return_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return {} not found", return_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return {return_id} not found")))?;
 
         if tax_return.status != "filed" {
             return Err(AtlasError::WorkflowError(
@@ -409,11 +409,13 @@ impl TaxReportingEngine {
     }
 
     /// Calculate net tax due (output - input)
+    #[must_use] 
     pub fn calculate_net_tax(output_tax: f64, input_tax: f64) -> f64 {
         output_tax - input_tax
     }
 
     /// Check if a filing is overdue
+    #[must_use] 
     pub fn is_overdue(due_date: chrono::NaiveDate, filed: bool) -> bool {
         if filed {
             return false;

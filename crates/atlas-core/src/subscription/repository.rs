@@ -1,6 +1,6 @@
 //! Subscription Management Repository
 //!
-//! PostgreSQL storage for subscription products, subscriptions, amendments,
+//! `PostgreSQL` storage for subscription products, subscriptions, amendments,
 //! billing schedules, and revenue schedules.
 
 use atlas_shared::{
@@ -99,17 +99,18 @@ pub trait SubscriptionRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<SubscriptionDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresSubscriptionRepository {
     pool: PgPool,
 }
 
 impl PostgresSubscriptionRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self { Self { pool } }
 
     fn get_numeric(&self, row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: f64 = row.try_get(col).unwrap_or(0.0);
-        format!("{:.2}", v)
+        format!("{v:.2}")
     }
 
     fn row_to_product(&self, row: &sqlx::postgres::PgRow) -> SubscriptionProduct {
@@ -173,11 +174,11 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         setup_fee: &str, tier_type: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<SubscriptionProduct> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.subscription_products
+            r"INSERT INTO _atlas.subscription_products
                 (organization_id, product_code, name, description, product_type,
                  billing_frequency, default_duration_months, is_auto_renew,
                  cancellation_notice_days, setup_fee, tier_type, created_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::numeric,$11,$12) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::numeric,$11,$12) RETURNING *",
         ).bind(org_id).bind(product_code).bind(name).bind(description)
         .bind(product_type).bind(billing_frequency).bind(default_duration_months)
         .bind(is_auto_renew).bind(cancellation_notice_days).bind(setup_fee)
@@ -224,10 +225,10 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<SubscriptionPriceTier> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.subscription_price_tiers
+            r"INSERT INTO _atlas.subscription_price_tiers
                 (organization_id, product_id, tier_name, min_quantity, max_quantity,
                  unit_price, discount_percent, currency_code, effective_from, effective_to)
-            VALUES ($1,$2,$3,$4::numeric,$5::numeric,$6::numeric,$7::numeric,$8,$9,$10) RETURNING *"#,
+            VALUES ($1,$2,$3,$4::numeric,$5::numeric,$6::numeric,$7::numeric,$8,$9,$10) RETURNING *",
         ).bind(org_id).bind(product_id).bind(tier_name).bind(min_quantity)
         .bind(max_quantity).bind(unit_price).bind(discount_percent).bind(currency_code)
         .bind(effective_from).bind(effective_to)
@@ -282,7 +283,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Subscription> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.subscriptions
+            r"INSERT INTO _atlas.subscriptions
                 (organization_id, subscription_number, customer_id, customer_name,
                  product_id, product_code, product_name, description, status,
                  start_date, end_date, renewal_date, billing_frequency,
@@ -295,7 +296,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
                     $17::numeric,$18::numeric,$19::numeric,$20::numeric,$21::numeric,
                     $22::numeric,$23::numeric,$24::numeric,$25::numeric,$26,$27,
-                    $28,$29,$30,$31,$32,$33,$34,$35) RETURNING *"#,
+                    $28,$29,$30,$31,$32,$33,$34,$35) RETURNING *",
         ).bind(org_id).bind(subscription_number).bind(customer_id).bind(customer_name)
         .bind(product_id).bind(product_code).bind(product_name).bind(description)
         .bind(status).bind(start_date).bind(end_date).bind(renewal_date)
@@ -327,9 +328,9 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
     async fn list_subscriptions(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<Subscription>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.subscriptions
+            r"SELECT * FROM _atlas.subscriptions
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2) AND ($3::uuid IS NULL OR customer_id=$3)
-            ORDER BY subscription_number"#,
+            ORDER BY subscription_number",
         ).bind(org_id).bind(status).bind(customer_id)
         .fetch_all(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| self.row_to_subscription(r)).collect())
@@ -340,11 +341,11 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         suspension_reason: Option<&str>,
     ) -> AtlasResult<Subscription> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.subscriptions SET status=$2,
+            r"UPDATE _atlas.subscriptions SET status=$2,
                 cancellation_date=COALESCE($3, cancellation_date),
                 cancellation_reason=COALESCE($4, cancellation_reason),
                 suspension_reason=COALESCE($5, suspension_reason),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         ).bind(id).bind(status).bind(cancellation_date).bind(cancellation_reason).bind(suspension_reason)
         .fetch_one(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_subscription(&row))
@@ -354,14 +355,14 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         renewal_date: Option<&chrono::NaiveDate>,
     ) -> AtlasResult<Subscription> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.subscriptions SET end_date=$2, renewal_date=$3, updated_at=now() WHERE id=$1 RETURNING *"#,
+            r"UPDATE _atlas.subscriptions SET end_date=$2, renewal_date=$3, updated_at=now() WHERE id=$1 RETURNING *",
         ).bind(id).bind(end_date).bind(renewal_date)
         .fetch_one(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_subscription(&row))
     }
 
     async fn update_subscription_pricing(&self, id: Uuid, quantity: &str, unit_price: &str, recurring_amount: &str) -> AtlasResult<()> {
-        sqlx::query(r#"UPDATE _atlas.subscriptions SET quantity=$2::numeric, unit_price=$3::numeric, recurring_amount=$4::numeric, updated_at=now() WHERE id=$1"#)
+        sqlx::query(r"UPDATE _atlas.subscriptions SET quantity=$2::numeric, unit_price=$3::numeric, recurring_amount=$4::numeric, updated_at=now() WHERE id=$1")
             .bind(id).bind(quantity).bind(unit_price).bind(recurring_amount)
             .execute(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
@@ -378,14 +379,14 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         status: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<SubscriptionAmendment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.subscription_amendments
+            r"INSERT INTO _atlas.subscription_amendments
                 (organization_id, subscription_id, amendment_number, amendment_type,
                  description, old_quantity, new_quantity, old_unit_price, new_unit_price,
                  old_recurring_amount, new_recurring_amount, old_end_date, new_end_date,
                  effective_date, proration_credit, proration_charge, status, created_by)
             VALUES ($1,$2,$3,$4,$5,$6::numeric,$7::numeric,$8::numeric,$9::numeric,
                     $10::numeric,$11::numeric,$12,$13,$14,$15::numeric,$16::numeric,$17,$18)
-            RETURNING *"#,
+            RETURNING *",
         ).bind(org_id).bind(subscription_id).bind(amendment_number).bind(amendment_type)
         .bind(description).bind(old_quantity).bind(new_quantity).bind(old_unit_price).bind(new_unit_price)
         .bind(old_recurring_amount).bind(new_recurring_amount).bind(old_end_date).bind(new_end_date)
@@ -411,10 +412,10 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
     async fn update_amendment_status(&self, id: Uuid, status: &str, applied_by: Option<Uuid>) -> AtlasResult<SubscriptionAmendment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.subscription_amendments SET status=$2,
+            r"UPDATE _atlas.subscription_amendments SET status=$2,
                 applied_by=COALESCE($3, applied_by),
                 applied_at=CASE WHEN $3 IS NOT NULL AND applied_at IS NULL THEN now() ELSE applied_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         ).bind(id).bind(status).bind(applied_by)
         .fetch_one(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_amendment(&row))
@@ -425,10 +426,10 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         amount: &str, proration_amount: &str, total_amount: &str,
     ) -> AtlasResult<SubscriptionBillingLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.subscription_billing_schedule
+            r"INSERT INTO _atlas.subscription_billing_schedule
                 (organization_id, subscription_id, schedule_number, billing_date,
                  period_start, period_end, amount, proration_amount, total_amount)
-            VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8::numeric,$9::numeric) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8::numeric,$9::numeric) RETURNING *",
         ).bind(org_id).bind(subscription_id).bind(schedule_number)
         .bind(billing_date).bind(period_start).bind(period_end)
         .bind(amount).bind(proration_amount).bind(total_amount)
@@ -450,10 +451,10 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         revenue_amount: &str, deferred_amount: &str, recognized_to_date: &str, status: &str,
     ) -> AtlasResult<SubscriptionRevenueLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.subscription_revenue_schedule
+            r"INSERT INTO _atlas.subscription_revenue_schedule
                 (organization_id, subscription_id, billing_schedule_id, period_name,
                  period_start, period_end, revenue_amount, deferred_amount, recognized_to_date, status)
-            VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8::numeric,$9::numeric,$10) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8::numeric,$9::numeric,$10) RETURNING *",
         ).bind(org_id).bind(subscription_id).bind(billing_schedule_id).bind(period_name)
         .bind(period_start).bind(period_end).bind(revenue_amount).bind(deferred_amount)
         .bind(recognized_to_date).bind(status)
@@ -478,9 +479,9 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
     async fn update_revenue_line_status(&self, id: Uuid, status: &str) -> AtlasResult<SubscriptionRevenueLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.subscription_revenue_schedule SET status=$2,
+            r"UPDATE _atlas.subscription_revenue_schedule SET status=$2,
                 recognized_at=CASE WHEN $2='recognized' AND recognized_at IS NULL THEN now() ELSE recognized_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_revenue_line(&row))
@@ -488,7 +489,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<SubscriptionDashboardSummary> {
         let rows = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_count,
                 COUNT(DISTINCT CASE WHEN status = 'active' AND customer_id IS NOT NULL THEN customer_id END) as distinct_customers,
                 COALESCE(SUM(recurring_amount) FILTER (WHERE status = 'active'), 0::numeric)::float8 as mrr,
@@ -499,7 +500,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 COUNT(*) FILTER (WHERE renewal_date <= CURRENT_DATE + INTERVAL '30 days' AND status = 'active' AND is_auto_renew = true) as renewals_30,
                 COUNT(*) FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE) AND status IN ('active','draft')) as new_this_month,
                 COUNT(*) FILTER (WHERE cancellation_date >= date_trunc('month', CURRENT_DATE)) as cancelled_this_month
-            FROM _atlas.subscriptions WHERE organization_id = $1"#,
+            FROM _atlas.subscriptions WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
@@ -519,11 +520,11 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         Ok(SubscriptionDashboardSummary {
             total_active_subscriptions: active as i32,
             total_subscribers: subscribers as i32,
-            total_monthly_recurring_revenue: format!("{:.2}", mrr),
-            total_annual_recurring_revenue: format!("{:.2}", arr_val),
-            total_contract_value: format!("{:.2}", tcv),
-            total_billed: format!("{:.2}", billed),
-            total_revenue_recognized: format!("{:.2}", rev),
+            total_monthly_recurring_revenue: format!("{mrr:.2}"),
+            total_annual_recurring_revenue: format!("{arr_val:.2}"),
+            total_contract_value: format!("{tcv:.2}"),
+            total_billed: format!("{billed:.2}"),
+            total_revenue_recognized: format!("{rev:.2}"),
             total_deferred_revenue: "0".to_string(),
             churn_rate_percent: "0".to_string(),
             renewals_due_30_days: renewals_30 as i32,
@@ -566,7 +567,7 @@ fn row_to_amendment(row: &sqlx::postgres::PgRow) -> SubscriptionAmendment {
 fn row_to_billing_line(row: &sqlx::postgres::PgRow) -> SubscriptionBillingLine {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: f64 = row.try_get(col).unwrap_or(0.0);
-        format!("{:.2}", v)
+        format!("{v:.2}")
     }
     SubscriptionBillingLine {
         id: row.get("id"), organization_id: row.get("organization_id"),
@@ -591,7 +592,7 @@ fn row_to_billing_line(row: &sqlx::postgres::PgRow) -> SubscriptionBillingLine {
 fn row_to_revenue_line(row: &sqlx::postgres::PgRow) -> SubscriptionRevenueLine {
     fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
         let v: f64 = row.try_get(col).unwrap_or(0.0);
-        format!("{:.2}", v)
+        format!("{v:.2}")
     }
     SubscriptionRevenueLine {
         id: row.get("id"), organization_id: row.get("organization_id"),

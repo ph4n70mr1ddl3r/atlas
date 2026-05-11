@@ -187,7 +187,7 @@ impl ServiceRequestEngine {
             if let Some(cat) = self.repository.get_category_by_id(cat_id).await? {
                 category_name = Some(cat.name.clone());
                 if let Some(hours) = cat.default_sla_hours {
-                    sla_due_date = Some(chrono::Utc::now().date_naive() + chrono::Duration::hours(hours as i64));
+                    sla_due_date = Some(chrono::Utc::now().date_naive() + chrono::Duration::hours(i64::from(hours)));
                     // Note: TimeDelta + NaiveDate yields NaiveDate directly
                 }
                 // Use category default priority if not explicitly set
@@ -246,7 +246,7 @@ impl ServiceRequestEngine {
 
         let request = self.repository.get_request(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Service request {} not found", id)
+                format!("Service request {id} not found")
             ))?;
 
         // Validate state transitions
@@ -304,7 +304,7 @@ impl ServiceRequestEngine {
 
         let request = self.repository.get_request(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Service request {} not found", id)
+                format!("Service request {id} not found")
             ))?;
 
         if request.status == "resolved" || request.status == "closed" || request.status == "cancelled" {
@@ -339,7 +339,7 @@ impl ServiceRequestEngine {
 
         let request = self.repository.get_request(request_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Service request {} not found", request_id)
+                format!("Service request {request_id} not found")
             ))?;
 
         if request.status == "closed" || request.status == "cancelled" {
@@ -401,7 +401,7 @@ impl ServiceRequestEngine {
         // Verify request exists
         let request = self.repository.get_request(request_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Service request {} not found", request_id)
+                format!("Service request {request_id} not found")
             ))?;
 
         if request.status == "closed" || request.status == "cancelled" {

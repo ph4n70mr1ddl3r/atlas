@@ -1,6 +1,6 @@
 //! Intercompany Repository
 //!
-//! PostgreSQL storage for intercompany batches, transactions, settlements,
+//! `PostgreSQL` storage for intercompany batches, transactions, settlements,
 //! and balances.
 
 use atlas_shared::{
@@ -138,13 +138,14 @@ pub trait IntercompanyRepository: Send + Sync {
     async fn list_balances(&self, org_id: Uuid) -> AtlasResult<Vec<IntercompanyBalance>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresIntercompanyRepository {
     pool: PgPool,
 }
 
 impl PostgresIntercompanyRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -292,7 +293,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<IntercompanyBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.intercompany_batches
                 (organization_id, batch_number, description,
                  from_entity_id, from_entity_name, to_entity_id, to_entity_name,
@@ -303,7 +304,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
                     to_entity_id = $6, to_entity_name = $7, currency_code = $8,
                     accounting_date = $9, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(batch_number).bind(description)
         .bind(from_entity_id).bind(from_entity_name)
@@ -364,14 +365,14 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         rejected_reason: Option<&str>,
     ) -> AtlasResult<IntercompanyBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.intercompany_batches
             SET status = $2, approved_by = COALESCE($3, approved_by),
                 posted_at = COALESCE($4, posted_at),
                 rejected_reason = $5, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(posted_at).bind(rejected_reason)
         .fetch_one(&self.pool)
@@ -389,13 +390,13 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         transaction_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.intercompany_batches
             SET total_amount = $2::numeric, total_debit = $3::numeric,
                 total_credit = $4::numeric, transaction_count = $5,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(total_amount).bind(total_debit).bind(total_credit).bind(transaction_count)
         .execute(&self.pool)
@@ -435,7 +436,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<IntercompanyTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.intercompany_transactions
                 (organization_id, batch_id, transaction_number, transaction_type,
                  description, from_entity_id, from_entity_name,
@@ -458,7 +459,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
                     to_ic_account = $18, transaction_date = $19, due_date = $20,
                     updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(batch_id).bind(transaction_number).bind(transaction_type)
         .bind(description)
@@ -506,16 +507,16 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
     ) -> AtlasResult<Vec<IntercompanyTransaction>> {
         let rows = match status {
             Some(s) => sqlx::query(
-                r#"SELECT * FROM _atlas.intercompany_transactions
+                r"SELECT * FROM _atlas.intercompany_transactions
                 WHERE organization_id = $1 AND (from_entity_id = $2 OR to_entity_id = $2) AND status = $3
-                ORDER BY transaction_date DESC"#
+                ORDER BY transaction_date DESC"
             )
             .bind(org_id).bind(entity_id).bind(s)
             .fetch_all(&self.pool).await,
             None => sqlx::query(
-                r#"SELECT * FROM _atlas.intercompany_transactions
+                r"SELECT * FROM _atlas.intercompany_transactions
                 WHERE organization_id = $1 AND (from_entity_id = $2 OR to_entity_id = $2)
-                ORDER BY transaction_date DESC"#
+                ORDER BY transaction_date DESC"
             )
             .bind(org_id).bind(entity_id)
             .fetch_all(&self.pool).await,
@@ -531,12 +532,12 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         settlement_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<IntercompanyTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.intercompany_transactions
             SET status = $2, settlement_date = COALESCE($3, settlement_date), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(settlement_date)
         .fetch_one(&self.pool)
@@ -563,14 +564,14 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<IntercompanySettlement> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.intercompany_settlements
                 (organization_id, settlement_number, settlement_method,
                  from_entity_id, to_entity_id, settled_amount,
                  currency_code, payment_reference, transaction_ids, created_by)
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(settlement_number).bind(settlement_method)
         .bind(from_entity_id).bind(to_entity_id).bind(settled_amount)
@@ -588,9 +589,9 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
     ) -> AtlasResult<Vec<IntercompanySettlement>> {
         let rows = match entity_id {
             Some(eid) => sqlx::query(
-                r#"SELECT * FROM _atlas.intercompany_settlements
+                r"SELECT * FROM _atlas.intercompany_settlements
                 WHERE organization_id = $1 AND (from_entity_id = $2 OR to_entity_id = $2)
-                ORDER BY settlement_date DESC"#
+                ORDER BY settlement_date DESC"
             )
             .bind(org_id).bind(eid)
             .fetch_all(&self.pool).await,
@@ -617,9 +618,9 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
     ) -> AtlasResult<Option<IntercompanyBalance>> {
         let today = chrono::Utc::now().date_naive();
         let row = sqlx::query(
-            r#"SELECT * FROM _atlas.intercompany_balances
+            r"SELECT * FROM _atlas.intercompany_balances
             WHERE organization_id = $1 AND from_entity_id = $2
-              AND to_entity_id = $3 AND currency_code = $4 AND as_of_date = $5"#
+              AND to_entity_id = $3 AND currency_code = $4 AND as_of_date = $5"
         )
         .bind(org_id).bind(from_entity_id).bind(to_entity_id).bind(currency_code).bind(today)
         .fetch_optional(&self.pool)
@@ -641,7 +642,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
     ) -> AtlasResult<IntercompanyBalance> {
         let today = chrono::Utc::now().date_naive();
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.intercompany_balances
                 (organization_id, from_entity_id, to_entity_id, currency_code,
                  total_outstanding, total_posted, total_settled,
@@ -653,7 +654,7 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
                 total_settled = $7::numeric, open_transaction_count = $8,
                 updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(from_entity_id).bind(to_entity_id).bind(currency_code)
         .bind(total_outstanding).bind(total_posted).bind(total_settled)
@@ -667,9 +668,9 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
     async fn list_balances(&self, org_id: Uuid) -> AtlasResult<Vec<IntercompanyBalance>> {
         let today = chrono::Utc::now().date_naive();
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.intercompany_balances
+            r"SELECT * FROM _atlas.intercompany_balances
             WHERE organization_id = $1 AND as_of_date = $2
-            ORDER BY from_entity_id, to_entity_id"#
+            ORDER BY from_entity_id, to_entity_id"
         )
         .bind(org_id).bind(today)
         .fetch_all(&self.pool)

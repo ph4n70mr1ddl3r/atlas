@@ -1,6 +1,6 @@
 //! Compensation Management Repository
 //!
-//! PostgreSQL storage for compensation management data.
+//! `PostgreSQL` storage for compensation management data.
 
 use atlas_shared::{
     CompensationPlan, CompensationComponent, CompensationCycle,
@@ -183,13 +183,14 @@ pub trait CompensationRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CompensationDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCompensationRepository {
     pool: PgPool,
 }
 
 impl PostgresCompensationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -210,13 +211,13 @@ impl CompensationRepository for PostgresCompensationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompensationPlan> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.compensation_plans
                 (organization_id, plan_code, plan_name, description, plan_type,
                  effective_start_date, effective_end_date, eligibility_criteria, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(plan_code).bind(plan_name).bind(description)
         .bind(plan_type).bind(effective_start_date).bind(effective_end_date)
@@ -274,12 +275,12 @@ impl CompensationRepository for PostgresCompensationRepository {
         frequency: Option<&str>,
     ) -> AtlasResult<CompensationComponent> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.compensation_components
                 (organization_id, plan_id, component_name, component_type, description, is_recurring, frequency)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(plan_id).bind(component_name).bind(component_type)
         .bind(description).bind(is_recurring).bind(frequency)
@@ -320,13 +321,13 @@ impl CompensationRepository for PostgresCompensationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompensationCycle> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.compensation_cycles
                 (organization_id, cycle_name, description, cycle_type,
                  start_date, end_date, total_budget, currency_code, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(cycle_name).bind(description).bind(cycle_type)
         .bind(start_date).bind(end_date)
@@ -411,14 +412,14 @@ impl CompensationRepository for PostgresCompensationRepository {
     ) -> AtlasResult<CompensationBudgetPool> {
         let budget_val = total_budget.parse::<f64>().unwrap_or(0.0);
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.compensation_budget_pools
                 (organization_id, cycle_id, pool_name, pool_type,
                  manager_id, manager_name, department_id, department_name,
                  total_budget, remaining_budget, currency_code, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(cycle_id).bind(pool_name).bind(pool_type)
         .bind(manager_id).bind(manager_name)
@@ -466,12 +467,12 @@ impl CompensationRepository for PostgresCompensationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompensationWorksheet> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.compensation_worksheets
                 (organization_id, cycle_id, pool_id, manager_id, manager_name, created_by)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(cycle_id).bind(pool_id)
         .bind(manager_id).bind(manager_name).bind(created_by)
@@ -530,13 +531,13 @@ impl CompensationRepository for PostgresCompensationRepository {
         total_compensation_change: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.compensation_worksheets
             SET total_employees = $2, total_current_salary = $3, total_proposed_salary = $4,
                 total_merit = $5, total_bonus = $6, total_equity = $7,
                 total_compensation_change = $8, updated_at = now()
             WHERE id = $1
-            "#
+            "
         )
         .bind(id).bind(total_employees)
         .bind(total_current_salary.parse::<f64>().unwrap_or(0.0))
@@ -580,7 +581,7 @@ impl CompensationRepository for PostgresCompensationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompensationWorksheetLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.compensation_worksheet_lines
                 (organization_id, worksheet_id, employee_id, employee_name,
                  job_title, department_name, current_base_salary, proposed_base_salary,
@@ -589,7 +590,7 @@ impl CompensationRepository for PostgresCompensationRepository {
                  performance_rating, compa_ratio, manager_comments, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(worksheet_id).bind(employee_id).bind(employee_name)
         .bind(job_title).bind(department_name)
@@ -642,7 +643,7 @@ impl CompensationRepository for PostgresCompensationRepository {
         manager_comments: Option<&str>,
     ) -> AtlasResult<CompensationWorksheetLine> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.compensation_worksheet_lines
             SET proposed_base_salary = $2, salary_change_amount = $3, salary_change_percent = $4,
                 merit_amount = $5, bonus_amount = $6, equity_amount = $7,
@@ -650,7 +651,7 @@ impl CompensationRepository for PostgresCompensationRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#
+            "
         )
         .bind(id)
         .bind(proposed_base_salary.parse::<f64>().unwrap_or(0.0))
@@ -707,7 +708,7 @@ impl CompensationRepository for PostgresCompensationRepository {
         components: serde_json::Value,
     ) -> AtlasResult<CompensationStatement> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.compensation_statements
                 (organization_id, cycle_id, employee_id, employee_name, statement_date,
                  base_salary, merit_increase, bonus, equity, benefits_value,
@@ -731,7 +732,7 @@ impl CompensationRepository for PostgresCompensationRepository {
                 components = EXCLUDED.components,
                 updated_at = now()
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(cycle_id).bind(employee_id).bind(employee_name)
         .bind(statement_date)
@@ -807,7 +808,7 @@ impl CompensationRepository for PostgresCompensationRepository {
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let cycle_row = sqlx::query(
-            r#"
+            r"
             SELECT COUNT(*) as total,
                    COUNT(*) FILTER (WHERE status IN ('active', 'allocation', 'review')) as active,
                    COALESCE(SUM(total_budget), 0) as total_budget,
@@ -815,21 +816,21 @@ impl CompensationRepository for PostgresCompensationRepository {
                    COALESCE(SUM(total_employees), 0) as total_employees
             FROM _atlas.compensation_cycles
             WHERE organization_id = $1
-            "#
+            "
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let ws_row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) FILTER (WHERE w.status = 'draft') as pending,
                 COUNT(*) FILTER (WHERE w.status = 'approved') as completed
             FROM _atlas.compensation_worksheets w
             JOIN _atlas.compensation_cycles c ON c.id = w.cycle_id
             WHERE c.organization_id = $1
-            "#
+            "
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -843,14 +844,14 @@ impl CompensationRepository for PostgresCompensationRepository {
         Ok(CompensationDashboard {
             active_plans: plan_row.get::<i64, _>("cnt") as i32,
             active_cycles: cycle_row.get::<i64, _>("active") as i32,
-            total_budget: format!("{:.2}", total_budget),
-            total_allocated: format!("{:.2}", total_approved),
-            total_approved: format!("{:.2}", total_approved),
+            total_budget: format!("{total_budget:.2}"),
+            total_allocated: format!("{total_approved:.2}"),
+            total_approved: format!("{total_approved:.2}"),
             total_employees_in_cycle: cycle_row.get::<i64, _>("total_employees") as i32,
             pending_worksheets: ws_row.get::<i64, _>("pending") as i32,
             completed_worksheets: ws_row.get::<i64, _>("completed") as i32,
             average_salary_increase_percent: "0.00".to_string(),
-            budget_utilization_percent: format!("{:.2}", budget_util),
+            budget_utilization_percent: format!("{budget_util:.2}"),
         })
     }
 }
@@ -863,12 +864,12 @@ use sqlx::Row;
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    format!("{v:.2}")
 }
 
 fn get_num4(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.4}", v)
+    format!("{v:.4}")
 }
 
 fn row_to_plan(row: &sqlx::postgres::PgRow) -> CompensationPlan {

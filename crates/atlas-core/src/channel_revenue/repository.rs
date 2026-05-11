@@ -1,6 +1,6 @@
 //! Channel Revenue Management Repository
 //!
-//! PostgreSQL storage for trade promotions, promotion lines, funds,
+//! `PostgreSQL` storage for trade promotions, promotion lines, funds,
 //! claims, settlements, and dashboard analytics.
 
 use atlas_shared::{
@@ -189,13 +189,14 @@ pub trait ChannelRevenueRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ChannelRevenueDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresChannelRevenueRepository {
     pool: PgPool,
 }
 
 impl PostgresChannelRevenueRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -428,7 +429,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TradePromotion> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.trade_promotions
+            r"INSERT INTO _atlas.trade_promotions
                 (organization_id, promotion_number, name, description,
                  promotion_type, status, priority, category,
                  partner_id, partner_number, partner_name, fund_id,
@@ -447,7 +448,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
                     $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,
                     $35,$36,$37,$38,$39,$40)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(promotion_number).bind(name).bind(description)
         .bind(promotion_type).bind(status).bind(priority).bind(category)
@@ -486,12 +487,12 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         partner_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<TradePromotion>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.trade_promotions
+            r"SELECT * FROM _atlas.trade_promotions
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR promotion_type = $3)
                  AND ($4::uuid IS NULL OR partner_id = $4)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(promotion_type).bind(partner_id.copied())
         .fetch_all(&self.pool).await?;
@@ -503,7 +504,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
             "UPDATE _atlas.trade_promotions SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
         Ok(row_to_promotion(&row))
     }
 
@@ -511,14 +512,14 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         &self, id: Uuid, approval_status: &str, approved_by: Option<Uuid>,
     ) -> AtlasResult<TradePromotion> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.trade_promotions
+            r"UPDATE _atlas.trade_promotions
                SET approval_status = $2, approved_by = $3,
                    approved_at = CASE WHEN $2 = 'approved' THEN now() ELSE approved_at END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(approval_status).bind(approved_by)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
         Ok(row_to_promotion(&row))
     }
 
@@ -526,12 +527,12 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         &self, id: Uuid, actual_spend: f64, accrued_amount: f64,
     ) -> AtlasResult<TradePromotion> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.trade_promotions
+            r"UPDATE _atlas.trade_promotions
                SET actual_spend = $2, accrued_amount = $3, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(actual_spend).bind(accrued_amount)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
         Ok(row_to_promotion(&row))
     }
 
@@ -540,7 +541,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
             "DELETE FROM _atlas.trade_promotions WHERE organization_id = $1 AND promotion_number = $2"
         ).bind(org_id).bind(promotion_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Promotion '{}' not found", promotion_number)));
+            return Err(AtlasError::EntityNotFound(format!("Promotion '{promotion_number}' not found")));
         }
         Ok(())
     }
@@ -561,14 +562,14 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TradePromotionLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.trade_promotion_lines
+            r"INSERT INTO _atlas.trade_promotion_lines
                 (organization_id, promotion_id, line_number,
                  product_id, product_number, product_name, product_category,
                  discount_type, discount_value, unit_of_measure,
                  quantity_from, quantity_to, planned_quantity, planned_amount,
                  metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'{}'::jsonb,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(promotion_id).bind(line_number)
         .bind(product_id).bind(product_number).bind(product_name).bind(product_category)
@@ -596,12 +597,12 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         &self, id: Uuid, actual_quantity: f64, actual_amount: f64, accrual_amount: f64,
     ) -> AtlasResult<TradePromotionLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.trade_promotion_lines
+            r"UPDATE _atlas.trade_promotion_lines
                SET actual_quantity = $2, actual_amount = $3, accrual_amount = $4, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(actual_quantity).bind(actual_amount).bind(accrual_amount)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Promotion line {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Promotion line {id} not found")))?;
         Ok(row_to_promotion_line(&row))
     }
 
@@ -630,7 +631,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PromotionFund> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.promotion_funds
+            r"INSERT INTO _atlas.promotion_funds
                 (organization_id, fund_number, name, description,
                  fund_type, status,
                  partner_id, partner_number, partner_name,
@@ -638,7 +639,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
                  fund_year, fund_quarter, start_date, end_date,
                  owner_id, owner_name, metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10,$11,$12,$13,$14,$15,$16,$17,'{}'::jsonb,$18)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(fund_number).bind(name).bind(description)
         .bind(fund_type).bind(status)
@@ -667,11 +668,11 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         &self, org_id: Uuid, status: Option<&str>, fund_type: Option<&str>,
     ) -> AtlasResult<Vec<PromotionFund>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.promotion_funds
+            r"SELECT * FROM _atlas.promotion_funds
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR fund_type = $3)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(fund_type)
         .fetch_all(&self.pool).await?;
@@ -683,19 +684,19 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
             "UPDATE _atlas.promotion_funds SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Fund {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Fund {id} not found")))?;
         Ok(row_to_fund(&row))
     }
 
     async fn update_fund_budget(&self, id: Uuid, total_budget: f64) -> AtlasResult<PromotionFund> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.promotion_funds
+            r"UPDATE _atlas.promotion_funds
                SET total_budget = $2, available_amount = $2 - allocated_amount,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(total_budget)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Fund {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Fund {id} not found")))?;
         Ok(row_to_fund(&row))
     }
 
@@ -704,15 +705,15 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         utilized_amount: f64, available_amount: f64,
     ) -> AtlasResult<PromotionFund> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.promotion_funds
+            r"UPDATE _atlas.promotion_funds
                SET allocated_amount = $2, committed_amount = $3,
                    utilized_amount = $4, available_amount = $5,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(allocated_amount).bind(committed_amount)
         .bind(utilized_amount).bind(available_amount)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Fund {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Fund {id} not found")))?;
         Ok(row_to_fund(&row))
     }
 
@@ -721,7 +722,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
             "DELETE FROM _atlas.promotion_funds WHERE organization_id = $1 AND fund_number = $2"
         ).bind(org_id).bind(fund_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Fund '{}' not found", fund_number)));
+            return Err(AtlasError::EntityNotFound(format!("Fund '{fund_number}' not found")));
         }
         Ok(())
     }
@@ -750,7 +751,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TradeClaim> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.trade_claims
+            r"INSERT INTO _atlas.trade_claims
                 (organization_id, claim_number,
                  promotion_id, promotion_number, fund_id, fund_number,
                  claim_type, status, priority,
@@ -765,7 +766,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
                  metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
                     $16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,'{}'::jsonb,$31)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(claim_number)
         .bind(promotion_id).bind(promotion_number).bind(fund_id).bind(fund_number)
@@ -801,12 +802,12 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         promotion_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<TradeClaim>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.trade_claims
+            r"SELECT * FROM _atlas.trade_claims
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR claim_type = $3)
                  AND ($4::uuid IS NULL OR promotion_id = $4)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(claim_type).bind(promotion_id.copied())
         .fetch_all(&self.pool).await?;
@@ -820,7 +821,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         resolution_notes: Option<&str>,
     ) -> AtlasResult<TradeClaim> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.trade_claims
+            r"UPDATE _atlas.trade_claims
                SET status = $2,
                    approved_amount = COALESCE($3, approved_amount),
                    rejection_reason = COALESCE($4, rejection_reason),
@@ -828,12 +829,12 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
                    submitted_at = CASE WHEN $2 = 'submitted' THEN now() ELSE submitted_at END,
                    approved_at = CASE WHEN $2 IN ('approved','partially_approved') THEN now() ELSE approved_at END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(status)
         .bind(approved_amount).bind(rejection_reason).bind(resolution_notes)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
         Ok(row_to_claim(&row))
     }
 
@@ -841,16 +842,16 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         &self, id: Uuid, paid_amount: f64,
     ) -> AtlasResult<TradeClaim> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.trade_claims
+            r"UPDATE _atlas.trade_claims
                SET paid_amount = $2,
                    paid_at = CASE WHEN $2 >= claimed_amount THEN now() ELSE paid_at END,
                    status = CASE WHEN $2 >= claimed_amount THEN 'paid' ELSE status END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(paid_amount)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
         Ok(row_to_claim(&row))
     }
 
@@ -859,7 +860,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
             "DELETE FROM _atlas.trade_claims WHERE organization_id = $1 AND claim_number = $2"
         ).bind(org_id).bind(claim_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Claim '{}' not found", claim_number)));
+            return Err(AtlasError::EntityNotFound(format!("Claim '{claim_number}' not found")));
         }
         Ok(())
     }
@@ -883,7 +884,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TradeSettlement> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.trade_settlements
+            r"INSERT INTO _atlas.trade_settlements
                 (organization_id, settlement_number,
                  claim_id, claim_number, promotion_id, promotion_number,
                  partner_id, partner_number, partner_name,
@@ -893,7 +894,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
                  bank_account, gl_account, cost_center,
                  notes, metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,'{}'::jsonb,$21)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(settlement_number)
         .bind(claim_id).bind(claim_number).bind(promotion_id).bind(promotion_number)
@@ -924,11 +925,11 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         &self, org_id: Uuid, status: Option<&str>, settlement_type: Option<&str>,
     ) -> AtlasResult<Vec<TradeSettlement>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.trade_settlements
+            r"SELECT * FROM _atlas.trade_settlements
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR settlement_type = $3)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(settlement_type)
         .fetch_all(&self.pool).await?;
@@ -939,16 +940,16 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
         &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
     ) -> AtlasResult<TradeSettlement> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.trade_settlements
+            r"UPDATE _atlas.trade_settlements
                SET status = $2,
                    approved_by = COALESCE($3, approved_by),
                    approved_at = CASE WHEN $2 = 'approved' THEN now() ELSE approved_at END,
                    paid_at = CASE WHEN $2 = 'completed' THEN now() ELSE paid_at END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Settlement {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Settlement {id} not found")))?;
         Ok(row_to_settlement(&row))
     }
 
@@ -957,7 +958,7 @@ impl ChannelRevenueRepository for PostgresChannelRevenueRepository {
             "DELETE FROM _atlas.trade_settlements WHERE organization_id = $1 AND settlement_number = $2"
         ).bind(org_id).bind(settlement_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Settlement '{}' not found", settlement_number)));
+            return Err(AtlasError::EntityNotFound(format!("Settlement '{settlement_number}' not found")));
         }
         Ok(())
     }

@@ -115,7 +115,7 @@ pub async fn delete_entity(
 
     // Drop table (sanitize to prevent SQL injection)
     let safe_entity = sanitize_identifier(&entity).map_err(|_| StatusCode::BAD_REQUEST)?;
-    if let Err(e) = sqlx::query(&format!("DROP TABLE IF EXISTS \"{}\"", safe_entity))
+    if let Err(e) = sqlx::query(&format!("DROP TABLE IF EXISTS \"{safe_entity}\""))
         .execute(&state.db_pool)
         .await
     {
@@ -224,8 +224,8 @@ pub async fn set_config_value(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let parts: Vec<&str> = key.split('.').collect();
     
-    if let Some(&"entity") = parts.first() {
-        if parts.len() >= 2 {
+    if parts.first() == Some(&"entity")
+        && parts.len() >= 2 {
             if let Ok(definition) = serde_json::from_value::<EntityDefinition>(value) {
                 state.schema_engine.upsert_entity(definition)
                     .await
@@ -237,7 +237,6 @@ pub async fn set_config_value(
                 })));
             }
         }
-    }
     
     Err(StatusCode::BAD_REQUEST)
 }

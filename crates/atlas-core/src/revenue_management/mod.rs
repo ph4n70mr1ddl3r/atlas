@@ -144,11 +144,12 @@ pub trait RevenueManagementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RevMgmtDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 #[allow(dead_code)]
 pub struct PostgresRevenueManagementRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresRevenueManagementRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresRevenueManagementRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 // PostgreSQL implementation would go here - placeholder for compilation
 #[async_trait]

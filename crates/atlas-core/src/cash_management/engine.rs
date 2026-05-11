@@ -197,12 +197,12 @@ impl CashManagementEngine {
         Ok(CashPositionSummary {
             organization_id: org_id,
             position_date,
-            total_book_balance: format!("{:.2}", total_book),
-            total_available_balance: format!("{:.2}", total_available),
-            total_float: format!("{:.2}", total_float),
-            total_projected_inflows: format!("{:.2}", total_inflows),
-            total_projected_outflows: format!("{:.2}", total_outflows),
-            total_projected_net: format!("{:.2}", total_net),
+            total_book_balance: format!("{total_book:.2}"),
+            total_available_balance: format!("{total_available:.2}"),
+            total_float: format!("{total_float:.2}"),
+            total_projected_inflows: format!("{total_inflows:.2}"),
+            total_projected_outflows: format!("{total_outflows:.2}"),
+            total_projected_net: format!("{total_net:.2}"),
             account_count: positions.len() as i32,
             by_currency: by_currency_json,
             by_account: serde_json::Value::Array(by_account),
@@ -267,7 +267,7 @@ impl CashManagementEngine {
     pub async fn delete_forecast_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         self.repository.get_forecast_template(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast template '{}' not found", code)
+                format!("Forecast template '{code}' not found")
             ))?;
 
         info!("Deleting forecast template {} in org {}", code, org_id);
@@ -298,7 +298,7 @@ impl CashManagementEngine {
         // Verify template exists
         let template = self.repository.get_forecast_template_by_id(template_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast template {} not found", template_id)
+                format!("Forecast template {template_id} not found")
             ))?;
 
         if code.is_empty() || name.is_empty() {
@@ -348,7 +348,7 @@ impl CashManagementEngine {
     ) -> AtlasResult<()> {
         self.repository.get_forecast_source(org_id, template_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast source '{}' not found", code)
+                format!("Forecast source '{code}' not found")
             ))?;
 
         info!("Deleting forecast source {} from template {}", code, template_id);
@@ -370,7 +370,7 @@ impl CashManagementEngine {
     ) -> AtlasResult<CashForecast> {
         let template = self.repository.get_forecast_template(org_id, template_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast template '{}' not found", template_code)
+                format!("Forecast template '{template_code}' not found")
             ))?;
 
         let sources = self.repository.list_forecast_sources(template.id).await?;
@@ -382,10 +382,10 @@ impl CashManagementEngine {
 
         // Calculate date range based on template settings
         let today = chrono::Utc::now().date_naive();
-        let start_date = today + chrono::Duration::days(template.start_offset_days as i64);
+        let start_date = today + chrono::Duration::days(i64::from(template.start_offset_days));
         let end_date = match template.bucket_type.as_str() {
-            "daily" => start_date + chrono::Duration::days(template.number_of_periods as i64),
-            "weekly" => start_date + chrono::Duration::weeks(template.number_of_periods as i64),
+            "daily" => start_date + chrono::Duration::days(i64::from(template.number_of_periods)),
+            "weekly" => start_date + chrono::Duration::weeks(i64::from(template.number_of_periods)),
             "monthly" => {
                 let mut date = start_date;
                 for _ in 0..template.number_of_periods {
@@ -393,7 +393,7 @@ impl CashManagementEngine {
                 }
                 date
             }
-            _ => start_date + chrono::Duration::days(template.number_of_periods as i64),
+            _ => start_date + chrono::Duration::days(i64::from(template.number_of_periods)),
         };
 
         // Get the opening balance from cash positions
@@ -424,7 +424,7 @@ impl CashManagementEngine {
             org_id, &forecast_number, template.id, &template.name,
             name, description,
             start_date, end_date,
-            &format!("{:.2}", opening_balance),
+            &format!("{opening_balance:.2}"),
             "0", "0", "0", "0", "0", "0",
             0, 0, created_by,
         ).await?;
@@ -464,7 +464,7 @@ impl CashManagementEngine {
                     &source.name, &source.source_type,
                     direction,
                     period.0, period.1, &period.2, period.3,
-                    &format!("{:.2}", amount),
+                    &format!("{amount:.2}"),
                     "0", // will be updated below
                     source.is_actual,
                     "USD",
@@ -511,12 +511,12 @@ impl CashManagementEngine {
 
         // We return a modified version with the correct totals
         let mut forecast = forecast;
-        forecast.total_inflows = format!("{:.2}", total_inflows);
-        forecast.total_outflows = format!("{:.2}", total_outflows);
-        forecast.net_cash_flow = format!("{:.2}", net_cash_flow);
-        forecast.closing_balance = format!("{:.2}", closing_balance);
-        forecast.minimum_balance = format!("{:.2}", min_balance);
-        forecast.maximum_balance = format!("{:.2}", max_balance);
+        forecast.total_inflows = format!("{total_inflows:.2}");
+        forecast.total_outflows = format!("{total_outflows:.2}");
+        forecast.net_cash_flow = format!("{net_cash_flow:.2}");
+        forecast.closing_balance = format!("{closing_balance:.2}");
+        forecast.minimum_balance = format!("{min_balance:.2}");
+        forecast.maximum_balance = format!("{max_balance:.2}");
         forecast.deficit_count = deficit_count;
         forecast.surplus_count = surplus_count;
 
@@ -553,7 +553,7 @@ impl CashManagementEngine {
     pub async fn approve_forecast(&self, forecast_id: Uuid, approved_by: Uuid) -> AtlasResult<CashForecast> {
         let forecast = self.repository.get_forecast(forecast_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Cash forecast {} not found", forecast_id)
+                format!("Cash forecast {forecast_id} not found")
             ))?;
 
         if forecast.status != "generated" {
@@ -576,14 +576,14 @@ impl CashManagementEngine {
     pub async fn get_forecast_summary(&self, org_id: Uuid, template_code: &str) -> AtlasResult<CashForecastSummary> {
         let template = self.repository.get_forecast_template(org_id, template_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast template '{}' not found", template_code)
+                format!("Forecast template '{template_code}' not found")
             ))?;
 
         // Find the latest forecast for this template
         let forecasts = self.repository.list_forecasts(org_id, Some(template.id), Some("generated")).await?;
         let forecast = forecasts.into_iter().next()
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("No generated forecast found for template '{}'", template_code)
+                format!("No generated forecast found for template '{template_code}'")
             ))?;
 
         let lines = self.repository.list_forecast_lines(forecast.id).await?;
@@ -671,14 +671,14 @@ fn generate_periods(
     match bucket_type {
         "daily" => {
             for i in 0..number_of_periods {
-                let date = start_date + chrono::Duration::days(i as i64);
+                let date = start_date + chrono::Duration::days(i64::from(i));
                 let label = date.format("%Y-%m-%d").to_string();
                 periods.push((date, date, label, i + 1));
             }
         }
         "weekly" => {
             for i in 0..number_of_periods {
-                let week_start = start_date + chrono::Duration::weeks(i as i64);
+                let week_start = start_date + chrono::Duration::weeks(i64::from(i));
                 let week_end = week_start + chrono::Duration::days(6);
                 let label = format!("Week {} ({} - {})", i + 1,
                     week_start.format("%m/%d"),
@@ -699,7 +699,7 @@ fn generate_periods(
         }
         _ => {
             for i in 0..number_of_periods {
-                let date = start_date + chrono::Duration::days(i as i64);
+                let date = start_date + chrono::Duration::days(i64::from(i));
                 let label = date.format("%Y-%m-%d").to_string();
                 periods.push((date, date, label, i + 1));
             }

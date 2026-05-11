@@ -1,6 +1,6 @@
 //! Lease Accounting Repository
 //!
-//! PostgreSQL storage for lease contracts, payment schedules,
+//! `PostgreSQL` storage for lease contracts, payment schedules,
 //! modifications, and terminations.
 
 use atlas_shared::{
@@ -161,13 +161,14 @@ pub trait LeaseAccountingRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<LeaseDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresLeaseAccountingRepository {
     pool: PgPool,
 }
 
 impl PostgresLeaseAccountingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -357,7 +358,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LeaseContract> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.lease_contracts
                 (organization_id, lease_number, title, description, classification,
                  lessor_id, lessor_name, asset_description, location,
@@ -388,7 +389,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
                     $35, $36, $37, $38, $39,
                     'draft', $40)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(lease_number).bind(title).bind(description).bind(classification)
         .bind(lessor_id).bind(lessor_name).bind(asset_description).bind(location)
@@ -435,13 +436,13 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
 
     async fn list_leases(&self, org_id: Uuid, status: Option<&str>, classification: Option<&str>) -> AtlasResult<Vec<LeaseContract>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.lease_contracts
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::text IS NULL OR classification = $3)
             ORDER BY lease_number
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(classification)
         .fetch_all(&self.pool)
@@ -458,7 +459,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         impairment_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<LeaseContract> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.lease_contracts
             SET status = $2,
                 impairment_amount = COALESCE($3::numeric, impairment_amount),
@@ -466,7 +467,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(impairment_amount).bind(impairment_date)
         .fetch_one(&self.pool)
@@ -485,7 +486,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         periods_elapsed: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.lease_contracts
             SET current_lease_liability = $2::numeric,
                 current_rou_asset_value = $3::numeric,
@@ -494,7 +495,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
                 periods_elapsed = $6,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(current_liability).bind(current_rou)
         .bind(accumulated_depreciation).bind(total_payments_made).bind(periods_elapsed)
@@ -524,7 +525,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         status: &str,
     ) -> AtlasResult<LeasePayment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.lease_payments
                 (organization_id, lease_id, period_number, payment_date,
                  payment_amount, interest_amount, principal_amount,
@@ -538,7 +539,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
                     $10::numeric, $11::numeric,
                     $12::numeric, $13, $14, $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(lease_id).bind(period_number).bind(payment_date)
         .bind(payment_amount).bind(interest_amount).bind(principal_amount)
@@ -584,7 +585,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         journal_entry_id: Option<Uuid>,
     ) -> AtlasResult<LeasePayment> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.lease_payments
             SET status = $2, is_paid = $3,
                 payment_reference = COALESCE($4, payment_reference),
@@ -592,7 +593,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(is_paid).bind(payment_reference).bind(journal_entry_id)
         .fetch_one(&self.pool)
@@ -621,7 +622,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LeaseModification> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.lease_modifications
                 (organization_id, lease_id, modification_number, modification_type,
                  description, effective_date,
@@ -636,7 +637,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
                     $13::numeric, $14::numeric,
                     $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(lease_id).bind(modification_number).bind(modification_type)
         .bind(description).bind(effective_date)
@@ -693,7 +694,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LeaseTermination> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.lease_terminations
                 (organization_id, lease_id, termination_type, termination_date,
                  reason, remaining_liability, remaining_rou_asset,
@@ -704,7 +705,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
                     $8::numeric, $9::numeric, $10,
                     $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(lease_id).bind(termination_type).bind(termination_date)
         .bind(reason).bind(remaining_liability).bind(remaining_rou_asset)
@@ -730,7 +731,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<LeaseDashboardSummary> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) FILTER (WHERE status IN ('active', 'modified', 'impaired')) as total_active,
                 COALESCE(SUM(current_lease_liability) FILTER (WHERE status IN ('active', 'modified', 'impaired')), 0) as total_liability,
@@ -742,7 +743,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
                 COUNT(*) FILTER (WHERE end_date <= CURRENT_DATE + INTERVAL '90 days' AND status IN ('active', 'modified', 'impaired')) as expiring_90
             FROM _atlas.lease_contracts
             WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)

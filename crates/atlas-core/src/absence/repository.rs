@@ -1,6 +1,6 @@
 //! Absence Repository
 //!
-//! PostgreSQL storage for absence types, plans, entries, balances, and history.
+//! `PostgreSQL` storage for absence types, plans, entries, balances, and history.
 
 use atlas_shared::{
     AbsenceType, AbsencePlan, AbsenceBalance, AbsenceEntry, AbsenceEntryHistory,
@@ -155,13 +155,14 @@ pub trait AbsenceRepository: Send + Sync {
     async fn get_entry_history(&self, entry_id: Uuid) -> AtlasResult<Vec<AbsenceEntryHistory>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresAbsenceRepository {
     pool: PgPool,
 }
 
 impl PostgresAbsenceRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -301,7 +302,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AbsenceType> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.absence_types
                 (organization_id, code, name, description, category, plan_type,
                  requires_approval, requires_documentation, auto_approve_below_days,
@@ -313,7 +314,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
                     auto_approve_below_days = $9, allow_negative_balance = $10,
                     allow_half_day = $11, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(category)
         .bind(plan_type).bind(requires_approval).bind(requires_documentation)
@@ -387,7 +388,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AbsencePlan> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.absence_plans
                 (organization_id, code, name, description, absence_type_id,
                  accrual_frequency, accrual_rate, accrual_unit,
@@ -401,7 +402,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
                     max_balance = $11, probation_period_days = $12,
                     prorate_first_year = $13, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(absence_type_id).bind(accrual_frequency).bind(accrual_rate)
@@ -495,7 +496,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
             .and_then(|s| if s == "system" { None } else { Uuid::parse_str(s).ok() });
 
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.absence_entries
                 (organization_id, employee_id, employee_name,
                  absence_type_id, plan_id, entry_number, status,
@@ -509,7 +510,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
                     CASE WHEN $7 IN ('submitted', 'approved') THEN now() ELSE NULL END,
                     $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(employee_id).bind(employee_name)
         .bind(absence_type_id).bind(plan_id).bind(entry_number).bind(status)
@@ -586,7 +587,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         cancelled_reason: Option<&str>,
     ) -> AtlasResult<AbsenceEntry> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.absence_entries
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
@@ -597,7 +598,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by)
         .bind(rejected_reason).bind(cancelled_reason)
@@ -615,13 +616,13 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         end_date: chrono::NaiveDate,
     ) -> AtlasResult<Vec<AbsenceEntry>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.absence_entries
             WHERE organization_id = $1
               AND employee_id = $2
               AND status NOT IN ('cancelled', 'rejected')
               AND start_date <= $4 AND end_date >= $3
-            "#,
+            ",
         )
         .bind(org_id).bind(employee_id).bind(start_date).bind(end_date)
         .fetch_all(&self.pool)
@@ -648,7 +649,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         remaining: &str,
     ) -> AtlasResult<AbsenceBalance> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.absence_balances
                 (organization_id, employee_id, plan_id,
                  period_start, period_end,
@@ -658,7 +659,7 @@ impl AbsenceRepository for PostgresAbsenceRepository {
                 SET accrued = $6, taken = $7, adjusted = $8,
                     carried_over = $9, remaining = $10, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(employee_id).bind(plan_id)
         .bind(period_start).bind(period_end)
@@ -694,11 +695,11 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         current_period_start: chrono::NaiveDate,
     ) -> AtlasResult<Option<AbsenceBalance>> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.absence_balances
             WHERE employee_id = $1 AND plan_id = $2 AND period_end < $3
             ORDER BY period_end DESC LIMIT 1
-            "#,
+            ",
         )
         .bind(employee_id).bind(plan_id).bind(current_period_start)
         .fetch_optional(&self.pool)
@@ -749,11 +750,11 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         comment: Option<&str>,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.absence_entry_history
                 (entry_id, action, from_status, to_status, performed_by, comment)
             VALUES ($1, $2, $3, $4, $5, $6)
-            "#,
+            ",
         )
         .bind(entry_id).bind(action).bind(from_status).bind(to_status)
         .bind(performed_by).bind(comment)

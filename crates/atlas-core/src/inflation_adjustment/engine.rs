@@ -94,7 +94,7 @@ impl InflationAdjustmentEngine {
         // Check uniqueness
         if self.repository.get_index_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Index code '{}' already exists", code)
+                format!("Index code '{code}' already exists")
             ));
         }
 
@@ -147,7 +147,7 @@ impl InflationAdjustmentEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InflationIndexRate> {
         let _index = self.repository.get_index(index_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Index {} not found", index_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Index {index_id} not found")))?;
 
         let value: f64 = index_value.parse().map_err(|_| AtlasError::ValidationFailed(
             "Index value must be a valid number".to_string(),
@@ -214,7 +214,7 @@ impl InflationAdjustmentEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InflationAdjustmentRun> {
         let _index = self.repository.get_index(index_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Index {} not found", index_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Index {index_id} not found")))?;
 
         if !VALID_ADJUSTMENT_METHODS.contains(&adjustment_method) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -271,7 +271,7 @@ impl InflationAdjustmentEngine {
         currency_code: Option<&str>,
     ) -> AtlasResult<InflationAdjustmentLine> {
         let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", run_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -318,9 +318,9 @@ impl InflationAdjustmentEngine {
         self.repository.create_adjustment_line(
             org_id, run_id, line_number, account_code, account_name,
             account_type, balance_type, original_balance,
-            &format!("{:.2}", restated), &format!("{:.2}", adjustment),
+            &format!("{restated:.2}"), &format!("{adjustment:.2}"),
             inflation_factor, acquisition_date,
-            &format!("{:.2}", gain_loss), gain_loss_account, currency_code,
+            &format!("{gain_loss:.2}"), gain_loss_account, currency_code,
         ).await
     }
 
@@ -330,14 +330,16 @@ impl InflationAdjustmentEngine {
     }
 
     /// Calculate restated amount
+    #[must_use] 
     pub fn calculate_restated_amount(original_balance: f64, inflation_factor: f64) -> f64 {
         original_balance * inflation_factor
     }
 
     /// Calculate monetary gain/loss (for IAS 29 monetary items)
+    #[must_use] 
     pub fn calculate_monetary_gain_loss(original_balance: f64, inflation_factor: f64) -> f64 {
         // Gain/loss = restated - original (monetary items get purchasing power gain/loss)
-        (original_balance * inflation_factor) - original_balance
+        original_balance.mul_add(inflation_factor, -original_balance)
     }
 
     // ========================================================================
@@ -347,7 +349,7 @@ impl InflationAdjustmentEngine {
     /// Submit a draft run for approval
     pub async fn submit_run(&self, run_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<InflationAdjustmentRun> {
         let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", run_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -377,9 +379,9 @@ impl InflationAdjustmentEngine {
 
         self.repository.update_run_totals(
             run_id,
-            &format!("{:.2}", total_debit),
-            &format!("{:.2}", total_credit),
-            &format!("{:.2}", total_gain_loss),
+            &format!("{total_debit:.2}"),
+            &format!("{total_credit:.2}"),
+            &format!("{total_gain_loss:.2}"),
             lines.len() as i32,
         ).await?;
 
@@ -391,7 +393,7 @@ impl InflationAdjustmentEngine {
     /// Approve a submitted run
     pub async fn approve_run(&self, run_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<InflationAdjustmentRun> {
         let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", run_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -407,7 +409,7 @@ impl InflationAdjustmentEngine {
     /// Complete an approved run
     pub async fn complete_run(&self, run_id: Uuid) -> AtlasResult<InflationAdjustmentRun> {
         let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", run_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "approved" {
             return Err(AtlasError::WorkflowError(

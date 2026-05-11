@@ -1,6 +1,6 @@
 //! Corporate Card Management Repository
 //!
-//! PostgreSQL storage for corporate card programmes, cards, transactions,
+//! `PostgreSQL` storage for corporate card programmes, cards, transactions,
 //! statements, and spending limit overrides.
 
 use atlas_shared::{
@@ -137,14 +137,15 @@ pub struct PostgresCorporateCardRepository {
 }
 
 impl PostgresCorporateCardRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 fn get_numeric(row: &sqlx::postgres::PgRow, col: &str) -> String {
     row.try_get::<String, _>(col)
-        .or_else(|_| row.try_get::<&str, _>(col).map(|s| s.to_string()))
+        .or_else(|_| row.try_get::<&str, _>(col).map(std::string::ToString::to_string))
         .unwrap_or_else(|_| "0.00".to_string())
 }
 
@@ -310,7 +311,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         billing_cycle_day: i32, created_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardProgram> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.corporate_card_programs
+            r"INSERT INTO _atlas.corporate_card_programs
                 (organization_id, program_code, name, description, issuer_bank,
                  card_network, card_type, currency_code,
                  default_single_purchase_limit, default_monthly_limit,
@@ -321,7 +322,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,
                     $9,$10,$11,$12,
                     $13,$14,$15,$16,$17,$18)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(program_code).bind(name).bind(description)
         .bind(issuer_bank).bind(card_network).bind(card_type).bind(currency_code)
@@ -384,7 +385,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         cost_center: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCard> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.corporate_cards
+            r"INSERT INTO _atlas.corporate_cards
                 (organization_id, program_id, card_number_masked,
                  cardholder_name, cardholder_id, cardholder_email,
                  department_id, department_name, status,
@@ -395,7 +396,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
                     $12,$13,$14,$15,
                     $16,$17,$18,$19)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(program_id).bind(card_number_masked)
         .bind(cardholder_name).bind(cardholder_id).bind(cardholder_email)
@@ -432,12 +433,12 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         cardholder_id: Option<Uuid>, status: Option<&str>,
     ) -> AtlasResult<Vec<CorporateCard>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.corporate_cards
+            r"SELECT * FROM _atlas.corporate_cards
             WHERE organization_id=$1
               AND ($2::uuid IS NULL OR program_id=$2)
               AND ($3::uuid IS NULL OR cardholder_id=$3)
               AND ($4::text IS NULL OR status=$4)
-            ORDER BY cardholder_name"#,
+            ORDER BY cardholder_name",
         )
         .bind(org_id).bind(program_id).bind(cardholder_id).bind(status)
         .fetch_all(&self.pool).await
@@ -460,10 +461,10 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         cash: &str, atm: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.corporate_cards
+            r"UPDATE _atlas.corporate_cards
             SET single_purchase_limit=$2, monthly_limit=$3,
                 cash_limit=$4, atm_limit=$5, updated_at=now()
-            WHERE id=$1"#,
+            WHERE id=$1",
         )
         .bind(id).bind(single_purchase).bind(monthly).bind(cash).bind(atm)
         .execute(&self.pool).await
@@ -473,10 +474,10 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
 
     async fn update_card_spend(&self, id: Uuid, amount: &str, balance: &str) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.corporate_cards
+            r"UPDATE _atlas.corporate_cards
             SET total_spend_current_cycle=$2,
                 current_balance=$3, updated_at=now()
-            WHERE id=$1"#,
+            WHERE id=$1",
         )
         .bind(id).bind(amount).bind(balance)
         .execute(&self.pool).await
@@ -496,7 +497,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         exchange_rate: Option<&str>, transaction_type: &str,
     ) -> AtlasResult<CorporateCardTransaction> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.corporate_card_transactions
+            r"INSERT INTO _atlas.corporate_card_transactions
                 (organization_id, card_id, program_id, transaction_reference,
                  posting_date, transaction_date, merchant_name,
                  merchant_category, merchant_category_code,
@@ -506,7 +507,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,
                     $10,$11,
                     $12,$13,$14,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(card_id).bind(program_id).bind(transaction_reference)
         .bind(posting_date).bind(transaction_date).bind(merchant_name)
@@ -545,13 +546,13 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         date_from: Option<chrono::NaiveDate>, date_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Vec<CorporateCardTransaction>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.corporate_card_transactions
+            r"SELECT * FROM _atlas.corporate_card_transactions
             WHERE organization_id=$1
               AND ($2::uuid IS NULL OR card_id=$2)
               AND ($3::text IS NULL OR status=$3)
               AND ($4::date IS NULL OR transaction_date >= $4)
               AND ($5::date IS NULL OR transaction_date <= $5)
-            ORDER BY transaction_date DESC, created_at DESC"#,
+            ORDER BY transaction_date DESC, created_at DESC",
         )
         .bind(org_id).bind(card_id).bind(status).bind(date_from).bind(date_to)
         .fetch_all(&self.pool).await
@@ -565,12 +566,12 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         matched_by: Option<Uuid>, match_confidence: Option<&str>,
     ) -> AtlasResult<CorporateCardTransaction> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.corporate_card_transactions
+            r"UPDATE _atlas.corporate_card_transactions
             SET expense_report_id=$2, expense_line_id=$3, status=$4,
                 matched_by=$5, match_confidence=$6,
                 matched_at=CASE WHEN $4='matched' AND matched_at IS NULL THEN now() ELSE matched_at END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(expense_report_id).bind(expense_line_id)
         .bind(status).bind(matched_by).bind(match_confidence)
@@ -585,10 +586,10 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         resolution: Option<&str>, status: &str,
     ) -> AtlasResult<CorporateCardTransaction> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.corporate_card_transactions
+            r"UPDATE _atlas.corporate_card_transactions
             SET dispute_reason=$2, dispute_date=$3, dispute_resolution=$4,
                 status=$5, updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(reason).bind(dispute_date).bind(resolution).bind(status)
         .fetch_one(&self.pool).await
@@ -609,7 +610,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         imported_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardStatement> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.corporate_card_statements
+            r"INSERT INTO _atlas.corporate_card_statements
                 (organization_id, program_id, statement_number, statement_date,
                  billing_period_start, billing_period_end,
                  opening_balance, closing_balance,
@@ -621,7 +622,7 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                     $9,$10,$11,
                     $12,$13,
                     $14,$15,$16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(program_id).bind(statement_number).bind(statement_date)
         .bind(billing_period_start).bind(billing_period_end)
@@ -647,11 +648,11 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         &self, org_id: Uuid, program_id: Option<Uuid>, status: Option<&str>,
     ) -> AtlasResult<Vec<CorporateCardStatement>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.corporate_card_statements
+            r"SELECT * FROM _atlas.corporate_card_statements
             WHERE organization_id=$1
               AND ($2::uuid IS NULL OR program_id=$2)
               AND ($3::text IS NULL OR status=$3)
-            ORDER BY statement_date DESC"#,
+            ORDER BY statement_date DESC",
         )
         .bind(org_id).bind(program_id).bind(status)
         .fetch_all(&self.pool).await
@@ -663,10 +664,10 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         &self, id: Uuid, total: i32, matched: i32, unmatched: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.corporate_card_statements
+            r"UPDATE _atlas.corporate_card_statements
             SET total_transaction_count=$2, matched_transaction_count=$3,
                 unmatched_transaction_count=$4, updated_at=now()
-            WHERE id=$1"#,
+            WHERE id=$1",
         )
         .bind(id).bind(total).bind(matched).bind(unmatched)
         .execute(&self.pool).await
@@ -678,11 +679,11 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         &self, id: Uuid, status: &str, payment_reference: Option<&str>,
     ) -> AtlasResult<CorporateCardStatement> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.corporate_card_statements
+            r"UPDATE _atlas.corporate_card_statements
             SET status=$2, payment_reference=COALESCE($3, payment_reference),
                 paid_at=CASE WHEN $2='paid' AND paid_at IS NULL THEN now() ELSE paid_at END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(payment_reference)
         .fetch_one(&self.pool).await
@@ -699,12 +700,12 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardLimitOverride> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.corporate_card_limit_overrides
+            r"INSERT INTO _atlas.corporate_card_limit_overrides
                 (organization_id, card_id, override_type,
                  original_value, new_value, reason,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(card_id).bind(override_type)
         .bind(original_value).bind(new_value).bind(reason)
@@ -727,10 +728,10 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         &self, card_id: Option<Uuid>, status: Option<&str>,
     ) -> AtlasResult<Vec<CorporateCardLimitOverride>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.corporate_card_limit_overrides
+            r"SELECT * FROM _atlas.corporate_card_limit_overrides
             WHERE ($1::uuid IS NULL OR card_id=$1)
               AND ($2::text IS NULL OR status=$2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(card_id).bind(status)
         .fetch_all(&self.pool).await
@@ -742,12 +743,12 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardLimitOverride> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.corporate_card_limit_overrides
+            r"UPDATE _atlas.corporate_card_limit_overrides
             SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approved_at=CASE WHEN $3 IS NOT NULL AND approved_at IS NULL THEN now() ELSE approved_at END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool).await
@@ -759,11 +760,11 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CorporateCardDashboardSummary> {
         let card_stats = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_cards,
                 COUNT(*) as total_cards,
                 COALESCE(SUM(total_spend_current_cycle::numeric) FILTER (WHERE status = 'active'), 0) as current_spend
-            FROM _atlas.corporate_cards WHERE organization_id = $1"#,
+            FROM _atlas.corporate_cards WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -772,10 +773,10 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         let current_spend: serde_json::Value = card_stats.try_get("current_spend").unwrap_or(serde_json::json!(0));
 
         let txn_stats = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status = 'unmatched') as unmatched,
                 COUNT(*) FILTER (WHERE status = 'disputed') as disputed
-            FROM _atlas.corporate_card_transactions WHERE organization_id = $1"#,
+            FROM _atlas.corporate_card_transactions WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

@@ -37,8 +37,8 @@ pub struct CreateCalendarRequest {
 }
 
 fn default_monthly() -> String { "monthly".to_string() }
-fn default_one() -> i32 { 1 }
-fn default_twelve() -> i32 { 12 }
+const fn default_one() -> i32 { 1 }
+const fn default_twelve() -> i32 { 12 }
 
 #[derive(Debug, Deserialize)]
 pub struct GeneratePeriodsRequest {

@@ -133,7 +133,7 @@ impl FinancialControlsEngine {
         // Check uniqueness
         if self.repository.get_rule(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Control rule code '{}' already exists", code)
+                format!("Control rule code '{code}' already exists")
             ));
         }
 
@@ -180,7 +180,7 @@ impl FinancialControlsEngine {
     pub async fn delete_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         self.repository.get_rule(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Control rule '{}' not found", code)
+                format!("Control rule '{code}' not found")
             ))?;
 
         self.repository.delete_rule(org_id, code).await
@@ -338,7 +338,7 @@ impl FinancialControlsEngine {
     fn evaluate_frequency_rule(&self, rule: &ControlMonitorRule, data: &serde_json::Value) -> bool {
         // For frequency checks, look at a count field in the data
         if let Some(count_field) = rule.conditions.get("count_field").and_then(|v| v.as_str()) {
-            if let Some(count) = data.get(count_field).and_then(|v| v.as_i64()) {
+            if let Some(count) = data.get(count_field).and_then(serde_json::Value::as_i64) {
                 let threshold: i64 = rule.threshold_value
                     .as_ref()
                     .and_then(|v| v.parse::<i64>().ok())
@@ -355,7 +355,7 @@ impl FinancialControlsEngine {
         if let Some(conflicting_fields) = rule.conditions.get("conflicting_fields").and_then(|v| v.as_array()) {
             let user_ids: Vec<Option<String>> = conflicting_fields.iter()
                 .filter_map(|f| f.as_str())
-                .map(|field| data.get(field).and_then(|v| v.as_str()).map(|s| s.to_string()))
+                .map(|field| data.get(field).and_then(|v| v.as_str()).map(std::string::ToString::to_string))
                 .collect();
 
             // Check for any duplicates (same user in multiple conflicting roles)
@@ -378,7 +378,7 @@ impl FinancialControlsEngine {
     fn evaluate_approval_rule(&self, rule: &ControlMonitorRule, data: &serde_json::Value) -> bool {
         // Check if the approval chain has issues
         let requires_approval = rule.conditions.get("requires_approval")
-            .and_then(|v| v.as_bool())
+            .and_then(serde_json::Value::as_bool)
             .unwrap_or(false);
 
         if requires_approval {
@@ -437,7 +437,7 @@ impl FinancialControlsEngine {
     ) -> AtlasResult<ControlViolation> {
         let violation = self.repository.get_violation(violation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {} not found", violation_id)
+                format!("Violation {violation_id} not found")
             ))?;
 
         if violation.status != "open" {
@@ -462,7 +462,7 @@ impl FinancialControlsEngine {
     ) -> AtlasResult<ControlViolation> {
         let violation = self.repository.get_violation(violation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {} not found", violation_id)
+                format!("Violation {violation_id} not found")
             ))?;
 
         if violation.status != "open" && violation.status != "under_review" && violation.status != "escalated" {
@@ -492,7 +492,7 @@ impl FinancialControlsEngine {
     ) -> AtlasResult<ControlViolation> {
         let violation = self.repository.get_violation(violation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {} not found", violation_id)
+                format!("Violation {violation_id} not found")
             ))?;
 
         if violation.status != "open" && violation.status != "under_review" {
@@ -516,7 +516,7 @@ impl FinancialControlsEngine {
     ) -> AtlasResult<ControlViolation> {
         let violation = self.repository.get_violation(violation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {} not found", violation_id)
+                format!("Violation {violation_id} not found")
             ))?;
 
         if violation.status != "open" && violation.status != "under_review" {
@@ -538,7 +538,7 @@ impl FinancialControlsEngine {
     ) -> AtlasResult<ControlViolation> {
         let violation = self.repository.get_violation(violation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {} not found", violation_id)
+                format!("Violation {violation_id} not found")
             ))?;
 
         if violation.status != "open" && violation.status != "under_review" && violation.status != "escalated" {

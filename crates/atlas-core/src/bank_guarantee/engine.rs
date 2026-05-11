@@ -236,7 +236,7 @@ impl BankGuaranteeEngine {
     ) -> AtlasResult<()> {
         let guarantee = self.repository.get_guarantee(org_id, guarantee_number).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Guarantee '{}' not found", guarantee_number
+                "Guarantee '{guarantee_number}' not found"
             )))?;
 
         if guarantee.status != "draft" {
@@ -255,7 +255,7 @@ impl BankGuaranteeEngine {
     /// Submit a draft guarantee for approval
     pub async fn submit_for_approval(&self, id: Uuid) -> AtlasResult<BankGuarantee> {
         let guarantee = self.repository.get_guarantee_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {id} not found")))?;
 
         if guarantee.status != "draft" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -287,7 +287,7 @@ impl BankGuaranteeEngine {
         approved_by: Uuid,
     ) -> AtlasResult<BankGuarantee> {
         let guarantee = self.repository.get_guarantee_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {id} not found")))?;
 
         if guarantee.status != "pending_approval" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -307,7 +307,7 @@ impl BankGuaranteeEngine {
         issue_date: chrono::NaiveDate,
     ) -> AtlasResult<BankGuarantee> {
         let guarantee = self.repository.get_guarantee_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {id} not found")))?;
 
         if guarantee.status != "approved" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -323,7 +323,7 @@ impl BankGuaranteeEngine {
     /// Activate an issued guarantee (effective date reached)
     pub async fn activate_guarantee(&self, id: Uuid) -> AtlasResult<BankGuarantee> {
         let guarantee = self.repository.get_guarantee_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {id} not found")))?;
 
         if guarantee.status != "issued" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -339,7 +339,7 @@ impl BankGuaranteeEngine {
     /// Invoke/claim a guarantee
     pub async fn invoke_guarantee(&self, id: Uuid) -> AtlasResult<BankGuarantee> {
         let guarantee = self.repository.get_guarantee_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {id} not found")))?;
 
         if guarantee.status != "active" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -355,7 +355,7 @@ impl BankGuaranteeEngine {
     /// Release a guarantee (returned by beneficiary)
     pub async fn release_guarantee(&self, id: Uuid) -> AtlasResult<BankGuarantee> {
         let guarantee = self.repository.get_guarantee_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {id} not found")))?;
 
         if guarantee.status != "active" && guarantee.status != "invoked" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -371,7 +371,7 @@ impl BankGuaranteeEngine {
     /// Cancel a guarantee
     pub async fn cancel_guarantee(&self, id: Uuid) -> AtlasResult<BankGuarantee> {
         let guarantee = self.repository.get_guarantee_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {id} not found")))?;
 
         if guarantee.status == "released" || guarantee.status == "expired" || guarantee.status == "cancelled" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -425,7 +425,7 @@ impl BankGuaranteeEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BankGuaranteeAmendment> {
         let guarantee = self.repository.get_guarantee_by_id(guarantee_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {} not found", guarantee_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Guarantee {guarantee_id} not found")))?;
 
         if guarantee.status != "active" && guarantee.status != "issued" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -511,7 +511,7 @@ impl BankGuaranteeEngine {
         approved_by: Uuid,
     ) -> AtlasResult<BankGuaranteeAmendment> {
         let amendment = self.repository.get_amendment_by_id(amendment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {} not found", amendment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {amendment_id} not found")))?;
 
         if amendment.status != "pending_approval" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -529,7 +529,7 @@ impl BankGuaranteeEngine {
 
         // Return the final state ("applied")
         self.repository.get_amendment_by_id(amendment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {} not found", amendment_id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {amendment_id} not found")))
     }
 
     /// Reject an amendment
@@ -538,7 +538,7 @@ impl BankGuaranteeEngine {
         amendment_id: Uuid,
     ) -> AtlasResult<BankGuaranteeAmendment> {
         let amendment = self.repository.get_amendment_by_id(amendment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {} not found", amendment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Amendment {amendment_id} not found")))?;
 
         if amendment.status != "pending_approval" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -611,8 +611,8 @@ impl BankGuaranteeEngine {
         Ok(BankGuaranteeDashboard {
             total_guarantees: all.len() as i32,
             active_guarantees: active_count,
-            total_guarantee_amount: format!("{:.2}", total_amount),
-            total_margin_held: format!("{:.2}", total_margin),
+            total_guarantee_amount: format!("{total_amount:.2}"),
+            total_margin_held: format!("{total_margin:.2}"),
             expiring_within_30_days: expiring_30,
             expiring_within_90_days: expiring_90,
             pending_approval,

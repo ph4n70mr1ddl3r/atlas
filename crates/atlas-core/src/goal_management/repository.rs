@@ -1,6 +1,6 @@
 //! Goal Management Repository
 //!
-//! PostgreSQL storage for goal library categories, templates, plans,
+//! `PostgreSQL` storage for goal library categories, templates, plans,
 //! goals, alignments, and notes.
 
 use atlas_shared::{
@@ -106,13 +106,14 @@ pub trait GoalManagementRepository: Send + Sync {
     async fn get_summary(&self, org_id: Uuid) -> AtlasResult<GoalManagementSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresGoalManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresGoalManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -249,10 +250,10 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
         display_order: i32, _created_by: Option<Uuid>,
     ) -> AtlasResult<GoalLibraryCategory> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.goal_library_categories
+            r"INSERT INTO _atlas.goal_library_categories
                 (organization_id, code, name, description, display_order, status, metadata)
             VALUES ($1, $2, $3, $4, $5, 'active', '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(display_order)
         .fetch_one(&self.pool).await?;
@@ -284,7 +285,7 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
             "DELETE FROM _atlas.goal_library_categories WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Category '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Category '{code}' not found")));
         }
         Ok(())
     }
@@ -302,13 +303,13 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
         _created_by: Option<Uuid>,
     ) -> AtlasResult<GoalLibraryTemplate> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.goal_library_templates
+            r"INSERT INTO _atlas.goal_library_templates
                 (organization_id, category_id, code, name, description, goal_type,
                  success_criteria, target_metric, target_value, uom,
                  suggested_weight, estimated_duration_days, status, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::NUMERIC, $10,
                     $11::NUMERIC, $12, 'active', '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(category_id).bind(code).bind(name).bind(description)
         .bind(goal_type).bind(success_criteria).bind(target_metric).bind(target_value)
@@ -354,7 +355,7 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
             "DELETE FROM _atlas.goal_library_templates WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Template '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Template '{code}' not found")));
         }
         Ok(())
     }
@@ -373,14 +374,14 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
         max_weight_sum: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<GoalPlan> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.goal_plans
+            r"INSERT INTO _atlas.goal_plans
                 (organization_id, code, name, description, plan_type,
                  review_period_start, review_period_end, goal_creation_deadline,
                  status, allow_self_goals, allow_team_goals, max_weight_sum,
                  metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9, $10,
                     $11::NUMERIC, '{}'::jsonb, $12)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(plan_type)
         .bind(review_period_start).bind(review_period_end).bind(goal_creation_deadline)
@@ -428,7 +429,7 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
             "DELETE FROM _atlas.goal_plans WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Plan '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Plan '{code}' not found")));
         }
         Ok(())
     }
@@ -450,7 +451,7 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
         target_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
     ) -> AtlasResult<Goal> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.goals
+            r"INSERT INTO _atlas.goals
                 (organization_id, plan_id, parent_goal_id, library_template_id,
                  code, name, description, goal_type, category,
                  owner_id, owner_type, assigned_by,
@@ -461,7 +462,7 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
                     $10, $11, $12, $13, $14, $15::NUMERIC, $16,
                     $17::NUMERIC, $18, 'not_started', 0::NUMERIC,
                     $19, $20, '{}'::jsonb, $21)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(plan_id).bind(parent_goal_id).bind(library_template_id)
         .bind(code).bind(name).bind(description).bind(goal_type).bind(category)
@@ -486,15 +487,15 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
         let mut bind_idx = 2u32;
 
         let has_plan = plan_id.is_some();
-        if has_plan { query.push_str(&format!(" AND plan_id = ${}", bind_idx)); bind_idx += 1; }
+        if has_plan { query.push_str(&format!(" AND plan_id = ${bind_idx}")); bind_idx += 1; }
         let has_owner = owner_id.is_some();
-        if has_owner { query.push_str(&format!(" AND owner_id = ${}", bind_idx)); bind_idx += 1; }
+        if has_owner { query.push_str(&format!(" AND owner_id = ${bind_idx}")); bind_idx += 1; }
         let has_type = goal_type.is_some();
-        if has_type { query.push_str(&format!(" AND goal_type = ${}", bind_idx)); bind_idx += 1; }
+        if has_type { query.push_str(&format!(" AND goal_type = ${bind_idx}")); bind_idx += 1; }
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${}", bind_idx)); bind_idx += 1; }
+        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); bind_idx += 1; }
         let has_parent = parent_goal_id.is_some();
-        if has_parent { query.push_str(&format!(" AND parent_goal_id = ${}", bind_idx)); let _ = bind_idx; }
+        if has_parent { query.push_str(&format!(" AND parent_goal_id = ${bind_idx}")); let _ = bind_idx; }
 
         query.push_str(" ORDER BY created_at DESC");
 
@@ -514,13 +515,13 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
         status: Option<&str>, completed_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Goal> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.goals SET
+            r"UPDATE _atlas.goals SET
                 actual_value = COALESCE($1::NUMERIC, actual_value),
                 progress_pct = COALESCE($2::NUMERIC, progress_pct),
                 status = COALESCE($3, status),
                 completed_date = COALESCE($4, completed_date),
                 updated_at = now()
-            WHERE id = $5 RETURNING *"#,
+            WHERE id = $5 RETURNING *",
         )
         .bind(actual_value).bind(progress_pct).bind(status)
         .bind(completed_date).bind(id)
@@ -532,7 +533,7 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
         let result = sqlx::query("DELETE FROM _atlas.goals WHERE id = $1")
             .bind(id).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Goal {} not found", id)));
+            return Err(AtlasError::EntityNotFound(format!("Goal {id} not found")));
         }
         Ok(())
     }
@@ -546,10 +547,10 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
         alignment_type: &str, description: Option<&str>,
     ) -> AtlasResult<GoalAlignment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.goal_alignments
+            r"INSERT INTO _atlas.goal_alignments
                 (organization_id, source_goal_id, aligned_to_goal_id, alignment_type, description, metadata)
             VALUES ($1, $2, $3, $4, $5, '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(source_goal_id).bind(aligned_to_goal_id)
         .bind(alignment_type).bind(description)
@@ -582,10 +583,10 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
         note_type: &str, content: &str, visibility: &str,
     ) -> AtlasResult<GoalNote> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.goal_notes
+            r"INSERT INTO _atlas.goal_notes
                 (organization_id, goal_id, author_id, note_type, content, visibility, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(goal_id).bind(author_id).bind(note_type)
         .bind(content).bind(visibility)
@@ -670,7 +671,7 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
             goals_at_risk: at_risk,
             goals_completed: completed,
             goals_cancelled: cancelled,
-            avg_progress_pct: avg_progress.map(|v| format!("{:.2}", v)),
+            avg_progress_pct: avg_progress.map(|v| format!("{v:.2}")),
             total_plans,
             active_plans,
             total_alignments: alignment_count as i32,

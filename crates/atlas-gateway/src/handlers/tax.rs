@@ -43,7 +43,7 @@ pub struct CreateTaxRegimeRequest {
 
 fn default_tax_type() -> String { "vat".to_string() }
 fn default_rounding_rule() -> String { "nearest".to_string() }
-fn default_rounding_precision() -> i32 { 2 }
+const fn default_rounding_precision() -> i32 { 2 }
 
 /// Create or update a tax regime
 pub async fn create_tax_regime(
@@ -373,8 +373,8 @@ pub struct CreateDeterminationRuleRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-fn default_priority() -> i32 { 100 }
-fn default_true_val() -> bool { true }
+const fn default_priority() -> i32 { 100 }
+const fn default_true_val() -> bool { true }
 
 /// Create a tax determination rule
 pub async fn create_determination_rule(

@@ -1,6 +1,6 @@
 //! AP Invoice Batch Repository
 //!
-//! PostgreSQL storage for AP invoice batches and batch activity audit trail.
+//! `PostgreSQL` storage for AP invoice batches and batch activity audit trail.
 
 use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
@@ -158,7 +158,8 @@ pub struct PostgresInvoiceBatchRepository {
 }
 
 impl PostgresInvoiceBatchRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -182,7 +183,7 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InvoiceBatch> {
         let batch = sqlx::query_as::<_, InvoiceBatch>(
-            r#"
+            r"
             INSERT INTO _atlas.ap_invoice_batches
                 (organization_id, batch_number, batch_name, description,
                  currency_code, exchange_rate_type, exchange_rate,
@@ -190,7 +191,7 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
                  control_total, control_count, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(batch_number)
@@ -207,7 +208,7 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to create invoice batch: {}", e)))?;
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to create invoice batch: {e}")))?;
 
         Ok(batch)
     }
@@ -220,8 +221,8 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .bind(org_id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to get invoice batch: {}", e)))?
-        .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice batch {} not found", id)))
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to get invoice batch: {e}")))?
+        .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice batch {id} not found")))
     }
 
     async fn get_batch_by_number(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<InvoiceBatch> {
@@ -232,8 +233,8 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .bind(org_id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to get invoice batch by number: {}", e)))?
-        .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice batch '{}' not found", batch_number)))
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to get invoice batch by number: {e}")))?
+        .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice batch '{batch_number}' not found")))
     }
 
     async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InvoiceBatch>> {
@@ -253,7 +254,7 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
             .fetch_all(&self.pool)
             .await
         }
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to list invoice batches: {}", e)))?;
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to list invoice batches: {e}")))?;
 
         Ok(batches)
     }
@@ -266,7 +267,7 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .bind(org_id)
         .execute(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to delete invoice batch: {}", e)))?;
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to delete invoice batch: {e}")))?;
 
         if result.rows_affected() == 0 {
             return Err(AtlasError::ValidationFailed(
@@ -285,11 +286,11 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
     ) -> AtlasResult<InvoiceBatch> {
         let batch = if let Some(vs) = validation_status {
             sqlx::query_as::<_, InvoiceBatch>(
-                r#"UPDATE _atlas.ap_invoice_batches
+                r"UPDATE _atlas.ap_invoice_batches
                    SET status = $2, validation_status = $3, validation_errors = COALESCE($4, validation_errors),
                        updated_at = now()
                    WHERE id = $1
-                   RETURNING *"#,
+                   RETURNING *",
             )
             .bind(id)
             .bind(status)
@@ -299,15 +300,15 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
             .await
         } else {
             sqlx::query_as::<_, InvoiceBatch>(
-                r#"UPDATE _atlas.ap_invoice_batches SET status = $2, updated_at = now()
-                   WHERE id = $1 RETURNING *"#,
+                r"UPDATE _atlas.ap_invoice_batches SET status = $2, updated_at = now()
+                   WHERE id = $1 RETURNING *",
             )
             .bind(id)
             .bind(status)
             .fetch_one(&self.pool)
             .await
         }
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to update batch status: {}", e)))?;
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to update batch status: {e}")))?;
 
         Ok(batch)
     }
@@ -321,10 +322,10 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         total_amount: f64,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.ap_invoice_batches
+            r"UPDATE _atlas.ap_invoice_batches
                SET total_invoice_count = $2, total_invoice_amount = $3,
                    total_tax_amount = $4, total_amount = $5, updated_at = now()
-               WHERE id = $1"#,
+               WHERE id = $1",
         )
         .bind(id)
         .bind(invoice_count)
@@ -333,65 +334,65 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .bind(total_amount)
         .execute(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to update batch totals: {}", e)))?;
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to update batch totals: {e}")))?;
         Ok(())
     }
 
     async fn set_submitted(&self, id: Uuid, submitted_by: Uuid) -> AtlasResult<InvoiceBatch> {
         sqlx::query_as::<_, InvoiceBatch>(
-            r#"UPDATE _atlas.ap_invoice_batches
+            r"UPDATE _atlas.ap_invoice_batches
                SET status = 'submitted', submitted_by = $2, submitted_at = now(),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(submitted_by)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to submit batch: {}", e)))
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to submit batch: {e}")))
     }
 
     async fn set_approved(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<InvoiceBatch> {
         sqlx::query_as::<_, InvoiceBatch>(
-            r#"UPDATE _atlas.ap_invoice_batches
+            r"UPDATE _atlas.ap_invoice_batches
                SET status = 'approved', approved_by = $2, approved_at = now(),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(approved_by)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to approve batch: {}", e)))
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to approve batch: {e}")))
     }
 
     async fn set_posted(&self, id: Uuid, posted_by: Uuid) -> AtlasResult<InvoiceBatch> {
         sqlx::query_as::<_, InvoiceBatch>(
-            r#"UPDATE _atlas.ap_invoice_batches
+            r"UPDATE _atlas.ap_invoice_batches
                SET status = 'posted', posted_by = $2, posted_at = now(),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(posted_by)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to post batch: {}", e)))
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to post batch: {e}")))
     }
 
     async fn set_cancelled(&self, id: Uuid, cancelled_by: Uuid, reason: Option<&str>) -> AtlasResult<InvoiceBatch> {
         sqlx::query_as::<_, InvoiceBatch>(
-            r#"UPDATE _atlas.ap_invoice_batches
+            r"UPDATE _atlas.ap_invoice_batches
                SET status = 'cancelled', cancelled_by = $2, cancelled_at = now(),
                    cancel_reason = $3, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(cancelled_by)
         .bind(reason)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to cancel batch: {}", e)))
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to cancel batch: {e}")))
     }
 
     async fn add_activity(
@@ -405,10 +406,10 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         metadata: Option<serde_json::Value>,
     ) -> AtlasResult<InvoiceBatchActivity> {
         sqlx::query_as::<_, InvoiceBatchActivity>(
-            r#"INSERT INTO _atlas.ap_invoice_batch_activities
+            r"INSERT INTO _atlas.ap_invoice_batch_activities
                 (batch_id, activity_type, description, old_status, new_status, performed_by, metadata)
                VALUES ($1, $2, $3, $4, $5, $6, $7)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(batch_id)
         .bind(activity_type)
@@ -419,7 +420,7 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .bind(metadata.unwrap_or(serde_json::json!({})))
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to add batch activity: {}", e)))
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to add batch activity: {e}")))
     }
 
     async fn list_activities(&self, batch_id: Uuid) -> AtlasResult<Vec<InvoiceBatchActivity>> {
@@ -429,12 +430,12 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .bind(batch_id)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to list batch activities: {}", e)))
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to list batch activities: {e}")))
     }
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<InvoiceBatchSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total_batches,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft_count,
                 COUNT(*) FILTER (WHERE status = 'submitted') as submitted_count,
@@ -454,12 +455,12 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
                        COUNT(*) OVER (PARTITION BY source) as cnt
                 FROM _atlas.ap_invoice_batches
                 WHERE organization_id = $1
-            ) sub"#,
+            ) sub",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to get dashboard: {}", e)))?;
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to get dashboard: {e}")))?;
 
         let by_source = if let Ok(val) = row.try_get::<serde_json::Value, _>("by_source") {
             val
@@ -489,6 +490,6 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .bind(batch_id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to recalculate totals: {}", e)))
+        .map_err(|e| AtlasError::DatabaseError(format!("Failed to recalculate totals: {e}")))
     }
 }

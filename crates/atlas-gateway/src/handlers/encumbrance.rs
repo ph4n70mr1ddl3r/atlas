@@ -39,8 +39,8 @@ pub struct CreateEncumbranceTypeRequest {
 }
 
 fn default_category() -> String { "commitment".to_string() }
-fn default_true() -> bool { true }
-fn default_priority() -> i32 { 10 }
+const fn default_true() -> bool { true }
+const fn default_priority() -> i32 { 10 }
 fn default_usd() -> String { "USD".to_string() }
 
 #[derive(Debug, Deserialize)]

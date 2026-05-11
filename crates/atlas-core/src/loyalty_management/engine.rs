@@ -62,7 +62,7 @@ const VALID_REDEMPTION_STATUSES: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -151,7 +151,7 @@ impl LoyaltyManagementEngine {
 
         if self.repository.get_program_by_number(org_id, program_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Loyalty program '{}' already exists", program_number
+                "Loyalty program '{program_number}' already exists"
             )));
         }
 
@@ -268,7 +268,7 @@ impl LoyaltyManagementEngine {
         // Verify program exists
         self.repository.get_program(program_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty program {} not found", program_id
+                "Loyalty program {program_id} not found"
             )))?;
 
         info!("Creating tier '{}' ({}) for program {} [min={}, max={:?}]",
@@ -322,7 +322,7 @@ impl LoyaltyManagementEngine {
         // Verify program exists and is active
         let program = self.repository.get_program(program_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty program {} not found", program_id
+                "Loyalty program {program_id} not found"
             )))?;
 
         if program.status != "active" {
@@ -333,7 +333,7 @@ impl LoyaltyManagementEngine {
 
         if self.repository.get_member_by_number(org_id, member_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Loyalty member '{}' already exists", member_number
+                "Loyalty member '{member_number}' already exists"
             )));
         }
 
@@ -434,7 +434,7 @@ impl LoyaltyManagementEngine {
         // Verify member exists and is active
         let member = self.repository.get_member(member_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty member {} not found", member_id
+                "Loyalty member {member_id} not found"
             )))?;
 
         if member.status != "active" {
@@ -446,7 +446,7 @@ impl LoyaltyManagementEngine {
         // Verify program exists and get accrual rate
         let program = self.repository.get_program(program_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty program {} not found", program_id
+                "Loyalty program {program_id} not found"
             )))?;
 
         if program.status != "active" {
@@ -470,8 +470,7 @@ impl LoyaltyManagementEngine {
         let tier_bonus = if let Some(ref tier_id) = member.tier_id {
             let tiers = self.repository.list_tiers(program_id).await?;
             let tier = tiers.iter().find(|t| t.id == *tier_id);
-            tier.map(|t| (base_points * t.accrual_bonus_percentage / 100.0).floor())
-                .unwrap_or(0.0)
+            tier.map_or(0.0, |t| (base_points * t.accrual_bonus_percentage / 100.0).floor())
         } else {
             0.0
         };
@@ -488,21 +487,21 @@ impl LoyaltyManagementEngine {
         if let Some(max) = program.max_points_per_member {
             if member.current_points + total_points > max {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Would exceed max points per member ({})", max
+                    "Would exceed max points per member ({max})"
                 )));
             }
         }
 
         if self.repository.get_transaction_by_number(org_id, transaction_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Point transaction '{}' already exists", transaction_number
+                "Point transaction '{transaction_number}' already exists"
             )));
         }
 
         // Calculate expiry date
         let expiry_date = program.points_expiry_days.map(|days| {
             let today = chrono::Utc::now().date_naive();
-            today + chrono::Duration::days(days as i64)
+            today + chrono::Duration::days(i64::from(days))
         });
 
         info!("Accruing {:.0} points (+{:.0} bonus) to member {} [txn={}]",
@@ -530,7 +529,7 @@ impl LoyaltyManagementEngine {
         // Check for tier upgrade
         if program.auto_upgrade {
             let updated_member = self.repository.get_member(member_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Member {} not found", member_id)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Member {member_id} not found")))?;
             let _ = self.evaluate_tier_upgrade(member_id, program_id, updated_member.lifetime_points).await;
         }
 
@@ -557,7 +556,7 @@ impl LoyaltyManagementEngine {
 
         let member = self.repository.get_member(member_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty member {} not found", member_id
+                "Loyalty member {member_id} not found"
             )))?;
 
         if member.status != "active" {
@@ -575,7 +574,7 @@ impl LoyaltyManagementEngine {
 
         if self.repository.get_transaction_by_number(org_id, transaction_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Point transaction '{}' already exists", transaction_number
+                "Point transaction '{transaction_number}' already exists"
             )));
         }
 
@@ -606,7 +605,7 @@ impl LoyaltyManagementEngine {
 
         let txn = self.repository.get_transaction(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Transaction {} not found", id
+                "Transaction {id} not found"
             )))?;
 
         if txn.status != "posted" {
@@ -690,12 +689,12 @@ impl LoyaltyManagementEngine {
         // Verify program exists
         self.repository.get_program(program_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty program {} not found", program_id
+                "Loyalty program {program_id} not found"
             )))?;
 
         if self.repository.get_reward_by_code(org_id, reward_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Reward '{}' already exists", reward_code
+                "Reward '{reward_code}' already exists"
             )));
         }
 
@@ -769,7 +768,7 @@ impl LoyaltyManagementEngine {
         // Verify member
         let member = self.repository.get_member(member_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty member {} not found", member_id
+                "Loyalty member {member_id} not found"
             )))?;
 
         if member.status != "active" {
@@ -781,7 +780,7 @@ impl LoyaltyManagementEngine {
         // Verify reward
         let reward = self.repository.get_reward(reward_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Reward {} not found", reward_id
+                "Reward {reward_id} not found"
             )))?;
 
         if !reward.is_active {
@@ -795,7 +794,7 @@ impl LoyaltyManagementEngine {
             )));
         }
 
-        let points_needed = reward.points_required * qty as f64;
+        let points_needed = reward.points_required * f64::from(qty);
 
         // Check sufficient points
         if member.current_points < points_needed {
@@ -818,7 +817,7 @@ impl LoyaltyManagementEngine {
             let member_redemptions = self.repository.count_member_redemptions(member_id, reward_id).await?;
             if member_redemptions + qty > max {
                 return Err(AtlasError::ValidationFailed(
-                    format!("Exceeds max per member ({})", max)
+                    format!("Exceeds max per member ({max})")
                 ));
             }
         }
@@ -826,7 +825,7 @@ impl LoyaltyManagementEngine {
         // Check uniqueness
         if self.repository.get_redemption_by_number(org_id, redemption_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Redemption '{}' already exists", redemption_number
+                "Redemption '{redemption_number}' already exists"
             )));
         }
 
@@ -854,7 +853,7 @@ impl LoyaltyManagementEngine {
         // Create redemption point transaction
         let _ = self.repository.create_transaction(
             org_id, program_id, member_id,
-            &format!("RD-{}", redemption_number),
+            &format!("RD-{redemption_number}"),
             "redemption", -points_needed,
             "manual", Some(reward_id), &reward.reward_code,
             &format!("Redemption: {}", reward.name),
@@ -893,7 +892,7 @@ impl LoyaltyManagementEngine {
 
         let redemption = self.repository.get_redemption(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Redemption {} not found", id
+                "Redemption {id} not found"
             )))?;
 
         if redemption.status != "pending" {

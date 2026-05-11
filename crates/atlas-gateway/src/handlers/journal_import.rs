@@ -44,8 +44,8 @@ pub struct CreateImportFormatRequest {
     pub column_mappings: serde_json::Value,
 }
 
-fn default_true() -> bool { true }
-fn default_max_errors() -> i32 { 100 }
+const fn default_true() -> bool { true }
+const fn default_max_errors() -> i32 { 100 }
 
 /// Create a journal import format
 pub async fn create_import_format(

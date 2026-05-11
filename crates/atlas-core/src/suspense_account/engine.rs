@@ -1,7 +1,7 @@
 //! Suspense Account Processing Engine
 //! Oracle Fusion: General Ledger > Suspense Accounts
 
-use super::*;
+use super::{SuspenseAccountRepository, AtlasResult, SuspenseAccountDefinition, AtlasError, SuspenseEntry, SuspenseClearingBatch, SuspenseClearingLine, SuspenseAgingSnapshot, SuspenseDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -33,7 +33,7 @@ impl SuspenseAccountEngine {
             return Err(AtlasError::ValidationFailed("Suspense account is required".into()));
         }
         if self.repository.get_definition_by_code(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Suspense definition '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Suspense definition '{code}' already exists")));
         }
         info!("Creating suspense account definition {} for org {}", code, org_id);
         self.repository.create_definition(org_id, code, name, description, balancing_segment, suspense_account, created_by).await
@@ -48,7 +48,7 @@ impl SuspenseAccountEngine {
     }
 
     pub async fn activate_definition(&self, id: Uuid) -> AtlasResult<SuspenseAccountDefinition> {
-        let def = self.repository.get_definition(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {} not found", id)))?;
+        let def = self.repository.get_definition(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {id} not found")))?;
         if def.enabled && def.status == "active" {
             return Err(AtlasError::WorkflowError("Definition is already active".into()));
         }
@@ -56,7 +56,7 @@ impl SuspenseAccountEngine {
     }
 
     pub async fn deactivate_definition(&self, id: Uuid) -> AtlasResult<SuspenseAccountDefinition> {
-        let def = self.repository.get_definition(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {} not found", id)))?;
+        let def = self.repository.get_definition(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {id} not found")))?;
         if !def.enabled || def.status == "inactive" {
             return Err(AtlasError::WorkflowError("Definition is already inactive".into()));
         }
@@ -69,7 +69,7 @@ impl SuspenseAccountEngine {
     }
 
     pub async fn delete_definition(&self, id: Uuid) -> AtlasResult<()> {
-        let def = self.repository.get_definition(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {} not found", id)))?;
+        let def = self.repository.get_definition(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {id} not found")))?;
         if def.status == "active" {
             return Err(AtlasError::WorkflowError("Cannot delete an active definition. Deactivate first.".into()));
         }
@@ -86,12 +86,12 @@ impl SuspenseAccountEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SuspenseEntry> {
         let def = self.repository.get_definition(definition_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {} not found", definition_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Definition {definition_id} not found")))?;
         if !def.enabled || def.status != "active" {
             return Err(AtlasError::WorkflowError("Definition is not active".into()));
         }
         if !VALID_ENTRY_TYPES.contains(&entry_type) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid entry_type '{}'", entry_type)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid entry_type '{entry_type}'")));
         }
         if balancing_segment_value.is_empty() {
             return Err(AtlasError::ValidationFailed("Balancing segment value is required".into()));
@@ -118,7 +118,7 @@ impl SuspenseAccountEngine {
     pub async fn list_entries(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SuspenseEntry>> {
         if let Some(s) = status {
             if !VALID_ENTRY_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid entry status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid entry status '{s}'")));
             }
         }
         self.repository.list_entries(org_id, status).await
@@ -127,14 +127,14 @@ impl SuspenseAccountEngine {
     pub async fn list_entries_by_definition(&self, definition_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SuspenseEntry>> {
         if let Some(s) = status {
             if !VALID_ENTRY_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid entry status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid entry status '{s}'")));
             }
         }
         self.repository.list_entries_by_definition(definition_id, status).await
     }
 
     pub async fn reverse_entry(&self, id: Uuid, resolution_notes: Option<&str>) -> AtlasResult<SuspenseEntry> {
-        let entry = self.repository.get_entry(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {} not found", id)))?;
+        let entry = self.repository.get_entry(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {id} not found")))?;
         if entry.status != "open" {
             return Err(AtlasError::WorkflowError(format!("Cannot reverse entry in '{}' status", entry.status)));
         }
@@ -142,7 +142,7 @@ impl SuspenseAccountEngine {
     }
 
     pub async fn write_off_entry(&self, id: Uuid, resolution_notes: Option<&str>) -> AtlasResult<SuspenseEntry> {
-        let entry = self.repository.get_entry(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {} not found", id)))?;
+        let entry = self.repository.get_entry(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {id} not found")))?;
         if entry.status != "open" {
             return Err(AtlasError::WorkflowError(format!("Cannot write off entry in '{}' status", entry.status)));
         }
@@ -162,7 +162,7 @@ impl SuspenseAccountEngine {
             return Err(AtlasError::ValidationFailed("Batch number is required".into()));
         }
         if self.repository.get_clearing_batch_by_number(org_id, batch_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Clearing batch '{}' already exists", batch_number)));
+            return Err(AtlasError::Conflict(format!("Clearing batch '{batch_number}' already exists")));
         }
         info!("Creating suspense clearing batch {} for org {}", batch_number, org_id);
         self.repository.create_clearing_batch(org_id, batch_number, description, clearing_date, created_by).await
@@ -175,7 +175,7 @@ impl SuspenseAccountEngine {
     pub async fn list_clearing_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SuspenseClearingBatch>> {
         if let Some(s) = status {
             if !VALID_BATCH_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid batch status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid batch status '{s}'")));
             }
         }
         self.repository.list_clearing_batches(org_id, status).await
@@ -185,13 +185,13 @@ impl SuspenseAccountEngine {
         &self, org_id: Uuid, batch_id: Uuid, entry_id: Uuid,
         clearing_account: &str, cleared_amount: &str, resolution_notes: Option<&str>,
     ) -> AtlasResult<SuspenseClearingLine> {
-        let batch = self.repository.get_clearing_batch(batch_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+        let batch = self.repository.get_clearing_batch(batch_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
         if batch.status != "draft" && batch.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!("Cannot add lines to '{}' batch", batch.status)));
         }
-        let entry = self.repository.get_entry(entry_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {} not found", entry_id)))?;
+        let entry = self.repository.get_entry(entry_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {entry_id} not found")))?;
         if entry.status != "open" {
-            return Err(AtlasError::WorkflowError(format!("Entry {} is not open", entry_id)));
+            return Err(AtlasError::WorkflowError(format!("Entry {entry_id} is not open")));
         }
         if clearing_account.is_empty() {
             return Err(AtlasError::ValidationFailed("Clearing account is required".into()));
@@ -212,7 +212,7 @@ impl SuspenseAccountEngine {
     }
 
     pub async fn submit_clearing_batch(&self, id: Uuid) -> AtlasResult<SuspenseClearingBatch> {
-        let batch = self.repository.get_clearing_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", id)))?;
+        let batch = self.repository.get_clearing_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {id} not found")))?;
         if batch.status != "draft" {
             return Err(AtlasError::WorkflowError(format!("Cannot submit batch in '{}' status", batch.status)));
         }
@@ -225,7 +225,7 @@ impl SuspenseAccountEngine {
     }
 
     pub async fn approve_clearing_batch(&self, id: Uuid) -> AtlasResult<SuspenseClearingBatch> {
-        let batch = self.repository.get_clearing_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", id)))?;
+        let batch = self.repository.get_clearing_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {id} not found")))?;
         if batch.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!("Cannot approve batch in '{}' status", batch.status)));
         }
@@ -242,7 +242,7 @@ impl SuspenseAccountEngine {
     }
 
     pub async fn post_clearing_batch(&self, id: Uuid) -> AtlasResult<SuspenseClearingBatch> {
-        let batch = self.repository.get_clearing_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", id)))?;
+        let batch = self.repository.get_clearing_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {id} not found")))?;
         if batch.status != "approved" {
             return Err(AtlasError::WorkflowError(format!("Cannot post batch in '{}' status", batch.status)));
         }
@@ -263,6 +263,7 @@ impl SuspenseAccountEngine {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use super::*;
 
     struct MockRepo {

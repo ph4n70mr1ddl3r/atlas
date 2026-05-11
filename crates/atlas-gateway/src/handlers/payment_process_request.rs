@@ -2,7 +2,7 @@
 //!
 //! REST endpoints for Oracle Fusion-inspired Payment Process Requests (PPR).
 //! Manages automated batch payment processing with full lifecycle:
-//! draft → submitted → selection_complete → formatted → confirmed → cancelled
+//! draft → submitted → `selection_complete` → formatted → confirmed → cancelled
 
 use axum::{
     extract::{Path, Query, State, Extension},

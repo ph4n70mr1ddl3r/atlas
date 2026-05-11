@@ -1,6 +1,6 @@
 //! Workflow State Repository
 //! 
-//! Persistence for workflow states in PostgreSQL.
+//! Persistence for workflow states in `PostgreSQL`.
 
 use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
@@ -22,13 +22,14 @@ pub trait WorkflowStateRepository: Send + Sync {
     async fn get_records_in_state(&self, entity_type: &str, state_name: &str) -> AtlasResult<Vec<WorkflowState>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresWorkflowStateRepository {
     pool: PgPool,
 }
 
 impl PostgresWorkflowStateRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -37,18 +38,18 @@ impl PostgresWorkflowStateRepository {
 impl WorkflowStateRepository for PostgresWorkflowStateRepository {
     async fn get_state(&self, entity_type: &str, record_id: Uuid) -> AtlasResult<Option<WorkflowState>> {
         let row = sqlx::query_as::<_, WorkflowStateRow>(
-            r#"
+            r"
             SELECT record_id, entity_type, workflow_name, current_state, state_type, history, metadata
             FROM _atlas.workflow_states
             WHERE entity_type = $1 AND record_id = $2
-            "#
+            "
         )
         .bind(entity_type)
         .bind(record_id)
         .fetch_optional(&self.pool)
         .await?;
         
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
     
     async fn save_state(&self, state: &WorkflowState) -> AtlasResult<()> {
@@ -56,7 +57,7 @@ impl WorkflowStateRepository for PostgresWorkflowStateRepository {
             .map_err(|e| AtlasError::Internal(e.to_string()))?;
         
         sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.workflow_states (record_id, entity_type, workflow_name, current_state, state_type, history, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (entity_type, record_id) DO UPDATE SET
@@ -66,7 +67,7 @@ impl WorkflowStateRepository for PostgresWorkflowStateRepository {
                 history = EXCLUDED.history,
                 metadata = EXCLUDED.metadata,
                 updated_at = now()
-            "#
+            "
         )
         .bind(state.record_id)
         .bind(&state.entity_type)
@@ -83,19 +84,19 @@ impl WorkflowStateRepository for PostgresWorkflowStateRepository {
     
     async fn get_records_in_state(&self, entity_type: &str, state_name: &str) -> AtlasResult<Vec<WorkflowState>> {
         let rows = sqlx::query_as::<_, WorkflowStateRow>(
-            r#"
+            r"
             SELECT record_id, entity_type, workflow_name, current_state, state_type, history, metadata
             FROM _atlas.workflow_states
             WHERE entity_type = $1 AND current_state = $2
             ORDER BY updated_at DESC
-            "#
+            "
         )
         .bind(entity_type)
         .bind(state_name)
         .fetch_all(&self.pool)
         .await?;
         
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 }
 
@@ -124,7 +125,7 @@ impl From<WorkflowStateRow> for WorkflowState {
             }
         };
         
-        WorkflowState {
+        Self {
             record_id: row.record_id,
             entity_type: row.entity_type,
             workflow_name: row.workflow_name,
@@ -142,6 +143,7 @@ pub struct InMemoryWorkflowStateRepository {
 }
 
 impl InMemoryWorkflowStateRepository {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             states: std::sync::RwLock::new(std::collections::HashMap::new()),

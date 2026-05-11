@@ -70,7 +70,7 @@ const VALID_RESOLUTION_CODES: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -124,7 +124,7 @@ impl EngineeringChangeEngine {
 
         if self.repository.get_change_type_by_code(org_id, type_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Change type '{}' already exists", type_code
+                "Change type '{type_code}' already exists"
             )));
         }
 
@@ -212,7 +212,7 @@ impl EngineeringChangeEngine {
         if let Some(ct_id) = change_type_id {
             self.repository.get_change_type(ct_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Change type {} not found", ct_id
+                    "Change type {ct_id} not found"
                 )))?;
         }
 
@@ -220,7 +220,7 @@ impl EngineeringChangeEngine {
         if let Some(p_id) = parent_change_id {
             self.repository.get_change(p_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Parent change {} not found", p_id
+                    "Parent change {p_id} not found"
                 )))?;
         }
 
@@ -243,7 +243,7 @@ impl EngineeringChangeEngine {
 
         if self.repository.get_change_by_number(org_id, change_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Change '{}' already exists", change_number
+                "Change '{change_number}' already exists"
             )));
         }
 
@@ -304,7 +304,7 @@ impl EngineeringChangeEngine {
     pub async fn submit_change(&self, id: Uuid) -> AtlasResult<EngineeringChange> {
         let change = self.repository.get_change(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", id
+                "Change {id} not found"
             )))?;
 
         if change.status != "draft" {
@@ -328,11 +328,11 @@ impl EngineeringChangeEngine {
         ).await
     }
 
-    /// Start review of a change (submitted → in_review)
+    /// Start review of a change (submitted → `in_review`)
     pub async fn start_review(&self, id: Uuid) -> AtlasResult<EngineeringChange> {
         let change = self.repository.get_change(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", id
+                "Change {id} not found"
             )))?;
 
         if change.status != "submitted" {
@@ -345,7 +345,7 @@ impl EngineeringChangeEngine {
         self.repository.update_change_status(id, "in_review", None, None, None).await
     }
 
-    /// Approve a change (submitted/in_review → approved)
+    /// Approve a change (`submitted/in_review` → approved)
     pub async fn approve_change(
         &self,
         id: Uuid,
@@ -355,7 +355,7 @@ impl EngineeringChangeEngine {
     ) -> AtlasResult<EngineeringChange> {
         let change = self.repository.get_change(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", id
+                "Change {id} not found"
             )))?;
 
         if change.status != "submitted" && change.status != "in_review" {
@@ -379,7 +379,7 @@ impl EngineeringChangeEngine {
         ).await
     }
 
-    /// Reject a change (submitted/in_review → rejected)
+    /// Reject a change (`submitted/in_review` → rejected)
     pub async fn reject_change(
         &self,
         id: Uuid,
@@ -390,7 +390,7 @@ impl EngineeringChangeEngine {
     ) -> AtlasResult<EngineeringChange> {
         let change = self.repository.get_change(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", id
+                "Change {id} not found"
             )))?;
 
         if change.status != "submitted" && change.status != "in_review" {
@@ -423,7 +423,7 @@ impl EngineeringChangeEngine {
     ) -> AtlasResult<EngineeringChange> {
         let change = self.repository.get_change(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", id
+                "Change {id} not found"
             )))?;
 
         if change.status != "approved" {
@@ -440,7 +440,7 @@ impl EngineeringChangeEngine {
     pub async fn close_change(&self, id: Uuid) -> AtlasResult<EngineeringChange> {
         let change = self.repository.get_change(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", id
+                "Change {id} not found"
             )))?;
 
         if change.status != "implemented" {
@@ -457,7 +457,7 @@ impl EngineeringChangeEngine {
     pub async fn cancel_change(&self, id: Uuid) -> AtlasResult<EngineeringChange> {
         let change = self.repository.get_change(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", id
+                "Change {id} not found"
             )))?;
 
         if change.status != "draft" && change.status != "submitted" {
@@ -474,7 +474,7 @@ impl EngineeringChangeEngine {
     pub async fn return_for_rework(&self, id: Uuid, comments: Option<&str>) -> AtlasResult<EngineeringChange> {
         let change = self.repository.get_change(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", id
+                "Change {id} not found"
             )))?;
 
         if change.status != "submitted" && change.status != "in_review" {
@@ -491,7 +491,7 @@ impl EngineeringChangeEngine {
     pub async fn delete_change(&self, org_id: Uuid, change_number: &str) -> AtlasResult<()> {
         let change = self.repository.get_change_by_number(org_id, change_number).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change '{}' not found", change_number
+                "Change '{change_number}' not found"
             )))?;
 
         if change.status != "draft" && change.status != "cancelled" {
@@ -534,7 +534,7 @@ impl EngineeringChangeEngine {
         // Verify change exists and is in an editable state
         let change = self.repository.get_change(change_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", change_id
+                "Change {change_id} not found"
             )))?;
 
         if change.status != "draft" {
@@ -645,7 +645,7 @@ impl EngineeringChangeEngine {
         // Verify change exists and is in an editable state
         let change = self.repository.get_change(change_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {} not found", change_id
+                "Change {change_id} not found"
             )))?;
 
         if change.status != "draft" && change.status != "submitted" {
@@ -671,7 +671,7 @@ impl EngineeringChangeEngine {
         // Check uniqueness of item within change
         if self.repository.get_affected_item(change_id, item_id).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Item {} is already an affected item on this change", item_number
+                "Item {item_number} is already an affected item on this change"
             )));
         }
 

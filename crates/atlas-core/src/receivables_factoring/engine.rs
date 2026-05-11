@@ -10,7 +10,7 @@
 //!
 //! Oracle Fusion equivalent: Financials > Treasury > Receivables Factoring
 
-use super::*;
+use super::{ReceivablesFactoringRepository, AtlasResult, FactorCompany, AtlasError, VALID_RECOURSE_TYPES, FactoringAgreement, VALID_AGREEMENT_TYPES, VALID_AGREEMENT_STATUSES, FactoringRequest, VALID_REQUEST_STATUSES, FactoringRequestLine, FactoringSettlement, VALID_SETTLEMENT_STATUSES, FactoringDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -77,7 +77,7 @@ impl ReceivablesFactoringEngine {
 
         // Check duplicate code
         if self.repository.get_factor_company_by_code(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Factor company code '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Factor company code '{code}' already exists")));
         }
 
         info!("Creating factor company '{}' for org {}", code, org_id);
@@ -109,7 +109,7 @@ impl ReceivablesFactoringEngine {
     /// Deactivate a factor company
     pub async fn deactivate_factor_company(&self, id: Uuid) -> AtlasResult<FactorCompany> {
         let fc = self.repository.get_factor_company(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Factor company {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Factor company {id} not found")))?;
         if !fc.is_active {
             return Err(AtlasError::ValidationFailed("Factor company is already inactive".into()));
         }
@@ -120,7 +120,7 @@ impl ReceivablesFactoringEngine {
     /// Activate a factor company
     pub async fn activate_factor_company(&self, id: Uuid) -> AtlasResult<FactorCompany> {
         let fc = self.repository.get_factor_company(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Factor company {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Factor company {id} not found")))?;
         if fc.is_active {
             return Err(AtlasError::ValidationFailed("Factor company is already active".into()));
         }
@@ -189,7 +189,7 @@ impl ReceivablesFactoringEngine {
         // Verify factor company exists
         let fc = self.repository.get_factor_company(factor_company_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Factor company {} not found", factor_company_id)
+                format!("Factor company {factor_company_id} not found")
             ))?;
         if !fc.is_active {
             return Err(AtlasError::ValidationFailed("Factor company is not active".into()));
@@ -230,7 +230,7 @@ impl ReceivablesFactoringEngine {
     /// Activate a draft agreement
     pub async fn activate_agreement(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<FactoringAgreement> {
         let a = self.repository.get_agreement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {id} not found")))?;
         if a.status != "draft" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot activate agreement in '{}' status. Must be 'draft'.", a.status)
@@ -243,7 +243,7 @@ impl ReceivablesFactoringEngine {
     /// Suspend an active agreement
     pub async fn suspend_agreement(&self, id: Uuid) -> AtlasResult<FactoringAgreement> {
         let a = self.repository.get_agreement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {id} not found")))?;
         if a.status != "active" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot suspend agreement in '{}' status. Must be 'active'.", a.status)
@@ -256,7 +256,7 @@ impl ReceivablesFactoringEngine {
     /// Terminate an agreement
     pub async fn terminate_agreement(&self, id: Uuid) -> AtlasResult<FactoringAgreement> {
         let a = self.repository.get_agreement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {id} not found")))?;
         if a.status != "active" && a.status != "suspended" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot terminate agreement in '{}' status. Must be 'active' or 'suspended'.", a.status)
@@ -293,7 +293,7 @@ impl ReceivablesFactoringEngine {
 
         // Verify agreement exists and is active
         let agreement = self.repository.get_agreement(agreement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {} not found", agreement_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {agreement_id} not found")))?;
         if agreement.status != "active" {
             return Err(AtlasError::ValidationFailed(
                 "Cannot create requests for non-active agreement".into()
@@ -332,7 +332,7 @@ impl ReceivablesFactoringEngine {
     /// Submit a draft request for approval
     pub async fn submit_request(&self, id: Uuid) -> AtlasResult<FactoringRequest> {
         let r = self.repository.get_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {id} not found")))?;
         if r.status != "draft" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot submit request in '{}' status. Must be 'draft'.", r.status)
@@ -345,7 +345,7 @@ impl ReceivablesFactoringEngine {
     /// Approve a submitted request
     pub async fn approve_request(&self, id: Uuid) -> AtlasResult<FactoringRequest> {
         let r = self.repository.get_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {id} not found")))?;
         if r.status != "submitted" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot approve request in '{}' status. Must be 'submitted'.", r.status)
@@ -358,7 +358,7 @@ impl ReceivablesFactoringEngine {
     /// Fund an approved request (advance payment from factor)
     pub async fn fund_request(&self, id: Uuid) -> AtlasResult<FactoringRequest> {
         let r = self.repository.get_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {id} not found")))?;
         if r.status != "approved" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot fund request in '{}' status. Must be 'approved'.", r.status)
@@ -371,7 +371,7 @@ impl ReceivablesFactoringEngine {
     /// Settle a funded request
     pub async fn settle_request(&self, id: Uuid) -> AtlasResult<FactoringRequest> {
         let r = self.repository.get_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {id} not found")))?;
         if r.status != "funded" && r.status != "partially_settled" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot settle request in '{}' status. Must be 'funded' or 'partially_settled'.", r.status)
@@ -384,7 +384,7 @@ impl ReceivablesFactoringEngine {
     /// Cancel a request (draft or submitted only)
     pub async fn cancel_request(&self, id: Uuid) -> AtlasResult<FactoringRequest> {
         let r = self.repository.get_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {id} not found")))?;
         if r.status != "draft" && r.status != "submitted" {
             return Err(AtlasError::ValidationFailed(
                 format!("Cannot cancel request in '{}' status. Must be 'draft' or 'submitted'.", r.status)
@@ -419,7 +419,7 @@ impl ReceivablesFactoringEngine {
     ) -> AtlasResult<FactoringRequestLine> {
         // Verify request exists and is in a mutable state
         let request = self.repository.get_request(request_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", request_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Request {request_id} not found")))?;
         if request.status != "draft" {
             return Err(AtlasError::ValidationFailed(
                 "Cannot add lines to request in non-draft status".into()
@@ -474,7 +474,7 @@ impl ReceivablesFactoringEngine {
 
         // Verify agreement exists
         let _agreement = self.repository.get_agreement(agreement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {} not found", agreement_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {agreement_id} not found")))?;
 
         info!("Creating factoring settlement '{}'", settlement_number);
         self.repository.create_settlement(

@@ -1,7 +1,7 @@
 //! Payment Terms Engine
 //! Oracle Fusion: Financials > Payment Terms Management
 
-use super::*;
+use super::{PaymentTermsRepository, AtlasResult, PaymentTerm, AtlasError, PaymentTermDiscountSchedule, PaymentTermInstallment, NaiveDate, PaymentTermDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -28,14 +28,14 @@ impl PaymentTermsEngine {
             }
         }
         if !VALID_TERM_TYPES.contains(&term_type) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid term_type '{}'", term_type)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid term_type '{term_type}'")));
         }
         let discount: f64 = default_discount_percent.parse().map_err(|_| AtlasError::ValidationFailed("Invalid discount percent".into()))?;
         if !(0.0..=100.0).contains(&discount) {
             return Err(AtlasError::ValidationFailed("Discount percent must be 0-100".into()));
         }
         if self.repository.get_term(org_id, term_code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Payment term '{}' already exists", term_code)));
+            return Err(AtlasError::Conflict(format!("Payment term '{term_code}' already exists")));
         }
         info!("Creating payment term {} for org {}", term_code, org_id);
         self.repository.create_term(org_id, term_code, name, description, base_due_days, due_date_cutoff_day, term_type, default_discount_percent, created_by).await
@@ -52,32 +52,32 @@ impl PaymentTermsEngine {
     pub async fn list_terms(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PaymentTerm>> {
         if let Some(s) = status {
             if !VALID_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'")));
             }
         }
         self.repository.list_terms(org_id, status).await
     }
 
     pub async fn activate_term(&self, id: Uuid) -> AtlasResult<PaymentTerm> {
-        let term = self.repository.get_term_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {} not found", id)))?;
+        let term = self.repository.get_term_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {id} not found")))?;
         if term.status == "active" { return Err(AtlasError::WorkflowError("Already active".into())); }
         self.repository.update_term_status(id, "active").await
     }
 
     pub async fn deactivate_term(&self, id: Uuid) -> AtlasResult<PaymentTerm> {
-        let term = self.repository.get_term_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {} not found", id)))?;
+        let term = self.repository.get_term_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {id} not found")))?;
         if term.status == "inactive" { return Err(AtlasError::WorkflowError("Already inactive".into())); }
         self.repository.update_term_status(id, "inactive").await
     }
 
     pub async fn delete_term(&self, id: Uuid) -> AtlasResult<()> {
-        self.repository.get_term_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {} not found", id)))?;
+        self.repository.get_term_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {id} not found")))?;
         self.repository.delete_term(id).await
     }
 
     // Discount Schedules
     pub async fn create_discount_schedule(&self, org_id: Uuid, term_id: Uuid, discount_percent: &str, discount_days: i32, discount_day_of_month: Option<i32>, discount_basis: &str, display_order: i32) -> AtlasResult<PaymentTermDiscountSchedule> {
-        self.repository.get_term_by_id(term_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {} not found", term_id)))?;
+        self.repository.get_term_by_id(term_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {term_id} not found")))?;
         let discount: f64 = discount_percent.parse().map_err(|_| AtlasError::ValidationFailed("Invalid discount percent".into()))?;
         if !(0.0..=100.0).contains(&discount) {
             return Err(AtlasError::ValidationFailed("Discount percent must be 0-100".into()));
@@ -91,7 +91,7 @@ impl PaymentTermsEngine {
             }
         }
         if !VALID_DISCOUNT_BASES.contains(&discount_basis) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid discount_basis '{}'", discount_basis)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid discount_basis '{discount_basis}'")));
         }
         self.repository.create_discount_schedule(org_id, term_id, discount_percent, discount_days, discount_day_of_month, discount_basis, display_order).await
     }
@@ -106,7 +106,7 @@ impl PaymentTermsEngine {
 
     // Installments
     pub async fn create_installment(&self, org_id: Uuid, term_id: Uuid, installment_number: i32, due_days_offset: i32, percentage: &str, discount_percent: &str, discount_days: i32) -> AtlasResult<PaymentTermInstallment> {
-        self.repository.get_term_by_id(term_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {} not found", term_id)))?;
+        self.repository.get_term_by_id(term_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Payment term {term_id} not found")))?;
         if installment_number < 1 {
             return Err(AtlasError::ValidationFailed("Installment number must be >= 1".into()));
         }
@@ -136,19 +136,21 @@ impl PaymentTermsEngine {
     }
 
     /// Calculate due date for a given invoice date and term
+    #[must_use] 
     pub fn calculate_due_date(&self, invoice_date: NaiveDate, term: &PaymentTerm) -> NaiveDate {
         match term.term_type.as_str() {
-            "standard" | "installment" => invoice_date + chrono::Duration::days(term.base_due_days as i64),
+            "standard" | "installment" => invoice_date + chrono::Duration::days(i64::from(term.base_due_days)),
             "proxima" | "day_of_month" => {
                 // Simplified: just add base_due_days for proxima/day_of_month
                 // (full cutoff-day logic requires chrono Datelike traits that may not be available)
-                invoice_date + chrono::Duration::days(term.base_due_days as i64)
+                invoice_date + chrono::Duration::days(i64::from(term.base_due_days))
             },
-            _ => invoice_date + chrono::Duration::days(term.base_due_days as i64),
+            _ => invoice_date + chrono::Duration::days(i64::from(term.base_due_days)),
         }
     }
 
     /// Calculate early payment discount amount
+    #[must_use] 
     pub fn calculate_discount(&self, invoice_amount: f64, schedule: &PaymentTermDiscountSchedule, days_since_invoice: i32) -> f64 {
         if days_since_invoice <= schedule.discount_days {
             let rate: f64 = schedule.discount_percent.parse().unwrap_or(0.0);
@@ -165,6 +167,7 @@ impl PaymentTermsEngine {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use super::*;
     use chrono::NaiveDate;
 

@@ -78,12 +78,12 @@ impl AssetDepreciationEngine {
 
         let depreciation = match method {
             "straight_line" => {
-                let monthly_depreciation = depreciable_amount / (useful_life_months as f64);
+                let monthly_depreciation = depreciable_amount / f64::from(useful_life_months);
                 // Adjust last period for rounding
                 let remaining_periods = useful_life_months - periods_depreciated;
                 if remaining_periods == 1 {
                     // Last period gets the remainder
-                    let total_so_far = monthly_depreciation * (periods_depreciated as f64);
+                    let total_so_far = monthly_depreciation * f64::from(periods_depreciated);
                     depreciable_amount - total_so_far
                 } else {
                     monthly_depreciation
@@ -91,34 +91,33 @@ impl AssetDepreciationEngine {
             }
             "declining_balance" => {
                 let rate = declining_balance_rate.unwrap_or(2.0); // Default: double declining
-                let monthly_rate = rate / (useful_life_months as f64);
-                let book_value = depreciable_basis - (depreciable_amount / (useful_life_months as f64) * (periods_depreciated as f64));
+                let monthly_rate = rate / f64::from(useful_life_months);
+                let book_value = (depreciable_amount / f64::from(useful_life_months)).mul_add(-f64::from(periods_depreciated), depreciable_basis);
                 let book_value_for_calc = book_value.max(salvage_value);
                 let mut dep = book_value_for_calc * monthly_rate;
                 // Don't depreciate below salvage value
-                let current_book = depreciable_basis
-                    - (depreciable_amount / (useful_life_months as f64) * (periods_depreciated as f64));
+                let current_book = (depreciable_amount / f64::from(useful_life_months)).mul_add(-f64::from(periods_depreciated), depreciable_basis);
                 if current_book - dep < salvage_value {
                     dep = (current_book - salvage_value).max(0.0);
                 }
                 dep
             }
             "sum_of_years_digits" => {
-                let useful_life_years = (useful_life_months as f64) / 12.0;
+                let useful_life_years = f64::from(useful_life_months) / 12.0;
                 let years = Self::round_up(useful_life_years);
                 let sum_of_years = (years * (years + 1.0)) / 2.0;
                 if sum_of_years <= 0.0 {
                     return Ok(0.0);
                 }
                 // Convert periods_depreciated to years (fractional)
-                let current_year = ((periods_depreciated as f64) / 12.0) + 1.0;
+                let current_year = (f64::from(periods_depreciated) / 12.0) + 1.0;
                 let remaining_years = years - current_year + 1.0;
                 let annual_depreciation = depreciable_amount * (remaining_years / sum_of_years);
                 let monthly = annual_depreciation / 12.0;
                 monthly.max(0.0)
             }
             _ => return Err(AtlasError::ValidationFailed(
-                format!("Unknown depreciation method: {}", method)
+                format!("Unknown depreciation method: {method}")
             )),
         };
 
@@ -168,9 +167,9 @@ impl AssetDepreciationEngine {
                 fiscal_year: current_date.year(),
                 period_number: period + 1,
                 depreciation_date: current_date,
-                depreciation_amount: format!("{:.2}", dep),
-                accumulated_depreciation: format!("{:.2}", accumulated),
-                net_book_value: format!("{:.2}", nbv),
+                depreciation_amount: format!("{dep:.2}"),
+                accumulated_depreciation: format!("{accumulated:.2}"),
+                net_book_value: format!("{nbv:.2}"),
                 depreciation_method: depreciation_method.to_string(),
             });
 
@@ -184,14 +183,14 @@ impl AssetDepreciationEngine {
             asset_id,
             asset_number: asset_number.to_string(),
             asset_name: asset_name.to_string(),
-            original_cost: format!("{:.2}", original_cost),
-            salvage_value: format!("{:.2}", salvage_value),
-            depreciable_basis: format!("{:.2}", depreciable_basis),
+            original_cost: format!("{original_cost:.2}"),
+            salvage_value: format!("{salvage_value:.2}"),
+            depreciable_basis: format!("{depreciable_basis:.2}"),
             useful_life_months,
             depreciation_method: depreciation_method.to_string(),
-            declining_balance_rate: declining_balance_rate.map(|r| format!("{:.4}", r)),
+            declining_balance_rate: declining_balance_rate.map(|r| format!("{r:.4}")),
             periods,
-            total_depreciation: format!("{:.2}", total_depreciation),
+            total_depreciation: format!("{total_depreciation:.2}"),
         })
     }
 
@@ -206,7 +205,7 @@ impl AssetDepreciationEngine {
     ) -> AtlasResult<AssetDepreciationHistory> {
         let asset = self.repository.get_asset(asset_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Asset {} not found", asset_id)
+                format!("Asset {asset_id} not found")
             ))?;
 
         if asset.status != "in_service" && asset.status != "acquired" {
@@ -244,9 +243,9 @@ impl AssetDepreciationEngine {
             period_number,
             None,
             depreciation_date,
-            &format!("{:.2}", dep_amount),
-            &format!("{:.2}", new_accumulated),
-            &format!("{:.2}", nbv),
+            &format!("{dep_amount:.2}"),
+            &format!("{new_accumulated:.2}"),
+            &format!("{nbv:.2}"),
             &asset.depreciation_method,
             created_by,
         ).await?;
@@ -254,9 +253,9 @@ impl AssetDepreciationEngine {
         // Update asset record
         self.repository.update_asset_depreciation(
             asset_id,
-            &format!("{:.2}", new_accumulated),
-            &format!("{:.2}", nbv),
-            &format!("{:.2}", dep_amount),
+            &format!("{new_accumulated:.2}"),
+            &format!("{nbv:.2}"),
+            &format!("{dep_amount:.2}"),
             periods_depreciated + 1,
             depreciation_date,
         ).await?;
@@ -270,6 +269,7 @@ impl AssetDepreciationEngine {
     }
 
     /// Get net book value of an asset at a given date
+    #[must_use] 
     pub fn calculate_net_book_value(
         &self,
         original_cost: f64,

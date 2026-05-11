@@ -142,7 +142,7 @@ impl JournalImportEngine {
         // Check uniqueness
         if self.repository.get_format_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Import format code '{}' already exists", code)
+                format!("Import format code '{code}' already exists")
             ));
         }
 
@@ -225,7 +225,7 @@ impl JournalImportEngine {
         // Validate format exists and belongs to org
         let format = self.repository.get_format(format_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Import format {} not found", format_id)
+                format!("Import format {format_id} not found")
             ))?;
 
         if format.organization_id != org_id {
@@ -267,7 +267,7 @@ impl JournalImportEngine {
         // Validate format exists and is active
         let format = self.repository.get_format(format_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Import format {} not found", format_id)
+                format!("Import format {format_id} not found")
             ))?;
 
         if format.organization_id != org_id {
@@ -348,7 +348,7 @@ impl JournalImportEngine {
     ) -> AtlasResult<JournalImportRow> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Import batch {} not found", batch_id)
+                format!("Import batch {batch_id} not found")
             ))?;
 
         if batch.organization_id != org_id {
@@ -391,7 +391,7 @@ impl JournalImportEngine {
         self.repository.create_row(
             org_id, batch_id, row_number, raw_data,
             account_code, account_name, description,
-            &format!("{:.2}", dr), &format!("{:.2}", cr),
+            &format!("{dr:.2}"), &format!("{cr:.2}"),
             currency_code, exchange_rate, gl_date,
             reference, line_type, cost_center,
             department, project_code, "pending",
@@ -421,7 +421,7 @@ impl JournalImportEngine {
     ) -> AtlasResult<JournalImportRow> {
         let row = self.repository.get_row(row_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Import row {} not found", row_id)
+                format!("Import row {row_id} not found")
             ))?;
 
         if row.status != "error" && row.status != "pending" {
@@ -452,8 +452,8 @@ impl JournalImportEngine {
             row_id,
             account_code,
             description,
-            Some(&format!("{:.2}", dr)),
-            Some(&format!("{:.2}", cr)),
+            Some(&format!("{dr:.2}")),
+            Some(&format!("{cr:.2}")),
             "pending",
             None,
             None,
@@ -468,7 +468,7 @@ impl JournalImportEngine {
     pub async fn validate_batch(&self, batch_id: Uuid) -> AtlasResult<JournalImportBatch> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Import batch {} not found", batch_id)
+                format!("Import batch {batch_id} not found")
             ))?;
 
         if batch.status != "uploaded" {
@@ -495,7 +495,7 @@ impl JournalImportEngine {
             let row_credit: f64;
 
             // Validate account code
-            if row.account_code.is_none() || row.account_code.as_ref().is_none_or(|s| s.is_empty()) {
+            if row.account_code.is_none() || row.account_code.as_ref().is_none_or(std::string::String::is_empty) {
                 row_errors.push(JournalImportError {
                     row_number: row.row_number,
                     field: "account_code".to_string(),
@@ -599,8 +599,8 @@ impl JournalImportEngine {
             valid_count,
             error_count_i32,
             imported,
-            &format!("{:.2}", total_debit),
-            &format!("{:.2}", total_credit),
+            &format!("{total_debit:.2}"),
+            &format!("{total_credit:.2}"),
             is_balanced,
             serde_json::to_value(&errors).unwrap_or(serde_json::json!([])),
         ).await?;
@@ -619,7 +619,7 @@ impl JournalImportEngine {
     pub async fn import_batch(&self, batch_id: Uuid) -> AtlasResult<JournalImportBatch> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Import batch {} not found", batch_id)
+                format!("Import batch {batch_id} not found")
             ))?;
 
         if batch.status != "validated" {
@@ -680,7 +680,7 @@ impl JournalImportEngine {
     pub async fn delete_batch(&self, batch_id: Uuid) -> AtlasResult<()> {
         let batch = self.repository.get_batch(batch_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Import batch {} not found", batch_id)
+                format!("Import batch {batch_id} not found")
             ))?;
 
         if batch.status == "completed" || batch.status == "completed_with_errors" {
@@ -710,6 +710,7 @@ impl JournalImportEngine {
     // ========================================================================
 
     /// Validate a single row's data without database
+    #[must_use] 
     pub fn validate_row_data(
         account_code: Option<&str>,
         entered_dr: &str,
@@ -717,13 +718,13 @@ impl JournalImportEngine {
     ) -> Vec<JournalImportError> {
         let mut errors = Vec::new();
 
-        if account_code.is_none() || account_code.is_none_or(|s| s.is_empty()) {
+        if account_code.is_none() || account_code.is_none_or(str::is_empty) {
             errors.push(JournalImportError {
                 row_number: 0,
                 field: "account_code".to_string(),
                 error: "Account code is required".to_string(),
                 severity: "error".to_string(),
-                raw_value: account_code.map(|s| s.to_string()),
+                raw_value: account_code.map(std::string::ToString::to_string),
             });
         }
 
@@ -774,16 +775,19 @@ impl JournalImportEngine {
     }
 
     /// Check if a batch is balanced given its total debit and credit
+    #[must_use] 
     pub fn check_balancing(total_debit: f64, total_credit: f64) -> bool {
         (total_debit - total_credit).abs() < 0.01
     }
 
     /// Parse an amount string, returning 0.0 on failure
+    #[must_use] 
     pub fn parse_amount(amount: &str) -> f64 {
         amount.parse().unwrap_or(0.0)
     }
 
     /// Calculate totals from a list of (debit, credit) tuples
+    #[must_use] 
     pub fn calculate_totals(rows: &[(f64, f64)]) -> (f64, f64) {
         let total_debit: f64 = rows.iter().map(|(dr, _)| *dr).sum();
         let total_credit: f64 = rows.iter().map(|(_, cr)| *cr).sum();

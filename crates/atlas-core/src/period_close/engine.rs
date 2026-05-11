@@ -125,7 +125,7 @@ impl PeriodCloseEngine {
             .get_calendar(calendar_id)
             .await?
             .ok_or_else(|| {
-                AtlasError::EntityNotFound(format!("Calendar {}", calendar_id))
+                AtlasError::EntityNotFound(format!("Calendar {calendar_id}"))
             })?;
 
         if calendar.organization_id != org_id {
@@ -171,7 +171,7 @@ impl PeriodCloseEngine {
             let quarter = Some(((period_num - 1) / 3) + 1);
 
             // Generate period name
-            let period_name = format!("{:02}-{}", period_num, fiscal_year);
+            let period_name = format!("{period_num:02}-{fiscal_year}");
 
             let period = self
                 .repository
@@ -204,7 +204,7 @@ impl PeriodCloseEngine {
                 .create_period(
                     org_id,
                     calendar_id,
-                    &format!("Adj-{}", fiscal_year),
+                    &format!("Adj-{fiscal_year}"),
                     adj_period_num,
                     fiscal_year,
                     None,
@@ -256,7 +256,7 @@ impl PeriodCloseEngine {
     }
 
     /// Open a period (change status to 'open')
-    /// Only allowed from 'not_opened' or 'future' status
+    /// Only allowed from '`not_opened`' or 'future' status
     pub async fn open_period(
         &self,
         period_id: Uuid,
@@ -266,7 +266,7 @@ impl PeriodCloseEngine {
             .repository
             .get_period(period_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {}", period_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {period_id}")))?;
 
         if !matches!(
             period.status.as_str(),
@@ -295,7 +295,7 @@ impl PeriodCloseEngine {
             .repository
             .get_period(period_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {}", period_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {period_id}")))?;
 
         if period.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
@@ -314,7 +314,7 @@ impl PeriodCloseEngine {
     }
 
     /// Close a period
-    /// Only allowed from 'open' or 'pending_close' status.
+    /// Only allowed from 'open' or '`pending_close`' status.
     /// Optionally checks that all subledgers are closed.
     pub async fn close_period(
         &self,
@@ -326,7 +326,7 @@ impl PeriodCloseEngine {
             .repository
             .get_period(period_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {}", period_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {period_id}")))?;
 
         if !matches!(period.status.as_str(), "open" | "pending_close") {
             return Err(AtlasError::WorkflowError(format!(
@@ -372,7 +372,7 @@ impl PeriodCloseEngine {
             .repository
             .get_period(period_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {}", period_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {period_id}")))?;
 
         if period.status != "closed" {
             return Err(AtlasError::WorkflowError(format!(
@@ -390,7 +390,7 @@ impl PeriodCloseEngine {
             .await
     }
 
-    /// Reopen a closed period (only from 'closed', not 'permanently_closed')
+    /// Reopen a closed period (only from 'closed', not '`permanently_closed`')
     pub async fn reopen_period(
         &self,
         period_id: Uuid,
@@ -400,7 +400,7 @@ impl PeriodCloseEngine {
             .repository
             .get_period(period_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {}", period_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {period_id}")))?;
 
         if period.status == "permanently_closed" {
             return Err(AtlasError::WorkflowError(
@@ -436,8 +436,7 @@ impl PeriodCloseEngine {
             .await?
             .ok_or_else(|| {
                 AtlasError::ValidationFailed(format!(
-                    "No accounting period found for date {}",
-                    date
+                    "No accounting period found for date {date}"
                 ))
             })?;
 
@@ -528,7 +527,7 @@ impl PeriodCloseEngine {
             .repository
             .get_period(period_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {}", period_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {period_id}")))?;
 
         if period.organization_id != org_id {
             return Err(AtlasError::Forbidden(
@@ -569,8 +568,7 @@ impl PeriodCloseEngine {
     ) -> AtlasResult<PeriodCloseChecklistItem> {
         if !["pending", "in_progress", "completed", "skipped"].contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid checklist status: '{}'",
-                status
+                "Invalid checklist status: '{status}'"
             )));
         }
 
@@ -667,7 +665,7 @@ impl PeriodCloseEngine {
             .get_calendar(calendar_id)
             .await?
             .ok_or_else(|| {
-                AtlasError::EntityNotFound(format!("Calendar {}", calendar_id))
+                AtlasError::EntityNotFound(format!("Calendar {calendar_id}"))
             })?;
 
         if calendar.organization_id != org_id {
@@ -713,7 +711,7 @@ impl PeriodCloseEngine {
         }
 
         let close_progress_percent = if total_items > 0 {
-            (completed_items as f64 / total_items as f64) * 100.0
+            (f64::from(completed_items) / f64::from(total_items)) * 100.0
         } else {
             0.0
         };

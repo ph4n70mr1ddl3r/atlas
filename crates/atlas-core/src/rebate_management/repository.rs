@@ -1,6 +1,6 @@
 //! Rebate Management Repository
 //!
-//! PostgreSQL storage for rebate agreements, tiers, transactions, accruals,
+//! `PostgreSQL` storage for rebate agreements, tiers, transactions, accruals,
 //! settlements, and dashboard analytics.
 
 use atlas_shared::{
@@ -103,13 +103,14 @@ pub trait RebateManagementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RebateDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresRebateManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresRebateManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -309,7 +310,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<RebateAgreement> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.rebate_agreements
+            r"INSERT INTO _atlas.rebate_agreements
                 (organization_id, agreement_number, name, description,
                  rebate_type, direction, partner_type,
                  partner_id, partner_name, partner_number,
@@ -322,7 +323,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
                     $21, $22, $23, $24, $25, $26, $27, $28, '{}'::jsonb, $29)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(agreement_number).bind(name).bind(description)
         .bind(rebate_type).bind(direction).bind(partner_type)
@@ -353,12 +354,12 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
 
     async fn list_agreements(&self, org_id: Uuid, status: Option<&str>, rebate_type: Option<&str>, partner_type: Option<&str>) -> AtlasResult<Vec<RebateAgreement>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.rebate_agreements
+            r"SELECT * FROM _atlas.rebate_agreements
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR rebate_type = $3)
                  AND ($4::text IS NULL OR partner_type = $4)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(rebate_type).bind(partner_type)
         .fetch_all(&self.pool).await?;
@@ -370,7 +371,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
             "UPDATE _atlas.rebate_agreements SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Rebate agreement {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Rebate agreement {id} not found")))?;
         Ok(row_to_agreement(&row))
     }
 
@@ -379,7 +380,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
             "DELETE FROM _atlas.rebate_agreements WHERE organization_id = $1 AND agreement_number = $2 AND status = 'draft'"
         ).bind(org_id).bind(agreement_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Draft agreement '{}' not found", agreement_number)));
+            return Err(AtlasError::EntityNotFound(format!("Draft agreement '{agreement_number}' not found")));
         }
         Ok(())
     }
@@ -394,11 +395,11 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
         rate_type: &str, description: Option<&str>,
     ) -> AtlasResult<RebateTier> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.rebate_tiers
+            r"INSERT INTO _atlas.rebate_tiers
                 (organization_id, agreement_id, tier_number,
                  from_value, to_value, rebate_rate, rate_type, description, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(agreement_id).bind(tier_number)
         .bind(from_value).bind(to_value).bind(rebate_rate)
@@ -438,13 +439,13 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
         tier_id: Option<Uuid>, created_by: Option<Uuid>,
     ) -> AtlasResult<RebateTransaction> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.rebate_transactions
+            r"INSERT INTO _atlas.rebate_transactions
                 (organization_id, agreement_id, transaction_number,
                  source_type, source_id, source_number, transaction_date,
                  product_id, product_name, quantity, unit_price, transaction_amount,
                  currency_code, applicable_rate, rebate_amount, tier_id, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, '{}'::jsonb, $17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(agreement_id).bind(transaction_number)
         .bind(source_type).bind(source_id).bind(source_number).bind(transaction_date)
@@ -470,20 +471,20 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
 
     async fn list_transactions(&self, agreement_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<RebateTransaction>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.rebate_transactions
+            r"SELECT * FROM _atlas.rebate_transactions
                WHERE agreement_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY transaction_date DESC, created_at DESC"#,
+               ORDER BY transaction_date DESC, created_at DESC",
         ).bind(agreement_id).bind(status).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_transaction).collect())
     }
 
     async fn update_transaction_status(&self, id: Uuid, status: &str, reason: Option<&str>) -> AtlasResult<RebateTransaction> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.rebate_transactions SET status = $2, excluded_reason = COALESCE($3, excluded_reason), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+            r"UPDATE _atlas.rebate_transactions SET status = $2, excluded_reason = COALESCE($3, excluded_reason), updated_at = now()
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(status).bind(reason)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Transaction {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Transaction {id} not found")))?;
         Ok(row_to_transaction(&row))
     }
 
@@ -492,7 +493,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
             "DELETE FROM _atlas.rebate_transactions WHERE organization_id = $1 AND transaction_number = $2"
         ).bind(org_id).bind(transaction_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Transaction '{}' not found", transaction_number)));
+            return Err(AtlasError::EntityNotFound(format!("Transaction '{transaction_number}' not found")));
         }
         Ok(())
     }
@@ -510,13 +511,13 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
         currency_code: &str, notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<RebateAccrual> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.rebate_accruals
+            r"INSERT INTO _atlas.rebate_accruals
                 (organization_id, agreement_id, accrual_number, accrual_date, accrual_period,
                  accumulated_quantity, accumulated_amount,
                  applicable_tier_id, applicable_rate, accrued_amount,
                  currency_code, notes, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, '{}'::jsonb, $13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(agreement_id).bind(accrual_number).bind(accrual_date).bind(accrual_period)
         .bind(accumulated_quantity).bind(accumulated_amount)
@@ -541,9 +542,9 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
 
     async fn list_accruals(&self, agreement_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<RebateAccrual>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.rebate_accruals
+            r"SELECT * FROM _atlas.rebate_accruals
                WHERE agreement_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY accrual_date DESC"#,
+               ORDER BY accrual_date DESC",
         ).bind(agreement_id).bind(status).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_accrual).collect())
     }
@@ -553,7 +554,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
             "UPDATE _atlas.rebate_accruals SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Accrual {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Accrual {id} not found")))?;
         Ok(row_to_accrual(&row))
     }
 
@@ -562,7 +563,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
             "DELETE FROM _atlas.rebate_accruals WHERE organization_id = $1 AND accrual_number = $2"
         ).bind(org_id).bind(accrual_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Accrual '{}' not found", accrual_number)));
+            return Err(AtlasError::EntityNotFound(format!("Accrual '{accrual_number}' not found")));
         }
         Ok(())
     }
@@ -583,7 +584,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<RebateSettlement> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.rebate_settlements
+            r"INSERT INTO _atlas.rebate_settlements
                 (organization_id, agreement_id, settlement_number, settlement_date,
                  settlement_period_from, settlement_period_to,
                  total_qualifying_amount, total_qualifying_quantity,
@@ -591,7 +592,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
                  currency_code, settlement_type, payment_method,
                  notes, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, '{}'::jsonb, $16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(agreement_id).bind(settlement_number).bind(settlement_date)
         .bind(settlement_period_from).bind(settlement_period_to)
@@ -618,9 +619,9 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
 
     async fn list_settlements(&self, agreement_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<RebateSettlement>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.rebate_settlements
+            r"SELECT * FROM _atlas.rebate_settlements
                WHERE agreement_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY settlement_date DESC"#,
+               ORDER BY settlement_date DESC",
         ).bind(agreement_id).bind(status).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_settlement).collect())
     }
@@ -630,26 +631,26 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
             "UPDATE _atlas.rebate_settlements SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Settlement {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Settlement {id} not found")))?;
         Ok(row_to_settlement(&row))
     }
 
     async fn approve_settlement(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<RebateSettlement> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.rebate_settlements
+            r"UPDATE _atlas.rebate_settlements
                SET status = 'approved', approved_by = $2, approved_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(approved_by)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Settlement {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Settlement {id} not found")))?;
         Ok(row_to_settlement(&row))
     }
 
     async fn pay_settlement(&self, id: Uuid) -> AtlasResult<RebateSettlement> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.rebate_settlements
+            r"UPDATE _atlas.rebate_settlements
                SET status = 'paid', paid_at = now(), updated_at = now()
-               WHERE id = $1 AND status = 'approved' RETURNING *"#,
+               WHERE id = $1 AND status = 'approved' RETURNING *",
         ).bind(id)
         .fetch_one(&self.pool).await
         .map_err(|_| AtlasError::ValidationFailed("Settlement not found or not approved".to_string()))?;
@@ -661,7 +662,7 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
             "DELETE FROM _atlas.rebate_settlements WHERE organization_id = $1 AND settlement_number = $2 AND status = 'pending'"
         ).bind(org_id).bind(settlement_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Pending settlement '{}' not found", settlement_number)));
+            return Err(AtlasError::EntityNotFound(format!("Pending settlement '{settlement_number}' not found")));
         }
         Ok(())
     }
@@ -672,8 +673,8 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
 
     async fn create_settlement_line(&self, settlement_id: Uuid, transaction_id: Uuid, amount: f64) -> AtlasResult<RebateSettlementLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.rebate_settlement_lines (settlement_id, transaction_id, settlement_amount, metadata)
-               VALUES ($1, $2, $3, '{}'::jsonb) RETURNING *"#,
+            r"INSERT INTO _atlas.rebate_settlement_lines (settlement_id, transaction_id, settlement_amount, metadata)
+               VALUES ($1, $2, $3, '{}'::jsonb) RETURNING *",
         ).bind(settlement_id).bind(transaction_id).bind(amount)
         .fetch_one(&self.pool).await?;
         Ok(row_to_settlement_line(&row))
@@ -708,24 +709,24 @@ impl RebateManagementRepository for PostgresRebateManagementRepository {
         }
 
         let txn_stats = sqlx::query(
-            r#"SELECT COUNT(*) as cnt, COALESCE(SUM(transaction_amount), 0) as total_amount
-               FROM _atlas.rebate_transactions WHERE organization_id = $1"#
+            r"SELECT COUNT(*) as cnt, COALESCE(SUM(transaction_amount), 0) as total_amount
+               FROM _atlas.rebate_transactions WHERE organization_id = $1"
         ).bind(org_id).fetch_one(&self.pool).await.unwrap();
 
         let total_transactions: i64 = txn_stats.try_get("cnt").unwrap_or(0);
         let total_qualifying_amount: f64 = get_numeric(&txn_stats, "total_amount");
 
         let acc_stats = sqlx::query(
-            r#"SELECT COALESCE(SUM(accrued_amount), 0) as total_accrued FROM _atlas.rebate_accruals
-               WHERE organization_id = $1 AND status IN ('posted', 'settled')"#
+            r"SELECT COALESCE(SUM(accrued_amount), 0) as total_accrued FROM _atlas.rebate_accruals
+               WHERE organization_id = $1 AND status IN ('posted', 'settled')"
         ).bind(org_id).fetch_one(&self.pool).await.unwrap();
 
         let total_accrued_amount: f64 = get_numeric(&acc_stats, "total_accrued");
 
         let set_stats = sqlx::query(
-            r#"SELECT COALESCE(SUM(settlement_amount), 0) as total_settled,
+            r"SELECT COALESCE(SUM(settlement_amount), 0) as total_settled,
                       COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count
-               FROM _atlas.rebate_settlements WHERE organization_id = $1"#
+               FROM _atlas.rebate_settlements WHERE organization_id = $1"
         ).bind(org_id).fetch_one(&self.pool).await.unwrap();
 
         let total_settled_amount: f64 = get_numeric(&set_stats, "total_settled");

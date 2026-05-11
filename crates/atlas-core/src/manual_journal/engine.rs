@@ -67,7 +67,7 @@ impl ManualJournalEngine {
         let effective_source = source.unwrap_or("manual");
 
         let period = period_name
-            .map(|p| p.to_string())
+            .map(std::string::ToString::to_string)
             .or_else(|| accounting_date.map(|d| d.format("%Y-%m").to_string()));
 
         info!(
@@ -113,7 +113,7 @@ impl ManualJournalEngine {
             .repository
             .get_batch(org_id, batch_number)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_number)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_number} not found")))?;
 
         if batch.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -155,7 +155,7 @@ impl ManualJournalEngine {
             .repository
             .get_batch_by_id(batch_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -164,7 +164,7 @@ impl ManualJournalEngine {
         }
 
         let period = period_name
-            .map(|p| p.to_string())
+            .map(std::string::ToString::to_string)
             .or_else(|| accounting_date.map(|d| d.format("%Y-%m").to_string()));
 
         let category = journal_category.unwrap_or("manual");
@@ -218,7 +218,7 @@ impl ManualJournalEngine {
             .repository
             .get_entry(entry_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {} not found", entry_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {entry_id} not found")))?;
 
         if entry.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -276,7 +276,7 @@ impl ManualJournalEngine {
             .repository
             .get_entry(entry_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {} not found", entry_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {entry_id} not found")))?;
 
         if entry.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -331,7 +331,7 @@ impl ManualJournalEngine {
             .repository
             .get_entry(entry_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {} not found", entry_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {entry_id} not found")))?;
 
         if entry.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -355,7 +355,7 @@ impl ManualJournalEngine {
             .repository
             .get_batch_by_id(batch_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -401,7 +401,7 @@ impl ManualJournalEngine {
             .repository
             .get_batch_by_id(batch_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -430,7 +430,7 @@ impl ManualJournalEngine {
             .repository
             .get_batch_by_id(batch_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -459,7 +459,7 @@ impl ManualJournalEngine {
             .repository
             .get_batch_by_id(batch_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
@@ -489,7 +489,7 @@ impl ManualJournalEngine {
             .repository
             .get_batch_by_id(batch_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -588,8 +588,8 @@ impl ManualJournalEngine {
         self.repository
             .update_entry_totals(
                 entry_id,
-                &format!("{:.2}", total_debit),
-                &format!("{:.2}", total_credit),
+                &format!("{total_debit:.2}"),
+                &format!("{total_credit:.2}"),
                 lines.len() as i32,
                 is_balanced,
             )
@@ -610,8 +610,8 @@ impl ManualJournalEngine {
         self.repository
             .update_batch_totals(
                 batch_id,
-                &format!("{:.2}", total_debit),
-                &format!("{:.2}", total_credit),
+                &format!("{total_debit:.2}"),
+                &format!("{total_credit:.2}"),
                 entries.len() as i32,
             )
             .await?;
@@ -624,7 +624,7 @@ impl ManualJournalEngine {
         // In practice we'd add get_line_by_id to the repository
         // For now, iterate a small set
         Err(AtlasError::EntityNotFound(format!(
-            "Line {} not found. Use delete_line with known entry context.", line_id
+            "Line {line_id} not found. Use delete_line with known entry context."
         )))
     }
 }

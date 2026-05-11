@@ -1,6 +1,6 @@
 //! Project Billing Repository
 //!
-//! PostgreSQL storage for bill rate schedules, billing configs,
+//! `PostgreSQL` storage for bill rate schedules, billing configs,
 //! billing events, project invoices, and billing dashboard.
 
 use atlas_shared::{
@@ -312,7 +312,8 @@ pub struct PostgresProjectBillingRepository {
 }
 
 impl PostgresProjectBillingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -330,12 +331,12 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         default_markup_pct: f64, created_by: Option<Uuid>,
     ) -> AtlasResult<BillRateSchedule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.bill_rate_schedules
+            r"INSERT INTO _atlas.bill_rate_schedules
                 (organization_id, schedule_number, name, description,
                  schedule_type, currency_code, effective_start, effective_end,
                  default_markup_pct, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '{}'::jsonb, $10)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(schedule_number).bind(name).bind(description)
         .bind(schedule_type).bind(currency_code)
@@ -360,9 +361,9 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
 
     async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BillRateSchedule>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.bill_rate_schedules
+            r"SELECT * FROM _atlas.bill_rate_schedules
                WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         ).bind(org_id).bind(status).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_schedule).collect())
     }
@@ -372,7 +373,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
             "UPDATE _atlas.bill_rate_schedules SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
         Ok(row_to_schedule(&row))
     }
 
@@ -381,7 +382,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
             "DELETE FROM _atlas.bill_rate_schedules WHERE organization_id = $1 AND schedule_number = $2"
         ).bind(org_id).bind(schedule_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Schedule '{}' not found", schedule_number)));
+            return Err(AtlasError::EntityNotFound(format!("Schedule '{schedule_number}' not found")));
         }
         Ok(())
     }
@@ -397,12 +398,12 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         markup_pct: Option<f64>,
     ) -> AtlasResult<BillRateLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.bill_rate_lines
+            r"INSERT INTO _atlas.bill_rate_lines
                 (organization_id, schedule_id, role_name, project_id,
                  bill_rate, unit_of_measure, effective_start, effective_end,
                  markup_pct, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(schedule_id).bind(role_name).bind(project_id)
         .bind(bill_rate).bind(unit_of_measure)
@@ -423,12 +424,12 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         &self, schedule_id: Uuid, role_name: &str, date: chrono::NaiveDate,
     ) -> AtlasResult<Option<BillRateLine>> {
         let row = sqlx::query(
-            r#"SELECT * FROM _atlas.bill_rate_lines
+            r"SELECT * FROM _atlas.bill_rate_lines
                WHERE schedule_id = $1 AND role_name = $2
                  AND effective_start <= $3
                  AND (effective_end IS NULL OR effective_end >= $3)
                ORDER BY project_id NULLS LAST, effective_start DESC
-               LIMIT 1"#,
+               LIMIT 1",
         ).bind(schedule_id).bind(role_name).bind(date)
         .fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_rate_line))
@@ -458,7 +459,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProjectBillingConfig> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.project_billing_configs
+            r"INSERT INTO _atlas.project_billing_configs
                 (organization_id, project_id, billing_method,
                  bill_rate_schedule_id, contract_amount,
                  currency_code, invoice_format, billing_cycle,
@@ -466,7 +467,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
                  customer_id, customer_name, customer_po_number, contract_number,
                  metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, '{}'::jsonb, $16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(project_id).bind(billing_method)
         .bind(bill_rate_schedule_id).bind(contract_amount)
@@ -496,15 +497,15 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
             "UPDATE _atlas.project_billing_configs SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Billing config {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Billing config {id} not found")))?;
         Ok(row_to_billing_config(&row))
     }
 
     async fn list_billing_configs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ProjectBillingConfig>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.project_billing_configs
+            r"SELECT * FROM _atlas.project_billing_configs
                WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         ).bind(org_id).bind(status).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_billing_config).collect())
     }
@@ -523,12 +524,12 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BillingEvent> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.billing_events
+            r"INSERT INTO _atlas.billing_events
                 (organization_id, project_id, event_number, event_name, description,
                  event_type, billing_amount, currency_code, completion_pct,
                  planned_date, task_id, task_name, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, '{}'::jsonb, $13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(project_id).bind(event_number).bind(event_name).bind(description)
         .bind(event_type).bind(billing_amount).bind(currency_code).bind(completion_pct)
@@ -554,11 +555,11 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         &self, org_id: Uuid, project_id: Option<Uuid>, status: Option<&str>,
     ) -> AtlasResult<Vec<BillingEvent>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.billing_events
+            r"SELECT * FROM _atlas.billing_events
                WHERE organization_id = $1
                  AND ($2::uuid IS NULL OR project_id = $2)
                  AND ($3::text IS NULL OR status = $3)
-               ORDER BY planned_date NULLS LAST, created_at DESC"#,
+               ORDER BY planned_date NULLS LAST, created_at DESC",
         ).bind(org_id).bind(project_id).bind(status)
         .fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_billing_event).collect())
@@ -569,7 +570,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
             "UPDATE _atlas.billing_events SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Billing event {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Billing event {id} not found")))?;
         Ok(row_to_billing_event(&row))
     }
 
@@ -577,12 +578,12 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         &self, id: Uuid, actual_date: chrono::NaiveDate, completion_pct: f64,
     ) -> AtlasResult<BillingEvent> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.billing_events
+            r"UPDATE _atlas.billing_events
                SET actual_date = $2, completion_pct = $3, status = 'ready', updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(actual_date).bind(completion_pct)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Billing event {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Billing event {id} not found")))?;
         Ok(row_to_billing_event(&row))
     }
 
@@ -591,7 +592,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
             "DELETE FROM _atlas.billing_events WHERE organization_id = $1 AND event_number = $2"
         ).bind(org_id).bind(event_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Billing event '{}' not found", event_number)));
+            return Err(AtlasError::EntityNotFound(format!("Billing event '{event_number}' not found")));
         }
         Ok(())
     }
@@ -615,7 +616,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<ProjectInvoiceHeader> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.project_invoice_headers
+            r"INSERT INTO _atlas.project_invoice_headers
                 (organization_id, invoice_number, project_id, project_number, project_name,
                  invoice_type, customer_id, customer_name,
                  invoice_amount, tax_amount, retention_held, total_amount, currency_code,
@@ -624,7 +625,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
                  customer_po_number, contract_number, notes,
                  metadata, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,'{}'::jsonb,$22)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(invoice_number).bind(project_id).bind(project_number).bind(project_name)
         .bind(invoice_type).bind(customer_id).bind(customer_name)
@@ -654,11 +655,11 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         &self, org_id: Uuid, project_id: Option<Uuid>, status: Option<&str>,
     ) -> AtlasResult<Vec<ProjectInvoiceHeader>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.project_invoice_headers
+            r"SELECT * FROM _atlas.project_invoice_headers
                WHERE organization_id = $1
                  AND ($2::uuid IS NULL OR project_id = $2)
                  AND ($3::text IS NULL OR status = $3)
-               ORDER BY invoice_date DESC, created_at DESC"#,
+               ORDER BY invoice_date DESC, created_at DESC",
         ).bind(org_id).bind(project_id).bind(status)
         .fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_invoice).collect())
@@ -669,29 +670,29 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
             "UPDATE _atlas.project_invoice_headers SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
         Ok(row_to_invoice(&row))
     }
 
     async fn reject_invoice(&self, id: Uuid, reason: &str) -> AtlasResult<ProjectInvoiceHeader> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.project_invoice_headers
+            r"UPDATE _atlas.project_invoice_headers
                SET status = 'rejected', rejected_reason = $2, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(reason)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
         Ok(row_to_invoice(&row))
     }
 
     async fn mark_invoice_posted(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.project_invoice_headers
+            r"UPDATE _atlas.project_invoice_headers
                SET status = 'posted', gl_posted_flag = true, gl_posted_date = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
         Ok(row_to_invoice(&row))
     }
 
@@ -700,7 +701,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
             "DELETE FROM _atlas.project_invoice_headers WHERE organization_id = $1 AND invoice_number = $2"
         ).bind(org_id).bind(invoice_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Invoice '{}' not found", invoice_number)));
+            return Err(AtlasError::EntityNotFound(format!("Invoice '{invoice_number}' not found")));
         }
         Ok(())
     }
@@ -724,7 +725,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
         transaction_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ProjectInvoiceLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.project_invoice_lines
+            r"INSERT INTO _atlas.project_invoice_lines
                 (organization_id, invoice_header_id, line_number, line_source,
                  expenditure_item_id, billing_event_id, task_id, task_number, task_name,
                  description, employee_id, employee_name, role_name, expenditure_type,
@@ -732,7 +733,7 @@ impl ProjectBillingRepository for PostgresProjectBillingRepository {
                  raw_cost_amount, bill_amount, markup_amount, retention_amount, tax_amount,
                  transaction_date, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,'{}'::jsonb)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(invoice_header_id).bind(line_number).bind(line_source)
         .bind(expenditure_item_id).bind(billing_event_id)

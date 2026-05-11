@@ -1,6 +1,6 @@
 //! Contract Lifecycle Repository
 //!
-//! PostgreSQL storage for contract lifecycle management data.
+//! `PostgreSQL` storage for contract lifecycle management data.
 
 use atlas_shared::{
     ClmContractType, ClmClause, ClmTemplate, ClmTemplateClause,
@@ -103,10 +103,11 @@ fn row_to_risk(row: &sqlx::postgres::PgRow) -> ClmRisk {
 #[allow(dead_code)]
 pub struct PostgresContractLifecycleRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresContractLifecycleRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresContractLifecycleRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 fn check_del(r: sqlx::postgres::PgQueryResult, l: &str, id: &str) -> AtlasResult<()> {
-    if r.rows_affected() == 0 { Err(AtlasError::EntityNotFound(format!("{} '{}' not found", l, id))) } else { Ok(()) }
+    if r.rows_affected() == 0 { Err(AtlasError::EntityNotFound(format!("{l} '{id}' not found"))) } else { Ok(()) }
 }
 
 #[async_trait]
@@ -231,6 +232,6 @@ impl ContractLifecycleRepository for PostgresContractLifecycleRepository {
         let thirty = today + chrono::Duration::days(30);
         let expiring = contracts.iter().filter(|c| c.end_date.is_some_and(|d| d <= thirty && d >= today && c.status == "active")).count() as i32;
         let recent: Vec<serde_json::Value> = contracts.iter().take(10).map(|c| serde_json::json!({"id":c.id,"contractNumber":c.contract_number,"title":c.title,"status":c.status,"contractCategory":c.contract_category,"totalValue":c.total_value,"currency":c.currency})).collect();
-        Ok(ClmDashboard { total_contracts: total, active_contracts: active, draft_contracts: draft, expiring_contracts: expiring, total_contract_value: format!("{:.2}", total_value), contracts_by_category: serde_json::to_value(&by_category).unwrap_or(serde_json::json!({})), contracts_by_status: serde_json::to_value(&by_status).unwrap_or(serde_json::json!({})), high_risk_contracts: high_risk, pending_milestones: 0, pending_deliverables: 0, pending_amendments: 0, recent_contracts: serde_json::json!(recent) })
+        Ok(ClmDashboard { total_contracts: total, active_contracts: active, draft_contracts: draft, expiring_contracts: expiring, total_contract_value: format!("{total_value:.2}"), contracts_by_category: serde_json::to_value(&by_category).unwrap_or(serde_json::json!({})), contracts_by_status: serde_json::to_value(&by_status).unwrap_or(serde_json::json!({})), high_risk_contracts: high_risk, pending_milestones: 0, pending_deliverables: 0, pending_amendments: 0, recent_contracts: serde_json::json!(recent) })
     }
 }

@@ -1,6 +1,6 @@
 //! Bank Reconciliation Repository
 //!
-//! PostgreSQL storage for bank accounts, statements, statement lines,
+//! `PostgreSQL` storage for bank accounts, statements, statement lines,
 //! system transactions, reconciliation matches, summaries, and matching rules.
 
 use atlas_shared::{
@@ -164,13 +164,14 @@ pub trait ReconciliationRepository: Send + Sync {
     async fn delete_matching_rule(&self, id: Uuid) -> AtlasResult<()>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresReconciliationRepository {
     pool: PgPool,
 }
 
 impl PostgresReconciliationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -372,14 +373,14 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BankAccount> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.bank_accounts
                 (organization_id, account_number, account_name, bank_name,
                  bank_code, branch_name, branch_code, gl_account_code,
                  currency_code, account_type, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(account_number)
@@ -449,14 +450,14 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         imported_by: Option<Uuid>,
     ) -> AtlasResult<BankStatement> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.bank_statements
                 (organization_id, bank_account_id, statement_number,
                  statement_date, start_date, end_date,
                  opening_balance, closing_balance, status, imported_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8::numeric, 'imported', $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(bank_account_id)
@@ -512,12 +513,12 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         reconciliation_percent: f64,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.bank_statements
             SET total_lines = $2, matched_lines = $3, unmatched_lines = $4,
                 reconciliation_percent = $5, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .bind(total_lines)
@@ -543,12 +544,12 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         };
 
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.bank_statements
             SET status = $2, reconciled_by = $3, reconciled_at = $4, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id)
         .bind(status)
@@ -580,7 +581,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         counterparty_account: Option<&str>,
     ) -> AtlasResult<BankStatementLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.bank_statement_lines
                 (organization_id, statement_id, line_number,
                  transaction_date, transaction_type, amount,
@@ -588,7 +589,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
                  counterparty_name, counterparty_account, match_status)
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8, $9, $10, $11, 'unmatched')
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(statement_id)
@@ -644,7 +645,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SystemTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.system_transactions
                 (organization_id, bank_account_id, source_type, source_id,
                  source_number, transaction_date, amount, transaction_type,
@@ -652,7 +653,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
                  status, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8, $9, $10, $11, $12, 'unreconciled', $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(bank_account_id)
@@ -719,14 +720,14 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
     ) -> AtlasResult<ReconciliationMatch> {
         // Create the match record
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.reconciliation_matches
                 (organization_id, statement_id, statement_line_id,
                  system_transaction_id, match_method, match_confidence,
                  matched_by, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(statement_id)
@@ -746,12 +747,12 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
             "matched"
         };
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.bank_statement_lines
             SET match_status = $2, matched_by = $3, matched_at = now(),
                 match_method = $4, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(statement_line_id)
         .bind(match_status)
@@ -763,11 +764,11 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
 
         // Update system transaction status
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.system_transactions
             SET status = 'reconciled', updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(system_transaction_id)
         .execute(&self.pool)
@@ -810,16 +811,16 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         let existing = self
             .get_match(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {id}")))?;
 
         // Update match status
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.reconciliation_matches
             SET status = 'unmatched', unmatched_by = $2, unmatched_at = now(), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id)
         .bind(unmatched_by)
@@ -829,12 +830,12 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
 
         // Revert statement line to unmatched
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.bank_statement_lines
             SET match_status = 'unmatched', matched_by = NULL, matched_at = NULL,
                 match_method = NULL, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(existing.statement_line_id)
         .execute(&self.pool)
@@ -843,11 +844,11 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
 
         // Revert system transaction to unreconciled
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.system_transactions
             SET status = 'unreconciled', updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(existing.system_transaction_id)
         .execute(&self.pool)
@@ -870,11 +871,11 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
     ) -> AtlasResult<ReconciliationSummary> {
         // Try to get existing
         let row = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.reconciliation_summaries
             WHERE organization_id = $1 AND bank_account_id = $2
               AND period_start = $3 AND period_end = $4
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(bank_account_id)
@@ -890,12 +891,12 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
 
         // Create new
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.reconciliation_summaries
                 (organization_id, bank_account_id, period_start, period_end, status)
             VALUES ($1, $2, $3, $4, 'in_progress')
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(bank_account_id)
@@ -936,13 +937,13 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReconciliationMatchingRule> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.reconciliation_matching_rules
                 (organization_id, name, description, bank_account_id,
                  priority, criteria, stop_on_match, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(name)

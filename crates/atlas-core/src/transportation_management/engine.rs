@@ -77,7 +77,7 @@ const VALID_RATE_STATUSES: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -143,7 +143,7 @@ impl TransportationManagementEngine {
 
         if self.repository.get_carrier_by_code(org_id, carrier_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Carrier '{}' already exists", carrier_code
+                "Carrier '{carrier_code}' already exists"
             )));
         }
 
@@ -194,7 +194,7 @@ impl TransportationManagementEngine {
     /// Suspend a carrier
     pub async fn suspend_carrier(&self, id: Uuid) -> AtlasResult<Carrier> {
         let carrier = self.repository.get_carrier(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Carrier {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Carrier {id} not found")))?;
 
         if carrier.status != "active" {
             return Err(AtlasError::ValidationFailed(
@@ -209,7 +209,7 @@ impl TransportationManagementEngine {
     /// Reactivate a carrier
     pub async fn reactivate_carrier(&self, id: Uuid) -> AtlasResult<Carrier> {
         let carrier = self.repository.get_carrier(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Carrier {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Carrier {id} not found")))?;
 
         if carrier.status != "inactive" && carrier.status != "suspended" {
             return Err(AtlasError::ValidationFailed(
@@ -224,7 +224,7 @@ impl TransportationManagementEngine {
     /// Blacklist a carrier
     pub async fn blacklist_carrier(&self, id: Uuid) -> AtlasResult<Carrier> {
         let carrier = self.repository.get_carrier(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Carrier {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Carrier {id} not found")))?;
 
         if carrier.status == "blacklisted" {
             return Err(AtlasError::ValidationFailed(
@@ -335,7 +335,7 @@ impl TransportationManagementEngine {
         // Verify carrier exists
         let carrier = self.repository.get_carrier(carrier_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Carrier {} not found", carrier_id
+                "Carrier {carrier_id} not found"
             )))?;
 
         if carrier.status != "active" {
@@ -446,13 +446,13 @@ impl TransportationManagementEngine {
         if let Some(pc_id) = preferred_carrier_id {
             self.repository.get_carrier(pc_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Preferred carrier {} not found", pc_id
+                    "Preferred carrier {pc_id} not found"
                 )))?;
         }
 
         if self.repository.get_lane_by_code(org_id, lane_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Lane '{}' already exists", lane_code
+                "Lane '{lane_code}' already exists"
             )));
         }
 
@@ -501,7 +501,7 @@ impl TransportationManagementEngine {
     /// Deactivate a lane
     pub async fn deactivate_lane(&self, id: Uuid) -> AtlasResult<TransportLane> {
         let lane = self.repository.get_lane(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lane {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lane {id} not found")))?;
 
         if lane.status != "active" && lane.status != "seasonal" {
             return Err(AtlasError::ValidationFailed(
@@ -594,7 +594,7 @@ impl TransportationManagementEngine {
         if let Some(cid) = carrier_id {
             let carrier = self.repository.get_carrier(cid).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Carrier {} not found", cid
+                    "Carrier {cid} not found"
                 )))?;
             if carrier.status != "active" {
                 return Err(AtlasError::ValidationFailed(
@@ -607,14 +607,14 @@ impl TransportationManagementEngine {
             if let Some(sid) = carrier_service_id {
                 let svc = self.repository.get_carrier_service(sid).await?
                     .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                        "Carrier service {} not found", sid
+                        "Carrier service {sid} not found"
                     )))?;
                 if !svc.is_active {
                     return Err(AtlasError::ValidationFailed(
                         format!("Carrier service '{}' is not active", svc.service_code)
                     ));
                 }
-                carrier_service_code = Some(svc.service_code.clone());
+                carrier_service_code = Some(svc.service_code);
             }
         }
 
@@ -623,19 +623,19 @@ impl TransportationManagementEngine {
         if let Some(lid) = lane_id {
             let lane = self.repository.get_lane(lid).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Lane {} not found", lid
+                    "Lane {lid} not found"
                 )))?;
             if lane.status != "active" {
                 return Err(AtlasError::ValidationFailed(
                     format!("Lane '{}' is not active", lane.lane_code)
                 ));
             }
-            lane_code = Some(lane.lane_code.clone());
+            lane_code = Some(lane.lane_code);
         }
 
         if self.repository.get_shipment_by_number(org_id, shipment_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "TransportShipment '{}' already exists", shipment_number
+                "TransportShipment '{shipment_number}' already exists"
             )));
         }
 
@@ -697,7 +697,7 @@ impl TransportationManagementEngine {
     /// Book a shipment (draft → booked)
     pub async fn book_shipment(&self, id: Uuid, booked_by: Option<Uuid>) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
 
         if shipment.status != "draft" {
             return Err(AtlasError::ValidationFailed(
@@ -715,10 +715,10 @@ impl TransportationManagementEngine {
         self.repository.update_shipment_status(id, "booked").await
     }
 
-    /// Confirm pickup (booked → picked_up)
+    /// Confirm pickup (booked → `picked_up`)
     pub async fn confirm_pickup(&self, id: Uuid, tracking_number: Option<&str>, pro_number: Option<&str>) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
 
         if shipment.status != "booked" {
             return Err(AtlasError::ValidationFailed(
@@ -736,10 +736,10 @@ impl TransportationManagementEngine {
         Ok(s)
     }
 
-    /// Start transit (picked_up → in_transit)
+    /// Start transit (`picked_up` → `in_transit`)
     pub async fn start_transit(&self, id: Uuid, _driver_name: Option<&str>, _vehicle_id: Option<&str>) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
 
         if shipment.status != "picked_up" {
             return Err(AtlasError::ValidationFailed(
@@ -754,7 +754,7 @@ impl TransportationManagementEngine {
     /// Mark as at destination
     pub async fn arrive_at_destination(&self, id: Uuid) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
 
         if shipment.status != "in_transit" {
             return Err(AtlasError::ValidationFailed(
@@ -766,10 +766,10 @@ impl TransportationManagementEngine {
         self.repository.update_shipment_status(id, "at_destination").await
     }
 
-    /// Confirm delivery (at_destination → delivered)
+    /// Confirm delivery (`at_destination` → delivered)
     pub async fn confirm_delivery(&self, id: Uuid, received_by: Option<Uuid>) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
 
         if shipment.status != "at_destination" {
             return Err(AtlasError::ValidationFailed(
@@ -786,7 +786,7 @@ impl TransportationManagementEngine {
     /// Cancel a shipment
     pub async fn cancel_shipment(&self, id: Uuid) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
 
         if shipment.status == "delivered" || shipment.status == "cancelled" {
             return Err(AtlasError::ValidationFailed(
@@ -801,7 +801,7 @@ impl TransportationManagementEngine {
     /// Mark shipment as exception
     pub async fn mark_exception(&self, id: Uuid) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
 
         if shipment.status == "delivered" || shipment.status == "cancelled" {
             return Err(AtlasError::ValidationFailed(
@@ -821,7 +821,7 @@ impl TransportationManagementEngine {
         carrier_service_id: Option<Uuid>,
     ) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
 
         if shipment.status != "draft" {
             return Err(AtlasError::ValidationFailed(
@@ -830,7 +830,7 @@ impl TransportationManagementEngine {
         }
 
         let carrier = self.repository.get_carrier(carrier_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Carrier {} not found", carrier_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Carrier {carrier_id} not found")))?;
 
         if carrier.status != "active" {
             return Err(AtlasError::ValidationFailed(
@@ -841,8 +841,8 @@ impl TransportationManagementEngine {
         let mut svc_code: Option<String> = None;
         if let Some(sid) = carrier_service_id {
             let svc = self.repository.get_carrier_service(sid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Service {} not found", sid)))?;
-            svc_code = Some(svc.service_code.clone());
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Service {sid} not found")))?;
+            svc_code = Some(svc.service_code);
         }
 
         info!("Assigning carrier {} to shipment {}", carrier.carrier_code, shipment.shipment_number);
@@ -913,7 +913,7 @@ impl TransportationManagementEngine {
         // Verify shipment exists and is in editable state
         let shipment = self.repository.get_shipment(shipment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "TransportShipment {} not found", shipment_id
+                "TransportShipment {shipment_id} not found"
             )))?;
 
         if shipment.status != "draft" {
@@ -996,7 +996,7 @@ impl TransportationManagementEngine {
 
         let shipment = self.repository.get_shipment(shipment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "TransportShipment {} not found", shipment_id
+                "TransportShipment {shipment_id} not found"
             )))?;
 
         if shipment.status != "draft" {
@@ -1028,7 +1028,7 @@ impl TransportationManagementEngine {
     /// Recalculate shipment totals from lines
     pub async fn recalculate_shipment_totals(&self, shipment_id: Uuid) -> AtlasResult<TransportShipment> {
         let shipment = self.repository.get_shipment(shipment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {} not found", shipment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("TransportShipment {shipment_id} not found")))?;
 
         let lines = self.repository.list_shipment_lines(shipment_id).await?;
 
@@ -1084,7 +1084,7 @@ impl TransportationManagementEngine {
         // Verify shipment exists
         let shipment = self.repository.get_shipment(shipment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "TransportShipment {} not found", shipment_id
+                "TransportShipment {shipment_id} not found"
             )))?;
 
         info!("Adding tracking event '{}' for shipment {}", event_type, shipment.shipment_number);
@@ -1167,12 +1167,12 @@ impl TransportationManagementEngine {
         // Verify carrier exists
         self.repository.get_carrier(carrier_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Carrier {} not found", carrier_id
+                "Carrier {carrier_id} not found"
             )))?;
 
         if self.repository.get_freight_rate_by_code(org_id, rate_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Freight rate '{}' already exists", rate_code
+                "Freight rate '{rate_code}' already exists"
             )));
         }
 
@@ -1208,7 +1208,7 @@ impl TransportationManagementEngine {
     /// Expire a freight rate
     pub async fn expire_freight_rate(&self, id: Uuid) -> AtlasResult<FreightRate> {
         let rate = self.repository.get_freight_rate(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Freight rate {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Freight rate {id} not found")))?;
 
         if rate.status != "active" {
             return Err(AtlasError::ValidationFailed(

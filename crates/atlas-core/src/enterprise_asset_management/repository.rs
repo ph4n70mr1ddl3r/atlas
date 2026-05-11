@@ -1,6 +1,6 @@
 //! Enterprise Asset Management Repository
 //!
-//! PostgreSQL storage for asset locations, asset definitions, work orders,
+//! `PostgreSQL` storage for asset locations, asset definitions, work orders,
 //! preventive maintenance schedules, and maintenance dashboard.
 
 use atlas_shared::{
@@ -95,13 +95,14 @@ pub trait AssetManagementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<MaintenanceDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresAssetManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresAssetManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -224,11 +225,11 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<serde_json::Value> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.asset_locations
+            r"INSERT INTO _atlas.asset_locations
                 (organization_id, code, name, description, parent_location_id,
                  location_type, address, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, '{}'::jsonb, $8)
-            RETURNING id, organization_id, code, name, description, location_type, address, is_active, created_at"#,
+            RETURNING id, organization_id, code, name, description, location_type, address, is_active, created_at",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(parent_location_id).bind(location_type).bind(address).bind(created_by)
@@ -284,7 +285,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             "DELETE FROM _atlas.asset_locations WHERE organization_id = $1 AND code = $2"
         ).bind(org_id).bind(code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Location '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Location '{code}' not found")));
         }
         Ok(())
     }
@@ -303,7 +304,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         meter_reading: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<AssetDefinition> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.asset_definitions
+            r"INSERT INTO _atlas.asset_definitions
                 (organization_id, asset_number, name, description,
                  asset_group, asset_criticality,
                  location_id, location_name, parent_asset_id,
@@ -312,7 +313,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
                  metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
                     $13, $14, $15, '{}'::jsonb, $16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(asset_number).bind(name).bind(description)
         .bind(asset_group).bind(asset_criticality)
@@ -341,12 +342,12 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         &self, org_id: Uuid, status: Option<&str>, asset_group: Option<&str>, criticality: Option<&str>,
     ) -> AtlasResult<Vec<AssetDefinition>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.asset_definitions
+            r"SELECT * FROM _atlas.asset_definitions
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR asset_status = $2)
                  AND ($3::text IS NULL OR asset_group = $3)
                  AND ($4::text IS NULL OR asset_criticality = $4)
-               ORDER BY asset_criticality, created_at DESC"#,
+               ORDER BY asset_criticality, created_at DESC",
         )
         .bind(org_id).bind(status).bind(asset_group).bind(criticality)
         .fetch_all(&self.pool).await?;
@@ -358,7 +359,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             "UPDATE _atlas.asset_definitions SET asset_status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Asset {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Asset {id} not found")))?;
         Ok(row_to_asset(&row))
     }
 
@@ -367,7 +368,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             "UPDATE _atlas.asset_definitions SET meter_reading = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(&meter_reading)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Asset {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Asset {id} not found")))?;
         Ok(row_to_asset(&row))
     }
 
@@ -376,7 +377,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             "DELETE FROM _atlas.asset_definitions WHERE organization_id = $1 AND asset_number = $2"
         ).bind(org_id).bind(asset_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Asset '{}' not found", asset_number)));
+            return Err(AtlasError::EntityNotFound(format!("Asset '{asset_number}' not found")));
         }
         Ok(())
     }
@@ -396,7 +397,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<MaintenanceWorkOrder> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.work_orders
+            r"INSERT INTO _atlas.work_orders
                 (organization_id, work_order_number, title, description,
                  work_order_type, priority, status,
                  asset_id, asset_number, asset_name, location_name,
@@ -408,7 +409,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, 'draft',
                     $7, $8, $9, $10, $11, $12, $13, $14,
                     $15, $16, $17, $18, '{}'::jsonb, $19)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(work_order_number).bind(title).bind(description)
         .bind(work_order_type).bind(priority)
@@ -440,7 +441,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         priority: Option<&str>, asset_id: Option<Uuid>,
     ) -> AtlasResult<Vec<MaintenanceWorkOrder>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.work_orders
+            r"SELECT * FROM _atlas.work_orders
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR work_order_type = $3)
@@ -448,7 +449,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
                  AND ($5::uuid IS NULL OR asset_id = $5)
                ORDER BY
                  CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END,
-                 created_at DESC"#,
+                 created_at DESC",
         )
         .bind(org_id).bind(status).bind(work_order_type).bind(priority).bind(asset_id)
         .fetch_all(&self.pool).await?;
@@ -457,13 +458,13 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
 
     async fn update_work_order_status(&self, id: Uuid, status: &str) -> AtlasResult<MaintenanceWorkOrder> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_orders SET status = $2,
+            r"UPDATE _atlas.work_orders SET status = $2,
                 actual_start = CASE WHEN $3 THEN now() ELSE actual_start END,
                 actual_end = CASE WHEN $4 THEN now() ELSE actual_end END,
                 closed_at = CASE WHEN $5 THEN now() ELSE closed_at END,
                 approved_at = CASE WHEN $6 THEN now() ELSE approved_at END,
                 updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(status)
         .bind(status == "in_progress")
@@ -471,7 +472,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         .bind(status == "closed")
         .bind(status == "approved")
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Work order {id} not found")))?;
         Ok(row_to_work_order(&row))
     }
 
@@ -481,19 +482,19 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         materials: serde_json::Value, labor: serde_json::Value,
     ) -> AtlasResult<MaintenanceWorkOrder> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.work_orders
+            r"UPDATE _atlas.work_orders
                SET actual_cost = $2, actual_hours = $3, downtime_hours = $4,
                    resolution_code = $5, completion_notes = $6,
                    materials = $7, labor = $8,
                    status = 'completed', actual_end = now(),
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(actual_cost).bind(&actual_hours).bind(downtime_hours)
         .bind(resolution_code).bind(completion_notes)
         .bind(&materials).bind(&labor)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Work order {id} not found")))?;
         Ok(row_to_work_order(&row))
     }
 
@@ -502,7 +503,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             "DELETE FROM _atlas.work_orders WHERE organization_id = $1 AND work_order_number = $2"
         ).bind(org_id).bind(wo_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Work order '{}' not found", wo_number)));
+            return Err(AtlasError::EntityNotFound(format!("Work order '{wo_number}' not found")));
         }
         Ok(())
     }
@@ -524,7 +525,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PreventiveMaintenanceSchedule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.preventive_maintenance_schedules
+            r"INSERT INTO _atlas.preventive_maintenance_schedules
                 (organization_id, schedule_number, name, description,
                  asset_id, asset_number, asset_name,
                  schedule_type, frequency, interval_value, interval_unit,
@@ -536,7 +537,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
                     $12, $13, $14, $15, $16, $17, $18, $19, $20,
                     '{}'::jsonb, $21)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(schedule_number).bind(name).bind(description)
         .bind(asset_id).bind(asset_number).bind(asset_name)
@@ -567,11 +568,11 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         &self, org_id: Uuid, status: Option<&str>, asset_id: Option<Uuid>,
     ) -> AtlasResult<Vec<PreventiveMaintenanceSchedule>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.preventive_maintenance_schedules
+            r"SELECT * FROM _atlas.preventive_maintenance_schedules
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::uuid IS NULL OR asset_id = $3)
-               ORDER BY next_due_date, created_at DESC"#,
+               ORDER BY next_due_date, created_at DESC",
         )
         .bind(org_id).bind(status).bind(asset_id)
         .fetch_all(&self.pool).await?;
@@ -583,7 +584,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             "UPDATE _atlas.preventive_maintenance_schedules SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("PM schedule {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("PM schedule {id} not found")))?;
         Ok(row_to_pm_schedule(&row))
     }
 
@@ -592,7 +593,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             "DELETE FROM _atlas.preventive_maintenance_schedules WHERE organization_id = $1 AND schedule_number = $2"
         ).bind(org_id).bind(schedule_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Schedule '{}' not found", schedule_number)));
+            return Err(AtlasError::EntityNotFound(format!("Schedule '{schedule_number}' not found")));
         }
         Ok(())
     }
@@ -672,56 +673,56 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
 
         // Compute overdue work orders
         let overdue_row = sqlx::query(
-            r#"SELECT COUNT(*) as cnt FROM _atlas.work_orders
+            r"SELECT COUNT(*) as cnt FROM _atlas.work_orders
                WHERE organization_id = $1
                  AND status IN ('draft', 'approved', 'in_progress')
-                 AND scheduled_end < CURRENT_DATE"#,
+                 AND scheduled_end < CURRENT_DATE",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let overdue_work_orders: i64 = overdue_row.try_get("cnt").unwrap_or(0);
 
         // Compute overdue schedules
         let overdue_sched_row = sqlx::query(
-            r#"SELECT COUNT(*) as cnt FROM _atlas.preventive_maintenance_schedules
+            r"SELECT COUNT(*) as cnt FROM _atlas.preventive_maintenance_schedules
                WHERE organization_id = $1
                  AND status = 'active'
-                 AND next_due_date < CURRENT_DATE"#,
+                 AND next_due_date < CURRENT_DATE",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let overdue_schedules: i64 = overdue_sched_row.try_get("cnt").unwrap_or(0);
 
         // Compute avg completion time
         let avg_row = sqlx::query(
-            r#"SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (actual_end - created_at))/86400), 0) as avg_days
+            r"SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (actual_end - created_at))/86400), 0) as avg_days
                FROM _atlas.work_orders
-               WHERE organization_id = $1 AND status IN ('completed', 'closed') AND actual_end IS NOT NULL"#,
+               WHERE organization_id = $1 AND status IN ('completed', 'closed') AND actual_end IS NOT NULL",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let avg_completion_days: f64 = avg_row.try_get("avg_days").unwrap_or(0.0);
 
         // Compute total maintenance cost
         let cost_row = sqlx::query(
-            r#"SELECT COALESCE(SUM(CAST(actual_cost AS NUMERIC)), 0) as total_cost
-               FROM _atlas.work_orders WHERE organization_id = $1"#,
+            r"SELECT COALESCE(SUM(CAST(actual_cost AS NUMERIC)), 0) as total_cost
+               FROM _atlas.work_orders WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let total_maintenance_cost: f64 = cost_row.try_get("total_cost").unwrap_or(0.0);
 
         // Compute total downtime
         let dt_row = sqlx::query(
-            r#"SELECT COALESCE(SUM(downtime_hours), 0) as total_dt
-               FROM _atlas.work_orders WHERE organization_id = $1"#,
+            r"SELECT COALESCE(SUM(downtime_hours), 0) as total_dt
+               FROM _atlas.work_orders WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let total_downtime_hours: f64 = dt_row.try_get("total_dt").unwrap_or(0.0);
 
         // MTBF / MTTR
         let mtbf_row = sqlx::query(
-            r#"SELECT COALESCE(AVG(CAST(meter_reading->>'value' AS NUMERIC)), 0) as mtbf
+            r"SELECT COALESCE(AVG(CAST(meter_reading->>'value' AS NUMERIC)), 0) as mtbf
                FROM _atlas.asset_definitions
-               WHERE organization_id = $1 AND asset_criticality IN ('high', 'critical')"#,
+               WHERE organization_id = $1 AND asset_criticality IN ('high', 'critical')",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let mtbf_hours: f64 = mtbf_row.try_get("mtbf").unwrap_or(0.0);
 
         let mttr_row = sqlx::query(
-            r#"SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (COALESCE(actual_end, now()) - COALESCE(actual_start, created_at)))/3600), 0) as mttr
+            r"SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (COALESCE(actual_end, now()) - COALESCE(actual_start, created_at)))/3600), 0) as mttr
                FROM _atlas.work_orders
-               WHERE organization_id = $1 AND status IN ('completed', 'closed')"#,
+               WHERE organization_id = $1 AND status IN ('completed', 'closed')",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let mttr_hours: f64 = mttr_row.try_get("mttr").unwrap_or(0.0);
 
@@ -742,7 +743,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
             active_schedules,
             overdue_schedules: overdue_schedules as i32,
             avg_completion_days,
-            total_maintenance_cost: format!("{:.2}", total_maintenance_cost),
+            total_maintenance_cost: format!("{total_maintenance_cost:.2}"),
             total_downtime_hours,
             mtbf_hours,
             mttr_hours,

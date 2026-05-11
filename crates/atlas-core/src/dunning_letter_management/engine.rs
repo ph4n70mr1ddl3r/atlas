@@ -5,7 +5,7 @@
 //!
 //! Oracle Fusion: Financials > Receivables > Dunning Letters
 
-use super::*;
+use super::{DunningLetterManagementRepository, AtlasResult, DunningLetterSet, AtlasError, DunningLetterSetLine, DunningProfile, DunningLetterRun, DunningLetterRunResult};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -62,7 +62,7 @@ impl DunningLetterManagementEngine {
         }
 
         if self.repository.get_letter_set_by_name(org_id, set_name).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Letter set '{}' already exists", set_name)));
+            return Err(AtlasError::Conflict(format!("Letter set '{set_name}' already exists")));
         }
 
         info!("Creating dunning letter set '{}'", set_name);
@@ -90,7 +90,7 @@ impl DunningLetterManagementEngine {
 
     pub async fn activate_letter_set(&self, id: Uuid) -> AtlasResult<DunningLetterSet> {
         let set = self.repository.get_letter_set(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Letter set {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Letter set {id} not found")))?;
 
         if set.status != "draft" && set.status != "inactive" {
             return Err(AtlasError::WorkflowError(
@@ -112,7 +112,7 @@ impl DunningLetterManagementEngine {
 
     pub async fn deactivate_letter_set(&self, id: Uuid) -> AtlasResult<DunningLetterSet> {
         let set = self.repository.get_letter_set(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Letter set {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Letter set {id} not found")))?;
 
         if set.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -144,7 +144,7 @@ impl DunningLetterManagementEngine {
         escalation_days: Option<i32>,
     ) -> AtlasResult<DunningLetterSetLine> {
         let set = self.repository.get_letter_set(set_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Letter set {} not found", set_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Letter set {set_id} not found")))?;
 
         if set.status == "active" {
             return Err(AtlasError::ValidationFailed(
@@ -222,7 +222,7 @@ impl DunningLetterManagementEngine {
         // Check for duplicate customer
         if self.repository.get_profile_by_customer(org_id, customer_id).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Dunning profile already exists for customer {}", customer_id
+                "Dunning profile already exists for customer {customer_id}"
             )));
         }
 
@@ -231,7 +231,7 @@ impl DunningLetterManagementEngine {
             let ls = self.repository.get_letter_set(ls_id).await?;
             if ls.is_none() {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Letter set {} not found", ls_id
+                    "Letter set {ls_id} not found"
                 )));
             }
         }
@@ -261,7 +261,7 @@ impl DunningLetterManagementEngine {
 
     pub async fn enable_profile(&self, id: Uuid) -> AtlasResult<DunningProfile> {
         let profile = self.repository.get_profile(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Profile {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Profile {id} not found")))?;
         if profile.dunning_status == "enabled" {
             return Err(AtlasError::WorkflowError("Profile is already enabled".into()));
         }
@@ -270,7 +270,7 @@ impl DunningLetterManagementEngine {
 
     pub async fn disable_profile(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<DunningProfile> {
         let _profile = self.repository.get_profile(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Profile {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Profile {id} not found")))?;
         info!("Disabling dunning profile {}", id);
         self.repository.update_profile_status(id, "disabled", reason).await
     }
@@ -280,7 +280,7 @@ impl DunningLetterManagementEngine {
             return Err(AtlasError::ValidationFailed("Hold reason is required".into()));
         }
         let _profile = self.repository.get_profile(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Profile {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Profile {id} not found")))?;
         info!("Putting dunning profile {} on hold", id);
         self.repository.update_profile_status(id, "hold", Some(reason)).await
     }
@@ -317,13 +317,13 @@ impl DunningLetterManagementEngine {
         }
 
         if self.repository.get_run_by_number(org_id, run_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Run number '{}' already exists", run_number)));
+            return Err(AtlasError::Conflict(format!("Run number '{run_number}' already exists")));
         }
 
         // Verify letter set exists and is active if provided
         if let Some(ls_id) = letter_set_id {
             let ls = self.repository.get_letter_set(ls_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Letter set {} not found", ls_id)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Letter set {ls_id} not found")))?;
             if ls.status != "active" {
                 return Err(AtlasError::ValidationFailed(
                     "Letter set must be active to create a run".into()
@@ -357,7 +357,7 @@ impl DunningLetterManagementEngine {
 
     pub async fn submit_run(&self, id: Uuid) -> AtlasResult<DunningLetterRun> {
         let run = self.repository.get_run(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {id} not found")))?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -371,7 +371,7 @@ impl DunningLetterManagementEngine {
 
     pub async fn complete_run(&self, id: Uuid) -> AtlasResult<DunningLetterRun> {
         let run = self.repository.get_run(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {id} not found")))?;
 
         if run.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -385,7 +385,7 @@ impl DunningLetterManagementEngine {
 
     pub async fn cancel_run(&self, id: Uuid) -> AtlasResult<DunningLetterRun> {
         let run = self.repository.get_run(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {id} not found")))?;
 
         if run.status == "completed" || run.status == "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -423,7 +423,7 @@ impl DunningLetterManagementEngine {
     ) -> AtlasResult<DunningLetterRunResult> {
         // Verify run exists and is in draft/submitted
         let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", run_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "draft" && run.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -458,7 +458,7 @@ impl DunningLetterManagementEngine {
             run_id,
             total_customers,
             total_letters,
-            &format!("{:.2}", total_amount),
+            &format!("{total_amount:.2}"),
         ).await?;
 
         Ok(result)
@@ -478,7 +478,7 @@ impl DunningLetterManagementEngine {
         delivery_confirmation: Option<&str>,
     ) -> AtlasResult<DunningLetterRunResult> {
         let result = self.repository.get_run_result(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Result {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Result {id} not found")))?;
 
         if result.status != "generated" && result.status != "pending" {
             return Err(AtlasError::WorkflowError(
@@ -509,7 +509,7 @@ impl DunningLetterManagementEngine {
         reason: &str,
     ) -> AtlasResult<DunningLetterRunResult> {
         let result = self.repository.get_run_result(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Result {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Result {id} not found")))?;
 
         if result.status != "pending" && result.status != "generated" {
             return Err(AtlasError::WorkflowError(

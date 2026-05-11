@@ -477,12 +477,11 @@ impl InventoryEngine {
 
         let available: f64 = balance
             .as_ref()
-            .map(|b| b.available_quantity.parse::<f64>().unwrap_or(0.0))
-            .unwrap_or(0.0);
+            .map_or(0.0, |b| b.available_quantity.parse::<f64>().unwrap_or(0.0));
 
         if available < qty {
             return Err(AtlasError::ValidationFailed(format!(
-                "Insufficient on-hand quantity. Available: {}, Requested: {}", available, qty
+                "Insufficient on-hand quantity. Available: {available}, Requested: {qty}"
             )));
         }
 
@@ -512,7 +511,7 @@ impl InventoryEngine {
         ).await?;
 
         // Update on-hand (negative delta)
-        let neg_qty = format!("-{}", quantity);
+        let neg_qty = format!("-{quantity}");
         self.repository.upsert_on_hand_balance(
             org_id, from_inventory_org_id, item_id, from_subinventory_id, from_locator_id,
             lot_number, serial_number, revision,
@@ -563,12 +562,11 @@ impl InventoryEngine {
 
         let available: f64 = balance
             .as_ref()
-            .map(|b| b.available_quantity.parse::<f64>().unwrap_or(0.0))
-            .unwrap_or(0.0);
+            .map_or(0.0, |b| b.available_quantity.parse::<f64>().unwrap_or(0.0));
 
         if available < qty {
             return Err(AtlasError::ValidationFailed(format!(
-                "Insufficient on-hand quantity for transfer. Available: {}, Requested: {}", available, qty
+                "Insufficient on-hand quantity for transfer. Available: {available}, Requested: {qty}"
             )));
         }
 
@@ -596,7 +594,7 @@ impl InventoryEngine {
         ).await?;
 
         // Decrease source balance
-        let neg_qty = format!("-{}", quantity);
+        let neg_qty = format!("-{quantity}");
         self.repository.upsert_on_hand_balance(
             org_id, from_inventory_org_id, item_id, from_subinventory_id, from_locator_id,
             lot_number, serial_number, revision,
@@ -788,7 +786,7 @@ impl InventoryEngine {
     ) -> AtlasResult<CycleCountLine> {
         let cc = self.repository.get_cycle_count(cycle_count_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Cycle count {} not found", cycle_count_id)
+                format!("Cycle count {cycle_count_id} not found")
             ))?;
 
         if cc.status == "completed" || cc.status == "cancelled" {
@@ -803,7 +801,7 @@ impl InventoryEngine {
                 org_id, cc.inventory_org_id, item_id, sub_id,
                 locator_id, lot_number, None, revision,
             ).await?;
-            balance.map(|b| b.quantity).unwrap_or_else(|| "0".to_string())
+            balance.map_or_else(|| "0".to_string(), |b| b.quantity)
         } else {
             "0".to_string()
         };
@@ -891,7 +889,7 @@ impl InventoryEngine {
 
         // If there's a variance, generate an adjustment transaction
         if !line.is_matched {
-            if let (Some(_variance_qty), Some(ref variance_str)) = (line.variance_quantity.as_ref(), line.variance_quantity.as_ref()) {
+            if let (Some(_variance_qty), Some(variance_str)) = (line.variance_quantity.as_ref(), line.variance_quantity.as_ref()) {
                 let variance: f64 = variance_str.parse().unwrap_or(0.0);
                 if variance.abs() > 0.001 {
                     let cc = self.repository.get_cycle_count(line.cycle_count_id).await?
@@ -916,7 +914,7 @@ impl InventoryEngine {
                         line.revision.as_deref(),
                         None,
                         Some(&format!("Cycle count adjustment: {}", cc.count_number)),
-                        Some(&format!("Variance of {} for item {}", variance_str, line.item_code.as_deref().unwrap_or("unknown"))),
+                        Some(&format!("Variance of {} for item {}", &variance_str, line.item_code.as_deref().unwrap_or("unknown"))),
                         None,
                     ).await?;
 
@@ -998,7 +996,7 @@ impl InventoryEngine {
         // Top items by on-hand value
         let mut by_item_value: std::collections::HashMap<Uuid, (String, f64)> = std::collections::HashMap::new();
         for b in &all_on_hand {
-            let entry = by_item_value.entry(b.item_id).or_insert(("".to_string(), 0.0));
+            let entry = by_item_value.entry(b.item_id).or_insert((String::new(), 0.0));
             entry.1 += b.total_value.parse::<f64>().unwrap_or(0.0);
         }
         let mut top_items: Vec<_> = by_item_value.into_iter()
@@ -1015,7 +1013,7 @@ impl InventoryEngine {
             total_items,
             active_items,
             total_organizations: all_orgs.len() as i32,
-            total_on_hand_value: format!("{:.2}", total_on_hand_value),
+            total_on_hand_value: format!("{total_on_hand_value:.2}"),
             total_pending_transactions: pending_txns,
             total_processed_transactions: processed_txns,
             items_by_type,

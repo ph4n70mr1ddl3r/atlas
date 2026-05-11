@@ -56,7 +56,7 @@ impl SupplierScorecardEngine {
             )));
         }
         if self.repository.get_template_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Template '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Template '{code}' already exists")));
         }
         info!("Creating scorecard template '{}' for org {}", code, org_id);
         self.repository
@@ -116,7 +116,7 @@ impl SupplierScorecardEngine {
         }
         // Verify template exists
         self.repository.get_template(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", template_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {template_id} not found")))?;
 
         info!("Creating scorecard category '{}' for template {}", code, template_id);
         self.repository
@@ -156,11 +156,11 @@ impl SupplierScorecardEngine {
             return Err(AtlasError::ValidationFailed("Evaluation period start must be before end".to_string()));
         }
         if self.repository.get_scorecard_by_number(org_id, scorecard_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Scorecard '{}' already exists", scorecard_number)));
+            return Err(AtlasError::Conflict(format!("Scorecard '{scorecard_number}' already exists")));
         }
         // Verify template exists
         self.repository.get_template(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", template_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {template_id} not found")))?;
 
         info!("Creating scorecard '{}' for supplier {} in org {}", scorecard_number, supplier_id, org_id);
         self.repository
@@ -200,7 +200,7 @@ impl SupplierScorecardEngine {
         reviewer_name: Option<&str>,
     ) -> atlas_shared::AtlasResult<atlas_shared::SupplierScorecard> {
         let sc = self.repository.get_scorecard(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scorecard {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scorecard {id} not found")))?;
         if sc.status != "draft" && sc.status != "rejected" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot submit scorecard in '{}' status. Must be 'draft' or 'rejected'.", sc.status
@@ -212,12 +212,12 @@ impl SupplierScorecardEngine {
         let grade = self.score_to_grade(overall);
 
         info!("Submitting scorecard {} with score {} ({})", sc.scorecard_number, overall, grade);
-        self.repository.submit_scorecard(id, &format!("{:.2}", overall), if lines.is_empty() { "N/A" } else { &grade }, reviewer_id, reviewer_name).await
+        self.repository.submit_scorecard(id, &format!("{overall:.2}"), if lines.is_empty() { "N/A" } else { &grade }, reviewer_id, reviewer_name).await
     }
 
     pub async fn approve_scorecard(&self, id: Uuid, approved_by: Option<Uuid>) -> atlas_shared::AtlasResult<atlas_shared::SupplierScorecard> {
         let sc = self.repository.get_scorecard(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scorecard {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scorecard {id} not found")))?;
         if sc.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot approve scorecard in '{}' status. Must be 'submitted'.", sc.status
@@ -229,7 +229,7 @@ impl SupplierScorecardEngine {
 
     pub async fn reject_scorecard(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::SupplierScorecard> {
         let sc = self.repository.get_scorecard(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scorecard {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scorecard {id} not found")))?;
         if sc.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot reject scorecard in '{}' status. Must be 'submitted'.", sc.status
@@ -277,7 +277,7 @@ impl SupplierScorecardEngine {
 
         // Verify scorecard exists and is in draft status
         let sc = self.repository.get_scorecard(scorecard_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scorecard {} not found", scorecard_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scorecard {scorecard_id} not found")))?;
         if sc.status != "draft" {
             return Err(AtlasError::WorkflowError(
                 "Cannot add lines to non-draft scorecard".to_string(),
@@ -293,7 +293,7 @@ impl SupplierScorecardEngine {
             .add_scorecard_line(
                 org_id, scorecard_id, category_id, line_number,
                 kpi_name, kpi_description, weight, target_value, actual_value,
-                score, &format!("{:.2}", weighted_score), evidence, notes,
+                score, &format!("{weighted_score:.2}"), evidence, notes,
             )
             .await
     }
@@ -335,7 +335,7 @@ impl SupplierScorecardEngine {
             return Err(AtlasError::ValidationFailed("Period start must be before end".to_string()));
         }
         if self.repository.get_review_by_number(org_id, review_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Review '{}' already exists", review_number)));
+            return Err(AtlasError::Conflict(format!("Review '{review_number}' already exists")));
         }
         info!("Creating performance review '{}' for supplier {}", review_number, supplier_id);
         self.repository
@@ -374,7 +374,7 @@ impl SupplierScorecardEngine {
             )));
         }
         let review = self.repository.get_review(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Review {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Review {id} not found")))?;
         info!("Updating review {} status to {}", review.review_number, status);
         self.repository.update_review_status(id, status).await
     }
@@ -391,7 +391,7 @@ impl SupplierScorecardEngine {
         reviewer_name: Option<&str>,
     ) -> atlas_shared::AtlasResult<atlas_shared::SupplierPerformanceReview> {
         let review = self.repository.get_review(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Review {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Review {id} not found")))?;
         if review.status != "in_progress" && review.status != "scheduled" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot complete review in '{}' status.", review.status
@@ -451,7 +451,7 @@ impl SupplierScorecardEngine {
         }
         // Verify review exists
         self.repository.get_review(review_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Review {} not found", review_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Review {review_id} not found")))?;
 
         let existing = self.repository.list_action_items(review_id).await?;
         let action_number = (existing.len() as i32) + 1;
@@ -471,7 +471,7 @@ impl SupplierScorecardEngine {
 
     pub async fn complete_action_item(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::ReviewActionItem> {
         let item = self.repository.get_action_item(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Action item {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Action item {id} not found")))?;
         if item.status != "open" && item.status != "in_progress" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot complete action item in '{}' status.", item.status

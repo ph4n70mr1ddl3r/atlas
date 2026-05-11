@@ -3,7 +3,7 @@
 //! Manages qualification areas, questions, initiatives, supplier invitations,
 //! response evaluation & scoring, certification tracking, and qualification lifecycle.
 //!
-//! Qualification lifecycle: initiated → pending_response → under_evaluation → qualified/disqualified/expired
+//! Qualification lifecycle: initiated → `pending_response` → `under_evaluation` → qualified/disqualified/expired
 //!
 //! Oracle Fusion Cloud ERP equivalent: Procurement > Supplier Qualification
 
@@ -172,7 +172,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_area_by_id(area_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Qualification area {} not found", area_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Qualification area {area_id} not found")))?;
 
         if question_text.is_empty() {
             return Err(AtlasError::ValidationFailed("Question text is required".to_string()));
@@ -251,7 +251,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_area_by_id(area_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Qualification area {} not found", area_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Qualification area {area_id} not found")))?;
 
         if !area.is_active {
             return Err(AtlasError::ValidationFailed(format!(
@@ -304,7 +304,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_initiative(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Initiative {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Initiative {id} not found")))?;
 
         if initiative.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -323,7 +323,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_initiative(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Initiative {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Initiative {id} not found")))?;
 
         if initiative.status != "pending_evaluations" && initiative.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -342,7 +342,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_initiative(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Initiative {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Initiative {id} not found")))?;
 
         if initiative.status == "completed" || initiative.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
@@ -375,7 +375,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_initiative(initiative_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Initiative {} not found", initiative_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Initiative {initiative_id} not found")))?;
 
         if initiative.status != "active" && initiative.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -435,7 +435,7 @@ impl SupplierQualificationEngine {
         self.repository.list_invitations_by_supplier(org_id, supplier_id).await
     }
 
-    /// Submit supplier response (moves to pending_response)
+    /// Submit supplier response (moves to `pending_response`)
     pub async fn submit_response(
         &self,
         invitation_id: Uuid,
@@ -444,7 +444,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {} not found", invitation_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
 
         if invitation.status != "initiated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -459,13 +459,13 @@ impl SupplierQualificationEngine {
             .await
     }
 
-    /// Move invitation to under_evaluation
+    /// Move invitation to `under_evaluation`
     pub async fn start_evaluation(&self, invitation_id: Uuid) -> AtlasResult<SupplierQualificationInvitation> {
         let invitation = self
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {} not found", invitation_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
 
         if invitation.status != "pending_response" {
             return Err(AtlasError::WorkflowError(format!(
@@ -491,7 +491,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {} not found", invitation_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
 
         if invitation.status != "under_evaluation" {
             return Err(AtlasError::WorkflowError(format!(
@@ -513,9 +513,9 @@ impl SupplierQualificationEngine {
             .repository
             .update_invitation_scores(
                 invitation_id,
-                &format!("{:.2}", overall_score),
-                &format!("{:.2}", max_possible),
-                &format!("{:.2}", percentage),
+                &format!("{overall_score:.2}"),
+                &format!("{max_possible:.2}"),
+                &format!("{percentage:.2}"),
                 qualified_by,
                 None,
                 evaluation_notes,
@@ -543,7 +543,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {} not found", invitation_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
 
         if invitation.status != "under_evaluation" {
             return Err(AtlasError::WorkflowError(format!(
@@ -570,9 +570,9 @@ impl SupplierQualificationEngine {
         self.repository
             .update_invitation_scores(
                 invitation_id,
-                &format!("{:.2}", overall_score),
-                &format!("{:.2}", max_possible),
-                &format!("{:.2}", percentage),
+                &format!("{overall_score:.2}"),
+                &format!("{max_possible:.2}"),
+                &format!("{percentage:.2}"),
                 qualified_by,
                 Some(disqualified_reason),
                 None,
@@ -608,7 +608,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {} not found", invitation_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
 
         if invitation.status != "initiated" && invitation.status != "pending_response" {
             return Err(AtlasError::WorkflowError(format!(
@@ -721,7 +721,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_certification(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Certification {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Certification {id} not found")))?;
 
         if cert.status != "active" && cert.status != "pending_renewal" {
             return Err(AtlasError::WorkflowError(format!(
@@ -745,7 +745,7 @@ impl SupplierQualificationEngine {
             .repository
             .get_certification(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Certification {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Certification {id} not found")))?;
 
         if cert.status != "active" && cert.status != "pending_renewal" && cert.status != "expired" {
             return Err(AtlasError::WorkflowError(format!(

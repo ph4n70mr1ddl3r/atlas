@@ -5,6 +5,7 @@ use atlas_core::schema::WorkflowBuilder;
 use atlas_shared::EntityDefinition;
 
 /// Project entity with lifecycle workflow
+#[must_use] 
 pub fn project_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("project_lifecycle", "planning")
         .initial_state("planning", "Planning")
@@ -40,6 +41,7 @@ pub fn project_definition() -> EntityDefinition {
 }
 
 /// Task entity with workflow
+#[must_use] 
 pub fn task_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("task_workflow", "todo")
         .initial_state("todo", "To Do")
@@ -81,6 +83,7 @@ pub fn task_definition() -> EntityDefinition {
 }
 
 /// Timesheet entity
+#[must_use] 
 pub fn timesheet_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("timesheet_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -113,6 +116,7 @@ pub fn timesheet_definition() -> EntityDefinition {
 }
 
 /// Milestone entity
+#[must_use] 
 pub fn milestone_definition() -> EntityDefinition {
     SchemaBuilder::new("milestones", "Milestone")
         .plural_label("Milestones")

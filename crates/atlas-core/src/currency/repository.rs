@@ -1,6 +1,6 @@
 //! Currency Repository
 //!
-//! PostgreSQL storage for currencies, exchange rates, and conversion history.
+//! `PostgreSQL` storage for currencies, exchange rates, and conversion history.
 
 use atlas_shared::{
     CurrencyDefinition, ExchangeRate,
@@ -95,13 +95,14 @@ pub trait CurrencyRepository: Send + Sync {
     ) -> AtlasResult<Uuid>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCurrencyRepository {
     pool: PgPool,
 }
 
 impl PostgresCurrencyRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -167,13 +168,13 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         }
 
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.currencies (organization_id, code, name, symbol, precision, is_base_currency)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (organization_id, code) DO UPDATE
                 SET name = $3, symbol = $4, precision = $5, is_base_currency = $6, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(code)
@@ -250,14 +251,14 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ExchangeRate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.exchange_rates
                 (organization_id, from_currency, to_currency, rate_type, rate, effective_date, inverse_rate, source, created_by)
             VALUES ($1, $2, $3, $4, $5::numeric, $6, $7::numeric, $8, $9)
             ON CONFLICT (organization_id, from_currency, to_currency, rate_type, effective_date)
             DO UPDATE SET rate = $5::numeric, inverse_rate = $7::numeric, source = $8, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(from_currency)
@@ -284,9 +285,9 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         effective_date: chrono::NaiveDate,
     ) -> AtlasResult<Option<ExchangeRate>> {
         let row = sqlx::query(
-            r#"SELECT * FROM _atlas.exchange_rates
+            r"SELECT * FROM _atlas.exchange_rates
             WHERE organization_id = $1 AND from_currency = $2 AND to_currency = $3
-              AND rate_type = $4 AND effective_date = $5"#,
+              AND rate_type = $4 AND effective_date = $5",
         )
         .bind(org_id)
         .bind(from_currency)
@@ -309,10 +310,10 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         on_or_before: chrono::NaiveDate,
     ) -> AtlasResult<Option<ExchangeRate>> {
         let row = sqlx::query(
-            r#"SELECT * FROM _atlas.exchange_rates
+            r"SELECT * FROM _atlas.exchange_rates
             WHERE organization_id = $1 AND from_currency = $2 AND to_currency = $3
               AND rate_type = $4 AND effective_date <= $5
-            ORDER BY effective_date DESC LIMIT 1"#,
+            ORDER BY effective_date DESC LIMIT 1",
         )
         .bind(org_id)
         .bind(from_currency)
@@ -346,17 +347,17 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         let bind_type = rate_type.is_some();
         let bind_date = effective_date.is_some();
 
-        if bind_from { param_idx += 1; query_str.push_str(&format!(" AND from_currency = ${}", param_idx)); }
-        if bind_to { param_idx += 1; query_str.push_str(&format!(" AND to_currency = ${}", param_idx)); }
-        if bind_type { param_idx += 1; query_str.push_str(&format!(" AND rate_type = ${}", param_idx)); }
-        if bind_date { param_idx += 1; query_str.push_str(&format!(" AND effective_date = ${}", param_idx)); }
+        if bind_from { param_idx += 1; query_str.push_str(&format!(" AND from_currency = ${param_idx}")); }
+        if bind_to { param_idx += 1; query_str.push_str(&format!(" AND to_currency = ${param_idx}")); }
+        if bind_type { param_idx += 1; query_str.push_str(&format!(" AND rate_type = ${param_idx}")); }
+        if bind_date { param_idx += 1; query_str.push_str(&format!(" AND effective_date = ${param_idx}")); }
 
         param_idx += 1;
         let limit_idx = param_idx;
         param_idx += 1;
         let offset_idx = param_idx;
 
-        query_str.push_str(&format!(" ORDER BY effective_date DESC, from_currency, to_currency LIMIT ${} OFFSET ${}", limit_idx, offset_idx));
+        query_str.push_str(&format!(" ORDER BY effective_date DESC, from_currency, to_currency LIMIT ${limit_idx} OFFSET ${offset_idx}"));
 
         let mut query = sqlx::query(&query_str).bind(org_id);
         if let Some(f) = from_currency { query = query.bind(f); }
@@ -398,7 +399,7 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Uuid> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.currency_conversions
                 (organization_id, entity_type, entity_id, from_currency, to_currency,
                  from_amount, to_amount, exchange_rate, rate_type, effective_date,
@@ -406,7 +407,7 @@ impl CurrencyRepository for PostgresCurrencyRepository {
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7::numeric, $8::numeric, $9, $10,
                     $11::numeric, $12, $13, $14)
             RETURNING id
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(entity_type)

@@ -1,6 +1,6 @@
 //! Recruiting Management Repository
 //!
-//! PostgreSQL storage for recruiting data.
+//! `PostgreSQL` storage for recruiting data.
 
 use atlas_shared::{
     JobRequisition, Candidate, JobApplication, Interview, JobOffer,
@@ -101,25 +101,26 @@ pub trait RecruitingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RecruitingDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresRecruitingRepository {
     pool: PgPool,
 }
 
 impl PostgresRecruitingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 fn get_num(row: &sqlx::postgres::PgRow, col: &str) -> String {
     let v: f64 = row.try_get(col).unwrap_or(0.0);
-    format!("{:.2}", v)
+    format!("{v:.2}")
 }
 
 fn get_opt_num(row: &sqlx::postgres::PgRow, col: &str) -> Option<String> {
     match row.try_get::<Option<f64>, _>(col) {
-        Ok(Some(v)) => Some(format!("{:.2}", v)),
+        Ok(Some(v)) => Some(format!("{v:.2}")),
         _ => None,
     }
 }
@@ -287,14 +288,14 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JobRequisition> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.job_requisitions
+            r"INSERT INTO _atlas.job_requisitions
                 (organization_id, requisition_number, title, description,
                  department, location, employment_type, position_type, vacancies, priority,
                  salary_min, salary_max, currency, required_skills, qualifications,
                  experience_years_min, experience_years_max, education_level,
                  hiring_manager_id, recruiter_id, target_start_date, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id).bind(requisition_number).bind(title).bind(description)
         .bind(department).bind(location).bind(employment_type).bind(position_type)
@@ -346,12 +347,12 @@ impl RecruitingRepository for PostgresRecruitingRepository {
 
     async fn update_requisition_status(&self, id: Uuid, status: &str) -> AtlasResult<JobRequisition> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.job_requisitions
+            r"UPDATE _atlas.job_requisitions
                SET status = $2,
                    posted_date = CASE WHEN $2 = 'open' AND posted_date IS NULL THEN now() ELSE posted_date END,
                    closed_date = CASE WHEN $2 IN ('closed','cancelled','filled') AND closed_date IS NULL THEN now() ELSE closed_date END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(status).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -381,13 +382,13 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Candidate> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.candidates
+            r"INSERT INTO _atlas.candidates
                 (organization_id, first_name, last_name, email, phone, address,
                  city, state, country, postal_code, linkedin_url, source, source_detail,
                  resume_url, current_employer, current_title, years_of_experience,
                  education_level, skills, notes, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id).bind(first_name).bind(last_name).bind(email)
         .bind(phone).bind(address).bind(city).bind(state)
@@ -446,9 +447,9 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JobApplication> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.job_applications
+            r"INSERT INTO _atlas.job_applications
                 (organization_id, requisition_id, candidate_id, created_by)
-               VALUES ($1, $2, $3, $4) RETURNING *"#,
+               VALUES ($1, $2, $3, $4) RETURNING *",
         )
         .bind(org_id).bind(requisition_id).bind(candidate_id).bind(created_by)
         .fetch_one(&self.pool).await
@@ -473,9 +474,9 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         let has_cand = candidate_id.is_some();
         let has_status = status.is_some();
 
-        if has_req { query_str.push_str(&format!(" AND requisition_id = ${}", param_idx)); param_idx += 1; }
-        if has_cand { query_str.push_str(&format!(" AND candidate_id = ${}", param_idx)); param_idx += 1; }
-        if has_status { query_str.push_str(&format!(" AND status = ${}", param_idx)); }
+        if has_req { query_str.push_str(&format!(" AND requisition_id = ${param_idx}")); param_idx += 1; }
+        if has_cand { query_str.push_str(&format!(" AND candidate_id = ${param_idx}")); param_idx += 1; }
+        if has_status { query_str.push_str(&format!(" AND status = ${param_idx}")); }
         query_str.push_str(" ORDER BY applied_at DESC");
 
         let mut query = sqlx::query(&query_str).bind(org_id);
@@ -492,13 +493,13 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         &self, id: Uuid, status: &str, notes: Option<&str>,
     ) -> AtlasResult<JobApplication> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.job_applications
+            r"UPDATE _atlas.job_applications
                SET status = $2,
                    last_status_change = now(),
                    rejection_reason = CASE WHEN $2 = 'rejected' THEN COALESCE($3, rejection_reason) ELSE rejection_reason END,
                    screening_notes = CASE WHEN $2 IN ('screening','interview','assessment') THEN COALESCE($3, screening_notes) ELSE screening_notes END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(status).bind(notes)
         .fetch_one(&self.pool).await
@@ -519,11 +520,11 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         notes: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<Interview> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.interviews
+            r"INSERT INTO _atlas.interviews
                 (organization_id, application_id, interview_type, round,
                  scheduled_at, duration_minutes, location, meeting_link,
                  interviewer_ids, interviewer_names, notes, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *",
         )
         .bind(org_id).bind(application_id).bind(interview_type).bind(round)
         .bind(scheduled_at).bind(duration_minutes).bind(location).bind(meeting_link)
@@ -565,11 +566,11 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         recommendation: Option<&str>,
     ) -> AtlasResult<Interview> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.interviews
+            r"UPDATE _atlas.interviews
                SET status = 'completed', feedback = COALESCE($2, feedback),
                    rating = $3, recommendation = $4,
                    completed_at = now(), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(feedback).bind(rating).bind(recommendation)
         .fetch_one(&self.pool).await
@@ -599,12 +600,12 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JobOffer> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.job_offers
+            r"INSERT INTO _atlas.job_offers
                 (organization_id, application_id, offer_number, job_title,
                  department, location, employment_type, start_date,
                  salary_offered, salary_currency, salary_frequency, signing_bonus,
                  benefits_summary, terms_and_conditions, response_deadline, created_by)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *",
         )
         .bind(org_id).bind(application_id).bind(offer_number).bind(job_title)
         .bind(department).bind(location).bind(employment_type).bind(start_date)
@@ -641,14 +642,14 @@ impl RecruitingRepository for PostgresRecruitingRepository {
 
     async fn update_offer_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<JobOffer> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.job_offers
+            r"UPDATE _atlas.job_offers
                SET status = $2,
                    approved_by = CASE WHEN $2 = 'approved' THEN $3 ELSE approved_by END,
                    approved_at = CASE WHEN $2 = 'approved' THEN now() ELSE approved_at END,
                    offer_date = CASE WHEN $2 = 'extended' THEN now() ELSE offer_date END,
                    responded_at = CASE WHEN $2 IN ('accepted','declined') THEN now() ELSE responded_at END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool).await
@@ -658,10 +659,10 @@ impl RecruitingRepository for PostgresRecruitingRepository {
 
     async fn decline_offer(&self, id: Uuid, notes: Option<&str>) -> AtlasResult<JobOffer> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.job_offers
+            r"UPDATE _atlas.job_offers
                SET status = 'declined', responded_at = now(),
                    response_notes = $2, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(notes)
         .fetch_one(&self.pool).await
@@ -682,11 +683,11 @@ impl RecruitingRepository for PostgresRecruitingRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<RecruitingDashboard> {
         let req_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'open') as open_count,
                 COUNT(*) FILTER (WHERE status IN ('filled','closed') AND updated_at >= date_trunc('month', now())) as filled_month
-               FROM _atlas.job_requisitions WHERE organization_id = $1"#,
+               FROM _atlas.job_requisitions WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -698,39 +699,39 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let app_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE applied_at >= date_trunc('month', now())) as month_count
-               FROM _atlas.job_applications WHERE organization_id = $1"#,
+               FROM _atlas.job_applications WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let interview_month: i64 = sqlx::query_scalar(
-            r#"SELECT COUNT(*) FROM _atlas.interviews
-               WHERE organization_id = $1 AND completed_at >= date_trunc('month', now())"#,
+            r"SELECT COUNT(*) FROM _atlas.interviews
+               WHERE organization_id = $1 AND completed_at >= date_trunc('month', now())",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let offers_pending: i64 = sqlx::query_scalar(
-            r#"SELECT COUNT(*) FROM _atlas.job_offers
-               WHERE organization_id = $1 AND status IN ('draft','pending_approval','approved','extended')"#,
+            r"SELECT COUNT(*) FROM _atlas.job_offers
+               WHERE organization_id = $1 AND status IN ('draft','pending_approval','approved','extended')",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let hires_month: i64 = sqlx::query_scalar(
-            r#"SELECT COUNT(*) FROM _atlas.job_applications
-               WHERE organization_id = $1 AND status = 'hired' AND last_status_change >= date_trunc('month', now())"#,
+            r"SELECT COUNT(*) FROM _atlas.job_applications
+               WHERE organization_id = $1 AND status = 'hired' AND last_status_change >= date_trunc('month', now())",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         // Requisitions by status
         let req_status_rows = sqlx::query(
-            r#"SELECT status, COUNT(*) as cnt FROM _atlas.job_requisitions
-               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC"#,
+            r"SELECT status, COUNT(*) as cnt FROM _atlas.job_requisitions
+               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -744,8 +745,8 @@ impl RecruitingRepository for PostgresRecruitingRepository {
 
         // Applications by status
         let app_status_rows = sqlx::query(
-            r#"SELECT status, COUNT(*) as cnt FROM _atlas.job_applications
-               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC"#,
+            r"SELECT status, COUNT(*) as cnt FROM _atlas.job_applications
+               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -759,9 +760,9 @@ impl RecruitingRepository for PostgresRecruitingRepository {
 
         // Top departments
         let dept_rows = sqlx::query(
-            r#"SELECT department, COUNT(*) as cnt FROM _atlas.job_requisitions
+            r"SELECT department, COUNT(*) as cnt FROM _atlas.job_requisitions
                WHERE organization_id = $1 AND department IS NOT NULL
-               GROUP BY department ORDER BY cnt DESC LIMIT 10"#,
+               GROUP BY department ORDER BY cnt DESC LIMIT 10",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -775,12 +776,12 @@ impl RecruitingRepository for PostgresRecruitingRepository {
 
         // Recent applications
         let recent_rows = sqlx::query(
-            r#"SELECT a.id, a.application_number, a.status, a.applied_at,
+            r"SELECT a.id, a.application_number, a.status, a.applied_at,
                       c.first_name, c.last_name, r.title as requisition_title
                FROM _atlas.job_applications a
                LEFT JOIN _atlas.candidates c ON a.candidate_id = c.id
                LEFT JOIN _atlas.job_requisitions r ON a.requisition_id = r.id
-               WHERE a.organization_id = $1 ORDER BY a.applied_at DESC LIMIT 10"#,
+               WHERE a.organization_id = $1 ORDER BY a.applied_at DESC LIMIT 10",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

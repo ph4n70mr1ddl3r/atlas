@@ -3,7 +3,7 @@
 //! Core bank transfer operations:
 //! - Transfer type management
 //! - Transfer creation with multi-currency support
-//! - Approval workflow (draft -> submitted -> approved -> in_transit -> completed)
+//! - Approval workflow (draft -> submitted -> approved -> `in_transit` -> completed)
 //! - Cancellation and reversal
 //! - Dashboard summary
 //!
@@ -189,7 +189,7 @@ impl BankAccountTransferEngine {
     /// Submit a draft transfer
     pub async fn submit_transfer(&self, transfer_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<BankAccountTransfer> {
         let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {} not found", transfer_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
 
         if transfer.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -206,7 +206,7 @@ impl BankAccountTransferEngine {
     /// Approve a submitted transfer
     pub async fn approve_transfer(&self, transfer_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<BankAccountTransfer> {
         let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {} not found", transfer_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
 
         if transfer.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -223,7 +223,7 @@ impl BankAccountTransferEngine {
     /// Mark transfer as in transit
     pub async fn mark_in_transit(&self, transfer_id: Uuid) -> AtlasResult<BankAccountTransfer> {
         let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {} not found", transfer_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
 
         if transfer.status != "approved" {
             return Err(AtlasError::WorkflowError(
@@ -240,7 +240,7 @@ impl BankAccountTransferEngine {
     /// Complete a transfer
     pub async fn complete_transfer(&self, transfer_id: Uuid, completed_by: Option<Uuid>) -> AtlasResult<BankAccountTransfer> {
         let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {} not found", transfer_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
 
         if transfer.status != "in_transit" && transfer.status != "approved" {
             return Err(AtlasError::WorkflowError(
@@ -257,7 +257,7 @@ impl BankAccountTransferEngine {
     /// Cancel a transfer
     pub async fn cancel_transfer(&self, transfer_id: Uuid, cancelled_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<BankAccountTransfer> {
         let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {} not found", transfer_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
 
         if transfer.status != "draft" && transfer.status != "submitted" && transfer.status != "approved" {
             return Err(AtlasError::WorkflowError(
@@ -272,6 +272,7 @@ impl BankAccountTransferEngine {
     }
 
     /// Calculate cross-currency transfer amount
+    #[must_use] 
     pub fn calculate_cross_currency_amount(amount: f64, exchange_rate: f64) -> f64 {
         amount * exchange_rate
     }

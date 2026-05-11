@@ -17,7 +17,8 @@ pub struct ProjectService {
 }
 
 impl ProjectService {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         schema_engine: Arc<SchemaEngine>,
         workflow_engine: Arc<WorkflowEngine>,
         validation_engine: Arc<ValidationEngine>,
@@ -78,7 +79,8 @@ pub struct TaskService {
 }
 
 impl TaskService {
-    pub fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>) -> Self {
+    #[must_use] 
+    pub const fn new(schema_engine: Arc<SchemaEngine>, workflow_engine: Arc<WorkflowEngine>) -> Self {
         Self { schema_engine, workflow_engine }
     }
 
@@ -95,7 +97,7 @@ impl TaskService {
 
     /// Get overdue tasks
     /// 
-    /// Returns all tasks where due_date < now AND workflow_state != 'done' AND != 'cancelled'.
+    /// Returns all tasks where `due_date` < now AND `workflow_state` != 'done' AND != 'cancelled'.
     pub async fn get_overdue_tasks(&self) -> AtlasResult<Vec<serde_json::Value>> {
         let _entity = self.schema_engine.get_entity("tasks")
             .ok_or_else(|| AtlasError::EntityNotFound("tasks".to_string()))?;

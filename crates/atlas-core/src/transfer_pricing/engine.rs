@@ -7,8 +7,8 @@
 //!
 //! Policy lifecycle: draft → active → inactive/expired
 //! Transaction lifecycle: draft → submitted → approved/rejected → completed
-//! Benchmark lifecycle: draft → in_review → approved/rejected/superseded
-//! Documentation lifecycle: draft → in_review → approved → filed/superseded
+//! Benchmark lifecycle: draft → `in_review` → approved/rejected/superseded
+//! Documentation lifecycle: draft → `in_review` → approved → filed/superseded
 
 use atlas_shared::{
     TransferPricingPolicy, TransferPriceTransaction,
@@ -186,7 +186,7 @@ impl TransferPricingEngine {
     /// Activate a policy
     pub async fn activate_policy(&self, id: Uuid) -> AtlasResult<TransferPricingPolicy> {
         let policy = self.repository.get_policy_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {id} not found")))?;
 
         if policy.status != "draft" && policy.status != "inactive" {
             return Err(AtlasError::WorkflowError(format!(
@@ -202,7 +202,7 @@ impl TransferPricingEngine {
     /// Deactivate a policy
     pub async fn deactivate_policy(&self, id: Uuid) -> AtlasResult<TransferPricingPolicy> {
         let policy = self.repository.get_policy_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {id} not found")))?;
 
         if policy.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -218,7 +218,7 @@ impl TransferPricingEngine {
     /// Delete a policy (only in draft status)
     pub async fn delete_policy(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let policy = self.repository.get_policy(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy '{}' not found", code)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy '{code}' not found")))?;
 
         if policy.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -306,11 +306,11 @@ impl TransferPricingEngine {
             from_entity_id, from_entity_name, to_entity_id, to_entity_name,
             item_id, item_code, item_description,
             quantity, unit_cost, transfer_price,
-            &format!("{:.4}", total_amount),
+            &format!("{total_amount:.4}"),
             currency_code, transaction_date,
             source_type, source_id, source_number,
-            margin_applied.as_ref().map(|m| format!("{:.4}", m)).as_deref(),
-            margin_amount.as_ref().map(|m| format!("{:.4}", m)).as_deref(),
+            margin_applied.as_ref().map(|m| format!("{m:.4}")).as_deref(),
+            margin_amount.as_ref().map(|m| format!("{m:.4}")).as_deref(),
             is_compliant,
             compliance_notes.as_deref(),
             created_by,
@@ -342,7 +342,7 @@ impl TransferPricingEngine {
     /// Submit a transaction for approval
     pub async fn submit_transaction(&self, id: Uuid) -> AtlasResult<TransferPriceTransaction> {
         let txn = self.repository.get_transaction(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transaction {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transaction {id} not found")))?;
 
         if txn.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -358,7 +358,7 @@ impl TransferPricingEngine {
     /// Approve a transaction
     pub async fn approve_transaction(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<TransferPriceTransaction> {
         let txn = self.repository.get_transaction(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transaction {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transaction {id} not found")))?;
 
         if txn.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -374,7 +374,7 @@ impl TransferPricingEngine {
     /// Reject a transaction
     pub async fn reject_transaction(&self, id: Uuid) -> AtlasResult<TransferPriceTransaction> {
         let txn = self.repository.get_transaction(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transaction {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transaction {id} not found")))?;
 
         if txn.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -462,7 +462,7 @@ impl TransferPricingEngine {
     /// Submit a benchmark for review
     pub async fn submit_benchmark_for_review(&self, id: Uuid) -> AtlasResult<BenchmarkStudy> {
         let bm = self.repository.get_benchmark(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {id} not found")))?;
 
         if bm.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -483,7 +483,7 @@ impl TransferPricingEngine {
         reviewed_by_name: Option<&str>,
     ) -> AtlasResult<BenchmarkStudy> {
         let bm = self.repository.get_benchmark(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {id} not found")))?;
 
         if bm.status != "in_review" {
             return Err(AtlasError::WorkflowError(format!(
@@ -499,7 +499,7 @@ impl TransferPricingEngine {
     /// Reject a benchmark
     pub async fn reject_benchmark(&self, id: Uuid) -> AtlasResult<BenchmarkStudy> {
         let bm = self.repository.get_benchmark(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {id} not found")))?;
 
         if bm.status != "in_review" {
             return Err(AtlasError::WorkflowError(format!(
@@ -515,7 +515,7 @@ impl TransferPricingEngine {
     /// Delete a benchmark (only in draft status)
     pub async fn delete_benchmark(&self, id: Uuid) -> AtlasResult<()> {
         let bm = self.repository.get_benchmark(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {id} not found")))?;
 
         if bm.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -550,7 +550,7 @@ impl TransferPricingEngine {
     ) -> AtlasResult<BenchmarkComparable> {
         // Validate benchmark exists
         let _bm = self.repository.get_benchmark(benchmark_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {} not found", benchmark_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Benchmark {benchmark_id} not found")))?;
 
         if company_name.is_empty() {
             return Err(AtlasError::ValidationFailed("Company name is required".to_string()));
@@ -660,7 +660,7 @@ impl TransferPricingEngine {
     /// Submit documentation for review
     pub async fn submit_documentation_for_review(&self, id: Uuid) -> AtlasResult<TransferPricingDocumentation> {
         let doc = self.repository.get_documentation(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {id} not found")))?;
 
         if doc.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -676,7 +676,7 @@ impl TransferPricingEngine {
     /// Approve documentation
     pub async fn approve_documentation(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<TransferPricingDocumentation> {
         let doc = self.repository.get_documentation(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {id} not found")))?;
 
         if doc.status != "in_review" {
             return Err(AtlasError::WorkflowError(format!(
@@ -692,7 +692,7 @@ impl TransferPricingEngine {
     /// File documentation (mark as filed)
     pub async fn file_documentation(&self, id: Uuid) -> AtlasResult<TransferPricingDocumentation> {
         let doc = self.repository.get_documentation(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Documentation {id} not found")))?;
 
         if doc.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
@@ -733,11 +733,9 @@ impl TransferPricingEngine {
             if low > 0.0 || high > 0.0 {
                 let compliant = transfer_price >= low && transfer_price <= high;
                 let notes = if compliant {
-                    Some(format!("Transfer price {:.4} within arm's-length range [{:.4}, {:.4}]",
-                        transfer_price, low, high))
+                    Some(format!("Transfer price {transfer_price:.4} within arm's-length range [{low:.4}, {high:.4}]"))
                 } else {
-                    Some(format!("Transfer price {:.4} OUTSIDE arm's-length range [{:.4}, {:.4}]",
-                        transfer_price, low, high))
+                    Some(format!("Transfer price {transfer_price:.4} OUTSIDE arm's-length range [{low:.4}, {high:.4}]"))
                 };
                 Ok((Some(compliant), notes))
             } else {

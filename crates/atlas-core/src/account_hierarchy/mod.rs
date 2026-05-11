@@ -100,11 +100,12 @@ pub trait AccountHierarchyRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<HierarchyDashboard>;
 }
 
-/// PostgreSQL stub
+/// `PostgreSQL` stub
 #[allow(dead_code)]
 pub struct PostgresAccountHierarchyRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresAccountHierarchyRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresAccountHierarchyRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl AccountHierarchyRepository for PostgresAccountHierarchyRepository {
@@ -162,7 +163,7 @@ impl AccountHierarchyEngine {
             }
         }
         if self.repository.get_hierarchy_by_code(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Hierarchy '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Hierarchy '{code}' already exists")));
         }
         info!("Creating account hierarchy '{}' for org {}", code, org_id);
         self.repository.create_hierarchy(org_id, code, name, description, hierarchy_type, effective_from, effective_to, created_by).await
@@ -174,21 +175,21 @@ impl AccountHierarchyEngine {
     pub async fn list_hierarchies(&self, org_id: Uuid, hierarchy_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<AccountHierarchy>> {
         if let Some(ht) = hierarchy_type {
             if !VALID_HIERARCHY_TYPES.contains(&ht) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid hierarchy type '{}'", ht)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid hierarchy type '{ht}'")));
             }
         }
         self.repository.list_hierarchies(org_id, hierarchy_type, is_active).await
     }
 
     pub async fn activate(&self, id: Uuid) -> AtlasResult<AccountHierarchy> {
-        let h = self.repository.get_hierarchy(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Hierarchy {} not found", id)))?;
+        let h = self.repository.get_hierarchy(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Hierarchy {id} not found")))?;
         if h.is_active { return Err(AtlasError::ValidationFailed("Already active".into())); }
         info!("Activating hierarchy {}", h.code);
         self.repository.update_hierarchy_status(id, "active", true).await
     }
 
     pub async fn deactivate(&self, id: Uuid) -> AtlasResult<AccountHierarchy> {
-        let h = self.repository.get_hierarchy(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Hierarchy {} not found", id)))?;
+        let h = self.repository.get_hierarchy(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Hierarchy {id} not found")))?;
         if !h.is_active { return Err(AtlasError::ValidationFailed("Already inactive".into())); }
         info!("Deactivating hierarchy {}", h.code);
         self.repository.update_hierarchy_status(id, "inactive", false).await
@@ -201,7 +202,7 @@ impl AccountHierarchyEngine {
         account_code: &str, account_name: Option<&str>, node_type: &str, display_order: i32,
     ) -> AtlasResult<HierarchyNode> {
         let h = self.repository.get_hierarchy(hierarchy_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hierarchy {} not found", hierarchy_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hierarchy {hierarchy_id} not found")))?;
         if !h.is_active {
             return Err(AtlasError::ValidationFailed("Cannot add nodes to inactive hierarchy".into()));
         }
@@ -209,12 +210,12 @@ impl AccountHierarchyEngine {
             return Err(AtlasError::ValidationFailed("Account code is required".into()));
         }
         if !VALID_NODE_TYPES.contains(&node_type) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid node type '{}'", node_type)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid node type '{node_type}'")));
         }
 
         let level_depth = if let Some(pid) = parent_id {
             let parent = self.repository.get_node(pid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Parent node {} not found", pid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Parent node {pid} not found")))?;
             if parent.hierarchy_id != hierarchy_id {
                 return Err(AtlasError::ValidationFailed("Parent must belong to same hierarchy".into()));
             }
@@ -240,16 +241,16 @@ impl AccountHierarchyEngine {
     pub async fn list_children(&self, parent_id: Uuid) -> AtlasResult<Vec<HierarchyNode>> { self.repository.list_children(parent_id).await }
 
     pub async fn update_node(&self, id: Uuid, account_name: Option<&str>, display_order: Option<i32>, is_enabled: Option<bool>) -> AtlasResult<HierarchyNode> {
-        self.repository.get_node(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Node {} not found", id)))?;
+        self.repository.get_node(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Node {id} not found")))?;
         self.repository.update_node(id, account_name, display_order, is_enabled).await
     }
 
     pub async fn move_node(&self, id: Uuid, new_parent_id: Option<Uuid>, new_display_order: i32) -> AtlasResult<HierarchyNode> {
         let node = self.repository.get_node(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Node {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Node {id} not found")))?;
         if let Some(pid) = new_parent_id {
             let parent = self.repository.get_node(pid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Parent {} not found", pid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Parent {pid} not found")))?;
             if parent.hierarchy_id != node.hierarchy_id {
                 return Err(AtlasError::ValidationFailed("Cannot move across hierarchies".into()));
             }
@@ -269,7 +270,7 @@ impl AccountHierarchyEngine {
 
     pub async fn remove_node(&self, id: Uuid) -> AtlasResult<()> {
         let node = self.repository.get_node(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Node {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Node {id} not found")))?;
         let children = self.repository.list_children(id).await?;
         if !children.is_empty() {
             return Err(AtlasError::ValidationFailed("Cannot remove node with children. Remove children first".into()));

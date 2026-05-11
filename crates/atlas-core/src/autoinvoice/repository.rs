@@ -1,6 +1,6 @@
-//! AutoInvoice Repository
+//! `AutoInvoice` Repository
 //!
-//! PostgreSQL storage for AutoInvoice batches, lines, rules, and results.
+//! `PostgreSQL` storage for `AutoInvoice` batches, lines, rules, and results.
 
 use atlas_shared::{
     AutoInvoiceBatch, AutoInvoiceLine, AutoInvoiceGroupingRule,
@@ -12,7 +12,7 @@ use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
 
-/// Repository trait for AutoInvoice data storage
+/// Repository trait for `AutoInvoice` data storage
 #[async_trait]
 pub trait AutoInvoiceRepository: Send + Sync {
     // Grouping Rules
@@ -191,13 +191,14 @@ pub trait AutoInvoiceRepository: Send + Sync {
     async fn get_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::AutoInvoiceSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresAutoInvoiceRepository {
     pool: PgPool,
 }
 
 impl PostgresAutoInvoiceRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -386,13 +387,13 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutoInvoiceGroupingRule> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.autoinvoice_grouping_rules
                 (organization_id, name, description, transaction_types,
                  group_by_fields, line_order_by, is_default, priority, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(name).bind(description)
         .bind(&transaction_types).bind(&group_by_fields).bind(&line_order_by)
@@ -472,14 +473,14 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutoInvoiceValidationRule> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.autoinvoice_validation_rules
                 (organization_id, name, description, field_name, validation_type,
                  validation_expression, error_message, is_fatal, transaction_types,
                  priority, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(name).bind(description)
         .bind(field_name).bind(validation_type).bind(validation_expression)
@@ -494,12 +495,12 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
     async fn get_validation_rules(&self, org_id: Uuid, transaction_type: Option<&str>) -> AtlasResult<Vec<AutoInvoiceValidationRule>> {
         let rows = if let Some(tt) = transaction_type {
             sqlx::query(
-                r#"
+                r"
                 SELECT * FROM _atlas.autoinvoice_validation_rules
                 WHERE organization_id = $1 AND is_active = true
                   AND transaction_types ? $2
                 ORDER BY priority
-                "#
+                "
             )
             .bind(org_id).bind(tt)
             .fetch_all(&self.pool).await
@@ -538,12 +539,12 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutoInvoiceBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.autoinvoice_batches
                 (organization_id, batch_number, batch_source, description, grouping_rule_id, created_by)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(batch_number).bind(batch_source)
         .bind(description).bind(grouping_rule_id).bind(created_by)
@@ -595,14 +596,14 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
 
     async fn update_batch_status(&self, id: Uuid, status: &str) -> AtlasResult<AutoInvoiceBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.autoinvoice_batches
             SET status = $2, updated_at = now(),
                 started_at = CASE WHEN $2 = 'validating' THEN now() ELSE started_at END,
                 completed_at = CASE WHEN $2 IN ('completed', 'failed') THEN now() ELSE completed_at END
             WHERE id = $1
             RETURNING *
-            "#
+            "
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -622,13 +623,13 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
         validation_errors: serde_json::Value,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.autoinvoice_batches
             SET total_lines = $2, valid_lines = $3, invalid_lines = $4,
                 invoices_created = $5, invoices_total_amount = $6,
                 validation_errors = $7, updated_at = now()
             WHERE id = $1
-            "#
+            "
         )
         .bind(id).bind(total_lines).bind(valid_lines).bind(invalid_lines)
         .bind(invoices_created)
@@ -678,7 +679,7 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutoInvoiceLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.autoinvoice_lines
                 (organization_id, batch_id, line_number, source_line_id, transaction_type,
                  customer_id, customer_number, customer_name,
@@ -697,7 +698,7 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
                     $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23,
                     $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(batch_id).bind(line_number).bind(source_line_id).bind(transaction_type)
         .bind(customer_id).bind(customer_number).bind(customer_name)
@@ -799,7 +800,7 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutoInvoiceResult> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.autoinvoice_results
                 (organization_id, batch_id, invoice_number, transaction_type,
                  customer_id, bill_to_customer_id, bill_to_site_id,
@@ -811,7 +812,7 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
                     $15, $16, $17, $18, $19)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(batch_id).bind(invoice_number).bind(transaction_type)
         .bind(customer_id).bind(bill_to_customer_id).bind(bill_to_site_id)
@@ -867,12 +868,12 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
         line_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.autoinvoice_results
             SET subtotal = $2, tax_amount = $3, total_amount = $4,
                 line_count = $5, updated_at = now()
             WHERE id = $1
-            "#
+            "
         )
         .bind(id)
         .bind(subtotal.parse::<f64>().unwrap_or(0.0))
@@ -915,7 +916,7 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
         sales_order_line: Option<&str>,
     ) -> AtlasResult<AutoInvoiceResultLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.autoinvoice_result_lines
                 (organization_id, invoice_id, line_number, source_line_id,
                  item_code, item_description, quantity, unit_of_measure,
@@ -923,7 +924,7 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
                  revenue_account_code, sales_order_number, sales_order_line)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
-            "#
+            "
         )
         .bind(org_id).bind(invoice_id).bind(line_number).bind(source_line_id)
         .bind(item_code).bind(item_description)
@@ -954,7 +955,7 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
     // Summary
     async fn get_summary(&self, org_id: Uuid) -> AtlasResult<atlas_shared::AutoInvoiceSummary> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) as total_batches,
                 COUNT(*) FILTER (WHERE status = 'pending') as pending_batches,
@@ -965,7 +966,7 @@ impl AutoInvoiceRepository for PostgresAutoInvoiceRepository {
                 COALESCE(SUM(invoices_total_amount), 0) as total_invoice_amount
             FROM _atlas.autoinvoice_batches
             WHERE organization_id = $1
-            "#
+            "
         )
         .bind(org_id)
         .fetch_one(&self.pool).await

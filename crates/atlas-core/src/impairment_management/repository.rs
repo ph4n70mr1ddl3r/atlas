@@ -113,13 +113,14 @@ pub trait ImpairmentManagementRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ImpairmentDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresImpairmentManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresImpairmentManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -226,12 +227,12 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
         indicator_type: &str, severity: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<ImpairmentIndicator> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.impairment_indicators
                 (organization_id, code, name, description, indicator_type, severity, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(indicator_type).bind(severity).bind(created_by)
@@ -281,7 +282,7 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
         terminal_value: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<ImpairmentTest> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.impairment_tests
                 (organization_id, test_number, name, description, test_type, test_method,
                  test_date, reporting_period, indicator_id, carrying_amount, recoverable_amount,
@@ -291,7 +292,7 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
                     $10::decimal, $11::decimal, $12::decimal, $13, $14, $15, $16,
                     $17::decimal, $18::decimal, $19::decimal, $20)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(test_number).bind(name).bind(description)
         .bind(test_type).bind(test_method).bind(test_date).bind(reporting_period)
@@ -313,9 +314,9 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
 
     async fn list_tests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ImpairmentTest>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.impairment_tests
+            r"SELECT * FROM _atlas.impairment_tests
                WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY test_date DESC, created_at DESC"#,
+               ORDER BY test_date DESC, created_at DESC",
         ).bind(org_id).bind(status)
         .fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -327,7 +328,7 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
         submitted_by: Option<Uuid>, approved_by: Option<Uuid>,
     ) -> AtlasResult<ImpairmentTest> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.impairment_tests
             SET status = $2,
                 submitted_by = COALESCE($3, submitted_by),
@@ -337,7 +338,7 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
                 completed_at = CASE WHEN $2 = 'completed' THEN now() ELSE completed_at END,
                 updated_at = now()
             WHERE id = $1 RETURNING *
-            "#,
+            ",
         ).bind(id).bind(status).bind(submitted_by).bind(approved_by)
         .fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -355,9 +356,9 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
 
     async fn update_test_results(&self, id: Uuid, recoverable_amount: &str, impairment_loss: &str) -> AtlasResult<ImpairmentTest> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.impairment_tests
+            r"UPDATE _atlas.impairment_tests
                SET recoverable_amount = $2::decimal, impairment_loss = $3::decimal, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(recoverable_amount).bind(impairment_loss)
         .fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -371,13 +372,13 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
         net_cash_flow: &str, discount_factor: &str, present_value: &str,
     ) -> AtlasResult<ImpairmentCashFlow> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.impairment_cash_flows
                 (organization_id, test_id, period_year, period_number, description,
                  cash_inflow, cash_outflow, net_cash_flow, discount_factor, present_value)
             VALUES ($1, $2, $3, $4, $5, $6::decimal, $7::decimal, $8::decimal, $9::decimal, $10::decimal)
             RETURNING *
-            "#,
+            ",
         ).bind(org_id).bind(test_id).bind(period_year).bind(period_number)
         .bind(description).bind(cash_inflow).bind(cash_outflow)
         .bind(net_cash_flow).bind(discount_factor).bind(present_value)
@@ -403,13 +404,13 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
         status: &str, impairment_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ImpairmentTestAsset> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.impairment_test_assets
                 (organization_id, test_id, asset_id, asset_number, asset_name, asset_category,
                  carrying_amount, recoverable_amount, impairment_loss, status, impairment_date)
             VALUES ($1, $2, $3, $4, $5, $6, $7::decimal, $8::decimal, $9::decimal, $10, $11)
             RETURNING *
-            "#,
+            ",
         ).bind(org_id).bind(test_id).bind(asset_id).bind(asset_number)
         .bind(asset_name).bind(asset_category).bind(carrying_amount)
         .bind(recoverable_amount).bind(impairment_loss).bind(status).bind(impairment_date)
@@ -430,10 +431,10 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
         &self, id: Uuid, recoverable_amount: &str, impairment_loss: &str, status: &str,
     ) -> AtlasResult<ImpairmentTestAsset> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.impairment_test_assets
+            r"UPDATE _atlas.impairment_test_assets
                SET recoverable_amount = $2::decimal, impairment_loss = $3::decimal,
                    status = $4, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         ).bind(id).bind(recoverable_amount).bind(impairment_loss).bind(status)
         .fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -442,22 +443,22 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ImpairmentDashboardSummary> {
         let ind_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE is_active) as active
-            FROM _atlas.impairment_indicators WHERE organization_id = $1"#,
+            FROM _atlas.impairment_indicators WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let test_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'draft') as pending,
                 COUNT(*) FILTER (WHERE status = 'completed') as completed,
                 COALESCE(SUM(impairment_loss), 0) as total_loss,
                 COALESCE(SUM(COALESCE(reversal_amount::decimal, 0)), 0) as total_reversals,
                 COUNT(DISTINCT asset_id) FILTER (WHERE status IN ('draft','submitted')) as under_review
-            FROM _atlas.impairment_tests WHERE organization_id = $1"#,
+            FROM _atlas.impairment_tests WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 

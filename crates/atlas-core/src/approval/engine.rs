@@ -40,11 +40,11 @@ impl ApprovalEngine {
 
         // Load the chain definition
         let chain = self.repository.get_chain(chain_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Approval chain {}", chain_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Approval chain {chain_id}")))?;
 
         // Parse chain definition to get levels
         let levels: Vec<ApprovalLevel> = serde_json::from_value(chain.chain_definition.clone())
-            .map_err(|e| AtlasError::ConfigError(format!("Invalid chain definition: {}", e)))?;
+            .map_err(|e| AtlasError::ConfigError(format!("Invalid chain definition: {e}")))?;
 
         if levels.is_empty() {
             return Err(AtlasError::ConfigError("Approval chain has no levels".to_string()));
@@ -74,7 +74,7 @@ impl ApprovalEngine {
                 request.id,
                 level.level,
                 &level.approver_type,
-                level.roles.first().map(|s| s.as_str()),
+                level.roles.first().map(std::string::String::as_str),
                 approver_user_id,
                 level.auto_approve_after_hours,
             ).await?;
@@ -100,7 +100,7 @@ impl ApprovalEngine {
         info!("Approving step {} by {}", step_id, approved_by);
 
         let step = self.repository.get_step(step_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Approval step {}", step_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Approval step {step_id}")))?;
 
         if step.status != "pending" {
             return Err(AtlasError::WorkflowError(
@@ -148,11 +148,11 @@ impl ApprovalEngine {
         info!("Rejecting step {} by {}", step_id, rejected_by);
 
         let step = self.repository.get_step(step_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Approval step {}", step_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Approval step {step_id}")))?;
 
         if step.status != "pending" {
             return Err(AtlasError::WorkflowError(
-                format!("Step {} is not pending", step_id)
+                format!("Step {step_id} is not pending")
             ));
         }
 
@@ -179,7 +179,7 @@ impl ApprovalEngine {
         self.repository.delegate_step(step_id, delegated_by, delegated_to).await?;
 
         self.repository.get_step(step_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Step {}", step_id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Step {step_id}")))
     }
 
     /// Check for pending approvals that need escalation

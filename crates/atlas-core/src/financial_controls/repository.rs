@@ -1,6 +1,6 @@
 //! Financial Controls Repository
 //!
-//! PostgreSQL storage for control monitor rules, violations, and dashboards.
+//! `PostgreSQL` storage for control monitor rules, violations, and dashboards.
 
 use atlas_shared::{
     ControlMonitorRule, ControlViolation, FinancialControlsDashboardSummary,
@@ -62,13 +62,14 @@ pub trait FinancialControlsRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<FinancialControlsDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresFinancialControlsRepository {
     pool: PgPool,
 }
 
 impl PostgresFinancialControlsRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -151,12 +152,12 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ControlMonitorRule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.control_monitor_rules
+            r"INSERT INTO _atlas.control_monitor_rules
                 (organization_id, code, name, description, category, risk_level, control_type,
                  conditions, threshold_value, target_entity, target_fields, actions,
                  auto_resolve, check_schedule, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(category).bind(risk_level).bind(control_type)
@@ -192,8 +193,8 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
     async fn list_rules(&self, org_id: Uuid, category: Option<&str>, risk_level: Option<&str>) -> AtlasResult<Vec<ControlMonitorRule>> {
         let mut query = String::from("SELECT * FROM _atlas.control_monitor_rules WHERE organization_id = $1 AND is_active = true");
         let mut param_idx = 2;
-        if category.is_some() { query.push_str(&format!(" AND category = ${}", param_idx)); param_idx += 1; }
-        if risk_level.is_some() { query.push_str(&format!(" AND risk_level = ${}", param_idx)); }
+        if category.is_some() { query.push_str(&format!(" AND category = ${param_idx}")); param_idx += 1; }
+        if risk_level.is_some() { query.push_str(&format!(" AND risk_level = ${param_idx}")); }
         query.push_str(" ORDER BY risk_level, code");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -208,21 +209,21 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
     async fn list_active_rules(&self, org_id: Uuid, check_schedule: Option<&str>) -> AtlasResult<Vec<ControlMonitorRule>> {
         let rows = if let Some(schedule) = check_schedule {
             sqlx::query(
-                r#"SELECT * FROM _atlas.control_monitor_rules
+                r"SELECT * FROM _atlas.control_monitor_rules
                 WHERE organization_id = $1 AND is_active = true AND check_schedule = $2
                   AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
                   AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-                ORDER BY risk_level, code"#,
+                ORDER BY risk_level, code",
             )
             .bind(org_id).bind(schedule)
             .fetch_all(&self.pool).await
         } else {
             sqlx::query(
-                r#"SELECT * FROM _atlas.control_monitor_rules
+                r"SELECT * FROM _atlas.control_monitor_rules
                 WHERE organization_id = $1 AND is_active = true
                   AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
                   AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-                ORDER BY risk_level, code"#,
+                ORDER BY risk_level, code",
             )
             .bind(org_id)
             .fetch_all(&self.pool).await
@@ -243,9 +244,9 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
 
     async fn update_rule_stats(&self, id: Uuid, total_violations: i32, total_resolved: i32, last_violation_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.control_monitor_rules
+            r"UPDATE _atlas.control_monitor_rules
             SET total_violations = $1, total_resolved = $2, last_violation_at = $3, updated_at = now()
-            WHERE id = $4"#,
+            WHERE id = $4",
         )
         .bind(total_violations).bind(total_resolved).bind(last_violation_at).bind(id)
         .execute(&self.pool)
@@ -262,12 +263,12 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
         status: &str, related_entities: serde_json::Value,
     ) -> AtlasResult<ControlViolation> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.control_violations
+            r"INSERT INTO _atlas.control_violations
                 (organization_id, rule_id, rule_code, rule_name, violation_number,
                  entity_type, entity_id, description, findings, risk_level,
                  status, related_entities)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(rule_id).bind(rule_code).bind(rule_name).bind(violation_number)
         .bind(entity_type).bind(entity_id).bind(description).bind(&findings).bind(risk_level)
@@ -304,10 +305,10 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
     ) -> AtlasResult<Vec<ControlViolation>> {
         let mut query = String::from("SELECT * FROM _atlas.control_violations WHERE organization_id = $1");
         let mut param_idx = 2;
-        if status.is_some() { query.push_str(&format!(" AND status = ${}", param_idx)); param_idx += 1; }
-        if risk_level.is_some() { query.push_str(&format!(" AND risk_level = ${}", param_idx)); param_idx += 1; }
-        if rule_id.is_some() { query.push_str(&format!(" AND rule_id = ${}", param_idx)); param_idx += 1; }
-        if assigned_to.is_some() { query.push_str(&format!(" AND assigned_to = ${}", param_idx)); }
+        if status.is_some() { query.push_str(&format!(" AND status = ${param_idx}")); param_idx += 1; }
+        if risk_level.is_some() { query.push_str(&format!(" AND risk_level = ${param_idx}")); param_idx += 1; }
+        if rule_id.is_some() { query.push_str(&format!(" AND rule_id = ${param_idx}")); param_idx += 1; }
+        if assigned_to.is_some() { query.push_str(&format!(" AND assigned_to = ${param_idx}")); }
         query.push_str(" ORDER BY detected_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -327,7 +328,7 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
         resolved_by: Option<Uuid>,
     ) -> AtlasResult<ControlViolation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.control_violations
+            r"UPDATE _atlas.control_violations
             SET status = $1, assigned_to = COALESCE($2, assigned_to),
                 assigned_to_name = COALESCE($3, assigned_to_name),
                 resolution_notes = COALESCE($4, resolution_notes),
@@ -335,7 +336,7 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
                 resolved_at = CASE WHEN $1 IN ('resolved', 'false_positive', 'waived') THEN now() ELSE resolved_at END,
                 updated_at = now()
             WHERE id = $6
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(status).bind(assigned_to).bind(assigned_to_name)
         .bind(resolution_notes).bind(resolved_by).bind(id)
@@ -349,10 +350,10 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
         &self, id: Uuid, escalated_to: Option<Uuid>, escalated_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ControlViolation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.control_violations
+            r"UPDATE _atlas.control_violations
             SET status = 'escalated', escalated_to = $1, escalated_at = $2, updated_at = now()
             WHERE id = $3
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(escalated_to).bind(escalated_at).bind(id)
         .fetch_one(&self.pool)
@@ -393,9 +394,7 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
         let by_category: serde_json::Value = violations.iter()
             .map(|v| {
                 let rule_id: Uuid = v.get("rule_id");
-                let cat = rules.iter().find(|r| r.get::<Uuid, _>("id") == rule_id)
-                    .map(|r| r.get::<String, _>("category"))
-                    .unwrap_or_else(|| "unknown".to_string());
+                let cat = rules.iter().find(|r| r.get::<Uuid, _>("id") == rule_id).map_or_else(|| "unknown".to_string(), |r| r.get::<String, _>("category"));
                 (cat, 1)
             })
             .fold(std::collections::HashMap::<String, i32>::new(), |mut acc, (k, v)| {

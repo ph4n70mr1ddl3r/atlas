@@ -1,6 +1,6 @@
 //! Collections Repository
 //!
-//! PostgreSQL storage for credit profiles, collection strategies, cases,
+//! `PostgreSQL` storage for credit profiles, collection strategies, cases,
 //! interactions, promises to pay, dunning campaigns, dunning letters,
 //! aging snapshots, and write-off requests.
 
@@ -285,13 +285,14 @@ pub trait CollectionsRepository: Send + Sync {
     ) -> AtlasResult<WriteOffRequest>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCollectionsRepository {
     pool: PgPool,
 }
 
 impl PostgresCollectionsRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -357,7 +358,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CustomerCreditProfile> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.customer_credit_profiles
                 (organization_id, customer_id, customer_number, customer_name,
                  credit_limit, risk_classification, credit_score,
@@ -372,7 +373,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                     external_rating_date = $10, payment_terms = $11,
                     next_review_date = $12, status = 'active', updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(credit_limit).bind(risk_classification).bind(credit_score)
@@ -407,13 +408,13 @@ impl CollectionsRepository for PostgresCollectionsRepository {
 
     async fn list_credit_profiles(&self, org_id: Uuid, status: Option<&str>, risk_classification: Option<&str>) -> AtlasResult<Vec<CustomerCreditProfile>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.customer_credit_profiles
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::text IS NULL OR risk_classification = $3)
             ORDER BY customer_name
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(risk_classification)
         .fetch_all(&self.pool)
@@ -443,7 +444,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         status: Option<&str>,
     ) -> AtlasResult<CustomerCreditProfile> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.customer_credit_profiles
             SET credit_limit = COALESCE($2::numeric, credit_limit),
                 credit_used = COALESCE($3::numeric, credit_used),
@@ -467,7 +468,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id)
         .bind(credit_limit).bind(credit_used)
@@ -502,7 +503,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CollectionStrategy> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.collection_strategies
                 (organization_id, code, name, description, strategy_type,
                  applicable_risk_classifications, trigger_aging_buckets,
@@ -514,7 +515,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                     overdue_amount_threshold = $8::numeric, actions = $9,
                     priority = $10, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(strategy_type)
         .bind(applicable_risk_classifications).bind(trigger_aging_buckets)
@@ -532,7 +533,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             strategy_type: row.get("strategy_type"),
             applicable_risk_classifications: row.try_get("applicable_risk_classifications").unwrap_or(serde_json::json!([])),
             trigger_aging_buckets: row.try_get("trigger_aging_buckets").unwrap_or(serde_json::json!([])),
-            overdue_amount_threshold: row.try_get("overdue_amount_threshold").map(|v: serde_json::Value| v.to_string()).unwrap_or("0".to_string()),
+            overdue_amount_threshold: row.try_get("overdue_amount_threshold").map_or("0".to_string(), |v: serde_json::Value| v.to_string()),
             actions: row.try_get("actions").unwrap_or(serde_json::json!([])),
             priority: row.get("priority"),
             is_active: row.get("is_active"),
@@ -561,7 +562,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             strategy_type: r.get("strategy_type"),
             applicable_risk_classifications: r.try_get("applicable_risk_classifications").unwrap_or(serde_json::json!([])),
             trigger_aging_buckets: r.try_get("trigger_aging_buckets").unwrap_or(serde_json::json!([])),
-            overdue_amount_threshold: r.try_get("overdue_amount_threshold").map(|v: serde_json::Value| v.to_string()).unwrap_or("0".to_string()),
+            overdue_amount_threshold: r.try_get("overdue_amount_threshold").map_or("0".to_string(), |v: serde_json::Value| v.to_string()),
             actions: r.try_get("actions").unwrap_or(serde_json::json!([])),
             priority: r.get("priority"),
             is_active: r.get("is_active"),
@@ -590,7 +591,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             strategy_type: r.get("strategy_type"),
             applicable_risk_classifications: r.try_get("applicable_risk_classifications").unwrap_or(serde_json::json!([])),
             trigger_aging_buckets: r.try_get("trigger_aging_buckets").unwrap_or(serde_json::json!([])),
-            overdue_amount_threshold: r.try_get("overdue_amount_threshold").map(|v: serde_json::Value| v.to_string()).unwrap_or("0".to_string()),
+            overdue_amount_threshold: r.try_get("overdue_amount_threshold").map_or("0".to_string(), |v: serde_json::Value| v.to_string()),
             actions: r.try_get("actions").unwrap_or(serde_json::json!([])),
             priority: r.get("priority"),
             is_active: r.get("is_active"),
@@ -637,7 +638,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CollectionCase> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.collection_cases
                 (organization_id, case_number, customer_id, customer_number, customer_name,
                  strategy_id, assigned_to, assigned_to_name, case_type, priority,
@@ -646,7 +647,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11::numeric, $12::numeric, $13::numeric, $14, $15, $16, $17)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(case_number).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(strategy_id).bind(assigned_to).bind(assigned_to_name).bind(case_type).bind(priority)
@@ -681,7 +682,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
 
     async fn list_cases(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>, assigned_to: Option<Uuid>) -> AtlasResult<Vec<CollectionCase>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.collection_cases
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
@@ -695,7 +696,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                     WHEN 'low' THEN 4
                 END,
                 opened_date DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(customer_id).bind(assigned_to)
         .fetch_all(&self.pool)
@@ -719,7 +720,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         closed_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<CollectionCase> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.collection_cases
             SET status = $2,
                 current_step = COALESCE($3, current_step),
@@ -734,7 +735,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(current_step)
         .bind(assigned_to).bind(assigned_to_name)
@@ -774,7 +775,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         duration_minutes: Option<i32>,
     ) -> AtlasResult<CustomerInteraction> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.customer_interactions
                 (organization_id, case_id, customer_id, customer_number, customer_name,
                  interaction_type, direction, contact_name, contact_role,
@@ -782,7 +783,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                  follow_up_date, follow_up_notes, performed_by, performed_by_name, duration_minutes)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(case_id).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(interaction_type).bind(direction)
@@ -808,13 +809,13 @@ impl CollectionsRepository for PostgresCollectionsRepository {
 
     async fn list_interactions(&self, org_id: Uuid, case_id: Option<Uuid>, customer_id: Option<Uuid>) -> AtlasResult<Vec<CustomerInteraction>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.customer_interactions
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR case_id = $2)
               AND ($3::uuid IS NULL OR customer_id = $3)
             ORDER BY performed_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(case_id).bind(customer_id)
         .fetch_all(&self.pool)
@@ -846,7 +847,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         recorded_by: Option<Uuid>,
     ) -> AtlasResult<PromiseToPay> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.promise_to_pay
                 (organization_id, case_id, customer_id, customer_number, customer_name,
                  promise_type, promised_amount, remaining_amount, promise_date,
@@ -855,7 +856,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $7::numeric, $8,
                     $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(case_id).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(promise_type).bind(promised_amount).bind(promise_date)
@@ -880,13 +881,13 @@ impl CollectionsRepository for PostgresCollectionsRepository {
 
     async fn list_promises_to_pay(&self, org_id: Uuid, customer_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<PromiseToPay>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.promise_to_pay
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR customer_id = $2)
               AND ($3::text IS NULL OR status = $3)
             ORDER BY promise_date
-            "#,
+            ",
         )
         .bind(org_id).bind(customer_id).bind(status)
         .fetch_all(&self.pool)
@@ -905,7 +906,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         broken_reason: Option<&str>,
     ) -> AtlasResult<PromiseToPay> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.promise_to_pay
             SET status = $2,
                 paid_amount = COALESCE($3::numeric, paid_amount),
@@ -915,7 +916,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(paid_amount).bind(remaining_amount)
         .bind(broken_date).bind(broken_reason)
@@ -947,7 +948,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DunningCampaign> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.dunning_campaigns
                 (organization_id, campaign_number, name, description,
                  dunning_level, communication_method, template_id, template_name,
@@ -956,7 +957,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                  scheduled_date, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::numeric, $11, $12, $13, $14)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(campaign_number).bind(name).bind(description)
         .bind(dunning_level).bind(communication_method).bind(template_id).bind(template_name)
@@ -983,11 +984,11 @@ impl CollectionsRepository for PostgresCollectionsRepository {
 
     async fn list_dunning_campaigns(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DunningCampaign>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.dunning_campaigns
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -998,12 +999,12 @@ impl CollectionsRepository for PostgresCollectionsRepository {
 
     async fn update_dunning_campaign_status(&self, id: Uuid, status: &str, sent_date: Option<chrono::NaiveDate>) -> AtlasResult<DunningCampaign> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.dunning_campaigns
             SET status = $2, sent_date = COALESCE($3, sent_date), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(sent_date)
         .fetch_one(&self.pool)
@@ -1038,7 +1039,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DunningLetter> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.dunning_letters
                 (organization_id, campaign_id, customer_id, customer_number, customer_name,
                  dunning_level, communication_method,
@@ -1049,7 +1050,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                     $11::numeric, $12::numeric, $13::numeric, $14::numeric, $15::numeric, $16::numeric,
                     $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(campaign_id).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(dunning_level).bind(communication_method)
@@ -1065,13 +1066,13 @@ impl CollectionsRepository for PostgresCollectionsRepository {
 
     async fn list_dunning_letters(&self, org_id: Uuid, campaign_id: Option<Uuid>, customer_id: Option<Uuid>) -> AtlasResult<Vec<DunningLetter>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.dunning_letters
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR campaign_id = $2)
               AND ($3::uuid IS NULL OR customer_id = $3)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(campaign_id).bind(customer_id)
         .fetch_all(&self.pool)
@@ -1082,7 +1083,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
 
     async fn update_dunning_letter_status(&self, id: Uuid, status: &str) -> AtlasResult<DunningLetter> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.dunning_letters
             SET status = $2,
                 sent_at = CASE WHEN $2 = 'sent' AND sent_at IS NULL THEN now() ELSE sent_at END,
@@ -1091,7 +1092,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool)
@@ -1128,7 +1129,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         overdue_percent: Option<&str>,
     ) -> AtlasResult<ReceivablesAgingSnapshot> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.receivables_aging_snapshots
                 (organization_id, snapshot_date, customer_id, customer_number, customer_name,
                  total_outstanding, aging_current, aging_1_30, aging_31_60, aging_61_90,
@@ -1139,7 +1140,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                     $10::numeric, $11::numeric, $12::numeric, $13, $14, $15, $16, $17, $18,
                     $19::numeric, $20::numeric)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(snapshot_date).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(total_outstanding).bind(aging_current).bind(aging_1_30).bind(aging_31_60).bind(aging_61_90)
@@ -1184,14 +1185,14 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WriteOffRequest> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.write_off_requests
                 (organization_id, request_number, customer_id, customer_number, customer_name,
                  write_off_type, write_off_amount, write_off_account_code,
                  reason, related_invoice_ids, case_id, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8, $9, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(request_number).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(write_off_type).bind(write_off_amount).bind(write_off_account_code)
@@ -1214,11 +1215,11 @@ impl CollectionsRepository for PostgresCollectionsRepository {
 
     async fn list_write_off_requests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WriteOffRequest>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.write_off_requests
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -1237,7 +1238,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         journal_entry_id: Option<Uuid>,
     ) -> AtlasResult<WriteOffRequest> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.write_off_requests
             SET status = $2,
                 submitted_by = COALESCE($3, submitted_by),
@@ -1249,7 +1250,7 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(submitted_by).bind(approved_by)
         .bind(rejected_reason).bind(journal_entry_id)

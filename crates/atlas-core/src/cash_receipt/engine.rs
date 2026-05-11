@@ -9,7 +9,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Receivables > Receipts
 
-use super::*;
+use super::{CashReceiptRepository, AtlasResult, ReceiptBatch, AtlasError, CashReceipt, ReceiptApplication, CashReceiptDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -64,7 +64,7 @@ impl CashReceiptEngine {
         }
 
         if self.repository.get_batch_by_number(org_id, batch_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Batch number '{}' already exists", batch_number)));
+            return Err(AtlasError::Conflict(format!("Batch number '{batch_number}' already exists")));
         }
 
         info!("Creating receipt batch '{}'", batch_number);
@@ -94,7 +94,7 @@ impl CashReceiptEngine {
     /// Confirm a batch (transition from draft to confirmed)
     pub async fn confirm_batch(&self, batch_id: Uuid) -> AtlasResult<ReceiptBatch> {
         let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -109,7 +109,7 @@ impl CashReceiptEngine {
     /// Close a batch
     pub async fn close_batch(&self, batch_id: Uuid) -> AtlasResult<ReceiptBatch> {
         let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "confirmed" {
             return Err(AtlasError::WorkflowError(
@@ -124,7 +124,7 @@ impl CashReceiptEngine {
     /// Cancel a batch (only draft batches can be cancelled)
     pub async fn cancel_batch(&self, batch_id: Uuid) -> AtlasResult<ReceiptBatch> {
         let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -139,7 +139,7 @@ impl CashReceiptEngine {
     /// Delete a batch (only cancelled batches)
     pub async fn delete_batch(&self, batch_id: Uuid) -> AtlasResult<()> {
         let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "cancelled" && batch.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -198,7 +198,7 @@ impl CashReceiptEngine {
         // Validate batch exists and is in a valid state for adding receipts
         if let Some(bid) = batch_id {
             let batch = self.repository.get_batch(bid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", bid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {bid} not found")))?;
             if batch.status != "draft" && batch.status != "confirmed" {
                 return Err(AtlasError::WorkflowError(
                     format!("Cannot add receipts to a batch in '{}' status", batch.status)
@@ -208,7 +208,7 @@ impl CashReceiptEngine {
 
         // Check for duplicate receipt number
         if self.repository.get_receipt_by_number(org_id, receipt_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Receipt number '{}' already exists", receipt_number)));
+            return Err(AtlasError::Conflict(format!("Receipt number '{receipt_number}' already exists")));
         }
 
         info!("Creating cash receipt '{}' for customer {}", receipt_number, customer_id);
@@ -255,7 +255,7 @@ impl CashReceiptEngine {
     /// Identify a receipt (transition from unidentified to identified/unapplied)
     pub async fn identify_receipt(&self, receipt_id: Uuid) -> AtlasResult<CashReceipt> {
         let receipt = self.repository.get_receipt(receipt_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {} not found", receipt_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {receipt_id} not found")))?;
 
         if receipt.status != "unidentified" {
             return Err(AtlasError::WorkflowError(
@@ -284,7 +284,7 @@ impl CashReceiptEngine {
         applied_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptApplication> {
         let receipt = self.repository.get_receipt(receipt_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {} not found", receipt_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {receipt_id} not found")))?;
 
         if receipt.status == "reversed" {
             return Err(AtlasError::WorkflowError("Cannot apply a reversed receipt".into()));
@@ -306,8 +306,7 @@ impl CashReceiptEngine {
 
         if (apply_amt + discount_amt) > available + 0.01 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Applied amount ({}) + discount ({}) exceeds available amount ({:.2})",
-                applied_amount, discount_taken, available
+                "Applied amount ({applied_amount}) + discount ({discount_taken}) exceeds available amount ({available:.2})"
             )));
         }
 
@@ -336,8 +335,8 @@ impl CashReceiptEngine {
 
         self.repository.update_receipt_amounts(
             receipt_id,
-            &format!("{:.2}", total_applied_f),
-            &format!("{:.2}", unapplied),
+            &format!("{total_applied_f:.2}"),
+            &format!("{unapplied:.2}"),
         ).await?;
 
         self.repository.update_receipt_status(receipt_id, new_status).await?;
@@ -353,7 +352,7 @@ impl CashReceiptEngine {
     /// Unapply a receipt application
     pub async fn unapply_receipt(&self, application_id: Uuid, reversed_by: Option<Uuid>) -> AtlasResult<ReceiptApplication> {
         let application = self.repository.get_application(application_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {} not found", application_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Application {application_id} not found")))?;
 
         if application.status != "applied" {
             return Err(AtlasError::WorkflowError(
@@ -386,8 +385,8 @@ impl CashReceiptEngine {
 
         self.repository.update_receipt_amounts(
             receipt.id,
-            &format!("{:.2}", total_applied_f),
-            &format!("{:.2}", unapplied),
+            &format!("{total_applied_f:.2}"),
+            &format!("{unapplied:.2}"),
         ).await?;
 
         self.repository.update_receipt_status(receipt.id, new_status).await?;
@@ -422,7 +421,7 @@ impl CashReceiptEngine {
         }
 
         let receipt = self.repository.get_receipt(receipt_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {} not found", receipt_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {receipt_id} not found")))?;
 
         if receipt.status == "reversed" {
             return Err(AtlasError::WorkflowError("Receipt is already reversed".into()));
@@ -466,7 +465,7 @@ impl CashReceiptEngine {
             .map(|r| r.amount.parse::<f64>().unwrap_or(0.0))
             .sum();
         let count = receipts.iter().filter(|r| r.status != "reversed").count() as i32;
-        self.repository.update_batch_totals(batch_id, &format!("{:.2}", total), count).await
+        self.repository.update_batch_totals(batch_id, &format!("{total:.2}"), count).await
     }
 }
 

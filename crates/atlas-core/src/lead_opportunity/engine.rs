@@ -86,7 +86,7 @@ impl LeadOpportunityEngine {
             return Err(AtlasError::ValidationFailed("Lead source name is required".to_string()));
         }
         if self.repository.get_lead_source_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Lead source '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Lead source '{code}' already exists")));
         }
         info!("Creating lead source '{}' for org {}", code, org_id);
         self.repository.create_lead_source(org_id, &code, name, description, created_by).await
@@ -125,7 +125,7 @@ impl LeadOpportunityEngine {
             return Err(AtlasError::ValidationFailed("Rating model name is required".to_string()));
         }
         if self.repository.get_lead_rating_model_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Lead rating model '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Lead rating model '{code}' already exists")));
         }
         info!("Creating lead rating model '{}' for org {}", code, org_id);
         self.repository.create_lead_rating_model(org_id, &code, name, description, scoring_criteria, created_by).await
@@ -176,9 +176,9 @@ impl LeadOpportunityEngine {
         let source_name = if let Some(src_id) = lead_source_id {
             let _src = self.repository.get_lead_source_by_code(org_id, &src_id.to_string()).await?;
             // Allow direct name pass-through
-            lead_source_name.map(|s| s.to_string())
+            lead_source_name.map(std::string::ToString::to_string)
         } else {
-            lead_source_name.map(|s| s.to_string())
+            lead_source_name.map(std::string::ToString::to_string)
         };
 
         // Validate estimated value
@@ -189,7 +189,7 @@ impl LeadOpportunityEngine {
 
         // Check uniqueness
         if self.repository.get_lead_by_number(org_id, lead_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Lead '{}' already exists", lead_number)));
+            return Err(AtlasError::Conflict(format!("Lead '{lead_number}' already exists")));
         }
 
         info!("Creating sales lead '{}' for org {}", lead_number, org_id);
@@ -232,7 +232,7 @@ impl LeadOpportunityEngine {
             )));
         }
         let lead = self.repository.get_lead(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lead {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lead {id} not found")))?;
         info!("Updating lead {} status to {}", lead.lead_number, status);
         self.repository.update_lead_status(id, status).await
     }
@@ -261,7 +261,7 @@ impl LeadOpportunityEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<(atlas_shared::SalesLead, atlas_shared::SalesOpportunity)> {
         let lead = self.repository.get_lead(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lead {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lead {id} not found")))?;
 
         if lead.status == "converted" {
             return Err(AtlasError::WorkflowError("Lead is already converted".to_string()));
@@ -337,7 +337,7 @@ impl LeadOpportunityEngine {
             return Err(AtlasError::ValidationFailed("Probability must be 0-100".to_string()));
         }
         if self.repository.get_opportunity_stage_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Opportunity stage '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Opportunity stage '{code}' already exists")));
         }
         info!("Creating opportunity stage '{}' for org {}", code, org_id);
         self.repository.create_opportunity_stage(
@@ -400,14 +400,14 @@ impl LeadOpportunityEngine {
 
         // Resolve stage name from stage_id
         let stage_name = if let Some(sid) = stage_id {
-            self.repository.get_opportunity_stage(sid).await?.map(|s| s.name.clone())
+            self.repository.get_opportunity_stage(sid).await?.map(|s| s.name)
         } else {
             None
         };
 
         // Check uniqueness
         if self.repository.get_opportunity_by_number(org_id, opportunity_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Opportunity '{}' already exists", opportunity_number)));
+            return Err(AtlasError::Conflict(format!("Opportunity '{opportunity_number}' already exists")));
         }
 
         info!("Creating opportunity '{}' for org {}", opportunity_number, org_id);
@@ -454,7 +454,7 @@ impl LeadOpportunityEngine {
         notes: Option<&str>,
     ) -> AtlasResult<atlas_shared::SalesOpportunity> {
         let opp = self.repository.get_opportunity(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Opportunity {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Opportunity {id} not found")))?;
 
         if opp.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
@@ -464,10 +464,10 @@ impl LeadOpportunityEngine {
 
         let (stage_name, probability, weighted) = if let Some(sid) = stage_id {
             let stage = self.repository.get_opportunity_stage(sid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Stage {} not found", sid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Stage {sid} not found")))?;
             let amt: f64 = opp.amount.parse().unwrap_or(0.0);
             let prob: f64 = stage.probability.parse().unwrap_or(0.0);
-            (Some(stage.name.clone()), stage.probability.clone(), format!("{:.2}", amt * prob / 100.0))
+            (Some(stage.name.clone()), stage.probability, format!("{:.2}", amt * prob / 100.0))
         } else {
             (None, opp.probability.clone(), opp.weighted_amount.clone())
         };
@@ -491,7 +491,7 @@ impl LeadOpportunityEngine {
     /// Close opportunity as won
     pub async fn close_opportunity_won(&self, id: Uuid) -> AtlasResult<atlas_shared::SalesOpportunity> {
         let opp = self.repository.get_opportunity(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Opportunity {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Opportunity {id} not found")))?;
         if opp.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot close '{}' opportunity as won. Must be 'open'.", opp.status
@@ -504,7 +504,7 @@ impl LeadOpportunityEngine {
     /// Close opportunity as lost
     pub async fn close_opportunity_lost(&self, id: Uuid, lost_reason: Option<&str>) -> AtlasResult<atlas_shared::SalesOpportunity> {
         let opp = self.repository.get_opportunity(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Opportunity {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Opportunity {id} not found")))?;
         if opp.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot close '{}' opportunity as lost. Must be 'open'.", opp.status
@@ -546,7 +546,7 @@ impl LeadOpportunityEngine {
 
         // Verify opportunity exists
         self.repository.get_opportunity(opportunity_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Opportunity {} not found", opportunity_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Opportunity {opportunity_id} not found")))?;
 
         let qty: f64 = quantity.parse().unwrap_or(1.0);
         let price: f64 = unit_price.parse().unwrap_or(0.0);
@@ -561,7 +561,7 @@ impl LeadOpportunityEngine {
 
         self.repository.add_opportunity_line(
             org_id, opportunity_id, line_number, product_name, product_code,
-            description, quantity, unit_price, &format!("{:.2}", line_amount), discount_percent,
+            description, quantity, unit_price, &format!("{line_amount:.2}"), discount_percent,
         ).await
     }
 
@@ -636,7 +636,7 @@ impl LeadOpportunityEngine {
     /// Complete an activity
     pub async fn complete_activity(&self, id: Uuid, outcome: Option<&str>) -> AtlasResult<atlas_shared::SalesActivity> {
         let activity = self.repository.get_activity(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Activity {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Activity {id} not found")))?;
         if activity.status != "planned" && activity.status != "in_progress" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot complete activity in '{}' status", activity.status
@@ -649,7 +649,7 @@ impl LeadOpportunityEngine {
     /// Cancel an activity
     pub async fn cancel_activity(&self, id: Uuid) -> AtlasResult<atlas_shared::SalesActivity> {
         let activity = self.repository.get_activity(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Activity {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Activity {id} not found")))?;
         if activity.status == "completed" || activity.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot cancel activity in '{}' status", activity.status

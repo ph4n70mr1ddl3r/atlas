@@ -1,7 +1,7 @@
 //! Lockbox Processing Engine
 //! Oracle Fusion: AR > Lockbox
 
-use super::*;
+use super::{LockboxRepository, AtlasResult, LockboxBatch, AtlasError, LockboxReceipt, LockboxApplication, LockboxTransmissionFormat, LockboxDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -29,7 +29,7 @@ impl LockboxEngine {
             return Err(AtlasError::ValidationFailed("Currency code must be 3 characters".into()));
         }
         if self.repository.get_batch(org_id, batch_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Batch '{}' already exists", batch_number)));
+            return Err(AtlasError::Conflict(format!("Batch '{batch_number}' already exists")));
         }
         info!("Creating lockbox batch {} for org {}", batch_number, org_id);
         self.repository.create_batch(org_id, batch_number, lockbox_number, bank_name, deposit_date, currency_code, source_file_name, created_by).await
@@ -38,12 +38,12 @@ impl LockboxEngine {
     pub async fn get_batch_by_id(&self, id: Uuid) -> AtlasResult<Option<LockboxBatch>> { self.repository.get_batch_by_id(id).await }
 
     pub async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<LockboxBatch>> {
-        if let Some(s) = status { if !VALID_BATCH_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid batch status '{}'", s))); } }
+        if let Some(s) = status { if !VALID_BATCH_STATUSES.contains(&s) { return Err(AtlasError::ValidationFailed(format!("Invalid batch status '{s}'"))); } }
         self.repository.list_batches(org_id, status).await
     }
 
     pub async fn validate_batch(&self, id: Uuid) -> AtlasResult<LockboxBatch> {
-        let batch = self.repository.get_batch_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", id)))?;
+        let batch = self.repository.get_batch_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {id} not found")))?;
         if batch.status != "imported" { return Err(AtlasError::WorkflowError(format!("Cannot validate batch in '{}' status", batch.status))); }
         let receipts = self.repository.list_receipts_by_batch(id).await?;
         let total: f64 = receipts.iter().map(|r| r.receipt_amount.parse::<f64>().unwrap_or(0.0)).sum();
@@ -52,7 +52,7 @@ impl LockboxEngine {
     }
 
     pub async fn apply_batch(&self, id: Uuid) -> AtlasResult<LockboxBatch> {
-        let batch = self.repository.get_batch_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", id)))?;
+        let batch = self.repository.get_batch_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {id} not found")))?;
         if batch.status != "validated" { return Err(AtlasError::WorkflowError(format!("Cannot apply batch in '{}' status", batch.status))); }
         let receipts = self.repository.list_receipts_by_batch(id).await?;
         let mut applied: f64 = 0.0;
@@ -74,7 +74,7 @@ impl LockboxEngine {
 
     // Receipt operations
     pub async fn create_receipt(&self, org_id: Uuid, batch_id: Uuid, receipt_number: &str, customer_number: Option<&str>, customer_id: Option<Uuid>, receipt_date: chrono::NaiveDate, receipt_amount: &str, remittance_reference: Option<&str>) -> AtlasResult<LockboxReceipt> {
-        let batch = self.repository.get_batch_by_id(batch_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", batch_id)))?;
+        let batch = self.repository.get_batch_by_id(batch_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
         if batch.status != "imported" && batch.status != "validated" {
             return Err(AtlasError::WorkflowError(format!("Cannot add receipts to '{}' batch", batch.status)));
         }
@@ -89,7 +89,7 @@ impl LockboxEngine {
     }
 
     pub async fn manual_apply_receipt(&self, receipt_id: Uuid, invoice_number: &str, applied_amount: &str, applied_by: Option<Uuid>) -> AtlasResult<LockboxApplication> {
-        let receipt = self.repository.get_receipt(receipt_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {} not found", receipt_id)))?;
+        let receipt = self.repository.get_receipt(receipt_id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {receipt_id} not found")))?;
         if receipt.status != "unapplied" && receipt.status != "partial" {
             return Err(AtlasError::WorkflowError(format!("Cannot apply receipt in '{}' status", receipt.status)));
         }
@@ -123,7 +123,7 @@ impl LockboxEngine {
             return Err(AtlasError::ValidationFailed("Format code and name are required".into()));
         }
         if !VALID_FORMAT_TYPES.contains(&format_type) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid format_type '{}'", format_type)));
+            return Err(AtlasError::ValidationFailed(format!("Invalid format_type '{format_type}'")));
         }
         self.repository.create_format(org_id, format_code, name, description, format_type, field_delimiter, record_delimiter, header_id, detail_id, trailer_id, created_by).await
     }
@@ -143,6 +143,7 @@ impl LockboxEngine {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use super::*;
 
     struct MockRepo {

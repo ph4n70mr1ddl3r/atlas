@@ -135,7 +135,7 @@ impl DocumentSequencingEngine {
         // Check uniqueness
         if self.repository.get_sequence(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Document sequence with code '{}' already exists", code
+                "Document sequence with code '{code}' already exists"
             )));
         }
 
@@ -172,7 +172,7 @@ impl DocumentSequencingEngine {
     /// Activate a sequence
     pub async fn activate_sequence(&self, id: Uuid) -> AtlasResult<DocumentSequence> {
         let seq = self.get_sequence_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Sequence {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Sequence {id} not found")))?;
 
         if seq.status == "active" {
             return Err(AtlasError::WorkflowError("Sequence is already active".to_string()));
@@ -185,7 +185,7 @@ impl DocumentSequencingEngine {
     /// Deactivate a sequence
     pub async fn deactivate_sequence(&self, id: Uuid) -> AtlasResult<DocumentSequence> {
         let seq = self.get_sequence_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Sequence {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Sequence {id} not found")))?;
 
         if seq.status == "inactive" {
             return Err(AtlasError::WorkflowError("Sequence is already inactive".to_string()));
@@ -198,7 +198,7 @@ impl DocumentSequencingEngine {
     /// Delete a sequence (only if no assignments exist)
     pub async fn delete_sequence(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let seq = self.repository.get_sequence(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Sequence '{}' not found", code)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Sequence '{code}' not found")))?;
 
         // Check for assignments
         let assignments = self.repository.list_assignments(org_id, Some(seq.id)).await?;
@@ -235,7 +235,7 @@ impl DocumentSequencingEngine {
         ).await?.ok_or_else(|| AtlasError::EntityNotFound(format!(
             "No active sequence assignment found for document category '{}'{}",
             document_category,
-            business_unit_id.map(|id| format!(" and business unit {}", id)).unwrap_or_default()
+            business_unit_id.map(|id| format!(" and business unit {id}")).unwrap_or_default()
         )))?;
 
         // Get the sequence
@@ -311,12 +311,11 @@ impl DocumentSequencingEngine {
                         business_unit_id, generated_by,
                         serde_json::json!({ "cycled": true }),
                     ).await;
-                } else {
-                    return Err(AtlasError::WorkflowError(format!(
-                        "Sequence '{}' has reached its maximum value ({})",
-                        sequence.code, max
-                    )));
                 }
+                return Err(AtlasError::WorkflowError(format!(
+                    "Sequence '{}' has reached its maximum value ({})",
+                    sequence.code, max
+                )));
             }
         }
 
@@ -351,12 +350,12 @@ impl DocumentSequencingEngine {
     ) -> AtlasResult<DocumentSequenceAudit> {
         let sequence = self.repository.get_sequence(org_id, sequence_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Sequence '{}' not found", sequence_code
+                "Sequence '{sequence_code}' not found"
             )))?;
 
         if sequence.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
-                "Sequence '{}' is not active", sequence_code
+                "Sequence '{sequence_code}' is not active"
             )));
         }
 
@@ -377,8 +376,7 @@ impl DocumentSequencingEngine {
         if let Some(max) = sequence.max_value {
             if next_value > max && !sequence.cycle_flag {
                 return Err(AtlasError::WorkflowError(format!(
-                    "Sequence '{}' has reached its maximum value ({})",
-                    sequence_code, max
+                    "Sequence '{sequence_code}' has reached its maximum value ({max})"
                 )));
             }
         }
@@ -423,7 +421,7 @@ impl DocumentSequencingEngine {
 
         let sequence = self.repository.get_sequence(org_id, sequence_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Sequence '{}' not found", sequence_code
+                "Sequence '{sequence_code}' not found"
             )))?;
 
         if let (Some(from), Some(to)) = (effective_from, effective_to) {
@@ -463,7 +461,7 @@ impl DocumentSequencingEngine {
     /// Deactivate an assignment
     pub async fn deactivate_assignment(&self, id: Uuid) -> AtlasResult<DocumentSequenceAssignment> {
         let assignment = self.repository.get_assignment(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Assignment {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Assignment {id} not found")))?;
 
         if assignment.status == "inactive" {
             return Err(AtlasError::WorkflowError("Assignment is already inactive".to_string()));
@@ -512,6 +510,7 @@ impl DocumentSequencingEngine {
     // ========================================================================
 
     /// Format a numeric value using the sequence's prefix, suffix, and padding
+    #[must_use] 
     pub fn format_number(sequence: &DocumentSequence, value: i64) -> String {
         let numeric_str = if sequence.pad_length > 0 {
             format!("{:0>width$}", value, width = sequence.pad_length as usize)
@@ -522,10 +521,10 @@ impl DocumentSequencingEngine {
         let prefix = sequence.prefix.as_deref().unwrap_or("");
         let suffix = sequence.suffix.as_deref().unwrap_or("");
 
-        format!("{}{}{}", prefix, numeric_str, suffix)
+        format!("{prefix}{numeric_str}{suffix}")
     }
 
-    /// Check if a sequence needs to be reset based on its reset_frequency
+    /// Check if a sequence needs to be reset based on its `reset_frequency`
     /// and perform the reset if needed.
     async fn check_and_reset(&self, mut sequence: DocumentSequence) -> AtlasResult<DocumentSequence> {
         let frequency = match &sequence.reset_frequency {
@@ -564,7 +563,8 @@ impl DocumentSequencingEngine {
     }
 
     /// Check if a value would need reset based on the frequency and last reset date.
-    /// Used for testing; the actual reset happens in check_and_reset.
+    /// Used for testing; the actual reset happens in `check_and_reset`.
+    #[must_use] 
     pub fn needs_reset(sequence: &DocumentSequence, today: chrono::NaiveDate) -> bool {
         let frequency = match &sequence.reset_frequency {
             Some(f) if f != "never" => f.clone(),

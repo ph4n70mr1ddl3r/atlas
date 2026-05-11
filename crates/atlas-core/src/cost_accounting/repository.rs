@@ -1,6 +1,6 @@
 //! Cost Accounting Repository
 //!
-//! PostgreSQL storage for cost accounting data.
+//! `PostgreSQL` storage for cost accounting data.
 
 use atlas_shared::{
     CostBook, CostElement, CostProfile, StandardCost,
@@ -221,13 +221,14 @@ pub trait CostAccountingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CostAccountingDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCostAccountingRepository {
     pool: PgPool,
 }
 
 impl PostgresCostAccountingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -239,10 +240,10 @@ fn numeric_f64(row: &sqlx::postgres::PgRow, col: &str) -> f64 {
 }
 
 fn fmt2(val: f64) -> String {
-    format!("{:.2}", val)
+    format!("{val:.2}")
 }
 fn fmt6(val: f64) -> String {
-    format!("{:.6}", val)
+    format!("{val:.6}")
 }
 
 fn row_to_cost_book(row: &sqlx::postgres::PgRow) -> CostBook {
@@ -419,13 +420,13 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CostBook> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cost_books
+            r"INSERT INTO _atlas.cost_books
                 (organization_id, code, name, description, costing_method,
                  currency_code, effective_from, effective_to, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
                RETURNING id, organization_id, code, name, description, costing_method,
                  currency_code, is_active, status, effective_from, effective_to,
-                 metadata, created_by, created_at, updated_at"#,
+                 metadata, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(costing_method)
         .bind(currency_code).bind(effective_from).bind(effective_to).bind(created_by)
@@ -461,16 +462,16 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         let cols = "id, organization_id, code, name, description, costing_method, currency_code, is_active, status, effective_from, effective_to, metadata, created_by, created_at, updated_at";
         let rows = match (costing_method, include_inactive) {
             (Some(cm), false) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_books WHERE organization_id = $1 AND costing_method = $2 AND is_active = true ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_books WHERE organization_id = $1 AND costing_method = $2 AND is_active = true ORDER BY name"))
                 .bind(org_id).bind(cm).fetch_all(&self.pool).await,
             (Some(cm), true) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_books WHERE organization_id = $1 AND costing_method = $2 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_books WHERE organization_id = $1 AND costing_method = $2 ORDER BY name"))
                 .bind(org_id).bind(cm).fetch_all(&self.pool).await,
             (None, false) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_books WHERE organization_id = $1 AND is_active = true ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_books WHERE organization_id = $1 AND is_active = true ORDER BY name"))
                 .bind(org_id).fetch_all(&self.pool).await,
             (None, true) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_books WHERE organization_id = $1 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_books WHERE organization_id = $1 ORDER BY name"))
                 .bind(org_id).fetch_all(&self.pool).await,
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_cost_book).collect())
@@ -486,7 +487,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<CostBook> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.cost_books SET
+            r"UPDATE _atlas.cost_books SET
                 name = COALESCE($2, name),
                 description = COALESCE($3, description),
                 costing_method = COALESCE($4, costing_method),
@@ -496,7 +497,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
                WHERE id = $1
                RETURNING id, organization_id, code, name, description, costing_method,
                  currency_code, is_active, status, effective_from, effective_to,
-                 metadata, created_by, created_at, updated_at"#,
+                 metadata, created_by, created_at, updated_at",
         )
         .bind(id).bind(name).bind(description).bind(costing_method)
         .bind(effective_from.is_some()).bind(effective_from)
@@ -508,11 +509,11 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
 
     async fn update_cost_book_status(&self, id: Uuid, status: &str) -> AtlasResult<CostBook> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.cost_books SET status = $2, is_active = ($2 = 'active'),
+            r"UPDATE _atlas.cost_books SET status = $2, is_active = ($2 = 'active'),
                 updated_at = now() WHERE id = $1
                RETURNING id, organization_id, code, name, description, costing_method,
                  currency_code, is_active, status, effective_from, effective_to,
-                 metadata, created_by, created_at, updated_at"#,
+                 metadata, created_by, created_at, updated_at",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -545,13 +546,13 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
     ) -> AtlasResult<CostElement> {
         let rate: f64 = default_rate.parse().unwrap_or(0.0);
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cost_elements
+            r"INSERT INTO _atlas.cost_elements
                 (organization_id, code, name, description, element_type,
                  cost_book_id, default_rate, rate_uom, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
                RETURNING id, organization_id, code, name, description, element_type,
                  cost_book_id, is_active, default_rate::text as default_rate, rate_uom,
-                 metadata, created_by, created_at, updated_at"#,
+                 metadata, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(element_type)
         .bind(cost_book_id).bind(rate).bind(rate_uom).bind(created_by)
@@ -587,16 +588,16 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         let cols = "id, organization_id, code, name, description, element_type, cost_book_id, is_active, default_rate::text as default_rate, rate_uom, metadata, created_by, created_at, updated_at";
         let rows = match (element_type, cost_book_id) {
             (Some(et), Some(cb)) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_elements WHERE organization_id = $1 AND element_type = $2 AND cost_book_id = $3 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_elements WHERE organization_id = $1 AND element_type = $2 AND cost_book_id = $3 ORDER BY name"))
                 .bind(org_id).bind(et).bind(cb).fetch_all(&self.pool).await,
             (Some(et), None) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_elements WHERE organization_id = $1 AND element_type = $2 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_elements WHERE organization_id = $1 AND element_type = $2 ORDER BY name"))
                 .bind(org_id).bind(et).fetch_all(&self.pool).await,
             (None, Some(cb)) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_elements WHERE organization_id = $1 AND cost_book_id = $2 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_elements WHERE organization_id = $1 AND cost_book_id = $2 ORDER BY name"))
                 .bind(org_id).bind(cb).fetch_all(&self.pool).await,
             (None, None) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_elements WHERE organization_id = $1 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_elements WHERE organization_id = $1 ORDER BY name"))
                 .bind(org_id).fetch_all(&self.pool).await,
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_cost_element).collect())
@@ -611,7 +612,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
     ) -> AtlasResult<CostElement> {
         let rate: Option<f64> = default_rate.map(|r| r.parse().unwrap_or(0.0));
         let row = sqlx::query(
-            r#"UPDATE _atlas.cost_elements SET
+            r"UPDATE _atlas.cost_elements SET
                 name = COALESCE($2, name),
                 description = COALESCE($3, description),
                 default_rate = COALESCE($4, default_rate),
@@ -619,7 +620,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
                WHERE id = $1
                RETURNING id, organization_id, code, name, description, element_type,
                  cost_book_id, is_active, default_rate::text as default_rate, rate_uom,
-                 metadata, created_by, created_at, updated_at"#,
+                 metadata, created_by, created_at, updated_at",
         )
         .bind(id).bind(name).bind(description).bind(rate)
         .fetch_one(&self.pool).await
@@ -654,7 +655,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CostProfile> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cost_profiles
+            r"INSERT INTO _atlas.cost_profiles
                 (organization_id, code, name, description, cost_book_id,
                  item_id, item_name, cost_type, lot_level_costing,
                  include_landed_costs, overhead_absorption_method, created_by)
@@ -662,7 +663,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
                RETURNING id, organization_id, code, name, description, cost_book_id,
                  item_id, item_name, cost_type, lot_level_costing,
                  include_landed_costs, overhead_absorption_method, is_active,
-                 metadata, created_by, created_at, updated_at"#,
+                 metadata, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(cost_book_id)
         .bind(item_id).bind(item_name).bind(cost_type).bind(lot_level_costing)
@@ -699,16 +700,16 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         let cols = "id, organization_id, code, name, description, cost_book_id, item_id, item_name, cost_type, lot_level_costing, include_landed_costs, overhead_absorption_method, is_active, metadata, created_by, created_at, updated_at";
         let rows = match (cost_book_id, item_id) {
             (Some(cb), Some(ii)) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_profiles WHERE organization_id = $1 AND cost_book_id = $2 AND item_id = $3 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_profiles WHERE organization_id = $1 AND cost_book_id = $2 AND item_id = $3 ORDER BY name"))
                 .bind(org_id).bind(cb).bind(ii).fetch_all(&self.pool).await,
             (Some(cb), None) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_profiles WHERE organization_id = $1 AND cost_book_id = $2 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_profiles WHERE organization_id = $1 AND cost_book_id = $2 ORDER BY name"))
                 .bind(org_id).bind(cb).fetch_all(&self.pool).await,
             (None, Some(ii)) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_profiles WHERE organization_id = $1 AND item_id = $2 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_profiles WHERE organization_id = $1 AND item_id = $2 ORDER BY name"))
                 .bind(org_id).bind(ii).fetch_all(&self.pool).await,
             (None, None) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_profiles WHERE organization_id = $1 ORDER BY name", cols))
+                "SELECT {cols} FROM _atlas.cost_profiles WHERE organization_id = $1 ORDER BY name"))
                 .bind(org_id).fetch_all(&self.pool).await,
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_cost_profile).collect())
@@ -740,13 +741,13 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
     ) -> AtlasResult<StandardCost> {
         let cost: f64 = standard_cost.parse().unwrap_or(0.0);
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.standard_costs
+            r"INSERT INTO _atlas.standard_costs
                 (organization_id, cost_book_id, cost_profile_id, cost_element_id,
                  item_id, item_name, standard_cost, currency_code, effective_date, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
                RETURNING id, organization_id, cost_book_id, cost_profile_id, cost_element_id,
                  item_id, item_name, standard_cost::text as standard_cost, currency_code,
-                 effective_date, status, is_active, metadata, created_by, created_at, updated_at"#,
+                 effective_date, status, is_active, metadata, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(cost_book_id).bind(cost_profile_id).bind(cost_element_id)
         .bind(item_id).bind(item_name).bind(cost).bind(currency_code)
@@ -774,16 +775,16 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         let cols = "id, organization_id, cost_book_id, cost_profile_id, cost_element_id, item_id, item_name, standard_cost::text as standard_cost, currency_code, effective_date, status, is_active, metadata, created_by, created_at, updated_at";
         let rows = match (cost_book_id, item_id) {
             (Some(cb), Some(ii)) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.standard_costs WHERE organization_id = $1 AND cost_book_id = $2 AND item_id = $3 AND status = 'active' ORDER BY effective_date DESC", cols))
+                "SELECT {cols} FROM _atlas.standard_costs WHERE organization_id = $1 AND cost_book_id = $2 AND item_id = $3 AND status = 'active' ORDER BY effective_date DESC"))
                 .bind(org_id).bind(cb).bind(ii).fetch_all(&self.pool).await,
             (Some(cb), None) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.standard_costs WHERE organization_id = $1 AND cost_book_id = $2 AND status = 'active' ORDER BY effective_date DESC", cols))
+                "SELECT {cols} FROM _atlas.standard_costs WHERE organization_id = $1 AND cost_book_id = $2 AND status = 'active' ORDER BY effective_date DESC"))
                 .bind(org_id).bind(cb).fetch_all(&self.pool).await,
             (None, Some(ii)) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.standard_costs WHERE organization_id = $1 AND item_id = $2 AND status = 'active' ORDER BY effective_date DESC", cols))
+                "SELECT {cols} FROM _atlas.standard_costs WHERE organization_id = $1 AND item_id = $2 AND status = 'active' ORDER BY effective_date DESC"))
                 .bind(org_id).bind(ii).fetch_all(&self.pool).await,
             (None, None) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.standard_costs WHERE organization_id = $1 AND status = 'active' ORDER BY effective_date DESC", cols))
+                "SELECT {cols} FROM _atlas.standard_costs WHERE organization_id = $1 AND status = 'active' ORDER BY effective_date DESC"))
                 .bind(org_id).fetch_all(&self.pool).await,
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_standard_cost).collect())
@@ -792,10 +793,10 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
     async fn update_standard_cost(&self, id: Uuid, standard_cost: &str) -> AtlasResult<StandardCost> {
         let cost: f64 = standard_cost.parse().unwrap_or(0.0);
         let row = sqlx::query(
-            r#"UPDATE _atlas.standard_costs SET standard_cost = $2, updated_at = now() WHERE id = $1
+            r"UPDATE _atlas.standard_costs SET standard_cost = $2, updated_at = now() WHERE id = $1
                RETURNING id, organization_id, cost_book_id, cost_profile_id, cost_element_id,
                  item_id, item_name, standard_cost::text as standard_cost, currency_code,
-                 effective_date, status, is_active, metadata, created_by, created_at, updated_at"#,
+                 effective_date, status, is_active, metadata, created_by, created_at, updated_at",
         )
         .bind(id).bind(cost)
         .fetch_one(&self.pool).await
@@ -805,10 +806,10 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
 
     async fn supersede_standard_cost(&self, id: Uuid) -> AtlasResult<StandardCost> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.standard_costs SET status = 'superseded', is_active = false, updated_at = now() WHERE id = $1
+            r"UPDATE _atlas.standard_costs SET status = 'superseded', is_active = false, updated_at = now() WHERE id = $1
                RETURNING id, organization_id, cost_book_id, cost_profile_id, cost_element_id,
                  item_id, item_name, standard_cost::text as standard_cost, currency_code,
-                 effective_date, status, is_active, metadata, created_by, created_at, updated_at"#,
+                 effective_date, status, is_active, metadata, created_by, created_at, updated_at",
         )
         .bind(id)
         .fetch_one(&self.pool).await
@@ -840,7 +841,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CostAdjustment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cost_adjustments
+            r"INSERT INTO _atlas.cost_adjustments
                 (organization_id, adjustment_number, cost_book_id, adjustment_type,
                  description, reason, currency_code, effective_date, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
@@ -848,7 +849,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
                  description, reason, status,
                  total_adjustment_amount::text as total_adjustment_amount, currency_code,
                  effective_date, posted_at, posted_by, approved_by, rejected_reason,
-                 metadata, created_by, created_at, updated_at"#,
+                 metadata, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(adjustment_number).bind(cost_book_id).bind(adjustment_type)
         .bind(description).bind(reason).bind(currency_code).bind(effective_date).bind(created_by)
@@ -884,16 +885,16 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         let cols = "id, organization_id, adjustment_number, cost_book_id, adjustment_type, description, reason, status, total_adjustment_amount::text as total_adjustment_amount, currency_code, effective_date, posted_at, posted_by, approved_by, rejected_reason, metadata, created_by, created_at, updated_at";
         let rows = match (status, adjustment_type) {
             (Some(s), Some(at)) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_adjustments WHERE organization_id = $1 AND status = $2 AND adjustment_type = $3 ORDER BY created_at DESC", cols))
+                "SELECT {cols} FROM _atlas.cost_adjustments WHERE organization_id = $1 AND status = $2 AND adjustment_type = $3 ORDER BY created_at DESC"))
                 .bind(org_id).bind(s).bind(at).fetch_all(&self.pool).await,
             (Some(s), None) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_adjustments WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC", cols))
+                "SELECT {cols} FROM _atlas.cost_adjustments WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC"))
                 .bind(org_id).bind(s).fetch_all(&self.pool).await,
             (None, Some(at)) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_adjustments WHERE organization_id = $1 AND adjustment_type = $2 ORDER BY created_at DESC", cols))
+                "SELECT {cols} FROM _atlas.cost_adjustments WHERE organization_id = $1 AND adjustment_type = $2 ORDER BY created_at DESC"))
                 .bind(org_id).bind(at).fetch_all(&self.pool).await,
             (None, None) => sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_adjustments WHERE organization_id = $1 ORDER BY created_at DESC", cols))
+                "SELECT {cols} FROM _atlas.cost_adjustments WHERE organization_id = $1 ORDER BY created_at DESC"))
                 .bind(org_id).fetch_all(&self.pool).await,
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_cost_adjustment).collect())
@@ -909,7 +910,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
     ) -> AtlasResult<CostAdjustment> {
         let total: Option<f64> = total_adjustment_amount.map(|v| v.parse().unwrap_or(0.0));
         let row = sqlx::query(
-            r#"UPDATE _atlas.cost_adjustments SET
+            r"UPDATE _atlas.cost_adjustments SET
                 status = $2,
                 approved_by = COALESCE($3, approved_by),
                 rejected_reason = COALESCE($4, rejected_reason),
@@ -920,7 +921,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
                  description, reason, status,
                  total_adjustment_amount::text as total_adjustment_amount, currency_code,
                  effective_date, posted_at, posted_by, approved_by, rejected_reason,
-                 metadata, created_by, created_at, updated_at"#,
+                 metadata, created_by, created_at, updated_at",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejected_reason).bind(total)
         .fetch_one(&self.pool).await
@@ -936,7 +937,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
     ) -> AtlasResult<CostAdjustment> {
         let total: f64 = total_amount.parse().unwrap_or(0.0);
         let row = sqlx::query(
-            r#"UPDATE _atlas.cost_adjustments SET
+            r"UPDATE _atlas.cost_adjustments SET
                 status = 'posted', posted_by = $2, posted_at = now(),
                 total_adjustment_amount = $3, updated_at = now()
                WHERE id = $1
@@ -944,7 +945,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
                  description, reason, status,
                  total_adjustment_amount::text as total_adjustment_amount, currency_code,
                  effective_date, posted_at, posted_by, approved_by, rejected_reason,
-                 metadata, created_by, created_at, updated_at"#,
+                 metadata, created_by, created_at, updated_at",
         )
         .bind(id).bind(posted_by).bind(total)
         .fetch_one(&self.pool).await
@@ -981,14 +982,14 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         let nc: f64 = new_cost.parse().unwrap_or(0.0);
         let adj: f64 = adjustment_amount.parse().unwrap_or(0.0);
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cost_adjustment_lines
+            r"INSERT INTO _atlas.cost_adjustment_lines
                 (organization_id, adjustment_id, line_number, item_id, item_name,
                  cost_element_id, old_cost, new_cost, adjustment_amount, currency_code, effective_date)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
                RETURNING id, organization_id, adjustment_id, line_number, item_id, item_name,
                  cost_element_id, old_cost::text as old_cost, new_cost::text as new_cost,
                  adjustment_amount::text as adjustment_amount, currency_code, effective_date,
-                 metadata, created_at, updated_at"#,
+                 metadata, created_at, updated_at",
         )
         .bind(org_id).bind(adjustment_id).bind(line_number).bind(item_id).bind(item_name)
         .bind(cost_element_id).bind(oc).bind(nc).bind(adj).bind(currency_code).bind(effective_date)
@@ -1044,7 +1045,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         let vp: f64 = variance_percent.parse().unwrap_or(0.0);
         let qty: f64 = quantity.parse().unwrap_or(0.0);
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cost_variances
+            r"INSERT INTO _atlas.cost_variances
                 (organization_id, cost_book_id, variance_type, variance_date,
                  item_id, item_name, cost_element_id, source_type, source_id, source_number,
                  standard_cost, actual_cost, variance_amount, variance_percent, quantity,
@@ -1055,7 +1056,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
                  standard_cost::text as standard_cost, actual_cost::text as actual_cost,
                  variance_amount::text as variance_amount, variance_percent::text as variance_percent,
                  quantity::text as quantity, currency_code, accounting_period,
-                 is_analyzed, analysis_notes, metadata, created_by, created_at, updated_at"#,
+                 is_analyzed, analysis_notes, metadata, created_by, created_at, updated_at",
         )
         .bind(org_id).bind(cost_book_id).bind(variance_type).bind(variance_date)
         .bind(item_id).bind(item_name).bind(cost_element_id).bind(source_type)
@@ -1086,7 +1087,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         let cols = "id, organization_id, cost_book_id, variance_type, variance_date, item_id, item_name, cost_element_id, source_type, source_id, source_number, standard_cost::text as standard_cost, actual_cost::text as actual_cost, variance_amount::text as variance_amount, variance_percent::text as variance_percent, quantity::text as quantity, currency_code, accounting_period, is_analyzed, analysis_notes, metadata, created_by, created_at, updated_at";
         // Simplified: filter only when params are provided
         let rows = if variance_type.is_some() || item_id.is_some() || cost_book_id.is_some() {
-            let mut query = format!("SELECT {} FROM _atlas.cost_variances WHERE organization_id = $1", cols);
+            let mut query = format!("SELECT {cols} FROM _atlas.cost_variances WHERE organization_id = $1");
             let mut bind_idx = 2u32;
             let vt = variance_type;
             let ii = item_id;
@@ -1102,7 +1103,7 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
             q.fetch_all(&self.pool).await
         } else {
             sqlx::query(&format!(
-                "SELECT {} FROM _atlas.cost_variances WHERE organization_id = $1 ORDER BY variance_date DESC", cols))
+                "SELECT {cols} FROM _atlas.cost_variances WHERE organization_id = $1 ORDER BY variance_date DESC"))
                 .bind(org_id).fetch_all(&self.pool).await
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_cost_variance).collect())
@@ -1110,14 +1111,14 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
 
     async fn analyze_variance(&self, id: Uuid, notes: &str) -> AtlasResult<CostVariance> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.cost_variances SET is_analyzed = true, analysis_notes = $2, updated_at = now()
+            r"UPDATE _atlas.cost_variances SET is_analyzed = true, analysis_notes = $2, updated_at = now()
                WHERE id = $1
                RETURNING id, organization_id, cost_book_id, variance_type, variance_date,
                  item_id, item_name, cost_element_id, source_type, source_id, source_number,
                  standard_cost::text as standard_cost, actual_cost::text as actual_cost,
                  variance_amount::text as variance_amount, variance_percent::text as variance_percent,
                  quantity::text as quantity, currency_code, accounting_period,
-                 is_analyzed, analysis_notes, metadata, created_by, created_at, updated_at"#,
+                 is_analyzed, analysis_notes, metadata, created_by, created_at, updated_at",
         )
         .bind(id).bind(notes)
         .fetch_one(&self.pool).await
@@ -1131,10 +1132,10 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CostAccountingDashboard> {
         let book_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE is_active = true) as active
-               FROM _atlas.cost_books WHERE organization_id = $1"#,
+               FROM _atlas.cost_books WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -1146,29 +1147,29 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let sc_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COALESCE(SUM(standard_cost), 0) as total_value
-               FROM _atlas.standard_costs WHERE organization_id = $1 AND status = 'active'"#,
+               FROM _atlas.standard_costs WHERE organization_id = $1 AND status = 'active'",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let adj_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status IN ('draft', 'submitted')) as pending
-               FROM _atlas.cost_adjustments WHERE organization_id = $1"#,
+               FROM _atlas.cost_adjustments WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let var_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE variance_amount > 0) as unfavorable,
                 COALESCE(SUM(variance_amount), 0) as total_variance
-               FROM _atlas.cost_variances WHERE organization_id = $1"#,
+               FROM _atlas.cost_variances WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -1178,25 +1179,25 @@ impl CostAccountingRepository for PostgresCostAccountingRepository {
 
         // Breakdown queries
         let by_type = sqlx::query(
-            r#"SELECT variance_type, COUNT(*) as cnt, COALESCE(SUM(variance_amount), 0) as total
-               FROM _atlas.cost_variances WHERE organization_id = $1 GROUP BY variance_type ORDER BY total DESC"#,
+            r"SELECT variance_type, COUNT(*) as cnt, COALESCE(SUM(variance_amount), 0) as total
+               FROM _atlas.cost_variances WHERE organization_id = $1 GROUP BY variance_type ORDER BY total DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let by_element = sqlx::query(
-            r#"SELECT ce.element_type, COUNT(*) as cnt, COALESCE(SUM(cv.variance_amount), 0) as total
+            r"SELECT ce.element_type, COUNT(*) as cnt, COALESCE(SUM(cv.variance_amount), 0) as total
                FROM _atlas.cost_variances cv
                LEFT JOIN _atlas.cost_elements ce ON cv.cost_element_id = ce.id
                WHERE cv.organization_id = $1
-               GROUP BY ce.element_type ORDER BY total DESC"#,
+               GROUP BY ce.element_type ORDER BY total DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let by_status = sqlx::query(
-            r#"SELECT status, COUNT(*) as cnt FROM _atlas.cost_adjustments
-               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC"#,
+            r"SELECT status, COUNT(*) as cnt FROM _atlas.cost_adjustments
+               WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

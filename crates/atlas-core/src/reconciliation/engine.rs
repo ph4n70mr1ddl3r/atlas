@@ -121,7 +121,7 @@ impl ReconciliationEngine {
             .repository
             .get_bank_account(bank_account_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Bank account {}", bank_account_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Bank account {bank_account_id}")))?;
 
         if account.organization_id != org_id {
             return Err(AtlasError::Forbidden(
@@ -306,7 +306,7 @@ impl ReconciliationEngine {
             .repository
             .get_bank_statement(statement_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {}", statement_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {statement_id}")))?;
 
         if statement.organization_id != org_id {
             return Err(AtlasError::Forbidden(
@@ -443,7 +443,7 @@ impl ReconciliationEngine {
         let total_lines = lines.len() as i32;
         let unmatched_lines = total_lines - total_matched;
         let recon_percent = if total_lines > 0 {
-            (total_matched as f64 / total_lines as f64) * 100.0
+            (f64::from(total_matched) / f64::from(total_lines)) * 100.0
         } else {
             0.0
         };
@@ -494,7 +494,7 @@ impl ReconciliationEngine {
         let line = lines
             .iter()
             .find(|l| l.id == statement_line_id)
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Statement line {}", statement_line_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Statement line {statement_line_id}")))?;
 
         if line.match_status != "unmatched" {
             return Err(AtlasError::Conflict(format!(
@@ -508,7 +508,7 @@ impl ReconciliationEngine {
             .repository
             .get_system_transaction(system_transaction_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("System transaction {}", system_transaction_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("System transaction {system_transaction_id}")))?;
 
         if txn.status != "unreconciled" {
             return Err(AtlasError::Conflict(format!(
@@ -542,7 +542,7 @@ impl ReconciliationEngine {
             .repository
             .get_match(match_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {}", match_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Match {match_id}")))?;
 
         if existing.status != "active" {
             return Err(AtlasError::Conflict(format!(

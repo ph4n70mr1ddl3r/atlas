@@ -119,7 +119,7 @@ impl ManufacturingEngine {
     /// Activate a work definition (makes it available for creating work orders)
     pub async fn activate_work_definition(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkDefinition> {
         let def = self.repository.get_work_definition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {id} not found")))?;
 
         if def.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work definition does not belong to your organization".to_string()));
@@ -154,7 +154,7 @@ impl ManufacturingEngine {
     /// Deactivate a work definition
     pub async fn deactivate_work_definition(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkDefinition> {
         let def = self.repository.get_work_definition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {id} not found")))?;
 
         if def.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work definition does not belong to your organization".to_string()));
@@ -174,7 +174,7 @@ impl ManufacturingEngine {
     /// Delete a work definition (only draft)
     pub async fn delete_work_definition(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let def = self.repository.get_work_definition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {id} not found")))?;
 
         if def.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work definition does not belong to your organization".to_string()));
@@ -217,7 +217,7 @@ impl ManufacturingEngine {
 
         // Verify definition exists
         let def = self.repository.get_work_definition_by_id(work_definition_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {} not found", work_definition_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {work_definition_id} not found")))?;
 
         if def.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -257,7 +257,7 @@ impl ManufacturingEngine {
                 return self.repository.delete_work_definition_component(id).await;
             }
         }
-        Err(AtlasError::EntityNotFound(format!("Component {} not found in your organization", id)))
+        Err(AtlasError::EntityNotFound(format!("Component {id} not found in your organization")))
     }
 
     // ========================================================================
@@ -281,7 +281,7 @@ impl ManufacturingEngine {
         }
 
         let def = self.repository.get_work_definition_by_id(work_definition_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {} not found", work_definition_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {work_definition_id} not found")))?;
 
         if def.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -317,7 +317,7 @@ impl ManufacturingEngine {
                 return self.repository.delete_work_definition_operation(id).await;
             }
         }
-        Err(AtlasError::EntityNotFound(format!("Operation {} not found in your organization", id)))
+        Err(AtlasError::EntityNotFound(format!("Operation {id} not found in your organization")))
     }
 
     // ========================================================================
@@ -351,7 +351,7 @@ impl ManufacturingEngine {
         // If a work definition is specified, copy BOM and routing
         let estimated_costs = if let Some(wd_id) = req.work_definition_id {
             let wd = self.repository.get_work_definition_by_id(wd_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {} not found", wd_id)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Work definition {wd_id} not found")))?;
 
             if wd.status != "active" {
                 return Err(AtlasError::WorkflowError(format!(
@@ -385,8 +385,8 @@ impl ManufacturingEngine {
             priority, req.production_line.as_deref(),
             req.work_center_code.as_deref(), req.warehouse_code.as_deref(),
             req.cost_type.as_deref().unwrap_or("standard"),
-            &format!("{:.4}", mat_cost), &format!("{:.4}", lab_cost),
-            &format!("{:.4}", oh_cost), &format!("{:.4}", total_cost),
+            &format!("{mat_cost:.4}"), &format!("{lab_cost:.4}"),
+            &format!("{oh_cost:.4}"), &format!("{total_cost:.4}"),
             req.source_type.as_deref(), req.source_document_number.as_deref(),
             req.firm_planned.unwrap_or(false),
             req.company_id, req.plant_code.as_deref(),
@@ -405,7 +405,7 @@ impl ManufacturingEngine {
                     comp.component_item_id,
                     &comp.component_item_code,
                     comp.component_item_description.as_deref(),
-                    &format!("{:.4}", adjusted),
+                    &format!("{adjusted:.4}"),
                     &comp.unit_of_measure,
                     &comp.supply_type,
                     comp.supply_subinventory.as_deref(),
@@ -457,7 +457,7 @@ impl ManufacturingEngine {
     /// Release a draft work order (moves to released, ready for production)
     pub async fn release_work_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {id} not found")))?;
 
         if wo.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
@@ -477,7 +477,7 @@ impl ManufacturingEngine {
     /// Start a released work order (production begins)
     pub async fn start_work_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {id} not found")))?;
 
         if wo.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
@@ -505,7 +505,7 @@ impl ManufacturingEngine {
     /// Complete a work order (production finished)
     pub async fn complete_work_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {id} not found")))?;
 
         if wo.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
@@ -535,7 +535,7 @@ impl ManufacturingEngine {
     /// Close a completed work order
     pub async fn close_work_order(&self, org_id: Uuid, id: Uuid) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {id} not found")))?;
 
         if wo.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
@@ -555,7 +555,7 @@ impl ManufacturingEngine {
     /// Cancel a work order
     pub async fn cancel_work_order(&self, org_id: Uuid, id: Uuid, reason: Option<&str>) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {id} not found")))?;
 
         if wo.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
@@ -585,7 +585,7 @@ impl ManufacturingEngine {
         req: ReportCompletionRequest,
     ) -> AtlasResult<WorkOrder> {
         let wo = self.repository.get_work_order_by_id(work_order_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", work_order_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {work_order_id} not found")))?;
 
         if wo.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
@@ -617,8 +617,7 @@ impl ManufacturingEngine {
 
         if total_completed + total_scrapped > ordered {
             return Err(AtlasError::ValidationFailed(format!(
-                "Total completed ({}) + scrapped ({}) exceeds ordered quantity ({}).",
-                total_completed, total_scrapped, ordered
+                "Total completed ({total_completed}) + scrapped ({total_scrapped}) exceeds ordered quantity ({ordered})."
             )));
         }
 
@@ -631,8 +630,8 @@ impl ManufacturingEngine {
 
                 self.repository.update_work_order_operation_quantities(
                     op.id,
-                    Some(&format!("{:.4}", op_completed)),
-                    Some(&format!("{:.4}", op_scrapped)),
+                    Some(&format!("{op_completed:.4}")),
+                    Some(&format!("{op_scrapped:.4}")),
                     None,
                 ).await?;
 
@@ -672,8 +671,8 @@ impl ManufacturingEngine {
         // Update work order quantities
         self.repository.update_work_order_quantities(
             work_order_id,
-            Some(&format!("{:.4}", total_completed)),
-            Some(&format!("{:.4}", total_scrapped)),
+            Some(&format!("{total_completed:.4}")),
+            Some(&format!("{total_scrapped:.4}")),
         ).await?;
 
         // Accumulate actual costs on the work order
@@ -689,9 +688,9 @@ impl ManufacturingEngine {
         self.repository.update_work_order_actual_costs(
             work_order_id,
             None,
-            Some(&format!("{:.4}", new_total_labor)),
-            Some(&format!("{:.4}", new_total_overhead)),
-            Some(&format!("{:.4}", new_total)),
+            Some(&format!("{new_total_labor:.4}")),
+            Some(&format!("{new_total_overhead:.4}")),
+            Some(&format!("{new_total:.4}")),
         ).await?;
 
         // Check if fully completed — auto-complete if so
@@ -702,7 +701,7 @@ impl ManufacturingEngine {
         } else {
             self.repository.get_work_order_by_id(work_order_id).await?.
                 ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Work order {} not found after progress update", work_order_id)
+                    format!("Work order {work_order_id} not found after progress update")
                 ))
         }
     }
@@ -715,7 +714,7 @@ impl ManufacturingEngine {
         issues: Vec<IssueMaterialRequest>,
     ) -> AtlasResult<Vec<WorkOrderMaterial>> {
         let wo = self.repository.get_work_order_by_id(work_order_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {} not found", work_order_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Work order {work_order_id} not found")))?;
 
         if wo.organization_id != org_id {
             return Err(AtlasError::Forbidden("Work order does not belong to your organization".to_string()));
@@ -773,7 +772,7 @@ impl ManufacturingEngine {
         quantity_returned: &str,
     ) -> AtlasResult<WorkOrderMaterial> {
         let mat = self.repository.get_work_order_material(material_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Material {} not found", material_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Material {material_id} not found")))?;
 
         if mat.organization_id != org_id {
             return Err(AtlasError::Forbidden("Material does not belong to your organization".to_string()));
@@ -831,7 +830,7 @@ impl ManufacturingEngine {
         }
 
         let op = self.repository.get_work_order_operation(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Operation {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Operation {id} not found")))?;
 
         if op.organization_id != org_id {
             return Err(AtlasError::Forbidden("Operation does not belong to your organization".to_string()));

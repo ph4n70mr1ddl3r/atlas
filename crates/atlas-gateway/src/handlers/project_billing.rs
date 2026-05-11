@@ -8,7 +8,7 @@
 //! - Bill Rate Schedule CRUD (draft → active / inactive)
 //! - Bill Rate Lines per schedule, with date-effective lookups
 //! - Project Billing Configurations per project
-//! - Billing Events (milestone, progress, completion, retention_release)
+//! - Billing Events (milestone, progress, completion, `retention_release`)
 //! - Project Invoices with full lifecycle (draft → submitted → approved → posted)
 //! - Dashboard summary
 
@@ -202,7 +202,7 @@ pub async fn list_schedules(
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    let status = params.get("status").map(|s| s.as_str());
+    let status = params.get("status").map(std::string::String::as_str);
 
     match state.project_billing_engine.list_schedules(org_id, status).await {
         Ok(schedules) => Ok(Json(json!({"data": schedules}))),
@@ -367,7 +367,7 @@ pub async fn list_billing_configs(
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    let status = params.get("status").map(|s| s.as_str());
+    let status = params.get("status").map(std::string::String::as_str);
 
     match state.project_billing_engine.list_billing_configs(org_id, status).await {
         Ok(configs) => Ok(Json(json!({"data": configs}))),

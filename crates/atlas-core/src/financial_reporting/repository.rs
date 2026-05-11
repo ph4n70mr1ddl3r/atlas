@@ -1,6 +1,6 @@
 //! Financial Reporting Repository
 //!
-//! PostgreSQL storage for report templates, rows, columns, runs, results,
+//! `PostgreSQL` storage for report templates, rows, columns, runs, results,
 //! and user favourites.
 
 use atlas_shared::{
@@ -188,13 +188,14 @@ pub trait FinancialReportingRepository: Send + Sync {
     async fn get_reporting_summary(&self, org_id: Uuid) -> AtlasResult<FinancialReportingSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresFinancialReportingRepository {
     pool: PgPool,
 }
 
 impl PostgresFinancialReportingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -383,7 +384,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<FinancialReportTemplate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.financial_report_templates
                 (organization_id, code, name, description, report_type,
                  currency_code, row_display_order, column_display_order,
@@ -396,7 +397,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
                     show_zero_amounts = $10, segment_filter = $11,
                     is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(report_type)
         .bind(currency_code).bind(row_display_order).bind(column_display_order)
@@ -430,13 +431,13 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
 
     async fn list_templates(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialReportTemplate>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.financial_report_templates
             WHERE organization_id = $1
               AND is_active = true
               AND ($2::text IS NULL OR report_type = $2)
             ORDER BY name
-            "#,
+            ",
         )
         .bind(org_id).bind(report_type)
         .fetch_all(&self.pool)
@@ -482,7 +483,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         parent_row_id: Option<Uuid>,
     ) -> AtlasResult<FinancialReportRow> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.financial_report_rows
                 (organization_id, template_id, row_number, line_type, label, indent_level,
                  account_range_from, account_range_to, account_filter,
@@ -491,7 +492,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
                  scaling_factor, parent_row_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(template_id).bind(row_number).bind(line_type).bind(label)
         .bind(indent_level).bind(account_range_from).bind(account_range_to)
@@ -555,7 +556,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         format_override: Option<&str>,
     ) -> AtlasResult<FinancialReportColumn> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.financial_report_columns
                 (organization_id, template_id, column_number, column_type,
                  header_label, sub_header_label, period_offset, period_type,
@@ -563,7 +564,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
                  show_column, column_width, format_override)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(template_id).bind(column_number).bind(column_type)
         .bind(header_label).bind(sub_header_label).bind(period_offset).bind(period_type)
@@ -625,14 +626,14 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<FinancialReportRun> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.financial_report_runs
                 (organization_id, template_id, run_number, name, description,
                  as_of_date, period_from, period_to, currency_code,
                  segment_filter, include_unposted, generated_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(template_id).bind(run_number).bind(name).bind(description)
         .bind(as_of_date).bind(period_from).bind(period_to).bind(currency_code)
@@ -666,13 +667,13 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
 
     async fn list_runs(&self, org_id: Uuid, template_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<FinancialReportRun>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.financial_report_runs
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR template_id = $2)
               AND ($3::text IS NULL OR status = $3)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(template_id).bind(status)
         .fetch_all(&self.pool)
@@ -690,7 +691,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         published_by: Option<Uuid>,
     ) -> AtlasResult<FinancialReportRun> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.financial_report_runs
             SET status = $2,
                 generated_at = CASE WHEN $3 IS NOT NULL THEN now() ELSE generated_at END,
@@ -702,7 +703,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(generated_by).bind(approved_by).bind(published_by)
         .fetch_one(&self.pool)
@@ -722,13 +723,13 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         row_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.financial_report_runs
             SET total_debit = $2::numeric, total_credit = $3::numeric,
                 net_change = $4::numeric, beginning_balance = $5::numeric,
                 ending_balance = $6::numeric, row_count = $7, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(total_debit).bind(total_credit).bind(net_change)
         .bind(beginning_balance).bind(ending_balance).bind(row_count)
@@ -761,7 +762,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         display_format: Option<&str>,
     ) -> AtlasResult<FinancialReportResult> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.financial_report_results
                 (organization_id, run_id, row_id, column_id,
                  row_number, column_number,
@@ -772,7 +773,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8::numeric, $9::numeric,
                     $10::numeric, $11::numeric, $12, $13, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(run_id).bind(row_id).bind(column_id)
         .bind(row_number).bind(column_number)
@@ -820,14 +821,14 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         position: i32,
     ) -> AtlasResult<FinancialReportFavourite> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.financial_report_favourites
                 (organization_id, user_id, template_id, display_name, position)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (organization_id, user_id, template_id) DO UPDATE
                 SET display_name = $4, position = $5
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(user_id).bind(template_id).bind(display_name).bind(position)
         .fetch_one(&self.pool)
@@ -913,7 +914,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_reported: serde_json::Value = sqlx::query_scalar(
-            r#"SELECT COALESCE(SUM(ABS(total_debit) + ABS(total_credit)), 0) FROM _atlas.financial_report_runs WHERE organization_id = $1"#
+            r"SELECT COALESCE(SUM(ABS(total_debit) + ABS(total_credit)), 0) FROM _atlas.financial_report_runs WHERE organization_id = $1"
         )
         .bind(org_id)
         .fetch_one(&self.pool)

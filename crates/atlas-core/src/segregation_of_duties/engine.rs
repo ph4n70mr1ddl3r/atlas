@@ -1,6 +1,6 @@
 //! Segregation of Duties Engine Implementation
 //!
-//! Manages SoD rule definitions, role assignment tracking,
+//! Manages `SoD` rule definitions, role assignment tracking,
 //! conflict detection, violation management, and mitigating controls.
 //!
 //! Oracle Fusion equivalent: Advanced Access Control > Segregation of Duties
@@ -35,7 +35,7 @@ const VALID_REVIEW_FREQUENCIES: &[&str] = &["daily", "weekly", "monthly", "quart
 #[allow(dead_code)]
 const VALID_MC_STATUSES: &[&str] = &["pending_approval", "active", "expired", "revoked"];
 
-/// Segregation of Duties engine for managing SoD compliance
+/// Segregation of Duties engine for managing `SoD` compliance
 pub struct SegregationOfDutiesEngine {
     repository: Arc<dyn SegregationOfDutiesRepository>,
 }
@@ -49,7 +49,7 @@ impl SegregationOfDutiesEngine {
     // SoD Rule Management
     // ========================================================================
 
-    /// Create a new SoD rule defining incompatible duties
+    /// Create a new `SoD` rule defining incompatible duties
     pub async fn create_rule(
         &self,
         org_id: Uuid,
@@ -90,7 +90,7 @@ impl SegregationOfDutiesEngine {
         for duty in &first_duties {
             if second_duties.contains(duty) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Duty '{}' cannot appear in both duty sets of the same rule", duty
+                    "Duty '{duty}' cannot appear in both duty sets of the same rule"
                 )));
             }
         }
@@ -118,7 +118,7 @@ impl SegregationOfDutiesEngine {
         // Check uniqueness
         if self.repository.get_rule(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "SoD rule with code '{}' already exists", code_upper
+                "SoD rule with code '{code_upper}' already exists"
             )));
         }
 
@@ -150,7 +150,7 @@ impl SegregationOfDutiesEngine {
     /// Activate a rule
     pub async fn activate_rule(&self, id: Uuid) -> AtlasResult<SodRule> {
         let rule = self.get_rule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("SoD rule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("SoD rule {id} not found")))?;
 
         if rule.is_active {
             return Err(AtlasError::WorkflowError("Rule is already active".to_string()));
@@ -163,7 +163,7 @@ impl SegregationOfDutiesEngine {
     /// Deactivate a rule
     pub async fn deactivate_rule(&self, id: Uuid) -> AtlasResult<SodRule> {
         let rule = self.get_rule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("SoD rule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("SoD rule {id} not found")))?;
 
         if !rule.is_active {
             return Err(AtlasError::WorkflowError("Rule is already inactive".to_string()));
@@ -183,7 +183,7 @@ impl SegregationOfDutiesEngine {
     // Role Assignment Management
     // ========================================================================
 
-    /// Assign a role/duty to a user, with optional SoD check.
+    /// Assign a role/duty to a user, with optional `SoD` check.
     /// If any active preventive rule would be violated, the assignment is blocked.
     pub async fn assign_role(
         &self,
@@ -245,7 +245,7 @@ impl SegregationOfDutiesEngine {
     // Conflict Detection
     // ========================================================================
 
-    /// Check whether assigning a new duty to a user would violate any SoD rule.
+    /// Check whether assigning a new duty to a user would violate any `SoD` rule.
     /// Returns details about any conflicts found.
     pub async fn check_conflicts_for_assignment(
         &self,
@@ -313,7 +313,7 @@ impl SegregationOfDutiesEngine {
         })
     }
 
-    /// Detect SoD violations for a specific user across all active rules.
+    /// Detect `SoD` violations for a specific user across all active rules.
     /// Creates violation records for any new conflicts found.
     pub async fn detect_violations_for_user(
         &self,
@@ -410,7 +410,7 @@ impl SegregationOfDutiesEngine {
     ) -> AtlasResult<SodViolation> {
         let violation = self.repository.get_violation(violation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("SoD violation {} not found", violation_id)
+                format!("SoD violation {violation_id} not found")
             ))?;
 
         if violation.violation_status == "resolved" {
@@ -431,7 +431,7 @@ impl SegregationOfDutiesEngine {
     ) -> AtlasResult<SodViolation> {
         let violation = self.repository.get_violation(violation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("SoD violation {} not found", violation_id)
+                format!("SoD violation {violation_id} not found")
             ))?;
 
         if violation.violation_status != "open" {
@@ -464,7 +464,7 @@ impl SegregationOfDutiesEngine {
         // Verify violation exists
         let violation = self.repository.get_violation(violation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("SoD violation {} not found", violation_id)
+                format!("SoD violation {violation_id} not found")
             ))?;
 
         if violation.violation_status != "open" {
@@ -561,7 +561,7 @@ impl SegregationOfDutiesEngine {
     // Dashboard
     // ========================================================================
 
-    /// Get SoD compliance dashboard summary
+    /// Get `SoD` compliance dashboard summary
     pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<atlas_shared::SodDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }

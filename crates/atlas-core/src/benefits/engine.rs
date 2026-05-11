@@ -88,7 +88,7 @@ impl BenefitsEngine {
         }
 
         // Validate coverage tiers structure
-        if !coverage_tiers.is_array() || coverage_tiers.as_array().is_none_or(|a| a.is_empty()) {
+        if !coverage_tiers.is_array() || coverage_tiers.as_array().is_none_or(std::vec::Vec::is_empty) {
             return Err(AtlasError::ValidationFailed(
                 "Coverage tiers must be a non-empty array".to_string(),
             ));
@@ -195,12 +195,12 @@ impl BenefitsEngine {
         // Look up the plan
         let plan = self.get_plan(org_id, plan_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Benefits plan '{}' not found", plan_code)
+                format!("Benefits plan '{plan_code}' not found")
             ))?;
 
         if !plan.is_active {
             return Err(AtlasError::ValidationFailed(
-                format!("Benefits plan '{}' is not active", plan_code)
+                format!("Benefits plan '{plan_code}' is not active")
             ));
         }
 
@@ -219,20 +219,19 @@ impl BenefitsEngine {
         // Check for life event changes permission
         if enrollment_type == "life_event" && !plan.allow_life_event_changes {
             return Err(AtlasError::ValidationFailed(
-                format!("Plan '{}' does not allow mid-year life event changes", plan_code)
+                format!("Plan '{plan_code}' does not allow mid-year life event changes")
             ));
         }
 
         // Validate coverage tier exists in the plan
         let tier_found = plan.coverage_tiers.as_array()
-            .map(|tiers| tiers.iter().any(|t| {
+            .is_some_and(|tiers| tiers.iter().any(|t| {
                 t.get("tierCode").and_then(|v| v.as_str()) == Some(coverage_tier)
-            }))
-            .unwrap_or(false);
+            }));
 
         if !tier_found {
             return Err(AtlasError::ValidationFailed(format!(
-                "Coverage tier '{}' is not available for plan '{}'", coverage_tier, plan_code
+                "Coverage tier '{coverage_tier}' is not available for plan '{plan_code}'"
             )));
         }
 
@@ -252,7 +251,7 @@ impl BenefitsEngine {
         let existing = self.repository.get_active_enrollment(org_id, employee_id, plan.id).await?;
         if existing.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Employee {} already has an active enrollment in plan '{}'", employee_id, plan_code)
+                format!("Employee {employee_id} already has an active enrollment in plan '{plan_code}'")
             ));
         }
 
@@ -262,7 +261,7 @@ impl BenefitsEngine {
                 if let Some(max_dep) = plan.max_dependents {
                     if arr.len() > max_dep as usize {
                         return Err(AtlasError::ValidationFailed(format!(
-                            "Plan '{}' allows a maximum of {} dependents", plan_code, max_dep
+                            "Plan '{plan_code}' allows a maximum of {max_dep} dependents"
                         )));
                     }
                 }
@@ -312,7 +311,7 @@ impl BenefitsEngine {
     pub async fn activate_enrollment(&self, enrollment_id: Uuid, processed_by: Uuid) -> AtlasResult<BenefitsEnrollment> {
         let enrollment = self.repository.get_enrollment(enrollment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Enrollment {} not found", enrollment_id)
+                format!("Enrollment {enrollment_id} not found")
             ))?;
 
         if enrollment.status != "pending" {
@@ -329,7 +328,7 @@ impl BenefitsEngine {
     pub async fn waive_enrollment(&self, enrollment_id: Uuid) -> AtlasResult<BenefitsEnrollment> {
         let enrollment = self.repository.get_enrollment(enrollment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Enrollment {} not found", enrollment_id)
+                format!("Enrollment {enrollment_id} not found")
             ))?;
 
         if enrollment.status != "pending" {
@@ -350,7 +349,7 @@ impl BenefitsEngine {
     ) -> AtlasResult<BenefitsEnrollment> {
         let enrollment = self.repository.get_enrollment(enrollment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Enrollment {} not found", enrollment_id)
+                format!("Enrollment {enrollment_id} not found")
             ))?;
 
         if enrollment.status != "active" && enrollment.status != "pending" {
@@ -367,7 +366,7 @@ impl BenefitsEngine {
     pub async fn suspend_enrollment(&self, enrollment_id: Uuid) -> AtlasResult<BenefitsEnrollment> {
         let enrollment = self.repository.get_enrollment(enrollment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Enrollment {} not found", enrollment_id)
+                format!("Enrollment {enrollment_id} not found")
             ))?;
 
         if enrollment.status != "active" {
@@ -384,7 +383,7 @@ impl BenefitsEngine {
     pub async fn reactivate_enrollment(&self, enrollment_id: Uuid) -> AtlasResult<BenefitsEnrollment> {
         let enrollment = self.repository.get_enrollment(enrollment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Enrollment {} not found", enrollment_id)
+                format!("Enrollment {enrollment_id} not found")
             ))?;
 
         if enrollment.status != "suspended" {
@@ -495,7 +494,7 @@ impl BenefitsEngine {
         for enrollment in &enrollments {
             let plan_type = enrollment.plan_type.as_deref().unwrap_or("unknown");
             let count = by_type.get(plan_type)
-                .and_then(|v| v.as_i64())
+                .and_then(serde_json::Value::as_i64)
                 .unwrap_or(0) + 1;
             by_type.insert(plan_type.to_string(), serde_json::json!(count));
         }
@@ -507,8 +506,8 @@ impl BenefitsEngine {
             active_enrollments,
             pending_enrollments,
             waived_enrollments,
-            total_employee_cost: format!("{:.2}", total_employee_cost),
-            total_employer_cost: format!("{:.2}", total_employer_cost),
+            total_employee_cost: format!("{total_employee_cost:.2}"),
+            total_employer_cost: format!("{total_employer_cost:.2}"),
             enrollments_by_plan_type: serde_json::Value::Object(by_type),
         })
     }
@@ -525,7 +524,7 @@ impl BenefitsEngine {
         let tier = tiers.iter()
             .find(|t| t.get("tierCode").and_then(|v| v.as_str()) == Some(tier_code))
             .ok_or_else(|| AtlasError::ValidationFailed(
-                format!("Coverage tier '{}' not found in plan", tier_code)
+                format!("Coverage tier '{tier_code}' not found in plan")
             ))?;
 
         let employee_cost = tier.get("employeeCost")

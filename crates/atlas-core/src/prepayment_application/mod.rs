@@ -85,11 +85,12 @@ pub trait PrepaymentApplicationRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PrepaymentDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresPrepaymentApplicationRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresPrepaymentApplicationRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresPrepaymentApplicationRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl PrepaymentApplicationRepository for PostgresPrepaymentApplicationRepository {
@@ -211,7 +212,7 @@ impl PrepaymentApplicationEngine {
     /// Confirm/apply a draft application (posts to GL)
     pub async fn confirm(&self, id: Uuid) -> AtlasResult<PrepaymentApplication> {
         let pa = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Prepayment application {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Prepayment application {id} not found")))?;
 
         if pa.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -225,7 +226,7 @@ impl PrepaymentApplicationEngine {
     /// Cancel a draft application
     pub async fn cancel(&self, id: Uuid) -> AtlasResult<PrepaymentApplication> {
         let pa = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Prepayment application {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Prepayment application {id} not found")))?;
 
         if pa.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -239,7 +240,7 @@ impl PrepaymentApplicationEngine {
     /// Reverse an applied application
     pub async fn reverse(&self, id: Uuid) -> AtlasResult<PrepaymentApplication> {
         let pa = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Prepayment application {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Prepayment application {id} not found")))?;
 
         if pa.status != "applied" {
             return Err(AtlasError::WorkflowError(format!(

@@ -110,13 +110,14 @@ pub trait InflationAdjustmentRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<InflationDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresInflationAdjustmentRepository {
     pool: PgPool,
 }
 
 impl PostgresInflationAdjustmentRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -229,14 +230,14 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InflationIndex> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.inflation_indices
                 (organization_id, code, name, description, country_code, currency_code,
                  index_type, is_hyperinflationary, hyperinflationary_start_date,
                  effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(country_code).bind(currency_code).bind(index_type)
@@ -271,9 +272,9 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
 
     async fn list_indices(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InflationIndex>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.inflation_indices
+            r"SELECT * FROM _atlas.inflation_indices
                WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -290,13 +291,13 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
         source: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<InflationIndexRate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.inflation_index_rates
                 (organization_id, index_id, period_start, period_end,
                  index_value, cumulative_factor, period_factor, source, created_by)
             VALUES ($1, $2, $3, $4, $5::decimal, $6::decimal, $7::decimal, $8, $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(index_id).bind(period_start).bind(period_end)
         .bind(index_value).bind(cumulative_factor).bind(period_factor)
@@ -327,13 +328,13 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
         adjustment_method: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<InflationAdjustmentRun> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.inflation_adjustment_runs
                 (organization_id, run_number, name, description, index_id, ledger_id,
                  from_period, to_period, adjustment_method, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(run_number).bind(name).bind(description)
         .bind(index_id).bind(ledger_id).bind(from_period).bind(to_period)
@@ -356,9 +357,9 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
 
     async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InflationAdjustmentRun>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.inflation_adjustment_runs
+            r"SELECT * FROM _atlas.inflation_adjustment_runs
                WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -372,7 +373,7 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
         submitted_by: Option<Uuid>, approved_by: Option<Uuid>,
     ) -> AtlasResult<InflationAdjustmentRun> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.inflation_adjustment_runs
             SET status = $2,
                 submitted_by = COALESCE($3, submitted_by),
@@ -383,7 +384,7 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(submitted_by).bind(approved_by)
         .fetch_one(&self.pool)
@@ -397,12 +398,12 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
         total_gain_loss: &str, account_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.inflation_adjustment_runs
             SET total_debit_adjustment = $2::decimal, total_credit_adjustment = $3::decimal,
                 total_monetary_gain_loss = $4::decimal, account_count = $5, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(total_debit).bind(total_credit)
         .bind(total_gain_loss).bind(account_count)
@@ -424,7 +425,7 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
         currency_code: Option<&str>,
     ) -> AtlasResult<InflationAdjustmentLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.inflation_adjustment_lines
                 (organization_id, run_id, line_number, account_code, account_name,
                  account_type, balance_type, original_balance, restated_balance,
@@ -433,7 +434,7 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::decimal, $9::decimal,
                     $10::decimal, $11::decimal, $12, $13::decimal, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(run_id).bind(line_number)
         .bind(account_code).bind(account_name)
@@ -462,10 +463,10 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<InflationDashboardSummary> {
         let index_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE is_hyperinflationary) as hyper
-            FROM _atlas.inflation_indices WHERE organization_id = $1"#,
+            FROM _atlas.inflation_indices WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -473,13 +474,13 @@ impl InflationAdjustmentRepository for PostgresInflationAdjustmentRepository {
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let run_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft,
                 COUNT(*) FILTER (WHERE status = 'completed') as completed,
                 COALESCE(SUM(total_debit_adjustment + total_credit_adjustment), 0) as total_adj,
                 COALESCE(SUM(ABS(total_monetary_gain_loss)), 0) as total_gl
-            FROM _atlas.inflation_adjustment_runs WHERE organization_id = $1"#,
+            FROM _atlas.inflation_adjustment_runs WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)

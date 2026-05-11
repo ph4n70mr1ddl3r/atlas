@@ -51,27 +51,32 @@ impl SchemaEngine {
     }
     
     /// Get an entity definition by name
+    #[must_use] 
     pub fn get_entity(&self, name: &str) -> Option<EntityDefinition> {
         self.cache.get(name).map(|e| e.definition.clone())
     }
     
     /// Get a cached entity with version info
+    #[must_use] 
     pub fn get_cached_entity(&self, name: &str) -> Option<CachedEntity> {
         self.cache.get(name).map(|e| e.clone())
     }
     
     /// Get a specific field from an entity
+    #[must_use] 
     pub fn get_field(&self, entity_name: &str, field_name: &str) -> Option<FieldDefinition> {
         self.cache.get(entity_name)
             .and_then(|e| e.get_field(field_name).cloned())
     }
     
     /// Check if an entity exists
+    #[must_use] 
     pub fn has_entity(&self, name: &str) -> bool {
         self.cache.contains_key(name)
     }
     
     /// Get all entity names
+    #[must_use] 
     pub fn entity_names(&self) -> Vec<String> {
         self.cache.iter().map(|e| e.key().clone()).collect()
     }

@@ -1,6 +1,6 @@
 //! Allocation Repository
 //!
-//! PostgreSQL storage for GL allocation pools, bases, rules, and runs.
+//! `PostgreSQL` storage for GL allocation pools, bases, rules, and runs.
 
 use atlas_shared::{
     GlAllocationPool, GlAllocationBasis, GlAllocationBasisDetail,
@@ -152,13 +152,14 @@ pub trait AllocationRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<GlAllocationDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresAllocationRepository {
     pool: PgPool,
 }
 
 impl PostgresAllocationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -350,13 +351,13 @@ impl AllocationRepository for PostgresAllocationRepository {
         effective_to: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationPool> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.gl_allocation_pools
+            r"INSERT INTO _atlas.gl_allocation_pools
                 (organization_id, code, name, description, pool_type,
                  source_account_code, source_account_range_from, source_account_range_to,
                  source_department_id, source_project_id, currency_code,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(pool_type)
         .bind(source_account_code).bind(source_account_range_from).bind(source_account_range_to)
@@ -420,12 +421,12 @@ impl AllocationRepository for PostgresAllocationRepository {
         effective_to: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationBasis> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.gl_allocation_bases
+            r"INSERT INTO _atlas.gl_allocation_bases
                 (organization_id, code, name, description, basis_type,
                  unit_of_measure, is_manual, source_account_code,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(basis_type)
         .bind(unit_of_measure).bind(is_manual).bind(source_account_code)
@@ -490,13 +491,13 @@ impl AllocationRepository for PostgresAllocationRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationBasisDetail> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.gl_allocation_basis_details
+            r"INSERT INTO _atlas.gl_allocation_basis_details
                 (organization_id, basis_id,
                  target_department_id, target_department_name, target_cost_center,
                  target_project_id, target_project_name, target_account_code,
                  basis_amount, percentage, period_name, period_start_date, period_end_date, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'0',$10,$11,$12,$13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(basis_id)
         .bind(target_department_id).bind(target_department_name).bind(target_cost_center)
@@ -566,14 +567,14 @@ impl AllocationRepository for PostgresAllocationRepository {
         effective_to: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationRule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.gl_allocation_rules
+            r"INSERT INTO _atlas.gl_allocation_rules
                 (organization_id, code, name, description,
                  pool_id, pool_code, basis_id, basis_code,
                  allocation_method, offset_method, offset_account_code,
                  journal_batch_prefix, round_to_largest, minimum_threshold,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(pool_id).bind(pool_code).bind(basis_id).bind(basis_code)
@@ -661,8 +662,8 @@ impl AllocationRepository for PostgresAllocationRepository {
     async fn delete_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         // Delete target lines first
         sqlx::query(
-            r#"DELETE FROM _atlas.gl_allocation_target_lines WHERE rule_id IN
-               (SELECT id FROM _atlas.gl_allocation_rules WHERE organization_id = $1 AND code = $2)"#
+            r"DELETE FROM _atlas.gl_allocation_target_lines WHERE rule_id IN
+               (SELECT id FROM _atlas.gl_allocation_rules WHERE organization_id = $1 AND code = $2)"
         ).bind(org_id).bind(code)
         .execute(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -685,13 +686,13 @@ impl AllocationRepository for PostgresAllocationRepository {
         is_active: bool,
     ) -> AtlasResult<GlAllocationTargetLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.gl_allocation_target_lines
+            r"INSERT INTO _atlas.gl_allocation_target_lines
                 (organization_id, rule_id, line_number,
                  target_department_id, target_department_name, target_cost_center,
                  target_project_id, target_project_name, target_account_code,
                  target_account_name, fixed_percentage, is_active)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(rule_id).bind(line_number)
         .bind(target_department_id).bind(target_department_name).bind(target_cost_center)
@@ -719,13 +720,13 @@ impl AllocationRepository for PostgresAllocationRepository {
         pool_amount: &str, allocation_method: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationRun> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.gl_allocation_runs
+            r"INSERT INTO _atlas.gl_allocation_runs
                 (organization_id, run_number, rule_id, rule_code, rule_name,
                  period_name, period_start_date, period_end_date,
                  pool_amount, allocation_method, total_allocated, total_offset,
                  rounding_difference, target_count, status, run_date, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'0','0','0',0,'draft',CURRENT_DATE,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(run_number).bind(rule_id).bind(rule_code).bind(rule_name)
         .bind(period_name).bind(period_start_date).bind(period_end_date)
@@ -782,13 +783,13 @@ impl AllocationRepository for PostgresAllocationRepository {
     async fn update_run_status(&self, id: Uuid, status: &str, acted_by: Option<Uuid>) -> AtlasResult<GlAllocationRun> {
         let row = if status == "posted" {
             sqlx::query(
-                r#"UPDATE _atlas.gl_allocation_runs SET status = $2, posted_at = now(), posted_by = $3, updated_at = now() WHERE id = $1 RETURNING *"#,
+                r"UPDATE _atlas.gl_allocation_runs SET status = $2, posted_at = now(), posted_by = $3, updated_at = now() WHERE id = $1 RETURNING *",
             ).bind(id).bind(status).bind(acted_by)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else if status == "reversed" {
             sqlx::query(
-                r#"UPDATE _atlas.gl_allocation_runs SET status = $2, reversed_at = now(), updated_at = now() WHERE id = $1 RETURNING *"#,
+                r"UPDATE _atlas.gl_allocation_runs SET status = $2, reversed_at = now(), updated_at = now() WHERE id = $1 RETURNING *",
             ).bind(id).bind(status)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
@@ -805,14 +806,14 @@ impl AllocationRepository for PostgresAllocationRepository {
     async fn update_run_totals(&self, id: Uuid) -> AtlasResult<GlAllocationRun> {
         // Calculate totals from run lines
         let row = sqlx::query(
-            r#"UPDATE _atlas.gl_allocation_runs SET
+            r"UPDATE _atlas.gl_allocation_runs SET
                 total_allocated = (SELECT COALESCE(SUM(allocated_amount::numeric), 0) FROM _atlas.gl_allocation_run_lines WHERE run_id = $1 AND line_type = 'allocation'),
                 total_offset = (SELECT COALESCE(SUM(allocated_amount::numeric), 0) FROM _atlas.gl_allocation_run_lines WHERE run_id = $1 AND line_type = 'offset'),
                 rounding_difference = (SELECT pool_amount::numeric FROM _atlas.gl_allocation_runs WHERE id = $1) -
                     (SELECT COALESCE(SUM(allocated_amount::numeric), 0) FROM _atlas.gl_allocation_run_lines WHERE run_id = $1 AND line_type = 'allocation'),
                 target_count = (SELECT COUNT(*)::int FROM _atlas.gl_allocation_run_lines WHERE run_id = $1 AND line_type = 'allocation'),
                 updated_at = now()
-            WHERE id = $1 RETURNING *"#,
+            WHERE id = $1 RETURNING *",
         ).bind(id)
         .fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -831,14 +832,14 @@ impl AllocationRepository for PostgresAllocationRepository {
         offset_amount: &str, line_type: &str,
     ) -> AtlasResult<GlAllocationRunLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.gl_allocation_run_lines
+            r"INSERT INTO _atlas.gl_allocation_run_lines
                 (organization_id, run_id, line_number,
                  target_department_id, target_department_name, target_cost_center,
                  target_project_id, target_project_name, target_account_code,
                  target_account_name, source_account_code,
                  basis_amount, basis_percentage, allocated_amount, offset_amount, line_type)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(run_id).bind(line_number)
         .bind(target_department_id).bind(target_department_name).bind(target_cost_center)

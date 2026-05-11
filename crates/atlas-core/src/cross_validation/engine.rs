@@ -88,7 +88,7 @@ impl CrossValidationEngine {
         // Check uniqueness
         if self.repository.get_rule(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Cross-validation rule with code '{}' already exists", code
+                "Cross-validation rule with code '{code}' already exists"
             )));
         }
 
@@ -122,7 +122,7 @@ impl CrossValidationEngine {
     /// Enable a rule
     pub async fn enable_rule(&self, id: Uuid) -> AtlasResult<CrossValidationRule> {
         let rule = self.get_rule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule {id} not found")))?;
 
         if rule.is_enabled {
             return Err(AtlasError::WorkflowError("Rule is already enabled".to_string()));
@@ -135,7 +135,7 @@ impl CrossValidationEngine {
     /// Disable a rule
     pub async fn disable_rule(&self, id: Uuid) -> AtlasResult<CrossValidationRule> {
         let rule = self.get_rule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule {id} not found")))?;
 
         if !rule.is_enabled {
             return Err(AtlasError::WorkflowError("Rule is already disabled".to_string()));
@@ -173,7 +173,7 @@ impl CrossValidationEngine {
 
         let rule = self.repository.get_rule(org_id, rule_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rule '{}' not found", rule_code
+                "Rule '{rule_code}' not found"
             )))?;
 
         if patterns.len() != rule.segment_names.len() {
@@ -318,6 +318,7 @@ impl CrossValidationEngine {
     /// Check if a pattern matches a set of segment values.
     /// Each pattern element is matched against the corresponding segment value.
     /// "%" matches any value, exact strings must match exactly (case-insensitive).
+    #[must_use] 
     pub fn pattern_matches(patterns: &[String], values: &[String]) -> bool {
         if patterns.len() != values.len() {
             return false;

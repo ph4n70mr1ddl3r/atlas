@@ -1,6 +1,6 @@
 //! Profitability Analysis Repository
 //!
-//! PostgreSQL storage for profitability segments, runs, lines, and templates.
+//! `PostgreSQL` storage for profitability segments, runs, lines, and templates.
 
 use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
@@ -262,7 +262,8 @@ pub struct PostgresProfitabilityAnalysisRepository {
 }
 
 impl PostgresProfitabilityAnalysisRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -272,11 +273,11 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
     // Segments
     async fn create_segment(&self, params: &SegmentCreateParams) -> AtlasResult<ProfitabilitySegment> {
         let row = sqlx::query_as::<_, ProfitabilitySegment>(
-            r#"INSERT INTO _atlas.profitability_segments
+            r"INSERT INTO _atlas.profitability_segments
                (organization_id, segment_code, segment_name, segment_type, description,
                 parent_segment_id, sort_order, metadata, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-               RETURNING *"#
+               RETURNING *"
         )
             .bind(params.org_id)
             .bind(&params.segment_code)
@@ -358,11 +359,11 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
     // Runs
     async fn create_run(&self, params: &RunCreateParams) -> AtlasResult<ProfitabilityRun> {
         let row = sqlx::query_as::<_, ProfitabilityRun>(
-            r#"INSERT INTO _atlas.profitability_runs
+            r"INSERT INTO _atlas.profitability_runs
                (organization_id, run_number, run_name, analysis_type, period_from, period_to,
                 currency_code, comparison_run_id, notes, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-               RETURNING *"#
+               RETURNING *"
         )
             .bind(params.org_id)
             .bind(&params.run_number)
@@ -445,12 +446,12 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
         segment_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.profitability_runs SET
+            r"UPDATE _atlas.profitability_runs SET
                total_revenue = $2, total_cogs = $3, total_gross_margin = $4,
                total_operating_expenses = $5, total_operating_margin = $6, total_net_margin = $7,
                gross_margin_pct = $8, operating_margin_pct = $9, net_margin_pct = $10,
                segment_count = $11, updated_at = now()
-               WHERE id = $1"#
+               WHERE id = $1"
         )
             .bind(id)
             .bind(total_revenue).bind(total_cogs).bind(total_gross_margin)
@@ -474,11 +475,11 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
     // Run Lines
     async fn create_run_line(&self, params: &RunLineCreateParams) -> AtlasResult<ProfitabilityRunLine> {
         let row = sqlx::query_as::<_, ProfitabilityRunLine>(
-            r#"INSERT INTO _atlas.profitability_run_lines
+            r"INSERT INTO _atlas.profitability_run_lines
                (organization_id, run_id, segment_id, segment_code, segment_name, segment_type,
                 line_number, revenue, cost_of_goods_sold, operating_expenses, other_income, other_expense)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-               RETURNING *"#
+               RETURNING *"
         )
             .bind(params.org_id)
             .bind(params.run_id)
@@ -533,13 +534,13 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
         margin_contribution_pct: f64,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.profitability_run_lines SET
+            r"UPDATE _atlas.profitability_run_lines SET
                gross_margin = $2, gross_margin_pct = $3,
                operating_margin = $4, operating_margin_pct = $5,
                net_margin = $6, net_margin_pct = $7,
                revenue_contribution_pct = $8, margin_contribution_pct = $9,
                updated_at = now()
-               WHERE id = $1"#
+               WHERE id = $1"
         )
             .bind(id)
             .bind(gross_margin).bind(gross_margin_pct)
@@ -564,11 +565,11 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
     // Templates
     async fn create_template(&self, params: &TemplateCreateParams) -> AtlasResult<ProfitabilityTemplate> {
         let row = sqlx::query_as::<_, ProfitabilityTemplate>(
-            r#"INSERT INTO _atlas.profitability_templates
+            r"INSERT INTO _atlas.profitability_templates
                (organization_id, template_code, template_name, description, segment_type,
                 includes_cogs, includes_operating, includes_other, auto_calculate, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-               RETURNING *"#
+               RETURNING *"
         )
             .bind(params.org_id)
             .bind(&params.template_code)

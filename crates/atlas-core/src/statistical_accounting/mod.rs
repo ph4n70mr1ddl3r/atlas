@@ -126,14 +126,15 @@ pub trait StatisticalAccountingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<StatisticalDashboard>;
 }
 
-/// PostgreSQL implementation of StatisticalAccountingRepository
+/// `PostgreSQL` implementation of `StatisticalAccountingRepository`
 #[allow(dead_code)]
 pub struct PostgresStatisticalAccountingRepository {
     pool: PgPool,
 }
 
 impl PostgresStatisticalAccountingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -201,12 +202,12 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
         &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
         stat_type: &str, unit_of_measure: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<StatisticalUnit> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             INSERT INTO financials.statistical_units
                 (organization_id, code, name, description, stat_type, unit_of_measure, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-        "#)
+        ")
             .bind(org_id).bind(code).bind(name).bind(description).bind(stat_type).bind(unit_of_measure).bind(created_by)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -214,7 +215,7 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn get_unit(&self, id: Uuid) -> AtlasResult<Option<StatisticalUnit>> {
-        let row = sqlx::query(r#"SELECT * FROM financials.statistical_units WHERE id = $1"#)
+        let row = sqlx::query(r"SELECT * FROM financials.statistical_units WHERE id = $1")
             .bind(id)
             .fetch_optional(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -222,7 +223,7 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn get_unit_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<StatisticalUnit>> {
-        let row = sqlx::query(r#"SELECT * FROM financials.statistical_units WHERE organization_id = $1 AND code = $2"#)
+        let row = sqlx::query(r"SELECT * FROM financials.statistical_units WHERE organization_id = $1 AND code = $2")
             .bind(org_id).bind(code)
             .fetch_optional(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -230,13 +231,13 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn list_units(&self, org_id: Uuid, stat_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<StatisticalUnit>> {
-        let rows = sqlx::query(r#"
+        let rows = sqlx::query(r"
             SELECT * FROM financials.statistical_units
             WHERE organization_id = $1
               AND ($2::varchar IS NULL OR stat_type = $2)
               AND ($3::bool IS NULL OR is_active = $3)
             ORDER BY code
-        "#)
+        ")
             .bind(org_id).bind(stat_type).bind(is_active)
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -244,9 +245,9 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn deactivate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             UPDATE financials.statistical_units SET is_active = false, updated_at = now() WHERE id = $1 RETURNING *
-        "#)
+        ")
             .bind(id)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -254,9 +255,9 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn activate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             UPDATE financials.statistical_units SET is_active = true, updated_at = now() WHERE id = $1 RETURNING *
-        "#)
+        ")
             .bind(id)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -271,7 +272,7 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
         status: &str, source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
         description: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<StatisticalEntry> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             INSERT INTO financials.statistical_entries
                 (organization_id, entry_number, statistical_unit_id, statistical_unit_code,
                  account_code, dimension1, dimension2, dimension3,
@@ -279,7 +280,7 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
                  status, source_type, source_id, source_number, description, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
-        "#)
+        ")
             .bind(org_id).bind(entry_number).bind(statistical_unit_id).bind(statistical_unit_code)
             .bind(account_code).bind(dimension1).bind(dimension2).bind(dimension3)
             .bind(fiscal_year).bind(period_number)
@@ -293,7 +294,7 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<StatisticalEntry>> {
-        let row = sqlx::query(r#"SELECT * FROM financials.statistical_entries WHERE id = $1"#)
+        let row = sqlx::query(r"SELECT * FROM financials.statistical_entries WHERE id = $1")
             .bind(id)
             .fetch_optional(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -301,7 +302,7 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn list_entries(&self, org_id: Uuid, unit_id: Option<Uuid>, fiscal_year: Option<i32>, period: Option<i32>, status: Option<&str>) -> AtlasResult<Vec<StatisticalEntry>> {
-        let rows = sqlx::query(r#"
+        let rows = sqlx::query(r"
             SELECT * FROM financials.statistical_entries
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR statistical_unit_id = $2)
@@ -309,7 +310,7 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
               AND ($4::int IS NULL OR period_number = $4)
               AND ($5::varchar IS NULL OR status = $5)
             ORDER BY fiscal_year DESC, period_number DESC, entry_number
-        "#)
+        ")
             .bind(org_id).bind(unit_id).bind(fiscal_year).bind(period).bind(status)
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -317,9 +318,9 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn update_entry_status(&self, id: Uuid, status: &str) -> AtlasResult<StatisticalEntry> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             UPDATE financials.statistical_entries SET status = $2, updated_at = now() WHERE id = $1 RETURNING *
-        "#)
+        ")
             .bind(id).bind(status)
             .fetch_one(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -327,12 +328,12 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn get_balance(&self, org_id: Uuid, unit_id: Uuid, fiscal_year: i32, period: i32) -> AtlasResult<Option<StatisticalBalance>> {
-        let row = sqlx::query(r#"
+        let row = sqlx::query(r"
             SELECT statistical_unit_id, statistical_unit_code, fiscal_year, period_number,
                    beginning_balance, period_activity, ending_balance
             FROM financials.statistical_balances
             WHERE organization_id = $1 AND statistical_unit_id = $2 AND fiscal_year = $3 AND period_number = $4
-        "#)
+        ")
             .bind(org_id).bind(unit_id).bind(fiscal_year).bind(period)
             .fetch_optional(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -408,7 +409,7 @@ impl StatisticalAccountingEngine {
             )));
         }
         if self.repository.get_unit_by_code(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Statistical unit '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Statistical unit '{code}' already exists")));
         }
         info!("Creating statistical unit '{}' for org {}", code, org_id);
         self.repository.create_unit(org_id, code, name, description, stat_type, unit_of_measure, created_by).await
@@ -420,20 +421,20 @@ impl StatisticalAccountingEngine {
     pub async fn list_units(&self, org_id: Uuid, stat_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<StatisticalUnit>> {
         if let Some(st) = stat_type {
             if !VALID_STAT_TYPES.contains(&st) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid stat type '{}'", st)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid stat type '{st}'")));
             }
         }
         self.repository.list_units(org_id, stat_type, is_active).await
     }
 
     pub async fn deactivate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
-        let u = self.repository.get_unit(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Unit {} not found", id)))?;
+        let u = self.repository.get_unit(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Unit {id} not found")))?;
         if !u.is_active { return Err(AtlasError::ValidationFailed("Already inactive".into())); }
         self.repository.deactivate_unit(id).await
     }
 
     pub async fn activate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
-        let u = self.repository.get_unit(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Unit {} not found", id)))?;
+        let u = self.repository.get_unit(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Unit {id} not found")))?;
         if u.is_active { return Err(AtlasError::ValidationFailed("Already active".into())); }
         self.repository.activate_unit(id).await
     }
@@ -448,7 +449,7 @@ impl StatisticalAccountingEngine {
         description: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<StatisticalEntry> {
         let unit = self.repository.get_unit(statistical_unit_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Statistical unit {} not found", statistical_unit_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Statistical unit {statistical_unit_id} not found")))?;
         if !unit.is_active {
             return Err(AtlasError::ValidationFailed("Cannot create entries for inactive statistical unit".into()));
         }
@@ -481,7 +482,7 @@ impl StatisticalAccountingEngine {
     pub async fn list_entries(&self, org_id: Uuid, unit_id: Option<Uuid>, fiscal_year: Option<i32>, period: Option<i32>, status: Option<&str>) -> AtlasResult<Vec<StatisticalEntry>> {
         if let Some(s) = status {
             if !VALID_ENTRY_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'")));
             }
         }
         self.repository.list_entries(org_id, unit_id, fiscal_year, period, status).await
@@ -489,7 +490,7 @@ impl StatisticalAccountingEngine {
 
     pub async fn post_entry(&self, id: Uuid) -> AtlasResult<StatisticalEntry> {
         let entry = self.repository.get_entry(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {id} not found")))?;
         if entry.status != "draft" {
             return Err(AtlasError::WorkflowError(format!("Cannot post entry in '{}' status", entry.status)));
         }
@@ -499,7 +500,7 @@ impl StatisticalAccountingEngine {
 
     pub async fn reverse_entry(&self, id: Uuid) -> AtlasResult<StatisticalEntry> {
         let entry = self.repository.get_entry(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {id} not found")))?;
         if entry.status != "posted" {
             return Err(AtlasError::WorkflowError(format!("Cannot reverse entry in '{}' status", entry.status)));
         }

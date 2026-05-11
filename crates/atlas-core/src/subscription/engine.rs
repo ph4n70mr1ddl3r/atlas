@@ -209,7 +209,7 @@ impl SubscriptionEngine {
             .repository
             .get_product_by_id(product_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Product {} not found", product_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Product {product_id} not found")))?;
 
         let min_q: f64 = min_quantity.parse().map_err(|_| AtlasError::ValidationFailed(
             "Min quantity must be a valid number".to_string(),
@@ -336,7 +336,7 @@ impl SubscriptionEngine {
             .repository
             .get_product_by_id(product_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Product {} not found", product_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Product {product_id} not found")))?;
 
         if !product.is_active {
             return Err(AtlasError::ValidationFailed(format!(
@@ -348,16 +348,14 @@ impl SubscriptionEngine {
         let freq = billing_frequency.unwrap_or(&product.billing_frequency);
         if !VALID_BILLING_FREQUENCIES.contains(&freq) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid billing frequency '{}'",
-                freq
+                "Invalid billing frequency '{freq}'"
             )));
         }
 
         let alignment = billing_alignment.unwrap_or("start_date");
         if !VALID_BILLING_ALIGNMENTS.contains(&alignment) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid billing alignment '{}'",
-                alignment
+                "Invalid billing alignment '{alignment}'"
             )));
         }
 
@@ -368,8 +366,8 @@ impl SubscriptionEngine {
         let discount: f64 = discount_percent.parse().unwrap_or(0.0);
         let effective_price = unit_price * (1.0 - discount / 100.0);
         let recurring_amount = effective_price * quantity_val;
-        let total_periods = (duration_months as f64 / months_per_period(freq) as f64).ceil() as i32;
-        let total_contract_value = recurring_amount * total_periods as f64;
+        let total_periods = (f64::from(duration_months) / f64::from(months_per_period(freq))).ceil() as i32;
+        let total_contract_value = recurring_amount * f64::from(total_periods);
         let setup: f64 = product.setup_fee.parse().unwrap_or(0.0);
 
         let end_date = start_date
@@ -412,12 +410,12 @@ impl SubscriptionEngine {
                 alignment,
                 currency_code,
                 quantity,
-                &format!("{:.2}", effective_price),
-                &format!("{:.2}", unit_price),
+                &format!("{effective_price:.2}"),
+                &format!("{unit_price:.2}"),
                 discount_percent,
-                &format!("{:.2}", setup),
-                &format!("{:.2}", recurring_amount),
-                &format!("{:.2}", total_contract_value),
+                &format!("{setup:.2}"),
+                &format!("{recurring_amount:.2}"),
+                &format!("{total_contract_value:.2}"),
                 "0",
                 "0",
                 duration_months,
@@ -478,7 +476,7 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {} not found", sub_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
 
         if sub.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -544,7 +542,7 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {} not found", sub_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
 
         if sub.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -565,7 +563,7 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {} not found", sub_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
 
         if sub.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -591,7 +589,7 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {} not found", sub_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
 
         if sub.status != "active" && sub.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -627,7 +625,7 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {} not found", sub_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
 
         if sub.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -652,7 +650,7 @@ impl SubscriptionEngine {
                 sub_id,
                 &amendment_number,
                 "renewal",
-                Some(&format!("Renewed for {} months", duration)),
+                Some(&format!("Renewed for {duration} months")),
                 None,
                 None,
                 None,
@@ -753,7 +751,7 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {} not found", sub_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
 
         if sub.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -801,8 +799,8 @@ impl SubscriptionEngine {
                 sub.end_date.as_ref(),
                 new_end_date.as_ref(),
                 effective_date,
-                &format!("{:.2}", proration_credit),
-                &format!("{:.2}", proration_charge),
+                &format!("{proration_credit:.2}"),
+                &format!("{proration_charge:.2}"),
                 "draft",
                 created_by,
             )
@@ -816,7 +814,7 @@ impl SubscriptionEngine {
             .get_amendment(amendment_id)
             .await?
             .ok_or_else(|| {
-                AtlasError::EntityNotFound(format!("Amendment {} not found", amendment_id))
+                AtlasError::EntityNotFound(format!("Amendment {amendment_id} not found"))
             })?;
 
         if amendment.status != "draft" {
@@ -836,7 +834,7 @@ impl SubscriptionEngine {
                     amendment.subscription_id,
                     new_qty,
                     new_price,
-                    &format!("{:.2}", recurring),
+                    &format!("{recurring:.2}"),
                 )
                 .await?;
         }
@@ -869,8 +867,8 @@ impl SubscriptionEngine {
                     amendment.effective_date,
                     amendment.effective_date,
                     amendment.effective_date,
-                    &format!("{:.2}", charge),
-                    &format!("{:.2}", credit),
+                    &format!("{charge:.2}"),
+                    &format!("{credit:.2}"),
                     &format!("{:.2}", charge - credit),
                 )
                 .await?;
@@ -890,7 +888,7 @@ impl SubscriptionEngine {
             .get_amendment(amendment_id)
             .await?
             .ok_or_else(|| {
-                AtlasError::EntityNotFound(format!("Amendment {} not found", amendment_id))
+                AtlasError::EntityNotFound(format!("Amendment {amendment_id} not found"))
             })?;
 
         if amendment.status != "draft" {
@@ -938,7 +936,7 @@ impl SubscriptionEngine {
             .get_revenue_line(revenue_line_id)
             .await?
             .ok_or_else(|| {
-                AtlasError::EntityNotFound(format!("Revenue line {} not found", revenue_line_id))
+                AtlasError::EntityNotFound(format!("Revenue line {revenue_line_id} not found"))
             })?;
 
         if line.status != "deferred" && line.status != "partially_recognized" {
@@ -977,7 +975,7 @@ impl SubscriptionEngine {
 
         let _periods = periods_per_year(&sub.billing_frequency);
         let months_per = months_per_period(&sub.billing_frequency);
-        let total_periods = (sub.duration_months as f64 / months_per as f64).ceil() as i32;
+        let total_periods = (f64::from(sub.duration_months) / f64::from(months_per)).ceil() as i32;
 
         let mut period_start = sub.start_date;
 
@@ -997,9 +995,9 @@ impl SubscriptionEngine {
                 billing_date,
                 period_start,
                 period_end,
-                amount: format!("{:.2}", recurring),
+                amount: format!("{recurring:.2}"),
                 proration_amount: "0.00".to_string(),
-                total_amount: format!("{:.2}", recurring),
+                total_amount: format!("{recurring:.2}"),
                 invoice_id: None,
                 invoice_number: None,
                 status: "pending".to_string(),
@@ -1045,8 +1043,8 @@ impl SubscriptionEngine {
             // Proration for last period if it's shorter than a full period
             let full_period_days = months_per * 30;
             let actual_days = (period_end - period_start).num_days() + 1;
-            let proration_factor = if actual_days < full_period_days as i64 {
-                actual_days as f64 / full_period_days as f64
+            let proration_factor = if actual_days < i64::from(full_period_days) {
+                actual_days as f64 / f64::from(full_period_days)
             } else {
                 1.0
             };
@@ -1061,13 +1059,13 @@ impl SubscriptionEngine {
                 billing_date,
                 period_start,
                 period_end,
-                amount: format!("{:.2}", amount),
+                amount: format!("{amount:.2}"),
                 proration_amount: if proration_factor < 1.0 {
                     format!("{:.2}", recurring - amount)
                 } else {
                     "0.00".to_string()
                 },
-                total_amount: format!("{:.2}", amount),
+                total_amount: format!("{amount:.2}"),
                 invoice_id: None,
                 invoice_number: None,
                 status: "pending".to_string(),
@@ -1123,9 +1121,9 @@ impl SubscriptionEngine {
                 period_name,
                 period_start: billing.period_start,
                 period_end: billing.period_end,
-                revenue_amount: format!("{:.2}", revenue),
-                deferred_amount: format!("{:.2}", deferred),
-                recognized_to_date: format!("{:.2}", recognized_to_date),
+                revenue_amount: format!("{revenue:.2}"),
+                deferred_amount: format!("{deferred:.2}"),
+                recognized_to_date: format!("{recognized_to_date:.2}"),
                 status: "deferred".to_string(),
                 recognized_at: None,
                 journal_entry_id: None,

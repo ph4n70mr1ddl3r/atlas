@@ -117,11 +117,12 @@ pub trait MassAdditionRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<MassAdditionDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresMassAdditionRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresMassAdditionRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresMassAdditionRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl MassAdditionRepository for PostgresMassAdditionRepository {
@@ -235,7 +236,7 @@ impl MassAdditionEngine {
     /// Hold a mass addition (prevent conversion)
     pub async fn hold(&self, id: Uuid) -> AtlasResult<MassAddition> {
         let ma = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {id} not found")))?;
 
         if ma.status != "posted" && ma.status != "pending_review" {
             return Err(AtlasError::WorkflowError(format!(
@@ -249,7 +250,7 @@ impl MassAdditionEngine {
     /// Release a mass addition from hold
     pub async fn release(&self, id: Uuid) -> AtlasResult<MassAddition> {
         let ma = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {id} not found")))?;
 
         if ma.status != "on_hold" {
             return Err(AtlasError::WorkflowError(format!(
@@ -266,7 +267,7 @@ impl MassAdditionEngine {
             return Err(AtlasError::ValidationFailed("Reject reason is required".into()));
         }
         let ma = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {id} not found")))?;
 
         if ma.status == "converted" || ma.status == "rejected" {
             return Err(AtlasError::WorkflowError(format!(
@@ -280,10 +281,10 @@ impl MassAdditionEngine {
     /// Merge mass addition into another
     pub async fn merge(&self, id: Uuid, merge_to_id: Uuid) -> AtlasResult<MassAddition> {
         let ma = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {id} not found")))?;
 
         let target = self.repository.get(merge_to_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Target mass addition {} not found", merge_to_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Target mass addition {merge_to_id} not found")))?;
 
         if ma.organization_id != target.organization_id {
             return Err(AtlasError::ValidationFailed("Cannot merge across organizations".into()));
@@ -311,7 +312,7 @@ impl MassAdditionEngine {
         book_code: Option<&str>,
     ) -> AtlasResult<MassAddition> {
         let ma = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {id} not found")))?;
 
         if ma.status == "converted" {
             return Err(AtlasError::WorkflowError("Cannot modify a converted mass addition".into()));
@@ -324,7 +325,7 @@ impl MassAdditionEngine {
     /// Convert mass addition to a fixed asset (mark as converted)
     pub async fn convert(&self, id: Uuid) -> AtlasResult<MassAddition> {
         let ma = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mass addition {id} not found")))?;
 
         if ma.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -333,10 +334,10 @@ impl MassAdditionEngine {
         }
 
         // Validate required fields for conversion
-        if ma.category_code.is_none() || ma.category_code.as_ref().map(|c| c.is_empty()).unwrap_or(true) {
+        if ma.category_code.is_none() || ma.category_code.as_ref().is_none_or(std::string::String::is_empty) {
             return Err(AtlasError::ValidationFailed("Category code is required for conversion".into()));
         }
-        if ma.book_code.is_none() || ma.book_code.as_ref().map(|c| c.is_empty()).unwrap_or(true) {
+        if ma.book_code.is_none() || ma.book_code.as_ref().is_none_or(std::string::String::is_empty) {
             return Err(AtlasError::ValidationFailed("Book code is required for conversion".into()));
         }
 

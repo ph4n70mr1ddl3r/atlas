@@ -56,7 +56,7 @@ pub struct CreateAccountMappingRequest {
 }
 
 fn default_segment_mappings() -> serde_json::Value { serde_json::json!({}) }
-fn default_priority() -> i32 { 10 }
+const fn default_priority() -> i32 { 10 }
 
 #[derive(Debug, Deserialize)]
 pub struct CreateBookJournalEntryRequest {

@@ -144,13 +144,14 @@ pub trait JournalImportRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<JournalImportDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresJournalImportRepository {
     pool: PgPool,
 }
 
 impl PostgresJournalImportRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -276,7 +277,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalImportFormat> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.journal_import_formats
                 (organization_id, code, name, description,
                  source_type, file_format, delimiter, header_row,
@@ -287,7 +288,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
                     $14, $15, $16, $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(source_type).bind(file_format).bind(delimiter).bind(header_row)
@@ -324,11 +325,11 @@ impl JournalImportRepository for PostgresJournalImportRepository {
 
     async fn list_formats(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalImportFormat>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.journal_import_formats
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
             ORDER BY name
-            "#,
+            ",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -356,14 +357,14 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         transformation: Option<&str>, validation_rule: Option<&str>,
     ) -> AtlasResult<JournalImportColumnMapping> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.journal_import_column_mappings
                 (organization_id, format_id, column_position,
                  source_column, target_field, data_type,
                  is_required, default_value, transformation, validation_rule)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(format_id).bind(column_position)
         .bind(source_column).bind(target_field).bind(data_type)
@@ -395,7 +396,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalImportBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.journal_import_batches
                 (organization_id, format_id, batch_number, name, description,
                  source, source_file_name, status,
@@ -406,7 +407,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, 'uploaded',
                     0, 0, 0, 0, $8, $9, '0', '0', false, '[]', $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(format_id).bind(batch_number).bind(name).bind(description)
         .bind(source).bind(source_file_name)
@@ -440,13 +441,13 @@ impl JournalImportRepository for PostgresJournalImportRepository {
 
     async fn list_batches(&self, org_id: Uuid, format_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<JournalImportBatch>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.journal_import_batches
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR format_id = $2)
               AND ($3::text IS NULL OR status = $3)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(format_id).bind(status)
         .fetch_all(&self.pool)
@@ -461,7 +462,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         completed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<JournalImportBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.journal_import_batches
             SET status = $2,
                 started_at = COALESCE($3, started_at),
@@ -469,7 +470,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(started_at).bind(completed_at)
         .fetch_one(&self.pool)
@@ -485,13 +486,13 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         is_balanced: bool, errors: serde_json::Value,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.journal_import_batches
             SET total_rows = $2, valid_rows = $3, error_rows = $4, imported_rows = $5,
                 total_debit = $6::numeric, total_credit = $7::numeric,
                 is_balanced = $8, errors = $9, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .bind(total_rows).bind(valid_rows).bind(error_rows).bind(imported_rows)
@@ -535,7 +536,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalImportRow> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.journal_import_rows
                 (organization_id, batch_id, row_number, raw_data,
                  account_code, account_name, description,
@@ -546,7 +547,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::numeric, $9::numeric,
                     $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(batch_id).bind(row_number).bind(raw_data)
         .bind(account_code).bind(account_name).bind(description)
@@ -588,7 +589,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         status: &str, error_message: Option<&str>, error_field: Option<&str>,
     ) -> AtlasResult<JournalImportRow> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.journal_import_rows
             SET account_code = COALESCE($2, account_code),
                 description = COALESCE($3, description),
@@ -600,7 +601,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id)
         .bind(account_code).bind(description)
@@ -615,12 +616,12 @@ impl JournalImportRepository for PostgresJournalImportRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<JournalImportDashboardSummary> {
         let format_row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active
             FROM _atlas.journal_import_formats WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -628,7 +629,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let batch_row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status IN ('uploaded', 'validating')) as pending,
@@ -637,7 +638,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
                 COALESCE(SUM(imported_rows), 0) as total_imported,
                 COALESCE(SUM(error_rows), 0) as total_errors
             FROM _atlas.journal_import_batches WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)

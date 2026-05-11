@@ -103,10 +103,10 @@ impl ChargebackManagementEngine {
     }
 
     /// Validate that a status transition is allowed for chargebacks.
-    /// open -> under_review -> accepted | rejected
-    /// open -> written_off
-    /// under_review -> written_off
-    /// accepted -> written_off
+    /// open -> `under_review` -> accepted | rejected
+    /// open -> `written_off`
+    /// `under_review` -> `written_off`
+    /// accepted -> `written_off`
     pub fn validate_status_transition(current: &str, target: &str) -> AtlasResult<()> {
         match (current, target) {
             ("open", "under_review") => Ok(()),
@@ -116,11 +116,10 @@ impl ChargebackManagementEngine {
             ("under_review", "written_off") => Ok(()),
             ("accepted", "written_off") => Ok(()),
             _ => Err(AtlasError::WorkflowError(format!(
-                "Invalid status transition from '{}' to '{}'. \
+                "Invalid status transition from '{current}' to '{target}'. \
                  Valid transitions: open→under_review, open→written_off, \
                  under_review→accepted, under_review→rejected, under_review→written_off, \
-                 accepted→written_off",
-                current, target
+                 accepted→written_off"
             ))),
         }
     }
@@ -180,32 +179,32 @@ impl ChargebackManagementEngine {
         let params = ChargebackCreateParams {
             org_id,
             customer_id,
-            customer_number: customer_number.map(|s| s.to_string()),
-            customer_name: customer_name.map(|s| s.to_string()),
+            customer_number: customer_number.map(std::string::ToString::to_string),
+            customer_name: customer_name.map(std::string::ToString::to_string),
             receipt_id,
-            receipt_number: receipt_number.map(|s| s.to_string()),
+            receipt_number: receipt_number.map(std::string::ToString::to_string),
             invoice_id,
-            invoice_number: invoice_number.map(|s| s.to_string()),
+            invoice_number: invoice_number.map(std::string::ToString::to_string),
             chargeback_date,
             gl_date: gl_date.unwrap_or(chargeback_date),
             currency_code: currency_code.to_string(),
-            exchange_rate_type: exchange_rate_type.map(|s| s.to_string()),
+            exchange_rate_type: exchange_rate_type.map(std::string::ToString::to_string),
             exchange_rate,
             amount,
             tax_amount,
             total_amount,
             open_amount: total_amount,
             reason_code: reason_code.to_string(),
-            reason_description: reason_description.map(|s| s.to_string()),
-            category: category.map(|s| s.to_string()),
+            reason_description: reason_description.map(std::string::ToString::to_string),
+            category: category.map(std::string::ToString::to_string),
             priority: priority.unwrap_or("medium").to_string(),
-            assigned_to: assigned_to.map(|s| s.to_string()),
-            assigned_team: assigned_team.map(|s| s.to_string()),
+            assigned_to: assigned_to.map(std::string::ToString::to_string),
+            assigned_team: assigned_team.map(std::string::ToString::to_string),
             due_date,
-            reference: reference.map(|s| s.to_string()),
-            customer_reference: customer_reference.map(|s| s.to_string()),
-            sales_rep: sales_rep.map(|s| s.to_string()),
-            notes: notes.map(|s| s.to_string()),
+            reference: reference.map(std::string::ToString::to_string),
+            customer_reference: customer_reference.map(std::string::ToString::to_string),
+            sales_rep: sales_rep.map(std::string::ToString::to_string),
+            notes: notes.map(std::string::ToString::to_string),
             created_by,
         };
 
@@ -301,7 +300,7 @@ impl ChargebackManagementEngine {
         // Log activity
         let _ = self.repo.create_activity(
             current.organization_id, id,
-            &format!("status_change_{}", new_status),
+            &format!("status_change_{new_status}"),
             Some(&format!("Status changed from '{}' to '{}'", current.status, new_status)),
             Some(&current.status),
             Some(new_status),
@@ -380,19 +379,19 @@ impl ChargebackManagementEngine {
             org_id,
             chargeback_id,
             line_type: line_type.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             quantity: quantity.unwrap_or(1),
             unit_price: unit_price.unwrap_or(amount),
             amount,
             tax_amount: tax,
             total_amount: amount + tax,
-            reason_code: reason_code.map(|s| s.to_string()),
-            reason_description: reason_description.map(|s| s.to_string()),
-            item_number: item_number.map(|s| s.to_string()),
-            item_description: item_description.map(|s| s.to_string()),
-            gl_account_code: gl_account_code.map(|s| s.to_string()),
-            gl_account_name: gl_account_name.map(|s| s.to_string()),
-            reference: reference.map(|s| s.to_string()),
+            reason_code: reason_code.map(std::string::ToString::to_string),
+            reason_description: reason_description.map(std::string::ToString::to_string),
+            item_number: item_number.map(std::string::ToString::to_string),
+            item_description: item_description.map(std::string::ToString::to_string),
+            gl_account_code: gl_account_code.map(std::string::ToString::to_string),
+            gl_account_name: gl_account_name.map(std::string::ToString::to_string),
+            reference: reference.map(std::string::ToString::to_string),
         };
 
         let line = self.repo.create_chargeback_line(&params).await?;
@@ -404,7 +403,7 @@ impl ChargebackManagementEngine {
         let _ = self.repo.create_activity(
             org_id, chargeback_id,
             "line_added",
-            Some(&format!("Line added: {} ({})", line_type, amount)),
+            Some(&format!("Line added: {line_type} ({amount})")),
             None, None, None, None, None,
         ).await;
 
@@ -470,9 +469,14 @@ impl ChargebackManagementEngine {
     // Exported validation functions for handler use
     // ========================================================================
 
-    pub fn valid_reason_codes() -> &'static [&'static str] { VALID_REASON_CODES }
-    pub fn valid_categories() -> &'static [&'static str] { VALID_CATEGORIES }
-    pub fn valid_statuses() -> &'static [&'static str] { VALID_STATUSES }
-    pub fn valid_priorities() -> &'static [&'static str] { VALID_PRIORITIES }
-    pub fn valid_line_types() -> &'static [&'static str] { VALID_LINE_TYPES }
+    #[must_use] 
+    pub const fn valid_reason_codes() -> &'static [&'static str] { VALID_REASON_CODES }
+    #[must_use] 
+    pub const fn valid_categories() -> &'static [&'static str] { VALID_CATEGORIES }
+    #[must_use] 
+    pub const fn valid_statuses() -> &'static [&'static str] { VALID_STATUSES }
+    #[must_use] 
+    pub const fn valid_priorities() -> &'static [&'static str] { VALID_PRIORITIES }
+    #[must_use] 
+    pub const fn valid_line_types() -> &'static [&'static str] { VALID_LINE_TYPES }
 }

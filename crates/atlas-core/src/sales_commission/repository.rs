@@ -1,6 +1,6 @@
 //! Sales Commission Repository
 //!
-//! PostgreSQL storage for sales commission data: reps, plans, tiers,
+//! `PostgreSQL` storage for sales commission data: reps, plans, tiers,
 //! assignments, quotas, transactions, payouts, and payout lines.
 
 use atlas_shared::{
@@ -191,13 +191,14 @@ pub trait SalesCommissionRepository: Send + Sync {
     async fn list_payout_lines(&self, payout_id: Uuid) -> AtlasResult<Vec<CommissionPayoutLine>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresSalesCommissionRepository {
     pool: PgPool,
 }
 
 impl PostgresSalesCommissionRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -402,7 +403,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesRepresentative> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.sales_reps
                 (organization_id, rep_code, employee_id, first_name, last_name,
                  email, territory_code, territory_name, manager_id, manager_name,
@@ -414,7 +415,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
                     manager_id = $9, manager_name = $10, hire_date = $11,
                     is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(rep_code).bind(employee_id)
         .bind(first_name).bind(last_name).bind(email)
@@ -494,7 +495,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CommissionPlan> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.commission_plans
                 (organization_id, code, name, description, plan_type, basis,
                  calculation_method, default_rate, effective_from, effective_to, created_by)
@@ -504,7 +505,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
                     calculation_method = $7, default_rate = $8::numeric,
                     effective_from = $9, effective_to = $10, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(plan_type).bind(basis).bind(calculation_method)
@@ -589,13 +590,13 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         flat_amount: Option<&str>,
     ) -> AtlasResult<CommissionRateTier> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.commission_rate_tiers
                 (organization_id, plan_id, tier_number, from_amount, to_amount,
                  rate_percent, flat_amount)
             VALUES ($1, $2, $3, $4::numeric, $5::numeric, $6::numeric, $7::numeric)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(plan_id).bind(tier_number)
         .bind(from_amount).bind(to_amount)
@@ -629,12 +630,12 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PlanAssignment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.plan_assignments
                 (organization_id, rep_id, plan_id, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(rep_id).bind(plan_id)
         .bind(effective_from).bind(effective_to).bind(created_by)
@@ -677,13 +678,13 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesQuota> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.sales_quotas
                 (organization_id, rep_id, plan_id, quota_number, period_name,
                  period_start_date, period_end_date, quota_type, target_amount, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::numeric, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(rep_id).bind(plan_id)
         .bind(quota_number).bind(period_name)
@@ -733,9 +734,9 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
 
     async fn update_quota_achievement(&self, id: Uuid, achieved: &str, percent: &str) -> AtlasResult<SalesQuota> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sales_quotas
+            r"UPDATE _atlas.sales_quotas
                SET achieved_amount = $2::numeric, achievement_percent = $3::numeric, updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(achieved).bind(percent)
         .fetch_one(&self.pool)
@@ -765,7 +766,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CommissionTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.commission_transactions
                 (organization_id, rep_id, plan_id, quota_id, transaction_number,
                  source_type, source_id, source_number, transaction_date,
@@ -775,7 +776,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
                     $10::numeric, $11::numeric, $12::numeric,
                     $13::numeric, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(rep_id).bind(plan_id).bind(quota_id)
         .bind(transaction_number)
@@ -855,13 +856,13 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CommissionPayout> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.commission_payouts
                 (organization_id, payout_number, period_name,
                  period_start_date, period_end_date, currency_code, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(payout_number).bind(period_name)
         .bind(period_start_date).bind(period_end_date)
@@ -906,10 +907,10 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         transaction_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.commission_payouts
+            r"UPDATE _atlas.commission_payouts
                SET total_payout_amount = $2::numeric, rep_count = $3,
                    transaction_count = $4, updated_at = now()
-               WHERE id = $1"#,
+               WHERE id = $1",
         )
         .bind(id).bind(total_amount).bind(rep_count).bind(transaction_count)
         .execute(&self.pool)
@@ -926,11 +927,11 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         rejected_reason: Option<&str>,
     ) -> AtlasResult<CommissionPayout> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.commission_payouts
+            r"UPDATE _atlas.commission_payouts
                SET status = $2, approved_by = $3, rejected_reason = $4,
                    approved_at = CASE WHEN $2 = 'approved' THEN now() ELSE approved_at END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
         .fetch_one(&self.pool)
@@ -956,7 +957,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         transaction_count: i32,
     ) -> AtlasResult<CommissionPayoutLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.commission_payout_lines
                 (organization_id, payout_id, rep_id, rep_name, plan_id, plan_code,
                  gross_commission, adjustment_amount, net_commission,
@@ -964,7 +965,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             VALUES ($1, $2, $3, $4, $5, $6,
                     $7::numeric, $8::numeric, $9::numeric, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(payout_id).bind(rep_id)
         .bind(rep_name).bind(plan_id).bind(plan_code)

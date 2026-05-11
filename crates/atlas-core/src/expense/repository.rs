@@ -1,6 +1,6 @@
 //! Expense Repository
 //!
-//! PostgreSQL storage for expense categories, policies, reports, and lines.
+//! `PostgreSQL` storage for expense categories, policies, reports, and lines.
 
 use atlas_shared::{
     ExpenseCategory, ExpensePolicy, ExpenseReport, ExpenseLine,
@@ -136,13 +136,14 @@ pub trait ExpenseRepository: Send + Sync {
     async fn delete_line(&self, id: Uuid) -> AtlasResult<()>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresExpenseRepository {
     pool: PgPool,
 }
 
 impl PostgresExpenseRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -303,7 +304,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ExpenseCategory> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.expense_categories
                 (organization_id, code, name, description,
                  receipt_required, receipt_threshold,
@@ -318,7 +319,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
                     is_mileage = $9, default_mileage_rate = $10::numeric,
                     expense_account_code = $11, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(receipt_required).bind(receipt_threshold)
@@ -397,7 +398,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ExpensePolicy> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.expense_policies
                 (organization_id, name, description, category_id,
                  min_amount, max_amount, daily_limit, report_limit,
@@ -406,7 +407,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
             VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7::numeric, $8::numeric,
                     $9, $10, $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(name).bind(description).bind(category_id)
         .bind(min_amount).bind(max_amount).bind(daily_limit).bind(report_limit)
@@ -480,7 +481,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ExpenseReport> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.expense_reports
                 (organization_id, report_number, title, description,
                  employee_id, employee_name, department_id, purpose,
@@ -489,7 +490,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
                  created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(report_number).bind(title).bind(description)
         .bind(employee_id).bind(employee_name).bind(department_id).bind(purpose)
@@ -561,13 +562,13 @@ impl ExpenseRepository for PostgresExpenseRepository {
         reimbursed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ExpenseReport> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.expense_reports
             SET status = $2, approved_by = $3, rejection_reason = $4,
                 reimbursed_at = $5, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejection_reason).bind(reimbursed_at)
         .fetch_one(&self.pool)
@@ -585,13 +586,13 @@ impl ExpenseRepository for PostgresExpenseRepository {
         receipt_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.expense_reports
             SET total_amount = $2::numeric, reimbursable_amount = $3::numeric,
                 receipt_required_amount = $4::numeric, receipt_count = $5,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(total_amount).bind(reimbursable_amount).bind(receipt_required_amount).bind(receipt_count)
         .execute(&self.pool)
@@ -637,7 +638,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ExpenseLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.expense_lines
                 (organization_id, report_id, line_number,
                  expense_category_id, expense_category_name, expense_type,
@@ -656,7 +657,7 @@ impl ExpenseRepository for PostgresExpenseRepository {
                     $19, $20::numeric, $21, $22::numeric, $23,
                     $24, $25, $26, $27, $28, $29)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(report_id).bind(line_number)
         .bind(expense_category_id).bind(expense_category_name).bind(expense_type)

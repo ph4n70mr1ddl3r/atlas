@@ -125,7 +125,7 @@ impl ProductInformationEngine {
         // Check uniqueness of item number within org
         if self.repository.get_item_by_number(org_id, item_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Item number '{}' already exists", item_number
+                "Item number '{item_number}' already exists"
             )));
         }
 
@@ -133,7 +133,7 @@ impl ProductInformationEngine {
         if let Some(tid) = template_id {
             if self.repository.get_template(tid).await?.is_none() {
                 return Err(AtlasError::EntityNotFound(
-                    format!("Item template {} not found", tid)
+                    format!("Item template {tid} not found")
                 ));
             }
         }
@@ -218,16 +218,14 @@ impl ProductInformationEngine {
         }
 
         let item = self.repository.get_item(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {id} not found")))?;
 
         // Validate status transition
         let valid_transition = matches!(
             (item.status.as_str(), new_status),
-            ("draft", "active") | ("draft", "pending_approval") | ("draft", "inactive")
-            | ("pending_approval", "active") | ("pending_approval", "draft")
-            | ("active", "inactive") | ("active", "obsolete")
-            | ("inactive", "active") | ("inactive", "obsolete")
-            | ("obsolete", "inactive")
+            ("draft" | "pending_approval" | "inactive", "active") |
+("draft", "pending_approval" | "inactive") | ("pending_approval", "draft") |
+("active" | "obsolete", "inactive") | ("active" | "inactive", "obsolete")
         );
 
         if !valid_transition {
@@ -261,7 +259,7 @@ impl ProductInformationEngine {
         }
 
         let item = self.repository.get_item(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {id} not found")))?;
 
         // Validate lifecycle transition (forward-only through defined phases)
         let current_idx = VALID_LIFECYCLE_PHASES.iter()
@@ -286,7 +284,7 @@ impl ProductInformationEngine {
     /// Delete an item (soft delete - sets to inactive)
     pub async fn delete_item(&self, id: Uuid) -> AtlasResult<()> {
         let item = self.repository.get_item(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {id} not found")))?;
 
         if item.status == "active" {
             return Err(AtlasError::ValidationFailed(
@@ -322,7 +320,7 @@ impl ProductInformationEngine {
         // Check code uniqueness
         if self.repository.get_category_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Category code '{}' already exists", code
+                "Category code '{code}' already exists"
             )));
         }
 
@@ -330,7 +328,7 @@ impl ProductInformationEngine {
         let level_number = if let Some(parent_id) = parent_category_id {
             let parent = self.repository.get_category(parent_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Parent category {} not found", parent_id)
+                    format!("Parent category {parent_id} not found")
                 ))?;
             if parent.organization_id != org_id {
                 return Err(AtlasError::ValidationFailed(
@@ -367,7 +365,7 @@ impl ProductInformationEngine {
     /// Delete a category
     pub async fn delete_category(&self, id: Uuid) -> AtlasResult<()> {
         let cat = self.repository.get_category(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Category {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Category {id} not found")))?;
 
         if cat.item_count > 0 {
             return Err(AtlasError::ValidationFailed(
@@ -394,14 +392,14 @@ impl ProductInformationEngine {
     ) -> AtlasResult<PimCategoryAssignment> {
         // Validate item exists
         let item = self.repository.get_item(item_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {} not found", item_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {item_id} not found")))?;
         if item.organization_id != org_id {
             return Err(AtlasError::ValidationFailed("Item does not belong to this organization".to_string()));
         }
 
         // Validate category exists
         let category = self.repository.get_category(category_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Category {} not found", category_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Category {category_id} not found")))?;
         if category.organization_id != org_id {
             return Err(AtlasError::ValidationFailed("Category does not belong to this organization".to_string()));
         }
@@ -453,7 +451,7 @@ impl ProductInformationEngine {
     ) -> AtlasResult<PimCrossReference> {
         // Validate item exists
         let item = self.repository.get_item(item_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {} not found", item_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {item_id} not found")))?;
         if item.organization_id != org_id {
             return Err(AtlasError::ValidationFailed("Item does not belong to this organization".to_string()));
         }
@@ -482,8 +480,7 @@ impl ProductInformationEngine {
         // Check uniqueness of type+value within org
         if self.repository.get_cross_reference_by_value(org_id, cross_reference_type, cross_reference_value).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Cross-reference of type '{}' with value '{}' already exists",
-                cross_reference_type, cross_reference_value
+                "Cross-reference of type '{cross_reference_type}' with value '{cross_reference_value}' already exists"
             )));
         }
 
@@ -551,7 +548,7 @@ impl ProductInformationEngine {
         // Check code uniqueness
         if self.repository.get_template_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Template code '{}' already exists", code
+                "Template code '{code}' already exists"
             )));
         }
 
@@ -559,7 +556,7 @@ impl ProductInformationEngine {
         if let Some(cat_id) = default_category_id {
             if self.repository.get_category(cat_id).await?.is_none() {
                 return Err(AtlasError::EntityNotFound(
-                    format!("Default category {} not found", cat_id)
+                    format!("Default category {cat_id} not found")
                 ));
             }
         }
@@ -630,7 +627,7 @@ impl ProductInformationEngine {
         if let Some(req_num) = requested_item_number {
             if !req_num.is_empty() && self.repository.get_item_by_number(org_id, req_num).await?.is_some() {
                 return Err(AtlasError::Conflict(format!(
-                    "Item number '{}' already exists", req_num
+                    "Item number '{req_num}' already exists"
                 )));
             }
         }
@@ -639,7 +636,7 @@ impl ProductInformationEngine {
         if let Some(cat_id) = requested_category_id {
             if self.repository.get_category(cat_id).await?.is_none() {
                 return Err(AtlasError::EntityNotFound(
-                    format!("Requested category {} not found", cat_id)
+                    format!("Requested category {cat_id} not found")
                 ));
             }
         }
@@ -681,7 +678,7 @@ impl ProductInformationEngine {
     /// Submit a NIR for approval
     pub async fn submit_new_item_request(&self, id: Uuid) -> AtlasResult<PimNewItemRequest> {
         let nir = self.repository.get_new_item_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -700,7 +697,7 @@ impl ProductInformationEngine {
         approved_by: Option<Uuid>,
     ) -> AtlasResult<PimNewItemRequest> {
         let nir = self.repository.get_new_item_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -721,7 +718,7 @@ impl ProductInformationEngine {
         rejection_reason: Option<&str>,
     ) -> AtlasResult<PimNewItemRequest> {
         let nir = self.repository.get_new_item_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -738,7 +735,7 @@ impl ProductInformationEngine {
     /// Implement an approved NIR — creates the actual product item
     pub async fn implement_new_item_request(&self, id: Uuid) -> AtlasResult<ProductItem> {
         let nir = self.repository.get_new_item_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
@@ -789,7 +786,7 @@ impl ProductInformationEngine {
     /// Cancel a NIR
     pub async fn cancel_new_item_request(&self, id: Uuid) -> AtlasResult<PimNewItemRequest> {
         let nir = self.repository.get_new_item_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "draft" && nir.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(

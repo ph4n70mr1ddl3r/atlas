@@ -317,7 +317,8 @@ pub struct PostgresRecurringInvoiceRepository {
 }
 
 impl PostgresRecurringInvoiceRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -331,7 +332,7 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RecurringInvoiceTemplate> {
         let row = sqlx::query_as::<_, RecurringInvoiceTemplate>(
-            r#"
+            r"
             INSERT INTO _atlas.recurring_invoice_templates (
                 organization_id, template_number, template_name, description,
                 supplier_id, supplier_number, supplier_name, supplier_site,
@@ -357,7 +358,7 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
                 $29, $30,
                 'draft', $31
             ) RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(&params.template_number)
@@ -433,11 +434,11 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         supplier_id: Option<Uuid>,
     ) -> AtlasResult<Vec<RecurringInvoiceTemplate>> {
         let rows = sqlx::query_as::<_, RecurringInvoiceTemplate>(
-            r#"SELECT * FROM _atlas.recurring_invoice_templates
+            r"SELECT * FROM _atlas.recurring_invoice_templates
             WHERE organization_id = $1
                 AND ($2::text IS NULL OR status = $2)
                 AND ($3::uuid IS NULL OR supplier_id = $3)
-            ORDER BY template_number"#
+            ORDER BY template_number"
         )
         .bind(org_id)
         .bind(status)
@@ -456,10 +457,10 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         next_generation_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<RecurringInvoiceTemplate> {
         let row = sqlx::query_as::<_, RecurringInvoiceTemplate>(
-            r#"UPDATE _atlas.recurring_invoice_templates
+            r"UPDATE _atlas.recurring_invoice_templates
             SET status = $2, next_generation_date = $3, updated_at = now()
             WHERE id = $1
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(id)
         .bind(status)
@@ -479,14 +480,14 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         total_amount: f64,
     ) -> AtlasResult<RecurringInvoiceTemplate> {
         let row = sqlx::query_as::<_, RecurringInvoiceTemplate>(
-            r#"UPDATE _atlas.recurring_invoice_templates
+            r"UPDATE _atlas.recurring_invoice_templates
             SET last_generation_date = $2,
                 next_generation_date = $3,
                 generation_count = generation_count + 1,
                 total_generated_amount = total_generated_amount + $4,
                 updated_at = now()
             WHERE id = $1
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(id)
         .bind(generation_date)
@@ -530,7 +531,7 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         params: &TemplateLineCreateParams,
     ) -> AtlasResult<RecurringInvoiceTemplateLine> {
         let row = sqlx::query_as::<_, RecurringInvoiceTemplateLine>(
-            r#"
+            r"
             INSERT INTO _atlas.recurring_invoice_template_lines (
                 template_id, organization_id, line_number,
                 line_type, description, item_code, unit_of_measure,
@@ -546,7 +547,7 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
                 $14, $15,
                 $16, $17
             ) RETURNING *
-            "#,
+            ",
         )
         .bind(template_id)
         .bind(org_id)
@@ -621,7 +622,7 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         generated_by: Option<Uuid>,
     ) -> AtlasResult<RecurringInvoiceGeneration> {
         let row = sqlx::query_as::<_, RecurringInvoiceGeneration>(
-            r#"
+            r"
             INSERT INTO _atlas.recurring_invoice_generations (
                 organization_id, template_id, generation_number,
                 invoice_date, invoice_due_date, gl_date,
@@ -630,7 +631,7 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
                 generated_by
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id)
         .bind(template_id)
@@ -659,11 +660,11 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         generation_status: Option<&str>,
     ) -> AtlasResult<Vec<RecurringInvoiceGeneration>> {
         let rows = sqlx::query_as::<_, RecurringInvoiceGeneration>(
-            r#"SELECT * FROM _atlas.recurring_invoice_generations
+            r"SELECT * FROM _atlas.recurring_invoice_generations
             WHERE organization_id = $1
                 AND ($2::uuid IS NULL OR template_id = $2)
                 AND ($3::text IS NULL OR generation_status = $3)
-            ORDER BY invoice_date DESC, generation_number DESC"#
+            ORDER BY invoice_date DESC, generation_number DESC"
         )
         .bind(org_id)
         .bind(template_id)
@@ -682,10 +683,10 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         error_message: Option<&str>,
     ) -> AtlasResult<RecurringInvoiceGeneration> {
         let row = sqlx::query_as::<_, RecurringInvoiceGeneration>(
-            r#"UPDATE _atlas.recurring_invoice_generations
+            r"UPDATE _atlas.recurring_invoice_generations
             SET generation_status = $2, error_message = $3
             WHERE id = $1
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(id)
         .bind(generation_status)
@@ -711,13 +712,13 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         }
 
         let stats = sqlx::query_as::<_, StatsRow>(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active,
                 COUNT(*) FILTER (WHERE status = 'suspended') as suspended,
                 COALESCE(SUM(total_generated_amount), 0) as total_gen_amount
             FROM _atlas.recurring_invoice_templates
-            WHERE organization_id = $1"#
+            WHERE organization_id = $1"
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -736,12 +737,12 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let upcoming_count: i64 = sqlx::query_scalar(
-            r#"SELECT COUNT(*)
+            r"SELECT COUNT(*)
             FROM _atlas.recurring_invoice_templates t
             WHERE t.organization_id = $1
                 AND t.status = 'active'
                 AND t.next_generation_date IS NOT NULL
-                AND t.next_generation_date <= CURRENT_DATE + INTERVAL '30 days'"#
+                AND t.next_generation_date <= CURRENT_DATE + INTERVAL '30 days'"
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -749,7 +750,7 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let upcoming = sqlx::query_as::<_, UpcomingInvoice>(
-            r#"SELECT
+            r"SELECT
                 t.id as template_id,
                 t.template_number,
                 t.template_name,
@@ -766,7 +767,7 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
                 AND t.next_generation_date IS NOT NULL
                 AND t.next_generation_date <= CURRENT_DATE + INTERVAL '30 days'
             ORDER BY t.next_generation_date
-            LIMIT 10"#
+            LIMIT 10"
         )
         .bind(org_id)
         .fetch_all(&self.pool)
@@ -777,10 +778,10 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         struct RecurrenceRow { recurrence_type: String, count: Option<i64> }
 
         let by_recurrence = sqlx::query_as::<_, RecurrenceRow>(
-            r#"SELECT recurrence_type, COUNT(*) as count
+            r"SELECT recurrence_type, COUNT(*) as count
             FROM _atlas.recurring_invoice_templates
             WHERE organization_id = $1
-            GROUP BY recurrence_type"#
+            GROUP BY recurrence_type"
         )
         .bind(org_id)
         .fetch_all(&self.pool)
@@ -797,11 +798,11 @@ impl RecurringInvoiceRepository for PostgresRecurringInvoiceRepository {
         struct SupplierRow { name: Option<String>, count: Option<i64> }
 
         let by_supplier_rows = sqlx::query_as::<_, SupplierRow>(
-            r#"SELECT COALESCE(supplier_name, 'Unknown') as name, COUNT(*) as count
+            r"SELECT COALESCE(supplier_name, 'Unknown') as name, COUNT(*) as count
             FROM _atlas.recurring_invoice_templates
             WHERE organization_id = $1
             GROUP BY supplier_name
-            ORDER BY count DESC"#
+            ORDER BY count DESC"
         )
         .bind(org_id)
         .fetch_all(&self.pool)

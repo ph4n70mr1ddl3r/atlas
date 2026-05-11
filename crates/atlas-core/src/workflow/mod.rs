@@ -59,6 +59,7 @@ pub struct TransitionResult {
 }
 
 impl TransitionResult {
+    #[must_use] 
     pub fn success(from: &str, to: &str, action: &str, actions: Vec<String>) -> Self {
         Self {
             success: true,
@@ -71,6 +72,7 @@ impl TransitionResult {
         }
     }
     
+    #[must_use] 
     pub fn failure(from: &str, to: &str, action: &str, error: String) -> Self {
         Self {
             success: false,

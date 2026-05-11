@@ -138,7 +138,7 @@ impl AccountsReceivableEngine {
         self.repository.create_transaction(
             org_id, &transaction_number, transaction_type, transaction_date,
             customer_id, customer_number, customer_name,
-            currency_code, entered_amount, tax_amount, &format!("{:.2}", total),
+            currency_code, entered_amount, tax_amount, &format!("{total:.2}"),
             payment_terms, due_date, gl_date,
             reference_number, purchase_order, sales_rep, notes,
             created_by,
@@ -184,7 +184,7 @@ impl AccountsReceivableEngine {
     pub async fn complete_transaction(&self, transaction_id: Uuid) -> AtlasResult<ArTransaction> {
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {} not found", transaction_id)
+                format!("AR transaction {transaction_id} not found")
             ))?;
 
         if txn.status != "draft" {
@@ -201,7 +201,7 @@ impl AccountsReceivableEngine {
     pub async fn post_transaction(&self, transaction_id: Uuid) -> AtlasResult<ArTransaction> {
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {} not found", transaction_id)
+                format!("AR transaction {transaction_id} not found")
             ))?;
 
         if txn.status != "complete" {
@@ -218,7 +218,7 @@ impl AccountsReceivableEngine {
     pub async fn cancel_transaction(&self, transaction_id: Uuid, reason: Option<&str>) -> AtlasResult<ArTransaction> {
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {} not found", transaction_id)
+                format!("AR transaction {transaction_id} not found")
             ))?;
 
         if txn.status == "closed" || txn.status == "cancelled" {
@@ -255,7 +255,7 @@ impl AccountsReceivableEngine {
     ) -> AtlasResult<ArTransactionLine> {
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {} not found", transaction_id)
+                format!("AR transaction {transaction_id} not found")
             ))?;
 
         if txn.status == "cancelled" || txn.status == "closed" {
@@ -304,10 +304,10 @@ impl AccountsReceivableEngine {
 
         self.repository.update_transaction_totals(
             transaction_id,
-            &format!("{:.2}", total_line_amount),
-            &format!("{:.2}", total_tax),
-            &format!("{:.2}", total),
-            &format!("{:.2}", total),
+            &format!("{total_line_amount:.2}"),
+            &format!("{total_tax:.2}"),
+            &format!("{total:.2}"),
+            &format!("{total:.2}"),
         ).await?;
 
         Ok(line)
@@ -399,7 +399,7 @@ impl AccountsReceivableEngine {
     pub async fn confirm_receipt(&self, receipt_id: Uuid) -> AtlasResult<ArReceipt> {
         let receipt = self.repository.get_receipt(receipt_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {} not found", receipt_id)
+                format!("Receipt {receipt_id} not found")
             ))?;
 
         if receipt.status != "draft" {
@@ -420,7 +420,7 @@ impl AccountsReceivableEngine {
     ) -> AtlasResult<ArReceipt> {
         let receipt = self.repository.get_receipt(receipt_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {} not found", receipt_id)
+                format!("Receipt {receipt_id} not found")
             ))?;
 
         if receipt.status != "confirmed" {
@@ -431,7 +431,7 @@ impl AccountsReceivableEngine {
 
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {} not found", transaction_id)
+                format!("AR transaction {transaction_id} not found")
             ))?;
 
         if txn.status != "open" {
@@ -452,8 +452,8 @@ impl AccountsReceivableEngine {
 
         self.repository.update_transaction_amounts(
             transaction_id,
-            &format!("{:.2}", new_remaining),
-            Some(&format!("{:.2}", new_applied)),
+            &format!("{new_remaining:.2}"),
+            Some(&format!("{new_applied:.2}")),
             new_status,
         ).await?;
 
@@ -464,7 +464,7 @@ impl AccountsReceivableEngine {
     pub async fn reverse_receipt(&self, receipt_id: Uuid) -> AtlasResult<ArReceipt> {
         let receipt = self.repository.get_receipt(receipt_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {} not found", receipt_id)
+                format!("Receipt {receipt_id} not found")
             ))?;
 
         if receipt.status != "confirmed" && receipt.status != "applied" {
@@ -525,7 +525,7 @@ impl AccountsReceivableEngine {
             org_id, &credit_memo_number, customer_id, customer_number, customer_name,
             transaction_id, transaction_number, credit_memo_date,
             reason_code, reason_description, amount, tax_amount,
-            &format!("{:.2}", total), notes, created_by,
+            &format!("{total:.2}"), notes, created_by,
         ).await
     }
 
@@ -556,7 +556,7 @@ impl AccountsReceivableEngine {
     pub async fn approve_credit_memo(&self, memo_id: Uuid) -> AtlasResult<ArCreditMemo> {
         let memo = self.repository.get_credit_memo(memo_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit memo {} not found", memo_id)
+                format!("Credit memo {memo_id} not found")
             ))?;
 
         if memo.status != "submitted" {
@@ -577,7 +577,7 @@ impl AccountsReceivableEngine {
     ) -> AtlasResult<ArCreditMemo> {
         let memo = self.repository.get_credit_memo(memo_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit memo {} not found", memo_id)
+                format!("Credit memo {memo_id} not found")
             ))?;
 
         if memo.status != "approved" {
@@ -588,7 +588,7 @@ impl AccountsReceivableEngine {
 
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {} not found", transaction_id)
+                format!("AR transaction {transaction_id} not found")
             ))?;
 
         if txn.status != "open" {
@@ -608,13 +608,13 @@ impl AccountsReceivableEngine {
 
         self.repository.update_transaction_amounts(
             transaction_id,
-            &format!("{:.2}", new_remaining),
+            &format!("{new_remaining:.2}"),
             None,
             new_status,
         ).await?;
 
         // Also update the amount_adjusted
-        self.repository.update_transaction_adjusted(transaction_id, &format!("{:.2}", new_adjusted)).await?;
+        self.repository.update_transaction_adjusted(transaction_id, &format!("{new_adjusted:.2}")).await?;
 
         self.repository.update_credit_memo_status(memo_id, "applied").await
     }
@@ -692,7 +692,7 @@ impl AccountsReceivableEngine {
     pub async fn approve_adjustment(&self, adjustment_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<ArAdjustment> {
         let adj = self.repository.get_adjustment(adjustment_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Adjustment {} not found", adjustment_id)
+                format!("Adjustment {adjustment_id} not found")
             ))?;
 
         if adj.status != "submitted" {

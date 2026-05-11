@@ -187,7 +187,7 @@ impl ApprovalAuthorityEngine {
     /// Activate a limit.
     pub async fn activate_limit(&self, id: Uuid) -> AtlasResult<ApprovalAuthorityLimit> {
         let limit = self.get_limit(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Limit {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Limit {id} not found")))?;
 
         if limit.status == "active" {
             return Err(AtlasError::WorkflowError("Limit is already active".into()));
@@ -200,7 +200,7 @@ impl ApprovalAuthorityEngine {
     /// Deactivate a limit.
     pub async fn deactivate_limit(&self, id: Uuid) -> AtlasResult<ApprovalAuthorityLimit> {
         let limit = self.get_limit(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Limit {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Limit {id} not found")))?;
 
         if limit.status == "inactive" {
             return Err(AtlasError::WorkflowError("Limit is already inactive".into()));
@@ -266,8 +266,7 @@ impl ApprovalAuthorityEngine {
                 ).await? {
                     let lim_amount: f64 = lim.approval_limit_amount.parse().unwrap_or(0.0);
                     let best_amount: f64 = best.as_ref()
-                        .map(|b| b.approval_limit_amount.parse().unwrap_or(0.0))
-                        .unwrap_or(0.0);
+                        .map_or(0.0, |b| b.approval_limit_amount.parse().unwrap_or(0.0));
                     if lim_amount > best_amount {
                         best = Some(lim);
                     }
@@ -314,7 +313,7 @@ impl ApprovalAuthorityEngine {
             org_id,
             limit_id,
             user_id,
-            user_roles.first().map(|s| s.as_str()),
+            user_roles.first().map(std::string::String::as_str),
             document_type,
             document_id,
             amount,
@@ -384,14 +383,12 @@ impl ApprovalAuthorityEngine {
 
             let lim_amount: f64 = lim.approval_limit_amount.parse().unwrap_or(0.0);
             let best_amount: f64 = best.as_ref()
-                .map(|b| b.approval_limit_amount.parse().unwrap_or(0.0))
-                .unwrap_or(0.0);
+                .map_or(0.0, |b| b.approval_limit_amount.parse().unwrap_or(0.0));
 
             // Prefer BU-scoped limits over global ones when amounts are equal
-            let lim_bu_score = if lim.business_unit_id.is_some() { 1 } else { 0 };
+            let lim_bu_score = i32::from(lim.business_unit_id.is_some());
             let best_bu_score = best.as_ref()
-                .map(|b| if b.business_unit_id.is_some() { 1 } else { 0 })
-                .unwrap_or(0);
+                .map_or(0, |b| i32::from(b.business_unit_id.is_some()));
 
             if lim_amount > best_amount || (lim_amount == best_amount && lim_bu_score > best_bu_score) {
                 best = Some(lim);

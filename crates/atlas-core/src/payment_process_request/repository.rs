@@ -1,6 +1,6 @@
 //! Payment Process Request Repository
 //!
-//! PostgreSQL storage for PPR headers, selected documents, and activity audit trail.
+//! `PostgreSQL` storage for PPR headers, selected documents, and activity audit trail.
 
 use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
@@ -241,7 +241,8 @@ pub struct PostgresPaymentProcessRequestRepository {
 }
 
 impl PostgresPaymentProcessRequestRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -277,7 +278,7 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
         created_by: Option<Uuid>,
     ) -> AtlasResult<PaymentProcessRequest> {
         let row = sqlx::query_as::<_, PaymentProcessRequest>(
-            r#"INSERT INTO _atlas.payment_process_requests (
+            r"INSERT INTO _atlas.payment_process_requests (
                 organization_id, request_number, request_name, description,
                 payment_date, gl_date, payment_method, currency_code,
                 exchange_rate_type, exchange_rate,
@@ -288,7 +289,7 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
                 bank_account_id, bank_account_name, payment_document,
                 created_by
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
-            RETURNING *"#
+            RETURNING *"
         )
             .bind(org_id)
             .bind(request_number)
@@ -424,7 +425,7 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
         let remaining_balance = amount_due - amount_to_pay;
 
         let row = sqlx::query_as::<_, PprSelectedDocument>(
-            r#"INSERT INTO _atlas.ppr_selected_documents (
+            r"INSERT INTO _atlas.ppr_selected_documents (
                 organization_id, ppr_id, line_number,
                 invoice_id, invoice_number, invoice_date, invoice_amount,
                 supplier_id, supplier_number, supplier_name, supplier_site,
@@ -433,7 +434,7 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
                 currency_code, net_payment, remaining_balance,
                 liability_account, discount_account, cash_account
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
-            RETURNING *"#
+            RETURNING *"
         )
             .bind(org_id)
             .bind(ppr_id)
@@ -507,13 +508,13 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
 
     async fn recalculate_totals(&self, ppr_id: Uuid) -> AtlasResult<PaymentProcessRequest> {
         let totals = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total_documents,
                 COALESCE(SUM(original_amount), 0) as total_invoice_amount,
                 COALESCE(SUM(discount_taken), 0) as total_discount_taken,
                 COALESCE(SUM(net_payment), 0) as total_payment_amount
             FROM _atlas.ppr_selected_documents
-            WHERE ppr_id = $1 AND selected_for_payment = true"#
+            WHERE ppr_id = $1 AND selected_for_payment = true"
         )
             .bind(ppr_id)
             .fetch_one(&self.pool)
@@ -526,11 +527,11 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
         let total_payment: f64 = totals.get("total_payment_amount");
 
         sqlx::query_as::<_, PaymentProcessRequest>(
-            r#"UPDATE _atlas.payment_process_requests
+            r"UPDATE _atlas.payment_process_requests
             SET total_documents = $2, total_invoice_amount = $3,
                 total_discount_taken = $4, total_payment_amount = $5,
                 updated_at = now()
-            WHERE id = $1 RETURNING *"#
+            WHERE id = $1 RETURNING *"
         )
             .bind(ppr_id)
             .bind(total_docs as i32)
@@ -544,9 +545,9 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
 
     async fn set_submitted(&self, id: Uuid, submitted_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
         sqlx::query_as::<_, PaymentProcessRequest>(
-            r#"UPDATE _atlas.payment_process_requests
+            r"UPDATE _atlas.payment_process_requests
             SET status = 'submitted', submitted_by = $2, submitted_at = now(), updated_at = now()
-            WHERE id = $1 RETURNING *"#
+            WHERE id = $1 RETURNING *"
         )
             .bind(id).bind(submitted_by)
             .fetch_one(&self.pool)
@@ -557,10 +558,10 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
     async fn set_selection_complete(&self, id: Uuid, completed_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
         let start = std::time::Instant::now();
         let result = sqlx::query_as::<_, PaymentProcessRequest>(
-            r#"UPDATE _atlas.payment_process_requests
+            r"UPDATE _atlas.payment_process_requests
             SET status = 'selection_complete', selection_completed_by = $2,
                 selection_completed_at = now(), processing_time_ms = $3, updated_at = now()
-            WHERE id = $1 RETURNING *"#
+            WHERE id = $1 RETURNING *"
         )
             .bind(id).bind(completed_by)
             .bind(start.elapsed().as_millis() as i32)
@@ -572,9 +573,9 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
 
     async fn set_formatted(&self, id: Uuid, formatted_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
         sqlx::query_as::<_, PaymentProcessRequest>(
-            r#"UPDATE _atlas.payment_process_requests
+            r"UPDATE _atlas.payment_process_requests
             SET status = 'formatted', formatted_by = $2, formatted_at = now(), updated_at = now()
-            WHERE id = $1 RETURNING *"#
+            WHERE id = $1 RETURNING *"
         )
             .bind(id).bind(formatted_by)
             .fetch_one(&self.pool)
@@ -587,9 +588,9 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
         self.mark_documents_paid(id).await?;
 
         sqlx::query_as::<_, PaymentProcessRequest>(
-            r#"UPDATE _atlas.payment_process_requests
+            r"UPDATE _atlas.payment_process_requests
             SET status = 'confirmed', confirmed_by = $2, confirmed_at = now(), updated_at = now()
-            WHERE id = $1 RETURNING *"#
+            WHERE id = $1 RETURNING *"
         )
             .bind(id).bind(confirmed_by)
             .fetch_one(&self.pool)
@@ -599,10 +600,10 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
 
     async fn set_cancelled(&self, id: Uuid, cancelled_by: Uuid, reason: Option<&str>) -> AtlasResult<PaymentProcessRequest> {
         sqlx::query_as::<_, PaymentProcessRequest>(
-            r#"UPDATE _atlas.payment_process_requests
+            r"UPDATE _atlas.payment_process_requests
             SET status = 'cancelled', cancelled_by = $2, cancelled_at = now(),
                 cancel_reason = $3, updated_at = now()
-            WHERE id = $1 RETURNING *"#
+            WHERE id = $1 RETURNING *"
         )
             .bind(id).bind(cancelled_by).bind(reason)
             .fetch_one(&self.pool)
@@ -624,11 +625,11 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
         details: serde_json::Value,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"INSERT INTO _atlas.ppr_activities (
+            r"INSERT INTO _atlas.ppr_activities (
                 organization_id, ppr_id, document_id,
                 activity_type, description, old_status, new_status,
                 performed_by, performed_by_name, details
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)"#
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)"
         )
             .bind(org_id).bind(ppr_id).bind(document_id)
             .bind(activity_type).bind(description)
@@ -653,7 +654,7 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PprDashboard> {
         let stats = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft_count,
                 COUNT(*) FILTER (WHERE status = 'submitted') as submitted_count,
@@ -663,7 +664,7 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
                 COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_count,
                 COALESCE(SUM(total_payment_amount), 0) as total_payment_amount,
                 COALESCE(SUM(total_documents), 0) as total_documents_processed
-            FROM _atlas.payment_process_requests WHERE organization_id = $1"#
+            FROM _atlas.payment_process_requests WHERE organization_id = $1"
         )
             .bind(org_id)
             .fetch_one(&self.pool)
@@ -671,8 +672,8 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let by_method = sqlx::query(
-            r#"SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total_payment_amount), 0) as total
-            FROM _atlas.payment_process_requests WHERE organization_id = $1 GROUP BY payment_method"#
+            r"SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total_payment_amount), 0) as total
+            FROM _atlas.payment_process_requests WHERE organization_id = $1 GROUP BY payment_method"
         )
             .bind(org_id)
             .fetch_all(&self.pool)
@@ -680,8 +681,8 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let by_criteria = sqlx::query(
-            r#"SELECT selection_criteria, COUNT(*) as count, COALESCE(SUM(total_payment_amount), 0) as total
-            FROM _atlas.payment_process_requests WHERE organization_id = $1 GROUP BY selection_criteria"#
+            r"SELECT selection_criteria, COUNT(*) as count, COALESCE(SUM(total_payment_amount), 0) as total
+            FROM _atlas.payment_process_requests WHERE organization_id = $1 GROUP BY selection_criteria"
         )
             .bind(org_id)
             .fetch_all(&self.pool)

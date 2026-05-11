@@ -9,7 +9,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Receivables > Direct Debit Mandates
 
-use super::*;
+use super::{DirectDebitMandateRepository, AtlasResult, DirectDebitMandate, AtlasError, MandateCollection, DirectDebitDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -90,7 +90,7 @@ impl DirectDebitMandateEngine {
         }
 
         if self.repository.get_mandate_by_number(org_id, mandate_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Mandate number '{}' already exists", mandate_number)));
+            return Err(AtlasError::Conflict(format!("Mandate number '{mandate_number}' already exists")));
         }
 
         info!("Creating direct debit mandate '{}' for customer {}", mandate_number, customer_id);
@@ -127,7 +127,7 @@ impl DirectDebitMandateEngine {
     /// Activate a mandate (transition from draft to active)
     pub async fn activate_mandate(&self, mandate_id: Uuid) -> AtlasResult<DirectDebitMandate> {
         let mandate = self.repository.get_mandate(mandate_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {} not found", mandate_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {mandate_id} not found")))?;
 
         if mandate.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -148,7 +148,7 @@ impl DirectDebitMandateEngine {
         }
 
         let mandate = self.repository.get_mandate(mandate_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {} not found", mandate_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {mandate_id} not found")))?;
 
         if mandate.status == "cancelled" || mandate.status == "revoked" || mandate.status == "expired" {
             return Err(AtlasError::WorkflowError(
@@ -167,7 +167,7 @@ impl DirectDebitMandateEngine {
         }
 
         let mandate = self.repository.get_mandate(mandate_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {} not found", mandate_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {mandate_id} not found")))?;
 
         if mandate.status == "cancelled" || mandate.status == "revoked" || mandate.status == "expired" {
             return Err(AtlasError::WorkflowError(
@@ -182,7 +182,7 @@ impl DirectDebitMandateEngine {
     /// Set mandate expiry
     pub async fn expire_mandate(&self, mandate_id: Uuid, expiry_date: chrono::NaiveDate) -> AtlasResult<DirectDebitMandate> {
         let mandate = self.repository.get_mandate(mandate_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {} not found", mandate_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {mandate_id} not found")))?;
 
         if expiry_date <= mandate.mandate_date {
             return Err(AtlasError::ValidationFailed("Expiry date must be after mandate date".into()));
@@ -227,7 +227,7 @@ impl DirectDebitMandateEngine {
         }
 
         let mandate = self.repository.get_mandate(mandate_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {} not found", mandate_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Mandate {mandate_id} not found")))?;
 
         if mandate.status != "active" && mandate.status != "used" {
             return Err(AtlasError::WorkflowError(
@@ -240,7 +240,7 @@ impl DirectDebitMandateEngine {
             let max_val: f64 = max_str.parse().unwrap_or(0.0);
             if max_val > 0.0 && amount_val > max_val {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Collection amount {} exceeds mandate max of {}", amount, max_str
+                    "Collection amount {amount} exceeds mandate max of {max_str}"
                 )));
             }
         }
@@ -280,7 +280,7 @@ impl DirectDebitMandateEngine {
     /// Submit a pending collection to the bank
     pub async fn submit_collection(&self, collection_id: Uuid) -> AtlasResult<MandateCollection> {
         let collection = self.repository.get_collection(collection_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {} not found", collection_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {collection_id} not found")))?;
 
         if collection.status != "pending" {
             return Err(AtlasError::WorkflowError(
@@ -299,7 +299,7 @@ impl DirectDebitMandateEngine {
     /// Complete a submitted collection
     pub async fn complete_collection(&self, collection_id: Uuid, bank_reference: Option<&str>) -> AtlasResult<MandateCollection> {
         let collection = self.repository.get_collection(collection_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {} not found", collection_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {collection_id} not found")))?;
 
         if collection.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -318,7 +318,7 @@ impl DirectDebitMandateEngine {
         self.repository.update_mandate_collection_stats(
             collection.mandate_id,
             count as i32,
-            &format!("{:.2}", total_f),
+            &format!("{total_f:.2}"),
             Some(today),
             "recurring",
         ).await?;
@@ -337,7 +337,7 @@ impl DirectDebitMandateEngine {
     /// Mark a collection as failed
     pub async fn fail_collection(&self, collection_id: Uuid, reason_code: &str, reason_text: Option<&str>) -> AtlasResult<MandateCollection> {
         let collection = self.repository.get_collection(collection_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {} not found", collection_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {collection_id} not found")))?;
 
         if collection.status != "submitted" && collection.status != "pending" {
             return Err(AtlasError::WorkflowError(
@@ -353,7 +353,7 @@ impl DirectDebitMandateEngine {
     /// Return a completed collection (chargeback/reversal)
     pub async fn return_collection(&self, collection_id: Uuid, reason_code: &str, reason_text: Option<&str>) -> AtlasResult<MandateCollection> {
         let collection = self.repository.get_collection(collection_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {} not found", collection_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {collection_id} not found")))?;
 
         if collection.status != "completed" {
             return Err(AtlasError::WorkflowError(
@@ -369,7 +369,7 @@ impl DirectDebitMandateEngine {
     /// Reverse a collection
     pub async fn reverse_collection(&self, collection_id: Uuid, reason_code: &str, reason_text: Option<&str>) -> AtlasResult<MandateCollection> {
         let collection = self.repository.get_collection(collection_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {} not found", collection_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Collection {collection_id} not found")))?;
 
         if collection.status != "completed" && collection.status != "returned" {
             return Err(AtlasError::WorkflowError(

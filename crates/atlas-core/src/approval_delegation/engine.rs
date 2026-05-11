@@ -16,7 +16,7 @@ use tracing::info;
 fn array_is_empty(val: &Option<serde_json::Value>) -> bool {
     val.as_ref()
         .and_then(|v| v.as_array())
-        .is_none_or(|a| a.is_empty())
+        .is_none_or(std::vec::Vec::is_empty)
 }
 
 /// Engine for managing approval delegation rules
@@ -160,7 +160,7 @@ impl ApprovalDelegationEngine {
         info!("Cancelling delegation rule {}", id);
 
         let rule = self.repository.get_rule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {id}")))?;
 
         if rule.status == "cancelled" {
             return Err(AtlasError::WorkflowError("Rule is already cancelled".to_string()));
@@ -172,7 +172,7 @@ impl ApprovalDelegationEngine {
         self.repository.cancel_rule(id, cancelled_by, reason).await?;
 
         self.repository.get_rule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {}", id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {id}")))
     }
 
     /// Activate a scheduled delegation rule
@@ -180,7 +180,7 @@ impl ApprovalDelegationEngine {
         info!("Activating delegation rule {}", id);
 
         let rule = self.repository.get_rule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {}", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {id}")))?;
 
         if rule.status != "scheduled" {
             return Err(AtlasError::WorkflowError(
@@ -191,7 +191,7 @@ impl ApprovalDelegationEngine {
         self.repository.activate_rule(id).await?;
 
         self.repository.get_rule(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {}", id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {id}")))
     }
 
     /// Process all scheduled rules that should be activated (auto-activate)

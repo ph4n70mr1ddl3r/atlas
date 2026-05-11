@@ -1,6 +1,6 @@
 //! Financial Consolidation Repository
 //!
-//! PostgreSQL storage for consolidation ledgers, entities, scenarios,
+//! `PostgreSQL` storage for consolidation ledgers, entities, scenarios,
 //! trial balance lines, elimination rules, adjustments, and translation rates.
 
 use atlas_shared::{
@@ -142,7 +142,8 @@ pub struct PostgresFinancialConsolidationRepository {
 }
 
 impl PostgresFinancialConsolidationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -333,11 +334,11 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         equity_elimination_method: &str, created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationLedger> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.consolidation_ledgers
+            r"INSERT INTO _atlas.consolidation_ledgers
                 (organization_id, code, name, description, base_currency_code,
                  translation_method, equity_elimination_method, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(base_currency_code).bind(translation_method)
@@ -393,12 +394,12 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationEntity> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.consolidation_entities
+            r"INSERT INTO _atlas.consolidation_entities
                 (organization_id, ledger_id, entity_id, entity_name, entity_code,
                  local_currency_code, ownership_percentage, consolidation_method,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8,$9,$10,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(ledger_id).bind(entity_id)
         .bind(entity_name).bind(entity_code).bind(local_currency_code)
@@ -455,12 +456,12 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationScenario> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.consolidation_scenarios
+            r"INSERT INTO _atlas.consolidation_scenarios
                 (organization_id, ledger_id, scenario_number, name, description,
                  fiscal_year, period_name, period_start_date, period_end_date,
                  translation_rate_type, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(ledger_id).bind(scenario_number).bind(name)
         .bind(description).bind(fiscal_year).bind(period_name)
@@ -495,11 +496,11 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         &self, org_id: Uuid, ledger_id: Option<Uuid>, status: Option<&str>,
     ) -> AtlasResult<Vec<ConsolidationScenario>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.consolidation_scenarios
+            r"SELECT * FROM _atlas.consolidation_scenarios
             WHERE organization_id=$1
               AND ($2::uuid IS NULL OR ledger_id=$2)
               AND ($3::text IS NULL OR status=$3)
-            ORDER BY fiscal_year DESC, period_name"#,
+            ORDER BY fiscal_year DESC, period_name",
         )
         .bind(org_id).bind(ledger_id).bind(status)
         .fetch_all(&self.pool).await
@@ -512,14 +513,14 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         approved_by: Option<Uuid>, posted_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationScenario> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.consolidation_scenarios
+            r"UPDATE _atlas.consolidation_scenarios
             SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approved_at=CASE WHEN $3 IS NOT NULL AND approved_at IS NULL THEN now() ELSE approved_at END,
                 posted_by=COALESCE($4, posted_by),
                 posted_at=CASE WHEN $4 IS NOT NULL AND posted_at IS NULL THEN now() ELSE posted_at END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by).bind(posted_by)
         .fetch_one(&self.pool).await
@@ -533,11 +534,11 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         is_balanced: bool,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.consolidation_scenarios
+            r"UPDATE _atlas.consolidation_scenarios
             SET total_entities=$2, total_eliminations=$3, total_adjustments=$4,
                 total_debits=$5::numeric, total_credits=$6::numeric,
                 is_balanced=$7, updated_at=now()
-            WHERE id=$1"#,
+            WHERE id=$1",
         )
         .bind(id).bind(total_entities).bind(total_eliminations)
         .bind(total_adjustments).bind(total_debits).bind(total_credits)
@@ -563,7 +564,7 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         is_elimination_entry: bool, line_type: &str,
     ) -> AtlasResult<ConsolidationTrialBalanceLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.consolidation_trial_balance
+            r"INSERT INTO _atlas.consolidation_trial_balance
                 (organization_id, scenario_id, entity_id, entity_code,
                  account_code, account_name, account_type, financial_statement,
                  local_debit, local_credit, local_balance,
@@ -581,7 +582,7 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
                     $19::numeric,$20::numeric,$21::numeric,
                     $22::numeric,$23::numeric,$24::numeric,
                     $25,$26)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(scenario_id).bind(entity_id).bind(entity_code)
         .bind(account_code).bind(account_name).bind(account_type).bind(financial_statement)
@@ -602,11 +603,11 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         line_type: Option<&str>,
     ) -> AtlasResult<Vec<ConsolidationTrialBalanceLine>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.consolidation_trial_balance
+            r"SELECT * FROM _atlas.consolidation_trial_balance
             WHERE scenario_id=$1
               AND ($2::uuid IS NULL OR entity_id=$2)
               AND ($3::text IS NULL OR line_type=$3)
-            ORDER BY account_code, entity_code"#,
+            ORDER BY account_code, entity_code",
         )
         .bind(scenario_id).bind(entity_id).bind(line_type)
         .fetch_all(&self.pool).await
@@ -635,13 +636,13 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationEliminationRule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.consolidation_elimination_rules
+            r"INSERT INTO _atlas.consolidation_elimination_rules
                 (organization_id, ledger_id, rule_code, name, description,
                  elimination_type, from_entity_id, to_entity_id,
                  from_account_pattern, to_account_pattern,
                  offset_account_code, priority, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(ledger_id).bind(rule_code).bind(name).bind(description)
         .bind(elimination_type).bind(from_entity_id).bind(to_entity_id)
@@ -687,13 +688,13 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         reference: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationAdjustment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.consolidation_adjustments
+            r"INSERT INTO _atlas.consolidation_adjustments
                 (organization_id, scenario_id, adjustment_number, description,
                  account_code, account_name, entity_id, entity_code,
                  debit, credit, adjustment_type, reference, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,
                     $9::numeric,$10::numeric,$11,$12,$13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(scenario_id).bind(adjustment_number).bind(description)
         .bind(account_code).bind(account_name).bind(entity_id).bind(entity_code)
@@ -714,10 +715,10 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
 
     async fn list_adjustments(&self, scenario_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ConsolidationAdjustment>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.consolidation_adjustments
+            r"SELECT * FROM _atlas.consolidation_adjustments
             WHERE scenario_id=$1
               AND ($2::text IS NULL OR status=$2)
-            ORDER BY adjustment_number"#,
+            ORDER BY adjustment_number",
         )
         .bind(scenario_id).bind(status)
         .fetch_all(&self.pool).await
@@ -729,12 +730,12 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationAdjustment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.consolidation_adjustments
+            r"UPDATE _atlas.consolidation_adjustments
             SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approved_at=CASE WHEN $3 IS NOT NULL AND approved_at IS NULL THEN now() ELSE approved_at END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool).await
@@ -751,12 +752,12 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         effective_date: chrono::NaiveDate,
     ) -> AtlasResult<ConsolidationTranslationRate> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.consolidation_translation_rates
+            r"INSERT INTO _atlas.consolidation_translation_rates
                 (organization_id, scenario_id, entity_id,
                  from_currency, to_currency, rate_type,
                  exchange_rate, effective_date)
             VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(scenario_id).bind(entity_id)
         .bind(from_currency).bind(to_currency).bind(rate_type)
@@ -798,11 +799,11 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let scenario_stats = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) FILTER (WHERE status IN ('draft','in_progress','pending_review')) as active_scenarios,
                 MAX(CASE WHEN status IN ('posted','approved') THEN created_at END) as last_consolidation,
                 MAX(CASE WHEN status IN ('posted','approved') THEN status END) as last_status
-            FROM _atlas.consolidation_scenarios WHERE organization_id = $1"#,
+            FROM _atlas.consolidation_scenarios WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -825,8 +826,8 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
 
         // Scenarios by status
         let status_rows = sqlx::query(
-            r#"SELECT status, COUNT(*) as cnt FROM _atlas.consolidation_scenarios
-            WHERE organization_id=$1 GROUP BY status"#,
+            r"SELECT status, COUNT(*) as cnt FROM _atlas.consolidation_scenarios
+            WHERE organization_id=$1 GROUP BY status",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -840,8 +841,8 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
 
         // Entities by consolidation method
         let method_rows = sqlx::query(
-            r#"SELECT consolidation_method, COUNT(*) as cnt FROM _atlas.consolidation_entities
-            WHERE organization_id=$1 AND is_active=true GROUP BY consolidation_method"#,
+            r"SELECT consolidation_method, COUNT(*) as cnt FROM _atlas.consolidation_entities
+            WHERE organization_id=$1 AND is_active=true GROUP BY consolidation_method",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

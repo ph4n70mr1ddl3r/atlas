@@ -1,6 +1,6 @@
 //! Accounts Payable Repository
 //!
-//! PostgreSQL storage for AP invoices, lines, distributions, holds, and payments.
+//! `PostgreSQL` storage for AP invoices, lines, distributions, holds, and payments.
 
 use atlas_shared::{
     ApInvoice, ApInvoiceLine, ApInvoiceDistribution, ApInvoiceHold, ApPayment,
@@ -159,13 +159,14 @@ pub trait AccountsPayableRepository: Send + Sync {
     ) -> AtlasResult<ApPayment>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresAccountsPayableRepository {
     pool: PgPool,
 }
 
 impl PostgresAccountsPayableRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -376,7 +377,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApInvoice> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ap_invoices
                 (organization_id, invoice_number, invoice_date, invoice_type, description,
                  supplier_id, supplier_number, supplier_name, supplier_site,
@@ -405,7 +406,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
                     po_number = $23, receipt_number = $24, source = $25,
                     updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(invoice_number).bind(invoice_date).bind(invoice_type).bind(description)
         .bind(supplier_id).bind(supplier_number).bind(supplier_name).bind(supplier_site)
@@ -486,7 +487,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         cancelled_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ApInvoice> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ap_invoices
             SET status = $2, approved_by = COALESCE($3, approved_by),
                 approved_at = CASE WHEN $3 IS NOT NULL THEN now() ELSE approved_at END,
@@ -494,7 +495,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(cancelled_reason)
         .bind(cancelled_by).bind(cancelled_at)
@@ -506,14 +507,14 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
 
     async fn update_invoice_paid(&self, id: Uuid, amount_paid: &str) -> AtlasResult<ApInvoice> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ap_invoices
             SET status = 'paid', amount_paid = $2,
                 amount_remaining = total_amount - $2,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(amount_paid)
         .fetch_one(&self.pool)
@@ -524,13 +525,13 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
 
     async fn update_invoice_amounts(&self, id: Uuid, invoice_amount: &str, tax_amount: &str, total_amount: &str) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ap_invoices
             SET invoice_amount = $2, tax_amount = $3,
                 total_amount = $4, amount_remaining = $4 - amount_paid,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(invoice_amount).bind(tax_amount).bind(total_amount)
         .execute(&self.pool)
@@ -562,7 +563,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApInvoiceLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ap_invoice_lines
                 (organization_id, invoice_id, line_number, line_type, description,
                  amount, unit_price, quantity_invoiced, unit_of_measure,
@@ -570,7 +571,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
                  tax_code, tax_amount, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(invoice_id).bind(line_number).bind(line_type).bind(description)
         .bind(amount).bind(unit_price).bind(quantity_invoiced).bind(unit_of_measure)
@@ -632,7 +633,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApInvoiceDistribution> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ap_invoice_distributions
                 (organization_id, invoice_id, invoice_line_id,
                  distribution_line_number, distribution_type,
@@ -647,7 +648,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
                     $15, $16, $17, $18, $19, $20,
                     $21, $22)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(invoice_id).bind(invoice_line_id)
         .bind(distribution_line_number).bind(distribution_type)
@@ -687,12 +688,12 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApInvoiceHold> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ap_invoice_holds
                 (organization_id, invoice_id, hold_type, hold_reason, created_by)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(invoice_id).bind(hold_type).bind(hold_reason).bind(created_by)
         .fetch_one(&self.pool)
@@ -742,13 +743,13 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         release_reason: Option<&str>,
     ) -> AtlasResult<ApInvoiceHold> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ap_invoice_holds
             SET hold_status = $2, released_by = $3, released_at = now(),
                 release_reason = $4, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(released_by).bind(release_reason)
         .fetch_one(&self.pool)
@@ -779,7 +780,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApPayment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.ap_payments
                 (organization_id, payment_number, payment_date, payment_method,
                  payment_currency_code, payment_amount,
@@ -789,7 +790,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
                     $10, $11, $12, $13, $14)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(payment_number).bind(payment_date).bind(payment_method)
         .bind(payment_currency_code).bind(payment_amount)
@@ -840,14 +841,14 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
         cancelled_reason: Option<&str>,
     ) -> AtlasResult<ApPayment> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.ap_payments
             SET status = $2, confirmed_by = $3,
                 confirmed_at = CASE WHEN $3 IS NOT NULL THEN now() ELSE confirmed_at END,
                 cancelled_reason = $4, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(confirmed_by).bind(cancelled_reason)
         .fetch_one(&self.pool)

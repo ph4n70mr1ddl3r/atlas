@@ -1,6 +1,6 @@
 //! Cross-Validation Rule Repository
 //!
-//! PostgreSQL storage for cross-validation rules, lines, and dashboard summary.
+//! `PostgreSQL` storage for cross-validation rules, lines, and dashboard summary.
 
 use atlas_shared::{
     CrossValidationRule, CrossValidationRuleLine, CrossValidationDashboardSummary,
@@ -43,13 +43,14 @@ pub trait CrossValidationRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CrossValidationDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCrossValidationRepository {
     pool: PgPool,
 }
 
 impl PostgresCrossValidationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -109,11 +110,11 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
             .map_err(|e| AtlasError::Internal(e.to_string()))?;
 
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cross_validation_rules
+            r"INSERT INTO _atlas.cross_validation_rules
                 (organization_id, code, name, description, rule_type, error_message,
                  is_enabled, priority, segment_names, effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,true,$7,$8,$9,$10,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(rule_type).bind(error_message).bind(priority)
@@ -193,10 +194,10 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
             .map_err(|e| AtlasError::Internal(e.to_string()))?;
 
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cross_validation_rule_lines
+            r"INSERT INTO _atlas.cross_validation_rule_lines
                 (organization_id, rule_id, line_type, patterns, display_order)
             VALUES ($1,$2,$3,$4,$5)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(rule_id).bind(line_type)
         .bind(&patterns_json).bind(display_order)
@@ -224,12 +225,12 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CrossValidationDashboardSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE is_enabled) as enabled,
                 COUNT(*) FILTER (WHERE rule_type = 'deny') as deny_count,
                 COUNT(*) FILTER (WHERE rule_type = 'allow') as allow_count
-            FROM _atlas.cross_validation_rules WHERE organization_id = $1"#,
+            FROM _atlas.cross_validation_rules WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -241,9 +242,9 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
         let allow_count: i64 = row.try_get("allow_count").unwrap_or(0);
 
         let line_count: i64 = sqlx::query_scalar(
-            r#"SELECT COUNT(*) FROM _atlas.cross_validation_rule_lines l
+            r"SELECT COUNT(*) FROM _atlas.cross_validation_rule_lines l
             JOIN _atlas.cross_validation_rules r ON l.rule_id = r.id
-            WHERE r.organization_id = $1"#
+            WHERE r.organization_id = $1"
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

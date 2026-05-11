@@ -1,6 +1,6 @@
 //! Transfer Pricing Repository
 //!
-//! PostgreSQL storage for transfer pricing policies, transactions,
+//! `PostgreSQL` storage for transfer pricing policies, transactions,
 //! benchmark studies, comparables, and documentation packages.
 
 use atlas_shared::{
@@ -97,13 +97,14 @@ pub trait TransferPricingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<TransferPricingDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresTransferPricingRepository {
     pool: PgPool,
 }
 
 impl PostgresTransferPricingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -296,7 +297,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         cost_base: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<TransferPricingPolicy> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.transfer_pricing_policies
+            r"INSERT INTO _atlas.transfer_pricing_policies
                 (organization_id, policy_code, name, description, pricing_method,
                  from_entity_id, from_entity_name, to_entity_id, to_entity_name,
                  product_category, item_id, item_code, geography, tax_jurisdiction,
@@ -305,7 +306,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
                  margin_pct, cost_base, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
                     $17::numeric,$18::numeric,$19::numeric,$20::numeric,$21,$22)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(policy_code).bind(name).bind(description)
         .bind(pricing_method)
@@ -360,10 +361,10 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
 
     async fn update_policy_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<TransferPricingPolicy> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.transfer_pricing_policies SET status=$2,
+            r"UPDATE _atlas.transfer_pricing_policies SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approved_at=CASE WHEN $2='active' AND approved_at IS NULL THEN now() ELSE approved_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool).await
@@ -399,7 +400,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransferPriceTransaction> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.transfer_pricing_transactions
+            r"INSERT INTO _atlas.transfer_pricing_transactions
                 (organization_id, transaction_number, policy_id,
                  from_entity_id, from_entity_name, to_entity_id, to_entity_name,
                  item_id, item_code, item_description,
@@ -413,7 +414,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
                     $15,$16,$17,$18,$19,
                     $20::numeric,$21::numeric,
                     $22,$23,$24)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(transaction_number).bind(policy_id)
         .bind(from_entity_id).bind(from_entity_name)
@@ -442,10 +443,10 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
 
     async fn list_transactions(&self, org_id: Uuid, status: Option<&str>, policy_id: Option<Uuid>) -> AtlasResult<Vec<TransferPriceTransaction>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.transfer_pricing_transactions
+            r"SELECT * FROM _atlas.transfer_pricing_transactions
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::uuid IS NULL OR policy_id=$3)
-            ORDER BY transaction_date DESC, created_at DESC"#,
+            ORDER BY transaction_date DESC, created_at DESC",
         )
         .bind(org_id).bind(status).bind(policy_id)
         .fetch_all(&self.pool).await
@@ -456,11 +457,11 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
 
     async fn update_transaction_status(&self, id: Uuid, status: &str, submitted_at: Option<DateTime<Utc>>, approved_by: Option<Uuid>) -> AtlasResult<TransferPriceTransaction> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.transfer_pricing_transactions SET status=$2,
+            r"UPDATE _atlas.transfer_pricing_transactions SET status=$2,
                 submitted_at=COALESCE($3, submitted_at),
                 approved_by=COALESCE($4, approved_by),
                 approved_at=CASE WHEN $2='approved' AND approved_at IS NULL THEN now() ELSE approved_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(submitted_at).bind(approved_by)
         .fetch_one(&self.pool).await
@@ -483,14 +484,14 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BenchmarkStudy> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.transfer_pricing_benchmarks
+            r"INSERT INTO _atlas.transfer_pricing_benchmarks
                 (organization_id, study_number, title, description, policy_id,
                  analysis_method, fiscal_year,
                  from_entity_id, from_entity_name, to_entity_id, to_entity_name,
                  product_category, tested_party,
                  prepared_by, prepared_by_name, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(study_number).bind(title).bind(description).bind(policy_id)
         .bind(analysis_method).bind(fiscal_year)
@@ -530,11 +531,11 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
 
     async fn update_benchmark_status(&self, id: Uuid, status: &str, reviewed_by: Option<Uuid>, reviewed_by_name: Option<&str>) -> AtlasResult<BenchmarkStudy> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.transfer_pricing_benchmarks SET status=$2,
+            r"UPDATE _atlas.transfer_pricing_benchmarks SET status=$2,
                 reviewed_by=COALESCE($3, reviewed_by),
                 reviewed_by_name=COALESCE($4, reviewed_by_name),
                 approved_at=CASE WHEN $2='approved' AND approved_at IS NULL THEN now() ELSE approved_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(reviewed_by).bind(reviewed_by_name)
         .fetch_one(&self.pool).await
@@ -564,13 +565,13 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         employees: Option<i32>, data_source: Option<&str>,
     ) -> AtlasResult<BenchmarkComparable> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.transfer_pricing_comparables
+            r"INSERT INTO _atlas.transfer_pricing_comparables
                 (organization_id, benchmark_id, comparable_number, company_name,
                  country, industry_code, industry_description, fiscal_year,
                  revenue, operating_income, operating_margin_pct,
                  net_income, total_assets, employees, data_source)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10::numeric,$11::numeric,$12::numeric,$13::numeric,$14,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(benchmark_id).bind(comparable_number).bind(company_name)
         .bind(country).bind(industry_code).bind(industry_description).bind(fiscal_year)
@@ -595,9 +596,9 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
 
     async fn update_comparable_inclusion(&self, id: Uuid, included: bool, reason: Option<&str>) -> AtlasResult<BenchmarkComparable> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.transfer_pricing_comparables SET
+            r"UPDATE _atlas.transfer_pricing_comparables SET
                 is_included=$2, exclusion_reason=$3,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(included).bind(reason)
         .fetch_one(&self.pool).await
@@ -619,12 +620,12 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransferPricingDocumentation> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.transfer_pricing_documentation
+            r"INSERT INTO _atlas.transfer_pricing_documentation
                 (organization_id, doc_number, title, doc_type, fiscal_year,
                  country, reporting_entity_id, reporting_entity_name,
                  description, content_summary, filing_deadline, responsible_party, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(doc_number).bind(title).bind(doc_type).bind(fiscal_year)
         .bind(country).bind(reporting_entity_id).bind(reporting_entity_name)
@@ -648,10 +649,10 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
 
     async fn list_documentation(&self, org_id: Uuid, doc_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<TransferPricingDocumentation>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.transfer_pricing_documentation
+            r"SELECT * FROM _atlas.transfer_pricing_documentation
             WHERE organization_id=$1 AND ($2::text IS NULL OR doc_type=$2)
             AND ($3::text IS NULL OR status=$3)
-            ORDER BY fiscal_year DESC, created_at DESC"#,
+            ORDER BY fiscal_year DESC, created_at DESC",
         )
         .bind(org_id).bind(doc_type).bind(status)
         .fetch_all(&self.pool).await
@@ -662,11 +663,11 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
 
     async fn update_documentation_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, filed_at: Option<DateTime<Utc>>) -> AtlasResult<TransferPricingDocumentation> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.transfer_pricing_documentation SET status=$2,
+            r"UPDATE _atlas.transfer_pricing_documentation SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approved_at=CASE WHEN $2='approved' AND approved_at IS NULL THEN now() ELSE approved_at END,
                 filed_at=CASE WHEN $2='filed' THEN COALESCE($4, now()) ELSE filed_at END,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by).bind(filed_at)
         .fetch_one(&self.pool).await
@@ -681,7 +682,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<TransferPricingDashboard> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 (SELECT COUNT(*) FROM _atlas.transfer_pricing_policies WHERE organization_id=$1) as total_policies,
                 (SELECT COUNT(*) FROM _atlas.transfer_pricing_policies WHERE organization_id=$1 AND status='active') as active_policies,
                 (SELECT COUNT(*) FROM _atlas.transfer_pricing_transactions WHERE organization_id=$1) as total_transactions,
@@ -693,7 +694,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
                 (SELECT COUNT(*) FROM _atlas.transfer_pricing_benchmarks WHERE organization_id=$1 AND is_within_range=true) as benchmarks_within_range,
                 (SELECT COUNT(*) FROM _atlas.transfer_pricing_documentation WHERE organization_id=$1) as total_documentation,
                 (SELECT COUNT(*) FROM _atlas.transfer_pricing_documentation WHERE organization_id=$1 AND status IN ('draft','in_review','approved')) as pending_filings,
-                (SELECT COUNT(*) FROM _atlas.transfer_pricing_documentation WHERE organization_id=$1 AND status != 'filed' AND filing_deadline < now()::date) as overdue_filings"#,
+                (SELECT COUNT(*) FROM _atlas.transfer_pricing_documentation WHERE organization_id=$1 AND status != 'filed' AND filing_deadline < now()::date) as overdue_filings",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -726,7 +727,7 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
             total_transaction_value: total_tx_value.to_string(),
             pending_transactions: pending_transactions as i32,
             non_compliant_transactions: non_compliant as i32,
-            compliance_rate_pct: format!("{:.1}", compliance_rate),
+            compliance_rate_pct: format!("{compliance_rate:.1}"),
             total_benchmarks: total_benchmarks as i32,
             active_benchmarks: active_benchmarks as i32,
             benchmarks_within_range: within_range as i32,

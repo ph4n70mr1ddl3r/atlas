@@ -1,6 +1,6 @@
 //! Sustainability Repository
 //!
-//! PostgreSQL storage for facilities, emission factors, environmental activities,
+//! `PostgreSQL` storage for facilities, emission factors, environmental activities,
 //! ESG metrics/readings, sustainability goals, carbon offsets, and dashboard.
 
 use atlas_shared::{
@@ -131,20 +131,21 @@ pub trait SustainabilityRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<SustainabilityDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresSustainabilityRepository {
     pool: PgPool,
 }
 
 impl PostgresSustainabilityRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 // Helper: map row to SustainabilityFacility
-/// Helper to decode NUMERIC columns from PostgreSQL as f64
-/// sqlx 0.7 without bigdecimal/rust_decimal features can't decode NUMERIC as f64 directly
+/// Helper to decode NUMERIC columns from `PostgreSQL` as f64
+/// sqlx 0.7 without `bigdecimal/rust_decimal` features can't decode NUMERIC as f64 directly
 fn get_numeric(row: &sqlx::postgres::PgRow, column: &str) -> f64 {
     // Try f64 first (works with DOUBLE PRECISION columns)
     if let Ok(v) = row.try_get::<f64, _>(column) {
@@ -405,13 +406,13 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         operating_hours_per_year: i32, created_by: Option<Uuid>,
     ) -> AtlasResult<SustainabilityFacility> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.sustainability_facilities
+            r"INSERT INTO _atlas.sustainability_facilities
                 (organization_id, facility_code, name, description,
                  country_code, region, city, address, latitude, longitude,
                  facility_type, industry_sector, total_area_sqm, employee_count,
                  operating_hours_per_year, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, '{}'::jsonb, $16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(facility_code).bind(name).bind(description)
         .bind(country_code).bind(region).bind(city).bind(address)
@@ -438,11 +439,11 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn list_facilities(&self, org_id: Uuid, status: Option<&str>, facility_type: Option<&str>) -> AtlasResult<Vec<SustainabilityFacility>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.sustainability_facilities
+            r"SELECT * FROM _atlas.sustainability_facilities
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR facility_type = $3)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(facility_type)
         .fetch_all(&self.pool).await?;
@@ -454,7 +455,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             "UPDATE _atlas.sustainability_facilities SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Facility {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Facility {id} not found")))?;
         Ok(row_to_facility(&row))
     }
 
@@ -463,7 +464,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             "DELETE FROM _atlas.sustainability_facilities WHERE organization_id = $1 AND facility_code = $2"
         ).bind(org_id).bind(facility_code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Facility '{}' not found", facility_code)));
+            return Err(AtlasError::EntityNotFound(format!("Facility '{facility_code}' not found")));
         }
         Ok(())
     }
@@ -480,13 +481,13 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         region_code: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<EmissionFactor> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.emission_factors
+            r"INSERT INTO _atlas.emission_factors
                 (organization_id, factor_code, name, description,
                  scope, category, activity_type, factor_value,
                  unit_of_measure, gas_type, factor_source,
                  effective_from, effective_to, region_code, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, '{}'::jsonb, $15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(factor_code).bind(name).bind(description)
         .bind(scope).bind(category).bind(activity_type).bind(factor_value)
@@ -512,12 +513,12 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn list_emission_factors(&self, org_id: Uuid, scope: Option<&str>, category: Option<&str>, activity_type: Option<&str>) -> AtlasResult<Vec<EmissionFactor>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.emission_factors
+            r"SELECT * FROM _atlas.emission_factors
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR scope = $2)
                  AND ($3::text IS NULL OR category = $3)
                  AND ($4::text IS NULL OR activity_type = $4)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(scope).bind(category).bind(activity_type)
         .fetch_all(&self.pool).await?;
@@ -529,7 +530,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             "DELETE FROM _atlas.emission_factors WHERE organization_id = $1 AND factor_code = $2"
         ).bind(org_id).bind(factor_code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Emission factor '{}' not found", factor_code)));
+            return Err(AtlasError::EntityNotFound(format!("Emission factor '{factor_code}' not found")));
         }
         Ok(())
     }
@@ -552,7 +553,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EnvironmentalActivity> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.environmental_activities
+            r"INSERT INTO _atlas.environmental_activities
                 (organization_id, activity_number,
                  facility_id, facility_code,
                  activity_type, scope, category,
@@ -566,7 +567,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16, $17, $18,
                     $19, $20, $21, $22, '{}'::jsonb, $23)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(activity_number)
         .bind(facility_id).bind(facility_code)
@@ -597,13 +598,13 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn list_activities(&self, org_id: Uuid, scope: Option<&str>, facility_id: Option<&Uuid>, activity_type: Option<&str>, reporting_period: Option<&str>) -> AtlasResult<Vec<EnvironmentalActivity>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.environmental_activities
+            r"SELECT * FROM _atlas.environmental_activities
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR scope = $2)
                  AND ($3::uuid IS NULL OR facility_id = $3)
                  AND ($4::text IS NULL OR activity_type = $4)
                  AND ($5::text IS NULL OR reporting_period = $5)
-               ORDER BY activity_date DESC, created_at DESC"#,
+               ORDER BY activity_date DESC, created_at DESC",
         )
         .bind(org_id).bind(scope).bind(facility_id.copied()).bind(activity_type).bind(reporting_period)
         .fetch_all(&self.pool).await?;
@@ -612,14 +613,14 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn update_activity_status(&self, id: Uuid, status: &str) -> AtlasResult<EnvironmentalActivity> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.environmental_activities SET status = $2,
+            r"UPDATE _atlas.environmental_activities SET status = $2,
                 verified_at = CASE WHEN $3 THEN now() ELSE verified_at END,
                 updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(status).bind(status == "verified")
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Activity {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Activity {id} not found")))?;
         Ok(row_to_activity(&row))
     }
 
@@ -628,7 +629,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             "DELETE FROM _atlas.environmental_activities WHERE organization_id = $1 AND activity_number = $2"
         ).bind(org_id).bind(activity_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Activity '{}' not found", activity_number)));
+            return Err(AtlasError::EntityNotFound(format!("Activity '{activity_number}' not found")));
         }
         Ok(())
     }
@@ -646,13 +647,13 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EsgMetric> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.esg_metrics
+            r"INSERT INTO _atlas.esg_metrics
                 (organization_id, metric_code, name, description,
                  pillar, category, unit_of_measure,
                  gri_standard, sasb_standard, tcfd_category, eu_taxonomy_code,
                  target_value, warning_threshold, direction, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, '{}'::jsonb, $15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(metric_code).bind(name).bind(description)
         .bind(pillar).bind(category).bind(unit_of_measure)
@@ -678,11 +679,11 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn list_metrics(&self, org_id: Uuid, pillar: Option<&str>, category: Option<&str>) -> AtlasResult<Vec<EsgMetric>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.esg_metrics
+            r"SELECT * FROM _atlas.esg_metrics
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR pillar = $2)
                  AND ($3::text IS NULL OR category = $3)
-               ORDER BY pillar, category, created_at"#,
+               ORDER BY pillar, category, created_at",
         )
         .bind(org_id).bind(pillar).bind(category)
         .fetch_all(&self.pool).await?;
@@ -694,7 +695,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             "DELETE FROM _atlas.esg_metrics WHERE organization_id = $1 AND metric_code = $2"
         ).bind(org_id).bind(metric_code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Metric '{}' not found", metric_code)));
+            return Err(AtlasError::EntityNotFound(format!("Metric '{metric_code}' not found")));
         }
         Ok(())
     }
@@ -710,12 +711,12 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EsgMetricReading> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.esg_metric_readings
+            r"INSERT INTO _atlas.esg_metric_readings
                 (organization_id, metric_id, metric_value,
                  reading_date, reporting_period, facility_id,
                  notes, source, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '{}'::jsonb, $9)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(metric_id).bind(metric_value)
         .bind(reading_date).bind(reporting_period).bind(facility_id)
@@ -732,11 +733,11 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn list_metric_readings(&self, metric_id: Uuid, from_date: Option<chrono::NaiveDate>, to_date: Option<chrono::NaiveDate>) -> AtlasResult<Vec<EsgMetricReading>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.esg_metric_readings
+            r"SELECT * FROM _atlas.esg_metric_readings
                WHERE metric_id = $1
                  AND ($2::date IS NULL OR reading_date >= $2)
                  AND ($3::date IS NULL OR reading_date <= $3)
-               ORDER BY reading_date DESC"#,
+               ORDER BY reading_date DESC",
         )
         .bind(metric_id).bind(from_date).bind(to_date)
         .fetch_all(&self.pool).await?;
@@ -770,7 +771,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SustainabilityGoal> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.sustainability_goals
+            r"INSERT INTO _atlas.sustainability_goals
                 (organization_id, goal_code, name, description,
                  goal_type, scope,
                  baseline_value, baseline_year, baseline_unit,
@@ -784,7 +785,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16, $17, $18, $19,
                     $20, $21, $22, $23, '{}'::jsonb, $24)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(goal_code).bind(name).bind(description)
         .bind(goal_type).bind(scope)
@@ -816,11 +817,11 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn list_goals(&self, org_id: Uuid, goal_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<SustainabilityGoal>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.sustainability_goals
+            r"SELECT * FROM _atlas.sustainability_goals
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR goal_type = $2)
                  AND ($3::text IS NULL OR status = $3)
-               ORDER BY target_year, created_at"#,
+               ORDER BY target_year, created_at",
         )
         .bind(org_id).bind(goal_type).bind(status)
         .fetch_all(&self.pool).await?;
@@ -829,7 +830,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn update_goal_progress(&self, id: Uuid, current_value: f64) -> AtlasResult<SustainabilityGoal> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sustainability_goals
+            r"UPDATE _atlas.sustainability_goals
                SET current_value = $2,
                    progress_pct = CASE
                        WHEN (baseline_value - target_value) = 0 THEN 0
@@ -841,11 +842,11 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
                        ELSE status
                    END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id).bind(current_value)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Goal {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Goal {id} not found")))?;
         Ok(row_to_goal(&row))
     }
 
@@ -854,7 +855,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             "UPDATE _atlas.sustainability_goals SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
-        .map_err(|_| AtlasError::EntityNotFound(format!("Goal {} not found", id)))?;
+        .map_err(|_| AtlasError::EntityNotFound(format!("Goal {id} not found")))?;
         Ok(row_to_goal(&row))
     }
 
@@ -863,7 +864,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             "DELETE FROM _atlas.sustainability_goals WHERE organization_id = $1 AND goal_code = $2"
         ).bind(org_id).bind(goal_code).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Goal '{}' not found", goal_code)));
+            return Err(AtlasError::EntityNotFound(format!("Goal '{goal_code}' not found")));
         }
         Ok(())
     }
@@ -884,7 +885,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CarbonOffset> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.carbon_offsets
+            r"INSERT INTO _atlas.carbon_offsets
                 (organization_id, offset_number, name, description,
                  project_name, project_type, project_location,
                  registry, registry_id, certification_standard,
@@ -896,7 +897,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
                     $21, '{}'::jsonb, $22)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(offset_number).bind(name).bind(description)
         .bind(project_name).bind(project_type).bind(project_location)
@@ -925,11 +926,11 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn list_carbon_offsets(&self, org_id: Uuid, status: Option<&str>, project_type: Option<&str>) -> AtlasResult<Vec<CarbonOffset>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.carbon_offsets
+            r"SELECT * FROM _atlas.carbon_offsets
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR project_type = $3)
-               ORDER BY created_at DESC"#,
+               ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(project_type)
         .fetch_all(&self.pool).await?;
@@ -938,14 +939,14 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
     async fn retire_carbon_offset(&self, id: Uuid, retire_quantity: f64) -> AtlasResult<CarbonOffset> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.carbon_offsets
+            r"UPDATE _atlas.carbon_offsets
                SET remaining_tonnes = remaining_tonnes - $2,
                    retired_quantity = retired_quantity + $2,
                    retired_date = CASE WHEN remaining_tonnes - $2 <= 0 THEN CURRENT_DATE ELSE retired_date END,
                    status = CASE WHEN remaining_tonnes - $2 <= 0 THEN 'retired' ELSE status END,
                    updated_at = now()
                WHERE id = $1 AND remaining_tonnes >= $2
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(id).bind(retire_quantity)
         .fetch_one(&self.pool).await
@@ -960,7 +961,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
             "DELETE FROM _atlas.carbon_offsets WHERE organization_id = $1 AND offset_number = $2"
         ).bind(org_id).bind(offset_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Offset '{}' not found", offset_number)));
+            return Err(AtlasError::EntityNotFound(format!("Offset '{offset_number}' not found")));
         }
         Ok(())
     }
@@ -1008,20 +1009,20 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
 
         // Energy, water, waste from activities with specific types
         let energy_rows = sqlx::query(
-            r#"SELECT COALESCE(SUM(quantity), 0) as total FROM _atlas.environmental_activities
-               WHERE organization_id = $1 AND activity_type IN ('electricity', 'natural_gas', 'diesel', 'gasoline')"#,
+            r"SELECT COALESCE(SUM(quantity), 0) as total FROM _atlas.environmental_activities
+               WHERE organization_id = $1 AND activity_type IN ('electricity', 'natural_gas', 'diesel', 'gasoline')",
         ).bind(org_id).fetch_one(&self.pool).await.unwrap();
         let total_energy: f64 = get_numeric(&energy_rows, "total");
 
         let water_rows = sqlx::query(
-            r#"SELECT COALESCE(SUM(quantity), 0) as total FROM _atlas.environmental_activities
-               WHERE organization_id = $1 AND activity_type = 'water'"#,
+            r"SELECT COALESCE(SUM(quantity), 0) as total FROM _atlas.environmental_activities
+               WHERE organization_id = $1 AND activity_type = 'water'",
         ).bind(org_id).fetch_one(&self.pool).await.unwrap();
         let total_water: f64 = get_numeric(&water_rows, "total");
 
         let waste_rows = sqlx::query(
-            r#"SELECT COALESCE(SUM(quantity), 0) as total FROM _atlas.environmental_activities
-               WHERE organization_id = $1 AND activity_type = 'waste'"#,
+            r"SELECT COALESCE(SUM(quantity), 0) as total FROM _atlas.environmental_activities
+               WHERE organization_id = $1 AND activity_type = 'waste'",
         ).bind(org_id).fetch_one(&self.pool).await.unwrap();
         let total_waste: f64 = get_numeric(&waste_rows, "total");
 
@@ -1057,8 +1058,7 @@ impl SustainabilityRepository for PostgresSustainabilityRepository {
         let metric_count: i32 = sqlx::query(
             "SELECT COUNT(*) as cnt FROM _atlas.esg_metrics WHERE organization_id = $1 AND status = 'active'"
         ).bind(org_id).fetch_one(&self.pool).await
-            .map(|r| r.try_get("cnt").unwrap_or(0))
-            .unwrap_or(0);
+            .map_or(0, |r| r.try_get("cnt").unwrap_or(0));
 
         let total_co2e = scope1 + scope2 + scope3;
         let net_emissions = (total_co2e / 1000.0) - total_offsets;

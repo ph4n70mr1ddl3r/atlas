@@ -123,8 +123,7 @@ pub async fn list_territories(
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
     let include_inactive = query.include_inactive
-        .map(|s| s == "true" || s == "1")
-        .unwrap_or(false);
+        .is_some_and(|s| s == "true" || s == "1");
 
     match state.territory_engine.list_territories(
         org_id,

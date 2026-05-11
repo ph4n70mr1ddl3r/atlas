@@ -78,7 +78,7 @@ impl MarketingEngine {
             )));
         }
         if self.repository.get_campaign_type_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Campaign type '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Campaign type '{code}' already exists")));
         }
         info!("Creating campaign type '{}' for org {}", code, org_id);
         self.repository.create_campaign_type(org_id, &code, name, description, channel, created_by).await
@@ -142,7 +142,7 @@ impl MarketingEngine {
 
         // Check uniqueness
         if self.repository.get_campaign_by_number(org_id, campaign_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Campaign '{}' already exists", campaign_number)));
+            return Err(AtlasError::Conflict(format!("Campaign '{campaign_number}' already exists")));
         }
 
         info!("Creating marketing campaign '{}' for org {}", campaign_number, org_id);
@@ -182,7 +182,7 @@ impl MarketingEngine {
     /// Activate a campaign (draft/paused -> active)
     pub async fn activate_campaign(&self, id: Uuid) -> AtlasResult<atlas_shared::MarketingCampaign> {
         let campaign = self.repository.get_campaign(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {id} not found")))?;
         if campaign.status != "draft" && campaign.status != "paused" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot activate campaign in '{}' status. Must be 'draft' or 'paused'.", campaign.status
@@ -195,7 +195,7 @@ impl MarketingEngine {
     /// Pause a campaign (active -> paused)
     pub async fn pause_campaign(&self, id: Uuid) -> AtlasResult<atlas_shared::MarketingCampaign> {
         let campaign = self.repository.get_campaign(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {id} not found")))?;
         if campaign.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot pause campaign in '{}' status. Must be 'active'.", campaign.status
@@ -208,7 +208,7 @@ impl MarketingEngine {
     /// Complete a campaign (active/paused -> completed)
     pub async fn complete_campaign(&self, id: Uuid) -> AtlasResult<atlas_shared::MarketingCampaign> {
         let campaign = self.repository.get_campaign(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {id} not found")))?;
         if campaign.status != "active" && campaign.status != "paused" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot complete campaign in '{}' status. Must be 'active' or 'paused'.", campaign.status
@@ -221,7 +221,7 @@ impl MarketingEngine {
     /// Cancel a campaign (any -> cancelled)
     pub async fn cancel_campaign(&self, id: Uuid) -> AtlasResult<atlas_shared::MarketingCampaign> {
         let campaign = self.repository.get_campaign(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {id} not found")))?;
         if campaign.status == "completed" || campaign.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot cancel campaign in '{}' status.", campaign.status
@@ -254,9 +254,9 @@ impl MarketingEngine {
     ) -> AtlasResult<atlas_shared::CampaignMember> {
         // Verify campaign exists
         let campaign = self.repository.get_campaign(campaign_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {} not found", campaign_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")))?;
         if campaign.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Campaign {} not found", campaign_id)));
+            return Err(AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")));
         }
 
         info!("Adding member to campaign {}", campaign.campaign_number);
@@ -295,7 +295,7 @@ impl MarketingEngine {
             )));
         }
         let member = self.repository.get_campaign_member(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign member {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign member {id} not found")))?;
         info!("Updating member {} status to {} in campaign {}", id, status, member.campaign_id);
         self.repository.update_member_status(id, status, response).await
     }
@@ -335,9 +335,9 @@ impl MarketingEngine {
 
         // Verify campaign exists
         let campaign = self.repository.get_campaign(campaign_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {} not found", campaign_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")))?;
         if campaign.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Campaign {} not found", campaign_id)));
+            return Err(AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")));
         }
 
         info!("Recording {} response for campaign {}", response_type, campaign.campaign_number);
@@ -350,7 +350,7 @@ impl MarketingEngine {
 
         // Update campaign actuals: increment actual_responses by 1
         let current = self.repository.get_campaign(campaign_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {} not found", campaign_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")))?;
         let new_responses = current.actual_responses + 1;
         let value_f64: f64 = value.parse().unwrap_or(0.0);
         let current_revenue: f64 = current.actual_revenue.parse().unwrap_or(0.0);
@@ -359,7 +359,7 @@ impl MarketingEngine {
             campaign_id,
             &current.actual_cost,
             new_responses,
-            &format!("{:.2}", new_revenue),
+            &format!("{new_revenue:.2}"),
             current.converted_leads,
             current.converted_opportunities,
             current.converted_won,

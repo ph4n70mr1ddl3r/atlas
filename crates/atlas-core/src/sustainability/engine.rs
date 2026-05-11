@@ -94,7 +94,7 @@ const VALID_OFFSET_REGISTRIES: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -150,7 +150,7 @@ impl SustainabilityEngine {
 
         if self.repository.get_facility_by_code(org_id, facility_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Facility '{}' already exists", facility_code
+                "Facility '{facility_code}' already exists"
             )));
         }
 
@@ -245,7 +245,7 @@ impl SustainabilityEngine {
 
         if self.repository.get_emission_factor_by_code(org_id, factor_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Emission factor '{}' already exists", factor_code
+                "Emission factor '{factor_code}' already exists"
             )));
         }
 
@@ -338,7 +338,7 @@ impl SustainabilityEngine {
         if let Some(ef_id) = emission_factor_id {
             self.repository.get_emission_factor(ef_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Emission factor {} not found", ef_id
+                    "Emission factor {ef_id} not found"
                 )))?;
         }
 
@@ -346,13 +346,13 @@ impl SustainabilityEngine {
         if let Some(f_id) = facility_id {
             self.repository.get_facility(f_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Facility {} not found", f_id
+                    "Facility {f_id} not found"
                 )))?;
         }
 
         if self.repository.get_activity_by_number(org_id, activity_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Activity '{}' already exists", activity_number
+                "Activity '{activity_number}' already exists"
             )));
         }
 
@@ -442,7 +442,7 @@ impl SustainabilityEngine {
 
         if self.repository.get_metric_by_code(org_id, metric_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "ESG metric '{}' already exists", metric_code
+                "ESG metric '{metric_code}' already exists"
             )));
         }
 
@@ -504,14 +504,14 @@ impl SustainabilityEngine {
         // Verify metric exists
         self.repository.get_metric(metric_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "ESG metric {} not found", metric_id
+                "ESG metric {metric_id} not found"
             )))?;
 
         // Verify facility if provided
         if let Some(f_id) = facility_id {
             self.repository.get_facility(f_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Facility {} not found", f_id
+                    "Facility {f_id} not found"
                 )))?;
         }
 
@@ -616,22 +616,22 @@ impl SustainabilityEngine {
         if let Some(f_id) = facility_id {
             self.repository.get_facility(f_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Facility {} not found", f_id
+                    "Facility {f_id} not found"
                 )))?;
         }
 
         if self.repository.get_goal_by_code(org_id, goal_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Goal '{}' already exists", goal_code
+                "Goal '{goal_code}' already exists"
             )));
         }
 
-        let progress = if baseline_value != 0.0 {
+        let progress = if baseline_value == 0.0 {
+            0.0
+        } else {
             let reduction = baseline_value - target_value;
             let current_reduction = baseline_value; // starts at baseline
             (current_reduction / reduction * 100.0).clamp(0.0, 100.0)
-        } else {
-            0.0
         };
 
         info!("Creating sustainability goal '{}' ({}) for org {} [type={}, baseline={}, target={}]",
@@ -748,7 +748,7 @@ impl SustainabilityEngine {
 
         if self.repository.get_offset_by_number(org_id, offset_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Carbon offset '{}' already exists", offset_number
+                "Carbon offset '{offset_number}' already exists"
             )));
         }
 

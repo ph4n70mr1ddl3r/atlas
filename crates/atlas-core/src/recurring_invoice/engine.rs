@@ -148,20 +148,20 @@ impl RecurringInvoiceEngine {
         let params = TemplateCreateParams {
             template_number: template_number.to_string(),
             template_name: template_name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             supplier_id,
-            supplier_number: supplier_number.map(|s| s.to_string()),
-            supplier_name: supplier_name.map(|s| s.to_string()),
-            supplier_site: supplier_site.map(|s| s.to_string()),
+            supplier_number: supplier_number.map(std::string::ToString::to_string),
+            supplier_name: supplier_name.map(std::string::ToString::to_string),
+            supplier_site: supplier_site.map(std::string::ToString::to_string),
             invoice_type: invoice_type.to_string(),
             invoice_currency_code: invoice_currency_code.to_string(),
-            payment_currency_code: payment_currency_code.map(|s| s.to_string()),
-            exchange_rate_type: exchange_rate_type.map(|s| s.to_string()),
-            payment_terms: payment_terms.map(|s| s.to_string()),
-            payment_method: payment_method.map(|s| s.to_string()),
+            payment_currency_code: payment_currency_code.map(std::string::ToString::to_string),
+            exchange_rate_type: exchange_rate_type.map(std::string::ToString::to_string),
+            payment_terms: payment_terms.map(std::string::ToString::to_string),
+            payment_method: payment_method.map(std::string::ToString::to_string),
             payment_due_days,
-            liability_account_code: liability_account_code.map(|s| s.to_string()),
-            expense_account_code: expense_account_code.map(|s| s.to_string()),
+            liability_account_code: liability_account_code.map(std::string::ToString::to_string),
+            expense_account_code: expense_account_code.map(std::string::ToString::to_string),
             amount_type: amount_type.to_string(),
             recurrence_type: recurrence_type.to_string(),
             recurrence_interval,
@@ -173,7 +173,7 @@ impl RecurringInvoiceEngine {
             auto_submit,
             auto_approve,
             hold_for_review,
-            po_number: po_number.map(|s| s.to_string()),
+            po_number: po_number.map(std::string::ToString::to_string),
             gl_date_basis: gl_date_basis.to_string(),
         };
 
@@ -321,19 +321,19 @@ impl RecurringInvoiceEngine {
 
         let params = TemplateLineCreateParams {
             line_type: line_type.to_string(),
-            description: description.map(|s| s.to_string()),
-            item_code: item_code.map(|s| s.to_string()),
-            unit_of_measure: unit_of_measure.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
+            item_code: item_code.map(std::string::ToString::to_string),
+            unit_of_measure: unit_of_measure.map(std::string::ToString::to_string),
             amount,
             quantity,
             unit_price,
             gl_account_code: gl_account_code.to_string(),
-            cost_center: cost_center.map(|s| s.to_string()),
-            department: department.map(|s| s.to_string()),
-            tax_code: tax_code.map(|s| s.to_string()),
+            cost_center: cost_center.map(std::string::ToString::to_string),
+            department: department.map(std::string::ToString::to_string),
+            tax_code: tax_code.map(std::string::ToString::to_string),
             tax_amount,
             project_id,
-            expenditure_type: expenditure_type.map(|s| s.to_string()),
+            expenditure_type: expenditure_type.map(std::string::ToString::to_string),
         };
 
         info!("Recurring Invoice: Adding line to template {}", template.template_number);
@@ -430,7 +430,7 @@ impl RecurringInvoiceEngine {
         }
 
         // Calculate dates
-        let invoice_due_date = invoice_date + chrono::Duration::days(template.payment_due_days as i64);
+        let invoice_due_date = invoice_date + chrono::Duration::days(i64::from(template.payment_due_days));
         let gl_date = match template.gl_date_basis.as_str() {
             "due_date" => invoice_due_date,
             "period_end" => invoice_date, // simplified
@@ -528,16 +528,16 @@ impl RecurringInvoiceEngine {
             ("suspended", "cancelled") => Ok(()),
             ("completed", "cancelled") => Ok(()), // for audit/correction
             _ => Err(AtlasError::WorkflowError(format!(
-                "Invalid status transition from '{}' to '{}'. \
+                "Invalid status transition from '{current}' to '{target}'. \
                  Valid: draft→active, draft→cancelled, active→suspended, \
                  active→completed, active→cancelled, suspended→active, \
-                 suspended→cancelled",
-                current, target
+                 suspended→cancelled"
             ))),
         }
     }
 
     /// Calculate the next generation date based on recurrence
+    #[must_use] 
     pub fn calculate_next_generation_date(
         current_date: chrono::NaiveDate,
         recurrence_type: &str,
@@ -545,8 +545,8 @@ impl RecurringInvoiceEngine {
     ) -> chrono::NaiveDate {
         let i = if interval < 1 { 1 } else { interval } as u32;
         match recurrence_type {
-            "daily" => current_date + chrono::Duration::days(i as i64),
-            "weekly" => current_date + chrono::Duration::weeks(i as i64),
+            "daily" => current_date + chrono::Duration::days(i64::from(i)),
+            "weekly" => current_date + chrono::Duration::weeks(i64::from(i)),
             "monthly" => {
                 let mut next = current_date;
                 for _ in 0..i {
@@ -572,6 +572,7 @@ impl RecurringInvoiceEngine {
     }
 
     /// Calculate total template amount from lines
+    #[must_use] 
     pub fn calculate_template_total(
         lines: &[RecurringInvoiceTemplateLine],
     ) -> (f64, f64, f64) {
@@ -582,11 +583,12 @@ impl RecurringInvoiceEngine {
     }
 
     /// Calculate invoice due date from invoice date and payment terms
+    #[must_use] 
     pub fn calculate_due_date(
         invoice_date: chrono::NaiveDate,
         payment_due_days: i32,
     ) -> chrono::NaiveDate {
-        invoice_date + chrono::Duration::days(payment_due_days as i64)
+        invoice_date + chrono::Duration::days(i64::from(payment_due_days))
     }
 
     /// Check if a template is eligible for generation

@@ -47,7 +47,7 @@ pub struct CashPosition {
     pub hold_amount: String,
     /// Position date
     pub position_date: chrono::NaiveDate,
-    /// Source breakdown: { "ar_receipts": "5000", "ap_payments": "3000", ... }
+    /// Source breakdown: { "`ar_receipts"`: "5000", "`ap_payments"`: "3000", ... }
     pub source_breakdown: serde_json::Value,
     pub metadata: serde_json::Value,
     pub calculated_at: chrono::DateTime<chrono::Utc>,
@@ -126,11 +126,12 @@ pub trait CashPositionRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CashPositionDashboard>;
 }
 
-/// PostgreSQL implementation (stub)
+/// `PostgreSQL` implementation (stub)
 #[allow(dead_code)]
 pub struct PostgresCashPositionRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresCashPositionRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresCashPositionRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl CashPositionRepository for PostgresCashPositionRepository {

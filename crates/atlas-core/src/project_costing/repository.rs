@@ -1,6 +1,6 @@
 //! Project Costing Repository
 //!
-//! PostgreSQL storage for cost transactions, burden schedules,
+//! `PostgreSQL` storage for cost transactions, burden schedules,
 //! cost adjustments, and cost distributions.
 
 use atlas_shared::{
@@ -138,13 +138,14 @@ pub trait ProjectCostingRepository: Send + Sync {
     async fn get_costing_summary(&self, org_id: Uuid) -> AtlasResult<ProjectCostingSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresProjectCostingRepository {
     pool: PgPool,
 }
 
 impl PostgresProjectCostingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -319,7 +320,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProjectCostTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.project_cost_transactions
                 (organization_id, transaction_number, project_id, project_number,
                  task_id, task_number, cost_type,
@@ -340,7 +341,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
                     $25, $26, $27,
                     'draft', $28)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(transaction_number).bind(project_id).bind(project_number)
         .bind(task_id).bind(task_number).bind(cost_type)
@@ -380,14 +381,14 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
 
     async fn list_cost_transactions(&self, org_id: Uuid, project_id: Option<Uuid>, cost_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<ProjectCostTransaction>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.project_cost_transactions
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR project_id = $2)
               AND ($3::text IS NULL OR cost_type = $3)
               AND ($4::text IS NULL OR status = $4)
             ORDER BY transaction_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(project_id).bind(cost_type).bind(status)
         .fetch_all(&self.pool)
@@ -398,14 +399,14 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
 
     async fn update_cost_transaction_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<ProjectCostTransaction> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.project_cost_transactions
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool)
@@ -429,13 +430,13 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BurdenSchedule> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.burden_schedules
                 (organization_id, code, name, description, status,
                  effective_from, effective_to, is_default, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(status)
         .bind(effective_from).bind(effective_to).bind(is_default).bind(created_by)
@@ -479,11 +480,11 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
 
     async fn get_default_burden_schedule(&self, org_id: Uuid) -> AtlasResult<Option<BurdenSchedule>> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.burden_schedules
             WHERE organization_id = $1 AND is_default = true AND status = 'active'
             ORDER BY effective_from DESC LIMIT 1
-            "#
+            "
         )
         .bind(org_id)
         .fetch_optional(&self.pool)
@@ -516,13 +517,13 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         burden_account_code: Option<&str>,
     ) -> AtlasResult<BurdenScheduleLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.burden_schedule_lines
                 (organization_id, schedule_id, line_number, cost_type,
                  expenditure_category, burden_rate_percent, burden_account_code)
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(schedule_id).bind(line_number).bind(cost_type)
         .bind(expenditure_category).bind(burden_rate_percent).bind(burden_account_code)
@@ -547,12 +548,12 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
     async fn get_applicable_burden_rate(&self, schedule_id: Uuid, cost_type: &str, expenditure_category: Option<&str>) -> AtlasResult<Option<BurdenScheduleLine>> {
         // Try exact match on cost_type + expenditure_category first, then fall back to cost_type only
         let row = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.burden_schedule_lines
             WHERE schedule_id = $1 AND cost_type = $2 AND is_active = true
               AND (expenditure_category = $3 OR ($3 IS NULL AND expenditure_category IS NULL))
             LIMIT 1
-            "#,
+            ",
         )
         .bind(schedule_id).bind(cost_type).bind(expenditure_category)
         .fetch_optional(&self.pool)
@@ -565,12 +566,12 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
 
         // Fallback: cost_type match only (category-agnostic line)
         let row = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.burden_schedule_lines
             WHERE schedule_id = $1 AND cost_type = $2 AND is_active = true
               AND expenditure_category IS NULL
             LIMIT 1
-            "#,
+            ",
         )
         .bind(schedule_id).bind(cost_type)
         .fetch_optional(&self.pool)
@@ -599,7 +600,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProjectCostAdjustment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.project_cost_adjustments
                 (organization_id, adjustment_number, original_transaction_id,
                  adjustment_type, adjustment_amount, new_raw_cost, new_burdened_cost,
@@ -612,7 +613,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
                     $11, $12,
                     'pending', $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(adjustment_number).bind(original_transaction_id)
         .bind(adjustment_type).bind(adjustment_amount).bind(new_raw_cost).bind(new_burdened_cost)
@@ -637,12 +638,12 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
 
     async fn list_cost_adjustments(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ProjectCostAdjustment>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.project_cost_adjustments
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -659,7 +660,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         created_transaction_id: Option<Uuid>,
     ) -> AtlasResult<ProjectCostAdjustment> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.project_cost_adjustments
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
@@ -668,7 +669,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(created_transaction_id)
         .fetch_one(&self.pool)
@@ -691,14 +692,14 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         gl_date: chrono::NaiveDate,
     ) -> AtlasResult<ProjectCostDistribution> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.project_cost_distributions
                 (organization_id, transaction_id, line_number,
                  debit_account_code, credit_account_code,
                  amount, distribution_type, gl_date)
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(transaction_id).bind(line_number)
         .bind(debit_account_code).bind(credit_account_code)
@@ -734,12 +735,12 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
 
     async fn mark_distribution_posted(&self, id: Uuid, gl_batch_id: Option<Uuid>) -> AtlasResult<ProjectCostDistribution> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.project_cost_distributions
             SET is_posted = true, gl_batch_id = COALESCE($2, gl_batch_id), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(gl_batch_id)
         .fetch_one(&self.pool)
@@ -752,7 +753,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
 
     async fn get_costing_summary(&self, org_id: Uuid) -> AtlasResult<ProjectCostingSummary> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(DISTINCT project_id) as project_count,
                 COALESCE(SUM(raw_cost_amount), 0) as total_raw,
@@ -764,7 +765,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
                 COALESCE(SUM(raw_cost_amount) FILTER (WHERE is_billable = true AND status != 'draft'), 0) as total_billed
             FROM _atlas.project_cost_transactions
             WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)

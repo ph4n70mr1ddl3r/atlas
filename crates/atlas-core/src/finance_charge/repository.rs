@@ -1,6 +1,6 @@
 //! Finance Charge Repository
 //!
-//! PostgreSQL storage for finance charge terms, assessment runs, and charge invoices.
+//! `PostgreSQL` storage for finance charge terms, assessment runs, and charge invoices.
 
 use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
@@ -319,7 +319,8 @@ pub struct PostgresFinanceChargeRepository {
 }
 
 impl PostgresFinanceChargeRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -332,7 +333,7 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn create_term(&self, params: &FinanceChargeTermCreateParams) -> AtlasResult<FinanceChargeTerm> {
         let row = sqlx::query_as::<_, FinanceChargeTerm>(
-            r#"INSERT INTO _atlas.finance_charge_terms
+            r"INSERT INTO _atlas.finance_charge_terms
                (organization_id, term_code, term_name, description,
                 charge_type, charge_rate, minimum_charge, maximum_charge,
                 grace_period_days, currency_code, calculation_basis,
@@ -340,7 +341,7 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
                 effective_from, effective_to, is_active, auto_assess,
                 revenue_account_code, receivable_account_code, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(&params.term_code)
@@ -393,10 +394,10 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn list_terms(&self, org_id: Uuid, is_active: Option<bool>) -> AtlasResult<Vec<FinanceChargeTerm>> {
         let rows = sqlx::query_as::<_, FinanceChargeTerm>(
-            r#"SELECT * FROM _atlas.finance_charge_terms
+            r"SELECT * FROM _atlas.finance_charge_terms
                WHERE organization_id = $1
                AND ($2::boolean IS NULL OR is_active = $2)
-               ORDER BY term_code"#,
+               ORDER BY term_code",
         )
         .bind(org_id)
         .bind(is_active)
@@ -424,9 +425,9 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn create_tier(&self, org_id: Uuid, term_id: Uuid, from_days: i32, to_days: Option<i32>, rate: f64, flat_fee: Option<f64>) -> AtlasResult<FinanceChargeTier> {
         let row = sqlx::query_as::<_, FinanceChargeTier>(
-            r#"INSERT INTO _atlas.finance_charge_tiers
+            r"INSERT INTO _atlas.finance_charge_tiers
                (organization_id, term_id, from_days_overdue, to_days_overdue, charge_rate, flat_fee)
-               VALUES ($1,$2,$3,$4,$5,$6) RETURNING *"#,
+               VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
         )
         .bind(org_id)
         .bind(term_id)
@@ -457,16 +458,16 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn create_run(&self, params: &FinanceChargeRunCreateParams) -> AtlasResult<FinanceChargeRun> {
         let seq = self.get_next_run_number(params.org_id).await.unwrap_or(1);
-        let run_number = format!("FCR-{:06}", seq);
+        let run_number = format!("FCR-{seq:06}");
 
         let row = sqlx::query_as::<_, FinanceChargeRun>(
-            r#"INSERT INTO _atlas.finance_charge_runs
+            r"INSERT INTO _atlas.finance_charge_runs
                (organization_id, run_number, run_date, gl_date,
                 term_id, term_code, currency_code,
                 total_invoices_assessed, total_charges_assessed,
                 status, notes, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,0,0.0,'draft',$8,$9)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(&run_number)
@@ -508,10 +509,10 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<FinanceChargeRun>> {
         let rows = sqlx::query_as::<_, FinanceChargeRun>(
-            r#"SELECT * FROM _atlas.finance_charge_runs
+            r"SELECT * FROM _atlas.finance_charge_runs
                WHERE organization_id = $1
                AND ($2::text IS NULL OR status = $2)
-               ORDER BY run_date DESC, run_number"#,
+               ORDER BY run_date DESC, run_number",
         )
         .bind(org_id)
         .bind(status)
@@ -523,14 +524,14 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn update_run_status(&self, id: Uuid, status: &str) -> AtlasResult<FinanceChargeRun> {
         let row = sqlx::query_as::<_, FinanceChargeRun>(
-            r#"UPDATE _atlas.finance_charge_runs
+            r"UPDATE _atlas.finance_charge_runs
                SET status = $2,
                    submitted_at = CASE WHEN $2 = 'submitted' THEN now() ELSE submitted_at END,
                    submitted_by = CASE WHEN $2 = 'submitted' THEN created_by ELSE submitted_by END,
                    approved_at = CASE WHEN $2 IN ('approved','applied') THEN now() ELSE approved_at END,
                    approved_by = CASE WHEN $2 IN ('approved','applied') THEN created_by ELSE approved_by END,
                    updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(status)
@@ -586,7 +587,7 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn create_line(&self, params: &FinanceChargeLineCreateParams) -> AtlasResult<FinanceChargeLine> {
         let row = sqlx::query_as::<_, FinanceChargeLine>(
-            r#"INSERT INTO _atlas.finance_charge_lines
+            r"INSERT INTO _atlas.finance_charge_lines
                (organization_id, run_id, line_number,
                 customer_id, customer_number, customer_name,
                 invoice_id, invoice_number, invoice_date, invoice_due_date,
@@ -594,7 +595,7 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
                 charge_type, charge_rate, charge_amount, currency_code,
                 term_id, term_code, status)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'pending')
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(params.run_id)
@@ -634,9 +635,9 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn update_line_status(&self, id: Uuid, status: &str, waived_reason: Option<&str>) -> AtlasResult<FinanceChargeLine> {
         let row = sqlx::query_as::<_, FinanceChargeLine>(
-            r#"UPDATE _atlas.finance_charge_lines
+            r"UPDATE _atlas.finance_charge_lines
                SET status = $2, waived_reason = COALESCE($3, waived_reason), updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(status)
@@ -649,9 +650,9 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn update_line_charge_invoice(&self, id: Uuid, charge_invoice_id: Uuid, charge_invoice_number: Option<&str>) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.finance_charge_lines
+            r"UPDATE _atlas.finance_charge_lines
                SET charge_invoice_id = $2, charge_invoice_number = $3, status = 'charged', updated_at = now()
-               WHERE id = $1"#,
+               WHERE id = $1",
         )
         .bind(id)
         .bind(charge_invoice_id)
@@ -677,7 +678,7 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn create_invoice(&self, params: &FinanceChargeInvoiceCreateParams) -> AtlasResult<FinanceChargeInvoice> {
         let row = sqlx::query_as::<_, FinanceChargeInvoice>(
-            r#"INSERT INTO _atlas.finance_charge_invoices
+            r"INSERT INTO _atlas.finance_charge_invoices
                (organization_id, charge_invoice_number,
                 customer_id, customer_number, customer_name,
                 invoice_date, gl_date, due_date, currency_code,
@@ -686,7 +687,7 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
                 revenue_account_code, receivable_account_code,
                 notes, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0.0,$10,'open',$11,$12,$13,$14,$15)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(params.org_id)
         .bind(&params.charge_invoice_number)
@@ -734,11 +735,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn list_invoices(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<FinanceChargeInvoice>> {
         let rows = sqlx::query_as::<_, FinanceChargeInvoice>(
-            r#"SELECT * FROM _atlas.finance_charge_invoices
+            r"SELECT * FROM _atlas.finance_charge_invoices
                WHERE organization_id = $1
                AND ($2::text IS NULL OR status = $2)
                AND ($3::uuid IS NULL OR customer_id = $3)
-               ORDER BY invoice_date DESC, charge_invoice_number"#,
+               ORDER BY invoice_date DESC, charge_invoice_number",
         )
         .bind(org_id)
         .bind(status)
@@ -784,11 +785,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         performed_by: Option<Uuid>, performed_by_name: Option<&str>,
     ) -> AtlasResult<FinanceChargeActivity> {
         let row = sqlx::query_as::<_, FinanceChargeActivity>(
-            r#"INSERT INTO _atlas.finance_charge_activities
+            r"INSERT INTO _atlas.finance_charge_activities
                (organization_id, entity_type, entity_id, activity_type,
                 description, old_status, new_status, performed_by, performed_by_name)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-               RETURNING *"#,
+               RETURNING *",
         )
         .bind(org_id)
         .bind(entity_type)
@@ -916,8 +917,7 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 impl PostgresFinanceChargeRepository {
     async fn get_grouped_count(&self, column: &str, org_id: Uuid) -> AtlasResult<serde_json::Value> {
         let query = format!(
-            "SELECT {} as key, COUNT(*) as cnt, COALESCE(SUM(total_charge_amount), 0) as total FROM _atlas.finance_charge_invoices WHERE organization_id = $1 GROUP BY {}",
-            column, column
+            "SELECT {column} as key, COUNT(*) as cnt, COALESCE(SUM(total_charge_amount), 0) as total FROM _atlas.finance_charge_invoices WHERE organization_id = $1 GROUP BY {column}"
         );
         let rows = sqlx::query(&query)
             .bind(org_id)
@@ -937,8 +937,7 @@ impl PostgresFinanceChargeRepository {
 
     async fn get_run_grouped_count(&self, column: &str, org_id: Uuid) -> AtlasResult<serde_json::Value> {
         let query = format!(
-            "SELECT {} as key, COUNT(*) as cnt, COALESCE(SUM(total_charges_assessed), 0) as total FROM _atlas.finance_charge_runs WHERE organization_id = $1 GROUP BY {}",
-            column, column
+            "SELECT {column} as key, COUNT(*) as cnt, COALESCE(SUM(total_charges_assessed), 0) as total FROM _atlas.finance_charge_runs WHERE organization_id = $1 GROUP BY {column}"
         );
         let rows = sqlx::query(&query)
             .bind(org_id)

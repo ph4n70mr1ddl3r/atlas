@@ -32,6 +32,7 @@ use atlas_shared::EntityDefinition;
 // ============================================================================
 
 /// Chart of Accounts entity
+#[must_use] 
 pub fn chart_of_accounts_definition() -> EntityDefinition {
     SchemaBuilder::new("chart_of_accounts", "Chart of Account")
         .plural_label("Chart of Accounts")
@@ -55,6 +56,7 @@ pub fn chart_of_accounts_definition() -> EntityDefinition {
 }
 
 /// Journal Entry entity with workflow
+#[must_use] 
 pub fn journal_entry_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("journal_entry_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -86,6 +88,7 @@ pub fn journal_entry_definition() -> EntityDefinition {
 }
 
 /// Invoice entity with workflow
+#[must_use] 
 pub fn invoice_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("invoice_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -127,6 +130,7 @@ pub fn invoice_definition() -> EntityDefinition {
 }
 
 /// Budget entity
+#[must_use] 
 pub fn budget_definition() -> EntityDefinition {
     SchemaBuilder::new("budgets", "Budget")
         .plural_label("Budgets")
@@ -149,6 +153,7 @@ pub fn budget_definition() -> EntityDefinition {
 
 /// Expense report entity with workflow
 /// Oracle Fusion: Expenses > Expense Reports
+#[must_use] 
 pub fn expense_report_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("expense_report_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -193,6 +198,7 @@ pub fn expense_report_definition() -> EntityDefinition {
 
 /// AP Invoice entity with full workflow
 /// Oracle Fusion: Payables > Invoices
+#[must_use] 
 pub fn ap_invoice_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("ap_invoice_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -256,6 +262,7 @@ pub fn ap_invoice_definition() -> EntityDefinition {
 
 /// AP Invoice Line entity
 /// Oracle Fusion: Payables > Invoice Lines
+#[must_use] 
 pub fn ap_invoice_line_definition() -> EntityDefinition {
     SchemaBuilder::new("ap_invoice_lines", "AP Invoice Line")
         .plural_label("AP Invoice Lines")
@@ -281,6 +288,7 @@ pub fn ap_invoice_line_definition() -> EntityDefinition {
 
 /// AP Invoice Distribution entity
 /// Oracle Fusion: Payables > Invoice Distributions
+#[must_use] 
 pub fn ap_invoice_distribution_definition() -> EntityDefinition {
     SchemaBuilder::new("ap_invoice_distributions", "AP Invoice Distribution")
         .plural_label("AP Invoice Distributions")
@@ -309,6 +317,7 @@ pub fn ap_invoice_distribution_definition() -> EntityDefinition {
 
 /// AP Invoice Hold entity
 /// Oracle Fusion: Payables > Invoice Holds
+#[must_use] 
 pub fn ap_invoice_hold_definition() -> EntityDefinition {
     SchemaBuilder::new("ap_invoice_holds", "AP Invoice Hold")
         .plural_label("AP Invoice Holds")
@@ -329,6 +338,7 @@ pub fn ap_invoice_hold_definition() -> EntityDefinition {
 
 /// AP Payment entity with workflow
 /// Oracle Fusion: Payables > Payments
+#[must_use] 
 pub fn ap_payment_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("ap_payment_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -372,6 +382,7 @@ pub fn ap_payment_definition() -> EntityDefinition {
 
 /// AR Transaction (Customer Invoice) entity with workflow
 /// Oracle Fusion: Receivables > Transactions
+#[must_use] 
 pub fn ar_transaction_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("ar_transaction_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -432,6 +443,7 @@ pub fn ar_transaction_definition() -> EntityDefinition {
 
 /// AR Transaction Line entity
 /// Oracle Fusion: Receivables > Transaction Lines
+#[must_use] 
 pub fn ar_transaction_line_definition() -> EntityDefinition {
     SchemaBuilder::new("ar_transaction_lines", "AR Transaction Line")
         .plural_label("AR Transaction Lines")
@@ -460,6 +472,7 @@ pub fn ar_transaction_line_definition() -> EntityDefinition {
 
 /// AR Receipt entity with workflow
 /// Oracle Fusion: Receivables > Receipts
+#[must_use] 
 pub fn ar_receipt_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("ar_receipt_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -508,6 +521,7 @@ pub fn ar_receipt_definition() -> EntityDefinition {
 
 /// AR Credit Memo entity with workflow
 /// Oracle Fusion: Receivables > Credit Memos
+#[must_use] 
 pub fn ar_credit_memo_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("ar_credit_memo_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -551,6 +565,7 @@ pub fn ar_credit_memo_definition() -> EntityDefinition {
 
 /// AR Adjustment entity
 /// Oracle Fusion: Receivables > Adjustments
+#[must_use] 
 pub fn ar_adjustment_definition() -> EntityDefinition {
     SchemaBuilder::new("ar_adjustments", "AR Adjustment")
         .plural_label("AR Adjustments")
@@ -587,6 +602,7 @@ pub fn ar_adjustment_definition() -> EntityDefinition {
 
 /// Asset Category entity
 /// Oracle Fusion: Fixed Assets > Asset Categories
+#[must_use] 
 pub fn asset_category_definition() -> EntityDefinition {
     SchemaBuilder::new("asset_categories", "Asset Category")
         .plural_label("Asset Categories")
@@ -611,6 +627,7 @@ pub fn asset_category_definition() -> EntityDefinition {
 
 /// Asset Book entity
 /// Oracle Fusion: Fixed Assets > Asset Books
+#[must_use] 
 pub fn asset_book_definition() -> EntityDefinition {
     SchemaBuilder::new("asset_books", "Asset Book")
         .plural_label("Asset Books")
@@ -633,6 +650,7 @@ pub fn asset_book_definition() -> EntityDefinition {
 
 /// Fixed Asset entity with lifecycle workflow
 /// Oracle Fusion: Fixed Assets > Assets
+#[must_use] 
 pub fn fixed_asset_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("fixed_asset_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -710,6 +728,7 @@ pub fn fixed_asset_definition() -> EntityDefinition {
 
 /// Asset Transfer entity with workflow
 /// Oracle Fusion: Fixed Assets > Asset Transfers
+#[must_use] 
 pub fn asset_transfer_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("asset_transfer_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -745,6 +764,7 @@ pub fn asset_transfer_definition() -> EntityDefinition {
 
 /// Asset Retirement entity with workflow
 /// Oracle Fusion: Fixed Assets > Asset Retirements
+#[must_use] 
 pub fn asset_retirement_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("asset_retirement_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -791,6 +811,7 @@ pub fn asset_retirement_definition() -> EntityDefinition {
 
 /// Cost Book entity
 /// Oracle Fusion: Cost Management > Cost Books
+#[must_use] 
 pub fn cost_book_definition() -> EntityDefinition {
     SchemaBuilder::new("cost_books", "Cost Book")
         .plural_label("Cost Books")
@@ -812,6 +833,7 @@ pub fn cost_book_definition() -> EntityDefinition {
 
 /// Cost Element entity
 /// Oracle Fusion: Cost Management > Cost Elements
+#[must_use] 
 pub fn cost_element_definition() -> EntityDefinition {
     SchemaBuilder::new("cost_elements", "Cost Element")
         .plural_label("Cost Elements")
@@ -833,6 +855,7 @@ pub fn cost_element_definition() -> EntityDefinition {
 
 /// Cost Profile entity
 /// Oracle Fusion: Cost Management > Cost Profiles
+#[must_use] 
 pub fn cost_profile_definition() -> EntityDefinition {
     SchemaBuilder::new("cost_profiles", "Cost Profile")
         .plural_label("Cost Profiles")
@@ -858,6 +881,7 @@ pub fn cost_profile_definition() -> EntityDefinition {
 
 /// Standard Cost entity
 /// Oracle Fusion: Cost Management > Standard Costs
+#[must_use] 
 pub fn standard_cost_definition() -> EntityDefinition {
     SchemaBuilder::new("standard_costs", "Standard Cost")
         .plural_label("Standard Costs")
@@ -880,6 +904,7 @@ pub fn standard_cost_definition() -> EntityDefinition {
 
 /// Cost Adjustment entity with workflow
 /// Oracle Fusion: Cost Management > Cost Adjustments
+#[must_use] 
 pub fn cost_adjustment_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("cost_adjustment_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -917,6 +942,7 @@ pub fn cost_adjustment_definition() -> EntityDefinition {
 
 /// Cost Adjustment Line entity
 /// Oracle Fusion: Cost Management > Cost Adjustment Lines
+#[must_use] 
 pub fn cost_adjustment_line_definition() -> EntityDefinition {
     SchemaBuilder::new("cost_adjustment_lines", "Cost Adjustment Line")
         .plural_label("Cost Adjustment Lines")
@@ -938,6 +964,7 @@ pub fn cost_adjustment_line_definition() -> EntityDefinition {
 
 /// Cost Variance entity
 /// Oracle Fusion: Cost Management > Variance Analysis
+#[must_use] 
 pub fn cost_variance_definition() -> EntityDefinition {
     SchemaBuilder::new("cost_variances", "Cost Variance")
         .plural_label("Cost Variances")
@@ -975,6 +1002,7 @@ pub fn cost_variance_definition() -> EntityDefinition {
 
 /// Revenue Policy entity
 /// Oracle Fusion: Revenue Management > Revenue Policies
+#[must_use] 
 pub fn revenue_policy_definition() -> EntityDefinition {
     SchemaBuilder::new("revenue_policies", "Revenue Policy")
         .plural_label("Revenue Policies")
@@ -1004,6 +1032,7 @@ pub fn revenue_policy_definition() -> EntityDefinition {
 
 /// Revenue Contract entity with workflow
 /// Oracle Fusion: Revenue Management > Revenue Contracts
+#[must_use] 
 pub fn revenue_contract_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("revenue_contract_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1044,6 +1073,7 @@ pub fn revenue_contract_definition() -> EntityDefinition {
 
 /// Performance Obligation entity
 /// Oracle Fusion: Revenue Management > Performance Obligations
+#[must_use] 
 pub fn performance_obligation_definition() -> EntityDefinition {
     SchemaBuilder::new("performance_obligations", "Performance Obligation")
         .plural_label("Performance Obligations")
@@ -1072,6 +1102,7 @@ pub fn performance_obligation_definition() -> EntityDefinition {
 
 /// Revenue Schedule Line entity
 /// Oracle Fusion: Revenue Management > Revenue Schedules
+#[must_use] 
 pub fn revenue_schedule_line_definition() -> EntityDefinition {
     SchemaBuilder::new("revenue_schedule_lines", "Revenue Schedule Line")
         .plural_label("Revenue Schedule Lines")
@@ -1094,6 +1125,7 @@ pub fn revenue_schedule_line_definition() -> EntityDefinition {
 
 /// Revenue Contract Modification entity with workflow
 /// Oracle Fusion: Revenue Management > Contract Modifications
+#[must_use] 
 pub fn revenue_modification_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("revenue_modification_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1132,6 +1164,7 @@ pub fn revenue_modification_definition() -> EntityDefinition {
 
 /// Interest Invoice entity with workflow
 /// Oracle Fusion: Receivables > Finance Charges > Interest Invoices
+#[must_use] 
 pub fn interest_invoice_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("interest_invoice_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1182,6 +1215,7 @@ pub fn interest_invoice_definition() -> EntityDefinition {
 
 /// Interest Invoice Template entity
 /// Oracle Fusion: Receivables > Finance Charges > Templates
+#[must_use] 
 pub fn interest_invoice_template_definition() -> EntityDefinition {
     SchemaBuilder::new("interest_invoice_templates", "Interest Invoice Template")
         .plural_label("Interest Invoice Templates")
@@ -1216,6 +1250,7 @@ pub fn interest_invoice_template_definition() -> EntityDefinition {
 
 /// Payment Batch entity with workflow
 /// Oracle Fusion: Payables > Payments > Payment Batches
+#[must_use] 
 pub fn payment_batch_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("payment_batch_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1257,6 +1292,7 @@ pub fn payment_batch_definition() -> EntityDefinition {
 
 /// Payment Batch Line entity
 /// Oracle Fusion: Payables > Payments > Batch Lines
+#[must_use] 
 pub fn payment_batch_line_definition() -> EntityDefinition {
     SchemaBuilder::new("payment_batch_lines", "Payment Batch Line")
         .plural_label("Payment Batch Lines")
@@ -1289,6 +1325,7 @@ pub fn payment_batch_line_definition() -> EntityDefinition {
 
 /// Revenue Budget entity with workflow
 /// Oracle Fusion: Financials > Budgeting > Revenue Budgets
+#[must_use] 
 pub fn revenue_budget_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("revenue_budget_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1336,6 +1373,7 @@ pub fn revenue_budget_definition() -> EntityDefinition {
 
 /// Revenue Budget Line entity
 /// Oracle Fusion: Financials > Budgeting > Revenue Budget Lines
+#[must_use] 
 pub fn revenue_budget_line_definition() -> EntityDefinition {
     SchemaBuilder::new("revenue_budget_lines", "Revenue Budget Line")
         .plural_label("Revenue Budget Lines")
@@ -1364,6 +1402,7 @@ pub fn revenue_budget_line_definition() -> EntityDefinition {
 
 /// Financial Dimension entity
 /// Oracle Fusion: General Ledger > Financial Dimensions
+#[must_use] 
 pub fn financial_dimension_definition() -> EntityDefinition {
     SchemaBuilder::new("financial_dimensions", "Financial Dimension")
         .plural_label("Financial Dimensions")
@@ -1388,6 +1427,7 @@ pub fn financial_dimension_definition() -> EntityDefinition {
 
 /// Financial Dimension Value entity
 /// Oracle Fusion: General Ledger > Dimension Values
+#[must_use] 
 pub fn financial_dimension_value_definition() -> EntityDefinition {
     SchemaBuilder::new("financial_dimension_values", "Dimension Value")
         .plural_label("Dimension Values")
@@ -1413,8 +1453,9 @@ pub fn financial_dimension_value_definition() -> EntityDefinition {
 // AutoOffset (Oracle Fusion: Intercompany > AutoOffsets)
 // ============================================================================
 
-/// AutoOffset Rule entity with workflow
-/// Oracle Fusion: Intercompany > AutoOffset Rules
+/// `AutoOffset` Rule entity with workflow
+/// Oracle Fusion: Intercompany > `AutoOffset` Rules
+#[must_use] 
 pub fn auto_offset_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("auto_offset_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1463,6 +1504,7 @@ pub fn auto_offset_rule_definition() -> EntityDefinition {
 
 /// Accounting Method entity
 /// Oracle Fusion: Subledger Accounting > Accounting Methods
+#[must_use] 
 pub fn accounting_method_definition() -> EntityDefinition {
     SchemaBuilder::new("accounting_methods", "Accounting Method")
         .plural_label("Accounting Methods")
@@ -1493,6 +1535,7 @@ pub fn accounting_method_definition() -> EntityDefinition {
 
 /// Accounting Derivation Rule entity
 /// Oracle Fusion: Subledger Accounting > Derivation Rules
+#[must_use] 
 pub fn accounting_derivation_rule_definition() -> EntityDefinition {
     SchemaBuilder::new("accounting_derivation_rules", "Derivation Rule")
         .plural_label("Accounting Derivation Rules")
@@ -1519,6 +1562,7 @@ pub fn accounting_derivation_rule_definition() -> EntityDefinition {
 
 /// Subledger Journal Entry entity with workflow
 /// Oracle Fusion: Subledger Accounting > Journal Entries
+#[must_use] 
 pub fn subledger_journal_entry_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("sla_journal_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1564,6 +1608,7 @@ pub fn subledger_journal_entry_definition() -> EntityDefinition {
 
 /// Subledger Journal Line entity
 /// Oracle Fusion: Subledger Accounting > Journal Lines
+#[must_use] 
 pub fn subledger_journal_line_definition() -> EntityDefinition {
     SchemaBuilder::new("subledger_journal_lines", "SLA Journal Line")
         .plural_label("SLA Journal Lines")
@@ -1595,6 +1640,7 @@ pub fn subledger_journal_line_definition() -> EntityDefinition {
 
 /// Cash Position entity
 /// Oracle Fusion: Cash Management > Cash Positions
+#[must_use] 
 pub fn cash_position_definition() -> EntityDefinition {
     SchemaBuilder::new("cash_positions", "Cash Position")
         .plural_label("Cash Positions")
@@ -1622,6 +1668,7 @@ pub fn cash_position_definition() -> EntityDefinition {
 
 /// Cash Forecast Template entity
 /// Oracle Fusion: Cash Management > Forecast Templates
+#[must_use] 
 pub fn cash_forecast_template_definition() -> EntityDefinition {
     SchemaBuilder::new("cash_forecast_templates", "Cash Forecast Template")
         .plural_label("Cash Forecast Templates")
@@ -1644,6 +1691,7 @@ pub fn cash_forecast_template_definition() -> EntityDefinition {
 
 /// Cash Forecast Source entity
 /// Oracle Fusion: Cash Management > Forecast Sources
+#[must_use] 
 pub fn cash_forecast_source_definition() -> EntityDefinition {
     SchemaBuilder::new("cash_forecast_sources", "Cash Forecast Source")
         .plural_label("Cash Forecast Sources")
@@ -1666,6 +1714,7 @@ pub fn cash_forecast_source_definition() -> EntityDefinition {
 
 /// Cash Forecast entity with workflow
 /// Oracle Fusion: Cash Management > Cash Forecasts
+#[must_use] 
 pub fn cash_forecast_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("cash_forecast_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1706,6 +1755,7 @@ pub fn cash_forecast_definition() -> EntityDefinition {
 
 /// Tax Regime entity
 /// Oracle Fusion: Tax > Tax Regimes
+#[must_use] 
 pub fn tax_regime_definition() -> EntityDefinition {
     SchemaBuilder::new("tax_regimes", "Tax Regime")
         .plural_label("Tax Regimes")
@@ -1732,6 +1782,7 @@ pub fn tax_regime_definition() -> EntityDefinition {
 
 /// Tax Jurisdiction entity
 /// Oracle Fusion: Tax > Tax Jurisdictions
+#[must_use] 
 pub fn tax_jurisdiction_definition() -> EntityDefinition {
     SchemaBuilder::new("tax_jurisdictions", "Tax Jurisdiction")
         .plural_label("Tax Jurisdictions")
@@ -1754,6 +1805,7 @@ pub fn tax_jurisdiction_definition() -> EntityDefinition {
 
 /// Tax Rate entity with workflow
 /// Oracle Fusion: Tax > Tax Rates
+#[must_use] 
 pub fn tax_rate_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("tax_rate_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1790,6 +1842,7 @@ pub fn tax_rate_definition() -> EntityDefinition {
 
 /// Tax Determination Rule entity
 /// Oracle Fusion: Tax > Tax Determination Rules
+#[must_use] 
 pub fn tax_determination_rule_definition() -> EntityDefinition {
     SchemaBuilder::new("tax_determination_rules", "Tax Determination Rule")
         .plural_label("Tax Determination Rules")
@@ -1816,6 +1869,7 @@ pub fn tax_determination_rule_definition() -> EntityDefinition {
 
 /// Intercompany Batch entity with workflow
 /// Oracle Fusion: Intercompany > Batches
+#[must_use] 
 pub fn intercompany_batch_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("ic_batch_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -1851,6 +1905,7 @@ pub fn intercompany_batch_definition() -> EntityDefinition {
 
 /// Intercompany Transaction entity
 /// Oracle Fusion: Intercompany > Transactions
+#[must_use] 
 pub fn intercompany_transaction_definition() -> EntityDefinition {
     SchemaBuilder::new("intercompany_transactions", "IC Transaction")
         .plural_label("Intercompany Transactions")
@@ -1879,6 +1934,7 @@ pub fn intercompany_transaction_definition() -> EntityDefinition {
 
 /// Intercompany Settlement entity
 /// Oracle Fusion: Intercompany > Settlements
+#[must_use] 
 pub fn intercompany_settlement_definition() -> EntityDefinition {
     SchemaBuilder::new("intercompany_settlements", "IC Settlement")
         .plural_label("Intercompany Settlements")
@@ -1909,6 +1965,7 @@ pub fn intercompany_settlement_definition() -> EntityDefinition {
 
 /// Accounting Calendar entity
 /// Oracle Fusion: General Ledger > Period Close > Calendars
+#[must_use] 
 pub fn accounting_calendar_definition() -> EntityDefinition {
     SchemaBuilder::new("accounting_calendars", "Accounting Calendar")
         .plural_label("Accounting Calendars")
@@ -1930,6 +1987,7 @@ pub fn accounting_calendar_definition() -> EntityDefinition {
 
 /// Accounting Period entity
 /// Oracle Fusion: General Ledger > Period Close > Periods
+#[must_use] 
 pub fn accounting_period_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("period_status_workflow", "future")
         .initial_state("future", "Future")
@@ -1971,6 +2029,7 @@ pub fn accounting_period_definition() -> EntityDefinition {
 
 /// Period Close Checklist Item entity
 /// Oracle Fusion: General Ledger > Period Close > Checklist
+#[must_use] 
 pub fn period_close_checklist_definition() -> EntityDefinition {
     SchemaBuilder::new("period_close_checklist", "Close Checklist Item")
         .plural_label("Period Close Checklist")
@@ -2001,6 +2060,7 @@ pub fn period_close_checklist_definition() -> EntityDefinition {
 
 /// Lease Contract entity with workflow
 /// Oracle Fusion: Lease Management > Lease Contracts
+#[must_use] 
 pub fn lease_contract_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("lease_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -2061,6 +2121,7 @@ pub fn lease_contract_definition() -> EntityDefinition {
 
 /// Lease Payment entity
 /// Oracle Fusion: Lease Management > Lease Payments
+#[must_use] 
 pub fn lease_payment_definition() -> EntityDefinition {
     SchemaBuilder::new("lease_payments", "Lease Payment")
         .plural_label("Lease Payments")
@@ -2084,6 +2145,7 @@ pub fn lease_payment_definition() -> EntityDefinition {
 
 /// Lease Modification entity with workflow
 /// Oracle Fusion: Lease Management > Lease Modifications
+#[must_use] 
 pub fn lease_modification_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("lease_modification_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -2117,6 +2179,7 @@ pub fn lease_modification_definition() -> EntityDefinition {
 
 /// Lease Termination entity with workflow
 /// Oracle Fusion: Lease Management > Lease Terminations
+#[must_use] 
 pub fn lease_termination_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("lease_termination_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -2155,6 +2218,7 @@ pub fn lease_termination_definition() -> EntityDefinition {
 
 /// Bank Account entity
 /// Oracle Fusion: Cash Management > Bank Accounts
+#[must_use] 
 pub fn bank_account_definition() -> EntityDefinition {
     SchemaBuilder::new("bank_accounts", "Bank Account")
         .plural_label("Bank Accounts")
@@ -2178,6 +2242,7 @@ pub fn bank_account_definition() -> EntityDefinition {
 
 /// Bank Statement entity
 /// Oracle Fusion: Cash Management > Bank Statements
+#[must_use] 
 pub fn bank_statement_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("bank_statement_workflow", "imported")
         .initial_state("imported", "Imported")
@@ -2214,6 +2279,7 @@ pub fn bank_statement_definition() -> EntityDefinition {
 
 /// Bank Statement Line entity
 /// Oracle Fusion: Cash Management > Statement Lines
+#[must_use] 
 pub fn bank_statement_line_definition() -> EntityDefinition {
     SchemaBuilder::new("bank_statement_lines", "Statement Line")
         .plural_label("Bank Statement Lines")
@@ -2236,6 +2302,7 @@ pub fn bank_statement_line_definition() -> EntityDefinition {
 
 /// Reconciliation Match entity
 /// Oracle Fusion: Cash Management > Reconciliation Matching
+#[must_use] 
 pub fn reconciliation_match_definition() -> EntityDefinition {
     SchemaBuilder::new("reconciliation_matches", "Reconciliation Match")
         .plural_label("Reconciliation Matches")
@@ -2263,6 +2330,7 @@ pub fn reconciliation_match_definition() -> EntityDefinition {
 
 /// Encumbrance Type entity
 /// Oracle Fusion: General Ledger > Encumbrance Types
+#[must_use] 
 pub fn encumbrance_type_definition() -> EntityDefinition {
     SchemaBuilder::new("encumbrance_types", "Encumbrance Type")
         .plural_label("Encumbrance Types")
@@ -2284,6 +2352,7 @@ pub fn encumbrance_type_definition() -> EntityDefinition {
 
 /// Encumbrance Entry entity with workflow
 /// Oracle Fusion: General Ledger > Encumbrance Entries
+#[must_use] 
 pub fn encumbrance_entry_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("encumbrance_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -2325,6 +2394,7 @@ pub fn encumbrance_entry_definition() -> EntityDefinition {
 
 /// Encumbrance Liquidation entity
 /// Oracle Fusion: General Ledger > Encumbrance Liquidations
+#[must_use] 
 pub fn encumbrance_liquidation_definition() -> EntityDefinition {
     SchemaBuilder::new("encumbrance_liquidations", "Encumbrance Liquidation")
         .plural_label("Encumbrance Liquidations")
@@ -2346,6 +2416,7 @@ pub fn encumbrance_liquidation_definition() -> EntityDefinition {
 
 /// Encumbrance Carry-Forward entity
 /// Oracle Fusion: General Ledger > Encumbrance Carry-Forward
+#[must_use] 
 pub fn encumbrance_carry_forward_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("encumbrance_carry_forward_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -2380,6 +2451,7 @@ pub fn encumbrance_carry_forward_definition() -> EntityDefinition {
 
 /// Currency Definition entity
 /// Oracle Fusion: General Ledger > Currency Definitions
+#[must_use] 
 pub fn currency_definition_entity() -> EntityDefinition {
     SchemaBuilder::new("currencies", "Currency")
         .plural_label("Currencies")
@@ -2396,6 +2468,7 @@ pub fn currency_definition_entity() -> EntityDefinition {
 
 /// Exchange Rate entity
 /// Oracle Fusion: General Ledger > Currency Rates
+#[must_use] 
 pub fn exchange_rate_definition() -> EntityDefinition {
     SchemaBuilder::new("exchange_rates", "Exchange Rate")
         .plural_label("Exchange Rates")
@@ -2420,6 +2493,7 @@ pub fn exchange_rate_definition() -> EntityDefinition {
 
 /// Accounting Book entity
 /// Oracle Fusion: General Ledger > Multi-Book > Books
+#[must_use] 
 pub fn accounting_book_definition() -> EntityDefinition {
     SchemaBuilder::new("accounting_books", "Accounting Book")
         .plural_label("Accounting Books")
@@ -2445,6 +2519,7 @@ pub fn accounting_book_definition() -> EntityDefinition {
 
 /// Account Mapping entity
 /// Oracle Fusion: General Ledger > Multi-Book > Account Mappings
+#[must_use] 
 pub fn account_mapping_definition() -> EntityDefinition {
     SchemaBuilder::new("account_mappings", "Account Mapping")
         .plural_label("Account Mappings")
@@ -2465,6 +2540,7 @@ pub fn account_mapping_definition() -> EntityDefinition {
 
 /// Book Journal Entry entity
 /// Oracle Fusion: General Ledger > Multi-Book > Journal Entries
+#[must_use] 
 pub fn book_journal_entry_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("book_journal_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -2503,6 +2579,7 @@ pub fn book_journal_entry_definition() -> EntityDefinition {
 
 /// Consolidation Ledger entity
 /// Oracle Fusion: General Ledger > Consolidation > Ledgers
+#[must_use] 
 pub fn consolidation_ledger_definition() -> EntityDefinition {
     SchemaBuilder::new("consolidation_ledgers", "Consolidation Ledger")
         .plural_label("Consolidation Ledgers")
@@ -2528,6 +2605,7 @@ pub fn consolidation_ledger_definition() -> EntityDefinition {
 
 /// Consolidation Entity entity
 /// Oracle Fusion: General Ledger > Consolidation > Entities
+#[must_use] 
 pub fn consolidation_entity_definition() -> EntityDefinition {
     SchemaBuilder::new("consolidation_entities", "Consolidation Entity")
         .plural_label("Consolidation Entities")
@@ -2551,6 +2629,7 @@ pub fn consolidation_entity_definition() -> EntityDefinition {
 
 /// Consolidation Scenario entity with workflow
 /// Oracle Fusion: General Ledger > Consolidation > Scenarios
+#[must_use] 
 pub fn consolidation_scenario_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("consolidation_scenario_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -2588,6 +2667,7 @@ pub fn consolidation_scenario_definition() -> EntityDefinition {
 
 /// Consolidation Adjustment entity with workflow
 /// Oracle Fusion: General Ledger > Consolidation > Adjustments
+#[must_use] 
 pub fn consolidation_adjustment_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("consolidation_adjustment_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -2622,6 +2702,7 @@ pub fn consolidation_adjustment_definition() -> EntityDefinition {
 
 /// Consolidation Elimination Rule entity
 /// Oracle Fusion: General Ledger > Consolidation > Elimination Rules
+#[must_use] 
 pub fn consolidation_elimination_rule_definition() -> EntityDefinition {
     SchemaBuilder::new("consolidation_elimination_rules", "Elimination Rule")
         .plural_label("Consolidation Elimination Rules")
@@ -2647,6 +2728,7 @@ pub fn consolidation_elimination_rule_definition() -> EntityDefinition {
 
 /// Consolidation Translation Rate entity
 /// Oracle Fusion: General Ledger > Consolidation > Translation Rates
+#[must_use] 
 pub fn consolidation_translation_rate_definition() -> EntityDefinition {
     SchemaBuilder::new("consolidation_translation_rates", "Translation Rate")
         .plural_label("Consolidation Translation Rates")
@@ -2673,6 +2755,7 @@ pub fn consolidation_translation_rate_definition() -> EntityDefinition {
 
 /// Customer Credit Profile entity (Collections context)
 /// Oracle Fusion: Collections > Customer Credit Profiles
+#[must_use] 
 pub fn customer_credit_profile_definition() -> EntityDefinition {
     SchemaBuilder::new("customer_credit_profiles", "Customer Credit Profile")
         .plural_label("Customer Credit Profiles")
@@ -2711,6 +2794,7 @@ pub fn customer_credit_profile_definition() -> EntityDefinition {
 
 /// Collection Strategy entity
 /// Oracle Fusion: Collections > Collection Strategies
+#[must_use] 
 pub fn collection_strategy_definition() -> EntityDefinition {
     SchemaBuilder::new("collection_strategies", "Collection Strategy")
         .plural_label("Collection Strategies")
@@ -2734,6 +2818,7 @@ pub fn collection_strategy_definition() -> EntityDefinition {
 
 /// Collection Case entity with workflow
 /// Oracle Fusion: Collections > Collection Cases
+#[must_use] 
 pub fn collection_case_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("collection_case_workflow", "open")
         .initial_state("open", "Open")
@@ -2794,6 +2879,7 @@ pub fn collection_case_definition() -> EntityDefinition {
 
 /// Customer Interaction entity
 /// Oracle Fusion: Collections > Customer Interactions
+#[must_use] 
 pub fn customer_interaction_definition() -> EntityDefinition {
     SchemaBuilder::new("customer_interactions", "Customer Interaction")
         .plural_label("Customer Interactions")
@@ -2830,6 +2916,7 @@ pub fn customer_interaction_definition() -> EntityDefinition {
 
 /// Promise to Pay entity
 /// Oracle Fusion: Collections > Promises to Pay
+#[must_use] 
 pub fn promise_to_pay_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("promise_to_pay_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -2881,6 +2968,7 @@ pub fn promise_to_pay_definition() -> EntityDefinition {
 
 /// Dunning Campaign entity with workflow
 /// Oracle Fusion: Collections > Dunning Management
+#[must_use] 
 pub fn dunning_campaign_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("dunning_campaign_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -2929,6 +3017,7 @@ pub fn dunning_campaign_definition() -> EntityDefinition {
 
 /// Dunning Letter entity
 /// Oracle Fusion: Collections > Dunning Letters
+#[must_use] 
 pub fn dunning_letter_definition() -> EntityDefinition {
     SchemaBuilder::new("dunning_letters", "Dunning Letter")
         .plural_label("Dunning Letters")
@@ -2966,6 +3055,7 @@ pub fn dunning_letter_definition() -> EntityDefinition {
 
 /// Receivables Aging Snapshot entity
 /// Oracle Fusion: Collections > Aging Analysis
+#[must_use] 
 pub fn receivables_aging_snapshot_definition() -> EntityDefinition {
     SchemaBuilder::new("receivables_aging_snapshots", "Aging Snapshot")
         .plural_label("Receivables Aging Snapshots")
@@ -2996,6 +3086,7 @@ pub fn receivables_aging_snapshot_definition() -> EntityDefinition {
 
 /// Write-Off Request entity with workflow
 /// Oracle Fusion: Collections > Write-Off Management
+#[must_use] 
 pub fn write_off_request_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("write_off_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -3041,6 +3132,7 @@ pub fn write_off_request_definition() -> EntityDefinition {
 
 /// Credit Scoring Model entity
 /// Oracle Fusion: Credit Management > Credit Scoring Models
+#[must_use] 
 pub fn credit_scoring_model_definition() -> EntityDefinition {
     SchemaBuilder::new("credit_scoring_models", "Credit Scoring Model")
         .plural_label("Credit Scoring Models")
@@ -3061,6 +3153,7 @@ pub fn credit_scoring_model_definition() -> EntityDefinition {
 
 /// Credit Profile entity (Credit Management context)
 /// Oracle Fusion: Credit Management > Credit Profiles
+#[must_use] 
 pub fn credit_profile_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("credit_profile_workflow", "active")
         .initial_state("active", "Active")
@@ -3105,6 +3198,7 @@ pub fn credit_profile_definition() -> EntityDefinition {
 
 /// Credit Limit entity
 /// Oracle Fusion: Credit Management > Credit Limits
+#[must_use] 
 pub fn credit_limit_definition() -> EntityDefinition {
     SchemaBuilder::new("credit_limits", "Credit Limit")
         .plural_label("Credit Limits")
@@ -3130,6 +3224,7 @@ pub fn credit_limit_definition() -> EntityDefinition {
 
 /// Credit Check Rule entity
 /// Oracle Fusion: Credit Management > Credit Check Rules
+#[must_use] 
 pub fn credit_check_rule_definition() -> EntityDefinition {
     SchemaBuilder::new("credit_check_rules", "Credit Check Rule")
         .plural_label("Credit Check Rules")
@@ -3157,6 +3252,7 @@ pub fn credit_check_rule_definition() -> EntityDefinition {
 
 /// Credit Exposure entity
 /// Oracle Fusion: Credit Management > Credit Exposure
+#[must_use] 
 pub fn credit_exposure_definition() -> EntityDefinition {
     SchemaBuilder::new("credit_exposure", "Credit Exposure")
         .plural_label("Credit Exposures")
@@ -3181,6 +3277,7 @@ pub fn credit_exposure_definition() -> EntityDefinition {
 
 /// Credit Hold entity with workflow
 /// Oracle Fusion: Credit Management > Credit Holds
+#[must_use] 
 pub fn credit_hold_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("credit_hold_workflow", "active")
         .initial_state("active", "Active")
@@ -3217,6 +3314,7 @@ pub fn credit_hold_definition() -> EntityDefinition {
 
 /// Credit Review entity with workflow
 /// Oracle Fusion: Credit Management > Credit Reviews
+#[must_use] 
 pub fn credit_review_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("credit_review_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -3266,6 +3364,7 @@ pub fn credit_review_definition() -> EntityDefinition {
 
 /// Withholding Tax Code entity
 /// Oracle Fusion: Payables > Withholding Tax > Tax Codes
+#[must_use] 
 pub fn withholding_tax_code_definition() -> EntityDefinition {
     SchemaBuilder::new("withholding_tax_codes", "Withholding Tax Code")
         .plural_label("Withholding Tax Codes")
@@ -3292,6 +3391,7 @@ pub fn withholding_tax_code_definition() -> EntityDefinition {
 
 /// Withholding Tax Group entity
 /// Oracle Fusion: Payables > Withholding Tax > Tax Groups
+#[must_use] 
 pub fn withholding_tax_group_definition() -> EntityDefinition {
     SchemaBuilder::new("withholding_tax_groups", "Withholding Tax Group")
         .plural_label("Withholding Tax Groups")
@@ -3307,6 +3407,7 @@ pub fn withholding_tax_group_definition() -> EntityDefinition {
 
 /// Supplier Withholding Assignment entity
 /// Oracle Fusion: Payables > Withholding Tax > Supplier Assignments
+#[must_use] 
 pub fn supplier_withholding_assignment_definition() -> EntityDefinition {
     SchemaBuilder::new("supplier_withholding_assignments", "Supplier WHT Assignment")
         .plural_label("Supplier Withholding Assignments")
@@ -3327,6 +3428,7 @@ pub fn supplier_withholding_assignment_definition() -> EntityDefinition {
 
 /// Withholding Tax Line entity
 /// Oracle Fusion: Payables > Withholding Tax > Tax Lines
+#[must_use] 
 pub fn withholding_tax_line_definition() -> EntityDefinition {
     SchemaBuilder::new("withholding_tax_lines", "Withholding Tax Line")
         .plural_label("Withholding Tax Lines")
@@ -3356,6 +3458,7 @@ pub fn withholding_tax_line_definition() -> EntityDefinition {
 
 /// Withholding Certificate entity with workflow
 /// Oracle Fusion: Payables > Withholding Tax > Certificates
+#[must_use] 
 pub fn withholding_certificate_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("withholding_certificate_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -3400,6 +3503,7 @@ pub fn withholding_certificate_definition() -> EntityDefinition {
 
 /// Bill Rate Schedule entity with workflow
 /// Oracle Fusion: Project Billing > Bill Rate Schedules
+#[must_use] 
 pub fn bill_rate_schedule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("bill_rate_schedule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -3433,6 +3537,7 @@ pub fn bill_rate_schedule_definition() -> EntityDefinition {
 
 /// Bill Rate Line entity
 /// Oracle Fusion: Project Billing > Bill Rate Lines
+#[must_use] 
 pub fn bill_rate_line_definition() -> EntityDefinition {
     SchemaBuilder::new("bill_rate_lines", "Bill Rate Line")
         .plural_label("Bill Rate Lines")
@@ -3452,6 +3557,7 @@ pub fn bill_rate_line_definition() -> EntityDefinition {
 
 /// Project Billing Config entity with workflow
 /// Oracle Fusion: Project Billing > Billing Configuration
+#[must_use] 
 pub fn project_billing_config_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("project_billing_config_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -3497,6 +3603,7 @@ pub fn project_billing_config_definition() -> EntityDefinition {
 
 /// Billing Event entity with workflow
 /// Oracle Fusion: Project Billing > Billing Events
+#[must_use] 
 pub fn billing_event_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("billing_event_workflow", "planned")
         .initial_state("planned", "Planned")
@@ -3538,6 +3645,7 @@ pub fn billing_event_definition() -> EntityDefinition {
 
 /// Project Invoice Header entity with workflow
 /// Oracle Fusion: Project Billing > Project Invoices
+#[must_use] 
 pub fn project_invoice_header_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("project_invoice_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -3595,6 +3703,7 @@ pub fn project_invoice_header_definition() -> EntityDefinition {
 
 /// Project Invoice Line entity
 /// Oracle Fusion: Project Billing > Invoice Lines
+#[must_use] 
 pub fn project_invoice_line_definition() -> EntityDefinition {
     SchemaBuilder::new("project_invoice_lines", "Project Invoice Line")
         .plural_label("Project Invoice Lines")
@@ -3633,6 +3742,7 @@ pub fn project_invoice_line_definition() -> EntityDefinition {
 
 /// Payment Term entity with discount scheduling
 /// Oracle Fusion: Financials > Payment Terms > Define Payment Terms
+#[must_use] 
 pub fn payment_term_definition() -> EntityDefinition {
     SchemaBuilder::new("payment_terms", "Payment Term")
         .plural_label("Payment Terms")
@@ -3660,6 +3770,7 @@ pub fn payment_term_definition() -> EntityDefinition {
 
 /// Payment Schedule entity for installment terms
 /// Oracle Fusion: Financials > Payment Terms > Payment Schedules
+#[must_use] 
 pub fn payment_schedule_definition() -> EntityDefinition {
     SchemaBuilder::new("payment_schedules", "Payment Schedule")
         .plural_label("Payment Schedules")
@@ -3682,6 +3793,7 @@ pub fn payment_schedule_definition() -> EntityDefinition {
 
 /// Financial Report Template entity
 /// Oracle Fusion: Financial Reporting > Report Templates
+#[must_use] 
 pub fn financial_report_template_definition() -> EntityDefinition {
     SchemaBuilder::new("financial_report_templates", "Report Template")
         .plural_label("Financial Report Templates")
@@ -3705,6 +3817,7 @@ pub fn financial_report_template_definition() -> EntityDefinition {
 
 /// Financial Report Row Definition entity
 /// Oracle Fusion: Financial Reporting > Row Definitions
+#[must_use] 
 pub fn financial_report_row_definition() -> EntityDefinition {
     SchemaBuilder::new("financial_report_rows", "Report Row")
         .plural_label("Financial Report Rows")
@@ -3728,6 +3841,7 @@ pub fn financial_report_row_definition() -> EntityDefinition {
 
 /// Generated Financial Report entity with workflow
 /// Oracle Fusion: Financial Reporting > Generated Reports
+#[must_use] 
 pub fn generated_financial_report_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("financial_report_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -3774,6 +3888,7 @@ pub fn generated_financial_report_definition() -> EntityDefinition {
 
 /// Tax Filing Obligation entity
 /// Oracle Fusion: Tax > Tax Filing > Filing Obligations
+#[must_use] 
 pub fn tax_filing_obligation_definition() -> EntityDefinition {
     SchemaBuilder::new("tax_filing_obligations", "Tax Filing Obligation")
         .plural_label("Tax Filing Obligations")
@@ -3802,6 +3917,7 @@ pub fn tax_filing_obligation_definition() -> EntityDefinition {
 
 /// Tax Return entity with workflow
 /// Oracle Fusion: Tax > Tax Filing > Tax Returns
+#[must_use] 
 pub fn tax_return_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("tax_return_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -3858,6 +3974,7 @@ pub fn tax_return_definition() -> EntityDefinition {
 
 /// Tax Payment entity
 /// Oracle Fusion: Tax > Tax Filing > Tax Payments
+#[must_use] 
 pub fn tax_payment_definition() -> EntityDefinition {
     SchemaBuilder::new("tax_payments", "Tax Payment")
         .plural_label("Tax Payments")
@@ -3888,6 +4005,7 @@ pub fn tax_payment_definition() -> EntityDefinition {
 
 /// Recurring Journal Template entity
 /// Oracle Fusion: GL > Journals > Recurring Journals > Define Template
+#[must_use] 
 pub fn recurring_journal_template_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("recurring_journal_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -3936,6 +4054,7 @@ pub fn recurring_journal_template_definition() -> EntityDefinition {
 
 /// Recurring Journal Line entity
 /// Oracle Fusion: GL > Journals > Recurring Journal Lines
+#[must_use] 
 pub fn recurring_journal_line_definition() -> EntityDefinition {
     SchemaBuilder::new("recurring_journal_lines", "Recurring Journal Line")
         .plural_label("Recurring Journal Lines")
@@ -3967,6 +4086,7 @@ pub fn recurring_journal_line_definition() -> EntityDefinition {
 
 /// Allocation Rule entity with workflow
 /// Oracle Fusion: GL > Allocations > Define Allocation Rule
+#[must_use] 
 pub fn allocation_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("allocation_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4012,6 +4132,7 @@ pub fn allocation_rule_definition() -> EntityDefinition {
 
 /// Allocation Line entity
 /// Oracle Fusion: GL > Allocations > Allocation Lines
+#[must_use] 
 pub fn allocation_line_definition() -> EntityDefinition {
     SchemaBuilder::new("allocation_lines", "Allocation Line")
         .plural_label("Allocation Lines")
@@ -4037,6 +4158,7 @@ pub fn allocation_line_definition() -> EntityDefinition {
 
 /// Funds Reservation entity with workflow
 /// Oracle Fusion: General Ledger > Budgetary Control > Funds Reservation
+#[must_use] 
 pub fn funds_reservation_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("funds_reservation_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4083,6 +4205,7 @@ pub fn funds_reservation_definition() -> EntityDefinition {
 
 /// Funds Check Result entity
 /// Oracle Fusion: Budgetary Control > Funds Check Results
+#[must_use] 
 pub fn funds_check_result_definition() -> EntityDefinition {
     SchemaBuilder::new("funds_check_results", "Funds Check Result")
         .plural_label("Funds Check Results")
@@ -4113,6 +4236,7 @@ pub fn funds_check_result_definition() -> EntityDefinition {
 
 /// Journal Import Request entity with workflow
 /// Oracle Fusion: GL > Journal Import > Import Journals
+#[must_use] 
 pub fn journal_import_request_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("journal_import_workflow", "uploaded")
         .initial_state("uploaded", "Uploaded")
@@ -4170,6 +4294,7 @@ pub fn journal_import_request_definition() -> EntityDefinition {
 
 /// Landed Cost Template entity
 /// Oracle Fusion: Cost Management > Landed Cost > Templates
+#[must_use] 
 pub fn landed_cost_template_definition() -> EntityDefinition {
     SchemaBuilder::new("landed_cost_templates", "Landed Cost Template")
         .plural_label("Landed Cost Templates")
@@ -4186,6 +4311,7 @@ pub fn landed_cost_template_definition() -> EntityDefinition {
 
 /// Landed Cost Component entity
 /// Oracle Fusion: Cost Management > Landed Cost > Cost Components
+#[must_use] 
 pub fn landed_cost_component_definition() -> EntityDefinition {
     SchemaBuilder::new("landed_cost_components", "Landed Cost Component")
         .plural_label("Landed Cost Components")
@@ -4212,6 +4338,7 @@ pub fn landed_cost_component_definition() -> EntityDefinition {
 
 /// Landed Cost Assignment entity with workflow
 /// Oracle Fusion: Cost Management > Landed Cost > Assignments
+#[must_use] 
 pub fn landed_cost_assignment_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("landed_cost_assignment_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4255,6 +4382,7 @@ pub fn landed_cost_assignment_definition() -> EntityDefinition {
 
 /// Transfer Pricing Policy entity
 /// Oracle Fusion: Intercompany > Transfer Pricing > Policies
+#[must_use] 
 pub fn transfer_pricing_policy_definition() -> EntityDefinition {
     SchemaBuilder::new("transfer_pricing_policies", "Transfer Pricing Policy")
         .plural_label("Transfer Pricing Policies")
@@ -4278,6 +4406,7 @@ pub fn transfer_pricing_policy_definition() -> EntityDefinition {
 
 /// Transfer Pricing Transaction entity
 /// Oracle Fusion: Intercompany > Transfer Pricing > Transactions
+#[must_use] 
 pub fn transfer_pricing_transaction_definition() -> EntityDefinition {
     SchemaBuilder::new("transfer_pricing_transactions", "Transfer Pricing Transaction")
         .plural_label("Transfer Pricing Transactions")
@@ -4312,8 +4441,9 @@ pub fn transfer_pricing_transaction_definition() -> EntityDefinition {
 // AutoInvoice (Oracle Fusion: AR > AutoInvoice)
 // ============================================================================
 
-/// AutoInvoice Rule entity
-/// Oracle Fusion: Receivables > AutoInvoice > Transaction Sources
+/// `AutoInvoice` Rule entity
+/// Oracle Fusion: Receivables > `AutoInvoice` > Transaction Sources
+#[must_use] 
 pub fn autoinvoice_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("autoinvoice_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4354,8 +4484,9 @@ pub fn autoinvoice_rule_definition() -> EntityDefinition {
         .build()
 }
 
-/// AutoInvoice Run entity with workflow
-/// Oracle Fusion: Receivables > AutoInvoice > Process
+/// `AutoInvoice` Run entity with workflow
+/// Oracle Fusion: Receivables > `AutoInvoice` > Process
+#[must_use] 
 pub fn autoinvoice_run_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("autoinvoice_run_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -4399,6 +4530,7 @@ pub fn autoinvoice_run_definition() -> EntityDefinition {
 
 /// Currency Revaluation entity with workflow
 /// Oracle Fusion: GL > Currency > Revaluation
+#[must_use] 
 pub fn currency_revaluation_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("currency_revaluation_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4449,6 +4581,7 @@ pub fn currency_revaluation_definition() -> EntityDefinition {
 
 /// Netting Agreement entity
 /// Oracle Fusion: Treasury > Netting > Agreements
+#[must_use] 
 pub fn netting_agreement_definition() -> EntityDefinition {
     SchemaBuilder::new("netting_agreements", "Netting Agreement")
         .plural_label("Netting Agreements")
@@ -4478,6 +4611,7 @@ pub fn netting_agreement_definition() -> EntityDefinition {
 
 /// Netting Batch entity with workflow
 /// Oracle Fusion: Treasury > Netting > Batches
+#[must_use] 
 pub fn netting_batch_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("netting_batch_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4522,6 +4656,7 @@ pub fn netting_batch_definition() -> EntityDefinition {
 
 /// Subscription Product entity
 /// Oracle Fusion: Subscription Management > Products
+#[must_use] 
 pub fn subscription_product_definition() -> EntityDefinition {
     SchemaBuilder::new("subscription_products", "Subscription Product")
         .plural_label("Subscription Products")
@@ -4548,6 +4683,7 @@ pub fn subscription_product_definition() -> EntityDefinition {
 
 /// Subscription Contract entity with workflow
 /// Oracle Fusion: Subscription Management > Subscriptions
+#[must_use] 
 pub fn subscription_contract_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("subscription_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4606,6 +4742,7 @@ pub fn subscription_contract_definition() -> EntityDefinition {
 
 /// Subscription Billing Event entity with workflow
 /// Oracle Fusion: Subscription Management > Billing Events
+#[must_use] 
 pub fn subscription_billing_event_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("subscription_billing_workflow", "scheduled")
         .initial_state("scheduled", "Scheduled")
@@ -4649,6 +4786,7 @@ pub fn subscription_billing_event_definition() -> EntityDefinition {
 
 /// Journal Reversal Request entity with workflow
 /// Oracle Fusion: GL > Journals > Reverse Journals
+#[must_use] 
 pub fn journal_reversal_request_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("journal_reversal_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4709,6 +4847,7 @@ pub fn journal_reversal_request_definition() -> EntityDefinition {
 
 /// Inflation Index entity
 /// Oracle Fusion: Inflation Adjustment > Inflation Indices
+#[must_use] 
 pub fn inflation_index_definition() -> EntityDefinition {
     SchemaBuilder::new("inflation_indices", "Inflation Index")
         .plural_label("Inflation Indices")
@@ -4733,6 +4872,7 @@ pub fn inflation_index_definition() -> EntityDefinition {
 
 /// Inflation Index Rate entity
 /// Oracle Fusion: Inflation Adjustment > Index Rates
+#[must_use] 
 pub fn inflation_index_rate_definition() -> EntityDefinition {
     SchemaBuilder::new("inflation_index_rates", "Inflation Index Rate")
         .plural_label("Inflation Index Rates")
@@ -4752,6 +4892,7 @@ pub fn inflation_index_rate_definition() -> EntityDefinition {
 
 /// Inflation Adjustment Run entity with workflow
 /// Oracle Fusion: Inflation Adjustment > Adjustment Runs
+#[must_use] 
 pub fn inflation_adjustment_run_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("inflation_adjustment_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4792,6 +4933,7 @@ pub fn inflation_adjustment_run_definition() -> EntityDefinition {
 
 /// Inflation Adjustment Line entity
 /// Oracle Fusion: Inflation Adjustment > Adjustment Lines
+#[must_use] 
 pub fn inflation_adjustment_line_definition() -> EntityDefinition {
     SchemaBuilder::new("inflation_adjustment_lines", "Inflation Adjustment Line")
         .plural_label("Inflation Adjustment Lines")
@@ -4822,6 +4964,7 @@ pub fn inflation_adjustment_line_definition() -> EntityDefinition {
 
 /// Impairment Indicator entity
 /// Oracle Fusion: Impairment > Impairment Indicators
+#[must_use] 
 pub fn impairment_indicator_definition() -> EntityDefinition {
     SchemaBuilder::new("impairment_indicators", "Impairment Indicator")
         .plural_label("Impairment Indicators")
@@ -4843,6 +4986,7 @@ pub fn impairment_indicator_definition() -> EntityDefinition {
 
 /// Impairment Test entity with workflow
 /// Oracle Fusion: Impairment > Impairment Tests
+#[must_use] 
 pub fn impairment_test_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("impairment_test_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -4892,6 +5036,7 @@ pub fn impairment_test_definition() -> EntityDefinition {
 
 /// Impairment Cash Flow Projection entity
 /// Oracle Fusion: Impairment > Cash Flow Projections
+#[must_use] 
 pub fn impairment_cash_flow_definition() -> EntityDefinition {
     SchemaBuilder::new("impairment_cash_flows", "Impairment Cash Flow")
         .plural_label("Impairment Cash Flows")
@@ -4912,6 +5057,7 @@ pub fn impairment_cash_flow_definition() -> EntityDefinition {
 
 /// Impairment Test Asset entity
 /// Oracle Fusion: Impairment > Test Assets
+#[must_use] 
 pub fn impairment_test_asset_definition() -> EntityDefinition {
     SchemaBuilder::new("impairment_test_assets", "Impairment Test Asset")
         .plural_label("Impairment Test Assets")
@@ -4940,6 +5086,7 @@ pub fn impairment_test_asset_definition() -> EntityDefinition {
 
 /// Bank Transfer Type entity
 /// Oracle Fusion: Cash Management > Bank Transfer Types
+#[must_use] 
 pub fn bank_transfer_type_definition() -> EntityDefinition {
     SchemaBuilder::new("bank_transfer_types", "Bank Transfer Type")
         .plural_label("Bank Transfer Types")
@@ -4960,6 +5107,7 @@ pub fn bank_transfer_type_definition() -> EntityDefinition {
 
 /// Bank Account Transfer entity with workflow
 /// Oracle Fusion: Cash Management > Bank Account Transfers
+#[must_use] 
 pub fn bank_account_transfer_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("bank_transfer_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5021,6 +5169,7 @@ pub fn bank_account_transfer_definition() -> EntityDefinition {
 
 /// Tax Return Template entity
 /// Oracle Fusion: Tax > Tax Reporting > Return Templates
+#[must_use] 
 pub fn tax_return_template_definition() -> EntityDefinition {
     SchemaBuilder::new("tax_return_templates", "Tax Return Template")
         .plural_label("Tax Return Templates")
@@ -5046,6 +5195,7 @@ pub fn tax_return_template_definition() -> EntityDefinition {
 
 /// Tax Return Template Line entity
 /// Oracle Fusion: Tax > Tax Reporting > Template Lines
+#[must_use] 
 pub fn tax_return_template_line_definition() -> EntityDefinition {
     SchemaBuilder::new("tax_return_template_lines", "Tax Return Template Line")
         .plural_label("Tax Return Template Lines")
@@ -5070,6 +5220,7 @@ pub fn tax_return_template_line_definition() -> EntityDefinition {
 
 /// Tax Report (filed return) entity with workflow
 /// Oracle Fusion: Tax > Tax Reporting > Tax Reports
+#[must_use] 
 pub fn tax_report_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("tax_report_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5132,6 +5283,7 @@ pub fn tax_report_definition() -> EntityDefinition {
 
 /// Grant Sponsor entity
 /// Oracle Fusion: Grants > Sponsors
+#[must_use] 
 pub fn grant_sponsor_definition() -> EntityDefinition {
     SchemaBuilder::new("grant_sponsors", "Grant Sponsor")
         .plural_label("Grant Sponsors")
@@ -5164,6 +5316,7 @@ pub fn grant_sponsor_definition() -> EntityDefinition {
 
 /// Grant Award entity with workflow
 /// Oracle Fusion: Grants > Awards
+#[must_use] 
 pub fn grant_award_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("grant_award_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5231,6 +5384,7 @@ pub fn grant_award_definition() -> EntityDefinition {
 
 /// Grant Budget Line entity
 /// Oracle Fusion: Grants > Budget Lines
+#[must_use] 
 pub fn grant_budget_line_definition() -> EntityDefinition {
     SchemaBuilder::new("grant_budget_lines", "Grant Budget Line")
         .plural_label("Grant Budget Lines")
@@ -5258,6 +5412,7 @@ pub fn grant_budget_line_definition() -> EntityDefinition {
 
 /// Grant Expenditure entity with workflow
 /// Oracle Fusion: Grants > Expenditures
+#[must_use] 
 pub fn grant_expenditure_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("grant_expenditure_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -5306,6 +5461,7 @@ pub fn grant_expenditure_definition() -> EntityDefinition {
 
 /// Corporate Card Program entity
 /// Oracle Fusion: Expenses > Corporate Cards > Programs
+#[must_use] 
 pub fn corporate_card_program_definition() -> EntityDefinition {
     SchemaBuilder::new("corporate_card_programs", "Corporate Card Program")
         .plural_label("Corporate Card Programs")
@@ -5340,6 +5496,7 @@ pub fn corporate_card_program_definition() -> EntityDefinition {
 
 /// Corporate Card entity with workflow
 /// Oracle Fusion: Expenses > Corporate Cards > Cards
+#[must_use] 
 pub fn corporate_card_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("corporate_card_workflow", "active")
         .initial_state("active", "Active")
@@ -5389,6 +5546,7 @@ pub fn corporate_card_definition() -> EntityDefinition {
 
 /// Corporate Card Transaction entity
 /// Oracle Fusion: Expenses > Corporate Cards > Transactions
+#[must_use] 
 pub fn corporate_card_transaction_definition() -> EntityDefinition {
     SchemaBuilder::new("corporate_card_transactions", "Card Transaction")
         .plural_label("Card Transactions")
@@ -5428,6 +5586,7 @@ pub fn corporate_card_transaction_definition() -> EntityDefinition {
 
 /// Rebate Program entity
 /// Oracle Fusion: Rebate Management > Rebate Programs
+#[must_use] 
 pub fn rebate_program_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("rebate_program_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5476,6 +5635,7 @@ pub fn rebate_program_definition() -> EntityDefinition {
 
 /// Rebate Tier entity
 /// Oracle Fusion: Rebate Management > Rebate Tiers
+#[must_use] 
 pub fn rebate_tier_definition() -> EntityDefinition {
     SchemaBuilder::new("rebate_tiers", "Rebate Tier")
         .plural_label("Rebate Tiers")
@@ -5493,6 +5653,7 @@ pub fn rebate_tier_definition() -> EntityDefinition {
 
 /// Rebate Transaction entity
 /// Oracle Fusion: Rebate Management > Rebate Transactions
+#[must_use] 
 pub fn rebate_transaction_definition() -> EntityDefinition {
     SchemaBuilder::new("rebate_transactions", "Rebate Transaction")
         .plural_label("Rebate Transactions")
@@ -5513,6 +5674,7 @@ pub fn rebate_transaction_definition() -> EntityDefinition {
 
 /// Rebate Payment entity
 /// Oracle Fusion: Rebate Management > Rebate Payments
+#[must_use] 
 pub fn rebate_payment_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("rebate_payment_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5552,6 +5714,7 @@ pub fn rebate_payment_definition() -> EntityDefinition {
 
 /// Channel Partner entity
 /// Oracle Fusion: Channel Revenue > Channel Partners
+#[must_use] 
 pub fn channel_partner_definition() -> EntityDefinition {
     SchemaBuilder::new("channel_partners", "Channel Partner")
         .plural_label("Channel Partners")
@@ -5579,6 +5742,7 @@ pub fn channel_partner_definition() -> EntityDefinition {
 
 /// Channel Incentive entity
 /// Oracle Fusion: Channel Revenue > Channel Incentives
+#[must_use] 
 pub fn channel_incentive_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("channel_incentive_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5618,6 +5782,7 @@ pub fn channel_incentive_definition() -> EntityDefinition {
 
 /// Channel Claim entity
 /// Oracle Fusion: Channel Revenue > Channel Claims
+#[must_use] 
 pub fn channel_claim_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("channel_claim_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5661,6 +5826,7 @@ pub fn channel_claim_definition() -> EntityDefinition {
 
 /// Transaction Control entity
 /// Oracle Fusion: Financial Controls > Transaction Controls
+#[must_use] 
 pub fn transaction_control_definition() -> EntityDefinition {
     SchemaBuilder::new("transaction_controls", "Transaction Control")
         .plural_label("Transaction Controls")
@@ -5693,6 +5859,7 @@ pub fn transaction_control_definition() -> EntityDefinition {
 
 /// Approval Rule entity
 /// Oracle Fusion: Financial Controls > Approval Rules
+#[must_use] 
 pub fn approval_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("approval_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5733,6 +5900,7 @@ pub fn approval_rule_definition() -> EntityDefinition {
 
 /// Delegation Rule entity
 /// Oracle Fusion: Financial Controls > Delegation Rules
+#[must_use] 
 pub fn delegation_rule_definition() -> EntityDefinition {
     SchemaBuilder::new("delegation_rules", "Delegation Rule")
         .plural_label("Delegation Rules")
@@ -5762,6 +5930,7 @@ pub fn delegation_rule_definition() -> EntityDefinition {
 
 /// Accounting Source entity
 /// Oracle Fusion: Accounting Hub > Accounting Sources
+#[must_use] 
 pub fn accounting_source_definition() -> EntityDefinition {
     SchemaBuilder::new("accounting_sources", "Accounting Source")
         .plural_label("Accounting Sources")
@@ -5783,6 +5952,7 @@ pub fn accounting_source_definition() -> EntityDefinition {
 
 /// Accounting Event Entity entity
 /// Oracle Fusion: Accounting Hub > Event Entities
+#[must_use] 
 pub fn accounting_event_entity_definition() -> EntityDefinition {
     SchemaBuilder::new("accounting_event_entities", "Accounting Event Entity")
         .plural_label("Accounting Event Entities")
@@ -5801,6 +5971,7 @@ pub fn accounting_event_entity_definition() -> EntityDefinition {
 
 /// Accounting Event Type entity
 /// Oracle Fusion: Accounting Hub > Event Types
+#[must_use] 
 pub fn accounting_event_type_definition() -> EntityDefinition {
     SchemaBuilder::new("accounting_event_types", "Accounting Event Type")
         .plural_label("Accounting Event Types")
@@ -5825,6 +5996,7 @@ pub fn accounting_event_type_definition() -> EntityDefinition {
 
 /// Document Sequence entity
 /// Oracle Fusion: Document Sequencing > Sequences
+#[must_use] 
 pub fn document_sequence_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("doc_sequence_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5861,6 +6033,7 @@ pub fn document_sequence_definition() -> EntityDefinition {
 
 /// Document Sequence Assignment entity
 /// Oracle Fusion: Document Sequencing > Assignments
+#[must_use] 
 pub fn document_sequence_assignment_definition() -> EntityDefinition {
     SchemaBuilder::new("document_sequence_assignments", "Doc Sequence Assignment")
         .plural_label("Document Sequence Assignments")
@@ -5885,6 +6058,7 @@ pub fn document_sequence_assignment_definition() -> EntityDefinition {
 
 /// Cross-Validation Rule entity
 /// Oracle Fusion: General Ledger > Cross-Validation Rules
+#[must_use] 
 pub fn cross_validation_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("cvr_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -5924,6 +6098,7 @@ pub fn cross_validation_rule_definition() -> EntityDefinition {
 
 /// Descriptive Flexfield entity
 /// Oracle Fusion: Core > Descriptive Flexfields
+#[must_use] 
 pub fn descriptive_flexfield_definition() -> EntityDefinition {
     SchemaBuilder::new("descriptive_flexfields", "Descriptive Flexfield")
         .plural_label("Descriptive Flexfields")
@@ -5943,6 +6118,7 @@ pub fn descriptive_flexfield_definition() -> EntityDefinition {
 
 /// Descriptive Flexfield Segment entity
 /// Oracle Fusion: Core > Flexfield Segments
+#[must_use] 
 pub fn flexfield_segment_definition() -> EntityDefinition {
     SchemaBuilder::new("flexfield_segments", "Flexfield Segment")
         .plural_label("Flexfield Segments")
@@ -5972,6 +6148,7 @@ pub fn flexfield_segment_definition() -> EntityDefinition {
 
 /// Joint Venture entity
 /// Oracle Fusion: Joint Venture Management > Joint Ventures
+#[must_use] 
 pub fn joint_venture_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("jv_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -6014,6 +6191,7 @@ pub fn joint_venture_definition() -> EntityDefinition {
 
 /// Joint Venture Partner entity
 /// Oracle Fusion: Joint Venture Management > Partners
+#[must_use] 
 pub fn joint_venture_partner_definition() -> EntityDefinition {
     SchemaBuilder::new("joint_venture_partners", "JV Partner")
         .plural_label("JV Partners")
@@ -6038,6 +6216,7 @@ pub fn joint_venture_partner_definition() -> EntityDefinition {
 
 /// Joint Venture Cost Distribution entity
 /// Oracle Fusion: Joint Venture Management > Cost Distributions
+#[must_use] 
 pub fn jv_cost_distribution_definition() -> EntityDefinition {
     SchemaBuilder::new("jv_cost_distributions", "JV Cost Distribution")
         .plural_label("JV Cost Distributions")
@@ -6067,6 +6246,7 @@ pub fn jv_cost_distribution_definition() -> EntityDefinition {
 
 /// Advance Payment entity
 /// Oracle Fusion: Receivables > Advance Payments
+#[must_use] 
 pub fn advance_payment_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("advance_payment_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -6115,6 +6295,7 @@ pub fn advance_payment_definition() -> EntityDefinition {
 
 /// Customer Deposit entity
 /// Oracle Fusion: Receivables > Customer Deposits
+#[must_use] 
 pub fn customer_deposit_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("customer_deposit_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -6166,6 +6347,7 @@ pub fn customer_deposit_definition() -> EntityDefinition {
 
 /// Cost Pool entity
 /// Oracle Fusion: Cost Management > Cost Pools
+#[must_use] 
 pub fn cost_pool_definition() -> EntityDefinition {
     SchemaBuilder::new("cost_pools", "Cost Pool")
         .plural_label("Cost Pools")
@@ -6192,6 +6374,7 @@ pub fn cost_pool_definition() -> EntityDefinition {
 
 /// Cost Pool Source entity
 /// Oracle Fusion: Cost Management > Cost Pool Sources
+#[must_use] 
 pub fn cost_pool_source_definition() -> EntityDefinition {
     SchemaBuilder::new("cost_pool_sources", "Cost Pool Source")
         .plural_label("Cost Pool Sources")
@@ -6210,6 +6393,7 @@ pub fn cost_pool_source_definition() -> EntityDefinition {
 
 /// Cost Allocation Rule entity
 /// Oracle Fusion: Cost Management > Allocation Rules
+#[must_use] 
 pub fn cost_allocation_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("cost_allocation_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -6251,6 +6435,7 @@ pub fn cost_allocation_rule_definition() -> EntityDefinition {
 
 /// Depreciation Run entity with workflow
 /// Oracle Fusion: Fixed Assets > Depreciation > Run Depreciation
+#[must_use] 
 pub fn depreciation_run_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("depreciation_run_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -6287,6 +6472,7 @@ pub fn depreciation_run_definition() -> EntityDefinition {
 
 /// Depreciation Detail entity
 /// Oracle Fusion: Fixed Assets > Depreciation > Details
+#[must_use] 
 pub fn depreciation_detail_definition() -> EntityDefinition {
     SchemaBuilder::new("depreciation_details", "Depreciation Detail")
         .plural_label("Depreciation Details")
@@ -6321,6 +6507,7 @@ pub fn depreciation_detail_definition() -> EntityDefinition {
 
 /// Reconciliation Rule entity
 /// Oracle Fusion: Cash Management > Reconciliation > Matching Rules
+#[must_use] 
 pub fn reconciliation_rule_definition() -> EntityDefinition {
     SchemaBuilder::new("reconciliation_rules", "Reconciliation Rule")
         .plural_label("Reconciliation Rules")
@@ -6352,6 +6539,7 @@ pub fn reconciliation_rule_definition() -> EntityDefinition {
 
 /// Budget Organization entity
 /// Oracle Fusion: General Ledger > Budgetary Control > Budget Organizations
+#[must_use] 
 pub fn budget_organization_definition() -> EntityDefinition {
     SchemaBuilder::new("budget_organizations", "Budget Organization")
         .plural_label("Budget Organizations")
@@ -6374,6 +6562,7 @@ pub fn budget_organization_definition() -> EntityDefinition {
 
 /// Budget Rule entity
 /// Oracle Fusion: General Ledger > Budgetary Control > Budget Rules
+#[must_use] 
 pub fn budget_rule_definition() -> EntityDefinition {
     SchemaBuilder::new("budget_rules", "Budget Rule")
         .plural_label("Budget Rules")
@@ -6403,6 +6592,7 @@ pub fn budget_rule_definition() -> EntityDefinition {
 
 /// Report Column Set entity
 /// Oracle Fusion: Financial Reporting Studio > Column Sets
+#[must_use] 
 pub fn report_column_set_definition() -> EntityDefinition {
     SchemaBuilder::new("report_column_sets", "Report Column Set")
         .plural_label("Report Column Sets")
@@ -6418,6 +6608,7 @@ pub fn report_column_set_definition() -> EntityDefinition {
 
 /// Report Column Definition entity
 /// Oracle Fusion: Financial Reporting Studio > Column Definitions
+#[must_use] 
 pub fn report_column_definition() -> EntityDefinition {
     SchemaBuilder::new("report_columns", "Report Column")
         .plural_label("Report Columns")
@@ -6448,6 +6639,7 @@ pub fn report_column_definition() -> EntityDefinition {
 
 /// Distribution Set entity
 /// Oracle Fusion: Payables > Setup > Distribution Sets
+#[must_use] 
 pub fn distribution_set_definition() -> EntityDefinition {
     SchemaBuilder::new("distribution_sets", "Distribution Set")
         .plural_label("Distribution Sets")
@@ -6463,6 +6655,7 @@ pub fn distribution_set_definition() -> EntityDefinition {
 
 /// Distribution Set Line entity
 /// Oracle Fusion: Payables > Setup > Distribution Set Lines
+#[must_use] 
 pub fn distribution_set_line_definition() -> EntityDefinition {
     SchemaBuilder::new("distribution_set_lines", "Distribution Set Line")
         .plural_label("Distribution Set Lines")
@@ -6483,6 +6676,7 @@ pub fn distribution_set_line_definition() -> EntityDefinition {
 
 /// Tax Registration entity
 /// Oracle Fusion: Tax > Party Tax Registrations
+#[must_use] 
 pub fn tax_registration_definition() -> EntityDefinition {
     SchemaBuilder::new("tax_registrations", "Tax Registration")
         .plural_label("Tax Registrations")
@@ -6513,6 +6707,7 @@ pub fn tax_registration_definition() -> EntityDefinition {
 
 /// Tax Recovery Rate entity
 /// Oracle Fusion: Tax > Recovery Rates
+#[must_use] 
 pub fn tax_recovery_rate_definition() -> EntityDefinition {
     SchemaBuilder::new("tax_recovery_rates", "Tax Recovery Rate")
         .plural_label("Tax Recovery Rates")
@@ -6538,6 +6733,7 @@ pub fn tax_recovery_rate_definition() -> EntityDefinition {
 
 /// Receivable Activity entity
 /// Oracle Fusion: Receivables > Setup > Activities
+#[must_use] 
 pub fn receivable_activity_definition() -> EntityDefinition {
     SchemaBuilder::new("receivable_activities", "Receivable Activity")
         .plural_label("Receivable Activities")
@@ -6566,6 +6762,7 @@ pub fn receivable_activity_definition() -> EntityDefinition {
 
 /// Asset Book Assignment entity
 /// Oracle Fusion: Fixed Assets > Asset Book Assignments
+#[must_use] 
 pub fn asset_book_assignment_definition() -> EntityDefinition {
     SchemaBuilder::new("asset_book_assignments", "Asset Book Assignment")
         .plural_label("Asset Book Assignments")
@@ -6597,6 +6794,7 @@ pub fn asset_book_assignment_definition() -> EntityDefinition {
 
 /// Memo Line entity
 /// Oracle Fusion: Receivables > Setup > Memo Lines
+#[must_use] 
 pub fn memo_line_definition() -> EntityDefinition {
     SchemaBuilder::new("memo_lines", "Memo Line")
         .plural_label("Memo Lines")
@@ -6621,6 +6819,7 @@ pub fn memo_line_definition() -> EntityDefinition {
 
 /// Cost Allocation Run entity
 /// Oracle Fusion: Cost Management > Allocation Runs
+#[must_use] 
 pub fn cost_allocation_run_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("cost_allocation_run_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -6660,6 +6859,7 @@ pub fn cost_allocation_run_definition() -> EntityDefinition {
 
 /// Mass Addition entity with workflow
 /// Oracle Fusion: Fixed Assets > Mass Additions > Prepare Mass Additions
+#[must_use] 
 pub fn mass_addition_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("mass_addition_workflow", "posted")
         .initial_state("posted", "Posted from Payables")
@@ -6730,6 +6930,7 @@ pub fn mass_addition_definition() -> EntityDefinition {
 
 /// Asset Reclassification entity with workflow
 /// Oracle Fusion: Fixed Assets > Asset Reclassification
+#[must_use] 
 pub fn asset_reclassification_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("asset_reclassification_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -6786,6 +6987,7 @@ pub fn asset_reclassification_definition() -> EntityDefinition {
 
 /// GL Budget Transfer entity with workflow
 /// Oracle Fusion: General Ledger > Budgets > Budget Transfers
+#[must_use] 
 pub fn gl_budget_transfer_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("gl_budget_transfer_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -6835,6 +7037,7 @@ pub fn gl_budget_transfer_definition() -> EntityDefinition {
 
 /// Payment Format entity
 /// Oracle Fusion: Payables > Setup > Payment Formats
+#[must_use] 
 pub fn payment_format_definition() -> EntityDefinition {
     SchemaBuilder::new("payment_formats", "Payment Format")
         .plural_label("Payment Formats")
@@ -6866,6 +7069,7 @@ pub fn payment_format_definition() -> EntityDefinition {
 
 /// Financial Dimension Set entity
 /// Oracle Fusion: General Ledger > Setup > Financial Dimension Sets
+#[must_use] 
 pub fn financial_dimension_set_definition() -> EntityDefinition {
     SchemaBuilder::new("financial_dimension_sets", "Financial Dimension Set")
         .plural_label("Financial Dimension Sets")
@@ -6882,6 +7086,7 @@ pub fn financial_dimension_set_definition() -> EntityDefinition {
 
 /// Financial Dimension Set Member entity
 /// Oracle Fusion: General Ledger > Setup > Financial Dimension Set Members
+#[must_use] 
 pub fn financial_dimension_set_member_definition() -> EntityDefinition {
     SchemaBuilder::new("financial_dimension_set_members", "Dimension Set Member")
         .plural_label("Dimension Set Members")
@@ -6903,6 +7108,7 @@ pub fn financial_dimension_set_member_definition() -> EntityDefinition {
 
 /// Receipt Write-Off entity with workflow
 /// Oracle Fusion: Receivables > Receipts > Write-Off
+#[must_use] 
 pub fn receipt_write_off_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("receipt_write_off_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -6951,6 +7157,7 @@ pub fn receipt_write_off_definition() -> EntityDefinition {
 
 /// Prepayment Application entity with workflow
 /// Oracle Fusion: Payables > Invoices > Apply Prepayment
+#[must_use] 
 pub fn prepayment_application_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("prepayment_application_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -6992,6 +7199,7 @@ pub fn prepayment_application_definition() -> EntityDefinition {
 
 /// Expense Report Line entity
 /// Oracle Fusion: Expenses > Expense Report Lines
+#[must_use] 
 pub fn expense_report_line_definition() -> EntityDefinition {
     SchemaBuilder::new("expense_report_lines", "Expense Report Line")
         .plural_label("Expense Report Lines")
@@ -7039,6 +7247,7 @@ pub fn expense_report_line_definition() -> EntityDefinition {
 
 /// Payment Process Request entity with workflow
 /// Oracle Fusion: Payables > Payments > Payment Process Requests
+#[must_use] 
 pub fn payment_process_request_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("ppr_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7105,6 +7314,7 @@ pub fn payment_process_request_definition() -> EntityDefinition {
 
 /// Cash Pool entity
 /// Oracle Fusion: Treasury > Cash Pooling > Cash Pools
+#[must_use] 
 pub fn cash_pool_definition() -> EntityDefinition {
     SchemaBuilder::new("cash_pools", "Cash Pool")
         .plural_label("Cash Pools")
@@ -7137,6 +7347,7 @@ pub fn cash_pool_definition() -> EntityDefinition {
 
 /// Cash Pool Member entity
 /// Oracle Fusion: Treasury > Cash Pooling > Pool Members
+#[must_use] 
 pub fn cash_pool_member_definition() -> EntityDefinition {
     SchemaBuilder::new("cash_pool_members", "Cash Pool Member")
         .plural_label("Cash Pool Members")
@@ -7163,6 +7374,7 @@ pub fn cash_pool_member_definition() -> EntityDefinition {
 
 /// Cash Pool Sweep Transaction entity with workflow
 /// Oracle Fusion: Treasury > Cash Pooling > Sweep Transactions
+#[must_use] 
 pub fn cash_pool_sweep_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("cash_pool_sweep_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7209,6 +7421,7 @@ pub fn cash_pool_sweep_definition() -> EntityDefinition {
 
 /// Statistical Account entity
 /// Oracle Fusion: General Ledger > Statistical Accounts
+#[must_use] 
 pub fn statistical_account_definition() -> EntityDefinition {
     SchemaBuilder::new("statistical_accounts", "Statistical Account")
         .plural_label("Statistical Accounts")
@@ -7233,6 +7446,7 @@ pub fn statistical_account_definition() -> EntityDefinition {
 
 /// Statistical Journal Entry entity with workflow
 /// Oracle Fusion: General Ledger > Statistical Accounts > Statistical Entries
+#[must_use] 
 pub fn statistical_journal_entry_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("statistical_journal_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7274,6 +7488,7 @@ pub fn statistical_journal_entry_definition() -> EntityDefinition {
 
 /// Asset Split entity with workflow
 /// Oracle Fusion: Fixed Assets > Assets > Asset Split
+#[must_use] 
 pub fn asset_split_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("asset_split_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7315,6 +7530,7 @@ pub fn asset_split_definition() -> EntityDefinition {
 
 /// Asset Split Line entity
 /// Oracle Fusion: Fixed Assets > Assets > Asset Split > Lines
+#[must_use] 
 pub fn asset_split_line_definition() -> EntityDefinition {
     SchemaBuilder::new("asset_split_lines", "Asset Split Line")
         .plural_label("Asset Split Lines")
@@ -7340,6 +7556,7 @@ pub fn asset_split_line_definition() -> EntityDefinition {
 
 /// Asset Merger entity with workflow
 /// Oracle Fusion: Fixed Assets > Assets > Asset Merger
+#[must_use] 
 pub fn asset_merger_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("asset_merger_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7381,6 +7598,7 @@ pub fn asset_merger_definition() -> EntityDefinition {
 
 /// Asset Merger Line entity
 /// Oracle Fusion: Fixed Assets > Assets > Asset Merger > Lines
+#[must_use] 
 pub fn asset_merger_line_definition() -> EntityDefinition {
     SchemaBuilder::new("asset_merger_lines", "Asset Merger Line")
         .plural_label("Asset Merger Lines")
@@ -7404,6 +7622,7 @@ pub fn asset_merger_line_definition() -> EntityDefinition {
 
 /// Dunning Letter Template entity
 /// Oracle Fusion: Receivables > Dunning > Templates
+#[must_use] 
 pub fn dunning_letter_template_definition() -> EntityDefinition {
     SchemaBuilder::new("dunning_letter_templates", "Dunning Template")
         .plural_label("Dunning Letter Templates")
@@ -7432,6 +7651,7 @@ pub fn dunning_letter_template_definition() -> EntityDefinition {
 
 /// Revenue Waterfall Report entity
 /// Oracle Fusion: Revenue Management > Waterfall Reports
+#[must_use] 
 pub fn revenue_waterfall_report_definition() -> EntityDefinition {
     SchemaBuilder::new("revenue_waterfall_reports", "Revenue Waterfall")
         .plural_label("Revenue Waterfall Reports")
@@ -7456,6 +7676,7 @@ pub fn revenue_waterfall_report_definition() -> EntityDefinition {
 
 /// Revenue Waterfall Line entity
 /// Oracle Fusion: Revenue Management > Waterfall Lines
+#[must_use] 
 pub fn revenue_waterfall_line_definition() -> EntityDefinition {
     SchemaBuilder::new("revenue_waterfall_lines", "Waterfall Line")
         .plural_label("Revenue Waterfall Lines")
@@ -7481,6 +7702,7 @@ pub fn revenue_waterfall_line_definition() -> EntityDefinition {
 
 /// Subledger Reconciliation entity with workflow
 /// Oracle Fusion: General Ledger > Reconciliation
+#[must_use] 
 pub fn subledger_reconciliation_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("subledger_recon_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7533,6 +7755,7 @@ pub fn subledger_reconciliation_definition() -> EntityDefinition {
 
 /// Customer Statement entity with workflow
 /// Oracle Fusion: Receivables > Customer Statements
+#[must_use] 
 pub fn customer_statement_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("customer_statement_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7582,6 +7805,7 @@ pub fn customer_statement_definition() -> EntityDefinition {
 
 /// Customer Statement Line entity
 /// Oracle Fusion: Receivables > Customer Statements > Lines
+#[must_use] 
 pub fn customer_statement_line_definition() -> EntityDefinition {
     SchemaBuilder::new("customer_statement_lines", "Customer Statement Line")
         .plural_label("Customer Statement Lines")
@@ -7610,8 +7834,9 @@ pub fn customer_statement_line_definition() -> EntityDefinition {
 // AutoCash Application Rules (Oracle Fusion: Receivables > AutoCash)
 // ============================================================================
 
-/// AutoCash Rule Set entity
-/// Oracle Fusion: Receivables > Receipts > AutoCash Rules
+/// `AutoCash` Rule Set entity
+/// Oracle Fusion: Receivables > Receipts > `AutoCash` Rules
+#[must_use] 
 pub fn autocash_rule_set_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("autocash_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7658,6 +7883,7 @@ pub fn autocash_rule_set_definition() -> EntityDefinition {
 
 /// Revenue Price Profile entity
 /// Oracle Fusion: Revenue Management > Standalone Selling Prices
+#[must_use] 
 pub fn revenue_price_profile_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("revenue_price_profile_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7708,6 +7934,7 @@ pub fn revenue_price_profile_definition() -> EntityDefinition {
 
 /// Allowance for Doubtful Accounts entity
 /// Oracle Fusion: Receivables > Credit Management > Bad Debt Provision
+#[must_use] 
 pub fn doubtful_account_allowance_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("doubtful_account_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7762,6 +7989,7 @@ pub fn doubtful_account_allowance_definition() -> EntityDefinition {
 
 /// Balance Forward Bill entity with workflow
 /// Oracle Fusion: Receivables > Billing > Balance Forward Billing
+#[must_use] 
 pub fn balance_forward_bill_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("bfb_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7818,6 +8046,7 @@ pub fn balance_forward_bill_definition() -> EntityDefinition {
 
 /// Construction in Progress (CIP) Asset entity with workflow
 /// Oracle Fusion: Fixed Assets > Assets > CIP Assets
+#[must_use] 
 pub fn cip_asset_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("cip_asset_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7874,6 +8103,7 @@ pub fn cip_asset_definition() -> EntityDefinition {
 
 /// CIP Cost Addition entity
 /// Oracle Fusion: Fixed Assets > CIP Assets > Cost Additions
+#[must_use] 
 pub fn cip_cost_addition_definition() -> EntityDefinition {
     SchemaBuilder::new("cip_cost_additions", "CIP Cost Addition")
         .plural_label("CIP Cost Additions")
@@ -7900,6 +8130,7 @@ pub fn cip_cost_addition_definition() -> EntityDefinition {
 
 /// Cost Rate Card entity
 /// Oracle Fusion: Cost Management > Rate Cards
+#[must_use] 
 pub fn cost_rate_card_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("cost_rate_card_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7946,6 +8177,7 @@ pub fn cost_rate_card_definition() -> EntityDefinition {
 
 /// Invoice Tolerance entity
 /// Oracle Fusion: Payables > Invoice Matching > Tolerance Rules
+#[must_use] 
 pub fn invoice_tolerance_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("invoice_tolerance_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -7986,6 +8218,7 @@ pub fn invoice_tolerance_definition() -> EntityDefinition {
 
 /// Invoice Match Result entity
 /// Oracle Fusion: Payables > Invoice Matching > Match Results
+#[must_use] 
 pub fn invoice_match_result_definition() -> EntityDefinition {
     SchemaBuilder::new("invoice_match_results", "Invoice Match Result")
         .plural_label("Invoice Match Results")
@@ -8025,6 +8258,7 @@ pub fn invoice_match_result_definition() -> EntityDefinition {
 
 /// Payment Discount Schedule entity
 /// Oracle Fusion: Payables > Payment Terms > Discount Schedules
+#[must_use] 
 pub fn payment_discount_schedule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("payment_discount_schedule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8060,6 +8294,7 @@ pub fn payment_discount_schedule_definition() -> EntityDefinition {
 
 /// Payment Maturity entity
 /// Oracle Fusion: Payables > Payments > Maturity Calculation
+#[must_use] 
 pub fn payment_maturity_definition() -> EntityDefinition {
     SchemaBuilder::new("payment_maturities", "Payment Maturity")
         .plural_label("Payment Maturities")
@@ -8090,6 +8325,7 @@ pub fn payment_maturity_definition() -> EntityDefinition {
 
 /// Supplier Bank Account entity
 /// Oracle Fusion: Payables > Suppliers > Bank Accounts
+#[must_use] 
 pub fn supplier_bank_account_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("supplier_bank_account_workflow", "pending_verification")
         .initial_state("pending_verification", "Pending Verification")
@@ -8140,6 +8376,7 @@ pub fn supplier_bank_account_definition() -> EntityDefinition {
 
 /// Tax Classification entity
 /// Oracle Fusion: Tax > Tax Classification
+#[must_use] 
 pub fn tax_classification_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("tax_classification_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8175,6 +8412,7 @@ pub fn tax_classification_definition() -> EntityDefinition {
 
 /// Tax Determination Rule entity
 /// Oracle Fusion: Tax > Determination Rules
+#[must_use] 
 pub fn auto_tax_determination_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("auto_tax_determination_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8215,6 +8453,7 @@ pub fn auto_tax_determination_rule_definition() -> EntityDefinition {
 
 /// Archive Policy entity
 /// Oracle Fusion: General Ledger > Archive & Purge
+#[must_use] 
 pub fn archive_policy_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("archive_policy_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8252,6 +8491,7 @@ pub fn archive_policy_definition() -> EntityDefinition {
 
 /// Archive Run entity
 /// Oracle Fusion: General Ledger > Archive & Purge > Runs
+#[must_use] 
 pub fn archive_run_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("archive_run_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8295,6 +8535,7 @@ pub fn archive_run_definition() -> EntityDefinition {
 
 /// Approval Hierarchy entity
 /// Oracle Fusion: Workflow > Approval Hierarchy
+#[must_use] 
 pub fn approval_hierarchy_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("approval_hierarchy_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8335,6 +8576,7 @@ pub fn approval_hierarchy_definition() -> EntityDefinition {
 
 /// Approval Level entity
 /// Oracle Fusion: Workflow > Approval Levels
+#[must_use] 
 pub fn approval_level_definition() -> EntityDefinition {
     SchemaBuilder::new("approval_levels", "Approval Level")
         .plural_label("Approval Levels")
@@ -8361,6 +8603,7 @@ pub fn approval_level_definition() -> EntityDefinition {
 
 /// Cash Flow Statement entity with workflow
 /// Oracle Fusion: Financial Reporting > Cash Flow Statements
+#[must_use] 
 pub fn cash_flow_statement_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("cash_flow_statement_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8400,6 +8643,7 @@ pub fn cash_flow_statement_definition() -> EntityDefinition {
 
 /// Cash Flow Statement Line entity
 /// Oracle Fusion: Financial Reporting > Cash Flow Statement Lines
+#[must_use] 
 pub fn cash_flow_statement_line_definition() -> EntityDefinition {
     SchemaBuilder::new("cash_flow_statement_lines", "Cash Flow Statement Line")
         .plural_label("Cash Flow Statement Lines")
@@ -8425,6 +8669,7 @@ pub fn cash_flow_statement_line_definition() -> EntityDefinition {
 
 /// Receivable Application Rule entity
 /// Oracle Fusion: Receivables > Application Rules
+#[must_use] 
 pub fn receivable_application_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("recv_app_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8461,6 +8706,7 @@ pub fn receivable_application_rule_definition() -> EntityDefinition {
 
 /// Accounting Event Definition entity
 /// Oracle Fusion: Subledger Accounting > Event Definitions
+#[must_use] 
 pub fn accounting_event_definition_entity() -> EntityDefinition {
     SchemaBuilder::new("accounting_event_definitions", "Accounting Event Definition")
         .plural_label("Accounting Event Definitions")
@@ -8481,6 +8727,7 @@ pub fn accounting_event_definition_entity() -> EntityDefinition {
 
 /// Accounting Event Line Template entity
 /// Oracle Fusion: Subledger Accounting > Event Line Templates
+#[must_use] 
 pub fn accounting_event_line_template_definition() -> EntityDefinition {
     SchemaBuilder::new("accounting_event_line_templates", "Accounting Event Line Template")
         .plural_label("Accounting Event Line Templates")
@@ -8504,6 +8751,7 @@ pub fn accounting_event_line_template_definition() -> EntityDefinition {
 
 /// Tax Jurisdiction Rule entity
 /// Oracle Fusion: Tax > Jurisdiction Rules
+#[must_use] 
 pub fn tax_jurisdiction_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("tax_jurisdiction_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8542,6 +8790,7 @@ pub fn tax_jurisdiction_rule_definition() -> EntityDefinition {
 
 /// Asset Depreciation Schedule entity
 /// Oracle Fusion: Fixed Assets > Depreciation Schedules
+#[must_use] 
 pub fn asset_depreciation_schedule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("depreciation_schedule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8582,6 +8831,7 @@ pub fn asset_depreciation_schedule_definition() -> EntityDefinition {
 
 /// Expense Policy Rule entity with workflow
 /// Oracle Fusion: Expenses > Policies > Expense Policy Rules
+#[must_use] 
 pub fn expense_policy_rule_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("expense_policy_rule_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8635,6 +8885,7 @@ pub fn expense_policy_rule_definition() -> EntityDefinition {
 
 /// Expense Compliance Audit entity
 /// Oracle Fusion: Expenses > Audit > Compliance Audits
+#[must_use] 
 pub fn expense_compliance_audit_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("expense_compliance_audit_workflow", "pending")
         .initial_state("pending", "Pending Review")
@@ -8690,6 +8941,7 @@ pub fn expense_compliance_audit_definition() -> EntityDefinition {
 
 /// Expense Compliance Violation entity
 /// Oracle Fusion: Expenses > Audit > Violation Details
+#[must_use] 
 pub fn expense_compliance_violation_definition() -> EntityDefinition {
     SchemaBuilder::new("expense_compliance_violations", "Expense Compliance Violation")
         .plural_label("Expense Compliance Violations")
@@ -8725,6 +8977,7 @@ pub fn expense_compliance_violation_definition() -> EntityDefinition {
 
 /// Depreciation Schedule Line entity
 /// Oracle Fusion: Fixed Assets > Depreciation Schedule Lines
+#[must_use] 
 pub fn depreciation_schedule_line_definition() -> EntityDefinition {
     SchemaBuilder::new("depreciation_schedule_lines", "Depreciation Schedule Line")
         .plural_label("Depreciation Schedule Lines")
@@ -8752,6 +9005,7 @@ pub fn depreciation_schedule_line_definition() -> EntityDefinition {
 
 /// Bank Guarantee entity with lifecycle workflow
 /// Oracle Fusion: Treasury > Bank Guarantees
+#[must_use] 
 pub fn bank_guarantee_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("bank_guarantee_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8830,6 +9084,7 @@ pub fn bank_guarantee_definition() -> EntityDefinition {
 
 /// Bank Guarantee Amendment entity
 /// Oracle Fusion: Treasury > Bank Guarantees > Amendments
+#[must_use] 
 pub fn bank_guarantee_amendment_definition() -> EntityDefinition {
     SchemaBuilder::new("bank_guarantee_amendments", "Bank Guarantee Amendment")
         .plural_label("Bank Guarantee Amendments")
@@ -8864,6 +9119,7 @@ pub fn bank_guarantee_amendment_definition() -> EntityDefinition {
 
 /// Derivative Instrument entity with workflow
 /// Oracle Fusion: Treasury > Hedge Management > Derivative Instruments
+#[must_use] 
 pub fn derivative_instrument_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("derivative_instrument_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8933,6 +9189,7 @@ pub fn derivative_instrument_definition() -> EntityDefinition {
 
 /// Hedge Relationship entity with workflow
 /// Oracle Fusion: Treasury > Hedge Management > Hedge Relationships
+#[must_use] 
 pub fn hedge_relationship_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("hedge_relationship_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -8993,6 +9250,7 @@ pub fn hedge_relationship_definition() -> EntityDefinition {
 
 /// Hedge Effectiveness Test entity
 /// Oracle Fusion: Treasury > Hedge Management > Effectiveness Testing
+#[must_use] 
 pub fn hedge_effectiveness_test_definition() -> EntityDefinition {
     SchemaBuilder::new("hedge_effectiveness_tests", "Hedge Effectiveness Test")
         .plural_label("Hedge Effectiveness Tests")
@@ -9030,6 +9288,7 @@ pub fn hedge_effectiveness_test_definition() -> EntityDefinition {
 
 /// Hedge Documentation entity with workflow
 /// Oracle Fusion: Treasury > Hedge Management > Hedge Documentation
+#[must_use] 
 pub fn hedge_documentation_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("hedge_documentation_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -9076,6 +9335,7 @@ pub fn hedge_documentation_definition() -> EntityDefinition {
 
 /// Payment Risk Profile entity
 /// Oracle Fusion: Payables > Payment Risk > Risk Profiles
+#[must_use] 
 pub fn payment_risk_profile_definition() -> EntityDefinition {
     SchemaBuilder::new("payment_risk_profiles", "Payment Risk Profile")
         .plural_label("Payment Risk Profiles")
@@ -9111,6 +9371,7 @@ pub fn payment_risk_profile_definition() -> EntityDefinition {
 
 /// Payment Fraud Alert entity with workflow
 /// Oracle Fusion: Payables > Payment Risk > Fraud Alerts
+#[must_use] 
 pub fn payment_fraud_alert_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("fraud_alert_workflow", "open")
         .initial_state("open", "Open")
@@ -9169,6 +9430,7 @@ pub fn payment_fraud_alert_definition() -> EntityDefinition {
 
 /// Sanctions Screening Result entity
 /// Oracle Fusion: Payables > Payment Risk > Sanctions Screening
+#[must_use] 
 pub fn sanctions_screening_result_definition() -> EntityDefinition {
     SchemaBuilder::new("sanctions_screening_results", "Sanctions Screening Result")
         .plural_label("Sanctions Screening Results")
@@ -9209,6 +9471,7 @@ pub fn sanctions_screening_result_definition() -> EntityDefinition {
 
 /// Supplier Risk Assessment entity
 /// Oracle Fusion: Payables > Payment Risk > Supplier Risk Assessment
+#[must_use] 
 pub fn supplier_risk_assessment_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("supplier_risk_assessment_workflow", "pending")
         .initial_state("pending", "Pending Assessment")
@@ -9270,6 +9533,7 @@ pub fn supplier_risk_assessment_definition() -> EntityDefinition {
 
 /// Tax Registration entity with workflow
 /// Oracle Fusion: Tax > Tax Registrations (Enhanced)
+#[must_use] 
 pub fn tax_registration_enhanced_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("tax_registration_workflow", "pending")
         .initial_state("pending", "Pending")
@@ -9332,6 +9596,7 @@ pub fn tax_registration_enhanced_definition() -> EntityDefinition {
 
 /// Reconciliation Matching Rule entity
 /// Oracle Fusion: Cash Management > Bank Statements > Matching Rules
+#[must_use] 
 pub fn reconciliation_matching_rule_definition() -> EntityDefinition {
     SchemaBuilder::new("reconciliation_matching_rules", "Reconciliation Matching Rule")
         .plural_label("Reconciliation Matching Rules")
@@ -9355,6 +9620,7 @@ pub fn reconciliation_matching_rule_definition() -> EntityDefinition {
 
 /// Reconciliation Exception entity
 /// Oracle Fusion: Cash Management > Bank Statements > Exceptions
+#[must_use] 
 pub fn reconciliation_exception_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("reconciliation_exception_workflow", "open")
         .initial_state("open", "Open")
@@ -9398,6 +9664,7 @@ pub fn reconciliation_exception_definition() -> EntityDefinition {
 
 /// Statistical Unit entity
 /// Oracle Fusion: General Ledger > Statistical Accounting > Units
+#[must_use] 
 pub fn statistical_unit_definition() -> EntityDefinition {
     SchemaBuilder::new("statistical_units", "Statistical Unit")
         .plural_label("Statistical Units")
@@ -9420,6 +9687,7 @@ pub fn statistical_unit_definition() -> EntityDefinition {
 
 /// Statistical Entry entity with workflow
 /// Oracle Fusion: General Ledger > Statistical Accounting > Entries
+#[must_use] 
 pub fn statistical_entry_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("statistical_entry_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -9462,6 +9730,7 @@ pub fn statistical_entry_definition() -> EntityDefinition {
 
 /// Factor Company entity
 /// Oracle Fusion: Treasury > Receivables Factoring > Factor Companies
+#[must_use] 
 pub fn factor_company_definition() -> EntityDefinition {
     SchemaBuilder::new("factor_companies", "Factor Company")
         .plural_label("Factor Companies")
@@ -9489,6 +9758,7 @@ pub fn factor_company_definition() -> EntityDefinition {
 
 /// Factoring Agreement entity with workflow
 /// Oracle Fusion: Treasury > Receivables Factoring > Agreements
+#[must_use] 
 pub fn factoring_agreement_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("factoring_agreement_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -9541,6 +9811,7 @@ pub fn factoring_agreement_definition() -> EntityDefinition {
 
 /// Factoring Request entity with workflow
 /// Oracle Fusion: Treasury > Receivables Factoring > Requests
+#[must_use] 
 pub fn factoring_request_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("factoring_request_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -9594,6 +9865,7 @@ pub fn factoring_request_definition() -> EntityDefinition {
 
 /// Factoring Request Line entity
 /// Oracle Fusion: Treasury > Receivables Factoring > Request Lines
+#[must_use] 
 pub fn factoring_request_line_definition() -> EntityDefinition {
     SchemaBuilder::new("factoring_request_lines", "Factoring Request Line")
         .plural_label("Factoring Request Lines")
@@ -9627,6 +9899,7 @@ pub fn factoring_request_line_definition() -> EntityDefinition {
 
 /// Factoring Settlement entity with workflow
 /// Oracle Fusion: Treasury > Receivables Factoring > Settlements
+#[must_use] 
 pub fn factoring_settlement_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("factoring_settlement_workflow", "draft")
         .initial_state("draft", "Draft")

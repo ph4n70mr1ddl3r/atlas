@@ -126,7 +126,7 @@ impl DeferredRevenueEngine {
         // Check uniqueness
         if self.repository.get_template(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Deferral template code '{}' already exists", code)
+                format!("Deferral template code '{code}' already exists")
             ));
         }
 
@@ -163,7 +163,7 @@ impl DeferredRevenueEngine {
     pub async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         self.repository.get_template(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deferral template '{}' not found", code)
+                format!("Deferral template '{code}' not found")
             ))?;
 
         info!("Deleting deferral template {} in org {}", code, org_id);
@@ -213,7 +213,7 @@ impl DeferredRevenueEngine {
         // Get the template
         let template = self.repository.get_template_by_id(template_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deferral template {} not found", template_id)
+                format!("Deferral template {template_id} not found")
             ))?;
 
         // Calculate periods
@@ -319,7 +319,7 @@ impl DeferredRevenueEngine {
 
             self.repository.update_schedule_amounts(
                 line.schedule_id,
-                &format!("{:.2}", new_recognized),
+                &format!("{new_recognized:.2}"),
                 &format!("{:.2}", new_remaining.max(0.0)),
                 new_completed,
             ).await?;
@@ -342,7 +342,7 @@ impl DeferredRevenueEngine {
     pub async fn hold_schedule(&self, schedule_id: Uuid, reason: &str) -> AtlasResult<DeferralSchedule> {
         let schedule = self.repository.get_schedule(schedule_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Schedule {} not found", schedule_id)
+                format!("Schedule {schedule_id} not found")
             ))?;
 
         if schedule.status != "active" {
@@ -364,7 +364,7 @@ impl DeferredRevenueEngine {
     pub async fn resume_schedule(&self, schedule_id: Uuid) -> AtlasResult<DeferralSchedule> {
         let schedule = self.repository.get_schedule(schedule_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Schedule {} not found", schedule_id)
+                format!("Schedule {schedule_id} not found")
             ))?;
 
         if schedule.status != "on_hold" {
@@ -381,7 +381,7 @@ impl DeferredRevenueEngine {
     pub async fn cancel_schedule(&self, schedule_id: Uuid) -> AtlasResult<DeferralSchedule> {
         let schedule = self.repository.get_schedule(schedule_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Schedule {} not found", schedule_id)
+                format!("Schedule {schedule_id} not found")
             ))?;
 
         if schedule.status == "completed" || schedule.status == "cancelled" {
@@ -423,7 +423,7 @@ impl DeferredRevenueEngine {
             "daily" => (end - start).num_days() as i32,
             "quarterly" => {
                 let months = Self::calculate_period_count(start, end, "monthly");
-                ((months as f64) / 3.0).ceil() as i32
+                (f64::from(months) / 3.0).ceil() as i32
             }
             "yearly" => {
                 let years = end.year() - start.year();
@@ -461,31 +461,31 @@ impl DeferredRevenueEngine {
 
             let amount = match recognition_method {
                 "straight_line" => {
-                    let per_period = total / periods as f64;
+                    let per_period = total / f64::from(periods);
                     if period_idx == periods - 1 {
                         // Last period gets remainder to avoid rounding errors
-                        let allocated: f64 = per_period * (periods - 1) as f64;
+                        let allocated: f64 = per_period * f64::from(periods - 1);
                         total - allocated
                     } else {
                         per_period
                     }
                 }
                 "daily_rate" => {
-                    (total * days_in_period as f64) / total_days as f64
+                    (total * f64::from(days_in_period)) / f64::from(total_days)
                 }
                 "front_loaded" => {
                     // More weight toward earlier periods
-                    let weight = (periods - period_idx) as f64;
-                    let total_weight: f64 = (1..=periods).sum::<i32>() as f64;
+                    let weight = f64::from(periods - period_idx);
+                    let total_weight: f64 = f64::from((1..=periods).sum::<i32>());
                     total * weight / total_weight
                 }
                 "back_loaded" => {
                     // More weight toward later periods
-                    let weight = (period_idx + 1) as f64;
-                    let total_weight: f64 = (1..=periods).sum::<i32>() as f64;
+                    let weight = f64::from(period_idx + 1);
+                    let total_weight: f64 = f64::from((1..=periods).sum::<i32>());
                     total * weight / total_weight
                 }
-                _ => total / periods as f64,
+                _ => total / f64::from(periods),
             };
 
             let period_name = format!("{}-{:02}", current_start.year(), current_start.month());
@@ -493,7 +493,7 @@ impl DeferredRevenueEngine {
             let line = self.repository.create_schedule_line(
                 org_id, schedule_id, line_num,
                 Some(&period_name), current_start, current_end,
-                days_in_period, &format!("{:.2}", amount), "pending",
+                days_in_period, &format!("{amount:.2}"), "pending",
             ).await?;
 
             lines.push(line);

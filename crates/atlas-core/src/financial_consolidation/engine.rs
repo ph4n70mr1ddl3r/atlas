@@ -5,8 +5,8 @@
 //! minority interest calculations, consolidation adjustments, and equity elimination.
 //!
 //! Ledger lifecycle: created → active / inactive
-//! Entity lifecycle: active → removed (include_in_consolidation=false)
-//! Scenario lifecycle: draft → in_progress → pending_review → approved → posted / reversed
+//! Entity lifecycle: active → removed (`include_in_consolidation=false`)
+//! Scenario lifecycle: draft → `in_progress` → `pending_review` → approved → posted / reversed
 //! Adjustment lifecycle: draft → approved → posted
 //!
 //! Oracle Fusion Cloud ERP equivalent: General Ledger > Financial Consolidation
@@ -140,7 +140,7 @@ impl FinancialConsolidationEngine {
     ) -> AtlasResult<ConsolidationEntity> {
         // Validate ledger exists
         let ledger = self.repository.get_ledger_by_id(ledger_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Ledger {} not found", ledger_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Ledger {ledger_id} not found")))?;
 
         if !ledger.is_active {
             return Err(AtlasError::ValidationFailed(format!(
@@ -218,7 +218,7 @@ impl FinancialConsolidationEngine {
     ) -> AtlasResult<ConsolidationScenario> {
         // Validate ledger
         let ledger = self.repository.get_ledger_by_id(ledger_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Ledger {} not found", ledger_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Ledger {ledger_id} not found")))?;
 
         if !ledger.is_active {
             return Err(AtlasError::ValidationFailed(format!(
@@ -295,11 +295,11 @@ impl FinancialConsolidationEngine {
     /// Execute the consolidation process
     ///
     /// Runs currency translation, intercompany eliminations, and minority interest
-    /// calculations for the given scenario. Transitions from "draft" or "in_progress"
-    /// to "pending_review".
+    /// calculations for the given scenario. Transitions from "draft" or "`in_progress`"
+    /// to "`pending_review`".
     pub async fn execute_consolidation(&self, scenario_id: Uuid) -> AtlasResult<ConsolidationScenario> {
         let scenario = self.repository.get_scenario_by_id(scenario_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {} not found", scenario_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {scenario_id} not found")))?;
 
         if scenario.status != "draft" && scenario.status != "in_progress" {
             return Err(AtlasError::WorkflowError(format!(
@@ -329,17 +329,14 @@ impl FinancialConsolidationEngine {
                 .await?;
 
             let rate_str = rate
-                .as_ref()
-                .map(|r| r.exchange_rate.clone())
-                .unwrap_or_else(|| "1.0".to_string());
+                .as_ref().map_or_else(|| "1.0".to_string(), |r| r.exchange_rate.clone());
             let rate_val: f64 = rate_str.parse().unwrap_or(1.0);
 
             // Check if entity currency matches base currency
             let ledger = self.repository.get_ledger_by_id(scenario.ledger_id).await?;
             let needs_translation = ledger
                 .as_ref()
-                .map(|l| l.base_currency_code != entity.local_currency_code)
-                .unwrap_or(false);
+                .is_some_and(|l| l.base_currency_code != entity.local_currency_code);
 
             // Simulate: create entity-level trial balance line
             // In a real implementation, this would pull actual GL balances
@@ -437,8 +434,8 @@ impl FinancialConsolidationEngine {
             .update_scenario_totals(
                 scenario_id, total_entities, total_eliminations,
                 total_adjustments,
-                &format!("{:.2}", total_debits),
-                &format!("{:.2}", total_credits),
+                &format!("{total_debits:.2}"),
+                &format!("{total_credits:.2}"),
                 is_balanced,
             )
             .await?;
@@ -459,7 +456,7 @@ impl FinancialConsolidationEngine {
     /// Approve a consolidation scenario
     pub async fn approve_scenario(&self, scenario_id: Uuid, approver_id: Uuid) -> AtlasResult<ConsolidationScenario> {
         let scenario = self.repository.get_scenario_by_id(scenario_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {} not found", scenario_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {scenario_id} not found")))?;
 
         if scenario.status != "pending_review" {
             return Err(AtlasError::WorkflowError(format!(
@@ -477,7 +474,7 @@ impl FinancialConsolidationEngine {
     /// Post a consolidation scenario
     pub async fn post_scenario(&self, scenario_id: Uuid, poster_id: Uuid) -> AtlasResult<ConsolidationScenario> {
         let scenario = self.repository.get_scenario_by_id(scenario_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {} not found", scenario_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {scenario_id} not found")))?;
 
         if scenario.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
@@ -501,7 +498,7 @@ impl FinancialConsolidationEngine {
     /// Reverse a posted consolidation scenario
     pub async fn reverse_scenario(&self, scenario_id: Uuid) -> AtlasResult<ConsolidationScenario> {
         let scenario = self.repository.get_scenario_by_id(scenario_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {} not found", scenario_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {scenario_id} not found")))?;
 
         if scenario.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -539,7 +536,7 @@ impl FinancialConsolidationEngine {
     ) -> AtlasResult<ConsolidationEliminationRule> {
         // Validate ledger
         let _ledger = self.repository.get_ledger_by_id(ledger_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Ledger {} not found", ledger_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Ledger {ledger_id} not found")))?;
 
         if rule_code.is_empty() {
             return Err(AtlasError::ValidationFailed("Rule code is required".to_string()));
@@ -614,7 +611,7 @@ impl FinancialConsolidationEngine {
     ) -> AtlasResult<ConsolidationAdjustment> {
         // Validate scenario
         let scenario = self.repository.get_scenario_by_id(scenario_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {} not found", scenario_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {scenario_id} not found")))?;
 
         if scenario.status != "draft" && scenario.status != "in_progress" {
             return Err(AtlasError::WorkflowError(format!(
@@ -684,7 +681,7 @@ impl FinancialConsolidationEngine {
         approver_id: Uuid,
     ) -> AtlasResult<ConsolidationAdjustment> {
         let adj = self.repository.get_adjustment(adjustment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Adjustment {} not found", adjustment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Adjustment {adjustment_id} not found")))?;
 
         if adj.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -717,7 +714,7 @@ impl FinancialConsolidationEngine {
     ) -> AtlasResult<ConsolidationTranslationRate> {
         // Validate scenario
         let scenario = self.repository.get_scenario_by_id(scenario_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {} not found", scenario_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Scenario {scenario_id} not found")))?;
 
         if scenario.status != "draft" && scenario.status != "in_progress" {
             return Err(AtlasError::WorkflowError(format!(
@@ -803,11 +800,11 @@ impl FinancialConsolidationEngine {
     /// Validate that a string parses to a non-negative amount
     fn validate_positive_amount(value: &str, field: &str) -> AtlasResult<()> {
         let v: f64 = value.parse().map_err(|_| AtlasError::ValidationFailed(format!(
-            "{} must be a valid number", field
+            "{field} must be a valid number"
         )))?;
         if v < 0.0 {
             return Err(AtlasError::ValidationFailed(format!(
-                "{} cannot be negative", field
+                "{field} cannot be negative"
             )));
         }
         Ok(())
@@ -816,11 +813,11 @@ impl FinancialConsolidationEngine {
     /// Validate a percentage value (0-100)
     fn validate_percentage(value: &str, field: &str) -> AtlasResult<()> {
         let v: f64 = value.parse().map_err(|_| AtlasError::ValidationFailed(format!(
-            "{} must be a valid number", field
+            "{field} must be a valid number"
         )))?;
         if !(0.0..=100.0).contains(&v) {
             return Err(AtlasError::ValidationFailed(format!(
-                "{} must be between 0 and 100", field
+                "{field} must be between 0 and 100"
             )));
         }
         Ok(())

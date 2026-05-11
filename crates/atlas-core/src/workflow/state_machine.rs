@@ -21,6 +21,7 @@ pub struct StateMachine {
 
 impl StateMachine {
     /// Create a new state machine with the initial state
+    #[must_use] 
     pub fn new(record_id: RecordId, entity_type: &str, workflow_name: &str, initial_state: &str) -> Self {
         Self {
             record_id,
@@ -34,6 +35,7 @@ impl StateMachine {
     }
     
     /// Create from stored workflow state
+    #[must_use] 
     pub fn from_state(state: WorkflowState) -> Self {
         Self {
             record_id: state.record_id,
@@ -47,6 +49,7 @@ impl StateMachine {
     }
     
     /// Convert back to stored workflow state
+    #[must_use] 
     pub fn into_state(self) -> WorkflowState {
         WorkflowState {
             record_id: self.record_id,
@@ -84,11 +87,13 @@ impl StateMachine {
     }
     
     /// Check if the state machine is in a terminal state
+    #[must_use] 
     pub fn is_terminal(&self) -> bool {
         self.current_state_type == StateType::Final
     }
     
     /// Get the transition history as a formatted string
+    #[must_use] 
     pub fn history_summary(&self) -> String {
         self.history.iter()
             .map(|h| {
@@ -105,12 +110,14 @@ impl StateMachine {
     }
     
     /// Get the last transition
+    #[must_use] 
     pub fn last_transition(&self) -> Option<&StateHistoryEntry> {
         self.history.last()
     }
     
     /// Get transition count
-    pub fn transition_count(&self) -> usize {
+    #[must_use] 
+    pub const fn transition_count(&self) -> usize {
         self.history.len()
     }
 }

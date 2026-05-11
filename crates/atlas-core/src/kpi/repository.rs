@@ -1,6 +1,6 @@
 //! KPI Repository
 //!
-//! PostgreSQL storage for KPI definitions, data points, dashboards, and widgets.
+//! `PostgreSQL` storage for KPI definitions, data points, dashboards, and widgets.
 
 use atlas_shared::{
     KpiDefinition, KpiDataPoint, Dashboard, DashboardWidget, KpiDashboardSummary,
@@ -98,13 +98,14 @@ pub trait KpiRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<KpiDashboardSummary>;
 }
 
-/// PostgreSQL implementation of KPI Repository
+/// `PostgreSQL` implementation of KPI Repository
 pub struct PostgresKpiRepository {
     pool: PgPool,
 }
 
 impl PostgresKpiRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -203,12 +204,12 @@ impl KpiRepository for PostgresKpiRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<KpiDefinition> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.kpi_definitions
+            r"INSERT INTO _atlas.kpi_definitions
                 (organization_id, code, name, description, category, unit_of_measure,
                  direction, target_value, warning_threshold, critical_threshold,
                  data_source_query, evaluation_frequency, is_active, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, '{}'::jsonb, $13)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(category).bind(unit_of_measure).bind(direction)
@@ -259,7 +260,7 @@ impl KpiRepository for PostgresKpiRepository {
         .execute(&self.pool).await?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("KPI '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("KPI '{code}' not found")));
         }
         Ok(())
     }
@@ -287,10 +288,10 @@ impl KpiRepository for PostgresKpiRepository {
         );
 
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.kpi_data_points
+            r"INSERT INTO _atlas.kpi_data_points
                 (organization_id, kpi_id, value, period_start, period_end, status, notes, recorded_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(kpi_id).bind(value)
         .bind(period_start).bind(period_end)
@@ -345,11 +346,11 @@ impl KpiRepository for PostgresKpiRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Dashboard> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.kpi_dashboards
+            r"INSERT INTO _atlas.kpi_dashboards
                 (organization_id, code, name, description, owner_id,
                  is_shared, is_default, layout_config, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '{}'::jsonb, $9)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(owner_id).bind(is_shared).bind(is_default)
@@ -398,7 +399,7 @@ impl KpiRepository for PostgresKpiRepository {
         .bind(org_id).bind(code)
         .execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Dashboard '{}' not found", code)));
+            return Err(AtlasError::EntityNotFound(format!("Dashboard '{code}' not found")));
         }
         Ok(())
     }
@@ -416,11 +417,11 @@ impl KpiRepository for PostgresKpiRepository {
         display_config: serde_json::Value,
     ) -> AtlasResult<DashboardWidget> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.kpi_dashboard_widgets
+            r"INSERT INTO _atlas.kpi_dashboard_widgets
                 (dashboard_id, kpi_id, widget_type, title,
                  position_row, position_col, width, height, display_config, is_visible)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
-            RETURNING *"#
+            RETURNING *"
         )
         .bind(dashboard_id).bind(kpi_id).bind(widget_type).bind(title)
         .bind(position_row).bind(position_col).bind(width).bind(height)
@@ -479,11 +480,11 @@ impl KpiRepository for PostgresKpiRepository {
 
         // Recent values (last 10 data points)
         let recent_rows = sqlx::query(
-            r#"SELECT dp.*, kd.name as kpi_name, kd.code as kpi_code
+            r"SELECT dp.*, kd.name as kpi_name, kd.code as kpi_code
                FROM _atlas.kpi_data_points dp
                JOIN _atlas.kpi_definitions kd ON dp.kpi_id = kd.id
                WHERE dp.organization_id = $1
-               ORDER BY dp.recorded_at DESC LIMIT 10"#
+               ORDER BY dp.recorded_at DESC LIMIT 10"
         )
         .bind(org_id)
         .fetch_all(&self.pool)

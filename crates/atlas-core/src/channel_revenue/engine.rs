@@ -83,7 +83,7 @@ const VALID_PAYMENT_METHODS: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -193,13 +193,13 @@ impl ChannelRevenueEngine {
         if let Some(f_id) = fund_id {
             self.repository.get_fund(f_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Fund {} not found", f_id
+                    "Fund {f_id} not found"
                 )))?;
         }
 
         if self.repository.get_promotion_by_number(org_id, promotion_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Promotion '{}' already exists", promotion_number
+                "Promotion '{promotion_number}' already exists"
             )));
         }
 
@@ -257,7 +257,7 @@ impl ChannelRevenueEngine {
     /// Submit a promotion for approval
     pub async fn submit_promotion(&self, id: Uuid) -> AtlasResult<TradePromotion> {
         let promo = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.status != "draft" {
             return Err(AtlasError::ValidationFailed(
@@ -273,7 +273,7 @@ impl ChannelRevenueEngine {
     /// Approve a promotion
     pub async fn approve_promotion(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<TradePromotion> {
         let promo = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.approval_status != "pending_approval" {
             return Err(AtlasError::ValidationFailed(
@@ -289,7 +289,7 @@ impl ChannelRevenueEngine {
     /// Reject a promotion
     pub async fn reject_promotion(&self, id: Uuid, rejected_by: Option<Uuid>) -> AtlasResult<TradePromotion> {
         let promo = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.approval_status != "pending_approval" {
             return Err(AtlasError::ValidationFailed(
@@ -305,7 +305,7 @@ impl ChannelRevenueEngine {
     /// Complete a promotion
     pub async fn complete_promotion(&self, id: Uuid) -> AtlasResult<TradePromotion> {
         let promo = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.status != "active" {
             return Err(AtlasError::ValidationFailed(
@@ -320,7 +320,7 @@ impl ChannelRevenueEngine {
     /// Cancel a promotion
     pub async fn cancel_promotion(&self, id: Uuid) -> AtlasResult<TradePromotion> {
         let promo = self.repository.get_promotion(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.status == "completed" || promo.status == "cancelled" {
             return Err(AtlasError::ValidationFailed(
@@ -388,7 +388,7 @@ impl ChannelRevenueEngine {
         // Verify promotion exists
         let promo = self.repository.get_promotion(promotion_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Promotion {} not found", promotion_id
+                "Promotion {promotion_id} not found"
             )))?;
 
         if promo.status != "draft" && promo.status != "active" {
@@ -504,7 +504,7 @@ impl ChannelRevenueEngine {
 
         if self.repository.get_fund_by_number(org_id, fund_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Fund '{}' already exists", fund_number
+                "Fund '{fund_number}' already exists"
             )));
         }
 
@@ -561,7 +561,7 @@ impl ChannelRevenueEngine {
     /// Close a fund
     pub async fn close_fund(&self, id: Uuid) -> AtlasResult<PromotionFund> {
         let fund = self.repository.get_fund(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Fund {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Fund {id} not found")))?;
 
         if fund.status != "active" {
             return Err(AtlasError::ValidationFailed(
@@ -651,7 +651,7 @@ impl ChannelRevenueEngine {
         if let Some(p_id) = promotion_id {
             let promo = self.repository.get_promotion(p_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Promotion {} not found", p_id
+                    "Promotion {p_id} not found"
                 )))?;
             // Claims can only be filed against active or completed promotions
             if promo.status != "active" && promo.status != "completed" {
@@ -665,13 +665,13 @@ impl ChannelRevenueEngine {
         if let Some(f_id) = fund_id {
             self.repository.get_fund(f_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Fund {} not found", f_id
+                    "Fund {f_id} not found"
                 )))?;
         }
 
         if self.repository.get_claim_by_number(org_id, claim_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Claim '{}' already exists", claim_number
+                "Claim '{claim_number}' already exists"
             )));
         }
 
@@ -726,7 +726,7 @@ impl ChannelRevenueEngine {
     /// Submit a claim
     pub async fn submit_claim(&self, id: Uuid) -> AtlasResult<TradeClaim> {
         let claim = self.repository.get_claim(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
 
         if claim.status != "draft" {
             return Err(AtlasError::ValidationFailed(
@@ -741,7 +741,7 @@ impl ChannelRevenueEngine {
     /// Approve a claim
     pub async fn approve_claim(&self, id: Uuid, approved_amount: Option<f64>) -> AtlasResult<TradeClaim> {
         let claim = self.repository.get_claim(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
 
         if claim.status != "submitted" && claim.status != "under_review" {
             return Err(AtlasError::ValidationFailed(
@@ -780,7 +780,7 @@ impl ChannelRevenueEngine {
         }
 
         let claim = self.repository.get_claim(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
 
         if claim.status != "submitted" && claim.status != "under_review" {
             return Err(AtlasError::ValidationFailed(
@@ -799,7 +799,7 @@ impl ChannelRevenueEngine {
         }
 
         let claim = self.repository.get_claim(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
 
         if claim.status != "approved" && claim.status != "partially_approved" {
             return Err(AtlasError::ValidationFailed(
@@ -880,7 +880,7 @@ impl ChannelRevenueEngine {
         if let Some(c_id) = claim_id {
             let claim = self.repository.get_claim(c_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Claim {} not found", c_id
+                    "Claim {c_id} not found"
                 )))?;
             if claim.status != "approved" && claim.status != "partially_approved" {
                 return Err(AtlasError::ValidationFailed(
@@ -893,13 +893,13 @@ impl ChannelRevenueEngine {
         if let Some(p_id) = promotion_id {
             self.repository.get_promotion(p_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Promotion {} not found", p_id
+                    "Promotion {p_id} not found"
                 )))?;
         }
 
         if self.repository.get_settlement_by_number(org_id, settlement_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Settlement '{}' already exists", settlement_number
+                "Settlement '{settlement_number}' already exists"
             )));
         }
 
@@ -948,7 +948,7 @@ impl ChannelRevenueEngine {
     /// Approve a settlement
     pub async fn approve_settlement(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<TradeSettlement> {
         let settlement = self.repository.get_settlement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Settlement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Settlement {id} not found")))?;
 
         if settlement.status != "pending" {
             return Err(AtlasError::ValidationFailed(
@@ -963,7 +963,7 @@ impl ChannelRevenueEngine {
     /// Complete a settlement (mark as paid)
     pub async fn complete_settlement(&self, id: Uuid) -> AtlasResult<TradeSettlement> {
         let settlement = self.repository.get_settlement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Settlement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Settlement {id} not found")))?;
 
         if settlement.status != "approved" && settlement.status != "processing" {
             return Err(AtlasError::ValidationFailed(
@@ -978,7 +978,7 @@ impl ChannelRevenueEngine {
     /// Cancel a settlement
     pub async fn cancel_settlement(&self, id: Uuid) -> AtlasResult<TradeSettlement> {
         let settlement = self.repository.get_settlement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Settlement {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Settlement {id} not found")))?;
 
         if settlement.status == "completed" {
             return Err(AtlasError::ValidationFailed(

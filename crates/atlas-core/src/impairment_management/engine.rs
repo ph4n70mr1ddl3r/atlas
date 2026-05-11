@@ -91,7 +91,7 @@ impl ImpairmentManagementEngine {
 
         if self.repository.get_indicator_by_code(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("Indicator code '{}' already exists", code)
+                format!("Indicator code '{code}' already exists")
             ));
         }
 
@@ -209,7 +209,7 @@ impl ImpairmentManagementEngine {
         discount_factor: Option<&str>,
     ) -> AtlasResult<ImpairmentCashFlow> {
         let test = self.repository.get_test(test_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {} not found", test_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -244,8 +244,8 @@ impl ImpairmentManagementEngine {
 
         self.repository.create_cash_flow(
             org_id, test_id, period_year, period_number, description,
-            cash_inflow, cash_outflow, &format!("{:.2}", net),
-            &format!("{:.6}", factor), &format!("{:.2}", pv),
+            cash_inflow, cash_outflow, &format!("{net:.2}"),
+            &format!("{factor:.6}"), &format!("{pv:.2}"),
         ).await
     }
 
@@ -270,7 +270,7 @@ impl ImpairmentManagementEngine {
         carrying_amount: &str,
     ) -> AtlasResult<ImpairmentTestAsset> {
         let test = self.repository.get_test(test_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {} not found", test_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -305,6 +305,7 @@ impl ImpairmentManagementEngine {
     // ========================================================================
 
     /// Calculate value in use from cash flows (sum of present values)
+    #[must_use] 
     pub fn calculate_value_in_use(cash_flows: &[(f64, f64, f64)]) -> f64 {
         // Each tuple is (inflow, outflow, discount_factor)
         cash_flows.iter()
@@ -313,7 +314,8 @@ impl ImpairmentManagementEngine {
     }
 
     /// Calculate impairment loss
-    /// Returns (recoverable_amount, impairment_loss)
+    /// Returns (`recoverable_amount`, `impairment_loss`)
+    #[must_use] 
     pub fn calculate_impairment(carrying_amount: f64, recoverable_amount: f64) -> (f64, f64) {
         if carrying_amount > recoverable_amount {
             (recoverable_amount, carrying_amount - recoverable_amount)
@@ -324,6 +326,7 @@ impl ImpairmentManagementEngine {
 
     /// Calculate discount factor for a period
     /// factor = 1 / (1 + rate)^period
+    #[must_use] 
     pub fn calculate_discount_factor(discount_rate: f64, period: i32) -> f64 {
         if discount_rate <= -1.0 {
             return 0.0; // invalid rate
@@ -332,7 +335,8 @@ impl ImpairmentManagementEngine {
     }
 
     /// Calculate terminal value (for value-in-use beyond projection period)
-    /// TV = terminal_cash_flow / (discount_rate - growth_rate)
+    /// TV = `terminal_cash_flow` / (`discount_rate` - `growth_rate`)
+    #[must_use] 
     pub fn calculate_terminal_value(
         terminal_cash_flow: f64,
         discount_rate: f64,
@@ -352,7 +356,7 @@ impl ImpairmentManagementEngine {
     /// Execute impairment test calculations
     pub async fn execute_test(&self, test_id: Uuid) -> AtlasResult<ImpairmentTest> {
         let test = self.repository.get_test(test_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {} not found", test_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -385,7 +389,7 @@ impl ImpairmentManagementEngine {
         // Update recoverable amount
         self.repository.update_test_recoverable(
             test_id,
-            &format!("{:.2}", recoverable_amount),
+            &format!("{recoverable_amount:.2}"),
         ).await?;
 
         // Update test assets
@@ -394,7 +398,7 @@ impl ImpairmentManagementEngine {
             let carrying: f64 = asset.carrying_amount.parse().unwrap_or(0.0);
             let (_, loss) = Self::calculate_impairment(carrying, recoverable_amount);
             let status = if loss > 0.0 { "impaired" } else { "not_impaired" };
-            self.repository.update_test_asset(asset.id, &format!("{:.2}", recoverable_amount), &format!("{:.2}", loss), status).await?;
+            self.repository.update_test_asset(asset.id, &format!("{recoverable_amount:.2}"), &format!("{loss:.2}"), status).await?;
         }
 
         // Calculate total impairment
@@ -408,15 +412,15 @@ impl ImpairmentManagementEngine {
 
         self.repository.update_test_results(
             test_id,
-            &format!("{:.2}", recoverable_amount),
-            &format!("{:.2}", total_impairment),
+            &format!("{recoverable_amount:.2}"),
+            &format!("{total_impairment:.2}"),
         ).await
     }
 
     /// Submit test for approval
     pub async fn submit_test(&self, test_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<ImpairmentTest> {
         let test = self.repository.get_test(test_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {} not found", test_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -431,7 +435,7 @@ impl ImpairmentManagementEngine {
     /// Approve test
     pub async fn approve_test(&self, test_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<ImpairmentTest> {
         let test = self.repository.get_test(test_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {} not found", test_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -446,7 +450,7 @@ impl ImpairmentManagementEngine {
     /// Complete test
     pub async fn complete_test(&self, test_id: Uuid) -> AtlasResult<ImpairmentTest> {
         let test = self.repository.get_test(test_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {} not found", test_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "approved" {
             return Err(AtlasError::WorkflowError(

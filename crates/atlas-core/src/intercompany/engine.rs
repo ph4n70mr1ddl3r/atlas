@@ -245,7 +245,7 @@ impl IntercompanyEngine {
         // Validate batch exists and is in draft
         let batch = self.repository.get_batch(org_id, batch_number).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Batch '{}' not found", batch_number)
+                format!("Batch '{batch_number}' not found")
             ))?;
 
         if batch.status != "draft" {
@@ -463,7 +463,7 @@ impl IntercompanyEngine {
             .sum();
 
         Ok(IntercompanyBalanceSummary {
-            total_outstanding: format!("{:.2}", total_outstanding),
+            total_outstanding: format!("{total_outstanding:.2}"),
             entity_pairs: balances.len() as i32,
             open_transactions,
             balances,
@@ -485,9 +485,9 @@ impl IntercompanyEngine {
 
         self.repository.update_batch_totals(
             batch_id,
-            &format!("{:.2}", total_amount),
-            &format!("{:.2}", total_amount), // debit
-            &format!("{:.2}", total_amount), // credit
+            &format!("{total_amount:.2}"),
+            &format!("{total_amount:.2}"), // debit
+            &format!("{total_amount:.2}"), // credit
             transactions.len() as i32,
         ).await?;
 
@@ -537,8 +537,8 @@ impl IntercompanyEngine {
         self.repository.upsert_balance(
             org_id, from_entity_id, to_entity_id, currency_code,
             &format!("{:.2}", total_outstanding.max(0.0)),
-            &format!("{:.2}", total_posted),
-            &format!("{:.2}", total_settled),
+            &format!("{total_posted:.2}"),
+            &format!("{total_settled:.2}"),
             open_count,
         ).await?;
 

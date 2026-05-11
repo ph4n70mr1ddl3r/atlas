@@ -138,7 +138,7 @@ impl RiskManagementEngine {
         }
         if self.repository.get_category_by_code(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Risk category '{}' already exists", code_upper
+                "Risk category '{code_upper}' already exists"
             )));
         }
 
@@ -226,7 +226,7 @@ impl RiskManagementEngine {
         // Check for duplicate risk_number
         if self.repository.get_risk_by_number(org_id, risk_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Risk '{}' already exists", risk_number
+                "Risk '{risk_number}' already exists"
             )));
         }
 
@@ -365,7 +365,7 @@ impl RiskManagementEngine {
 
         if self.repository.get_control_by_number(org_id, control_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Control '{}' already exists", control_number
+                "Control '{control_number}' already exists"
             )));
         }
 
@@ -451,10 +451,10 @@ impl RiskManagementEngine {
         }
         // Verify risk exists
         self.repository.get_risk(risk_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Risk {} not found", risk_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Risk {risk_id} not found")))?;
         // Verify control exists
         self.repository.get_control(control_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Control {} not found", control_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Control {control_id} not found")))?;
 
         info!("Mapping risk {} to control {} [{}]", risk_id, control_id, mitigation_effectiveness);
         self.repository.create_risk_control_mapping(
@@ -509,7 +509,7 @@ impl RiskManagementEngine {
         }
         // Verify control exists
         self.repository.get_control(control_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Control {} not found", control_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Control {control_id} not found")))?;
 
         info!("Creating control test '{}' for control {}", test_number, control_id);
         self.repository.create_control_test(
@@ -529,7 +529,7 @@ impl RiskManagementEngine {
         self.repository.list_control_tests(control_id).await
     }
 
-    /// Start a control test (change status to in_progress)
+    /// Start a control test (change status to `in_progress`)
     pub async fn start_control_test(&self, id: Uuid) -> AtlasResult<ControlTest> {
         info!("Starting control test {}", id);
         self.repository.update_control_test_status(id, "in_progress").await
@@ -622,7 +622,7 @@ impl RiskManagementEngine {
         }
         if self.repository.get_issue_by_number(org_id, issue_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Issue '{}' already exists", issue_number
+                "Issue '{issue_number}' already exists"
             )));
         }
 

@@ -50,8 +50,8 @@ pub struct CreateContractTypeRequest {
 }
 
 fn default_classification() -> String { "blanket".to_string() }
-fn default_true() -> bool { true }
-fn default_false() -> bool { false }
+const fn default_true() -> bool { true }
+const fn default_false() -> bool { false }
 
 /// Create a contract type
 pub async fn create_contract_type(

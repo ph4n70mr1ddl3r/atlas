@@ -15,10 +15,12 @@ pub struct GuardResult {
 }
 
 impl GuardResult {
-    pub fn pass() -> Self {
+    #[must_use] 
+    pub const fn pass() -> Self {
         Self { passed: true, message: None }
     }
     
+    #[must_use] 
     pub fn fail(message: &str) -> Self {
         Self { passed: false, message: Some(message.to_string()) }
     }
@@ -28,11 +30,13 @@ impl GuardResult {
 pub struct GuardEvaluator;
 
 impl GuardEvaluator {
-    pub fn new() -> Self {
+    #[must_use] 
+    pub const fn new() -> Self {
         Self
     }
     
     /// Evaluate a guard condition against record data
+    #[must_use] 
     pub fn evaluate(&self, guard: &GuardDefinition, record_data: &serde_json::Value) -> GuardResult {
         match guard {
             GuardDefinition::Validate { rule } => {
@@ -60,8 +64,8 @@ impl GuardEvaluator {
         if rule.starts_with("validate.required(") && rule.ends_with(')') {
             let field = extract_field_name(rule, "validate.required(");
             if let Some(value) = data.get(field) {
-                if value.is_null() || value.as_str().is_some_and(|s| s.is_empty()) {
-                    return GuardResult::fail(&format!("{} is required", field));
+                if value.is_null() || value.as_str().is_some_and(str::is_empty) {
+                    return GuardResult::fail(&format!("{field} is required"));
                 }
             }
             return GuardResult::pass();
@@ -71,7 +75,7 @@ impl GuardEvaluator {
             let field = extract_field_name(rule, "validate.not_empty(");
             if let Some(value) = data.get(field) {
                 if value.is_null() || value.as_str().is_some_and(|s| s.trim().is_empty()) {
-                    return GuardResult::fail(&format!("{} cannot be empty", field));
+                    return GuardResult::fail(&format!("{field} cannot be empty"));
                 }
             }
             return GuardResult::pass();
@@ -80,7 +84,7 @@ impl GuardEvaluator {
         if rule.starts_with("validate.greater_than(") && rule.ends_with(')') {
             // Format: validate.greater_than(field, value)
             let content = &rule["validate.greater_than(".len()..rule.len()-1];
-            let parts: Vec<&str> = content.split(',').map(|s| s.trim()).collect();
+            let parts: Vec<&str> = content.split(',').map(str::trim).collect();
             if parts.len() == 2 {
                 let field = parts[0];
                 let threshold: f64 = parts[1].parse().unwrap_or(0.0);
@@ -88,7 +92,7 @@ impl GuardEvaluator {
                 if let Some(value) = data.get(field) {
                     if let Some(num) = value.as_f64() {
                         if num <= threshold {
-                            return GuardResult::fail(&format!("{} must be greater than {}", field, threshold));
+                            return GuardResult::fail(&format!("{field} must be greater than {threshold}"));
                         }
                     }
                 }
@@ -99,7 +103,7 @@ impl GuardEvaluator {
         if rule.starts_with("validate.equals(") && rule.ends_with(')') {
             // Format: validate.equals(field, value)
             let content = &rule["validate.equals(".len()..rule.len()-1];
-            let parts: Vec<&str> = content.split(',').map(|s| s.trim()).collect();
+            let parts: Vec<&str> = content.split(',').map(str::trim).collect();
             if parts.len() == 2 {
                 let field = parts[0];
                 let expected = parts[1].trim_matches('"');
@@ -107,7 +111,7 @@ impl GuardEvaluator {
                 if let Some(value) = data.get(field) {
                     if let Some(actual) = value.as_str() {
                         if actual != expected {
-                            return GuardResult::fail(&format!("{} must equal {}", field, expected));
+                            return GuardResult::fail(&format!("{field} must equal {expected}"));
                         }
                     }
                 }
@@ -136,15 +140,15 @@ impl GuardEvaluator {
                     let field = args.trim();
                     if let Some(value) = data.get(field) {
                         if value.is_null() {
-                            return GuardResult::fail(&format!("{} must have a value", field));
+                            return GuardResult::fail(&format!("{field} must have a value"));
                         }
                     }
                 }
                 "isEmpty" => {
                     let field = args.trim();
                     if let Some(value) = data.get(field) {
-                        if !value.is_null() && !value.as_str().is_none_or(|s| s.is_empty()) {
-                            return GuardResult::fail(&format!("{} must be empty", field));
+                        if !value.is_null() && !value.as_str().is_none_or(str::is_empty) {
+                            return GuardResult::fail(&format!("{field} must be empty"));
                         }
                     }
                 }

@@ -1,6 +1,6 @@
 //! Time and Labor Repository
 //!
-//! PostgreSQL storage for work schedules, overtime rules, time cards,
+//! `PostgreSQL` storage for work schedules, overtime rules, time cards,
 //! time entries, history, and labor distributions.
 
 use atlas_shared::{
@@ -160,13 +160,14 @@ pub trait TimeAndLaborRepository: Send + Sync {
     async fn get_labor_distribution(&self, id: Uuid) -> AtlasResult<Option<LaborDistribution>>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresTimeAndLaborRepository {
     pool: PgPool,
 }
 
 impl PostgresTimeAndLaborRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -326,7 +327,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WorkSchedule> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.work_schedules
                 (organization_id, code, name, description, schedule_type,
                  standard_hours_per_day, standard_hours_per_week, work_days_per_week,
@@ -338,7 +339,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
                     work_days_per_week = $8, start_time = $9, end_time = $10,
                     break_duration_minutes = $11, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(schedule_type)
         .bind(standard_hours_per_day).bind(standard_hours_per_week).bind(work_days_per_week)
@@ -415,7 +416,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<OvertimeRule> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.overtime_rules
                 (organization_id, code, name, description, threshold_type,
                  daily_threshold_hours, weekly_threshold_hours, overtime_multiplier,
@@ -431,7 +432,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
                     include_weekends = $12, effective_from = $13, effective_to = $14,
                     updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(threshold_type)
         .bind(daily_threshold_hours).bind(weekly_threshold_hours).bind(overtime_multiplier)
@@ -504,7 +505,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TimeCard> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.time_cards
                 (organization_id, employee_id, employee_name, card_number,
                  period_start, period_end, schedule_id, overtime_rule_id, created_by)
@@ -513,7 +514,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
                 SET employee_name = $3, schedule_id = $7, overtime_rule_id = $8,
                     updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(employee_id).bind(employee_name).bind(card_number)
         .bind(period_start).bind(period_end)
@@ -585,7 +586,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         rejected_reason: Option<&str>,
     ) -> AtlasResult<TimeCard> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.time_cards
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
@@ -595,7 +596,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
         .fetch_one(&self.pool)
@@ -613,12 +614,12 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         total_hours: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.time_cards
             SET total_regular_hours = $2, total_overtime_hours = $3,
                 total_double_time_hours = $4, total_hours = $5, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(regular_hours).bind(overtime_hours)
         .bind(double_time_hours).bind(total_hours)
@@ -653,7 +654,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TimeEntry> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.time_entries
                 (organization_id, time_card_id, entry_date, entry_type,
                  start_time, end_time, duration_hours,
@@ -661,7 +662,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
                  task_name, location, cost_center, labor_category, comments, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(time_card_id).bind(entry_date).bind(entry_type)
         .bind(start_time).bind(end_time).bind(duration_hours)
@@ -718,11 +719,11 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         comment: Option<&str>,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.time_card_history
                 (time_card_id, action, from_status, to_status, performed_by, comment)
             VALUES ($1, $2, $3, $4, $5, $6)
-            "#,
+            ",
         )
         .bind(time_card_id).bind(action).bind(from_status).bind(to_status)
         .bind(performed_by).bind(comment)
@@ -761,14 +762,14 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         allocated_hours: &str,
     ) -> AtlasResult<LaborDistribution> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.labor_distributions
                 (organization_id, time_entry_id, distribution_percent,
                  cost_center, project_id, project_name, department_id, department_name,
                  gl_account_code, allocated_hours)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(time_entry_id).bind(distribution_percent)
         .bind(cost_center).bind(project_id).bind(project_name)
@@ -812,10 +813,10 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
 
     async fn delete_labor_distribution_org_scoped(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query(
-            r#"
+            r"
             DELETE FROM _atlas.labor_distributions
             WHERE id = $1 AND organization_id = $2
-            "#,
+            ",
         )
         .bind(id).bind(org_id)
         .execute(&self.pool)
@@ -824,7 +825,7 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
 
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound(
-                format!("Labor distribution {} not found", id)
+                format!("Labor distribution {id} not found")
             ));
         }
         Ok(())

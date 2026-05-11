@@ -115,7 +115,7 @@ impl EncumbranceEngine {
     pub async fn delete_encumbrance_type(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         self.repository.get_encumbrance_type(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Encumbrance type '{}' not found", code)
+                format!("Encumbrance type '{code}' not found")
             ))?;
 
         info!("Deleting encumbrance type {} in org {}", code, org_id);
@@ -147,7 +147,7 @@ impl EncumbranceEngine {
         // Validate encumbrance type exists
         let enc_type = self.repository.get_encumbrance_type(org_id, encumbrance_type_code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Encumbrance type '{}' not found", encumbrance_type_code)
+                format!("Encumbrance type '{encumbrance_type_code}' not found")
             ))?;
 
         let amount_val: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
@@ -211,7 +211,7 @@ impl EncumbranceEngine {
     pub async fn activate_entry(&self, entry_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<EncumbranceEntry> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Encumbrance entry {} not found", entry_id)
+                format!("Encumbrance entry {entry_id} not found")
             ))?;
 
         if entry.status != "draft" {
@@ -234,7 +234,7 @@ impl EncumbranceEngine {
     ) -> AtlasResult<EncumbranceEntry> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Encumbrance entry {} not found", entry_id)
+                format!("Encumbrance entry {entry_id} not found")
             ))?;
 
         if entry.status == "fully_liquidated" || entry.status == "cancelled" {
@@ -275,7 +275,7 @@ impl EncumbranceEngine {
     ) -> AtlasResult<EncumbranceLine> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Encumbrance entry {} not found", entry_id)
+                format!("Encumbrance entry {entry_id} not found")
             ))?;
 
         if entry.status == "cancelled" || entry.status == "fully_liquidated" {
@@ -325,7 +325,7 @@ impl EncumbranceEngine {
     pub async fn delete_line(&self, line_id: Uuid) -> AtlasResult<()> {
         let line = self.repository.get_line(line_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Encumbrance line {} not found", line_id)
+                format!("Encumbrance line {line_id} not found")
             ))?;
 
         let entry = self.repository.get_entry(line.entry_id).await?
@@ -364,7 +364,7 @@ impl EncumbranceEngine {
     ) -> AtlasResult<EncumbranceLiquidation> {
         let entry = self.repository.get_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Encumbrance entry {} not found", entry_id)
+                format!("Encumbrance entry {entry_id} not found")
             ))?;
 
         if entry.status != "active" && entry.status != "partially_liquidated" {
@@ -393,8 +393,7 @@ impl EncumbranceEngine {
         let current: f64 = entry.current_amount.parse().unwrap_or(0.0);
         if amount > current + 0.01 {
             return Err(AtlasError::ValidationFailed(format!(
-                "Liquidation amount {} exceeds current encumbrance amount {}",
-                amount, current
+                "Liquidation amount {amount} exceeds current encumbrance amount {current}"
             )));
         }
 
@@ -421,8 +420,8 @@ impl EncumbranceEngine {
 
         self.repository.update_entry_amounts(
             entry_id,
-            &format!("{:.2}", new_current),
-            &format!("{:.2}", new_liquidated),
+            &format!("{new_current:.2}"),
+            &format!("{new_liquidated:.2}"),
             &entry.adjusted_amount,
             new_status,
         ).await?;
@@ -437,8 +436,8 @@ impl EncumbranceEngine {
 
             self.repository.update_line_amounts(
                 lid,
-                &format!("{:.2}", new_line_current),
-                &format!("{:.2}", new_line_liq),
+                &format!("{new_line_current:.2}"),
+                &format!("{new_line_liq:.2}"),
             ).await?;
         }
 
@@ -456,7 +455,7 @@ impl EncumbranceEngine {
     ) -> AtlasResult<EncumbranceLiquidation> {
         let liquidation = self.repository.get_liquidation(liquidation_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Liquidation {} not found", liquidation_id)
+                format!("Liquidation {liquidation_id} not found")
             ))?;
 
         if liquidation.status != "processed" {
@@ -493,8 +492,8 @@ impl EncumbranceEngine {
 
         self.repository.update_entry_amounts(
             entry.id,
-            &format!("{:.2}", new_current),
-            &format!("{:.2}", new_liquidated),
+            &format!("{new_current:.2}"),
+            &format!("{new_liquidated:.2}"),
             &entry.adjusted_amount,
             new_status,
         ).await?;
@@ -599,8 +598,8 @@ impl EncumbranceEngine {
                 entry.source_number.as_deref(),
                 Some(&format!("Carry-forward from FY{} - {}", from_fiscal_year, entry.entry_number)),
                 entry.encumbrance_date,
-                &format!("{:.2}", current),
-                &format!("{:.2}", current),
+                &format!("{current:.2}"),
+                &format!("{current:.2}"),
                 &entry.currency_code,
                 "active", Some(to_fiscal_year), None,
                 entry.expiry_date, entry.budget_line_id,
@@ -616,7 +615,7 @@ impl EncumbranceEngine {
             carry_forward.id,
             "completed",
             carried_count,
-            &format!("{:.2}", carried_amount),
+            &format!("{carried_amount:.2}"),
             created_by,
         ).await?;
 
@@ -732,16 +731,16 @@ impl EncumbranceEngine {
             .collect();
 
         Ok(EncumbranceSummary {
-            total_active_amount: format!("{:.2}", total_active),
-            total_liquidated_amount: format!("{:.2}", total_liquidated),
-            total_adjusted_amount: format!("{:.2}", total_adjusted),
+            total_active_amount: format!("{total_active:.2}"),
+            total_liquidated_amount: format!("{total_liquidated:.2}"),
+            total_adjusted_amount: format!("{total_adjusted:.2}"),
             active_entry_count: active_count,
             entries_by_status: by_status_json,
             entries_by_type: by_type_json,
             by_account: by_account_json,
             by_department: by_department_json,
             expiring_soon_count,
-            expiring_soon_amount: format!("{:.2}", expiring_soon_amount),
+            expiring_soon_amount: format!("{expiring_soon_amount:.2}"),
         })
     }
 }

@@ -108,11 +108,10 @@ impl FinanceChargeEngine {
             ("approved", "applied") => Ok(()),
             ("approved", "cancelled") => Ok(()),
             _ => Err(AtlasError::WorkflowError(format!(
-                "Invalid run status transition from '{}' to '{}'. \
+                "Invalid run status transition from '{current}' to '{target}'. \
                  Valid transitions: draft→submitted, draft→cancelled, \
                  submitted→approved, submitted→cancelled, \
-                 approved→applied, approved→cancelled",
-                current, target
+                 approved→applied, approved→cancelled"
             ))),
         }
     }
@@ -183,7 +182,7 @@ impl FinanceChargeEngine {
             org_id,
             term_code: term_code.to_string(),
             term_name: term_name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             charge_type: charge_type.to_string(),
             charge_rate,
             minimum_charge,
@@ -197,8 +196,8 @@ impl FinanceChargeEngine {
             effective_to,
             is_active: true,
             auto_assess,
-            revenue_account_code: revenue_account_code.map(|s| s.to_string()),
-            receivable_account_code: receivable_account_code.map(|s| s.to_string()),
+            revenue_account_code: revenue_account_code.map(std::string::ToString::to_string),
+            receivable_account_code: receivable_account_code.map(std::string::ToString::to_string),
             created_by,
         };
 
@@ -207,7 +206,7 @@ impl FinanceChargeEngine {
         let _ = self.repo.create_activity(
             org_id, "term", term.id,
             "created",
-            Some(&format!("Finance charge term '{}' created", term_code)),
+            Some(&format!("Finance charge term '{term_code}' created")),
             None, None, created_by, None,
         ).await;
 
@@ -297,7 +296,7 @@ impl FinanceChargeEngine {
         } else if let Some(tid) = term_id {
             let term = self.repo.get_term(tid).await?
                 .ok_or_else(|| AtlasError::EntityNotFound("Finance charge term not found".to_string()))?;
-            Some(term.term_code.clone())
+            Some(term.term_code)
         } else {
             None
         };
@@ -309,7 +308,7 @@ impl FinanceChargeEngine {
             term_id,
             term_code: resolved_term_code,
             currency_code: currency_code.to_string(),
-            notes: notes.map(|s| s.to_string()),
+            notes: notes.map(std::string::ToString::to_string),
             created_by,
         };
 
@@ -377,7 +376,7 @@ impl FinanceChargeEngine {
 
         let _ = self.repo.create_activity(
             current.organization_id, "run", id,
-            &format!("status_change_{}", new_status),
+            &format!("status_change_{new_status}"),
             Some(&format!("Status changed from '{}' to '{}'", current.status, new_status)),
             Some(&current.status), Some(new_status),
             performed_by, None,
@@ -449,10 +448,10 @@ impl FinanceChargeEngine {
             run_id,
             line_number,
             customer_id,
-            customer_number: customer_number.map(|s| s.to_string()),
-            customer_name: customer_name.map(|s| s.to_string()),
+            customer_number: customer_number.map(std::string::ToString::to_string),
+            customer_name: customer_name.map(std::string::ToString::to_string),
             invoice_id,
-            invoice_number: invoice_number.map(|s| s.to_string()),
+            invoice_number: invoice_number.map(std::string::ToString::to_string),
             invoice_date,
             invoice_due_date,
             days_overdue,
@@ -463,7 +462,7 @@ impl FinanceChargeEngine {
             charge_amount,
             currency_code: currency_code.to_string(),
             term_id,
-            term_code: term_code.map(|s| s.to_string()),
+            term_code: term_code.map(std::string::ToString::to_string),
         };
 
         let line = self.repo.create_line(&params).await?;
@@ -544,7 +543,7 @@ impl FinanceChargeEngine {
             let total_charge: f64 = group.iter().map(|l| l.charge_amount).sum();
 
             let seq = self.repo.get_next_invoice_number(run.organization_id).await.unwrap_or(1);
-            let invoice_number = format!("FCI-{:06}", seq);
+            let invoice_number = format!("FCI-{seq:06}");
 
             let params = FinanceChargeInvoiceCreateParams {
                 org_id: run.organization_id,
@@ -620,7 +619,7 @@ impl FinanceChargeEngine {
             .ok_or_else(|| AtlasError::EntityNotFound("Charge invoice not found".to_string()))?;
 
         match (&current.status as &str, new_status) {
-            ("open", "paid") | ("open", "cancelled") | ("open", "reversed") => {}
+            ("open", "paid" | "cancelled" | "reversed") => {}
             _ => {
                 return Err(AtlasError::WorkflowError(format!(
                     "Invalid invoice transition from '{}' to '{}'", current.status, new_status
@@ -632,7 +631,7 @@ impl FinanceChargeEngine {
 
         let _ = self.repo.create_activity(
             current.organization_id, "invoice", id,
-            &format!("status_change_{}", new_status),
+            &format!("status_change_{new_status}"),
             Some(&format!("Invoice '{}' status changed to '{}'", current.charge_invoice_number, new_status)),
             Some(&current.status), Some(new_status), None, None,
         ).await;
@@ -663,6 +662,7 @@ impl FinanceChargeEngine {
     // ========================================================================
 
     /// Calculate finance charge for a percentage-based term
+    #[must_use] 
     pub fn calculate_percentage_charge(
         outstanding_amount: f64,
         annual_rate: f64,
@@ -671,15 +671,16 @@ impl FinanceChargeEngine {
     ) -> f64 {
         let rate_decimal = annual_rate / 100.0;
         match calculation_basis {
-            "daily" => outstanding_amount * rate_decimal / 365.0 * days_overdue as f64,
-            "monthly" => outstanding_amount * rate_decimal / 12.0 * (days_overdue as f64 / 30.0),
+            "daily" => outstanding_amount * rate_decimal / 365.0 * f64::from(days_overdue),
+            "monthly" => outstanding_amount * rate_decimal / 12.0 * (f64::from(days_overdue) / 30.0),
             "annual" => outstanding_amount * rate_decimal,
             _ => 0.0,
         }
     }
 
     /// Apply min/max charge constraints
-    pub fn apply_charge_limits(
+    #[must_use] 
+    pub const fn apply_charge_limits(
         charge_amount: f64,
         minimum: Option<f64>,
         maximum: Option<f64>,
@@ -698,9 +699,14 @@ impl FinanceChargeEngine {
     // Exported validation functions
     // ========================================================================
 
-    pub fn valid_charge_types() -> &'static [&'static str] { VALID_CHARGE_TYPES }
-    pub fn valid_calculation_bases() -> &'static [&'static str] { VALID_CALCULATION_BASES }
-    pub fn valid_run_statuses() -> &'static [&'static str] { VALID_RUN_STATUSES }
-    pub fn valid_line_statuses() -> &'static [&'static str] { VALID_LINE_STATUSES }
-    pub fn valid_invoice_statuses() -> &'static [&'static str] { VALID_INVOICE_STATUSES }
+    #[must_use] 
+    pub const fn valid_charge_types() -> &'static [&'static str] { VALID_CHARGE_TYPES }
+    #[must_use] 
+    pub const fn valid_calculation_bases() -> &'static [&'static str] { VALID_CALCULATION_BASES }
+    #[must_use] 
+    pub const fn valid_run_statuses() -> &'static [&'static str] { VALID_RUN_STATUSES }
+    #[must_use] 
+    pub const fn valid_line_statuses() -> &'static [&'static str] { VALID_LINE_STATUSES }
+    #[must_use] 
+    pub const fn valid_invoice_statuses() -> &'static [&'static str] { VALID_INVOICE_STATUSES }
 }

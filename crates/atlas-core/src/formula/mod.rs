@@ -15,25 +15,25 @@ pub enum FormulaValue {
     Boolean(bool),
     Number(f64),
     String(String),
-    Array(Vec<FormulaValue>),
+    Array(Vec<Self>),
     Object(serde_json::Map<String, serde_json::Value>),
 }
 
 impl From<serde_json::Value> for FormulaValue {
     fn from(v: serde_json::Value) -> Self {
         match v {
-            serde_json::Value::Null => FormulaValue::Null,
-            serde_json::Value::Bool(b) => FormulaValue::Boolean(b),
+            serde_json::Value::Null => Self::Null,
+            serde_json::Value::Bool(b) => Self::Boolean(b),
             serde_json::Value::Number(n) => {
                 if let Some(f) = n.as_f64() {
-                    FormulaValue::Number(f)
+                    Self::Number(f)
                 } else {
-                    FormulaValue::Number(n.to_string().parse().unwrap_or(0.0))
+                    Self::Number(n.to_string().parse().unwrap_or(0.0))
                 }
             }
-            serde_json::Value::String(s) => FormulaValue::String(s),
-            serde_json::Value::Array(arr) => FormulaValue::Array(arr.into_iter().map(FormulaValue::from).collect()),
-            serde_json::Value::Object(obj) => FormulaValue::Object(obj),
+            serde_json::Value::String(s) => Self::String(s),
+            serde_json::Value::Array(arr) => Self::Array(arr.into_iter().map(Self::from).collect()),
+            serde_json::Value::Object(obj) => Self::Object(obj),
         }
     }
 }
@@ -41,12 +41,12 @@ impl From<serde_json::Value> for FormulaValue {
 impl From<FormulaValue> for serde_json::Value {
     fn from(v: FormulaValue) -> Self {
         match v {
-            FormulaValue::Null => serde_json::Value::Null,
-            FormulaValue::Boolean(b) => serde_json::Value::Bool(b),
+            FormulaValue::Null => Self::Null,
+            FormulaValue::Boolean(b) => Self::Bool(b),
             FormulaValue::Number(n) => serde_json::json!(n),
-            FormulaValue::String(s) => serde_json::Value::String(s),
-            FormulaValue::Array(arr) => serde_json::Value::Array(arr.into_iter().map(serde_json::Value::from).collect()),
-            FormulaValue::Object(obj) => serde_json::Value::Object(obj),
+            FormulaValue::String(s) => Self::String(s),
+            FormulaValue::Array(arr) => Self::Array(arr.into_iter().map(Self::from).collect()),
+            FormulaValue::Object(obj) => Self::Object(obj),
         }
     }
 }
@@ -67,6 +67,7 @@ pub struct EvaluationContext {
 }
 
 impl EvaluationContext {
+    #[must_use] 
     pub fn new(record: serde_json::Value) -> Self {
         Self {
             record,
@@ -77,15 +78,18 @@ impl EvaluationContext {
         }
     }
     
+    #[must_use] 
     pub fn with_related(mut self, entity: &str, records: Vec<serde_json::Value>) -> Self {
         self.related.insert(entity.to_string(), records);
         self
     }
     
+    #[must_use] 
     pub fn get_field(&self, name: &str) -> Option<&serde_json::Value> {
         self.record.get(name)
     }
     
+    #[must_use] 
     pub fn get_related(&self, entity: &str) -> Option<&Vec<serde_json::Value>> {
         self.related.get(entity)
     }

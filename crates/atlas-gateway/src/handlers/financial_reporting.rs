@@ -77,7 +77,7 @@ pub struct CreateRowRequest {
 }
 
 fn default_line_type() -> String { "data".to_string() }
-fn default_true() -> bool { true }
+const fn default_true() -> bool { true }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -557,7 +557,7 @@ fn map_error(e: atlas_shared::AtlasError) -> (axum::http::StatusCode, Json<serde
         atlas_shared::AtlasError::EntityNotFound(msg) => (axum::http::StatusCode::NOT_FOUND, msg),
         atlas_shared::AtlasError::WorkflowError(msg) => (axum::http::StatusCode::CONFLICT, msg),
         atlas_shared::AtlasError::Forbidden(msg) => (axum::http::StatusCode::FORBIDDEN, msg),
-        _ => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("{:?}", e)),
+        _ => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("{e:?}")),
     };
     (status, Json(json!({"error": message})))
 }

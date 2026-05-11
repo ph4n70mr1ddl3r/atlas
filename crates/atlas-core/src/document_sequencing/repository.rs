@@ -1,6 +1,6 @@
 //! Document Sequencing Repository
 //!
-//! PostgreSQL storage for document sequences, assignments, and audit trail.
+//! `PostgreSQL` storage for document sequences, assignments, and audit trail.
 
 use atlas_shared::{
     DocumentSequence, DocumentSequenceAssignment, DocumentSequenceAudit,
@@ -34,7 +34,7 @@ pub trait DocumentSequencingRepository: Send + Sync {
     /// Atomically increment and return the next value. Used for gapless sequences.
     async fn increment_sequence_value(&self, id: Uuid, increment_by: i32) -> AtlasResult<DocumentSequence>;
 
-    /// Reset the current value back to initial_value and set last_reset_date.
+    /// Reset the current value back to `initial_value` and set `last_reset_date`.
     async fn reset_sequence(&self, id: Uuid, reset_date: chrono::NaiveDate) -> AtlasResult<DocumentSequence>;
 
     // Assignments
@@ -75,13 +75,14 @@ pub trait DocumentSequencingRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<DocumentSequenceDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresDocumentSequencingRepository {
     pool: PgPool,
 }
 
 impl PostgresDocumentSequencingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -166,17 +167,17 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DocumentSequence> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.document_sequences
+            r"INSERT INTO _atlas.document_sequences
                 (organization_id, code, name, description, sequence_type, document_type,
                  initial_value, current_value, increment_by, max_value, cycle_flag,
                  prefix, suffix, pad_length, pad_character, reset_frequency,
                  effective_from, effective_to, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(sequence_type).bind(document_type)
-        .bind(initial_value).bind(initial_value - (increment_by.max(1) as i64)) // current_value starts before initial
+        .bind(initial_value).bind(initial_value - i64::from(increment_by.max(1))) // current_value starts before initial
         .bind(increment_by).bind(max_value).bind(cycle_flag)
         .bind(prefix).bind(suffix).bind(pad_length).bind(pad_character)
         .bind(reset_frequency).bind(effective_from).bind(effective_to)
@@ -208,11 +209,11 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
 
     async fn list_sequences(&self, org_id: Uuid, status: Option<&str>, document_type: Option<&str>) -> AtlasResult<Vec<DocumentSequence>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.document_sequences
+            r"SELECT * FROM _atlas.document_sequences
             WHERE organization_id=$1
               AND ($2::text IS NULL OR status=$2)
               AND ($3::text IS NULL OR document_type=$3)
-            ORDER BY code"#,
+            ORDER BY code",
         )
         .bind(org_id).bind(status).bind(document_type)
         .fetch_all(&self.pool).await
@@ -222,8 +223,8 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
 
     async fn update_sequence_status(&self, id: Uuid, status: &str) -> AtlasResult<DocumentSequence> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.document_sequences SET status=$2, updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            r"UPDATE _atlas.document_sequences SET status=$2, updated_at=now()
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -243,11 +244,11 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
 
     async fn increment_sequence_value(&self, id: Uuid, increment_by: i32) -> AtlasResult<DocumentSequence> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.document_sequences
+            r"UPDATE _atlas.document_sequences
             SET current_value = current_value + $2,
                 updated_at = now()
             WHERE id=$1
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(id).bind(increment_by)
         .fetch_one(&self.pool).await
@@ -257,12 +258,12 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
 
     async fn reset_sequence(&self, id: Uuid, reset_date: chrono::NaiveDate) -> AtlasResult<DocumentSequence> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.document_sequences
+            r"UPDATE _atlas.document_sequences
             SET current_value = initial_value - increment_by,
                 last_reset_date = $2,
                 updated_at = now()
             WHERE id=$1
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(id).bind(reset_date)
         .fetch_one(&self.pool).await
@@ -278,12 +279,12 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
         priority: i32, created_by: Option<Uuid>,
     ) -> AtlasResult<DocumentSequenceAssignment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.document_sequence_assignments
+            r"INSERT INTO _atlas.document_sequence_assignments
                 (organization_id, sequence_id, sequence_code, document_category,
                  business_unit_id, ledger_id, method, effective_from, effective_to,
                  priority, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(sequence_id).bind(sequence_code)
         .bind(document_category).bind(business_unit_id).bind(ledger_id)
@@ -309,7 +310,7 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
         business_unit_id: Option<Uuid>, ledger_id: Option<Uuid>,
     ) -> AtlasResult<Option<DocumentSequenceAssignment>> {
         let row = sqlx::query(
-            r#"SELECT * FROM _atlas.document_sequence_assignments
+            r"SELECT * FROM _atlas.document_sequence_assignments
             WHERE organization_id=$1
               AND document_category=$2
               AND status='active'
@@ -318,7 +319,7 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
               AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
               AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
             ORDER BY priority DESC, business_unit_id IS NOT NULL, ledger_id IS NOT NULL
-            LIMIT 1"#,
+            LIMIT 1",
         )
         .bind(org_id).bind(document_category).bind(business_unit_id).bind(ledger_id)
         .fetch_optional(&self.pool).await
@@ -328,9 +329,9 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
 
     async fn list_assignments(&self, org_id: Uuid, sequence_id: Option<Uuid>) -> AtlasResult<Vec<DocumentSequenceAssignment>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.document_sequence_assignments
+            r"SELECT * FROM _atlas.document_sequence_assignments
             WHERE organization_id=$1 AND ($2::uuid IS NULL OR sequence_id=$2)
-            ORDER BY document_category, priority DESC"#,
+            ORDER BY document_category, priority DESC",
         )
         .bind(org_id).bind(sequence_id)
         .fetch_all(&self.pool).await
@@ -340,8 +341,8 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
 
     async fn update_assignment_status(&self, id: Uuid, status: &str) -> AtlasResult<DocumentSequenceAssignment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.document_sequence_assignments SET status=$2, updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            r"UPDATE _atlas.document_sequence_assignments SET status=$2, updated_at=now()
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -364,12 +365,12 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
         generated_by: Option<Uuid>, metadata: serde_json::Value,
     ) -> AtlasResult<DocumentSequenceAudit> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.document_sequence_audit
+            r"INSERT INTO _atlas.document_sequence_audit
                 (organization_id, sequence_id, sequence_code, generated_number,
                  numeric_value, document_category, document_id, document_number,
                  business_unit_id, generated_by, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(sequence_id).bind(sequence_code)
         .bind(generated_number).bind(numeric_value)
@@ -386,18 +387,18 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
         let limit_val = limit.unwrap_or(100);
         let rows = if sequence_id.is_some() {
             sqlx::query(
-                r#"SELECT * FROM _atlas.document_sequence_audit
+                r"SELECT * FROM _atlas.document_sequence_audit
                 WHERE organization_id=$1 AND sequence_id=$2
-                ORDER BY generated_at DESC LIMIT $3"#,
+                ORDER BY generated_at DESC LIMIT $3",
             )
             .bind(org_id).bind(sequence_id).bind(limit_val)
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else {
             sqlx::query(
-                r#"SELECT * FROM _atlas.document_sequence_audit
+                r"SELECT * FROM _atlas.document_sequence_audit
                 WHERE organization_id=$1
-                ORDER BY generated_at DESC LIMIT $2"#,
+                ORDER BY generated_at DESC LIMIT $2",
             )
             .bind(org_id).bind(limit_val)
             .fetch_all(&self.pool).await
@@ -418,13 +419,13 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<DocumentSequenceDashboardSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active,
                 COUNT(*) FILTER (WHERE sequence_type = 'gapless') as gapless,
                 COUNT(*) FILTER (WHERE sequence_type = 'gap_permitted') as gap_permitted,
                 COALESCE(SUM(current_value), 0)::bigint as total_generated
-            FROM _atlas.document_sequences WHERE organization_id = $1"#,
+            FROM _atlas.document_sequences WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -442,9 +443,9 @@ impl DocumentSequencingRepository for PostgresDocumentSequencingRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let recent_rows = sqlx::query(
-            r#"SELECT * FROM _atlas.document_sequence_audit
+            r"SELECT * FROM _atlas.document_sequence_audit
             WHERE organization_id=$1
-            ORDER BY generated_at DESC LIMIT 10"#,
+            ORDER BY generated_at DESC LIMIT 10",
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

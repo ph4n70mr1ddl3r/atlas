@@ -1,6 +1,6 @@
 //! Payment Repository
 //!
-//! PostgreSQL storage for payment terms, payment batches, payments,
+//! `PostgreSQL` storage for payment terms, payment batches, payments,
 //! payment lines, scheduled payments, payment formats, and remittance advice.
 
 use atlas_shared::{
@@ -189,13 +189,14 @@ pub trait PaymentRepository: Send + Sync {
     async fn update_remittance_advice_status(&self, id: Uuid, status: &str, failure_reason: Option<&str>) -> AtlasResult<RemittanceAdvice>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresPaymentRepository {
     pool: PgPool,
 }
 
 impl PostgresPaymentRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -419,7 +420,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PaymentTerm> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.payment_terms
                 (organization_id, code, name, description, due_days,
                  discount_days, discount_percentage, is_installment,
@@ -434,7 +435,7 @@ impl PaymentRepository for PostgresPaymentRepository {
                     effective_from = $12, effective_to = $13, is_active = true,
                     updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description).bind(due_days)
         .bind(discount_days).bind(discount_percentage).bind(is_installment)
@@ -507,14 +508,14 @@ impl PaymentRepository for PostgresPaymentRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PaymentBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.payment_batches
                 (organization_id, batch_number, name, description,
                  payment_date, bank_account_id, payment_method, currency_code,
                  selection_criteria, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(batch_number).bind(name).bind(description)
         .bind(payment_date).bind(bank_account_id).bind(payment_method)
@@ -548,11 +549,11 @@ impl PaymentRepository for PostgresPaymentRepository {
 
     async fn list_payment_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PaymentBatch>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.payment_batches
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
             ORDER BY payment_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool)
@@ -569,7 +570,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         cancellation_reason: Option<&str>,
     ) -> AtlasResult<PaymentBatch> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.payment_batches
             SET status = $2,
                 selected_by = CASE WHEN $2 = 'selected' THEN $3 ELSE selected_by END,
@@ -586,7 +587,7 @@ impl PaymentRepository for PostgresPaymentRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(action_by).bind(cancellation_reason)
         .fetch_one(&self.pool)
@@ -604,13 +605,13 @@ impl PaymentRepository for PostgresPaymentRepository {
         discount_taken: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.payment_batches
             SET total_invoice_count = $2, total_payment_count = $3,
                 total_payment_amount = $4::numeric, total_discount_taken = $5::numeric,
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(invoice_count).bind(payment_count)
         .bind(payment_amount).bind(discount_taken)
@@ -647,7 +648,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Payment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.payments
                 (organization_id, payment_number, batch_id,
                  supplier_id, supplier_number, supplier_name, supplier_site,
@@ -659,7 +660,7 @@ impl PaymentRepository for PostgresPaymentRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11::numeric, $12::numeric, $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(payment_number).bind(batch_id)
         .bind(supplier_id).bind(supplier_number).bind(supplier_name).bind(supplier_site)
@@ -697,14 +698,14 @@ impl PaymentRepository for PostgresPaymentRepository {
 
     async fn list_payments(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>, batch_id: Option<Uuid>) -> AtlasResult<Vec<Payment>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.payments
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::uuid IS NULL OR supplier_id = $3)
               AND ($4::uuid IS NULL OR batch_id = $4)
             ORDER BY payment_date DESC, created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(supplier_id).bind(batch_id)
         .fetch_all(&self.pool)
@@ -723,7 +724,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         voided_by: Option<Uuid>,
     ) -> AtlasResult<Payment> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.payments
             SET status = $2,
                 cleared_date = CASE WHEN $2 = 'cleared' THEN $3 ELSE cleared_date END,
@@ -736,7 +737,7 @@ impl PaymentRepository for PostgresPaymentRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(cleared_date).bind(cleared_by)
         .bind(void_reason).bind(voided_by)
@@ -765,7 +766,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         withholding_amount: &str,
     ) -> AtlasResult<PaymentLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.payment_lines
                 (organization_id, payment_id, line_number,
                  invoice_id, invoice_number, invoice_date, invoice_due_date,
@@ -773,7 +774,7 @@ impl PaymentRepository for PostgresPaymentRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7,
                     $8::numeric, $9::numeric, $10::numeric, $11::numeric)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(payment_id).bind(line_number)
         .bind(invoice_id).bind(invoice_number).bind(invoice_date).bind(invoice_due_date)
@@ -815,7 +816,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledPayment> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.scheduled_payments
                 (organization_id, invoice_id, invoice_number,
                  supplier_id, supplier_name,
@@ -823,7 +824,7 @@ impl PaymentRepository for PostgresPaymentRepository {
                  installment_number, payment_method, bank_account_id, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8, $9, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(invoice_id).bind(invoice_number)
         .bind(supplier_id).bind(supplier_name)
@@ -838,13 +839,13 @@ impl PaymentRepository for PostgresPaymentRepository {
 
     async fn list_scheduled_payments(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<ScheduledPayment>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.scheduled_payments
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::uuid IS NULL OR supplier_id = $3)
             ORDER BY scheduled_payment_date, supplier_name
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(supplier_id)
         .fetch_all(&self.pool)
@@ -861,7 +862,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         payment_id: Option<Uuid>,
     ) -> AtlasResult<ScheduledPayment> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.scheduled_payments
             SET status = $2,
                 is_selected = CASE WHEN $2 = 'selected' THEN true ELSE is_selected END,
@@ -870,7 +871,7 @@ impl PaymentRepository for PostgresPaymentRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(selected_batch_id).bind(payment_id)
         .fetch_one(&self.pool)
@@ -895,7 +896,7 @@ impl PaymentRepository for PostgresPaymentRepository {
         is_system: bool,
     ) -> AtlasResult<PaymentFormat> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.payment_formats
                 (organization_id, code, name, description,
                  format_type, template_reference, applicable_methods, is_system)
@@ -905,7 +906,7 @@ impl PaymentRepository for PostgresPaymentRepository {
                     template_reference = $6, applicable_methods = $7,
                     is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(format_type).bind(template_reference).bind(applicable_methods).bind(is_system)
@@ -956,14 +957,14 @@ impl PaymentRepository for PostgresPaymentRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RemittanceAdvice> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.remittance_advices
                 (organization_id, payment_id, delivery_method, delivery_address,
                  contact_name, contact_email, subject, body,
                  payment_summary, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(payment_id).bind(delivery_method).bind(delivery_address)
         .bind(contact_name).bind(contact_email).bind(subject).bind(body)
@@ -977,11 +978,11 @@ impl PaymentRepository for PostgresPaymentRepository {
 
     async fn list_remittance_advices(&self, org_id: Uuid, payment_id: Option<Uuid>) -> AtlasResult<Vec<RemittanceAdvice>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.remittance_advices
             WHERE organization_id = $1 AND ($2::uuid IS NULL OR payment_id = $2)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(payment_id)
         .fetch_all(&self.pool)
@@ -992,7 +993,7 @@ impl PaymentRepository for PostgresPaymentRepository {
 
     async fn update_remittance_advice_status(&self, id: Uuid, status: &str, failure_reason: Option<&str>) -> AtlasResult<RemittanceAdvice> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.remittance_advices
             SET status = $2,
                 sent_at = CASE WHEN $2 = 'sent' THEN now() ELSE sent_at END,
@@ -1001,7 +1002,7 @@ impl PaymentRepository for PostgresPaymentRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(failure_reason)
         .fetch_one(&self.pool)

@@ -57,10 +57,10 @@ impl NotificationEngine {
                 notification_type: notification_type.to_string(),
                 priority: Some("normal".to_string()),
                 title: title.to_string(),
-                message: message.map(|s| s.to_string()),
-                entity_type: entity_type.map(|s| s.to_string()),
+                message: message.map(std::string::ToString::to_string),
+                entity_type: entity_type.map(std::string::ToString::to_string),
                 entity_id,
-                action_url: action_url.map(|s| s.to_string()),
+                action_url: action_url.map(std::string::ToString::to_string),
                 workflow_name: None,
                 from_state: None,
                 to_state: None,
@@ -98,10 +98,9 @@ impl NotificationEngine {
         let title = format!("{}: {} → {}", action.replace('_', " "), 
             from_state.replace('_', " "), to_state.replace('_', " "));
         let message = Some(format!(
-            "Record {} in {} has transitioned from {} to {} via action '{}'.",
-            entity_id, entity_type, from_state, to_state, action
+            "Record {entity_id} in {entity_type} has transitioned from {from_state} to {to_state} via action '{action}'."
         ));
-        let action_url = Some(format!("/{}/{}", entity_type, entity_id));
+        let action_url = Some(format!("/{entity_type}/{entity_id}"));
 
         let request = CreateNotificationRequest {
             user_id: Some(user_id),
@@ -136,8 +135,7 @@ impl NotificationEngine {
         title: &str,
     ) -> AtlasResult<Notification> {
         let message = Some(format!(
-            "Your approval is requested at level {} for {} '{}'.",
-            level, entity_type, title
+            "Your approval is requested at level {level} for {entity_type} '{title}'."
         ));
 
         let request = CreateNotificationRequest {
@@ -145,11 +143,11 @@ impl NotificationEngine {
             role: None,
             notification_type: "approval_required".to_string(),
             priority: Some("high".to_string()),
-            title: format!("Approval Required: {}", title),
+            title: format!("Approval Required: {title}"),
             message,
             entity_type: Some(entity_type.to_string()),
             entity_id: Some(entity_id),
-            action_url: Some(format!("/{}/{}", entity_type, entity_id)),
+            action_url: Some(format!("/{entity_type}/{entity_id}")),
             workflow_name: None,
             from_state: None,
             to_state: None,
@@ -179,14 +177,13 @@ impl NotificationEngine {
             org_id,
             escalated_to_role,
             "escalation",
-            &format!("Escalated Approval: {}", title),
+            &format!("Escalated Approval: {title}"),
             Some(&format!(
-                "Approval has been escalated after {} hours. Original approver may be unavailable.",
-                hours_passed
+                "Approval has been escalated after {hours_passed} hours. Original approver may be unavailable."
             )),
             Some(entity_type),
             Some(entity_id),
-            Some(&format!("/{}/{}", entity_type, entity_id)),
+            Some(&format!("/{entity_type}/{entity_id}")),
         ).await
     }
 

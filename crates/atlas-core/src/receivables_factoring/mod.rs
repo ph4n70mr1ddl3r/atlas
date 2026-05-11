@@ -299,14 +299,15 @@ pub trait ReceivablesFactoringRepository: Send + Sync {
 // PostgreSQL Implementation (Stub)
 // ============================================================================
 
-/// PostgreSQL implementation of ReceivablesFactoringRepository
+/// `PostgreSQL` implementation of `ReceivablesFactoringRepository`
 #[allow(dead_code)]
 pub struct PostgresReceivablesFactoringRepository {
     pool: PgPool,
 }
 
 impl PostgresReceivablesFactoringRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }

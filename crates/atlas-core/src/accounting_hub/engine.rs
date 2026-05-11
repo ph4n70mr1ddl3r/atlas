@@ -68,7 +68,7 @@ impl AccountingHubEngine {
 
         if self.repository.get_external_system(org_id, code).await?.is_some() {
             return Err(AtlasError::Conflict(
-                format!("External system code '{}' already exists", code)
+                format!("External system code '{code}' already exists")
             ));
         }
 
@@ -94,7 +94,7 @@ impl AccountingHubEngine {
     pub async fn delete_external_system(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         self.repository.get_external_system(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("External system '{}' not found", code)
+                format!("External system '{code}' not found")
             ))?;
 
         self.repository.delete_external_system(org_id, code).await
@@ -142,7 +142,7 @@ impl AccountingHubEngine {
         // Verify external system exists
         self.repository.get_external_system_by_id(external_system_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("External system {} not found", external_system_id)
+                format!("External system {external_system_id} not found")
             ))?;
 
         info!("Creating mapping rule {} for external system {}", code, external_system_id);
@@ -198,7 +198,7 @@ impl AccountingHubEngine {
         // Verify external system exists
         let system = self.repository.get_external_system_by_id(external_system_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("External system {} not found", external_system_id)
+                format!("External system {external_system_id} not found")
             ))?;
 
         let event_number = format!("AE-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
@@ -254,7 +254,7 @@ impl AccountingHubEngine {
     async fn process_event(&self, event_id: Uuid) -> AtlasResult<()> {
         let event = self.repository.get_accounting_event(event_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting event {} not found", event_id)
+                format!("Accounting event {event_id} not found")
             ))?;
 
         if event.status != "received" {
@@ -284,7 +284,7 @@ impl AccountingHubEngine {
                 if let Some(mid) = method_id {
                     let _event = self.repository.get_accounting_event(event_id).await?
                         .ok_or_else(|| AtlasError::EntityNotFound(
-                            format!("Accounting event {} not found", event_id)
+                            format!("Accounting event {event_id} not found")
                         ))?;
 
                     // In a full implementation, we would create SLA journal entries here

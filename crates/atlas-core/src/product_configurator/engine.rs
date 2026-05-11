@@ -53,7 +53,7 @@ const VALID_INSTANCE_STATUSES: &[&str] = &[
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
         return Err(AtlasError::ValidationFailed(format!(
-            "{} is required", field
+            "{field} is required"
         )));
     }
     if !allowed.contains(&value) {
@@ -115,7 +115,7 @@ impl ProductConfiguratorEngine {
 
         if self.repository.get_model_by_number(org_id, model_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Model '{}' already exists", model_number
+                "Model '{model_number}' already exists"
             )));
         }
 
@@ -163,7 +163,7 @@ impl ProductConfiguratorEngine {
     /// Activate a model
     pub async fn activate_model(&self, id: Uuid) -> AtlasResult<ConfigModel> {
         let model = self.repository.get_model(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {id} not found")))?;
 
         if model.status != "draft" && model.status != "inactive" {
             return Err(AtlasError::ValidationFailed(
@@ -178,7 +178,7 @@ impl ProductConfiguratorEngine {
     /// Deactivate a model
     pub async fn deactivate_model(&self, id: Uuid) -> AtlasResult<ConfigModel> {
         let model = self.repository.get_model(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {id} not found")))?;
 
         if model.status != "active" {
             return Err(AtlasError::ValidationFailed(
@@ -193,7 +193,7 @@ impl ProductConfiguratorEngine {
     /// Obsolete a model
     pub async fn obsolete_model(&self, id: Uuid) -> AtlasResult<ConfigModel> {
         let model = self.repository.get_model(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {id} not found")))?;
 
         if model.status == "obsolete" {
             return Err(AtlasError::ValidationFailed(
@@ -247,7 +247,7 @@ impl ProductConfiguratorEngine {
         // Verify model exists
         let model = self.repository.get_model(model_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Model {} not found", model_id
+                "Model {model_id} not found"
             )))?;
 
         if model.status != "draft" && model.status != "active" {
@@ -318,7 +318,7 @@ impl ProductConfiguratorEngine {
         // Verify feature exists
         let feature = self.repository.get_feature(feature_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Feature {} not found", feature_id
+                "Feature {feature_id} not found"
             )))?;
 
         // Verify model is editable
@@ -400,7 +400,7 @@ impl ProductConfiguratorEngine {
         // Verify model exists
         let model = self.repository.get_model(model_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Model {} not found", model_id
+                "Model {model_id} not found"
             )))?;
 
         if model.status != "draft" && model.status != "active" {
@@ -413,31 +413,31 @@ impl ProductConfiguratorEngine {
         if let Some(sf_id) = source_feature_id {
             self.repository.get_feature(sf_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Source feature {} not found", sf_id
+                    "Source feature {sf_id} not found"
                 )))?;
         }
         if let Some(tf_id) = target_feature_id {
             self.repository.get_feature(tf_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Target feature {} not found", tf_id
+                    "Target feature {tf_id} not found"
                 )))?;
         }
         if let Some(so_id) = source_option_id {
             self.repository.get_option(so_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Source option {} not found", so_id
+                    "Source option {so_id} not found"
                 )))?;
         }
         if let Some(to_id) = target_option_id {
             self.repository.get_option(to_id).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Target option {} not found", to_id
+                    "Target option {to_id} not found"
                 )))?;
         }
 
         if self.repository.get_rule_by_code(model_id, rule_code).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Rule '{}' already exists in model", rule_code
+                "Rule '{rule_code}' already exists in model"
             )));
         }
 
@@ -513,7 +513,7 @@ impl ProductConfiguratorEngine {
         // Verify model exists and is active
         let model = self.repository.get_model(model_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Model {} not found", model_id
+                "Model {model_id} not found"
             )))?;
 
         if model.status != "active" {
@@ -531,7 +531,7 @@ impl ProductConfiguratorEngine {
         // Validate the configuration
         let (errors, warnings) = self.validate_configuration(model_id, &selections).await?;
 
-        let status = if errors.as_array().is_none_or(|a| a.is_empty()) {
+        let status = if errors.as_array().is_none_or(std::vec::Vec::is_empty) {
             "valid"
         } else {
             "invalid"
@@ -539,7 +539,7 @@ impl ProductConfiguratorEngine {
 
         if self.repository.get_instance_by_number(org_id, instance_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Instance '{}' already exists", instance_number
+                "Instance '{instance_number}' already exists"
             )));
         }
 
@@ -589,7 +589,7 @@ impl ProductConfiguratorEngine {
         base_price: f64,
     ) -> AtlasResult<ConfigInstance> {
         let instance = self.repository.get_instance(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
         if instance.status != "draft" && instance.status != "valid" && instance.status != "invalid" {
             return Err(AtlasError::ValidationFailed(
@@ -601,7 +601,7 @@ impl ProductConfiguratorEngine {
         let config_hash = Self::compute_config_hash(&selections);
         let (errors, warnings) = self.validate_configuration(instance.model_id, &selections).await?;
 
-        let new_status = if errors.as_array().is_none_or(|a| a.is_empty()) {
+        let new_status = if errors.as_array().is_none_or(std::vec::Vec::is_empty) {
             "valid"
         } else {
             "invalid"
@@ -621,7 +621,7 @@ impl ProductConfiguratorEngine {
     /// Submit a configuration for approval
     pub async fn submit_instance(&self, id: Uuid) -> AtlasResult<ConfigInstance> {
         let instance = self.repository.get_instance(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
         if instance.status != "valid" {
             return Err(AtlasError::ValidationFailed(
@@ -636,7 +636,7 @@ impl ProductConfiguratorEngine {
     /// Approve a configuration
     pub async fn approve_instance(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<ConfigInstance> {
         let instance = self.repository.get_instance(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
         if instance.status != "submitted" {
             return Err(AtlasError::ValidationFailed(
@@ -652,7 +652,7 @@ impl ProductConfiguratorEngine {
     /// Reject (cancel) a configuration
     pub async fn cancel_instance(&self, id: Uuid) -> AtlasResult<ConfigInstance> {
         let instance = self.repository.get_instance(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
         if instance.status == "ordered" {
             return Err(AtlasError::ValidationFailed(
@@ -673,7 +673,7 @@ impl ProductConfiguratorEngine {
         sales_order_line: i32,
     ) -> AtlasResult<ConfigInstance> {
         let instance = self.repository.get_instance(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
         if instance.status != "approved" {
             return Err(AtlasError::ValidationFailed(
@@ -774,7 +774,7 @@ impl ProductConfiguratorEngine {
                 let has_selection = selections.get(&feature.feature_code)
                     .and_then(|v| {
                         if v.is_string() { Some(v.as_str().map(|s| !s.is_empty())).flatten() }
-                        else if v.is_array() { Some(!v.as_array().is_none_or(|a| a.is_empty())) }
+                        else if v.is_array() { Some(!v.as_array().is_none_or(std::vec::Vec::is_empty)) }
                         else { None }
                     })
                     .unwrap_or(false);

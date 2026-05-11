@@ -63,7 +63,7 @@ pub struct CreateAbsenceTypeRequest {
     pub allow_half_day: bool,
 }
 
-fn default_true() -> bool { true }
+const fn default_true() -> bool { true }
 
 /// Create or update an absence type
 pub async fn create_absence_type(

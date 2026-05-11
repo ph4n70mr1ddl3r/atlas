@@ -1,6 +1,6 @@
 //! Cash Concentration Repository
 //!
-//! PostgreSQL storage for cash pools, participants, sweep rules, and sweep runs.
+//! `PostgreSQL` storage for cash pools, participants, sweep rules, and sweep runs.
 
 use atlas_shared::{
     CashPool, CashPoolParticipant, CashPoolSweepRule,
@@ -143,16 +143,14 @@ pub struct SweepRunLineCreateParams {
 
 // Helper functions
 fn get_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> String {
-    row.try_get::<f64, _>(col)
-        .map(|v| format!("{:.2}", v))
-        .unwrap_or_else(|_| "0.00".to_string())
+    row.try_get::<f64, _>(col).map_or_else(|_| "0.00".to_string(), |v| format!("{v:.2}"))
 }
 
 fn get_optional_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> Option<String> {
     row.try_get::<Option<f64>, _>(col)
         .ok()
         .flatten()
-        .map(|v| format!("{:.2}", v))
+        .map(|v| format!("{v:.2}"))
 }
 
 fn row_to_pool(row: &sqlx::postgres::PgRow) -> CashPool {
@@ -286,13 +284,14 @@ fn row_to_sweep_run_line(row: &sqlx::postgres::PgRow) -> CashPoolSweepRunLine {
     }
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCashConcentrationRepository {
     pool: PgPool,
 }
 
 impl PostgresCashConcentrationRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -305,7 +304,7 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
     async fn create_pool(&self, p: &PoolCreateParams) -> AtlasResult<CashPool> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cash_pools
+            r"INSERT INTO _atlas.cash_pools
                 (organization_id, pool_code, pool_name, pool_type,
                  concentration_account_id, concentration_account_name, currency_code,
                  sweep_frequency, sweep_time, minimum_transfer_amount,
@@ -313,7 +312,7 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
                  interest_allocation_method, interest_rate,
                  effective_date, termination_date, description, notes, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(p.org_id).bind(&p.pool_code).bind(&p.pool_name).bind(&p.pool_type)
         .bind(p.concentration_account_id).bind(&p.concentration_account_name).bind(&p.currency_code)
@@ -346,10 +345,10 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
     async fn list_pools(&self, org_id: Uuid, status: Option<&str>, pool_type: Option<&str>) -> AtlasResult<Vec<CashPool>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.cash_pools
+            r"SELECT * FROM _atlas.cash_pools
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::text IS NULL OR pool_type=$3)
-            ORDER BY pool_code"#,
+            ORDER BY pool_code",
         )
         .bind(org_id).bind(status).bind(pool_type)
         .fetch_all(&self.pool).await
@@ -381,14 +380,14 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
     async fn create_participant(&self, p: &ParticipantCreateParams) -> AtlasResult<CashPoolParticipant> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cash_pool_participants
+            r"INSERT INTO _atlas.cash_pool_participants
                 (organization_id, pool_id, participant_code,
                  bank_account_id, bank_account_name, bank_name, account_number,
                  participant_type, sweep_direction, priority,
                  minimum_balance, maximum_balance, threshold_amount, current_balance,
                  entity_id, entity_name, effective_date, description, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(p.org_id).bind(p.pool_id).bind(&p.participant_code)
         .bind(p.bank_account_id).bind(&p.bank_account_name).bind(&p.bank_name).bind(&p.account_number)
@@ -422,9 +421,9 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
     async fn list_participants(&self, pool_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CashPoolParticipant>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.cash_pool_participants
+            r"SELECT * FROM _atlas.cash_pool_participants
             WHERE pool_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY priority, participant_code"#,
+            ORDER BY priority, participant_code",
         )
         .bind(pool_id).bind(status)
         .fetch_all(&self.pool).await
@@ -459,13 +458,13 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
     async fn create_sweep_rule(&self, p: &SweepRuleCreateParams) -> AtlasResult<CashPoolSweepRule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cash_pool_sweep_rules
+            r"INSERT INTO _atlas.cash_pool_sweep_rules
                 (organization_id, pool_id, rule_code, rule_name, sweep_type,
                  participant_id, direction, trigger_condition,
                  threshold_amount, target_balance, minimum_transfer, maximum_transfer,
                  priority, effective_date, description, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(p.org_id).bind(p.pool_id).bind(&p.rule_code).bind(&p.rule_name).bind(&p.sweep_type)
         .bind(p.participant_id).bind(&p.direction).bind(&p.trigger_condition)
@@ -502,11 +501,11 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
     async fn create_sweep_run(&self, p: &SweepRunCreateParams) -> AtlasResult<CashPoolSweepRun> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cash_pool_sweep_runs
+            r"INSERT INTO _atlas.cash_pool_sweep_runs
                 (organization_id, pool_id, run_number, run_date, run_type,
                  status, initiated_by, notes, started_at)
             VALUES ($1,$2,$3,$4,$5,'in_progress',$6,$7,now())
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(p.org_id).bind(p.pool_id).bind(&p.run_number).bind(p.run_date)
         .bind(&p.run_type).bind(p.initiated_by).bind(&p.notes)
@@ -539,7 +538,7 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
         successful: Option<i32>, failed: Option<i32>,
     ) -> AtlasResult<CashPoolSweepRun> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.cash_pool_sweep_runs
+            r"UPDATE _atlas.cash_pool_sweep_runs
             SET status=$2,
                 total_swept_amount=COALESCE($3, total_swept_amount),
                 total_transactions=COALESCE($4, total_transactions),
@@ -548,7 +547,7 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
                 completed_at=CASE WHEN $2 IN ('completed','partially_completed','failed','cancelled')
                     THEN now() ELSE completed_at END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .bind(total_swept.and_then(|s| s.parse::<f64>().ok())).bind(total_txns).bind(successful).bind(failed)
@@ -559,13 +558,13 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
     async fn create_sweep_run_line(&self, p: &SweepRunLineCreateParams) -> AtlasResult<CashPoolSweepRunLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.cash_pool_sweep_run_lines
+            r"INSERT INTO _atlas.cash_pool_sweep_run_lines
                 (organization_id, sweep_run_id, pool_id, participant_id,
                  participant_code, bank_account_name, sweep_rule_id,
                  direction, pre_sweep_balance, sweep_amount,
                  post_sweep_balance, status)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(p.organization_id).bind(p.sweep_run_id).bind(p.pool_id).bind(p.participant_id)
         .bind(&p.participant_code).bind(&p.bank_account_name).bind(p.sweep_rule_id)
@@ -602,10 +601,10 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CashPoolDashboard> {
         let pool_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'active') as active
-            FROM _atlas.cash_pools WHERE organization_id = $1"#,
+            FROM _atlas.cash_pools WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -621,10 +620,10 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
         let total_participants: i64 = part_row.try_get("cnt").unwrap_or(0);
 
         let sweep_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COALESCE(SUM(total_swept_amount), 0)::text as today_swept,
                 COUNT(*) FILTER (WHERE status = 'pending' OR status = 'in_progress') as pending
-            FROM _atlas.cash_pool_sweep_runs WHERE organization_id=$1 AND run_date = CURRENT_DATE"#,
+            FROM _atlas.cash_pool_sweep_runs WHERE organization_id=$1 AND run_date = CURRENT_DATE",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -633,8 +632,8 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
         // By pool type
         let type_rows = sqlx::query(
-            r#"SELECT pool_type, COUNT(*) as count
-            FROM _atlas.cash_pools WHERE organization_id = $1 GROUP BY pool_type"#
+            r"SELECT pool_type, COUNT(*) as count
+            FROM _atlas.cash_pools WHERE organization_id = $1 GROUP BY pool_type"
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -648,8 +647,8 @@ impl CashConcentrationRepository for PostgresCashConcentrationRepository {
 
         // By currency
         let curr_rows = sqlx::query(
-            r#"SELECT currency_code, COUNT(*) as count
-            FROM _atlas.cash_pools WHERE organization_id = $1 GROUP BY currency_code"#
+            r"SELECT currency_code, COUNT(*) as count
+            FROM _atlas.cash_pools WHERE organization_id = $1 GROUP BY currency_code"
         )
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

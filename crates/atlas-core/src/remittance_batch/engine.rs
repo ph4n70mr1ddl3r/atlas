@@ -44,16 +44,16 @@ pub fn validate_status_transition(current: &str, target: &str) -> AtlasResult<()
         // Reverse: only from settled
         (_, "reversed") if current == "settled" => Ok(()),
         _ => Err(AtlasError::WorkflowError(format!(
-            "Invalid status transition from '{}' to '{}'. \
+            "Invalid status transition from '{current}' to '{target}'. \
              Valid transitions: draft→approved→formatted→transmitted→confirmed→settled, \
-             draft/approved→cancelled, settled→reversed",
-            current, target
+             draft/approved→cancelled, settled→reversed"
         ))),
     }
 }
 
 /// Calculate total amount and count from a list of included receipt amounts.
-/// Returns (total_amount, receipt_count).
+/// Returns (`total_amount`, `receipt_count`).
+#[must_use] 
 pub fn calculate_batch_totals(receipt_amounts: &[(f64, &str)]) -> (f64, i32) {
     let mut total = 0.0_f64;
     let mut count = 0_i32;
@@ -107,7 +107,7 @@ impl RemittanceBatchEngine {
 
         // Generate batch number
         let next_num = self.repository.get_next_batch_number(org_id).await?;
-        let batch_number = format!("RB-{:05}", next_num);
+        let batch_number = format!("RB-{next_num:05}");
 
         info!(
             "Creating remittance batch {} for org {}",
@@ -296,7 +296,7 @@ impl RemittanceBatchEngine {
         let existing = self.repository.get_batch_receipt_by_receipt_id(batch_id, receipt_id).await?;
         if existing.is_some() {
             return Err(AtlasError::ValidationFailed(
-                format!("Receipt {} is already in this batch", receipt_id)
+                format!("Receipt {receipt_id} is already in this batch")
             ));
         }
 
@@ -377,7 +377,7 @@ impl RemittanceBatchEngine {
     async fn get_batch_or_error(&self, id: Uuid) -> AtlasResult<RemittanceBatch> {
         self.repository.get_batch(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Remittance batch {} not found", id)
+                format!("Remittance batch {id} not found")
             ))
     }
 

@@ -116,7 +116,7 @@ pub struct AddScoringCriterionRequest {
 }
 
 fn default_custom() -> String { "custom".to_string() }
-fn default_10_order() -> i32 { 10 }
+const fn default_10_order() -> i32 { 10 }
 
 #[derive(Debug, Deserialize)]
 pub struct ScoreResponseRequest {
@@ -170,8 +170,8 @@ pub struct CreateSourcingTemplateRequest {
     pub default_lines: serde_json::Value,
 }
 
-fn default_deadline_days() -> i32 { 14 }
-fn default_empty_array() -> serde_json::Value { serde_json::json!([]) }
+const fn default_deadline_days() -> i32 { 14 }
+const fn default_empty_array() -> serde_json::Value { serde_json::json!([]) }
 
 #[derive(Debug, Deserialize)]
 pub struct ListEventsQuery {

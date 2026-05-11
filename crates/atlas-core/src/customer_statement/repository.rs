@@ -1,6 +1,6 @@
 //! Customer Statement Repository
 //!
-//! PostgreSQL storage for customer statements and statement lines.
+//! `PostgreSQL` storage for customer statements and statement lines.
 
 use atlas_shared::{
     CustomerStatement, CustomerStatementLine, CustomerStatementSummary,
@@ -84,9 +84,7 @@ pub trait CustomerStatementRepository: Send + Sync {
 
 // Helper functions
 fn get_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> String {
-    row.try_get::<f64, _>(col)
-        .map(|v| format!("{:.2}", v))
-        .unwrap_or_else(|_| "0.00".to_string())
+    row.try_get::<f64, _>(col).map_or_else(|_| "0.00".to_string(), |v| format!("{v:.2}"))
 }
 
 fn row_to_statement(row: &sqlx::postgres::PgRow) -> CustomerStatement {
@@ -151,13 +149,14 @@ fn row_to_line(row: &sqlx::postgres::PgRow) -> CustomerStatementLine {
     }
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresCustomerStatementRepository {
     pool: PgPool,
 }
 
 impl PostgresCustomerStatementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -196,7 +195,7 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CustomerStatement> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.customer_statements
                 (organization_id, statement_number, customer_id, customer_number, customer_name,
                  statement_date, billing_period_from, billing_period_to, billing_cycle,
@@ -211,7 +210,7 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
                     $17::numeric,$18::numeric,$19::numeric,$20::numeric,$21::numeric,$22::numeric,
                     $23,$24,$25,$26,$27,$28)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(statement_number).bind(customer_id).bind(customer_number).bind(customer_name)
         .bind(statement_date).bind(billing_period_from).bind(billing_period_to).bind(billing_cycle)
@@ -255,14 +254,14 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
         billing_cycle: Option<&str>,
     ) -> AtlasResult<Vec<CustomerStatement>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.customer_statements
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR customer_id = $2)
               AND ($3::text IS NULL OR status = $3)
               AND ($4::text IS NULL OR billing_cycle = $4)
             ORDER BY statement_date DESC, statement_number DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(customer_id).bind(status).bind(billing_cycle)
         .fetch_all(&self.pool)
@@ -273,7 +272,7 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
 
     async fn update_statement_status(&self, id: Uuid, status: &str) -> AtlasResult<CustomerStatement> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.customer_statements
             SET status = $2,
                 generated_at = CASE WHEN $2 = 'generated' AND generated_at IS NULL THEN now() ELSE generated_at END,
@@ -282,7 +281,7 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool)
@@ -334,7 +333,7 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
         metadata: serde_json::Value,
     ) -> AtlasResult<CustomerStatementLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.customer_statement_lines
                 (organization_id, statement_id, line_type,
                  transaction_id, transaction_number, transaction_date, due_date,
@@ -342,7 +341,7 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
                  reference_type, reference_id, display_order, metadata)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9::numeric,$10,$11,$12,$13,$14)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(statement_id).bind(line_type)
         .bind(transaction_id).bind(transaction_number).bind(transaction_date).bind(due_date)
@@ -389,11 +388,11 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
 
     async fn get_statement_summary(&self, org_id: Uuid) -> AtlasResult<CustomerStatementSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft_cnt,
                 COUNT(*) FILTER (WHERE status = 'sent') as sent_cnt
-            FROM _atlas.customer_statements WHERE organization_id = $1"#,
+            FROM _atlas.customer_statements WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -450,7 +449,7 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
             total_statements: total as i32,
             draft_count: draft as i32,
             sent_count: sent as i32,
-            total_amount_outstanding: format!("{:.2}", outstanding),
+            total_amount_outstanding: format!("{outstanding:.2}"),
             by_billing_cycle: serde_json::Value::Object(by_cycle),
             by_currency: serde_json::Value::Object(by_currency),
         })

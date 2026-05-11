@@ -205,14 +205,14 @@ impl PaymentRiskEngine {
             org_id,
             code: code.to_string(),
             name: name.to_string(),
-            description: description.map(|s| s.to_string()),
+            description: description.map(std::string::ToString::to_string),
             profile_type: profile_type.to_string(),
             default_risk_level: default_risk_level.to_string(),
-            duplicate_amount_tolerance_pct: duplicate_amount_tolerance_pct.map(|s| s.to_string()),
-            duplicate_date_tolerance_days: duplicate_date_tolerance_days.map(|s| s.to_string()),
-            velocity_daily_limit: velocity_daily_limit.map(|s| s.to_string()),
-            velocity_weekly_limit: velocity_weekly_limit.map(|s| s.to_string()),
-            amount_anomaly_std_dev: amount_anomaly_std_dev.map(|s| s.to_string()),
+            duplicate_amount_tolerance_pct: duplicate_amount_tolerance_pct.map(std::string::ToString::to_string),
+            duplicate_date_tolerance_days: duplicate_date_tolerance_days.map(std::string::ToString::to_string),
+            velocity_daily_limit: velocity_daily_limit.map(std::string::ToString::to_string),
+            velocity_weekly_limit: velocity_weekly_limit.map(std::string::ToString::to_string),
+            amount_anomaly_std_dev: amount_anomaly_std_dev.map(std::string::ToString::to_string),
             enable_sanctions_screening,
             enable_duplicate_detection,
             enable_velocity_checks,
@@ -280,7 +280,7 @@ impl PaymentRiskEngine {
 
         // Auto-generate alert number
         let seq = self.repo.get_next_alert_sequence(org_id).await.unwrap_or(1);
-        let _alert_number = format!("FA-{:06}", seq);
+        let _alert_number = format!("FA-{seq:06}");
 
         let params = FraudAlertCreateParams {
             org_id,
@@ -289,17 +289,17 @@ impl PaymentRiskEngine {
             payment_id,
             invoice_id,
             supplier_id,
-            supplier_number: supplier_number.map(|s| s.to_string()),
-            supplier_name: supplier_name.map(|s| s.to_string()),
-            amount: amount.map(|s| s.to_string()),
-            currency_code: currency_code.map(|s| s.to_string()),
-            risk_score: risk_score.map(|s| s.to_string()),
-            detection_rule: detection_rule.map(|s| s.to_string()),
-            description: description.map(|s| s.to_string()),
-            evidence: evidence.map(|s| s.to_string()),
-            assigned_to: assigned_to.map(|s| s.to_string()),
-            assigned_team: assigned_team.map(|s| s.to_string()),
-            related_alert_ids: related_alert_ids.map(|s| s.to_string()),
+            supplier_number: supplier_number.map(std::string::ToString::to_string),
+            supplier_name: supplier_name.map(std::string::ToString::to_string),
+            amount: amount.map(std::string::ToString::to_string),
+            currency_code: currency_code.map(std::string::ToString::to_string),
+            risk_score: risk_score.map(std::string::ToString::to_string),
+            detection_rule: detection_rule.map(std::string::ToString::to_string),
+            description: description.map(std::string::ToString::to_string),
+            evidence: evidence.map(std::string::ToString::to_string),
+            assigned_to: assigned_to.map(std::string::ToString::to_string),
+            assigned_team: assigned_team.map(std::string::ToString::to_string),
+            related_alert_ids: related_alert_ids.map(std::string::ToString::to_string),
             created_by,
         };
 
@@ -352,7 +352,7 @@ impl PaymentRiskEngine {
         };
         if !allowed {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid transition from '{}' to '{}'", from, to
+                "Invalid transition from '{from}' to '{to}'"
             )));
         }
         Ok(())
@@ -391,23 +391,23 @@ impl PaymentRiskEngine {
         }
 
         let seq = self.repo.get_next_screening_sequence(org_id).await.unwrap_or(1);
-        let _screening_id = format!("SC-{:06}", seq);
+        let _screening_id = format!("SC-{seq:06}");
 
         let params = SanctionsScreeningCreateParams {
             org_id,
             screening_type: screening_type.to_string(),
             supplier_id,
-            supplier_name: supplier_name.map(|s| s.to_string()),
+            supplier_name: supplier_name.map(std::string::ToString::to_string),
             payment_id,
             screened_list: screened_list.to_string(),
-            match_name: match_name.map(|s| s.to_string()),
+            match_name: match_name.map(std::string::ToString::to_string),
             match_type: match_type.to_string(),
-            match_score: match_score.map(|s| s.to_string()),
+            match_score: match_score.map(std::string::ToString::to_string),
             match_status: match_status.to_string(),
-            sanctions_list_entry: sanctions_list_entry.map(|s| s.to_string()),
-            sanctions_list_program: sanctions_list_program.map(|s| s.to_string()),
-            match_details: match_details.map(|s| s.to_string()),
-            action_taken: action_taken.map(|s| s.to_string()),
+            sanctions_list_entry: sanctions_list_entry.map(std::string::ToString::to_string),
+            sanctions_list_program: sanctions_list_program.map(std::string::ToString::to_string),
+            match_details: match_details.map(std::string::ToString::to_string),
+            action_taken: action_taken.map(std::string::ToString::to_string),
             created_by,
         };
         self.repo.create_screening_result(&params).await
@@ -464,17 +464,17 @@ impl PaymentRiskEngine {
         info!("Creating risk assessment for supplier '{}' org {}", supplier_name, org_id);
 
         let seq = self.repo.get_next_assessment_sequence(org_id).await.unwrap_or(1);
-        let _assessment_number = format!("RA-{:06}", seq);
+        let _assessment_number = format!("RA-{seq:06}");
 
         let params = SupplierRiskAssessmentCreateParams {
             org_id,
             supplier_id,
             supplier_name: supplier_name.to_string(),
             assessment_type: assessment_type.to_string(),
-            financial_risk_score: financial_risk_score.map(|s| s.to_string()),
-            operational_risk_score: operational_risk_score.map(|s| s.to_string()),
-            compliance_risk_score: compliance_risk_score.map(|s| s.to_string()),
-            payment_history_score: payment_history_score.map(|s| s.to_string()),
+            financial_risk_score: financial_risk_score.map(std::string::ToString::to_string),
+            operational_risk_score: operational_risk_score.map(std::string::ToString::to_string),
+            compliance_risk_score: compliance_risk_score.map(std::string::ToString::to_string),
+            payment_history_score: payment_history_score.map(std::string::ToString::to_string),
             years_in_business,
             has_financial_statements,
             has_audit_reports,
@@ -483,12 +483,12 @@ impl PaymentRiskEngine {
             is_aml_clear,
             is_pep_clear,
             total_historical_payments,
-            total_historical_amount: total_historical_amount.map(|s| s.to_string()),
+            total_historical_amount: total_historical_amount.map(std::string::ToString::to_string),
             fraud_alerts_count,
             duplicate_payments_count,
-            assessed_by: assessed_by.map(|s| s.to_string()),
-            findings: findings.map(|s| s.to_string()),
-            recommendations: recommendations.map(|s| s.to_string()),
+            assessed_by: assessed_by.map(std::string::ToString::to_string),
+            findings: findings.map(std::string::ToString::to_string),
+            recommendations: recommendations.map(std::string::ToString::to_string),
             created_by,
         };
         self.repo.create_assessment(&params).await
@@ -531,7 +531,7 @@ impl PaymentRiskEngine {
         };
         if !allowed {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid transition from '{}' to '{}'", from, to
+                "Invalid transition from '{from}' to '{to}'"
             )));
         }
         Ok(())

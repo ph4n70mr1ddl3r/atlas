@@ -25,6 +25,7 @@ pub struct CachedEntity {
 }
 
 impl CachedEntity {
+    #[must_use] 
     pub fn new(definition: EntityDefinition, version: i64) -> Self {
         let field_map: HashMap<_, _> = definition.fields.iter()
             .map(|f| (f.name.clone(), f.clone()))
@@ -33,18 +34,20 @@ impl CachedEntity {
         Self { definition, field_map, version }
     }
     
+    #[must_use] 
     pub fn get_field(&self, name: &str) -> Option<&FieldDefinition> {
         self.field_map.get(name)
     }
 }
 
 /// SQL type mapping for field types
+#[must_use] 
 pub fn field_type_to_sql(field_type: &FieldType) -> String {
     match field_type {
         FieldType::String { .. } => "TEXT".to_string(),
-        FieldType::FixedString { length } => format!("VARCHAR({})", length),
+        FieldType::FixedString { length } => format!("VARCHAR({length})"),
         FieldType::Integer { .. } => "BIGINT".to_string(),
-        FieldType::Decimal { precision, scale } => format!("NUMERIC({}, {})", precision, scale),
+        FieldType::Decimal { precision, scale } => format!("NUMERIC({precision}, {scale})"),
         FieldType::Boolean => "BOOLEAN".to_string(),
         FieldType::Date => "DATE".to_string(),
         FieldType::DateTime => "TIMESTAMPTZ".to_string(),
@@ -65,6 +68,7 @@ pub fn field_type_to_sql(field_type: &FieldType) -> String {
 }
 
 /// Generate CREATE TABLE SQL for an entity
+#[must_use] 
 pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
     let table_name = entity.table_name.as_deref().unwrap_or(&entity.name);
     let mut columns = vec![
@@ -86,7 +90,7 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
             .filter(|c| c.is_alphanumeric() || *c == '_')
             .collect::<String>();
         
-        let mut col_def = format!("\"{}\" {}", safe_name, col_type);
+        let mut col_def = format!("\"{safe_name}\" {col_type}");
         
         if field.is_required {
             col_def.push_str(" NOT NULL");
@@ -99,15 +103,15 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
                 serde_json::Value::Number(n) => n.to_string(),
                 serde_json::Value::String(s) => {
                     let escaped = s.replace('\'', "''");
-                    format!("'{}'", escaped)
+                    format!("'{escaped}'")
                 }
                 _ => {
                     // For complex types, use quoted JSON
                     let escaped = default.to_string().replace('\'', "''");
-                    format!("'{}'", escaped)
+                    format!("'{escaped}'")
                 }
             };
-            col_def.push_str(&format!(" DEFAULT {}", default_str));
+            col_def.push_str(&format!(" DEFAULT {default_str}"));
         }
         
         columns.push(col_def);
@@ -129,6 +133,7 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
 }
 
 /// Generate CREATE INDEX SQL statements for an entity
+#[must_use] 
 pub fn generate_index_sql(entity: &EntityDefinition) -> Vec<String> {
     let table_name = entity.table_name.as_deref().unwrap_or(&entity.name);
     entity.indexes.iter().map(|idx| {
@@ -138,14 +143,13 @@ pub fn generate_index_sql(entity: &EntityDefinition) -> Vec<String> {
         let fields: Vec<String> = idx.fields.iter()
             .map(|f| {
                 let safe_f: String = f.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect();
-                format!("\"{}\"", safe_f)
+                format!("\"{safe_f}\"")
             })
             .collect();
         let fields_str = fields.join(", ");
         let unique = if idx.is_unique { "UNIQUE " } else { "" };
         format!(
-            "CREATE{} INDEX IF NOT EXISTS \"{}\" ON \"{}\" ({})",
-            unique, safe_idx_name, table_name, fields_str
+            "CREATE{unique} INDEX IF NOT EXISTS \"{safe_idx_name}\" ON \"{table_name}\" ({fields_str})"
         )
     }).collect()
 }

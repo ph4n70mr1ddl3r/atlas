@@ -150,7 +150,8 @@ pub trait SuspenseAccountRepository: Send + Sync {
 #[allow(dead_code)]
 pub struct PostgresSuspenseAccountRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresSuspenseAccountRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresSuspenseAccountRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl SuspenseAccountRepository for PostgresSuspenseAccountRepository {

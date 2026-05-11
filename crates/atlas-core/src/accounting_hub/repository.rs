@@ -1,6 +1,6 @@
 //! Accounting Hub Repository
 //!
-//! PostgreSQL storage for external systems, accounting events, and mapping rules.
+//! `PostgreSQL` storage for external systems, accounting events, and mapping rules.
 
 use atlas_shared::{
     ExternalSystem, AccountingEvent, TransactionMappingRule, AccountingHubDashboardSummary,
@@ -72,13 +72,14 @@ pub trait AccountingHubRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<AccountingHubDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresAccountingHubRepository {
     pool: PgPool,
 }
 
 impl PostgresAccountingHubRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -173,10 +174,10 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ExternalSystem> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.external_systems
+            r"INSERT INTO _atlas.external_systems
                 (organization_id, code, name, description, system_type, connection_config, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(system_type).bind(&connection_config).bind(created_by)
@@ -230,10 +231,10 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
 
     async fn update_system_stats(&self, id: Uuid, events_received: i32, events_processed: i32, events_failed: i32) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.external_systems
+            r"UPDATE _atlas.external_systems
             SET total_events_received = $1, total_events_processed = $2, total_events_failed = $3,
                 last_event_received = now(), updated_at = now()
-            WHERE id = $4"#,
+            WHERE id = $4",
         )
         .bind(events_received).bind(events_processed).bind(events_failed).bind(id)
         .execute(&self.pool)
@@ -253,13 +254,13 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingEvent> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.accounting_events
+            r"INSERT INTO _atlas.accounting_events
                 (organization_id, event_number, external_system_id, external_system_code,
                  event_type, event_class, source_event_id, payload, transaction_attributes,
                  accounting_method_id, status, event_date, accounting_date,
                  currency_code, total_amount, description, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(event_number).bind(external_system_id).bind(external_system_code)
         .bind(event_type).bind(event_class).bind(source_event_id).bind(&payload)
@@ -300,9 +301,9 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
     ) -> AtlasResult<Vec<AccountingEvent>> {
         let mut query = String::from("SELECT * FROM _atlas.accounting_events WHERE organization_id = $1");
         let mut param_idx = 2;
-        if status.is_some() { query.push_str(&format!(" AND status = ${}", param_idx)); param_idx += 1; }
-        if external_system_id.is_some() { query.push_str(&format!(" AND external_system_id = ${}", param_idx)); param_idx += 1; }
-        if event_type.is_some() { query.push_str(&format!(" AND event_type = ${}", param_idx)); }
+        if status.is_some() { query.push_str(&format!(" AND status = ${param_idx}")); param_idx += 1; }
+        if external_system_id.is_some() { query.push_str(&format!(" AND external_system_id = ${param_idx}")); param_idx += 1; }
+        if event_type.is_some() { query.push_str(&format!(" AND event_type = ${param_idx}")); }
         query.push_str(" ORDER BY event_date DESC, created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
@@ -321,14 +322,14 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         journal_entry_id: Option<Uuid>, processed_by: Option<Uuid>,
     ) -> AtlasResult<AccountingEvent> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.accounting_events
+            r"UPDATE _atlas.accounting_events
             SET status = $1, error_message = $2, transaction_attributes = COALESCE($3, transaction_attributes),
                 journal_entry_id = COALESCE($4, journal_entry_id),
                 processed_by = COALESCE($5, processed_by),
                 processed_at = CASE WHEN $1 IN ('accounted', 'posted', 'transferred') THEN now() ELSE processed_at END,
                 updated_at = now()
             WHERE id = $6
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(status).bind(error_message)
         .bind(transaction_attributes).bind(journal_entry_id).bind(processed_by).bind(id)
@@ -348,12 +349,12 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransactionMappingRule> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.transaction_mapping_rules
+            r"INSERT INTO _atlas.transaction_mapping_rules
                 (organization_id, external_system_id, code, name, description,
                  event_type, event_class, priority, conditions, field_mappings,
                  accounting_method_id, stop_on_match, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(external_system_id).bind(code).bind(name).bind(description)
         .bind(event_type).bind(event_class).bind(priority).bind(&conditions).bind(&field_mappings)
@@ -394,12 +395,12 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
 
     async fn list_active_mapping_rules(&self, org_id: Uuid, external_system_id: Uuid, event_type: &str) -> AtlasResult<Vec<TransactionMappingRule>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.transaction_mapping_rules
+            r"SELECT * FROM _atlas.transaction_mapping_rules
             WHERE organization_id = $1 AND external_system_id = $2 AND event_type = $3
               AND is_active = true
               AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
               AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-            ORDER BY priority"#,
+            ORDER BY priority",
         )
         .bind(org_id).bind(external_system_id).bind(event_type)
         .fetch_all(&self.pool)
@@ -472,7 +473,7 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
             accounted_events,
             posted_events,
             error_events,
-            total_amount_processed: format!("{:.2}", total_amount),
+            total_amount_processed: format!("{total_amount:.2}"),
             events_by_system: by_system,
             events_by_type: by_type,
         })

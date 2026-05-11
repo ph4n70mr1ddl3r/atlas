@@ -128,11 +128,12 @@ pub trait ApAgingRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ApAgingDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 #[allow(dead_code)]
 pub struct PostgresApAgingRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresApAgingRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresApAgingRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl ApAgingRepository for PostgresApAgingRepository {

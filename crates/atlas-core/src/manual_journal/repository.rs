@@ -1,6 +1,6 @@
 //! Manual Journal Entry Repository
 //!
-//! PostgreSQL storage for journal batches, journal entries, and journal entry lines.
+//! `PostgreSQL` storage for journal batches, journal entries, and journal entry lines.
 
 use atlas_shared::{
     JournalBatch, JournalEntry, JournalEntryLine, ManualJournalDashboardSummary,
@@ -76,13 +76,14 @@ pub trait ManualJournalRepository: Send + Sync {
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ManualJournalDashboardSummary>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresManualJournalRepository {
     pool: PgPool,
 }
 
 impl PostgresManualJournalRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -195,11 +196,11 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalBatch> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.journal_batches
+            r"INSERT INTO _atlas.journal_batches
                 (organization_id, batch_number, name, description, ledger_id,
                  currency_code, accounting_date, period_name, source,
                  is_automatic_post, created_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *",
         )
         .bind(org_id).bind(batch_number).bind(name).bind(description)
         .bind(ledger_id).bind(currency_code).bind(accounting_date)
@@ -230,9 +231,9 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
 
     async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalBatch>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.journal_batches
+            r"SELECT * FROM _atlas.journal_batches
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -246,7 +247,7 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         posted_by: Option<Uuid>, rejection_reason: Option<&str>,
     ) -> AtlasResult<JournalBatch> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.journal_batches SET status=$2,
+            r"UPDATE _atlas.journal_batches SET status=$2,
                 submitted_by=COALESCE($3, submitted_by),
                 submitted_at=CASE WHEN $3 IS NOT NULL AND submitted_at IS NULL THEN now() ELSE submitted_at END,
                 approved_by=COALESCE($4, approved_by),
@@ -254,7 +255,7 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
                 posted_by=COALESCE($5, posted_by),
                 posted_at=CASE WHEN $5 IS NOT NULL AND posted_at IS NULL THEN now() ELSE posted_at END,
                 rejection_reason=$6,
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(submitted_by).bind(approved_by)
         .bind(posted_by).bind(rejection_reason)
@@ -267,9 +268,9 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         &self, id: Uuid, total_debit: &str, total_credit: &str, entry_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.journal_batches
+            r"UPDATE _atlas.journal_batches
             SET total_debit=$2::numeric, total_credit=$3::numeric,
-                entry_count=$4, updated_at=now() WHERE id=$1"#,
+                entry_count=$4, updated_at=now() WHERE id=$1",
         )
         .bind(id).bind(total_debit).bind(total_credit).bind(entry_count)
         .execute(&self.pool).await
@@ -296,12 +297,12 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         statistical_entry: bool, created_by: Option<Uuid>,
     ) -> AtlasResult<JournalEntry> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.journal_entries
+            r"INSERT INTO _atlas.journal_entries
                 (organization_id, batch_id, entry_number, name, description,
                  ledger_id, currency_code, accounting_date, period_name,
                  journal_category, journal_source, reference_number,
                  external_reference, statistical_entry, created_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *"#,
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *",
         )
         .bind(org_id).bind(batch_id).bind(entry_number).bind(name)
         .bind(description).bind(ledger_id).bind(currency_code)
@@ -343,9 +344,9 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
 
     async fn list_entries(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalEntry>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.journal_entries
+            r"SELECT * FROM _atlas.journal_entries
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status)
         .fetch_all(&self.pool).await
@@ -358,11 +359,11 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         posted_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<JournalEntry> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.journal_entries SET status=$2,
+            r"UPDATE _atlas.journal_entries SET status=$2,
                 approved_by=COALESCE($3, approved_by),
                 approved_at=CASE WHEN $3 IS NOT NULL AND approved_at IS NULL THEN now() ELSE approved_at END,
                 posted_at=COALESCE($4, posted_at),
-                updated_at=now() WHERE id=$1 RETURNING *"#,
+                updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status).bind(approved_by).bind(posted_at)
         .fetch_one(&self.pool).await
@@ -375,9 +376,9 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         line_count: i32, is_balanced: bool,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"UPDATE _atlas.journal_entries
+            r"UPDATE _atlas.journal_entries
             SET total_debit=$2::numeric, total_credit=$3::numeric,
-                line_count=$4, is_balanced=$5, updated_at=now() WHERE id=$1"#,
+                line_count=$4, is_balanced=$5, updated_at=now() WHERE id=$1",
         )
         .bind(id).bind(total_debit).bind(total_credit)
         .bind(line_count).bind(is_balanced)
@@ -390,8 +391,8 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         &self, id: Uuid, reversed_by_entry_id: Uuid,
     ) -> AtlasResult<JournalEntry> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.journal_entries SET reversed_by_entry_id=$2,
-                status='reversed', updated_at=now() WHERE id=$1 RETURNING *"#,
+            r"UPDATE _atlas.journal_entries SET reversed_by_entry_id=$2,
+                status='reversed', updated_at=now() WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(reversed_by_entry_id)
         .fetch_one(&self.pool).await
@@ -416,13 +417,13 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         intercompany_entity_id: Option<Uuid>, statistical_amount: Option<&str>,
     ) -> AtlasResult<JournalEntryLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.journal_entry_lines
+            r"INSERT INTO _atlas.journal_entry_lines
                 (organization_id, entry_id, line_number, line_type, account_code,
                  account_name, description, amount, entered_amount, entered_currency_code,
                  exchange_rate, tax_code, cost_center, department_id, project_id,
                  intercompany_entity_id, statistical_amount)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9::numeric,$10,$11::numeric,$12,$13,$14,$15,$16,$17::numeric)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(entry_id).bind(line_number).bind(line_type)
         .bind(account_code).bind(account_name).bind(description)
@@ -454,14 +455,14 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ManualJournalDashboardSummary> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total_batches,
                 COUNT(*) FILTER (WHERE status = 'draft') as draft_batches,
                 COUNT(*) FILTER (WHERE status = 'posted') as posted_batches,
                 COALESCE(SUM(total_debit), 0) as total_debits,
                 COALESCE(SUM(total_credit), 0) as total_credits,
                 COUNT(*) FILTER (WHERE status = 'submitted') as pending_approval
-            FROM _atlas.journal_batches WHERE organization_id = $1"#,
+            FROM _atlas.journal_batches WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -472,10 +473,10 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
         let pending_approval: i64 = row.try_get("pending_approval").unwrap_or(0);
 
         let entry_row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 COUNT(*) as total_entries,
                 COUNT(*) FILTER (WHERE status = 'posted') as posted_entries
-            FROM _atlas.journal_entries WHERE organization_id = $1"#,
+            FROM _atlas.journal_entries WHERE organization_id = $1",
         )
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

@@ -1,7 +1,7 @@
 //! Receipt Write-Off Engine
 //! Oracle Fusion: Receivables > Receipts > Write-Off
 
-use super::*;
+use super::{ReceiptWriteOffRepository, AtlasResult, WriteOffReason, AtlasError, WriteOffRequest, WriteOffBatch, WriteOffPolicy, WriteOffDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -40,7 +40,7 @@ impl ReceiptWriteOffEngine {
             }
         }
         if self.repository.get_reason(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Reason '{}' already exists", code)));
+            return Err(AtlasError::Conflict(format!("Reason '{code}' already exists")));
         }
         info!("Creating write-off reason {} for org {}", code, org_id);
         self.repository.create_reason(org_id, code, name, description, default_gl_account, requires_approval, max_auto_approve_amount, created_by).await
@@ -55,7 +55,7 @@ impl ReceiptWriteOffEngine {
     }
 
     pub async fn delete_reason(&self, id: Uuid) -> AtlasResult<()> {
-        self.repository.get_reason_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Reason {} not found", id)))?;
+        self.repository.get_reason_by_id(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Reason {id} not found")))?;
         self.repository.delete_reason(id).await
     }
 
@@ -81,7 +81,7 @@ impl ReceiptWriteOffEngine {
         }
 
         let reason = self.repository.get_reason_by_id(reason_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reason {} not found", reason_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reason {reason_id} not found")))?;
         if !reason.is_active {
             return Err(AtlasError::ValidationFailed("Write-off reason is inactive".into()));
         }
@@ -121,14 +121,14 @@ impl ReceiptWriteOffEngine {
     pub async fn list_requests(&self, org_id: Uuid, status: Option<&str>, reason_id: Option<Uuid>) -> AtlasResult<Vec<WriteOffRequest>> {
         if let Some(s) = status {
             if !VALID_REQUEST_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'")));
             }
         }
         self.repository.list_requests(org_id, status, reason_id).await
     }
 
     pub async fn approve_request(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<WriteOffRequest> {
-        let req = self.repository.get_request(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", id)))?;
+        let req = self.repository.get_request(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Request {id} not found")))?;
         if req.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(format!("Cannot approve request in '{}' status. Must be 'pending_approval'.", req.status)));
         }
@@ -137,7 +137,7 @@ impl ReceiptWriteOffEngine {
     }
 
     pub async fn reject_request(&self, id: Uuid) -> AtlasResult<WriteOffRequest> {
-        let req = self.repository.get_request(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", id)))?;
+        let req = self.repository.get_request(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Request {id} not found")))?;
         if req.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(format!("Cannot reject request in '{}' status. Must be 'pending_approval'.", req.status)));
         }
@@ -145,7 +145,7 @@ impl ReceiptWriteOffEngine {
     }
 
     pub async fn post_request(&self, id: Uuid, posted_by: Uuid, journal_entry_id: Option<Uuid>) -> AtlasResult<WriteOffRequest> {
-        let req = self.repository.get_request(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", id)))?;
+        let req = self.repository.get_request(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Request {id} not found")))?;
         if req.status != "approved" {
             return Err(AtlasError::WorkflowError(format!("Cannot post request in '{}' status. Must be 'approved'.", req.status)));
         }
@@ -154,7 +154,7 @@ impl ReceiptWriteOffEngine {
     }
 
     pub async fn reverse_request(&self, id: Uuid) -> AtlasResult<WriteOffRequest> {
-        let req = self.repository.get_request(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Request {} not found", id)))?;
+        let req = self.repository.get_request(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Request {id} not found")))?;
         if req.status != "posted" {
             return Err(AtlasError::WorkflowError(format!("Cannot reverse request in '{}' status. Must be 'posted'.", req.status)));
         }
@@ -185,14 +185,14 @@ impl ReceiptWriteOffEngine {
     pub async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WriteOffBatch>> {
         if let Some(s) = status {
             if !VALID_BATCH_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid batch status '{}'", s)));
+                return Err(AtlasError::ValidationFailed(format!("Invalid batch status '{s}'")));
             }
         }
         self.repository.list_batches(org_id, status).await
     }
 
     pub async fn approve_batch(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<WriteOffBatch> {
-        let batch = self.repository.get_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", id)))?;
+        let batch = self.repository.get_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {id} not found")))?;
         if batch.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(format!("Cannot approve batch in '{}' status", batch.status)));
         }
@@ -200,7 +200,7 @@ impl ReceiptWriteOffEngine {
     }
 
     pub async fn post_batch(&self, id: Uuid) -> AtlasResult<WriteOffBatch> {
-        let batch = self.repository.get_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {} not found", id)))?;
+        let batch = self.repository.get_batch(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {id} not found")))?;
         if batch.status != "approved" {
             return Err(AtlasError::WorkflowError(format!("Cannot post batch in '{}' status", batch.status)));
         }
@@ -266,6 +266,7 @@ impl ReceiptWriteOffEngine {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use super::*;
 
     struct MockRepo {

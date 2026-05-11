@@ -131,7 +131,7 @@ impl DataArchivingEngine {
     /// Activate a retention policy.
     pub async fn activate_policy(&self, id: Uuid) -> AtlasResult<RetentionPolicy> {
         let policy = self.get_policy(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {id} not found")))?;
 
         if policy.status == "active" {
             return Err(AtlasError::WorkflowError("Policy is already active".into()));
@@ -144,7 +144,7 @@ impl DataArchivingEngine {
     /// Deactivate a retention policy.
     pub async fn deactivate_policy(&self, id: Uuid) -> AtlasResult<RetentionPolicy> {
         let policy = self.get_policy(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {id} not found")))?;
 
         if policy.status == "inactive" {
             return Err(AtlasError::WorkflowError("Policy is already inactive".into()));
@@ -233,7 +233,7 @@ impl DataArchivingEngine {
         reason: Option<&str>,
     ) -> AtlasResult<LegalHold> {
         let hold = self.get_legal_hold(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Legal hold {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Legal hold {id} not found")))?;
 
         if hold.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -263,7 +263,7 @@ impl DataArchivingEngine {
         items: Vec<(String, Uuid)>,  // (entity_type, record_id)
     ) -> AtlasResult<Vec<LegalHoldItem>> {
         let hold = self.get_legal_hold(legal_hold_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Legal hold {} not found", legal_hold_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Legal hold {legal_hold_id} not found")))?;
 
         if hold.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -333,7 +333,7 @@ impl DataArchivingEngine {
         performed_by: Option<Uuid>,
     ) -> AtlasResult<ArchiveBatch> {
         let policy = self.get_policy(policy_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {} not found", policy_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {policy_id} not found")))?;
 
         if policy.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -360,7 +360,7 @@ impl DataArchivingEngine {
         self.repository.update_archive_batch_status(batch.id, "in_progress").await?;
 
         // Find qualifying records: records older than retention_days that aren't under legal hold
-        let cutoff_date = chrono::Utc::now() - chrono::Duration::days(policy.retention_days as i64);
+        let cutoff_date = chrono::Utc::now() - chrono::Duration::days(i64::from(policy.retention_days));
         let records = self.repository.find_qualifying_records(
             org_id, &policy.entity_type, cutoff_date,
         ).await?;
@@ -446,7 +446,7 @@ impl DataArchivingEngine {
     ) -> AtlasResult<ArchivedRecord> {
         let record = self.repository.get_archived_record(archived_record_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Archived record {} not found", archived_record_id)
+                format!("Archived record {archived_record_id} not found")
             ))?;
 
         if record.status != "archived" {
@@ -482,7 +482,7 @@ impl DataArchivingEngine {
     ) -> AtlasResult<ArchivedRecord> {
         let record = self.repository.get_archived_record(archived_record_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Archived record {} not found", archived_record_id)
+                format!("Archived record {archived_record_id} not found")
             ))?;
 
         if record.status != "archived" {

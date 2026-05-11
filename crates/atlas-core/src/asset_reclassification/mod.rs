@@ -107,11 +107,12 @@ pub trait AssetReclassificationRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ReclassificationDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresAssetReclassificationRepository { #[allow(dead_code)]
     pool: PgPool }
-impl PostgresAssetReclassificationRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresAssetReclassificationRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl AssetReclassificationRepository for PostgresAssetReclassificationRepository {
@@ -229,7 +230,7 @@ impl AssetReclassificationEngine {
     /// Approve a pending reclassification
     pub async fn approve(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<AssetReclassification> {
         let rc = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reclassification {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reclassification {id} not found")))?;
 
         if rc.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
@@ -243,7 +244,7 @@ impl AssetReclassificationEngine {
     /// Complete an approved reclassification (apply changes)
     pub async fn complete(&self, id: Uuid) -> AtlasResult<AssetReclassification> {
         let rc = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reclassification {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reclassification {id} not found")))?;
 
         if rc.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
@@ -257,7 +258,7 @@ impl AssetReclassificationEngine {
     /// Reject a pending reclassification
     pub async fn reject(&self, id: Uuid) -> AtlasResult<AssetReclassification> {
         let rc = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reclassification {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reclassification {id} not found")))?;
 
         if rc.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
@@ -271,7 +272,7 @@ impl AssetReclassificationEngine {
     /// Cancel a pending reclassification
     pub async fn cancel(&self, id: Uuid) -> AtlasResult<AssetReclassification> {
         let rc = self.repository.get(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reclassification {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reclassification {id} not found")))?;
 
         if rc.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(

@@ -1,6 +1,6 @@
 //! Joint Venture Repository
 //!
-//! PostgreSQL storage for joint ventures, partners, AFEs,
+//! `PostgreSQL` storage for joint ventures, partners, AFEs,
 //! cost/revenue distributions, and billings.
 
 use atlas_shared::{
@@ -164,7 +164,8 @@ pub struct PostgresJointVentureRepository {
 }
 
 impl PostgresJointVentureRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -420,7 +421,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         gl_billing_account: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<JointVenture> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.joint_ventures
                 (organization_id, venture_number, name, description,
                  operator_id, operator_name, currency_code,
@@ -431,7 +432,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
                     $12::numeric, $13, $14, $15, $16, $17)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(venture_number).bind(name).bind(description)
         .bind(operator_id).bind(operator_name).bind(currency_code)
@@ -509,7 +510,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JointVenturePartner> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.joint_venture_partners
                 (organization_id, venture_id, partner_id, partner_name,
                  partner_type, ownership_percentage,
@@ -519,7 +520,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7::numeric, $8::numeric,
                     $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(venture_id).bind(partner_id).bind(partner_name)
         .bind(partner_type).bind(ownership_percentage)
@@ -555,13 +556,13 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn list_active_partners(&self, venture_id: Uuid, on_date: chrono::NaiveDate) -> AtlasResult<Vec<JointVenturePartner>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.joint_venture_partners
             WHERE venture_id = $1 AND status = 'active'
               AND effective_from <= $2
               AND (effective_to IS NULL OR effective_to >= $2)
             ORDER BY partner_name
-            "#,
+            ",
         )
         .bind(venture_id).bind(on_date)
         .fetch_all(&self.pool)
@@ -603,7 +604,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JointVentureAfe> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.joint_venture_afes
                 (organization_id, venture_id, afe_number, title, description,
                  estimated_cost, remaining_budget, currency_code,
@@ -613,7 +614,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
                     $6::numeric, $6::numeric, $7,
                     $8, $9, $10, $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(venture_id).bind(afe_number).bind(title).bind(description)
         .bind(estimated_cost).bind(currency_code)
@@ -668,7 +669,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         rejected_reason: Option<&str>,
     ) -> AtlasResult<JointVentureAfe> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.joint_venture_afes
             SET status = $2, approved_by = COALESCE($3, approved_by),
                 approved_at = CASE WHEN $2 = 'approved' THEN now() ELSE approved_at END,
@@ -676,7 +677,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
         .fetch_one(&self.pool)
@@ -689,12 +690,12 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         &self, id: Uuid, actual_cost: &str, committed_cost: &str, remaining_budget: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.joint_venture_afes
             SET actual_cost = $2::numeric, committed_cost = $3::numeric,
                 remaining_budget = $4::numeric, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(actual_cost).bind(committed_cost).bind(remaining_budget)
         .execute(&self.pool)
@@ -717,14 +718,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JvCostDistribution> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.joint_venture_cost_distributions
                 (organization_id, venture_id, distribution_number,
                  afe_id, description, total_amount, currency_code, cost_type,
                  distribution_date, source_type, source_id, source_number, created_by)
             VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(venture_id).bind(distribution_number)
         .bind(afe_id).bind(description).bind(total_amount).bind(currency_code).bind(cost_type)
@@ -766,14 +767,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn update_cost_distribution_status(&self, id: Uuid, status: &str) -> AtlasResult<JvCostDistribution> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.joint_venture_cost_distributions
             SET status = $2,
                 gl_posted_at = CASE WHEN $2 = 'posted' THEN now() ELSE gl_posted_at END,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool)
@@ -789,14 +790,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         gl_account_code: Option<&str>, line_description: Option<&str>,
     ) -> AtlasResult<JvCostDistributionLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.joint_venture_cost_distribution_lines
                 (organization_id, distribution_id, partner_id, partner_name,
                  ownership_pct, cost_bearing_pct, distributed_amount,
                  gl_account_code, line_description)
             VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7::numeric, $8, $9)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(distribution_id).bind(partner_id).bind(partner_name)
         .bind(ownership_pct).bind(cost_bearing_pct).bind(distributed_amount)
@@ -832,14 +833,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JvRevenueDistribution> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.joint_venture_revenue_distributions
                 (organization_id, venture_id, distribution_number,
                  description, total_amount, currency_code, revenue_type,
                  distribution_date, source_type, source_id, source_number, created_by)
             VALUES ($1, $2, $3, $4, $5::numeric, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(venture_id).bind(distribution_number)
         .bind(description).bind(total_amount).bind(currency_code).bind(revenue_type)
@@ -881,14 +882,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn update_revenue_distribution_status(&self, id: Uuid, status: &str) -> AtlasResult<JvRevenueDistribution> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.joint_venture_revenue_distributions
             SET status = $2,
                 gl_posted_at = CASE WHEN $2 = 'posted' THEN now() ELSE gl_posted_at END,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool)
@@ -904,14 +905,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         gl_account_code: Option<&str>, line_description: Option<&str>,
     ) -> AtlasResult<JvRevenueDistributionLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.joint_venture_revenue_distribution_lines
                 (organization_id, distribution_id, partner_id, partner_name,
                  revenue_interest_pct, distributed_amount,
                  gl_account_code, line_description)
             VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7, $8)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(distribution_id).bind(partner_id).bind(partner_name)
         .bind(revenue_interest_pct).bind(distributed_amount)
@@ -948,7 +949,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         due_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
     ) -> AtlasResult<JvBilling> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.joint_venture_billings
                 (organization_id, venture_id, billing_number,
                  partner_id, partner_name, billing_type,
@@ -959,7 +960,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
                     $7::numeric, $8::numeric, $9::numeric,
                     $10, $11, $12, $13, $14)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(venture_id).bind(billing_number)
         .bind(partner_id).bind(partner_name).bind(billing_type)
@@ -1025,7 +1026,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         payment_reference: Option<&str>, dispute_reason: Option<&str>,
     ) -> AtlasResult<JvBilling> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.joint_venture_billings
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
@@ -1036,7 +1037,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(payment_reference).bind(dispute_reason)
         .fetch_one(&self.pool)
@@ -1053,14 +1054,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         ownership_pct: Option<&str>,
     ) -> AtlasResult<JvBillingLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.joint_venture_billing_lines
                 (organization_id, billing_id, line_number,
                  cost_distribution_id, revenue_distribution_id,
                  description, cost_type, amount, ownership_pct)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::numeric, $9::numeric)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(billing_id).bind(line_number)
         .bind(cost_distribution_id).bind(revenue_distribution_id)
@@ -1090,13 +1091,13 @@ impl JointVentureRepository for PostgresJointVentureRepository {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<JvDashboard> {
         // Aggregate from joint_ventures table
         let venture_row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COUNT(*) as total_ventures,
                 COUNT(*) FILTER (WHERE status = 'active') as active_ventures
             FROM _atlas.joint_ventures
             WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -1104,11 +1105,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let partner_row = sqlx::query(
-            r#"
+            r"
             SELECT COUNT(DISTINCT partner_id) as total_partners
             FROM _atlas.joint_venture_partners
             WHERE organization_id = $1 AND status = 'active'
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -1116,11 +1117,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let cost_row = sqlx::query(
-            r#"
+            r"
             SELECT COALESCE(SUM(total_amount), 0) as total_cost
             FROM _atlas.joint_venture_cost_distributions
             WHERE organization_id = $1 AND status = 'posted'
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -1128,11 +1129,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let rev_row = sqlx::query(
-            r#"
+            r"
             SELECT COALESCE(SUM(total_amount), 0) as total_rev
             FROM _atlas.joint_venture_revenue_distributions
             WHERE organization_id = $1 AND status = 'posted'
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -1140,13 +1141,13 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let billing_row = sqlx::query(
-            r#"
+            r"
             SELECT
                 COALESCE(SUM(total_with_tax) FILTER (WHERE status IN ('submitted', 'approved')), 0) as total_billed,
                 COALESCE(SUM(total_with_tax) FILTER (WHERE status = 'paid'), 0) as total_collected
             FROM _atlas.joint_venture_billings
             WHERE organization_id = $1
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -1154,11 +1155,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let afe_row = sqlx::query(
-            r#"
+            r"
             SELECT COUNT(*) as pending_afes
             FROM _atlas.joint_venture_afes
             WHERE organization_id = $1 AND status = 'submitted'
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -1166,7 +1167,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let status_row = sqlx::query(
-            r#"
+            r"
             SELECT json_object_agg(status, cnt) as by_status
             FROM (
                 SELECT status, COUNT(*) as cnt
@@ -1174,7 +1175,7 @@ impl JointVentureRepository for PostgresJointVentureRepository {
                 WHERE organization_id = $1
                 GROUP BY status
             ) sub
-            "#,
+            ",
         )
         .bind(org_id)
         .fetch_optional(&self.pool)

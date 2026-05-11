@@ -9,7 +9,7 @@
 //! - Reverse receipts
 //! - Track receipt statuses through the full workflow
 //!
-//! Receipt statuses: unidentified → identified → unapplied → applied/partially_applied → reversed
+//! Receipt statuses: unidentified → identified → unapplied → `applied/partially_applied` → reversed
 //! Batch statuses: draft → confirmed → closed → cancelled
 //!
 //! Oracle Fusion equivalent: Financials > Receivables > Receipts
@@ -172,10 +172,11 @@ pub trait CashReceiptRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CashReceiptDashboard>;
 }
 
-/// PostgreSQL stub implementation
+/// `PostgreSQL` stub implementation
 #[allow(dead_code)]
 pub struct PostgresCashReceiptRepository { #[allow(dead_code)] pool: PgPool }
-impl PostgresCashReceiptRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+impl PostgresCashReceiptRepository { #[must_use] 
+pub const fn new(pool: PgPool) -> Self { Self { pool } } }
 
 #[async_trait]
 impl CashReceiptRepository for PostgresCashReceiptRepository {

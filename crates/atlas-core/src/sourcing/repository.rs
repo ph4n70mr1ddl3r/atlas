@@ -1,6 +1,6 @@
 //! Procurement Sourcing Repository
 //!
-//! PostgreSQL storage for sourcing events, lines, invites,
+//! `PostgreSQL` storage for sourcing events, lines, invites,
 //! supplier responses, scoring, awards, and templates.
 
 use atlas_shared::{
@@ -336,13 +336,14 @@ pub trait SourcingRepository: Send + Sync {
     async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresSourcingRepository {
     pool: PgPool,
 }
 
 impl PostgresSourcingRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -364,7 +365,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         terms_and_conditions: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<SourcingEvent> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.sourcing_events
                 (organization_id, event_number, title, description, event_type, style,
                  status, response_deadline, currency_code, scoring_method,
@@ -375,7 +376,7 @@ impl SourcingRepository for PostgresSourcingRepository {
             VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $9,
                     $10, $11, $12, $13, $14, $15, $16, $17, $18)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(event_number).bind(title).bind(description)
         .bind(event_type).bind(style)
@@ -411,13 +412,13 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn list_events(&self, org_id: Uuid, status: Option<&str>, event_type: Option<&str>) -> AtlasResult<Vec<SourcingEvent>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.sourcing_events
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::text IS NULL OR event_type = $3)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(event_type)
         .fetch_all(&self.pool)
@@ -428,7 +429,7 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn update_event_status(&self, id: Uuid, status: &str, published_by: Option<Uuid>, closed_by: Option<Uuid>, cancelled_by: Option<Uuid>) -> AtlasResult<SourcingEvent> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.sourcing_events
             SET status = $2,
                 published_at = CASE WHEN $2 = 'published' THEN now() ELSE published_at END,
@@ -438,7 +439,7 @@ impl SourcingRepository for PostgresSourcingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(published_by).bind(closed_by).bind(cancelled_by)
         .fetch_one(&self.pool)
@@ -487,7 +488,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         min_award_quantity: Option<&str>,
     ) -> AtlasResult<SourcingEventLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.sourcing_event_lines
                 (organization_id, event_id, line_number, description, item_number, category,
                  quantity, uom, target_price, target_total, need_by_date, ship_to,
@@ -495,7 +496,7 @@ impl SourcingRepository for PostgresSourcingRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8,
                     $9::numeric, $10::numeric, $11, $12, $13, $14, $15::numeric)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(event_id).bind(line_number).bind(description)
         .bind(item_number).bind(category)
@@ -521,12 +522,12 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn update_event_line_award(&self, line_id: Uuid, supplier_id: Uuid, supplier_name: Option<&str>, awarded_price: &str, awarded_quantity: &str) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.sourcing_event_lines
             SET status = 'awarded', awarded_supplier_id = $2, awarded_supplier_name = $3,
                 awarded_price = $4::numeric, awarded_quantity = $5::numeric, updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(line_id).bind(supplier_id).bind(supplier_name).bind(awarded_price).bind(awarded_quantity)
         .execute(&self.pool)
@@ -541,12 +542,12 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn create_invite(&self, org_id: Uuid, event_id: Uuid, supplier_id: Uuid, supplier_name: Option<&str>, supplier_email: Option<&str>) -> AtlasResult<SourcingInvite> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.sourcing_invites
                 (organization_id, event_id, supplier_id, supplier_name, supplier_email)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(event_id).bind(supplier_id).bind(supplier_name).bind(supplier_email)
         .fetch_one(&self.pool)
@@ -579,14 +580,14 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn update_invite_status(&self, id: Uuid, status: &str, viewed_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.sourcing_invites
             SET status = $2, has_responded = CASE WHEN $2 = 'responded' THEN true ELSE has_responded END,
                 responded_at = CASE WHEN $2 = 'responded' THEN now() ELSE responded_at END,
                 viewed_at = COALESCE($3, viewed_at),
                 updated_at = now()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(viewed_at)
         .execute(&self.pool)
@@ -607,14 +608,14 @@ impl SourcingRepository for PostgresSourcingRepository {
         warranty_months: Option<i32>, created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierResponse> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.supplier_responses
                 (organization_id, event_id, response_number, supplier_id, supplier_name,
                  status, cover_letter, valid_until, payment_terms,
                  lead_time_days, warranty_months, submitted_at, created_by)
             VALUES ($1, $2, $3, $4, $5, 'submitted', $6, $7, $8, $9, $10, now(), $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(event_id).bind(response_number).bind(supplier_id).bind(supplier_name)
         .bind(cover_letter).bind(valid_until).bind(payment_terms)
@@ -636,12 +637,12 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn list_responses(&self, event_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SupplierResponse>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.supplier_responses
             WHERE event_id = $1
               AND ($2::text IS NULL OR status = $2)
             ORDER BY created_at
-            "#,
+            ",
         )
         .bind(event_id).bind(status)
         .fetch_all(&self.pool)
@@ -700,7 +701,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         supplier_notes: Option<&str>,
     ) -> AtlasResult<SupplierResponseLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.supplier_response_lines
                 (organization_id, response_id, event_line_id, line_number,
                  unit_price, quantity, line_amount, discount_percent, effective_price,
@@ -708,7 +709,7 @@ impl SourcingRepository for PostgresSourcingRepository {
             VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7::numeric,
                     $8::numeric, $9::numeric, $10, $11, $12)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(response_id).bind(event_line_id).bind(line_number)
         .bind(unit_price).bind(quantity).bind(line_amount)
@@ -742,13 +743,13 @@ impl SourcingRepository for PostgresSourcingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ScoringCriterion> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.scoring_criteria
                 (organization_id, event_id, name, description, weight, max_score,
                  criterion_type, display_order, is_mandatory, created_by)
             VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7, $8, $9, $10)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(event_id).bind(name).bind(description)
         .bind(weight).bind(max_score).bind(criterion_type)
@@ -785,7 +786,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         scored_by: Option<Uuid>,
     ) -> AtlasResult<ResponseScore> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.response_scores
                 (organization_id, response_id, criterion_id, score, weighted_score, notes, scored_by, scored_at)
             VALUES ($1, $2, $3, $4::numeric, $5::numeric, $6, $7, now())
@@ -793,7 +794,7 @@ impl SourcingRepository for PostgresSourcingRepository {
                 SET score = $4::numeric, weighted_score = $5::numeric,
                     notes = $6, scored_by = $7, scored_at = now(), updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(response_id).bind(criterion_id)
         .bind(score).bind(weighted_score).bind(notes).bind(scored_by)
@@ -824,13 +825,13 @@ impl SourcingRepository for PostgresSourcingRepository {
         award_rationale: Option<&str>, created_by: Option<Uuid>,
     ) -> AtlasResult<SourcingAward> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.sourcing_awards
                 (organization_id, event_id, award_number, award_method,
                  status, total_awarded_amount, award_rationale, created_by)
             VALUES ($1, $2, $3, $4, 'pending', $5::numeric, $6, $7)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(event_id).bind(award_number).bind(award_method)
         .bind(total_awarded_amount).bind(award_rationale).bind(created_by)
@@ -862,7 +863,7 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn update_award_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, rejected_reason: Option<&str>) -> AtlasResult<SourcingAward> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.sourcing_awards
             SET status = $2,
                 approved_by = CASE WHEN $2 = 'approved' THEN $3 ELSE approved_by END,
@@ -871,7 +872,7 @@ impl SourcingRepository for PostgresSourcingRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
         .fetch_one(&self.pool)
@@ -886,13 +887,13 @@ impl SourcingRepository for PostgresSourcingRepository {
         awarded_quantity: &str, awarded_unit_price: &str, awarded_amount: &str,
     ) -> AtlasResult<SourcingAwardLine> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.sourcing_award_lines
                 (organization_id, award_id, event_line_id, response_id,
                  supplier_id, supplier_name, awarded_quantity, awarded_unit_price, awarded_amount)
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8::numeric, $9::numeric)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(award_id).bind(event_line_id).bind(response_id)
         .bind(supplier_id).bind(supplier_name)
@@ -929,7 +930,7 @@ impl SourcingRepository for PostgresSourcingRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SourcingTemplate> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.sourcing_templates
                 (organization_id, code, name, description, default_event_type, default_style,
                  default_scoring_method, default_response_deadline_days, currency_code,
@@ -942,7 +943,7 @@ impl SourcingRepository for PostgresSourcingRepository {
                     currency_code = $9, default_bids_visible = $10, default_terms = $11,
                     default_scoring_criteria = $12, default_lines = $13, is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(default_event_type).bind(default_style).bind(default_scoring_method)

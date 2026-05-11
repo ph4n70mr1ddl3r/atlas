@@ -37,13 +37,14 @@ const VALID_RUN_STATUSES: &[&str] = &["draft", "calculated", "invoiced", "posted
 const VALID_INVOICE_STATUSES: &[&str] = &["draft", "posted", "reversed", "cancelled"];
 
 /// Calculate interest amount using simple daily interest formula:
-/// interest = outstanding_amount * (annual_rate / 100) * (overdue_days / 365)
+/// interest = `outstanding_amount` * (`annual_rate` / 100) * (`overdue_days` / 365)
+#[must_use] 
 pub fn calculate_simple_interest(
     outstanding_amount: f64,
     annual_rate: f64,
     overdue_days: i32,
 ) -> f64 {
-    outstanding_amount * (annual_rate / 100.0) * (overdue_days as f64 / 365.0)
+    outstanding_amount * (annual_rate / 100.0) * (f64::from(overdue_days) / 365.0)
 }
 
 /// Interest Invoice engine
@@ -158,7 +159,7 @@ impl InterestInvoiceEngine {
     /// Deactivate a schedule
     pub async fn deactivate_schedule(&self, id: Uuid) -> AtlasResult<InterestRateSchedule> {
         let schedule = self.repository.get_schedule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
 
         if schedule.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -174,7 +175,7 @@ impl InterestInvoiceEngine {
     /// Activate a schedule
     pub async fn activate_schedule(&self, id: Uuid) -> AtlasResult<InterestRateSchedule> {
         let schedule = self.repository.get_schedule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
 
         if schedule.status != "inactive" {
             return Err(AtlasError::WorkflowError(format!(
@@ -190,7 +191,7 @@ impl InterestInvoiceEngine {
     /// Delete a schedule (only if inactive)
     pub async fn delete_schedule(&self, org_id: Uuid, schedule_code: &str) -> AtlasResult<()> {
         let schedule = self.repository.get_schedule(org_id, schedule_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_code)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_code} not found")))?;
 
         if schedule.status != "inactive" {
             return Err(AtlasError::WorkflowError(
@@ -268,7 +269,7 @@ impl InterestInvoiceEngine {
     /// Close an overdue invoice (e.g., when fully paid)
     pub async fn close_overdue_invoice(&self, id: Uuid) -> AtlasResult<OverdueInvoice> {
         let inv = self.repository.get_overdue_invoice_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Overdue invoice {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Overdue invoice {id} not found")))?;
 
         // This is fine - we handle the method not existing on the trait directly
         // by using list and filtering
@@ -299,7 +300,7 @@ impl InterestInvoiceEngine {
         // Get the schedule to use for calculation
         let schedule = if let Some(sid) = schedule_id {
             self.repository.get_schedule_by_id(sid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", sid)))?
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {sid} not found")))?
         } else {
             // Find the first active schedule
             let schedules = self.repository.list_schedules(org_id, Some("active")).await?;
@@ -326,8 +327,7 @@ impl InterestInvoiceEngine {
         if let Some(to) = schedule.effective_to {
             if calculation_date > to {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Calculation date {} is after schedule effective end date {}",
-                    calculation_date, to
+                    "Calculation date {calculation_date} is after schedule effective end date {to}"
                 )));
             }
         }
@@ -384,10 +384,10 @@ impl InterestInvoiceEngine {
                     org_id, run.id, Some(inv.id),
                     &inv.invoice_number, inv.customer_id,
                     inv.customer_name.as_deref(),
-                    &format!("{:.2}", outstanding),
+                    &format!("{outstanding:.2}"),
                     effective_overdue_days,
-                    &format!("{:.6}", annual_rate),
-                    &format!("{:.2}", interest),
+                    &format!("{annual_rate:.6}"),
+                    &format!("{interest:.2}"),
                     &schedule.currency_code,
                 ).await?;
 
@@ -406,7 +406,7 @@ impl InterestInvoiceEngine {
 
         // Update run totals
         let run = self.repository.update_calculation_run_totals(
-            run.id, lines_count, &format!("{:.2}", total_interest),
+            run.id, lines_count, &format!("{total_interest:.2}"),
         ).await?;
 
         // Mark run as calculated
@@ -440,7 +440,7 @@ impl InterestInvoiceEngine {
     /// Cancel a draft calculation run
     pub async fn cancel_calculation_run(&self, id: Uuid) -> AtlasResult<InterestCalculationRun> {
         let run = self.repository.get_calculation_run(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {id} not found")))?;
 
         if run.status != "calculated" && run.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -469,7 +469,7 @@ impl InterestInvoiceEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Vec<InterestInvoice>> {
         let run = self.repository.get_calculation_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {} not found", run_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "calculated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -504,13 +504,13 @@ impl InterestInvoiceEngine {
 
             let customer_name = cust_lines.first().and_then(|l| l.customer_name.clone());
 
-            let inv_num = format!("{}", next_inv_num);
-            let currency = cust_lines.first().map(|l| l.currency_code.clone()).unwrap_or("USD".to_string());
+            let inv_num = format!("{next_inv_num}");
+            let currency = cust_lines.first().map_or("USD".to_string(), |l| l.currency_code.clone());
 
             let invoice = self.repository.create_interest_invoice(
                 org_id, &inv_num, *customer_id, customer_name.as_deref(),
                 Some(run_id), invoice_date, due_date,
-                &format!("{:.2}", total_interest), &currency,
+                &format!("{total_interest:.2}"), &currency,
                 cust_lines.len() as i32, gl_account_code,
                 None, None, created_by,
             ).await?;
@@ -581,7 +581,7 @@ impl InterestInvoiceEngine {
     /// Post an interest invoice
     pub async fn post_interest_invoice(&self, id: Uuid) -> AtlasResult<InterestInvoice> {
         let inv = self.repository.get_interest_invoice_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if inv.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -599,7 +599,7 @@ impl InterestInvoiceEngine {
     /// Reverse a posted interest invoice
     pub async fn reverse_interest_invoice(&self, id: Uuid) -> AtlasResult<InterestInvoice> {
         let inv = self.repository.get_interest_invoice_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if inv.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -617,7 +617,7 @@ impl InterestInvoiceEngine {
     /// Cancel a draft interest invoice
     pub async fn cancel_interest_invoice(&self, id: Uuid) -> AtlasResult<InterestInvoice> {
         let inv = self.repository.get_interest_invoice_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if inv.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(

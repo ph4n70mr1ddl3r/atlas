@@ -143,7 +143,7 @@ impl SubledgerAccountingEngine {
     pub async fn delete_accounting_method(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         self.repository.get_accounting_method(org_id, code).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting method '{}' not found", code)
+                format!("Accounting method '{code}' not found")
             ))?;
 
         info!("Deleting accounting method {} in org {}", code, org_id);
@@ -216,7 +216,7 @@ impl SubledgerAccountingEngine {
         // Verify the accounting method exists
         self.repository.get_accounting_method_by_id(accounting_method_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting method {} not found", accounting_method_id)
+                format!("Accounting method {accounting_method_id} not found")
             ))?;
 
         info!("Creating derivation rule {} for method {}", code, accounting_method_id);
@@ -243,9 +243,10 @@ impl SubledgerAccountingEngine {
     /// Resolve an account code using derivation rules
     ///
     /// Evaluates rules by priority (lowest first) and returns the first match.
-    /// For 'constant' type, returns fixed_account_code directly.
+    /// For 'constant' type, returns `fixed_account_code` directly.
     /// For 'lookup' type, looks up the source field value in the lookup map.
     /// For 'formula' type, returns the formula expression (execution is deferred).
+    #[must_use] 
     pub fn resolve_account_code(
         &self,
         rules: &[AccountingDerivationRule],
@@ -260,7 +261,7 @@ impl SubledgerAccountingEngine {
 
         for rule in matching {
             // Check conditions
-            if !rule.conditions.is_null() && !rule.conditions.as_object().is_none_or(|obj| obj.is_empty())
+            if !rule.conditions.is_null() && !rule.conditions.as_object().is_none_or(serde_json::Map::is_empty)
                 && !Self::evaluate_conditions(&rule.conditions, transaction_attributes) {
                     continue;
                 }
@@ -276,7 +277,7 @@ impl SubledgerAccountingEngine {
                                 value.to_string()
                             };
                             rule.account_derivation_lookup.get(&key)
-                                .and_then(|v| v.as_str().map(|s| s.to_string()))
+                                .and_then(|v| v.as_str().map(std::string::ToString::to_string))
                         } else {
                             None
                         }
@@ -461,10 +462,10 @@ impl SubledgerAccountingEngine {
 
         self.repository.update_journal_entry_balances(
             journal_entry_id,
-            &format!("{:.2}", total_debit),
-            &format!("{:.2}", total_credit),
-            &format!("{:.2}", total_debit), // For same-currency, entered = accounted
-            &format!("{:.2}", total_credit),
+            &format!("{total_debit:.2}"),
+            &format!("{total_credit:.2}"),
+            &format!("{total_debit:.2}"), // For same-currency, entered = accounted
+            &format!("{total_credit:.2}"),
             is_balanced,
         ).await?;
 
@@ -514,7 +515,7 @@ impl SubledgerAccountingEngine {
     pub async fn account_entry(&self, entry_id: Uuid, accounted_by: Option<Uuid>) -> AtlasResult<SubledgerJournalEntry> {
         let entry = self.repository.get_journal_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", entry_id)
+                format!("Journal entry {entry_id} not found")
             ))?;
 
         if entry.status != "draft" {
@@ -542,7 +543,7 @@ impl SubledgerAccountingEngine {
     pub async fn post_entry(&self, entry_id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<SubledgerJournalEntry> {
         let entry = self.repository.get_journal_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", entry_id)
+                format!("Journal entry {entry_id} not found")
             ))?;
 
         if entry.status != "accounted" {
@@ -563,7 +564,7 @@ impl SubledgerAccountingEngine {
     pub async fn reverse_entry(&self, entry_id: Uuid, reason: &str, reversed_by: Option<Uuid>) -> AtlasResult<SubledgerJournalEntry> {
         let entry = self.repository.get_journal_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", entry_id)
+                format!("Journal entry {entry_id} not found")
             ))?;
 
         if entry.status != "posted" && entry.status != "accounted" {
@@ -592,7 +593,7 @@ impl SubledgerAccountingEngine {
             Some(entry_id),
             chrono::Utc::now().date_naive(),
             "processed",
-            Some(&format!("Reversal: {}", reason)),
+            Some(&format!("Reversal: {reason}")),
             None,
             reversed_by,
         ).await?;
@@ -673,8 +674,8 @@ impl SubledgerAccountingEngine {
             from_period,
             "completed",
             total_entries,
-            &format!("{:.2}", total_debit),
-            &format!("{:.2}", total_credit),
+            &format!("{total_debit:.2}"),
+            &format!("{total_credit:.2}"),
             serde_json::json!(included_apps),
             transferred_by,
             serde_json::json!(entry_refs),
@@ -733,7 +734,7 @@ impl SubledgerAccountingEngine {
     ) -> AtlasResult<Vec<SubledgerJournalLine>> {
         let entry = self.repository.get_journal_entry(entry_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {} not found", entry_id)
+                format!("Journal entry {entry_id} not found")
             ))?;
 
         // Find the accounting method for this entry
@@ -761,14 +762,14 @@ impl SubledgerAccountingEngine {
             ) {
                 // For auto-generation, we use the amount from transaction attributes
                 let amount = transaction_attributes.get("amount")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(0.0);
 
                 if amount > 0.0 {
                     let line = self.repository.create_journal_line(
                         org_id, entry_id, line_num, "debit",
                         &account_code, None, Some(rule.id),
-                        &format!("{:.2}", amount), &format!("{:.2}", amount),
+                        &format!("{amount:.2}"), &format!("{amount:.2}"),
                         &entry.currency_code, None, None,
                         None, None, None, None, None, None,
                         None, None, None, None, None,
@@ -785,14 +786,14 @@ impl SubledgerAccountingEngine {
                 std::slice::from_ref(rule), "credit", transaction_attributes,
             ) {
                 let amount = transaction_attributes.get("amount")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(0.0);
 
                 if amount > 0.0 {
                     let line = self.repository.create_journal_line(
                         org_id, entry_id, line_num, "credit",
                         &account_code, None, Some(rule.id),
-                        &format!("{:.2}", amount), &format!("{:.2}", amount),
+                        &format!("{amount:.2}"), &format!("{amount:.2}"),
                         &entry.currency_code, None, None,
                         None, None, None, None, None, None,
                         None, None, None, None, None,
@@ -885,8 +886,8 @@ impl SubledgerAccountingEngine {
             transferred_count,
             reversed_count,
             error_count,
-            total_debit: format!("{:.2}", total_debit),
-            total_credit: format!("{:.2}", total_credit),
+            total_debit: format!("{total_debit:.2}"),
+            total_credit: format!("{total_credit:.2}"),
             entries_by_application,
             entries_by_status,
             pending_transfer_count,

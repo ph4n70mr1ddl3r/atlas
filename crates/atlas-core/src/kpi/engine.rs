@@ -120,7 +120,7 @@ impl KpiEngine {
         // Check for duplicate code
         if self.repository.get_kpi_by_code(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "KPI with code '{}' already exists", code_upper
+                "KPI with code '{code_upper}' already exists"
             )));
         }
 
@@ -178,7 +178,7 @@ impl KpiEngine {
 
         // Verify KPI exists
         let kpi = self.repository.get_kpi(kpi_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("KPI {} not found", kpi_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("KPI {kpi_id} not found")))?;
 
         if !kpi.is_active {
             return Err(AtlasError::ValidationFailed(
@@ -248,7 +248,7 @@ impl KpiEngine {
         // Check for duplicate code
         if self.repository.get_dashboard_by_code(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Dashboard with code '{}' already exists", code_upper
+                "Dashboard with code '{code_upper}' already exists"
             )));
         }
 
@@ -316,12 +316,12 @@ impl KpiEngine {
 
         // Verify dashboard exists
         let _dashboard = self.repository.get_dashboard(dashboard_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dashboard {} not found", dashboard_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dashboard {dashboard_id} not found")))?;
 
         // Verify KPI exists if specified
         if let Some(kid) = kpi_id {
             let _kpi = self.repository.get_kpi(kid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("KPI {} not found", kid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("KPI {kid} not found")))?;
         }
 
         info!("Adding {} widget '{}' to dashboard {}", widget_type, title, dashboard_id);

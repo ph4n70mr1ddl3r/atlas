@@ -1,6 +1,6 @@
 //! Fixed Asset Repository
 //!
-//! PostgreSQL storage for asset categories, books, fixed assets,
+//! `PostgreSQL` storage for asset categories, books, fixed assets,
 //! depreciation history, transfers, and retirements.
 
 use atlas_shared::{
@@ -178,13 +178,14 @@ pub trait FixedAssetRepository: Send + Sync {
     async fn update_retirement_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<AssetRetirement>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresFixedAssetRepository {
     pool: PgPool,
 }
 
 impl PostgresFixedAssetRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -402,7 +403,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetCategory> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.asset_categories
                 (organization_id, code, name, description,
                  default_depreciation_method, default_useful_life_months,
@@ -419,7 +420,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                     default_depr_expense_account_code = $10, default_gain_loss_account_code = $11,
                     is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(default_depreciation_method).bind(default_useful_life_months)
@@ -494,7 +495,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetBook> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.asset_books
                 (organization_id, code, name, description,
                  book_type, auto_depreciation, depreciation_calendar, created_by)
@@ -505,7 +506,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                     depreciation_calendar = $7,
                     is_active = true, updated_at = now()
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(code).bind(name).bind(description)
         .bind(book_type).bind(auto_depreciation).bind(depreciation_calendar).bind(created_by)
@@ -601,7 +602,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<FixedAsset> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.fixed_assets
                 (organization_id, asset_number, asset_name, description,
                  category_id, category_code, book_id, book_code,
@@ -634,7 +635,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                     $31, $32, $33, $34,
                     $35)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(asset_number).bind(asset_name).bind(description)
         .bind(category_id).bind(category_code).bind(book_id).bind(book_code)
@@ -679,14 +680,14 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
 
     async fn list_assets(&self, org_id: Uuid, status: Option<&str>, category_code: Option<&str>, book_code: Option<&str>) -> AtlasResult<Vec<FixedAsset>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.fixed_assets
             WHERE organization_id = $1
               AND ($2::text IS NULL OR status = $2)
               AND ($3::text IS NULL OR category_code = $3)
               AND ($4::text IS NULL OR book_code = $4)
             ORDER BY asset_number
-            "#,
+            ",
         )
         .bind(org_id).bind(status).bind(category_code).bind(book_code)
         .fetch_all(&self.pool)
@@ -704,7 +705,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         retirement_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<FixedAsset> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.fixed_assets
             SET status = $2,
                 in_service_date = COALESCE($3, in_service_date),
@@ -713,7 +714,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(in_service_date).bind(disposal_date).bind(retirement_date)
         .fetch_one(&self.pool)
@@ -732,7 +733,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         last_depreciation_amount: &str,
     ) -> AtlasResult<FixedAsset> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.fixed_assets
             SET accumulated_depreciation = $2::numeric,
                 net_book_value = $3::numeric,
@@ -742,7 +743,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(accumulated_depreciation).bind(net_book_value)
         .bind(periods_depreciated).bind(last_depreciation_date).bind(last_depreciation_amount)
@@ -762,14 +763,14 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         custodian_name: Option<&str>,
     ) -> AtlasResult<FixedAsset> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.fixed_assets
             SET department_id = $2, department_name = $3,
                 location = $4, custodian_id = $5, custodian_name = $6,
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(department_id).bind(department_name).bind(location)
         .bind(custodian_id).bind(custodian_name)
@@ -809,7 +810,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetDepreciationHistory> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.asset_depreciation_history
                 (organization_id, asset_id, fiscal_year, period_number,
                  period_name, depreciation_date, depreciation_amount,
@@ -817,7 +818,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                  depreciation_method, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7::numeric, $8::numeric, $9::numeric, $10, $11)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(asset_id).bind(fiscal_year).bind(period_number)
         .bind(period_name).bind(depreciation_date).bind(depreciation_amount)
@@ -876,7 +877,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetTransfer> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.asset_transfers
                 (organization_id, transfer_number, asset_id,
                  from_department_id, from_department_name, from_location,
@@ -886,7 +887,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                  transfer_date, reason, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(transfer_number).bind(asset_id)
         .bind(from_department_id).bind(from_department_name).bind(from_location)
@@ -912,11 +913,11 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
 
     async fn list_transfers(&self, org_id: Uuid, asset_id: Option<Uuid>) -> AtlasResult<Vec<AssetTransfer>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.asset_transfers
             WHERE organization_id = $1 AND ($2::uuid IS NULL OR asset_id = $2)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(asset_id)
         .fetch_all(&self.pool)
@@ -933,7 +934,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         rejected_reason: Option<&str>,
     ) -> AtlasResult<AssetTransfer> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.asset_transfers
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
@@ -942,7 +943,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
         .fetch_one(&self.pool)
@@ -979,7 +980,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetRetirement> {
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.asset_retirements
                 (organization_id, retirement_number, asset_id,
                  retirement_type, retirement_date,
@@ -997,7 +998,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                     $12, $13, $14, $15, $16,
                     $17, $18, $19, $20)
             RETURNING *
-            "#,
+            ",
         )
         .bind(org_id).bind(retirement_number).bind(asset_id)
         .bind(retirement_type).bind(retirement_date)
@@ -1026,11 +1027,11 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
 
     async fn list_retirements(&self, org_id: Uuid, asset_id: Option<Uuid>) -> AtlasResult<Vec<AssetRetirement>> {
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT * FROM _atlas.asset_retirements
             WHERE organization_id = $1 AND ($2::uuid IS NULL OR asset_id = $2)
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(org_id).bind(asset_id)
         .fetch_all(&self.pool)
@@ -1046,7 +1047,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         approved_by: Option<Uuid>,
     ) -> AtlasResult<AssetRetirement> {
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE _atlas.asset_retirements
             SET status = $2,
                 approved_by = COALESCE($3, approved_by),
@@ -1054,7 +1055,7 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "#,
+            ",
         )
         .bind(id).bind(status).bind(approved_by)
         .fetch_one(&self.pool)

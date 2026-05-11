@@ -16,13 +16,14 @@ pub trait AuditRepository: Send + Sync {
     async fn get_by_ids(&self, ids: &[Uuid]) -> AtlasResult<Vec<AuditEntry>>;
 }
 
-/// PostgreSQL implementation of AuditRepository
+/// `PostgreSQL` implementation of `AuditRepository`
 pub struct PostgresAuditRepository {
     pool: PgPool,
 }
 
 impl PostgresAuditRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -31,13 +32,13 @@ impl PostgresAuditRepository {
 impl AuditRepository for PostgresAuditRepository {
     async fn insert(&self, entry: &AuditEntry) -> AtlasResult<()> {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO _atlas.audit_log (
                 id, entity_type, entity_id, action,
                 old_data, new_data, changed_by, changed_at,
                 session_id, ip_address, user_agent
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            "#
+            "
         )
         .bind(entry.id)
         .bind(&entry.entity_type)
@@ -64,37 +65,37 @@ impl AuditRepository for PostgresAuditRepository {
         let mut param_idx = 1u32;
         
         if query.entity_type.is_some() {
-            sql.push_str(&format!(" AND entity_type = ${}", param_idx));
+            sql.push_str(&format!(" AND entity_type = ${param_idx}"));
             param_idx += 1;
         }
         if query.entity_id.is_some() {
-            sql.push_str(&format!(" AND entity_id = ${}", param_idx));
+            sql.push_str(&format!(" AND entity_id = ${param_idx}"));
             param_idx += 1;
         }
         if query.action.is_some() {
-            sql.push_str(&format!(" AND action = ${}", param_idx));
+            sql.push_str(&format!(" AND action = ${param_idx}"));
             param_idx += 1;
         }
         if query.user_id.is_some() {
-            sql.push_str(&format!(" AND changed_by = ${}", param_idx));
+            sql.push_str(&format!(" AND changed_by = ${param_idx}"));
             param_idx += 1;
         }
         if query.from_date.is_some() {
-            sql.push_str(&format!(" AND changed_at >= ${}", param_idx));
+            sql.push_str(&format!(" AND changed_at >= ${param_idx}"));
             param_idx += 1;
         }
         if query.to_date.is_some() {
-            sql.push_str(&format!(" AND changed_at <= ${}", param_idx));
+            sql.push_str(&format!(" AND changed_at <= ${param_idx}"));
         }
         
         sql.push_str(" ORDER BY changed_at DESC");
         
         if query.limit.is_some() {
-            sql.push_str(&format!(" LIMIT ${}", param_idx));
+            sql.push_str(&format!(" LIMIT ${param_idx}"));
             param_idx += 1;
         }
         if query.offset.is_some() {
-            sql.push_str(&format!(" OFFSET ${}", param_idx));
+            sql.push_str(&format!(" OFFSET ${param_idx}"));
         }
         
         let mut q = sqlx::query_as::<_, AuditLogRow>(&sql);
@@ -106,7 +107,7 @@ impl AuditRepository for PostgresAuditRepository {
             q = q.bind(entity_id);
         }
         if let Some(ref action) = query.action {
-            q = q.bind(format!("{:?}", action));
+            q = q.bind(format!("{action:?}"));
         }
         if let Some(user_id) = query.user_id {
             q = q.bind(user_id);
@@ -125,7 +126,7 @@ impl AuditRepository for PostgresAuditRepository {
         }
         
         let rows = q.fetch_all(&self.pool).await?;
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
     
     async fn get_by_id(&self, id: Uuid) -> AtlasResult<Option<AuditEntry>> {
@@ -136,7 +137,7 @@ impl AuditRepository for PostgresAuditRepository {
         .fetch_optional(&self.pool)
         .await?;
         
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
     
     async fn get_by_ids(&self, ids: &[Uuid]) -> AtlasResult<Vec<AuditEntry>> {
@@ -147,7 +148,7 @@ impl AuditRepository for PostgresAuditRepository {
         .fetch_all(&self.pool)
         .await?;
         
-        Ok(entries.into_iter().map(|r| r.into()).collect())
+        Ok(entries.into_iter().map(std::convert::Into::into).collect())
     }
 }
 
@@ -179,7 +180,7 @@ impl From<AuditLogRow> for AuditEntry {
             _ => AuditAction::Update,
         };
         
-        AuditEntry {
+        Self {
             id: row.id,
             entity_type: row.entity_type,
             entity_id: row.entity_id,

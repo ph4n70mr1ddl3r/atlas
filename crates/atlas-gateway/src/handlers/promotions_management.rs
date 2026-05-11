@@ -134,8 +134,7 @@ pub async fn list_promotions(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let include_inactive = query.include_inactive
-        .map(|s| s == "true" || s == "1")
-        .unwrap_or(false);
+        .is_some_and(|s| s == "true" || s == "1");
 
     match state.promotions_engine.list_promotions(
         org_id,

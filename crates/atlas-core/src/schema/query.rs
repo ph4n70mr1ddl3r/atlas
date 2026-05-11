@@ -55,6 +55,7 @@ pub enum JoinType {
 }
 
 impl DynamicQuery {
+    #[must_use] 
     pub fn new(table_name: &str) -> Self {
         Self {
             table_name: sanitize_sql_identifier(table_name),
@@ -67,47 +68,55 @@ impl DynamicQuery {
         }
     }
     
+    #[must_use] 
     pub fn select(mut self, fields: Vec<&str>) -> Self {
         self.select_fields = fields.into_iter()
             .map(|s| {
                 let safe = sanitize_sql_identifier(s);
-                if s == "*" { "*".to_string() } else { format!("\"{}\"", safe) }
+                if s == "*" { "*".to_string() } else { format!("\"{safe}\"") }
             })
             .collect();
         self
     }
     
+    #[must_use] 
     pub fn filter(mut self, filter: QueryFilter) -> Self {
         self.filters.push(filter);
         self
     }
     
+    #[must_use] 
     pub fn filters(mut self, filters: Vec<QueryFilter>) -> Self {
         self.filters.extend(filters);
         self
     }
     
+    #[must_use] 
     pub fn sort(mut self, field: &str, direction: SortDirection) -> Self {
         self.sort.push(SortOrder { field: field.to_string(), direction });
         self
     }
     
-    pub fn offset(mut self, offset: i64) -> Self {
+    #[must_use] 
+    pub const fn offset(mut self, offset: i64) -> Self {
         self.offset = Some(offset);
         self
     }
     
-    pub fn limit(mut self, limit: i64) -> Self {
+    #[must_use] 
+    pub const fn limit(mut self, limit: i64) -> Self {
         self.limit = Some(limit);
         self
     }
     
-    pub fn paginate(mut self, page: u64, page_size: u64) -> Self {
+    #[must_use] 
+    pub const fn paginate(mut self, page: u64, page_size: u64) -> Self {
         self.offset = Some((page * page_size) as i64);
         self.limit = Some(page_size as i64);
         self
     }
     
+    #[must_use] 
     pub fn join(mut self, alias: &str, join_type: JoinType, table: &str, on: &str) -> Self {
         let safe_alias = sanitize_sql_identifier(alias);
         let safe_table = sanitize_sql_identifier(table);
@@ -131,6 +140,7 @@ impl DynamicQuery {
     /// rather than using this method directly with untrusted input.
     ///
     /// Sort fields are sanitized through `sanitize_sql_identifier`.
+    #[must_use] 
     pub fn build_select(&self) -> String {
         let mut sql = String::from("SELECT ");
         
@@ -175,10 +185,10 @@ impl DynamicQuery {
         
         // Pagination
         if let Some(offset) = self.offset {
-            sql.push_str(&format!(" OFFSET {}", offset));
+            sql.push_str(&format!(" OFFSET {offset}"));
         }
         if let Some(limit) = self.limit {
-            sql.push_str(&format!(" LIMIT {}", limit));
+            sql.push_str(&format!(" LIMIT {limit}"));
         }
         
         sql
@@ -188,6 +198,7 @@ impl DynamicQuery {
     ///
     /// **WARNING**: Same caveat as `build_select` – filter values are
     /// string-interpolated.  Use parameterized queries for untrusted input.
+    #[must_use] 
     pub fn build_count(&self) -> String {
         let mut sql = String::from("SELECT COUNT(*) FROM ");
         sql.push_str(&format!("\"{}\"", self.table_name));
@@ -220,7 +231,7 @@ impl DynamicQuery {
     pub fn build_insert(&self, data: &serde_json::Value) -> AtlasResult<(String, Vec<serde_json::Value>)> {
         if let Some(obj) = data.as_object() {
             let fields: Vec<String> = obj.keys().map(|k| format!("\"{}\"", sanitize_sql_identifier(k))).collect();
-            let placeholders: Vec<String> = (1..=obj.len()).map(|i| format!("${}", i)).collect();
+            let placeholders: Vec<String> = (1..=obj.len()).map(|i| format!("${i}")).collect();
             let values: Vec<serde_json::Value> = obj.values().cloned().collect();
             
             let sql = format!(
@@ -269,6 +280,7 @@ impl DynamicQuery {
     /// Build the SOFT DELETE query
     ///
     /// The record ID must be bound as `$1` (UUID) by the caller.
+    #[must_use] 
     pub fn build_soft_delete(&self) -> String {
         format!(
             "UPDATE \"{}\" SET deleted_at = now() WHERE id = $1",
@@ -279,6 +291,7 @@ impl DynamicQuery {
     /// Build the HARD DELETE query
     ///
     /// The record ID must be bound as `$1` (UUID) by the caller.
+    #[must_use] 
     pub fn build_hard_delete(&self) -> String {
         format!(
             "DELETE FROM \"{}\" WHERE id = $1",
@@ -315,8 +328,8 @@ impl DynamicQuery {
                 let escaped = escape_like_wildcards(v);
                 format!("{} LIKE {}", field, self.value_to_sql(&serde_json::json!(format!("%{}", escaped))))
             }
-            FilterOperator::IsNull => format!("{} IS NULL", field),
-            FilterOperator::IsNotNull => format!("{} IS NOT NULL", field),
+            FilterOperator::IsNull => format!("{field} IS NULL"),
+            FilterOperator::IsNotNull => format!("{field} IS NOT NULL"),
             FilterOperator::Between => {
                 if let Some(arr) = value.as_array() {
                     if arr.len() == 2 {
@@ -324,7 +337,7 @@ impl DynamicQuery {
                             self.value_to_sql(&arr[0]), self.value_to_sql(&arr[1]));
                     }
                 }
-                format!("{} BETWEEN {} AND {}", field, value, value)
+                format!("{field} BETWEEN {value} AND {value}")
             }
             _ => format!("-- unsupported operator: {:?}", filter.operator),
         }
@@ -342,7 +355,7 @@ impl DynamicQuery {
             serde_json::Value::String(s) => {
                 // Escape backslashes and single quotes
                 let escaped = s.replace('\\', "\\\\").replace('\'', "''");
-                format!("'{}'", escaped)
+                format!("'{escaped}'")
             }
             serde_json::Value::Array(arr) => format!("ARRAY[{}]", arr.iter()
                 .map(|v| self.value_to_sql(v))
@@ -351,7 +364,7 @@ impl DynamicQuery {
             serde_json::Value::Object(_) => {
                 let escaped = serde_json::to_string(value).unwrap_or_default()
                     .replace('\\', "\\\\").replace('\'', "''");
-                format!("'{}'", escaped)
+                format!("'{escaped}'")
             }
         }
     }
@@ -359,10 +372,10 @@ impl DynamicQuery {
 
 impl From<&QueryRequest> for DynamicQuery {
     fn from(req: &QueryRequest) -> Self {
-        let mut query = DynamicQuery::new(&req.entity);
+        let mut query = Self::new(&req.entity);
         
         if !req.fields.is_empty() {
-            query = query.select(req.fields.iter().map(|s| s.as_str()).collect());
+            query = query.select(req.fields.iter().map(std::string::String::as_str).collect());
         }
         
         if !req.filters.is_empty() {

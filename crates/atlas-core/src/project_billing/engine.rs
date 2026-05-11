@@ -128,7 +128,7 @@ impl ProjectBillingEngine {
         // Check for duplicate
         if self.repository.get_schedule_by_number(org_id, schedule_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Schedule '{}' already exists", schedule_number
+                "Schedule '{schedule_number}' already exists"
             )));
         }
 
@@ -211,7 +211,7 @@ impl ProjectBillingEngine {
 
         // Verify schedule exists
         self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", schedule_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
 
         info!("Adding rate line for role '{}' to schedule {} [rate={}]", role_name, schedule_id, bill_rate);
         self.repository.create_rate_line(
@@ -298,20 +298,20 @@ impl ProjectBillingEngine {
             && bill_rate_schedule_id.is_none()
         {
             return Err(AtlasError::ValidationFailed(format!(
-                "bill_rate_schedule_id is required for billing_method '{}'", billing_method
+                "bill_rate_schedule_id is required for billing_method '{billing_method}'"
             )));
         }
 
         // Verify schedule exists if provided
         if let Some(sid) = bill_rate_schedule_id {
             self.repository.get_schedule(sid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", sid)))?;
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {sid} not found")))?;
         }
 
         // Check for duplicate project config
         if self.repository.get_billing_config_by_project(org_id, project_id).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Billing config already exists for project {}", project_id
+                "Billing config already exists for project {project_id}"
             )));
         }
 
@@ -397,7 +397,7 @@ impl ProjectBillingEngine {
         // Check for duplicate
         if self.repository.get_billing_event_by_number(org_id, event_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Billing event '{}' already exists", event_number
+                "Billing event '{event_number}' already exists"
             )));
         }
 
@@ -444,7 +444,7 @@ impl ProjectBillingEngine {
 
         // Verify event exists and is in a completable state
         let event = self.repository.get_billing_event(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing event {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing event {id} not found")))?;
 
         if event.status != "planned" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -508,16 +508,16 @@ impl ProjectBillingEngine {
         // Check for duplicate invoice number
         if self.repository.get_invoice_by_number(org_id, invoice_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Invoice '{}' already exists", invoice_number
+                "Invoice '{invoice_number}' already exists"
             )));
         }
 
         // Resolve billing config for retention calculation
         let config = self.repository.get_billing_config_by_project(org_id, project_id).await?;
-        let retention_pct = config.as_ref().map(|c| c.retention_pct).unwrap_or(0.0);
-        let retention_cap = config.as_ref().map(|c| c.retention_amount_cap).unwrap_or(0.0);
-        let currency_code = config.as_ref().map(|c| c.currency_code.clone()).unwrap_or_else(|| "USD".to_string());
-        let payment_terms = config.as_ref().map(|c| c.payment_terms_days).unwrap_or(30);
+        let retention_pct = config.as_ref().map_or(0.0, |c| c.retention_pct);
+        let retention_cap = config.as_ref().map_or(0.0, |c| c.retention_amount_cap);
+        let currency_code = config.as_ref().map_or_else(|| "USD".to_string(), |c| c.currency_code.clone());
+        let payment_terms = config.as_ref().map_or(30, |c| c.payment_terms_days);
 
         // Calculate totals from lines
         let mut invoice_amount = 0.0_f64;
@@ -539,7 +539,7 @@ impl ProjectBillingEngine {
         let total_amount = invoice_amount + total_markup + total_tax - total_retention;
 
         let today = chrono::Utc::now().date_naive();
-        let due_date = today + chrono::Duration::days(payment_terms as i64);
+        let due_date = today + chrono::Duration::days(i64::from(payment_terms));
 
         info!("Creating invoice '{}' for project {} [type={}, amount={}, retention={}]",
               invoice_number, project_id, invoice_type, total_amount, total_retention);
@@ -604,7 +604,7 @@ impl ProjectBillingEngine {
     /// Submit an invoice for approval
     pub async fn submit_invoice(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
         let invoice = self.repository.get_invoice(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status != "draft" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -619,7 +619,7 @@ impl ProjectBillingEngine {
     /// Approve an invoice
     pub async fn approve_invoice(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
         let invoice = self.repository.get_invoice(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status != "submitted" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -634,7 +634,7 @@ impl ProjectBillingEngine {
     /// Reject an invoice
     pub async fn reject_invoice(&self, id: Uuid, reason: &str) -> AtlasResult<ProjectInvoiceHeader> {
         let invoice = self.repository.get_invoice(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status != "submitted" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -649,7 +649,7 @@ impl ProjectBillingEngine {
     /// Post an invoice to GL
     pub async fn post_invoice(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
         let invoice = self.repository.get_invoice(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status != "approved" {
             return Err(AtlasError::ValidationFailed(format!(
@@ -664,7 +664,7 @@ impl ProjectBillingEngine {
     /// Cancel an invoice
     pub async fn cancel_invoice(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
         let invoice = self.repository.get_invoice(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status == "posted" {
             return Err(AtlasError::ValidationFailed(

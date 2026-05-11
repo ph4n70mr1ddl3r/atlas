@@ -1,6 +1,6 @@
-//! AutoInvoice Handlers
+//! `AutoInvoice` Handlers
 //!
-//! Oracle Fusion Cloud Receivables: AutoInvoice
+//! Oracle Fusion Cloud Receivables: `AutoInvoice`
 //!
 //! API endpoints for automated invoice creation from imported transaction data
 //! with configurable grouping rules, validation rules, batch processing,

@@ -1,7 +1,7 @@
 //! Third-Party Payment Engine
 //!
 //! Manages the full lifecycle of third-party payments in Accounts Payable:
-//! - Create payment instructions with type (garnishment, tax_levy, insurance, etc.)
+//! - Create payment instructions with type (garnishment, `tax_levy`, insurance, etc.)
 //! - Approval workflow: draft → submitted → approved → paid
 //! - Hold/release mechanism with audit trail
 //! - Payment lines for GL account breakdown
@@ -9,7 +9,7 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Payables > Third-Party Payments
 
-use super::*;
+use super::{ThirdPartyPaymentRepository, AtlasResult, ThirdPartyPayment, AtlasError, ThirdPartyPaymentLine, ThirdPartyPaymentDashboard};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -110,7 +110,7 @@ impl ThirdPartyPaymentEngine {
         // Check for duplicate payment number
         if self.repository.get_payment_by_number(org_id, payment_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Payment number '{}' already exists", payment_number
+                "Payment number '{payment_number}' already exists"
             )));
         }
 
@@ -173,7 +173,7 @@ impl ThirdPartyPaymentEngine {
     /// Submit payment for approval
     pub async fn submit_payment(&self, payment_id: Uuid) -> AtlasResult<ThirdPartyPayment> {
         let p = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {} not found", payment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if p.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -188,7 +188,7 @@ impl ThirdPartyPaymentEngine {
     /// Approve a submitted payment
     pub async fn approve_payment(&self, payment_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<ThirdPartyPayment> {
         let p = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {} not found", payment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if p.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -207,7 +207,7 @@ impl ThirdPartyPaymentEngine {
         }
 
         let p = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {} not found", payment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if p.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -222,7 +222,7 @@ impl ThirdPartyPaymentEngine {
     /// Place a payment on hold
     pub async fn place_on_hold(&self, payment_id: Uuid, reason: Option<&str>, held_by: Option<Uuid>) -> AtlasResult<ThirdPartyPayment> {
         let p = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {} not found", payment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if p.status == "cancelled" || p.status == "paid" || p.status == "rejected" {
             return Err(AtlasError::WorkflowError(
@@ -237,7 +237,7 @@ impl ThirdPartyPaymentEngine {
     /// Release a payment from hold (returns to previous working state)
     pub async fn release_hold(&self, payment_id: Uuid) -> AtlasResult<ThirdPartyPayment> {
         let p = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {} not found", payment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if p.status != "on_hold" {
             return Err(AtlasError::WorkflowError(
@@ -256,7 +256,7 @@ impl ThirdPartyPaymentEngine {
         }
 
         let p = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {} not found", payment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if p.status != "approved" {
             return Err(AtlasError::WorkflowError(
@@ -271,7 +271,7 @@ impl ThirdPartyPaymentEngine {
     /// Cancel a payment
     pub async fn cancel_payment(&self, payment_id: Uuid, reason: Option<&str>, cancelled_by: Option<Uuid>) -> AtlasResult<ThirdPartyPayment> {
         let p = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {} not found", payment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if p.status == "paid" {
             return Err(AtlasError::WorkflowError(
@@ -301,7 +301,7 @@ impl ThirdPartyPaymentEngine {
         tax_code: Option<&str>,
     ) -> AtlasResult<ThirdPartyPaymentLine> {
         let p = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {} not found", payment_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if p.status == "cancelled" || p.status == "paid" {
             return Err(AtlasError::WorkflowError(

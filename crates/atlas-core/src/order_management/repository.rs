@@ -1,6 +1,6 @@
 //! Order Management Repository
 //!
-//! PostgreSQL storage for sales orders, order lines, holds, and shipments.
+//! `PostgreSQL` storage for sales orders, order lines, holds, and shipments.
 
 use atlas_shared::{
     SalesOrder, SalesOrderLine, OrderHold, FulfillmentShipment,
@@ -99,13 +99,14 @@ pub trait OrderManagementRepository: Send + Sync {
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<OrderManagementDashboard>;
 }
 
-/// PostgreSQL implementation
+/// `PostgreSQL` implementation
 pub struct PostgresOrderManagementRepository {
     pool: PgPool,
 }
 
 impl PostgresOrderManagementRepository {
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use] 
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -251,14 +252,14 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesOrder> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.sales_orders
+            r"INSERT INTO _atlas.sales_orders
                 (organization_id, order_number, customer_id, customer_name,
                  customer_po_number, order_date, requested_ship_date,
                  requested_delivery_date, ship_to_address, bill_to_address,
                  currency_code, payment_terms, shipping_method, sales_channel,
                  salesperson_id, salesperson_name, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(order_number).bind(customer_id).bind(customer_name)
         .bind(customer_po_number).bind(order_date).bind(requested_ship_date)
@@ -293,11 +294,11 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
 
     async fn list_orders(&self, org_id: Uuid, status: Option<&str>, fulfillment_status: Option<&str>) -> AtlasResult<Vec<SalesOrder>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.sales_orders
+            r"SELECT * FROM _atlas.sales_orders
             WHERE organization_id=$1
             AND ($2::text IS NULL OR status=$2)
             AND ($3::text IS NULL OR fulfillment_status=$3)
-            ORDER BY order_date DESC, created_at DESC"#,
+            ORDER BY order_date DESC, created_at DESC",
         )
         .bind(org_id).bind(status).bind(fulfillment_status)
         .fetch_all(&self.pool).await
@@ -308,13 +309,13 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
 
     async fn update_order_status(&self, id: Uuid, status: &str) -> AtlasResult<SalesOrder> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sales_orders SET status=$2,
+            r"UPDATE _atlas.sales_orders SET status=$2,
                 submitted_at=CASE WHEN $2='submitted' AND submitted_at IS NULL THEN now() ELSE submitted_at END,
                 confirmed_at=CASE WHEN $2='confirmed' AND confirmed_at IS NULL THEN now() ELSE confirmed_at END,
                 closed_at=CASE WHEN $2='closed' AND closed_at IS NULL THEN now() ELSE closed_at END,
                 cancelled_at=CASE WHEN $2='cancelled' AND cancelled_at IS NULL THEN now() ELSE cancelled_at END,
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(status)
         .fetch_one(&self.pool).await
@@ -336,14 +337,14 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
 
     async fn update_order_totals(&self, id: Uuid) -> AtlasResult<SalesOrder> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sales_orders o SET
+            r"UPDATE _atlas.sales_orders o SET
                 subtotal_amount = COALESCE((SELECT SUM(line_amount) FROM _atlas.sales_order_lines WHERE order_id=$1), 0),
                 tax_amount = COALESCE((SELECT SUM(tax_amount) FROM _atlas.sales_order_lines WHERE order_id=$1), 0),
                 total_amount = COALESCE(o.shipping_charges, 0)
                     + COALESCE((SELECT SUM(line_amount) FROM _atlas.sales_order_lines WHERE order_id=$1), 0)
                     + COALESCE((SELECT SUM(tax_amount) FROM _atlas.sales_order_lines WHERE order_id=$1), 0),
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id)
         .fetch_one(&self.pool).await
@@ -358,11 +359,11 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         actual_delivery_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<SalesOrder> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sales_orders SET
+            r"UPDATE _atlas.sales_orders SET
                 actual_ship_date=COALESCE($2, actual_ship_date),
                 actual_delivery_date=COALESCE($3, actual_delivery_date),
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(actual_ship_date).bind(actual_delivery_date)
         .fetch_one(&self.pool).await
@@ -387,14 +388,14 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         ship_from_warehouse: Option<&str>,
     ) -> AtlasResult<SalesOrderLine> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.sales_order_lines
+            r"INSERT INTO _atlas.sales_order_lines
                 (organization_id, order_id, line_number, item_id, item_code,
                  item_description, quantity_ordered, unit_selling_price,
                  unit_list_price, discount_percent, discount_amount,
                  tax_code, requested_ship_date, promised_delivery_date,
                  ship_from_warehouse)
             VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8::numeric,$9::numeric,$10::numeric,$11::numeric,$12,$13,$14,$15)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(order_id).bind(line_number)
         .bind(item_id).bind(item_code).bind(item_description)
@@ -435,12 +436,12 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         quantity_backordered: Option<&str>,
     ) -> AtlasResult<SalesOrderLine> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.sales_order_lines SET
+            r"UPDATE _atlas.sales_order_lines SET
                 quantity_shipped = CASE WHEN $2::numeric IS NOT NULL THEN $2::numeric ELSE quantity_shipped END,
                 quantity_cancelled = CASE WHEN $3::numeric IS NOT NULL THEN $3::numeric ELSE quantity_cancelled END,
                 quantity_backordered = CASE WHEN $4::numeric IS NOT NULL THEN $4::numeric ELSE quantity_backordered END,
                 updated_at = now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(quantity_shipped).bind(quantity_cancelled).bind(quantity_backordered)
         .fetch_one(&self.pool).await
@@ -480,11 +481,11 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         applied_by: Option<Uuid>, applied_by_name: Option<&str>,
     ) -> AtlasResult<OrderHold> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.order_holds
+            r"INSERT INTO _atlas.order_holds
                 (organization_id, order_id, order_line_id, hold_type, hold_reason,
                  applied_by, applied_by_name)
             VALUES ($1,$2,$3,$4,$5,$6,$7)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(order_id).bind(order_line_id)
         .bind(hold_type).bind(hold_reason)
@@ -522,10 +523,10 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         &self, id: Uuid, released_by: Option<Uuid>, released_by_name: Option<&str>,
     ) -> AtlasResult<OrderHold> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.order_holds SET
+            r"UPDATE _atlas.order_holds SET
                 is_active=false, released_by=$2, released_by_name=$3,
                 released_at=now(), updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(released_by).bind(released_by_name)
         .fetch_one(&self.pool).await
@@ -547,12 +548,12 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         shipped_by: Option<Uuid>, shipped_by_name: Option<&str>,
     ) -> AtlasResult<FulfillmentShipment> {
         let row = sqlx::query(
-            r#"INSERT INTO _atlas.fulfillment_shipments
+            r"INSERT INTO _atlas.fulfillment_shipments
                 (organization_id, shipment_number, order_id, order_line_ids,
                  warehouse, carrier, shipping_method, estimated_delivery_date,
                  shipped_by, shipped_by_name)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-            RETURNING *"#,
+            RETURNING *",
         )
         .bind(org_id).bind(shipment_number).bind(order_id).bind(order_line_ids)
         .bind(warehouse).bind(carrier).bind(shipping_method)
@@ -575,11 +576,11 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
 
     async fn list_shipments(&self, org_id: Uuid, status: Option<&str>, order_id: Option<Uuid>) -> AtlasResult<Vec<FulfillmentShipment>> {
         let rows = sqlx::query(
-            r#"SELECT * FROM _atlas.fulfillment_shipments
+            r"SELECT * FROM _atlas.fulfillment_shipments
             WHERE organization_id=$1
             AND ($2::text IS NULL OR status=$2)
             AND ($3::uuid IS NULL OR order_id=$3)
-            ORDER BY created_at DESC"#,
+            ORDER BY created_at DESC",
         )
         .bind(org_id).bind(status).bind(order_id)
         .fetch_all(&self.pool).await
@@ -605,12 +606,12 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         delivery_confirmation: Option<&str>,
     ) -> AtlasResult<FulfillmentShipment> {
         let row = sqlx::query(
-            r#"UPDATE _atlas.fulfillment_shipments SET
+            r"UPDATE _atlas.fulfillment_shipments SET
                 tracking_number=COALESCE($2, tracking_number),
                 actual_delivery_date=COALESCE($3, actual_delivery_date),
                 delivery_confirmation=COALESCE($4, delivery_confirmation),
                 updated_at=now()
-            WHERE id=$1 RETURNING *"#,
+            WHERE id=$1 RETURNING *",
         )
         .bind(id).bind(tracking_number).bind(actual_delivery_date).bind(delivery_confirmation)
         .fetch_one(&self.pool).await
@@ -636,7 +637,7 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<OrderManagementDashboard> {
         let row = sqlx::query(
-            r#"SELECT
+            r"SELECT
                 (SELECT COUNT(*) FROM _atlas.sales_orders WHERE organization_id=$1) as total_orders,
                 (SELECT COUNT(*) FROM _atlas.sales_orders WHERE organization_id=$1 AND status IN ('draft','submitted','confirmed')) as open_orders,
                 (SELECT COUNT(*) FROM _atlas.sales_orders WHERE organization_id=$1 AND fulfillment_status='in_process') as orders_in_fulfillment,
@@ -645,7 +646,7 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
                 (SELECT COALESCE(SUM(total_amount),0) FROM _atlas.sales_orders WHERE organization_id=$1 AND status != 'cancelled') as total_order_value,
                 (SELECT COUNT(*) FROM _atlas.sales_orders o JOIN _atlas.order_holds h ON h.order_id=o.id WHERE o.organization_id=$1 AND h.is_active=true) as orders_on_hold,
                 (SELECT COUNT(*) FROM _atlas.sales_order_lines WHERE organization_id=$1 AND quantity_backordered > 0) as backordered_lines,
-                (SELECT COUNT(*) FROM _atlas.sales_orders WHERE organization_id=$1 AND requested_ship_date < now()::date AND actual_ship_date IS NULL AND status NOT IN ('cancelled','closed')) as overdue_shipments"#,
+                (SELECT COUNT(*) FROM _atlas.sales_orders WHERE organization_id=$1 AND requested_ship_date < now()::date AND actual_ship_date IS NULL AND status NOT IN ('cancelled','closed')) as overdue_shipments",
         )
         .bind(org_id)
         .fetch_one(&self.pool).await
@@ -694,8 +695,8 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
             overdue_shipments: overdue_shipments as i32,
             orders_by_status: serde_json::json!({}),
             orders_by_channel: serde_json::json!({}),
-            fulfillment_rate_pct: format!("{:.1}", fulfillment_rate),
-            on_time_shipment_pct: format!("{:.1}", on_time_pct),
+            fulfillment_rate_pct: format!("{fulfillment_rate:.1}"),
+            on_time_shipment_pct: format!("{on_time_pct:.1}"),
         })
     }
 }

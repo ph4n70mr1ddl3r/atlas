@@ -3,7 +3,7 @@
 //! Oracle Fusion Cloud ERP: Self-Service Procurement > Requisitions
 //!
 //! Endpoints for managing purchase requisitions, lines, distributions,
-//! approval workflow, and AutoCreate conversion to purchase orders.
+//! approval workflow, and `AutoCreate` conversion to purchase orders.
 
 use axum::{
     extract::{Path, Query, State, Extension},
@@ -505,7 +505,7 @@ pub async fn list_requisition_approvals(
 // AutoCreate
 // ============================================================================
 
-/// Create purchase orders from approved requisition lines (AutoCreate)
+/// Create purchase orders from approved requisition lines (`AutoCreate`)
 pub async fn autocreate(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
@@ -543,7 +543,7 @@ pub async fn autocreate(
     }
 }
 
-/// List AutoCreate links for a requisition
+/// List `AutoCreate` links for a requisition
 pub async fn list_autocreate_links(
     State(state): State<Arc<AppState>>,
     Path(requisition_id): Path<Uuid>,
@@ -554,7 +554,7 @@ pub async fn list_autocreate_links(
     }
 }
 
-/// Cancel an AutoCreate link
+/// Cancel an `AutoCreate` link
 pub async fn cancel_autocreate_link(
     State(state): State<Arc<AppState>>,
     Path(link_id): Path<Uuid>,

@@ -7,6 +7,7 @@ use atlas_core::schema::{SchemaBuilder, WorkflowBuilder};
 use atlas_shared::EntityDefinition;
 
 /// Generate the Employee entity definition with lifecycle workflow
+#[must_use] 
 pub fn employee_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("employee_lifecycle", "onboarding")
         .initial_state("onboarding", "Onboarding")
@@ -49,6 +50,7 @@ pub fn employee_definition() -> EntityDefinition {
 }
 
 /// Generate the Department entity definition
+#[must_use] 
 pub fn department_definition() -> EntityDefinition {
     SchemaBuilder::new("departments", "Department")
         .plural_label("Departments")
@@ -65,6 +67,7 @@ pub fn department_definition() -> EntityDefinition {
 }
 
 /// Generate the Position entity definition
+#[must_use] 
 pub fn position_definition() -> EntityDefinition {
     SchemaBuilder::new("positions", "Position")
         .plural_label("Positions")

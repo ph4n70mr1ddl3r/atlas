@@ -130,7 +130,7 @@ impl EnterpriseAssetManagementEngine {
         }
         if self.repository.get_location_by_code(org_id, &code_upper).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Location '{}' already exists", code_upper
+                "Location '{code_upper}' already exists"
             )));
         }
 
@@ -202,7 +202,7 @@ impl EnterpriseAssetManagementEngine {
 
         if self.repository.get_asset_by_number(org_id, asset_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Asset '{}' already exists", asset_number
+                "Asset '{asset_number}' already exists"
             )));
         }
 
@@ -337,11 +337,11 @@ impl EnterpriseAssetManagementEngine {
 
         // Verify asset exists and get its info
         let asset = self.repository.get_asset(asset_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Asset {} not found", asset_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Asset {asset_id} not found")))?;
 
         if self.repository.get_work_order_by_number(org_id, work_order_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Work order '{}' already exists", work_order_number
+                "Work order '{work_order_number}' already exists"
             )));
         }
 
@@ -496,11 +496,11 @@ impl EnterpriseAssetManagementEngine {
 
         // Verify asset exists
         let asset = self.repository.get_asset(asset_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Asset {} not found", asset_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Asset {asset_id} not found")))?;
 
         if self.repository.get_pm_schedule_by_number(org_id, schedule_number).await?.is_some() {
             return Err(AtlasError::Conflict(format!(
-                "Schedule '{}' already exists", schedule_number
+                "Schedule '{schedule_number}' already exists"
             )));
         }
 

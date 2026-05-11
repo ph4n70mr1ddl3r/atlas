@@ -162,7 +162,7 @@ pub async fn list_commission_plans(
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    let status = params.get("status").map(|s| s.as_str());
+    let status = params.get("status").map(std::string::String::as_str);
     match state.sales_commission_engine.list_plans(org_id, status).await {
         Ok(plans) => Ok(Json(serde_json::json!({"data": plans}))),
         Err(e) => {
@@ -377,7 +377,7 @@ pub async fn list_quotas(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let rep_id = params.get("rep_id").and_then(|s| Uuid::parse_str(s).ok());
-    let status = params.get("status").map(|s| s.as_str());
+    let status = params.get("status").map(std::string::String::as_str);
     match state.sales_commission_engine.list_quotas(org_id, rep_id, status).await {
         Ok(quotas) => Ok(Json(serde_json::json!({"data": quotas}))),
         Err(e) => {
@@ -448,7 +448,7 @@ pub async fn list_commission_transactions(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let rep_id = params.get("rep_id").and_then(|s| Uuid::parse_str(s).ok());
-    let status = params.get("status").map(|s| s.as_str());
+    let status = params.get("status").map(std::string::String::as_str);
     match state.sales_commission_engine.list_transactions(org_id, rep_id, status).await {
         Ok(txs) => Ok(Json(serde_json::json!({"data": txs}))),
         Err(e) => {
@@ -512,7 +512,7 @@ pub async fn list_payouts(
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    let status = params.get("status").map(|s| s.as_str());
+    let status = params.get("status").map(std::string::String::as_str);
     match state.sales_commission_engine.list_payouts(org_id, status).await {
         Ok(payouts) => Ok(Json(serde_json::json!({"data": payouts}))),
         Err(e) => {

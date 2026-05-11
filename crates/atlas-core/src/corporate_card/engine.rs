@@ -165,7 +165,7 @@ impl CorporateCardEngine {
             .repository
             .get_program_by_id(program_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Program {} not found", program_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Program {program_id} not found")))?;
 
         if !program.is_active {
             return Err(AtlasError::ValidationFailed(format!(
@@ -259,7 +259,7 @@ impl CorporateCardEngine {
     /// Reactivate a suspended card
     pub async fn reactivate_card(&self, card_id: Uuid) -> AtlasResult<CorporateCard> {
         let card = self.repository.get_card(card_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {} not found", card_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {card_id} not found")))?;
 
         if card.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -275,7 +275,7 @@ impl CorporateCardEngine {
     /// Cancel a card
     pub async fn cancel_card(&self, card_id: Uuid) -> AtlasResult<CorporateCard> {
         let card = self.repository.get_card(card_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {} not found", card_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {card_id} not found")))?;
 
         if card.status != "active" && card.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -291,7 +291,7 @@ impl CorporateCardEngine {
     /// Report card lost
     pub async fn report_lost(&self, card_id: Uuid) -> AtlasResult<CorporateCard> {
         let card = self.repository.get_card(card_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {} not found", card_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {card_id} not found")))?;
 
         if card.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -307,7 +307,7 @@ impl CorporateCardEngine {
     /// Report card stolen
     pub async fn report_stolen(&self, card_id: Uuid) -> AtlasResult<CorporateCard> {
         let card = self.repository.get_card(card_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {} not found", card_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {card_id} not found")))?;
 
         if card.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -352,7 +352,7 @@ impl CorporateCardEngine {
 
         // Validate card exists and is usable
         let card = self.repository.get_card(card_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {} not found", card_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {card_id} not found")))?;
 
         if card.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -403,12 +403,12 @@ impl CorporateCardEngine {
             let new_spend = current_spend + amount_val;
             let new_balance = current_balance + amount_val;
             self.repository
-                .update_card_spend(card_id, &format!("{:.2}", new_spend), &format!("{:.2}", new_balance))
+                .update_card_spend(card_id, &format!("{new_spend:.2}"), &format!("{new_balance:.2}"))
                 .await?;
         } else if transaction_type == "credit" || transaction_type == "payment" {
             let new_balance = (current_balance - amount_val).max(0.0);
             self.repository
-                .update_card_spend(card_id, &format!("{:.2}", current_spend), &format!("{:.2}", new_balance))
+                .update_card_spend(card_id, &format!("{current_spend:.2}"), &format!("{new_balance:.2}"))
                 .await?;
         }
 
@@ -454,7 +454,7 @@ impl CorporateCardEngine {
     ) -> AtlasResult<CorporateCardTransaction> {
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Transaction {} not found", transaction_id
+                "Transaction {transaction_id} not found"
             )))?;
 
         if txn.status != "unmatched" {
@@ -488,7 +488,7 @@ impl CorporateCardEngine {
     ) -> AtlasResult<CorporateCardTransaction> {
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Transaction {} not found", transaction_id
+                "Transaction {transaction_id} not found"
             )))?;
 
         if txn.status != "matched" {
@@ -513,7 +513,7 @@ impl CorporateCardEngine {
     ) -> AtlasResult<CorporateCardTransaction> {
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Transaction {} not found", transaction_id
+                "Transaction {transaction_id} not found"
             )))?;
 
         if txn.status != "unmatched" && txn.status != "matched" {
@@ -560,7 +560,7 @@ impl CorporateCardEngine {
 
         let txn = self.repository.get_transaction(transaction_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Transaction {} not found", transaction_id
+                "Transaction {transaction_id} not found"
             )))?;
 
         if txn.status != "disputed" {
@@ -623,7 +623,7 @@ impl CorporateCardEngine {
 
         // Validate programme exists
         let program = self.repository.get_program_by_id(program_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Program {} not found", program_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Program {program_id} not found")))?;
 
         info!(
             "Importing statement {} for program {} (period: {} to {})",
@@ -707,7 +707,7 @@ impl CorporateCardEngine {
     pub async fn reconcile_statement(&self, statement_id: Uuid) -> AtlasResult<CorporateCardStatement> {
         let stmt = self.repository.get_statement(statement_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Statement {} not found", statement_id
+                "Statement {statement_id} not found"
             )))?;
 
         if stmt.status != "matched" && stmt.status != "processing" {
@@ -729,7 +729,7 @@ impl CorporateCardEngine {
     ) -> AtlasResult<CorporateCardStatement> {
         let stmt = self.repository.get_statement(statement_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Statement {} not found", statement_id
+                "Statement {statement_id} not found"
             )))?;
 
         if stmt.status != "reconciled" {
@@ -786,7 +786,7 @@ impl CorporateCardEngine {
         }
 
         let card = self.repository.get_card(card_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {} not found", card_id)))?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {card_id} not found")))?;
 
         if card.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -833,7 +833,7 @@ impl CorporateCardEngine {
     ) -> AtlasResult<CorporateCardLimitOverride> {
         let limit = self.repository.get_limit_override(override_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Limit override {} not found", override_id
+                "Limit override {override_id} not found"
             )))?;
 
         if limit.status != "pending" {
@@ -899,7 +899,7 @@ impl CorporateCardEngine {
     ) -> AtlasResult<CorporateCardLimitOverride> {
         let limit = self.repository.get_limit_override(override_id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Limit override {} not found", override_id
+                "Limit override {override_id} not found"
             )))?;
 
         if limit.status != "pending" {
@@ -947,10 +947,10 @@ impl CorporateCardEngine {
     // Internal Helpers
     // ========================================================================
 
-    /// Helper: fetch card or return EntityNotFound
+    /// Helper: fetch card or return `EntityNotFound`
     async fn get_card_or_error(&self, card_id: Uuid) -> AtlasResult<CorporateCard> {
         self.repository.get_card(card_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {} not found", card_id)))
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Card {card_id} not found")))
     }
 
     /// Validate a spending limit against card limits
@@ -963,8 +963,7 @@ impl CorporateCardEngine {
         let single_limit: f64 = card.single_purchase_limit.parse().unwrap_or(0.0);
         if single_limit > 0.0 && amount_val > single_limit {
             return Err(AtlasError::ValidationFailed(format!(
-                "Amount {:.2} exceeds single purchase limit {:.2}",
-                amount_val, single_limit
+                "Amount {amount_val:.2} exceeds single purchase limit {single_limit:.2}"
             )));
         }
 
@@ -974,8 +973,7 @@ impl CorporateCardEngine {
             let current_spend: f64 = card.total_spend_current_cycle.parse().unwrap_or(0.0);
             if monthly_limit > 0.0 && (current_spend + amount_val) > monthly_limit {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Transaction would exceed monthly limit ({:.2} + {:.2} > {:.2})",
-                    current_spend, amount_val, monthly_limit
+                    "Transaction would exceed monthly limit ({current_spend:.2} + {amount_val:.2} > {monthly_limit:.2})"
                 )));
             }
         }
@@ -985,8 +983,7 @@ impl CorporateCardEngine {
             let cash_limit: f64 = card.cash_limit.parse().unwrap_or(0.0);
             if cash_limit > 0.0 && amount_val > cash_limit {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Cash withdrawal {:.2} exceeds cash limit {:.2}",
-                    amount_val, cash_limit
+                    "Cash withdrawal {amount_val:.2} exceeds cash limit {cash_limit:.2}"
                 )));
             }
         }
@@ -997,11 +994,11 @@ impl CorporateCardEngine {
     /// Validate that a string parses to a non-negative amount
     fn validate_positive_amount(value: &str, field: &str) -> AtlasResult<()> {
         let v: f64 = value.parse().map_err(|_| AtlasError::ValidationFailed(format!(
-            "{} must be a valid number", field
+            "{field} must be a valid number"
         )))?;
         if v < 0.0 {
             return Err(AtlasError::ValidationFailed(format!(
-                "{} cannot be negative", field
+                "{field} cannot be negative"
             )));
         }
         Ok(())

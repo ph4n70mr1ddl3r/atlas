@@ -71,8 +71,8 @@ pub struct CreateForecastTemplateRequest {
 }
 
 fn default_monthly() -> String { "monthly".to_string() }
-fn default_12() -> i32 { 12 }
-fn default_columns() -> serde_json::Value { serde_json::json!([]) }
+const fn default_12() -> i32 { 12 }
+const fn default_columns() -> serde_json::Value { serde_json::json!([]) }
 
 #[derive(Debug, Deserialize)]
 pub struct CreateForecastSourceRequest {
@@ -92,7 +92,7 @@ pub struct CreateForecastSourceRequest {
     pub account_code_filter: Option<String>,
 }
 
-fn default_10() -> i32 { 10 }
+const fn default_10() -> i32 { 10 }
 
 #[derive(Debug, Deserialize)]
 pub struct GenerateForecastRequest {

@@ -5,6 +5,7 @@
 //!
 //! Oracle Fusion: Financials > Receivables > Dunning Letters
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query, Extension},
     Json,
@@ -54,7 +55,7 @@ pub async fn create_letter_set(
         req.aging_basis.as_deref().unwrap_or("days_overdue"),
         Some(user_id),
     ).await {
-        Ok(set) => Ok((StatusCode::CREATED, Json(serde_json::to_value(set).unwrap()))),
+        Ok(set) => Ok(created_json(set)),
         Err(e) => {
             error!("Failed to create dunning letter set: {}", e);
             Err(map_error(e))
@@ -67,7 +68,7 @@ pub async fn get_letter_set(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.get_letter_set(id).await {
-        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(Some(s)) => Ok(to_json(s)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get letter set: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -98,7 +99,7 @@ pub async fn activate_letter_set(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.activate_letter_set(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to activate letter set: {}", e);
             Err(map_error(e))
@@ -111,7 +112,7 @@ pub async fn deactivate_letter_set(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.deactivate_letter_set(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to deactivate letter set: {}", e);
             Err(map_error(e))
@@ -157,7 +158,7 @@ pub async fn add_letter_set_line(
         req.letter_text.as_deref(),
         req.escalation_days,
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add letter set line: {}", e);
             Err(map_error(e))
@@ -214,7 +215,7 @@ pub async fn create_profile(
         req.notes.as_deref(),
         Some(user_id),
     ).await {
-        Ok(profile) => Ok((StatusCode::CREATED, Json(serde_json::to_value(profile).unwrap()))),
+        Ok(profile) => Ok(created_json(profile)),
         Err(e) => {
             error!("Failed to create dunning profile: {}", e);
             Err(map_error(e))
@@ -227,7 +228,7 @@ pub async fn get_profile(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.get_profile(id).await {
-        Ok(Some(p)) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(Some(p)) => Ok(to_json(p)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get profile: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -258,7 +259,7 @@ pub async fn enable_profile(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.enable_profile(id).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => { error!("Failed to enable profile: {}", e); Err(map_error(e)) }
     }
 }
@@ -274,7 +275,7 @@ pub async fn disable_profile(
     Json(req): Json<DisableProfileRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.disable_profile(id, req.reason.as_deref()).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => { error!("Failed to disable profile: {}", e); Err(map_error(e)) }
     }
 }
@@ -290,7 +291,7 @@ pub async fn hold_profile(
     Json(req): Json<HoldProfileRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.hold_profile(id, &req.reason).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => { error!("Failed to hold profile: {}", e); Err(map_error(e)) }
     }
 }
@@ -343,7 +344,7 @@ pub async fn create_run(
         req.notes.as_deref(),
         Some(user_id),
     ).await {
-        Ok(run) => Ok((StatusCode::CREATED, Json(serde_json::to_value(run).unwrap()))),
+        Ok(run) => Ok(created_json(run)),
         Err(e) => {
             error!("Failed to create dunning run: {}", e);
             Err(map_error(e))
@@ -357,7 +358,7 @@ pub async fn get_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.get_run(id).await {
-        Ok(Some(r)) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(Some(r)) => Ok(to_json(r)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get run: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -388,7 +389,7 @@ pub async fn submit_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.submit_run(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => { error!("Failed to submit run: {}", e); Err(map_error(e)) }
     }
 }
@@ -398,7 +399,7 @@ pub async fn complete_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.complete_run(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => { error!("Failed to complete run: {}", e); Err(map_error(e)) }
     }
 }
@@ -408,7 +409,7 @@ pub async fn cancel_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.cancel_run(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => { error!("Failed to cancel run: {}", e); Err(map_error(e)) }
     }
 }
@@ -466,7 +467,7 @@ pub async fn add_run_result(
         req.status.as_deref().unwrap_or("pending"),
         req.reason.as_deref(),
     ).await {
-        Ok(result) => Ok((StatusCode::CREATED, Json(serde_json::to_value(result).unwrap()))),
+        Ok(result) => Ok(created_json(result)),
         Err(e) => {
             error!("Failed to add run result: {}", e);
             Err(map_error(e))
@@ -489,7 +490,7 @@ pub async fn get_run_result(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.get_run_result(id).await {
-        Ok(Some(r)) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(Some(r)) => Ok(to_json(r)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get run result: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -508,7 +509,7 @@ pub async fn mark_result_sent(
     match state.dunning_letter_management_engine.mark_result_sent(
         id, req.delivery_confirmation.as_deref(),
     ).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => { error!("Failed to mark result sent: {}", e); Err(map_error(e)) }
     }
 }
@@ -524,7 +525,7 @@ pub async fn mark_result_failed(
     Json(req): Json<MarkResultFailedRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.dunning_letter_management_engine.mark_result_failed(id, &req.reason).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => { error!("Failed to mark result failed: {}", e); Err(map_error(e)) }
     }
 }

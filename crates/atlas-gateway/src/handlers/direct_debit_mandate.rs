@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Receivables > Direct Debit Mandates
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -72,7 +73,7 @@ pub async fn create_mandate(
         payload.authorization_method.as_deref(),
         payload.notes.as_deref(), Some(user_id),
     ).await {
-        Ok(mandate) => Ok((StatusCode::CREATED, Json(serde_json::to_value(mandate).unwrap()))),
+        Ok(mandate) => Ok(created_json(mandate)),
         Err(e) => {
             error!("Failed to create direct debit mandate: {}", e);
             Err(match e {
@@ -113,7 +114,7 @@ pub async fn get_mandate(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.get_mandate(id).await {
-        Ok(Some(m)) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(Some(m)) => Ok(to_json(m)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get mandate: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -124,7 +125,7 @@ pub async fn activate_mandate(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.activate_mandate(id).await {
-        Ok(m) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to activate mandate: {}", e);
             Err(match e {
@@ -147,7 +148,7 @@ pub async fn cancel_mandate(
     Json(payload): Json<CancelMandateRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.cancel_mandate(id, &payload.reason).await {
-        Ok(m) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to cancel mandate: {}", e);
             Err(match e {
@@ -170,7 +171,7 @@ pub async fn revoke_mandate(
     Json(payload): Json<RevokeMandateRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.revoke_mandate(id, &payload.reason).await {
-        Ok(m) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to revoke mandate: {}", e);
             Err(match e {
@@ -218,7 +219,7 @@ pub async fn create_collection(
         payload.scheduled_date.unwrap_or_else(|| chrono::Utc::now().date_naive()),
         payload.notes.as_deref(), Some(user_id),
     ).await {
-        Ok(collection) => Ok((StatusCode::CREATED, Json(serde_json::to_value(collection).unwrap()))),
+        Ok(collection) => Ok(created_json(collection)),
         Err(e) => {
             error!("Failed to create collection: {}", e);
             Err(match e {
@@ -235,7 +236,7 @@ pub async fn get_collection(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.get_collection(id).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(Some(c)) => Ok(to_json(c)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get collection: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -270,7 +271,7 @@ pub async fn submit_collection(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.submit_collection(id).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to submit collection: {}", e);
             Err(match e {
@@ -293,7 +294,7 @@ pub async fn complete_collection(
     Json(payload): Json<CompleteCollectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.complete_collection(id, payload.bank_reference.as_deref()).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to complete collection: {}", e);
             Err(match e {
@@ -317,7 +318,7 @@ pub async fn fail_collection(
     Json(payload): Json<FailCollectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.fail_collection(id, &payload.reason_code, payload.reason_text.as_deref()).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to fail collection: {}", e);
             Err(match e {
@@ -341,7 +342,7 @@ pub async fn return_collection(
     Json(payload): Json<ReturnCollectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.return_collection(id, &payload.reason_code, payload.reason_text.as_deref()).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to return collection: {}", e);
             Err(match e {
@@ -365,7 +366,7 @@ pub async fn reverse_collection(
     Json(payload): Json<ReverseCollectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.direct_debit_mandate_engine.reverse_collection(id, &payload.reason_code, payload.reason_text.as_deref()).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to reverse collection: {}", e);
             Err(match e {
@@ -387,7 +388,7 @@ pub async fn get_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.direct_debit_mandate_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

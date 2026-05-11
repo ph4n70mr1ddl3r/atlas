@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Receivables > Receipts
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -45,7 +46,7 @@ pub async fn create_batch(
         payload.currency_code.as_deref().unwrap_or("USD"),
         Some(user_id),
     ).await {
-        Ok(batch) => Ok((StatusCode::CREATED, Json(serde_json::to_value(batch).unwrap()))),
+        Ok(batch) => Ok(created_json(batch)),
         Err(e) => {
             error!("Failed to create receipt batch: {}", e);
             Err(match e {
@@ -85,7 +86,7 @@ pub async fn get_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_receipt_engine.get_batch(id).await {
-        Ok(Some(b)) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(Some(b)) => Ok(to_json(b)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get batch: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -96,7 +97,7 @@ pub async fn confirm_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_receipt_engine.confirm_batch(id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to confirm batch: {}", e);
             Err(match e {
@@ -113,7 +114,7 @@ pub async fn close_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_receipt_engine.close_batch(id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to close batch: {}", e);
             Err(match e {
@@ -130,7 +131,7 @@ pub async fn cancel_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_receipt_engine.cancel_batch(id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to cancel batch: {}", e);
             Err(match e {
@@ -205,7 +206,7 @@ pub async fn create_receipt(
         payload.deposit_date, payload.notes.as_deref(),
         Some(user_id),
     ).await {
-        Ok(receipt) => Ok((StatusCode::CREATED, Json(serde_json::to_value(receipt).unwrap()))),
+        Ok(receipt) => Ok(created_json(receipt)),
         Err(e) => {
             error!("Failed to create receipt: {}", e);
             Err(match e {
@@ -223,7 +224,7 @@ pub async fn get_receipt(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_receipt_engine.get_receipt(id).await {
-        Ok(Some(r)) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(Some(r)) => Ok(to_json(r)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get receipt: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -261,7 +262,7 @@ pub async fn identify_receipt(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_receipt_engine.identify_receipt(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to identify receipt: {}", e);
             Err(match e {
@@ -303,7 +304,7 @@ pub async fn apply_receipt(
         payload.application_date.unwrap_or_else(|| chrono::Utc::now().date_naive()),
         Some(user_id),
     ).await {
-        Ok(app) => Ok((StatusCode::CREATED, Json(serde_json::to_value(app).unwrap()))),
+        Ok(app) => Ok(created_json(app)),
         Err(e) => {
             error!("Failed to apply receipt: {}", e);
             Err(match e {
@@ -322,7 +323,7 @@ pub async fn unapply_receipt(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_receipt_engine.unapply_receipt(id, Some(user_id)).await {
-        Ok(app) => Ok(Json(serde_json::to_value(app).unwrap())),
+        Ok(app) => Ok(to_json(app)),
         Err(e) => {
             error!("Failed to unapply receipt: {}", e);
             Err(match e {
@@ -373,7 +374,7 @@ pub async fn reverse_receipt(
     Json(payload): Json<ReverseReceiptRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_receipt_engine.reverse_receipt(id, &payload.reason).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to reverse receipt: {}", e);
             Err(match e {
@@ -395,7 +396,7 @@ pub async fn get_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_receipt_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

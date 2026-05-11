@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion Cloud ERP: Financials > Fixed Assets > Impairment Management
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path},
     Json,
@@ -36,7 +37,7 @@ pub async fn create_impairment_indicator(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.indicator_type, &payload.severity, Some(user_id),
     ).await {
-        Ok(indicator) => Ok((StatusCode::CREATED, Json(serde_json::to_value(indicator).unwrap()))),
+        Ok(indicator) => Ok(created_json(indicator)),
         Err(e) => {
             error!("Failed to create indicator: {}", e);
             Err(match e {
@@ -87,7 +88,7 @@ pub async fn create_impairment_test(
         None, None, payload.asset_id, None,
         payload.discount_rate.as_deref(), None, Some(user_id),
     ).await {
-        Ok(test) => Ok((StatusCode::CREATED, Json(serde_json::to_value(test).unwrap()))),
+        Ok(test) => Ok(created_json(test)),
         Err(e) => { error!("Failed to create test: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -110,7 +111,7 @@ pub async fn submit_impairment_test(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.impairment_management_engine.submit_test(id, Some(user_id)).await {
-        Ok(test) => Ok(Json(serde_json::to_value(test).unwrap())),
+        Ok(test) => Ok(to_json(test)),
         Err(e) => { error!("Failed to submit test: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -122,7 +123,7 @@ pub async fn approve_impairment_test(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.impairment_management_engine.approve_test(id, Some(user_id)).await {
-        Ok(test) => Ok(Json(serde_json::to_value(test).unwrap())),
+        Ok(test) => Ok(to_json(test)),
         Err(e) => { error!("Failed to approve test: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -133,7 +134,7 @@ pub async fn get_impairment_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.impairment_management_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Receivables > Receipt Write-Off
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -40,7 +41,7 @@ pub async fn create_reason(
         payload.requires_approval.unwrap_or(true),
         payload.max_auto_approve_amount.as_deref(), Some(user_id),
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok(created_json(r)),
         Err(e) => {
             error!("Failed to create write-off reason: {}", e);
             Err(match e {
@@ -88,7 +89,7 @@ pub async fn create_write_off_request(
         &payload.write_off_amount, &payload.currency_code,
         payload.reason_id, payload.comments.as_deref(), Some(user_id),
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok(created_json(r)),
         Err(e) => {
             error!("Failed to create write-off request: {}", e);
             Err(match e {
@@ -124,7 +125,7 @@ pub async fn approve_write_off_request(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receipt_write_off_engine.approve_request(id, user_id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to approve write-off request: {}", e);
             Err(match e {
@@ -143,7 +144,7 @@ pub async fn post_write_off_request(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receipt_write_off_engine.post_request(id, user_id, None).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to post write-off request: {}", e);
             Err(match e {
@@ -161,7 +162,7 @@ pub async fn get_write_off_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receipt_write_off_engine.get_dashboard(org_id).await {
-        Ok(dash) => Ok(Json(serde_json::to_value(dash).unwrap())),
+        Ok(dash) => Ok(to_json(dash)),
         Err(e) => { error!("Failed to get write-off dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

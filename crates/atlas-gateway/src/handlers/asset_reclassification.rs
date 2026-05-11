@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Fixed Assets > Asset Reclassification
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -53,7 +54,7 @@ pub async fn create_reclassification(
         payload.effective_date, payload.amortization_adjustment.as_deref(),
         payload.notes.as_deref(), Some(user_id),
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok(created_json(r)),
         Err(e) => {
             error!("Failed to create reclassification: {}", e);
             Err(match e {
@@ -69,7 +70,7 @@ pub async fn get_reclassification(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.asset_reclassification_engine.get(id).await {
-        Ok(Some(r)) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(Some(r)) => Ok(to_json(r)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get reclassification: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -100,7 +101,7 @@ pub async fn approve_reclassification(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.asset_reclassification_engine.approve(id, user_id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to approve reclassification: {}", e);
             Err(match e {
@@ -117,7 +118,7 @@ pub async fn complete_reclassification(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.asset_reclassification_engine.complete(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to complete reclassification: {}", e);
             Err(match e {
@@ -135,7 +136,7 @@ pub async fn get_reclassification_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.asset_reclassification_engine.get_dashboard(org_id).await {
-        Ok(dash) => Ok(Json(serde_json::to_value(dash).unwrap())),
+        Ok(dash) => Ok(to_json(dash)),
         Err(e) => { error!("Failed to get reclassification dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

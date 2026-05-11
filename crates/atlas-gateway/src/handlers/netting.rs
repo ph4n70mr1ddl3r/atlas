@@ -5,6 +5,7 @@
 //! API endpoints for managing netting agreements, netting batches,
 //! and netting settlements.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -78,7 +79,7 @@ pub async fn create_netting_agreement(
         payload.effective_to,
         Some(user_id),
     ).await {
-        Ok(agreement) => Ok((StatusCode::CREATED, Json(serde_json::to_value(agreement).unwrap()))),
+        Ok(agreement) => Ok(created_json(agreement)),
         Err(e) => {
             error!("Failed to create netting agreement: {}", e);
             Err(match e {
@@ -118,7 +119,7 @@ pub async fn get_netting_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.netting_engine.get_agreement(id).await {
-        Ok(Some(agreement)) => Ok(Json(serde_json::to_value(agreement).unwrap())),
+        Ok(Some(agreement)) => Ok(to_json(agreement)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get netting agreement: {}", e);
@@ -133,7 +134,7 @@ pub async fn activate_netting_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.netting_engine.activate_agreement(id).await {
-        Ok(agreement) => Ok(Json(serde_json::to_value(agreement).unwrap())),
+        Ok(agreement) => Ok(to_json(agreement)),
         Err(e) => {
             error!("Failed to activate netting agreement: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -164,7 +165,7 @@ pub async fn create_netting_batch(
         None,
         Some(user_id),
     ).await {
-        Ok(batch) => Ok((StatusCode::CREATED, Json(serde_json::to_value(batch).unwrap()))),
+        Ok(batch) => Ok(created_json(batch)),
         Err(e) => {
             error!("Failed to create netting batch: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -180,7 +181,7 @@ pub async fn submit_netting_batch(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.netting_engine.submit_batch(id, Some(user_id)).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to submit netting batch: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -196,7 +197,7 @@ pub async fn approve_netting_batch(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.netting_engine.approve_batch(id, Some(user_id)).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to approve netting batch: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -210,7 +211,7 @@ pub async fn settle_netting_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.netting_engine.settle_batch(id).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to settle netting batch: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -225,7 +226,7 @@ pub async fn get_netting_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.netting_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get netting dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

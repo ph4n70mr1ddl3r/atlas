@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion Cloud ERP: Financials > Tax > Tax Reporting
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path},
     Json,
@@ -42,7 +43,7 @@ pub async fn create_tax_template(
         &payload.filing_frequency, payload.return_form_number.as_deref(),
         payload.effective_from, payload.effective_to, Some(user_id),
     ).await {
-        Ok(template) => Ok((StatusCode::CREATED, Json(serde_json::to_value(template).unwrap()))),
+        Ok(template) => Ok(created_json(template)),
         Err(e) => {
             error!("Failed to create tax template: {}", e);
             Err(match e {
@@ -86,7 +87,7 @@ pub async fn create_tax_return(
         payload.filing_period_start, payload.filing_period_end,
         payload.filing_due_date, Some(user_id),
     ).await {
-        Ok(tax_return) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tax_return).unwrap()))),
+        Ok(tax_return) => Ok(created_json(tax_return)),
         Err(e) => { error!("Failed to create tax return: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -107,7 +108,7 @@ pub async fn get_tax_return(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.tax_reporting_engine.get_return(id).await {
-        Ok(Some(r)) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(Some(r)) => Ok(to_json(r)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get return: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -129,7 +130,7 @@ pub async fn file_tax_return(
     match state.tax_reporting_engine.file_return(
         id, &payload.filing_method, payload.filing_reference.as_deref(), Some(user_id),
     ).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => { error!("Failed to file return: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -148,7 +149,7 @@ pub async fn pay_tax_return(
     match state.tax_reporting_engine.mark_paid(
         id, &payload.payment_amount, payload.payment_reference.as_deref(),
     ).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => { error!("Failed to mark paid: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -159,7 +160,7 @@ pub async fn get_tax_reporting_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.tax_reporting_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

@@ -3,6 +3,7 @@
 //! Oracle Fusion: Financials > Profitability Analysis
 //! API endpoints for profitability segments, analysis runs, templates, and dashboards.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{Path, Query, State, Extension},
     http::StatusCode,
@@ -51,7 +52,7 @@ pub async fn create_segment(
         org_id, &code, &name, &segment_type,
         description.as_deref(), parent_id, sort_order, user_id,
     ).await {
-        Ok(seg) => (StatusCode::CREATED, Json(serde_json::to_value(seg).unwrap())).into_response(),
+        Ok(seg) => created_json(seg).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -80,7 +81,7 @@ pub async fn get_segment(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.profitability_engine.get_segment(id).await {
-        Ok(Some(seg)) => Json(serde_json::to_value(seg).unwrap()).into_response(),
+        Ok(Some(seg)) => to_json(seg).into_response(),
         Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Segment not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -130,7 +131,7 @@ pub async fn create_run(
         period_from, period_to, &currency_code,
         comparison_run_id, notes.as_deref(), user_id,
     ).await {
-        Ok(run) => (StatusCode::CREATED, Json(serde_json::to_value(run).unwrap())).into_response(),
+        Ok(run) => created_json(run).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -155,7 +156,7 @@ pub async fn get_run(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.profitability_engine.get_run(id).await {
-        Ok(Some(run)) => Json(serde_json::to_value(run).unwrap()).into_response(),
+        Ok(Some(run)) => to_json(run).into_response(),
         Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Run not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -170,7 +171,7 @@ pub async fn transition_run(
 ) -> impl IntoResponse {
     let new_status = body["status"].as_str().unwrap_or("");
     match state.profitability_engine.transition_run(id, new_status).await {
-        Ok(run) => Json(serde_json::to_value(run).unwrap()).into_response(),
+        Ok(run) => to_json(run).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -217,7 +218,7 @@ pub async fn add_run_line(
         segment_id, segment_code.as_deref(), segment_name.as_deref(), segment_type.as_deref(),
         line_number, revenue, cogs, opex, other_income, other_expense,
     ).await {
-        Ok(line) => (StatusCode::CREATED, Json(serde_json::to_value(line).unwrap())).into_response(),
+        Ok(line) => created_json(line).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -272,7 +273,7 @@ pub async fn create_template(
         org_id, &code, &name, description.as_deref(), &segment_type,
         includes_cogs, includes_operating, includes_other, auto_calculate, user_id,
     ).await {
-        Ok(tmpl) => (StatusCode::CREATED, Json(serde_json::to_value(tmpl).unwrap())).into_response(),
+        Ok(tmpl) => created_json(tmpl).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -314,7 +315,7 @@ pub async fn get_dashboard(
 ) -> impl IntoResponse {
     let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
     match state.profitability_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Json(serde_json::to_value(dashboard).unwrap()).into_response(),
+        Ok(dashboard) => to_json(dashboard).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }

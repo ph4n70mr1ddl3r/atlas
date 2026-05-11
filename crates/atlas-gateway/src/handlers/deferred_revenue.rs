@@ -5,6 +5,7 @@
 //! API endpoints for deferral templates, recognition schedules,
 //! and automated amortization of deferred revenue and costs.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -67,7 +68,7 @@ pub async fn create_template(
         &payload.currency_code, payload.effective_from, payload.effective_to,
         Some(user_id),
     ).await {
-        Ok(template) => Ok((StatusCode::CREATED, Json(serde_json::to_value(template).unwrap()))),
+        Ok(template) => Ok(created_json(template)),
         Err(e) => {
             error!("Failed to create deferral template: {}", e);
             Err(match e {
@@ -97,7 +98,7 @@ pub async fn get_template(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.deferred_revenue_engine.get_template(org_id, &code).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(Some(t)) => Ok(to_json(t)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get template: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -157,7 +158,7 @@ pub async fn create_schedule(
         payload.start_date, payload.end_date,
         payload.original_journal_entry_id, Some(user_id),
     ).await {
-        Ok(schedule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(schedule).unwrap()))),
+        Ok(schedule) => Ok(created_json(schedule)),
         Err(e) => {
             error!("Failed to create deferral schedule: {}", e);
             Err(match e {
@@ -195,7 +196,7 @@ pub async fn get_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.deferred_revenue_engine.get_schedule(id).await {
-        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(Some(s)) => Ok(to_json(s)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get schedule: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -243,7 +244,7 @@ pub async fn hold_schedule(
     Json(payload): Json<HoldScheduleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.deferred_revenue_engine.hold_schedule(id, &payload.reason).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to hold schedule: {}", e);
             Err(match e {
@@ -260,7 +261,7 @@ pub async fn resume_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.deferred_revenue_engine.resume_schedule(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to resume schedule: {}", e);
             Err(match e {
@@ -276,7 +277,7 @@ pub async fn cancel_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.deferred_revenue_engine.cancel_schedule(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to cancel schedule: {}", e);
             Err(match e {
@@ -297,7 +298,7 @@ pub async fn get_deferred_revenue_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.deferred_revenue_engine.get_dashboard_summary(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get deferred revenue dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

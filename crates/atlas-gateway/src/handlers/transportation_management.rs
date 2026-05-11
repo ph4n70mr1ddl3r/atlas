@@ -4,6 +4,7 @@
 //! Provides: carrier management, carrier services, transport lanes, shipments,
 //! shipment stops/lines, tracking events, freight rates, and dashboard analytics.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -96,7 +97,7 @@ pub async fn create_carrier(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(carrier).unwrap())))
+    Ok(created_json(carrier))
 }
 
 pub async fn list_carriers(
@@ -121,7 +122,7 @@ pub async fn get_carrier(
     let carrier = state.transportation_engine.get_carrier(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match carrier {
-        Some(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Some(c) => Ok(to_json(c)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -137,7 +138,7 @@ pub async fn suspend_carrier(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(carrier).unwrap()))
+    Ok(to_json(carrier))
 }
 
 pub async fn reactivate_carrier(
@@ -151,7 +152,7 @@ pub async fn reactivate_carrier(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(carrier).unwrap()))
+    Ok(to_json(carrier))
 }
 
 pub async fn blacklist_carrier(
@@ -165,7 +166,7 @@ pub async fn blacklist_carrier(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(carrier).unwrap()))
+    Ok(to_json(carrier))
 }
 
 pub async fn update_carrier_performance(
@@ -186,7 +187,7 @@ pub async fn update_carrier_performance(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(carrier).unwrap()))
+    Ok(to_json(carrier))
 }
 
 pub async fn delete_carrier(
@@ -244,7 +245,7 @@ pub async fn create_carrier_service(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(service).unwrap())))
+    Ok(created_json(service))
 }
 
 pub async fn list_carrier_services(
@@ -271,7 +272,7 @@ pub async fn toggle_carrier_service(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(service).unwrap()))
+    Ok(to_json(service))
 }
 
 pub async fn delete_carrier_service(
@@ -333,7 +334,7 @@ pub async fn create_lane(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(lane).unwrap())))
+    Ok(created_json(lane))
 }
 
 pub async fn list_lanes(
@@ -355,7 +356,7 @@ pub async fn get_lane(
     let lane = state.transportation_engine.get_lane(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match lane {
-        Some(l) => Ok(Json(serde_json::to_value(l).unwrap())),
+        Some(l) => Ok(to_json(l)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -371,7 +372,7 @@ pub async fn deactivate_lane(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(lane).unwrap()))
+    Ok(to_json(lane))
 }
 
 pub async fn delete_lane(
@@ -439,7 +440,7 @@ pub async fn create_shipment(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(shipment).unwrap())))
+    Ok(created_json(shipment))
 }
 
 pub async fn list_shipments(
@@ -461,7 +462,7 @@ pub async fn get_shipment(
     let shipment = state.transportation_engine.get_shipment(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match shipment {
-        Some(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Some(s) => Ok(to_json(s)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -479,7 +480,7 @@ pub async fn book_shipment(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 pub async fn confirm_pickup(
@@ -498,7 +499,7 @@ pub async fn confirm_pickup(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 pub async fn start_transit(
@@ -517,7 +518,7 @@ pub async fn start_transit(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 pub async fn arrive_at_destination(
@@ -531,7 +532,7 @@ pub async fn arrive_at_destination(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 pub async fn confirm_delivery(
@@ -547,7 +548,7 @@ pub async fn confirm_delivery(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 pub async fn cancel_shipment(
@@ -561,7 +562,7 @@ pub async fn cancel_shipment(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 pub async fn mark_exception(
@@ -575,7 +576,7 @@ pub async fn mark_exception(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 pub async fn assign_carrier(
@@ -595,7 +596,7 @@ pub async fn assign_carrier(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 pub async fn update_tracking(
@@ -615,7 +616,7 @@ pub async fn update_tracking(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 pub async fn delete_shipment(
@@ -667,7 +668,7 @@ pub async fn add_stop(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(stop).unwrap())))
+    Ok(created_json(stop))
 }
 
 pub async fn update_stop_status(
@@ -687,7 +688,7 @@ pub async fn update_stop_status(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(stop).unwrap()))
+    Ok(to_json(stop))
 }
 
 pub async fn list_stops(
@@ -734,7 +735,7 @@ pub async fn add_shipment_line(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap())))
+    Ok(created_json(line))
 }
 
 pub async fn list_shipment_lines(
@@ -756,7 +757,7 @@ pub async fn recalculate_shipment_totals(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(shipment).unwrap()))
+    Ok(to_json(shipment))
 }
 
 // ============================================================================
@@ -794,7 +795,7 @@ pub async fn add_tracking_event(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(event).unwrap())))
+    Ok(created_json(event))
 }
 
 pub async fn list_tracking_events(
@@ -853,7 +854,7 @@ pub async fn create_freight_rate(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(rate).unwrap())))
+    Ok(created_json(rate))
 }
 
 pub async fn list_freight_rates(
@@ -878,7 +879,7 @@ pub async fn expire_freight_rate(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(rate).unwrap()))
+    Ok(to_json(rate))
 }
 
 pub async fn delete_freight_rate(
@@ -907,5 +908,5 @@ pub async fn get_transportation_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let dashboard = state.transportation_engine.get_dashboard(org_id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::to_value(dashboard).unwrap()))
+    Ok(to_json(dashboard))
 }

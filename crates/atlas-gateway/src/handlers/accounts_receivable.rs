@@ -5,6 +5,7 @@
 //! API endpoints for managing AR transactions, transaction lines, receipts,
 //! credit memos, adjustments, and AR aging analysis.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -76,7 +77,7 @@ pub async fn create_ar_transaction(
         payload.notes.as_deref(),
         Some(user_id),
     ).await {
-        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap()))),
+        Ok(txn) => Ok(created_json(txn)),
         Err(e) => {
             error!("Failed to create AR transaction: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -119,7 +120,7 @@ pub async fn get_ar_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_receivable_engine.get_transaction(id).await {
-        Ok(Some(txn)) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(Some(txn)) => Ok(to_json(txn)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get AR transaction: {}", e);
@@ -134,7 +135,7 @@ pub async fn complete_ar_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_receivable_engine.complete_transaction(id).await {
-        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(txn) => Ok(to_json(txn)),
         Err(e) => {
             error!("Failed to complete AR transaction: {}", e);
             Err(match e {
@@ -152,7 +153,7 @@ pub async fn post_ar_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_receivable_engine.post_transaction(id).await {
-        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(txn) => Ok(to_json(txn)),
         Err(e) => {
             error!("Failed to post AR transaction: {}", e);
             Err(match e {
@@ -169,7 +170,7 @@ pub async fn cancel_ar_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_receivable_engine.cancel_transaction(id, None).await {
-        Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap())),
+        Ok(txn) => Ok(to_json(txn)),
         Err(e) => {
             error!("Failed to cancel AR transaction: {}", e);
             Err(match e {
@@ -226,7 +227,7 @@ pub async fn add_transaction_line(
         payload.revenue_account.as_deref(),
         Some(user_id),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add AR transaction line: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -294,7 +295,7 @@ pub async fn create_receipt(
         payload.notes.as_deref(),
         Some(user_id),
     ).await {
-        Ok(receipt) => Ok((StatusCode::CREATED, Json(serde_json::to_value(receipt).unwrap()))),
+        Ok(receipt) => Ok(created_json(receipt)),
         Err(e) => {
             error!("Failed to create receipt: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -335,7 +336,7 @@ pub async fn confirm_receipt(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_receivable_engine.confirm_receipt(id).await {
-        Ok(receipt) => Ok(Json(serde_json::to_value(receipt).unwrap())),
+        Ok(receipt) => Ok(to_json(receipt)),
         Err(e) => {
             error!("Failed to confirm receipt: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -349,7 +350,7 @@ pub async fn apply_receipt(
     Path((receipt_id, transaction_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_receivable_engine.apply_receipt(receipt_id, transaction_id).await {
-        Ok(receipt) => Ok(Json(serde_json::to_value(receipt).unwrap())),
+        Ok(receipt) => Ok(to_json(receipt)),
         Err(e) => {
             error!("Failed to apply receipt: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -363,7 +364,7 @@ pub async fn reverse_receipt(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_receivable_engine.reverse_receipt(id).await {
-        Ok(receipt) => Ok(Json(serde_json::to_value(receipt).unwrap())),
+        Ok(receipt) => Ok(to_json(receipt)),
         Err(e) => {
             error!("Failed to reverse receipt: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -415,7 +416,7 @@ pub async fn create_credit_memo(
         payload.notes.as_deref(),
         Some(user_id),
     ).await {
-        Ok(memo) => Ok((StatusCode::CREATED, Json(serde_json::to_value(memo).unwrap()))),
+        Ok(memo) => Ok(created_json(memo)),
         Err(e) => {
             error!("Failed to create credit memo: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -429,7 +430,7 @@ pub async fn approve_credit_memo(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_receivable_engine.approve_credit_memo(id).await {
-        Ok(memo) => Ok(Json(serde_json::to_value(memo).unwrap())),
+        Ok(memo) => Ok(to_json(memo)),
         Err(e) => {
             error!("Failed to approve credit memo: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -443,7 +444,7 @@ pub async fn apply_credit_memo(
     Path((memo_id, transaction_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_receivable_engine.apply_credit_memo(memo_id, transaction_id).await {
-        Ok(memo) => Ok(Json(serde_json::to_value(memo).unwrap())),
+        Ok(memo) => Ok(to_json(memo)),
         Err(e) => {
             error!("Failed to apply credit memo: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -469,7 +470,7 @@ pub async fn get_ar_aging(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.accounts_receivable_engine.get_aging_summary(org_id, query.as_of_date).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap())),
+        Ok(summary) => Ok(to_json(summary)),
         Err(e) => {
             error!("Failed to get AR aging: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

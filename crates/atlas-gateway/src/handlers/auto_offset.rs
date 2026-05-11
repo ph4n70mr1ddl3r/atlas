@@ -10,6 +10,7 @@
 //! - Activities (audit trail)
 //! - Dashboard
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -61,7 +62,7 @@ pub async fn create_offset_template(
         payload.effective_from, payload.effective_to,
         Some(user_id),
     ).await {
-        Ok(tmpl) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tmpl).unwrap()))),
+        Ok(tmpl) => Ok(created_json(tmpl)),
         Err(e) => {
             error!("Failed to create offset template: {}", e);
             Err(match e {
@@ -100,7 +101,7 @@ pub async fn get_offset_template(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.auto_offset_engine.get_template(id).await {
-        Ok(Some(tmpl)) => Ok(Json(serde_json::to_value(tmpl).unwrap())),
+        Ok(Some(tmpl)) => Ok(to_json(tmpl)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get offset template: {}", e);
@@ -116,7 +117,7 @@ pub async fn activate_offset_template(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.auto_offset_engine.activate_template(id).await {
-        Ok(tmpl) => Ok(Json(serde_json::to_value(tmpl).unwrap())),
+        Ok(tmpl) => Ok(to_json(tmpl)),
         Err(e) => {
             error!("Failed to activate offset template: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -131,7 +132,7 @@ pub async fn deactivate_offset_template(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.auto_offset_engine.deactivate_template(id).await {
-        Ok(tmpl) => Ok(Json(serde_json::to_value(tmpl).unwrap())),
+        Ok(tmpl) => Ok(to_json(tmpl)),
         Err(e) => {
             error!("Failed to deactivate offset template: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -193,7 +194,7 @@ pub async fn add_offset_template_line(
         payload.clearing_account.as_deref(),
         payload.priority.unwrap_or(100),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add template line: {}", e);
             Err(match e {
@@ -290,7 +291,7 @@ pub async fn generate_offsets(
         &journal_lines,
         Some(user_id),
     ).await {
-        Ok(gen) => Ok((StatusCode::CREATED, Json(serde_json::to_value(gen).unwrap()))),
+        Ok(gen) => Ok(created_json(gen)),
         Err(e) => {
             error!("Failed to generate offsets: {}", e);
             Err(match e {
@@ -309,7 +310,7 @@ pub async fn get_offset_generation(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.auto_offset_engine.get_generation(id).await {
-        Ok(Some(gen)) => Ok(Json(serde_json::to_value(gen).unwrap())),
+        Ok(Some(gen)) => Ok(to_json(gen)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get offset generation: {}", e);
@@ -346,7 +347,7 @@ pub async fn post_offset_generation(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.auto_offset_engine.post_generation(id, user_id).await {
-        Ok(gen) => Ok(Json(serde_json::to_value(gen).unwrap())),
+        Ok(gen) => Ok(to_json(gen)),
         Err(e) => {
             error!("Failed to post offset generation: {}", e);
             Err(match e {
@@ -365,7 +366,7 @@ pub async fn reverse_offset_generation(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.auto_offset_engine.reverse_generation(id, user_id).await {
-        Ok(gen) => Ok(Json(serde_json::to_value(gen).unwrap())),
+        Ok(gen) => Ok(to_json(gen)),
         Err(e) => {
             error!("Failed to reverse offset generation: {}", e);
             Err(match e {
@@ -384,7 +385,7 @@ pub async fn cancel_offset_generation(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.auto_offset_engine.cancel_generation(id, user_id).await {
-        Ok(gen) => Ok(Json(serde_json::to_value(gen).unwrap())),
+        Ok(gen) => Ok(to_json(gen)),
         Err(e) => {
             error!("Failed to cancel offset generation: {}", e);
             Err(match e {
@@ -440,7 +441,7 @@ pub async fn get_auto_offset_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.auto_offset_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get auto offset dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

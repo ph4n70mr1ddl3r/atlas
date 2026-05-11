@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Treasury > Cash Position
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Query},
     Json,
@@ -47,7 +48,7 @@ pub async fn record_position(
         &payload.available_balance, &payload.hold_amount, payload.position_date,
         payload.source_breakdown.clone().unwrap_or(serde_json::json!({})),
     ).await {
-        Ok(p) => Ok((StatusCode::CREATED, Json(serde_json::to_value(p).unwrap()))),
+        Ok(p) => Ok(created_json(p)),
         Err(e) => {
             error!("Failed to record position: {}", e);
             Err(match e {
@@ -82,7 +83,7 @@ pub async fn get_cash_position_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_position_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

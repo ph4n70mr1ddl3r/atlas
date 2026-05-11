@@ -8,6 +8,7 @@
 //! - Utilization entry recording and approval workflow
 //! - Resource management dashboard
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -90,7 +91,7 @@ pub async fn create_profile(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(profile).unwrap())))
+    Ok(created_json(profile))
 }
 
 pub async fn get_profile(
@@ -104,7 +105,7 @@ pub async fn get_profile(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match profile {
-        Some(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Some(p) => Ok(to_json(p)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -158,7 +159,7 @@ pub async fn update_availability(
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
         })?;
-    Ok(Json(serde_json::to_value(profile).unwrap()))
+    Ok(to_json(profile))
 }
 
 pub async fn delete_profile(
@@ -243,7 +244,7 @@ pub async fn create_request(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(request).unwrap())))
+    Ok(created_json(request))
 }
 
 pub async fn get_request(
@@ -257,7 +258,7 @@ pub async fn get_request(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match request {
-        Some(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Some(r) => Ok(to_json(r)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -300,7 +301,7 @@ pub async fn submit_request(
             tracing::error!("Submit request error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(request).unwrap()))
+    Ok(to_json(request))
 }
 
 pub async fn fulfill_request(
@@ -316,7 +317,7 @@ pub async fn fulfill_request(
             tracing::error!("Fulfill request error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(request).unwrap()))
+    Ok(to_json(request))
 }
 
 pub async fn cancel_request(
@@ -331,7 +332,7 @@ pub async fn cancel_request(
             tracing::error!("Cancel request error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(request).unwrap()))
+    Ok(to_json(request))
 }
 
 pub async fn delete_request(
@@ -415,7 +416,7 @@ pub async fn create_assignment(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(assignment).unwrap())))
+    Ok(created_json(assignment))
 }
 
 pub async fn get_assignment(
@@ -429,7 +430,7 @@ pub async fn get_assignment(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match assignment {
-        Some(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Some(a) => Ok(to_json(a)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -472,7 +473,7 @@ pub async fn activate_assignment(
             tracing::error!("Activate assignment error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(assignment).unwrap()))
+    Ok(to_json(assignment))
 }
 
 pub async fn complete_assignment(
@@ -487,7 +488,7 @@ pub async fn complete_assignment(
             tracing::error!("Complete assignment error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(assignment).unwrap()))
+    Ok(to_json(assignment))
 }
 
 pub async fn cancel_assignment(
@@ -502,7 +503,7 @@ pub async fn cancel_assignment(
             tracing::error!("Cancel assignment error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(assignment).unwrap()))
+    Ok(to_json(assignment))
 }
 
 pub async fn delete_assignment(
@@ -567,7 +568,7 @@ pub async fn create_utilization_entry(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap())))
+    Ok(created_json(entry))
 }
 
 #[derive(Debug, Deserialize)]
@@ -609,7 +610,7 @@ pub async fn approve_utilization_entry(
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         })?;
-    Ok(Json(serde_json::to_value(entry).unwrap()))
+    Ok(to_json(entry))
 }
 
 pub async fn reject_utilization_entry(
@@ -624,7 +625,7 @@ pub async fn reject_utilization_entry(
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         })?;
-    Ok(Json(serde_json::to_value(entry).unwrap()))
+    Ok(to_json(entry))
 }
 
 pub async fn delete_utilization_entry(
@@ -655,5 +656,5 @@ pub async fn get_resource_dashboard(
         .get_dashboard(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::to_value(dashboard).unwrap()))
+    Ok(to_json(dashboard))
 }

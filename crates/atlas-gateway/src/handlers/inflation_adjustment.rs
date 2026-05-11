@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion Cloud ERP: Financials > General Ledger > Inflation Adjustment
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path},
     Json,
@@ -43,7 +44,7 @@ pub async fn create_inflation_index(
         payload.is_hyperinflationary, payload.hyperinflationary_start_date,
         payload.effective_from, payload.effective_to, Some(user_id),
     ).await {
-        Ok(index) => Ok((StatusCode::CREATED, Json(serde_json::to_value(index).unwrap()))),
+        Ok(index) => Ok(created_json(index)),
         Err(e) => {
             error!("Failed to create inflation index: {}", e);
             Err(match e {
@@ -71,7 +72,7 @@ pub async fn get_inflation_index(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.inflation_adjustment_engine.get_index(id).await {
-        Ok(Some(index)) => Ok(Json(serde_json::to_value(index).unwrap())),
+        Ok(Some(index)) => Ok(to_json(index)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get index: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -101,7 +102,7 @@ pub async fn add_index_rate(
         &payload.index_value, &payload.cumulative_factor, &payload.period_factor,
         payload.source.as_deref(), Some(user_id),
     ).await {
-        Ok(rate) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rate).unwrap()))),
+        Ok(rate) => Ok(created_json(rate)),
         Err(e) => { error!("Failed to add index rate: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -129,7 +130,7 @@ pub async fn create_adjustment_run(
         payload.index_id, None, payload.from_period, payload.to_period,
         &payload.adjustment_method, Some(user_id),
     ).await {
-        Ok(run) => Ok((StatusCode::CREATED, Json(serde_json::to_value(run).unwrap()))),
+        Ok(run) => Ok(created_json(run)),
         Err(e) => { error!("Failed to create run: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -141,7 +142,7 @@ pub async fn submit_adjustment_run(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.inflation_adjustment_engine.submit_run(id, Some(user_id)).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(to_json(run)),
         Err(e) => { error!("Failed to submit run: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -153,7 +154,7 @@ pub async fn approve_adjustment_run(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.inflation_adjustment_engine.approve_run(id, Some(user_id)).await {
-        Ok(run) => Ok(Json(serde_json::to_value(run).unwrap())),
+        Ok(run) => Ok(to_json(run)),
         Err(e) => { error!("Failed to approve run: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -164,7 +165,7 @@ pub async fn get_inflation_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.inflation_adjustment_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

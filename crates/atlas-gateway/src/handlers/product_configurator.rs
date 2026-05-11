@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion Cloud: SCM > Product Management > Configurator endpoints
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -74,7 +75,7 @@ pub async fn create_model(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(model).unwrap())))
+    Ok(created_json(model))
 }
 
 pub async fn list_models(
@@ -96,7 +97,7 @@ pub async fn get_model(
     let model = state.configurator_engine.get_model(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match model {
-        Some(m) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Some(m) => Ok(to_json(m)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -113,7 +114,7 @@ pub async fn activate_model(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(model).unwrap()))
+    Ok(to_json(model))
 }
 
 pub async fn deactivate_model(
@@ -127,7 +128,7 @@ pub async fn deactivate_model(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(model).unwrap()))
+    Ok(to_json(model))
 }
 
 pub async fn delete_model(
@@ -179,7 +180,7 @@ pub async fn create_feature(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(feature).unwrap())))
+    Ok(created_json(feature))
 }
 
 pub async fn list_features(
@@ -241,7 +242,7 @@ pub async fn create_option(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(option).unwrap())))
+    Ok(created_json(option))
 }
 
 pub async fn list_options(
@@ -307,7 +308,7 @@ pub async fn create_rule(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap())))
+    Ok(created_json(rule))
 }
 
 pub async fn list_rules(
@@ -368,7 +369,7 @@ pub async fn create_instance(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(instance).unwrap())))
+    Ok(created_json(instance))
 }
 
 pub async fn list_instances(
@@ -390,7 +391,7 @@ pub async fn get_instance(
     let instance = state.configurator_engine.get_instance(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match instance {
-        Some(i) => Ok(Json(serde_json::to_value(i).unwrap())),
+        Some(i) => Ok(to_json(i)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -406,7 +407,7 @@ pub async fn submit_instance(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(instance).unwrap()))
+    Ok(to_json(instance))
 }
 
 pub async fn approve_instance(
@@ -422,7 +423,7 @@ pub async fn approve_instance(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(instance).unwrap()))
+    Ok(to_json(instance))
 }
 
 pub async fn cancel_instance(
@@ -436,7 +437,7 @@ pub async fn cancel_instance(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(instance).unwrap()))
+    Ok(to_json(instance))
 }
 
 pub async fn delete_instance(
@@ -466,5 +467,5 @@ pub async fn get_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let dashboard = state.configurator_engine.get_dashboard(org_id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::to_value(dashboard).unwrap()))
+    Ok(to_json(dashboard))
 }

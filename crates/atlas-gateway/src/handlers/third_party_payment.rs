@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Payables > Third-Party Payments
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -65,7 +66,7 @@ pub async fn create_payment(
         payload.recurrence_start_date, payload.recurrence_end_date,
         Some(user_id),
     ).await {
-        Ok(p) => Ok((StatusCode::CREATED, Json(serde_json::to_value(p).unwrap()))),
+        Ok(p) => Ok(created_json(p)),
         Err(e) => {
             error!("Failed to create third-party payment: {}", e);
             Err(match e {
@@ -109,7 +110,7 @@ pub async fn get_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.third_party_payment_engine.get_payment(id).await {
-        Ok(Some(p)) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(Some(p)) => Ok(to_json(p)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get third-party payment: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -120,7 +121,7 @@ pub async fn submit_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.third_party_payment_engine.submit_payment(id).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => {
             error!("Failed to submit third-party payment: {}", e);
             Err(match e {
@@ -139,7 +140,7 @@ pub async fn approve_payment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.third_party_payment_engine.approve_payment(id, Some(user_id)).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => {
             error!("Failed to approve third-party payment: {}", e);
             Err(match e {
@@ -162,7 +163,7 @@ pub async fn reject_payment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.third_party_payment_engine.reject_payment(id, &payload.reason, Some(user_id)).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => {
             error!("Failed to reject third-party payment: {}", e);
             Err(match e {
@@ -185,7 +186,7 @@ pub async fn place_on_hold(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.third_party_payment_engine.place_on_hold(id, payload.reason.as_deref(), Some(user_id)).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => {
             error!("Failed to hold third-party payment: {}", e);
             Err(match e {
@@ -202,7 +203,7 @@ pub async fn release_hold(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.third_party_payment_engine.release_hold(id).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => {
             error!("Failed to release hold: {}", e);
             Err(match e {
@@ -225,7 +226,7 @@ pub async fn record_payment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.third_party_payment_engine.record_payment(id, &payload.payment_reference, Some(user_id)).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => {
             error!("Failed to record third-party payment: {}", e);
             Err(match e {
@@ -248,7 +249,7 @@ pub async fn cancel_payment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.third_party_payment_engine.cancel_payment(id, payload.reason.as_deref(), Some(user_id)).await {
-        Ok(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Ok(p) => Ok(to_json(p)),
         Err(e) => {
             error!("Failed to cancel third-party payment: {}", e);
             Err(match e {
@@ -289,7 +290,7 @@ pub async fn add_line(
         &payload.amount, payload.gl_account.as_deref(),
         payload.cost_center.as_deref(), payload.tax_code.as_deref(),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add third-party payment line: {}", e);
             Err(match e {
@@ -327,7 +328,7 @@ pub async fn get_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.third_party_payment_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

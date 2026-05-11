@@ -5,6 +5,7 @@
 //! API endpoints for managing GL accounts, journal entries, journal lines,
 //! and generating trial balance reports.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -55,7 +56,7 @@ pub async fn create_gl_account(
         &payload.natural_balance,
         Some(user_id),
     ).await {
-        Ok(account) => Ok((StatusCode::CREATED, Json(serde_json::to_value(account).unwrap()))),
+        Ok(account) => Ok(created_json(account)),
         Err(e) => {
             error!("Failed to create GL account: {}", e);
             Err(match e {
@@ -99,7 +100,7 @@ pub async fn get_gl_account(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.general_ledger_engine.get_account(id).await {
-        Ok(Some(account)) => Ok(Json(serde_json::to_value(account).unwrap())),
+        Ok(Some(account)) => Ok(to_json(account)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get GL account: {}", e);
@@ -150,7 +151,7 @@ pub async fn create_journal_entry(
         payload.source_id,
         Some(user_id),
     ).await {
-        Ok(entry) => Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap()))),
+        Ok(entry) => Ok(created_json(entry)),
         Err(e) => {
             error!("Failed to create journal entry: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -191,7 +192,7 @@ pub async fn get_journal_entry(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.general_ledger_engine.get_journal_entry(id).await {
-        Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(Some(entry)) => Ok(to_json(entry)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get journal entry: {}", e);
@@ -235,7 +236,7 @@ pub async fn add_journal_line(
         &payload.entered_cr,
         Some(user_id),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add journal line: {}", e);
             Err(match e {
@@ -274,7 +275,7 @@ pub async fn post_journal_entry(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.general_ledger_engine.post_journal_entry(id, Some(user_id)).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(to_json(entry)),
         Err(e) => {
             error!("Failed to post journal entry: {}", e);
             Err(match e {
@@ -292,7 +293,7 @@ pub async fn reverse_journal_entry(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.general_ledger_engine.reverse_journal_entry(id).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap())),
+        Ok(entry) => Ok(to_json(entry)),
         Err(e) => {
             error!("Failed to reverse journal entry: {}", e);
             Err(match e {
@@ -322,7 +323,7 @@ pub async fn generate_trial_balance(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.general_ledger_engine.generate_trial_balance(org_id, query.as_of_date).await {
-        Ok(tb) => Ok(Json(serde_json::to_value(tb).unwrap())),
+        Ok(tb) => Ok(to_json(tb)),
         Err(e) => {
             error!("Failed to generate trial balance: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Payables > Prepayment Application
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -50,7 +51,7 @@ pub async fn apply_prepayment(
         payload.reason.as_deref(), payload.notes.as_deref(),
         Some(user_id),
     ).await {
-        Ok(app) => Ok((StatusCode::CREATED, Json(serde_json::to_value(app).unwrap()))),
+        Ok(app) => Ok(created_json(app)),
         Err(e) => {
             error!("Failed to apply prepayment: {}", e);
             Err(match e {
@@ -67,7 +68,7 @@ pub async fn get_prepayment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.prepayment_application_engine.get(id).await {
-        Ok(Some(app)) => Ok(Json(serde_json::to_value(app).unwrap())),
+        Ok(Some(app)) => Ok(to_json(app)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get prepayment: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -96,7 +97,7 @@ pub async fn confirm_prepayment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.prepayment_application_engine.confirm(id).await {
-        Ok(app) => Ok(Json(serde_json::to_value(app).unwrap())),
+        Ok(app) => Ok(to_json(app)),
         Err(e) => {
             error!("Failed to confirm prepayment: {}", e);
             Err(match e {
@@ -113,7 +114,7 @@ pub async fn cancel_prepayment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.prepayment_application_engine.cancel(id).await {
-        Ok(app) => Ok(Json(serde_json::to_value(app).unwrap())),
+        Ok(app) => Ok(to_json(app)),
         Err(e) => {
             error!("Failed to cancel prepayment: {}", e);
             Err(match e {
@@ -131,7 +132,7 @@ pub async fn get_prepayment_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.prepayment_application_engine.get_dashboard(org_id).await {
-        Ok(dash) => Ok(Json(serde_json::to_value(dash).unwrap())),
+        Ok(dash) => Ok(to_json(dash)),
         Err(e) => { error!("Failed to get prepayment dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

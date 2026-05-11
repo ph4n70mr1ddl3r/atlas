@@ -9,6 +9,7 @@
 //! - OSHA compliance reporting
 //! - Health & Safety dashboard
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -94,7 +95,7 @@ pub async fn create_incident(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(incident).unwrap())))
+    Ok(created_json(incident))
 }
 
 #[derive(Debug, Deserialize)]
@@ -135,7 +136,7 @@ pub async fn get_incident(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match incident {
-        Some(inc) => Ok(Json(serde_json::to_value(inc).unwrap())),
+        Some(inc) => Ok(to_json(inc)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -162,7 +163,7 @@ pub async fn update_incident_status(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(incident).unwrap()))
+    Ok(to_json(incident))
 }
 
 #[derive(Debug, Deserialize)]
@@ -200,7 +201,7 @@ pub async fn update_incident_investigation(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(incident).unwrap()))
+    Ok(to_json(incident))
 }
 
 #[derive(Debug, Deserialize)]
@@ -227,7 +228,7 @@ pub async fn close_incident(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(incident).unwrap()))
+    Ok(to_json(incident))
 }
 
 pub async fn delete_incident(
@@ -312,7 +313,7 @@ pub async fn create_hazard(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(hazard).unwrap())))
+    Ok(created_json(hazard))
 }
 
 #[derive(Debug, Deserialize)]
@@ -353,7 +354,7 @@ pub async fn get_hazard(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match hazard {
-        Some(h) => Ok(Json(serde_json::to_value(h).unwrap())),
+        Some(h) => Ok(to_json(h)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -375,7 +376,7 @@ pub async fn update_hazard_status(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(hazard).unwrap()))
+    Ok(to_json(hazard))
 }
 
 #[derive(Debug, Deserialize)]
@@ -402,7 +403,7 @@ pub async fn assess_hazard_residual_risk(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(hazard).unwrap()))
+    Ok(to_json(hazard))
 }
 
 pub async fn delete_hazard(
@@ -477,7 +478,7 @@ pub async fn create_inspection(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(inspection).unwrap())))
+    Ok(created_json(inspection))
 }
 
 #[derive(Debug, Deserialize)]
@@ -516,7 +517,7 @@ pub async fn get_inspection(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match inspection {
-        Some(ins) => Ok(Json(serde_json::to_value(ins).unwrap())),
+        Some(ins) => Ok(to_json(ins)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -558,7 +559,7 @@ pub async fn complete_inspection(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(inspection).unwrap()))
+    Ok(to_json(inspection))
 }
 
 pub async fn update_inspection_status(
@@ -578,7 +579,7 @@ pub async fn update_inspection_status(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(inspection).unwrap()))
+    Ok(to_json(inspection))
 }
 
 pub async fn delete_inspection(
@@ -668,7 +669,7 @@ pub async fn create_corrective_action(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(action).unwrap())))
+    Ok(created_json(action))
 }
 
 #[derive(Debug, Deserialize)]
@@ -707,7 +708,7 @@ pub async fn get_corrective_action(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match action {
-        Some(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Some(a) => Ok(to_json(a)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -729,7 +730,7 @@ pub async fn update_corrective_action_status(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(action).unwrap()))
+    Ok(to_json(action))
 }
 
 #[derive(Debug, Deserialize)]
@@ -758,7 +759,7 @@ pub async fn complete_corrective_action(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(action).unwrap()))
+    Ok(to_json(action))
 }
 
 pub async fn delete_corrective_action(
@@ -794,5 +795,5 @@ pub async fn get_health_safety_dashboard(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(serde_json::to_value(dashboard).unwrap()))
+    Ok(to_json(dashboard))
 }

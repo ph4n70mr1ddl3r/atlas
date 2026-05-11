@@ -5,6 +5,7 @@
 //! API endpoints for managing journal import formats, column mappings,
 //! import batches, data validation, and import processing.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -77,7 +78,7 @@ pub async fn create_import_format(
         payload.column_mappings.clone(),
         Some(user_id),
     ).await {
-        Ok(format) => Ok((StatusCode::CREATED, Json(serde_json::to_value(format).unwrap()))),
+        Ok(format) => Ok(created_json(format)),
         Err(e) => {
             error!("Failed to create import format: {}", e);
             Err(match e {
@@ -117,7 +118,7 @@ pub async fn get_import_format(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.journal_import_engine.get_format(id).await {
-        Ok(Some(format)) => Ok(Json(serde_json::to_value(format).unwrap())),
+        Ok(Some(format)) => Ok(to_json(format)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get import format: {}", e);
@@ -177,7 +178,7 @@ pub async fn add_column_mapping(
         payload.transformation.as_deref(),
         payload.validation_rule.as_deref(),
     ).await {
-        Ok(mapping) => Ok((StatusCode::CREATED, Json(serde_json::to_value(mapping).unwrap()))),
+        Ok(mapping) => Ok(created_json(mapping)),
         Err(e) => {
             error!("Failed to add column mapping: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -226,7 +227,7 @@ pub async fn create_import_batch(
         payload.source_file_name.as_deref(),
         Some(user_id),
     ).await {
-        Ok(batch) => Ok((StatusCode::CREATED, Json(serde_json::to_value(batch).unwrap()))),
+        Ok(batch) => Ok(created_json(batch)),
         Err(e) => {
             error!("Failed to create import batch: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -282,7 +283,7 @@ pub async fn add_import_row(
         payload.project_code.as_deref(),
         Some(user_id),
     ).await {
-        Ok(row) => Ok((StatusCode::CREATED, Json(serde_json::to_value(row).unwrap()))),
+        Ok(row) => Ok(created_json(row)),
         Err(e) => {
             error!("Failed to add import row: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -310,7 +311,7 @@ pub async fn validate_import_batch(
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.journal_import_engine.validate_batch(batch_id).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to validate import batch: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -324,7 +325,7 @@ pub async fn import_batch(
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.journal_import_engine.import_batch(batch_id).await {
-        Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to import batch: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -338,7 +339,7 @@ pub async fn get_import_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.journal_import_engine.get_batch(id).await {
-        Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap())),
+        Ok(Some(batch)) => Ok(to_json(batch)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get import batch: {}", e);
@@ -394,7 +395,7 @@ pub async fn get_journal_import_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.journal_import_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get journal import dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

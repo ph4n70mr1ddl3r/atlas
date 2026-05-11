@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Accounting Hub
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path},
     Json,
@@ -48,7 +49,7 @@ pub async fn create_mapping_rule(
         payload.stop_on_match.unwrap_or(false),
         payload.effective_from, payload.effective_to, Some(user_id),
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok(created_json(r)),
         Err(e) => {
             error!("Failed to create mapping rule: {}", e);
             Err(match e {
@@ -95,7 +96,7 @@ pub async fn get_accounting_hub_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.accounting_hub_engine.get_dashboard_summary(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

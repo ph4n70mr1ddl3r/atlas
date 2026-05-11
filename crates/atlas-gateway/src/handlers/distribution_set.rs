@@ -3,6 +3,7 @@
 //! Oracle Fusion: Financials > Payables > Distribution Sets
 //! Reusable GL account distribution templates for AP invoices.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -52,7 +53,7 @@ pub async fn create_distribution_set(
         payload.effective_to,
         Some(user_id),
     ).await {
-        Ok(set) => Ok((StatusCode::CREATED, Json(serde_json::to_value(set).unwrap()))),
+        Ok(set) => Ok(created_json(set)),
         Err(e) => {
             error!("Failed to create distribution set: {}", e);
             Err(match e {
@@ -100,7 +101,7 @@ pub async fn get_distribution_set(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.distribution_set_engine.get_set(id).await {
-        Ok(Some(set)) => Ok(Json(serde_json::to_value(set).unwrap())),
+        Ok(Some(set)) => Ok(to_json(set)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get distribution set: {}", e);
@@ -118,7 +119,7 @@ pub async fn activate_distribution_set(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.distribution_set_engine.activate_set(id).await {
-        Ok(set) => Ok(Json(serde_json::to_value(set).unwrap())),
+        Ok(set) => Ok(to_json(set)),
         Err(e) => {
             error!("Failed to activate distribution set: {}", e);
             Err(match e {
@@ -138,7 +139,7 @@ pub async fn deactivate_distribution_set(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.distribution_set_engine.deactivate_set(id).await {
-        Ok(set) => Ok(Json(serde_json::to_value(set).unwrap())),
+        Ok(set) => Ok(to_json(set)),
         Err(e) => {
             error!("Failed to deactivate distribution set: {}", e);
             Err(match e {
@@ -216,7 +217,7 @@ pub async fn add_distribution_line(
         payload.department.as_deref(),
         payload.project_code.as_deref(),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add distribution line: {}", e);
             Err(match e {
@@ -344,7 +345,7 @@ pub async fn get_distribution_set_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.distribution_set_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get distribution set dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

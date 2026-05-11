@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Fixed Assets > Mass Additions
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -41,7 +42,7 @@ pub async fn create_mass_addition(
         payload.category_code.as_deref(), payload.book_code.as_deref(),
         payload.asset_type.as_deref(), Some(user_id),
     ).await {
-        Ok(ma) => Ok((StatusCode::CREATED, Json(serde_json::to_value(ma).unwrap()))),
+        Ok(ma) => Ok(created_json(ma)),
         Err(e) => {
             error!("Failed to create mass addition: {}", e);
             Err(match e {
@@ -58,7 +59,7 @@ pub async fn get_mass_addition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mass_addition_engine.get(id).await {
-        Ok(Some(ma)) => Ok(Json(serde_json::to_value(ma).unwrap())),
+        Ok(Some(ma)) => Ok(to_json(ma)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get mass addition: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -93,7 +94,7 @@ pub async fn hold_mass_addition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mass_addition_engine.hold(id).await {
-        Ok(ma) => Ok(Json(serde_json::to_value(ma).unwrap())),
+        Ok(ma) => Ok(to_json(ma)),
         Err(e) => {
             error!("Failed to hold mass addition: {}", e);
             Err(match e {
@@ -110,7 +111,7 @@ pub async fn release_mass_addition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mass_addition_engine.release(id).await {
-        Ok(ma) => Ok(Json(serde_json::to_value(ma).unwrap())),
+        Ok(ma) => Ok(to_json(ma)),
         Err(e) => {
             error!("Failed to release mass addition: {}", e);
             Err(match e {
@@ -131,7 +132,7 @@ pub async fn reject_mass_addition(
     Json(payload): Json<RejectRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mass_addition_engine.reject(id, &payload.reason).await {
-        Ok(ma) => Ok(Json(serde_json::to_value(ma).unwrap())),
+        Ok(ma) => Ok(to_json(ma)),
         Err(e) => {
             error!("Failed to reject mass addition: {}", e);
             Err(match e {
@@ -152,7 +153,7 @@ pub async fn merge_mass_addition(
     Json(payload): Json<MergeRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mass_addition_engine.merge(id, payload.target_id).await {
-        Ok(ma) => Ok(Json(serde_json::to_value(ma).unwrap())),
+        Ok(ma) => Ok(to_json(ma)),
         Err(e) => {
             error!("Failed to merge mass addition: {}", e);
             Err(match e {
@@ -169,7 +170,7 @@ pub async fn convert_mass_addition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mass_addition_engine.convert(id).await {
-        Ok(ma) => Ok(Json(serde_json::to_value(ma).unwrap())),
+        Ok(ma) => Ok(to_json(ma)),
         Err(e) => {
             error!("Failed to convert mass addition: {}", e);
             Err(match e {
@@ -187,7 +188,7 @@ pub async fn get_mass_addition_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.mass_addition_engine.get_dashboard(org_id).await {
-        Ok(dash) => Ok(Json(serde_json::to_value(dash).unwrap())),
+        Ok(dash) => Ok(to_json(dash)),
         Err(e) => { error!("Failed to get mass additions dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

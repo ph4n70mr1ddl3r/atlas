@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: General Ledger > Financial Dimension Sets
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -33,7 +34,7 @@ pub async fn create_dimension_set(
         org_id, &payload.code, &payload.name,
         payload.description.as_deref(), Some(user_id),
     ).await {
-        Ok(ds) => Ok((StatusCode::CREATED, Json(serde_json::to_value(ds).unwrap()))),
+        Ok(ds) => Ok(created_json(ds)),
         Err(e) => {
             error!("Failed to create dimension set: {}", e);
             Err(match e {
@@ -50,7 +51,7 @@ pub async fn get_dimension_set(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.financial_dimension_set_engine.get(id).await {
-        Ok(Some(ds)) => Ok(Json(serde_json::to_value(ds).unwrap())),
+        Ok(Some(ds)) => Ok(to_json(ds)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get dimension set: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -76,7 +77,7 @@ pub async fn deactivate_dimension_set(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.financial_dimension_set_engine.deactivate(id).await {
-        Ok(ds) => Ok(Json(serde_json::to_value(ds).unwrap())),
+        Ok(ds) => Ok(to_json(ds)),
         Err(e) => {
             error!("Failed to deactivate dimension set: {}", e);
             Err(match e {
@@ -93,7 +94,7 @@ pub async fn get_dimension_set_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.financial_dimension_set_engine.get_dashboard(org_id).await {
-        Ok(dash) => Ok(Json(serde_json::to_value(dash).unwrap())),
+        Ok(dash) => Ok(to_json(dash)),
         Err(e) => { error!("Failed to get dimension set dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

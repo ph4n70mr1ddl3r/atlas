@@ -3,6 +3,7 @@
 //! Oracle Fusion: Financials > General Ledger > Financial Reports > Cash Flow Statements
 //! Generates cash flow statements using direct or indirect methods.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -46,7 +47,7 @@ pub async fn create_cash_flow_statement(
         payload.period_end,
         Some(user_id),
     ).await {
-        Ok(stmt) => Ok((StatusCode::CREATED, Json(serde_json::to_value(stmt).unwrap()))),
+        Ok(stmt) => Ok(created_json(stmt)),
         Err(e) => {
             error!("Failed to create cash flow statement: {}", e);
             Err(match e {
@@ -97,7 +98,7 @@ pub async fn get_cash_flow_statement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_flow_statement_engine.get_statement(id).await {
-        Ok(Some(stmt)) => Ok(Json(serde_json::to_value(stmt).unwrap())),
+        Ok(Some(stmt)) => Ok(to_json(stmt)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get cash flow statement: {}", e);
@@ -115,7 +116,7 @@ pub async fn calculate_cash_flow_statement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_flow_statement_engine.calculate(id).await {
-        Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap())),
+        Ok(stmt) => Ok(to_json(stmt)),
         Err(e) => {
             error!("Failed to calculate cash flow statement: {}", e);
             Err(match e {
@@ -138,7 +139,7 @@ pub async fn review_cash_flow_statement(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_flow_statement_engine.review(id, user_id).await {
-        Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap())),
+        Ok(stmt) => Ok(to_json(stmt)),
         Err(e) => {
             error!("Failed to review cash flow statement: {}", e);
             Err(match e {
@@ -159,7 +160,7 @@ pub async fn publish_cash_flow_statement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_flow_statement_engine.publish(id).await {
-        Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap())),
+        Ok(stmt) => Ok(to_json(stmt)),
         Err(e) => {
             error!("Failed to publish cash flow statement: {}", e);
             Err(match e {
@@ -180,7 +181,7 @@ pub async fn archive_cash_flow_statement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_flow_statement_engine.archive(id).await {
-        Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap())),
+        Ok(stmt) => Ok(to_json(stmt)),
         Err(e) => {
             error!("Failed to archive cash flow statement: {}", e);
             Err(match e {
@@ -226,7 +227,7 @@ pub async fn add_cash_flow_line(
         payload.is_non_cash.unwrap_or(false),
         payload.display_order.unwrap_or(payload.line_number),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add cash flow line: {}", e);
             Err(match e {
@@ -282,7 +283,7 @@ pub async fn get_cash_flow_statement_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_flow_statement_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get cash flow dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

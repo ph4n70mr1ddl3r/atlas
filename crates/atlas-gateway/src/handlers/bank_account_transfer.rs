@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion Cloud ERP: Financials > Cash Management > Bank Account Transfers
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path},
     Json,
@@ -38,7 +39,7 @@ pub async fn create_bank_transfer_type(
         &payload.settlement_method, payload.requires_approval.unwrap_or(true),
         payload.approval_threshold.as_deref(), Some(user_id),
     ).await {
-        Ok(tt) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tt).unwrap()))),
+        Ok(tt) => Ok(created_json(tt)),
         Err(e) => {
             error!("Failed to create transfer type: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -89,7 +90,7 @@ pub async fn create_bank_transfer(
         payload.purpose.as_deref(), payload.priority.as_deref().unwrap_or("normal"),
         Some(user_id),
     ).await {
-        Ok(transfer) => Ok((StatusCode::CREATED, Json(serde_json::to_value(transfer).unwrap()))),
+        Ok(transfer) => Ok(created_json(transfer)),
         Err(e) => { error!("Failed to create transfer: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -110,7 +111,7 @@ pub async fn get_bank_transfer(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.bank_transfer_engine.get_transfer(id).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(Some(t)) => Ok(to_json(t)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get transfer: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -123,7 +124,7 @@ pub async fn submit_bank_transfer(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.bank_transfer_engine.submit_transfer(id, Some(user_id)).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => { error!("Failed to submit transfer: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -135,7 +136,7 @@ pub async fn approve_bank_transfer(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.bank_transfer_engine.approve_transfer(id, Some(user_id)).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => { error!("Failed to approve transfer: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -147,7 +148,7 @@ pub async fn complete_bank_transfer(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.bank_transfer_engine.complete_transfer(id, Some(user_id)).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => { error!("Failed to complete transfer: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -158,7 +159,7 @@ pub async fn get_bank_transfer_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.bank_transfer_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

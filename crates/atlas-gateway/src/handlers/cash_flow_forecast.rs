@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Treasury > Cash Forecasting
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -41,7 +42,7 @@ pub async fn create_forecast(
         &payload.forecast_horizon, payload.periods_out, payload.start_date, payload.end_date,
         &payload.base_currency_code, &payload.opening_balance, Some(user_id),
     ).await {
-        Ok(f) => Ok((StatusCode::CREATED, Json(serde_json::to_value(f).unwrap()))),
+        Ok(f) => Ok(created_json(f)),
         Err(e) => {
             error!("Failed to create forecast: {}", e);
             Err(match e {
@@ -73,7 +74,7 @@ pub async fn get_forecast(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_flow_forecast_engine.get_forecast_by_id(id).await {
-        Ok(Some(f)) => Ok(Json(serde_json::to_value(f).unwrap())),
+        Ok(Some(f)) => Ok(to_json(f)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get forecast: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -84,7 +85,7 @@ pub async fn activate_forecast(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.cash_flow_forecast_engine.activate_forecast(id).await {
-        Ok(f) => Ok(Json(serde_json::to_value(f).unwrap())),
+        Ok(f) => Ok(to_json(f)),
         Err(e) => {
             error!("Failed to activate forecast: {}", e);
             Err(match e {
@@ -103,7 +104,7 @@ pub async fn approve_forecast(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_flow_forecast_engine.approve_forecast(id, user_id).await {
-        Ok(f) => Ok(Json(serde_json::to_value(f).unwrap())),
+        Ok(f) => Ok(to_json(f)),
         Err(e) => {
             error!("Failed to approve forecast: {}", e);
             Err(match e {
@@ -135,7 +136,7 @@ pub async fn create_scenario(
         org_id, payload.forecast_id, &sn, &payload.name,
         payload.description.as_deref(), &payload.scenario_type, &payload.adjustment_factor,
     ).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap()))),
+        Ok(s) => Ok(created_json(s)),
         Err(e) => {
             error!("Failed to create scenario: {}", e);
             Err(match e {
@@ -186,7 +187,7 @@ pub async fn create_entry(
         &payload.amount, &payload.probability,
         payload.is_manual.unwrap_or(true), payload.description.as_deref(),
     ).await {
-        Ok(e) => Ok((StatusCode::CREATED, Json(serde_json::to_value(e).unwrap()))),
+        Ok(e) => Ok(created_json(e)),
         Err(e) => {
             error!("Failed to create entry: {}", e);
             Err(match e {
@@ -213,7 +214,7 @@ pub async fn get_cash_forecast_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.cash_flow_forecast_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

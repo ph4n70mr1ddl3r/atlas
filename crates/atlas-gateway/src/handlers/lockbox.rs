@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: AR > Lockbox
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -37,7 +38,7 @@ pub async fn create_batch(
         payload.bank_name.as_deref(), payload.deposit_date,
         &payload.currency_code, payload.source_file_name.as_deref(), Some(user_id),
     ).await {
-        Ok(b) => Ok((StatusCode::CREATED, Json(serde_json::to_value(b).unwrap()))),
+        Ok(b) => Ok(created_json(b)),
         Err(e) => {
             error!("Failed to create lockbox batch: {}", e);
             Err(match e {
@@ -54,7 +55,7 @@ pub async fn get_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lockbox_engine.get_batch_by_id(id).await {
-        Ok(Some(b)) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(Some(b)) => Ok(to_json(b)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get batch: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -80,7 +81,7 @@ pub async fn validate_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lockbox_engine.validate_batch(id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to validate batch: {}", e);
             Err(match e {
@@ -97,7 +98,7 @@ pub async fn apply_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lockbox_engine.apply_batch(id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to apply batch: {}", e);
             Err(match e {
@@ -132,7 +133,7 @@ pub async fn create_receipt(
         payload.customer_id, payload.receipt_date, &payload.receipt_amount,
         payload.remittance_reference.as_deref(),
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok(created_json(r)),
         Err(e) => {
             error!("Failed to create receipt: {}", e);
             Err(match e {
@@ -172,7 +173,7 @@ pub async fn manual_apply_receipt(
     match state.lockbox_engine.manual_apply_receipt(
         receipt_id, &payload.invoice_number, &payload.applied_amount, Some(user_id),
     ).await {
-        Ok(app) => Ok((StatusCode::CREATED, Json(serde_json::to_value(app).unwrap()))),
+        Ok(app) => Ok(created_json(app)),
         Err(e) => {
             error!("Failed to apply receipt: {}", e);
             Err(match e {
@@ -222,7 +223,7 @@ pub async fn create_format(
         payload.header_identifier.as_deref(), payload.detail_identifier.as_deref(),
         payload.trailer_identifier.as_deref(), Some(user_id),
     ).await {
-        Ok(f) => Ok((StatusCode::CREATED, Json(serde_json::to_value(f).unwrap()))),
+        Ok(f) => Ok(created_json(f)),
         Err(e) => {
             error!("Failed to create format: {}", e);
             Err(match e {
@@ -251,7 +252,7 @@ pub async fn get_lockbox_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.lockbox_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

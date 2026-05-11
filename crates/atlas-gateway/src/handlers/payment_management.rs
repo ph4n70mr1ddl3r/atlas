@@ -5,6 +5,7 @@
 //! API endpoints for managing payments, payment batches,
 //! and payment reversals.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -72,7 +73,7 @@ pub async fn create_payment(
         payload.check_number.as_deref(),
         Some(user_id),
     ).await {
-        Ok(payment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(payment).unwrap()))),
+        Ok(payment) => Ok(created_json(payment)),
         Err(e) => {
             error!("Failed to create payment: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -114,7 +115,7 @@ pub async fn get_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.payment_engine.get_payment(id).await {
-        Ok(Some(payment)) => Ok(Json(serde_json::to_value(payment).unwrap())),
+        Ok(Some(payment)) => Ok(to_json(payment)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get payment: {}", e);
@@ -130,7 +131,7 @@ pub async fn issue_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.payment_engine.issue_payment(id).await {
-        Ok(payment) => Ok(Json(serde_json::to_value(payment).unwrap())),
+        Ok(payment) => Ok(to_json(payment)),
         Err(e) => {
             error!("Failed to issue payment: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -146,7 +147,7 @@ pub async fn clear_payment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.payment_engine.clear_payment(id, Some(user_id)).await {
-        Ok(payment) => Ok(Json(serde_json::to_value(payment).unwrap())),
+        Ok(payment) => Ok(to_json(payment)),
         Err(e) => {
             error!("Failed to clear payment: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -164,7 +165,7 @@ pub async fn void_payment(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let reason = body["reason"].as_str().unwrap_or("Voided");
     match state.payment_engine.void_payment(id, user_id, reason).await {
-        Ok(payment) => Ok(Json(serde_json::to_value(payment).unwrap())),
+        Ok(payment) => Ok(to_json(payment)),
         Err(e) => {
             error!("Failed to void payment: {}", e);
             Err(StatusCode::BAD_REQUEST)

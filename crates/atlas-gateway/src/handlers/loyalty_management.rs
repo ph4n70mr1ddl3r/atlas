@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion Cloud: CX > Loyalty Management
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -85,7 +86,7 @@ pub async fn create_program(
         .await
         .map_err(map_err)?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(program).unwrap())))
+    Ok(created_json(program))
 }
 
 pub async fn get_program(
@@ -96,7 +97,7 @@ pub async fn get_program(
     let program = state.loyalty_engine.get_program(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match program {
-        Some(p) => Ok(Json(serde_json::to_value(p).unwrap())),
+        Some(p) => Ok(to_json(p)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -126,7 +127,7 @@ pub async fn activate_program(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let program = state.loyalty_engine.activate_program(id).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(program).unwrap()))
+    Ok(to_json(program))
 }
 
 pub async fn suspend_program(
@@ -135,7 +136,7 @@ pub async fn suspend_program(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let program = state.loyalty_engine.suspend_program(id).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(program).unwrap()))
+    Ok(to_json(program))
 }
 
 pub async fn close_program(
@@ -144,7 +145,7 @@ pub async fn close_program(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let program = state.loyalty_engine.close_program(id).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(program).unwrap()))
+    Ok(to_json(program))
 }
 
 pub async fn delete_program(
@@ -192,7 +193,7 @@ pub async fn create_tier(
         payload.is_default,
     ).await.map_err(map_err)?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(tier).unwrap())))
+    Ok(created_json(tier))
 }
 
 pub async fn list_tiers(
@@ -243,7 +244,7 @@ pub async fn enroll_member(
         payload.notes.as_deref(), Some(user_id),
     ).await.map_err(map_err)?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(member).unwrap())))
+    Ok(created_json(member))
 }
 
 pub async fn get_member(
@@ -252,7 +253,7 @@ pub async fn get_member(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.loyalty_engine.get_member(id).await {
-        Ok(Some(m)) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(Some(m)) => Ok(to_json(m)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
@@ -279,7 +280,7 @@ pub async fn suspend_member(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let member = state.loyalty_engine.suspend_member(id).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(member).unwrap()))
+    Ok(to_json(member))
 }
 
 pub async fn reactivate_member(
@@ -288,7 +289,7 @@ pub async fn reactivate_member(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let member = state.loyalty_engine.reactivate_member(id).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(member).unwrap()))
+    Ok(to_json(member))
 }
 
 pub async fn delete_member(
@@ -334,7 +335,7 @@ pub async fn accrue_points(
         payload.description.as_deref(), Some(user_id),
     ).await.map_err(map_err)?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap())))
+    Ok(created_json(txn))
 }
 
 #[derive(Debug, Deserialize)]
@@ -360,7 +361,7 @@ pub async fn adjust_points(
         payload.points, payload.description.as_deref(), Some(user_id),
     ).await.map_err(map_err)?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap())))
+    Ok(created_json(txn))
 }
 
 #[derive(Debug, Deserialize)]
@@ -374,7 +375,7 @@ pub async fn reverse_transaction(
     Json(payload): Json<ReverseTransactionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let txn = state.loyalty_engine.reverse_transaction(id, &payload.reason).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(txn).unwrap()))
+    Ok(to_json(txn))
 }
 
 #[derive(Debug, Deserialize)]
@@ -443,7 +444,7 @@ pub async fn create_reward(
         payload.notes.as_deref(), Some(user_id),
     ).await.map_err(map_err)?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(reward).unwrap())))
+    Ok(created_json(reward))
 }
 
 #[derive(Debug, Deserialize)]
@@ -466,7 +467,7 @@ pub async fn deactivate_reward(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let reward = state.loyalty_engine.deactivate_reward(id).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(reward).unwrap()))
+    Ok(to_json(reward))
 }
 
 pub async fn delete_reward(
@@ -507,7 +508,7 @@ pub async fn redeem_reward(
         &payload.redemption_number, payload.quantity, payload.notes.as_deref(), Some(user_id),
     ).await.map_err(map_err)?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(redemption).unwrap())))
+    Ok(created_json(redemption))
 }
 
 pub async fn fulfill_redemption(
@@ -516,7 +517,7 @@ pub async fn fulfill_redemption(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let redemption = state.loyalty_engine.fulfill_redemption(id).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(redemption).unwrap()))
+    Ok(to_json(redemption))
 }
 
 #[derive(Debug, Deserialize)]
@@ -530,7 +531,7 @@ pub async fn cancel_redemption(
     Json(payload): Json<CancelRedemptionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let redemption = state.loyalty_engine.cancel_redemption(id, &payload.reason).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(redemption).unwrap()))
+    Ok(to_json(redemption))
 }
 
 #[derive(Debug, Deserialize)]
@@ -559,5 +560,5 @@ pub async fn get_loyalty_dashboard(
     let org_id = parse_org(&claims)?;
     let dashboard = state.loyalty_engine.get_dashboard(org_id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::to_value(dashboard).unwrap()))
+    Ok(to_json(dashboard))
 }

@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Financial Controls
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path},
     Json,
@@ -51,7 +52,7 @@ pub async fn create_control_rule(
         &payload.check_schedule, payload.effective_from, payload.effective_to,
         Some(user_id),
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok(created_json(r)),
         Err(e) => {
             error!("Failed to create control rule: {}", e);
             Err(match e {
@@ -98,7 +99,7 @@ pub async fn get_financial_controls_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.financial_controls_engine.get_dashboard_summary(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

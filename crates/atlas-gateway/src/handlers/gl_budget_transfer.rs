@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: General Ledger > Budget Transfers
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -51,7 +52,7 @@ pub async fn create_budget_transfer(
         &payload.transfer_amount, &payload.currency_code,
         payload.reason.as_deref(), Some(user_id),
     ).await {
-        Ok(t) => Ok((StatusCode::CREATED, Json(serde_json::to_value(t).unwrap()))),
+        Ok(t) => Ok(created_json(t)),
         Err(e) => {
             error!("Failed to create budget transfer: {}", e);
             Err(match e {
@@ -68,7 +69,7 @@ pub async fn get_budget_transfer(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.gl_budget_transfer_engine.get(id).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(Some(t)) => Ok(to_json(t)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get budget transfer: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -97,7 +98,7 @@ pub async fn submit_budget_transfer(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.gl_budget_transfer_engine.submit(id).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => {
             error!("Failed to submit budget transfer: {}", e);
             Err(match e {
@@ -116,7 +117,7 @@ pub async fn approve_budget_transfer(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.gl_budget_transfer_engine.approve(id, user_id).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => {
             error!("Failed to approve budget transfer: {}", e);
             Err(match e {
@@ -133,7 +134,7 @@ pub async fn complete_budget_transfer(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.gl_budget_transfer_engine.complete(id).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => {
             error!("Failed to complete budget transfer: {}", e);
             Err(match e {
@@ -151,7 +152,7 @@ pub async fn get_budget_transfer_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.gl_budget_transfer_engine.get_dashboard(org_id).await {
-        Ok(dash) => Ok(Json(serde_json::to_value(dash).unwrap())),
+        Ok(dash) => Ok(to_json(dash)),
         Err(e) => { error!("Failed to get budget transfer dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

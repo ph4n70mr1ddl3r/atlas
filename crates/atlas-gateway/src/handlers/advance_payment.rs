@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Accounts Payable > Advance Payments
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -49,7 +50,7 @@ pub async fn create_advance(
         payload.liability_account_code.as_deref(), payload.advance_date,
         payload.due_date, payload.expiration_date, Some(user_id),
     ).await {
-        Ok(a) => Ok((StatusCode::CREATED, Json(serde_json::to_value(a).unwrap()))),
+        Ok(a) => Ok(created_json(a)),
         Err(e) => {
             error!("Failed to create advance: {}", e);
             Err(match e {
@@ -81,7 +82,7 @@ pub async fn get_advance(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.advance_payment_engine.get_advance(id).await {
-        Ok(Some(a)) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(Some(a)) => Ok(to_json(a)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get advance: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -94,7 +95,7 @@ pub async fn approve_advance(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.advance_payment_engine.approve_advance(id, user_id).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(a) => Ok(to_json(a)),
         Err(e) => {
             error!("Failed to approve advance: {}", e);
             Err(match e {
@@ -117,7 +118,7 @@ pub async fn pay_advance(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.advance_payment_engine.pay_advance(id, payload.payment_reference.as_deref(), Some(user_id)).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(a) => Ok(to_json(a)),
         Err(e) => {
             error!("Failed to pay advance: {}", e);
             Err(match e {
@@ -137,7 +138,7 @@ pub async fn cancel_advance(
     Json(payload): Json<CancelAdvanceRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.advance_payment_engine.cancel_advance(id, payload.reason.as_deref()).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(a) => Ok(to_json(a)),
         Err(e) => {
             error!("Failed to cancel advance: {}", e);
             Err(match e {
@@ -172,7 +173,7 @@ pub async fn apply_to_invoice(
         payload.invoice_number.as_deref(), &payload.applied_amount,
         payload.application_date, payload.gl_account_code.as_deref(), Some(user_id),
     ).await {
-        Ok(app) => Ok((StatusCode::CREATED, Json(serde_json::to_value(app).unwrap()))),
+        Ok(app) => Ok(created_json(app)),
         Err(e) => {
             error!("Failed to apply advance: {}", e);
             Err(match e {
@@ -190,7 +191,7 @@ pub async fn get_advance_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.advance_payment_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

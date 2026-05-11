@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Payables > Payment Formats
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -48,7 +49,7 @@ pub async fn create_payment_format(
         payload.currency_code.as_deref().unwrap_or("USD"),
         Some(user_id),
     ).await {
-        Ok(f) => Ok((StatusCode::CREATED, Json(serde_json::to_value(f).unwrap()))),
+        Ok(f) => Ok(created_json(f)),
         Err(e) => {
             error!("Failed to create payment format: {}", e);
             Err(match e {
@@ -65,7 +66,7 @@ pub async fn get_payment_format(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.payment_format_engine.get(id).await {
-        Ok(Some(f)) => Ok(Json(serde_json::to_value(f).unwrap())),
+        Ok(Some(f)) => Ok(to_json(f)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get payment format: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -98,7 +99,7 @@ pub async fn deactivate_payment_format(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.payment_format_engine.deactivate(id).await {
-        Ok(f) => Ok(Json(serde_json::to_value(f).unwrap())),
+        Ok(f) => Ok(to_json(f)),
         Err(e) => {
             error!("Failed to deactivate payment format: {}", e);
             Err(match e {
@@ -114,7 +115,7 @@ pub async fn activate_payment_format(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.payment_format_engine.activate(id).await {
-        Ok(f) => Ok(Json(serde_json::to_value(f).unwrap())),
+        Ok(f) => Ok(to_json(f)),
         Err(e) => {
             error!("Failed to activate payment format: {}", e);
             Err(match e {
@@ -131,7 +132,7 @@ pub async fn get_payment_format_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.payment_format_engine.get_dashboard(org_id).await {
-        Ok(dash) => Ok(Json(serde_json::to_value(dash).unwrap())),
+        Ok(dash) => Ok(to_json(dash)),
         Err(e) => { error!("Failed to get payment format dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

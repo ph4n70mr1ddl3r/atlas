@@ -5,6 +5,7 @@
 //! API endpoints for revenue contracts, performance obligations,
 //! standalone selling prices, and revenue recognition events.
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -47,7 +48,7 @@ pub async fn create_contract(
         payload.description.as_deref(), &payload.transaction_price, &payload.currency_code,
         payload.contract_start_date, payload.contract_end_date, Some(user_id),
     ).await {
-        Ok(c) => Ok((StatusCode::CREATED, Json(serde_json::to_value(c).unwrap()))),
+        Ok(c) => Ok(created_json(c)),
         Err(e) => {
             error!("Failed to create revenue contract: {}", e);
             Err(match e {
@@ -83,7 +84,7 @@ pub async fn get_contract(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.revenue_management_engine.get_contract(org_id, &number).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(Some(c)) => Ok(to_json(c)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get contract: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -94,7 +95,7 @@ pub async fn activate_contract(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.revenue_management_engine.activate_contract(id).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to activate contract: {}", e);
             Err(match e {
@@ -111,7 +112,7 @@ pub async fn cancel_contract(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.revenue_management_engine.cancel_contract(id).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap())),
+        Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to cancel contract: {}", e);
             Err(match e {
@@ -154,7 +155,7 @@ pub async fn create_obligation(
         &payload.standalone_selling_price,
         payload.recognition_start_date, payload.recognition_end_date,
     ).await {
-        Ok(o) => Ok((StatusCode::CREATED, Json(serde_json::to_value(o).unwrap()))),
+        Ok(o) => Ok(created_json(o)),
         Err(e) => {
             error!("Failed to create obligation: {}", e);
             Err(match e {
@@ -225,7 +226,7 @@ pub async fn create_ssp(
         &payload.price, &payload.currency_code, payload.effective_from,
         payload.effective_to, Some(user_id),
     ).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap()))),
+        Ok(s) => Ok(created_json(s)),
         Err(e) => {
             error!("Failed to create SSP: {}", e);
             Err(match e {
@@ -270,7 +271,7 @@ pub async fn satisfy_obligation(
         obligation_id, &payload.amount, payload.recognition_date,
         payload.gl_account_code.as_deref(), Some(user_id),
     ).await {
-        Ok(e) => Ok(Json(serde_json::to_value(e).unwrap())),
+        Ok(e) => Ok(to_json(e)),
         Err(e) => {
             error!("Failed to satisfy obligation: {}", e);
             Err(match e {
@@ -302,7 +303,7 @@ pub async fn get_revenue_management_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.revenue_management_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get revenue dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

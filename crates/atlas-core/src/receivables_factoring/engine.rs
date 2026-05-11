@@ -502,10 +502,8 @@ impl ReceivablesFactoringEngine {
 
     /// Process a settlement
     pub async fn process_settlement(&self, id: Uuid, processed_by: Option<Uuid>) -> AtlasResult<FactoringSettlement> {
-        let s = self.repository.list_settlements(Uuid::nil(), None, None).await;
-        let _ = s; // Avoid unused warning for now; stub repos return empty
-        // In a real implementation we'd get the settlement by ID from the repo.
-        // For now, delegate to the repository which validates status.
+        // Delegate to the repository which validates the settlement exists
+        // and is in a valid status for processing.
         info!("Processing factoring settlement {}", id);
         self.repository.update_settlement_status(id, "processed", processed_by).await
     }

@@ -520,12 +520,33 @@ use axum::{
     Router,
     routing::{get, post, put, delete},
     Json,
+    http::StatusCode,
     middleware,
 };
 use serde_json::Value;
 use crate::AppState;
 use crate::middleware::{auth_middleware, admin_auth_middleware};
 use std::sync::Arc;
+
+/// Helper to serialize a `Serialize` value to `Json<Value>` safely.
+///
+/// All domain types derive `Serialize`, so `serde_json::to_value` will
+/// never fail — but using `.unwrap()` is a footgun.  This helper provides
+/// a clear, centralized error message if serialization ever does fail.
+#[inline]
+pub fn to_json<T: serde::Serialize>(val: T) -> Json<Value> {
+    Json(
+        serde_json::to_value(val)
+            .expect("failed to serialize response — all domain types must implement Serialize"),
+    )
+}
+
+/// Shorthand for returning `(StatusCode, Json<Value>)` with a created status.
+#[allow(dead_code)]
+#[inline]
+pub fn created_json<T: serde::Serialize>(val: T) -> (StatusCode, Json<Value>) {
+    (StatusCode::CREATED, to_json(val))
+}
 
 /// Health check endpoint
 pub async fn health_check() -> &'static str {

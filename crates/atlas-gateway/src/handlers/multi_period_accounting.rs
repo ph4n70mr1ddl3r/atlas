@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > General Ledger > Multi-Period Accounting
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -49,7 +50,7 @@ pub async fn create_template(
         payload.currency_code.as_deref().unwrap_or("USD"),
         Some(user_id),
     ).await {
-        Ok(t) => Ok((StatusCode::CREATED, Json(serde_json::to_value(t).unwrap()))),
+        Ok(t) => Ok(created_json(t)),
         Err(e) => {
             error!("Failed to create MPA template: {}", e);
             Err(match e {
@@ -89,7 +90,7 @@ pub async fn get_template(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mpa_engine.get_template(id).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(Some(t)) => Ok(to_json(t)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get MPA template: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -100,7 +101,7 @@ pub async fn activate_template(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mpa_engine.activate_template(id).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => {
             error!("Failed to activate MPA template: {}", e);
             Err(match e {
@@ -117,7 +118,7 @@ pub async fn deactivate_template(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mpa_engine.deactivate_template(id).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => {
             error!("Failed to deactivate MPA template: {}", e);
             Err(match e {
@@ -145,7 +146,7 @@ pub async fn add_template_line(
         template_id, payload.period_sequence, &payload.percentage,
         payload.offset_days.unwrap_or(0),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add template line: {}", e);
             Err(match e {
@@ -204,7 +205,7 @@ pub async fn create_schedule(
         payload.company_code.as_deref(), payload.cost_center.as_deref(),
         payload.account_segment.as_deref(), Some(user_id),
     ).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap()))),
+        Ok(s) => Ok(created_json(s)),
         Err(e) => {
             error!("Failed to create MPA schedule: {}", e);
             Err(match e {
@@ -246,7 +247,7 @@ pub async fn get_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mpa_engine.get_schedule(id).await {
-        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(Some(s)) => Ok(to_json(s)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get MPA schedule: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -257,7 +258,7 @@ pub async fn activate_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mpa_engine.activate_schedule(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to activate MPA schedule: {}", e);
             Err(match e {
@@ -274,7 +275,7 @@ pub async fn hold_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mpa_engine.hold_schedule(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to hold MPA schedule: {}", e);
             Err(match e {
@@ -291,7 +292,7 @@ pub async fn cancel_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mpa_engine.cancel_schedule(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to cancel MPA schedule: {}", e);
             Err(match e {
@@ -322,7 +323,7 @@ pub async fn recognize_line(
     Path(line_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mpa_engine.recognize_line(line_id).await {
-        Ok(l) => Ok(Json(serde_json::to_value(l).unwrap())),
+        Ok(l) => Ok(to_json(l)),
         Err(e) => {
             error!("Failed to recognize MPA line: {}", e);
             Err(match e {
@@ -339,7 +340,7 @@ pub async fn reverse_line(
     Path(line_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.mpa_engine.reverse_line(line_id).await {
-        Ok(l) => Ok(Json(serde_json::to_value(l).unwrap())),
+        Ok(l) => Ok(to_json(l)),
         Err(e) => {
             error!("Failed to reverse MPA line: {}", e);
             Err(match e {
@@ -361,7 +362,7 @@ pub async fn get_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.mpa_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get MPA dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

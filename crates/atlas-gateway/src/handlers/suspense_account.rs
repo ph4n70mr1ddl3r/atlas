@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: General Ledger > Suspense Accounts
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -37,7 +38,7 @@ pub async fn create_definition(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.balancing_segment, &payload.suspense_account, Some(user_id),
     ).await {
-        Ok(d) => Ok((StatusCode::CREATED, Json(serde_json::to_value(d).unwrap()))),
+        Ok(d) => Ok(created_json(d)),
         Err(e) => {
             error!("Failed to create suspense definition: {}", e);
             Err(match e {
@@ -54,7 +55,7 @@ pub async fn get_definition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.get_definition(id).await {
-        Ok(Some(d)) => Ok(Json(serde_json::to_value(d).unwrap())),
+        Ok(Some(d)) => Ok(to_json(d)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get definition: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -76,7 +77,7 @@ pub async fn activate_definition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.activate_definition(id).await {
-        Ok(d) => Ok(Json(serde_json::to_value(d).unwrap())),
+        Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to activate definition: {}", e);
             Err(match e {
@@ -93,7 +94,7 @@ pub async fn deactivate_definition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.deactivate_definition(id).await {
-        Ok(d) => Ok(Json(serde_json::to_value(d).unwrap())),
+        Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to deactivate definition: {}", e);
             Err(match e {
@@ -150,7 +151,7 @@ pub async fn create_entry(
         payload.original_amount.as_deref(), &payload.entry_type, payload.entry_date,
         &payload.currency_code, Some(user_id),
     ).await {
-        Ok(e) => Ok((StatusCode::CREATED, Json(serde_json::to_value(e).unwrap()))),
+        Ok(e) => Ok(created_json(e)),
         Err(e) => {
             error!("Failed to create suspense entry: {}", e);
             Err(match e {
@@ -168,7 +169,7 @@ pub async fn get_entry(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.get_entry(id).await {
-        Ok(Some(e)) => Ok(Json(serde_json::to_value(e).unwrap())),
+        Ok(Some(e)) => Ok(to_json(e)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get entry: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -221,7 +222,7 @@ pub async fn reverse_entry(
     Json(payload): Json<ReverseEntryRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.reverse_entry(id, payload.resolution_notes.as_deref()).await {
-        Ok(e) => Ok(Json(serde_json::to_value(e).unwrap())),
+        Ok(e) => Ok(to_json(e)),
         Err(e) => {
             error!("Failed to reverse entry: {}", e);
             Err(match e {
@@ -242,7 +243,7 @@ pub async fn write_off_entry(
     Json(payload): Json<WriteOffEntryRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.write_off_entry(id, payload.resolution_notes.as_deref()).await {
-        Ok(e) => Ok(Json(serde_json::to_value(e).unwrap())),
+        Ok(e) => Ok(to_json(e)),
         Err(e) => {
             error!("Failed to write off entry: {}", e);
             Err(match e {
@@ -275,7 +276,7 @@ pub async fn create_clearing_batch(
         org_id, &payload.batch_number, payload.description.as_deref(),
         payload.clearing_date, Some(user_id),
     ).await {
-        Ok(b) => Ok((StatusCode::CREATED, Json(serde_json::to_value(b).unwrap()))),
+        Ok(b) => Ok(created_json(b)),
         Err(e) => {
             error!("Failed to create clearing batch: {}", e);
             Err(match e {
@@ -292,7 +293,7 @@ pub async fn get_clearing_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.get_clearing_batch(id).await {
-        Ok(Some(b)) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(Some(b)) => Ok(to_json(b)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get clearing batch: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -338,7 +339,7 @@ pub async fn add_clearing_line(
         org_id, batch_id, payload.entry_id, &payload.clearing_account,
         &payload.cleared_amount, payload.resolution_notes.as_deref(),
     ).await {
-        Ok(l) => Ok((StatusCode::CREATED, Json(serde_json::to_value(l).unwrap()))),
+        Ok(l) => Ok(created_json(l)),
         Err(e) => {
             error!("Failed to add clearing line: {}", e);
             Err(match e {
@@ -366,7 +367,7 @@ pub async fn submit_clearing_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.submit_clearing_batch(id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to submit clearing batch: {}", e);
             Err(match e {
@@ -384,7 +385,7 @@ pub async fn approve_clearing_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.approve_clearing_batch(id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to approve clearing batch: {}", e);
             Err(match e {
@@ -401,7 +402,7 @@ pub async fn post_clearing_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.suspense_account_engine.post_clearing_batch(id).await {
-        Ok(b) => Ok(Json(serde_json::to_value(b).unwrap())),
+        Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to post clearing batch: {}", e);
             Err(match e {
@@ -425,7 +426,7 @@ pub async fn create_aging_snapshot(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.suspense_account_engine.create_aging_snapshot(org_id, payload.snapshot_date).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap()))),
+        Ok(s) => Ok(created_json(s)),
         Err(e) => { error!("Failed to create aging snapshot: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -436,7 +437,7 @@ pub async fn get_suspense_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.suspense_account_engine.get_dashboard(org_id).await {
-        Ok(d) => Ok(Json(serde_json::to_value(d).unwrap())),
+        Ok(d) => Ok(to_json(d)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

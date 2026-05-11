@@ -9,6 +9,7 @@
 //! - Rebate settlement approval and payment
 //! - Rebate management dashboard
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -107,7 +108,7 @@ pub async fn create_agreement(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(agreement).unwrap())))
+    Ok(created_json(agreement))
 }
 
 pub async fn get_agreement(
@@ -122,7 +123,7 @@ pub async fn get_agreement(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match agreement {
-        Some(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Some(a) => Ok(to_json(a)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -166,7 +167,7 @@ pub async fn activate_agreement(
             tracing::error!("Activate agreement error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(agreement).unwrap()))
+    Ok(to_json(agreement))
 }
 
 pub async fn hold_agreement(
@@ -182,7 +183,7 @@ pub async fn hold_agreement(
             tracing::error!("Hold agreement error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(agreement).unwrap()))
+    Ok(to_json(agreement))
 }
 
 pub async fn terminate_agreement(
@@ -198,7 +199,7 @@ pub async fn terminate_agreement(
             tracing::error!("Terminate agreement error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(agreement).unwrap()))
+    Ok(to_json(agreement))
 }
 
 pub async fn delete_agreement(
@@ -259,7 +260,7 @@ pub async fn create_tier(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(tier).unwrap())))
+    Ok(created_json(tier))
 }
 
 pub async fn list_tiers(
@@ -347,7 +348,7 @@ pub async fn create_transaction(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap())))
+    Ok(created_json(txn))
 }
 
 pub async fn get_transaction(
@@ -360,7 +361,7 @@ pub async fn get_transaction(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match txn {
-        Some(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Some(t) => Ok(to_json(t)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -406,7 +407,7 @@ pub async fn update_transaction_status(
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
         })?;
-    Ok(Json(serde_json::to_value(txn).unwrap()))
+    Ok(to_json(txn))
 }
 
 pub async fn delete_transaction(
@@ -467,7 +468,7 @@ pub async fn create_accrual(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(accrual).unwrap())))
+    Ok(created_json(accrual))
 }
 
 pub async fn get_accrual(
@@ -480,7 +481,7 @@ pub async fn get_accrual(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match accrual {
-        Some(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Some(a) => Ok(to_json(a)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -515,7 +516,7 @@ pub async fn post_accrual(
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         })?;
-    Ok(Json(serde_json::to_value(accrual).unwrap()))
+    Ok(to_json(accrual))
 }
 
 pub async fn reverse_accrual(
@@ -530,7 +531,7 @@ pub async fn reverse_accrual(
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         })?;
-    Ok(Json(serde_json::to_value(accrual).unwrap()))
+    Ok(to_json(accrual))
 }
 
 pub async fn delete_accrual(
@@ -597,7 +598,7 @@ pub async fn create_settlement(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(settlement).unwrap())))
+    Ok(created_json(settlement))
 }
 
 pub async fn get_settlement(
@@ -610,7 +611,7 @@ pub async fn get_settlement(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match settlement {
-        Some(s) => Ok(Json(serde_json::to_value(s).unwrap())),
+        Some(s) => Ok(to_json(s)),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -646,7 +647,7 @@ pub async fn approve_settlement(
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         })?;
-    Ok(Json(serde_json::to_value(settlement).unwrap()))
+    Ok(to_json(settlement))
 }
 
 pub async fn pay_settlement(
@@ -662,7 +663,7 @@ pub async fn pay_settlement(
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         })?;
-    Ok(Json(serde_json::to_value(settlement).unwrap()))
+    Ok(to_json(settlement))
 }
 
 pub async fn cancel_settlement(
@@ -677,7 +678,7 @@ pub async fn cancel_settlement(
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         })?;
-    Ok(Json(serde_json::to_value(settlement).unwrap()))
+    Ok(to_json(settlement))
 }
 
 pub async fn delete_settlement(
@@ -721,5 +722,5 @@ pub async fn get_rebate_dashboard(
         .get_dashboard(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::to_value(dashboard).unwrap()))
+    Ok(to_json(dashboard))
 }

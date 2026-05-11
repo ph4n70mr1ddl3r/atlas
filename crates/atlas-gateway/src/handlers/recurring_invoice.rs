@@ -4,6 +4,7 @@
 //! Manages recurring AP invoice templates with automatic generation:
 //! draft → active → suspended → completed → cancelled
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{Path, Query, State, Extension},
     http::StatusCode,
@@ -109,7 +110,7 @@ pub async fn create_template(
         &gl_date_basis,
         user_id,
     ).await {
-        Ok(tmpl) => (StatusCode::CREATED, Json(serde_json::to_value(tmpl).unwrap())).into_response(),
+        Ok(tmpl) => created_json(tmpl).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -142,7 +143,7 @@ pub async fn get_template(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.recurring_invoice_engine.get_template(id).await {
-        Ok(Some(tmpl)) => Json(serde_json::to_value(tmpl).unwrap()).into_response(),
+        Ok(Some(tmpl)) => to_json(tmpl).into_response(),
         Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Template not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -157,7 +158,7 @@ pub async fn transition_template(
 ) -> impl IntoResponse {
     let new_status = body["status"].as_str().unwrap_or("");
     match state.recurring_invoice_engine.transition_template(id, new_status).await {
-        Ok(tmpl) => Json(serde_json::to_value(tmpl).unwrap()).into_response(),
+        Ok(tmpl) => to_json(tmpl).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -227,7 +228,7 @@ pub async fn add_template_line(
         project_id,
         expenditure_type.as_deref(),
     ).await {
-        Ok(line) => (StatusCode::CREATED, Json(serde_json::to_value(line).unwrap())).into_response(),
+        Ok(line) => created_json(line).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -284,7 +285,7 @@ pub async fn generate_invoice(
         period_number,
         user_id,
     ).await {
-        Ok(gen) => (StatusCode::CREATED, Json(serde_json::to_value(gen).unwrap())).into_response(),
+        Ok(gen) => created_json(gen).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -330,7 +331,7 @@ pub async fn get_dashboard(
         Err(e) => return e.into_response(),
     };
     match state.recurring_invoice_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Json(serde_json::to_value(dashboard).unwrap()).into_response(),
+        Ok(dashboard) => to_json(dashboard).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
 }

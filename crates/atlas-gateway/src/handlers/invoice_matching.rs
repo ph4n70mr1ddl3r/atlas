@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Payables > Invoice Matching
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -59,7 +60,7 @@ pub async fn create_match(
         payload.inspection_id, payload.inspection_status.as_deref(),
         Some(user_id),
     ).await {
-        Ok(m) => Ok((StatusCode::CREATED, Json(serde_json::to_value(m).unwrap()))),
+        Ok(m) => Ok(created_json(m)),
         Err(e) => {
             error!("Failed to create match: {}", e);
             Err(match e {
@@ -97,7 +98,7 @@ pub async fn get_match(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.invoice_matching_engine.get_match(id).await {
-        Ok(Some(m)) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(Some(m)) => Ok(to_json(m)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get match: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -114,7 +115,7 @@ pub async fn hold_match(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.invoice_matching_engine.hold_match(id, payload.reason.as_deref(), Some(user_id)).await {
-        Ok(m) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to hold match: {}", e);
             Err(match e {
@@ -137,7 +138,7 @@ pub async fn override_match(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.invoice_matching_engine.override_match(id, &payload.reason, Some(user_id)).await {
-        Ok(m) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to override match: {}", e);
             Err(match e {
@@ -159,7 +160,7 @@ pub async fn confirm_match(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.invoice_matching_engine.confirm_match(id, Some(user_id)).await {
-        Ok(m) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to confirm match: {}", e);
             Err(match e {
@@ -180,7 +181,7 @@ pub async fn cancel_match(
     Json(payload): Json<CancelMatchRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.invoice_matching_engine.cancel_match(id, payload.reason.as_deref()).await {
-        Ok(m) => Ok(Json(serde_json::to_value(m).unwrap())),
+        Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to cancel match: {}", e);
             Err(match e {
@@ -230,7 +231,7 @@ pub async fn add_match_line(
         &payload.invoice_line_amount, &payload.po_line_amount,
         payload.notes.as_deref(),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap()))),
+        Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add match line: {}", e);
             Err(match e {
@@ -260,7 +261,7 @@ pub async fn override_match_line(
     Path(line_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.invoice_matching_engine.override_match_line(line_id).await {
-        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap())),
+        Ok(line) => Ok(to_json(line)),
         Err(e) => {
             error!("Failed to override match line: {}", e);
             Err(match e {
@@ -278,7 +279,7 @@ pub async fn get_invoice_matching_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.invoice_matching_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

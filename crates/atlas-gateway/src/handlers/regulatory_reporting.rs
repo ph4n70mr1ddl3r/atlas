@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Regulatory Reporting
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -47,7 +48,7 @@ pub async fn create_reg_template(
         payload.validation_rules.clone().unwrap_or(serde_json::json!([])),
         Some(user_id),
     ).await {
-        Ok(t) => Ok((StatusCode::CREATED, Json(serde_json::to_value(t).unwrap()))),
+        Ok(t) => Ok(created_json(t)),
         Err(e) => {
             error!("Failed to create regulatory template: {}", e);
             Err(match e {
@@ -110,7 +111,7 @@ pub async fn create_reg_report(
         org_id, &payload.template_code, &payload.report_number, &payload.name,
         payload.period_start, payload.period_end, Some(user_id),
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap()))),
+        Ok(r) => Ok(created_json(r)),
         Err(e) => {
             error!("Failed to create report: {}", e);
             Err(match e {
@@ -145,7 +146,7 @@ pub async fn submit_for_review(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.regulatory_reporting_engine.submit_for_review(id, user_id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to submit for review: {}", e);
             Err(match e {
@@ -164,7 +165,7 @@ pub async fn approve_reg_report(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.regulatory_reporting_engine.approve_report(id, user_id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to approve report: {}", e);
             Err(match e {
@@ -184,7 +185,7 @@ pub async fn reject_reg_report(
     Json(payload): Json<RejectRegReportRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.regulatory_reporting_engine.reject_report(id, &payload.reason).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap())),
+        Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to reject report: {}", e);
             Err(match e {
@@ -220,7 +221,7 @@ pub async fn create_filing(
         &payload.report_name, &payload.filing_frequency,
         payload.period_start, payload.period_end, payload.due_date, Some(user_id),
     ).await {
-        Ok(f) => Ok((StatusCode::CREATED, Json(serde_json::to_value(f).unwrap()))),
+        Ok(f) => Ok(created_json(f)),
         Err(e) => {
             error!("Failed to create filing: {}", e);
             Err(match e {
@@ -252,7 +253,7 @@ pub async fn get_regulatory_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.regulatory_reporting_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

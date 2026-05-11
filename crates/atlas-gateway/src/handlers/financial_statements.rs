@@ -7,6 +7,7 @@
 //! - Income Statement
 //! - Cash Flow Statement
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -59,7 +60,7 @@ pub async fn generate_financial_statement(
         request,
         Some(user_id),
     ).await {
-        Ok(statement) => Ok((StatusCode::CREATED, Json(serde_json::to_value(statement).unwrap()))),
+        Ok(statement) => Ok(created_json(statement)),
         Err(e) => {
             error!("Failed to generate financial statement: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -98,7 +99,7 @@ pub async fn get_financial_statement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.financial_statements_engine.get_statement(id).await {
-        Ok(Some(statement)) => Ok(Json(serde_json::to_value(statement).unwrap())),
+        Ok(Some(statement)) => Ok(to_json(statement)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get financial statement: {}", e);

@@ -2,6 +2,7 @@
 //!
 //! Oracle Fusion: Financials > Payment Terms Management
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -38,7 +39,7 @@ pub async fn create_term(
         payload.base_due_days, payload.due_date_cutoff_day, &payload.term_type,
         &payload.default_discount_percent, Some(user_id),
     ).await {
-        Ok(t) => Ok((StatusCode::CREATED, Json(serde_json::to_value(t).unwrap()))),
+        Ok(t) => Ok(created_json(t)),
         Err(e) => {
             error!("Failed to create payment term: {}", e);
             Err(match e {
@@ -70,7 +71,7 @@ pub async fn get_term(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.payment_terms_engine.get_term_by_id(id).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(Some(t)) => Ok(to_json(t)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get payment term: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -81,7 +82,7 @@ pub async fn activate_term(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.payment_terms_engine.activate_term(id).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => {
             error!("Failed to activate payment term: {}", e);
             Err(match e {
@@ -98,7 +99,7 @@ pub async fn deactivate_term(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.payment_terms_engine.deactivate_term(id).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap())),
+        Ok(t) => Ok(to_json(t)),
         Err(e) => {
             error!("Failed to deactivate payment term: {}", e);
             Err(match e {
@@ -148,7 +149,7 @@ pub async fn create_discount_schedule(
         payload.discount_day_of_month, &payload.discount_basis,
         payload.display_order.unwrap_or(0),
     ).await {
-        Ok(ds) => Ok((StatusCode::CREATED, Json(serde_json::to_value(ds).unwrap()))),
+        Ok(ds) => Ok(created_json(ds)),
         Err(e) => {
             error!("Failed to create discount schedule: {}", e);
             Err(match e {
@@ -201,7 +202,7 @@ pub async fn create_installment(
         org_id, term_id, payload.installment_number, payload.due_days_offset,
         &payload.percentage, &payload.discount_percent, payload.discount_days,
     ).await {
-        Ok(inst) => Ok((StatusCode::CREATED, Json(serde_json::to_value(inst).unwrap()))),
+        Ok(inst) => Ok(created_json(inst)),
         Err(e) => {
             error!("Failed to create installment: {}", e);
             Err(match e {
@@ -240,7 +241,7 @@ pub async fn get_payment_terms_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.payment_terms_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

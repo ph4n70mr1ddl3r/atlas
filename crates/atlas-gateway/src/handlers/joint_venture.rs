@@ -6,6 +6,7 @@
 //! AFEs (Authorizations for Expenditure), cost/revenue distributions,
 //! and Joint Interest Billing (JIB).
 
+use crate::handlers::{to_json, created_json};
 use axum::{
     extract::{State, Path, Query},
     Json,
@@ -52,7 +53,7 @@ pub async fn create_venture(
         &payload.accounting_method, &payload.billing_cycle,
         None, None, None, None, None, Some(user_id),
     ).await {
-        Ok(venture) => Ok((StatusCode::CREATED, Json(serde_json::to_value(venture).unwrap()))),
+        Ok(venture) => Ok(created_json(venture)),
         Err(e) => {
             error!("Failed to create joint venture: {}", e);
             Err(match e {
@@ -86,7 +87,7 @@ pub async fn get_venture(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.joint_venture_engine.get_venture(id).await {
-        Ok(Some(v)) => Ok(Json(serde_json::to_value(v).unwrap())),
+        Ok(Some(v)) => Ok(to_json(v)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get venture: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -97,7 +98,7 @@ pub async fn activate_venture(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.joint_venture_engine.activate_venture(id).await {
-        Ok(v) => Ok(Json(serde_json::to_value(v).unwrap())),
+        Ok(v) => Ok(to_json(v)),
         Err(e) => {
             error!("Failed to activate venture: {}", e);
             Err(match e {
@@ -114,7 +115,7 @@ pub async fn close_venture(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.joint_venture_engine.close_venture(id).await {
-        Ok(v) => Ok(Json(serde_json::to_value(v).unwrap())),
+        Ok(v) => Ok(to_json(v)),
         Err(e) => {
             error!("Failed to close venture: {}", e);
             Err(match e {
@@ -162,7 +163,7 @@ pub async fn add_partner(
         payload.billing_email.as_deref(), payload.billing_address.as_deref(),
         payload.effective_from, payload.effective_to, Some(user_id),
     ).await {
-        Ok(partner) => Ok((StatusCode::CREATED, Json(serde_json::to_value(partner).unwrap()))),
+        Ok(partner) => Ok(created_json(partner)),
         Err(e) => {
             error!("Failed to add partner: {}", e);
             Err(match e {
@@ -217,7 +218,7 @@ pub async fn create_afe(
         payload.work_area.as_deref(), payload.well_name.as_deref(),
         payload.effective_from, payload.effective_to, Some(user_id),
     ).await {
-        Ok(afe) => Ok((StatusCode::CREATED, Json(serde_json::to_value(afe).unwrap()))),
+        Ok(afe) => Ok(created_json(afe)),
         Err(e) => {
             error!("Failed to create AFE: {}", e);
             Err(match e {
@@ -234,7 +235,7 @@ pub async fn submit_afe(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.joint_venture_engine.submit_afe(id).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(a) => Ok(to_json(a)),
         Err(e) => {
             error!("Failed to submit AFE: {}", e);
             Err(match e {
@@ -252,7 +253,7 @@ pub async fn approve_afe(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.joint_venture_engine.approve_afe(id, user_id).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap())),
+        Ok(a) => Ok(to_json(a)),
         Err(e) => {
             error!("Failed to approve AFE: {}", e);
             Err(match e {
@@ -308,7 +309,7 @@ pub async fn create_cost_distribution(
         payload.source_type.as_deref(), payload.source_id,
         payload.source_number.as_deref(), Some(user_id),
     ).await {
-        Ok((dist, _lines)) => Ok((StatusCode::CREATED, Json(serde_json::to_value(dist).unwrap()))),
+        Ok((dist, _lines)) => Ok(created_json(dist)),
         Err(e) => {
             let msg = e.to_string();
             error!("Failed to create cost distribution: {}", msg);
@@ -337,7 +338,7 @@ pub async fn post_cost_distribution(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.joint_venture_engine.post_cost_distribution(id).await {
-        Ok(d) => Ok(Json(serde_json::to_value(d).unwrap())),
+        Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to post cost distribution: {}", e);
             Err(match e {
@@ -358,7 +359,7 @@ pub async fn get_joint_venture_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.joint_venture_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap())),
+        Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get JV dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

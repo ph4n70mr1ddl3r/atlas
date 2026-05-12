@@ -39,7 +39,7 @@ pub async fn create_lead_source(
     match state.lead_opportunity_engine.create_lead_source(
         org_id, &payload.code, &payload.name, payload.description.as_deref(), user_id,
     ).await {
-        Ok(src) => Ok((StatusCode::CREATED, Json(serde_json::to_value(src).unwrap_or_default()))),
+        Ok(src) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(src)))),
         Err(e) => {
             error!("Failed to create lead source: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -118,7 +118,7 @@ pub async fn create_lead(
         &payload.currency_code, payload.owner_id, payload.owner_name.as_deref(),
         payload.notes.as_deref(), user_id,
     ).await {
-        Ok(lead) => Ok((StatusCode::CREATED, Json(serde_json::to_value(lead).unwrap_or_default()))),
+        Ok(lead) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(lead)))),
         Err(e) => {
             error!("Failed to create lead: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -132,7 +132,7 @@ pub async fn get_lead(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lead_opportunity_engine.get_lead(id).await {
-        Ok(Some(l)) => Ok(Json(serde_json::to_value(l).unwrap_or_default())),
+        Ok(Some(l)) => Ok(Json(crate::handlers::records::to_json_or_null(l))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -171,7 +171,7 @@ pub async fn update_lead_status(
     Json(payload): Json<UpdateLeadStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lead_opportunity_engine.update_lead_status(id, &payload.status).await {
-        Ok(l) => Ok(Json(serde_json::to_value(l).unwrap_or_default())),
+        Ok(l) => Ok(Json(crate::handlers::records::to_json_or_null(l))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -192,7 +192,7 @@ pub async fn update_lead_score(
     Json(payload): Json<UpdateLeadScoreRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lead_opportunity_engine.update_lead_score(id, &payload.score, &payload.rating).await {
-        Ok(l) => Ok(Json(serde_json::to_value(l).unwrap_or_default())),
+        Ok(l) => Ok(Json(crate::handlers::records::to_json_or_null(l))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -263,7 +263,7 @@ pub async fn create_opportunity_stage(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.probability, payload.display_order, payload.is_won, payload.is_lost, user_id,
     ).await {
-        Ok(stage) => Ok((StatusCode::CREATED, Json(serde_json::to_value(stage).unwrap_or_default()))),
+        Ok(stage) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(stage)))),
         Err(e) => {
             error!("Failed to create stage: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -337,7 +337,7 @@ pub async fn create_opportunity(
         payload.expected_close_date, payload.owner_id, payload.owner_name.as_deref(),
         payload.contact_id, payload.contact_name.as_deref(), user_id,
     ).await {
-        Ok(opp) => Ok((StatusCode::CREATED, Json(serde_json::to_value(opp).unwrap_or_default()))),
+        Ok(opp) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(opp)))),
         Err(e) => {
             error!("Failed to create opportunity: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -351,7 +351,7 @@ pub async fn get_opportunity(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lead_opportunity_engine.get_opportunity(id).await {
-        Ok(Some(o)) => Ok(Json(serde_json::to_value(o).unwrap_or_default())),
+        Ok(Some(o)) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -397,7 +397,7 @@ pub async fn update_opportunity_stage(
     match state.lead_opportunity_engine.update_opportunity_stage(
         id, payload.stage_id, user_id, user_name.as_deref(), None,
     ).await {
-        Ok(o) => Ok(Json(serde_json::to_value(o).unwrap_or_default())),
+        Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -411,7 +411,7 @@ pub async fn close_opportunity_won(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lead_opportunity_engine.close_opportunity_won(id).await {
-        Ok(o) => Ok(Json(serde_json::to_value(o).unwrap_or_default())),
+        Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -431,7 +431,7 @@ pub async fn close_opportunity_lost(
     Json(payload): Json<CloseOpportunityLostRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lead_opportunity_engine.close_opportunity_lost(id, payload.lost_reason.as_deref()).await {
-        Ok(o) => Ok(Json(serde_json::to_value(o).unwrap_or_default())),
+        Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -498,7 +498,7 @@ pub async fn add_opportunity_line(
         org_id, opportunity_id, &payload.product_name, payload.product_code.as_deref(),
         payload.description.as_deref(), &payload.quantity, &payload.unit_price, &payload.discount_percent,
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_default()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line)))),
         Err(e) => {
             error!("Failed to add opportunity line: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -566,7 +566,7 @@ pub async fn create_activity(
         payload.owner_id, payload.owner_name.as_deref(),
         payload.start_at, payload.end_at, user_id,
     ).await {
-        Ok(act) => Ok((StatusCode::CREATED, Json(serde_json::to_value(act).unwrap_or_default()))),
+        Ok(act) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(act)))),
         Err(e) => {
             error!("Failed to create activity: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -604,7 +604,7 @@ pub async fn complete_activity(
     Json(payload): Json<CompleteActivityRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lead_opportunity_engine.complete_activity(id, payload.outcome.as_deref()).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -618,7 +618,7 @@ pub async fn cancel_activity(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.lead_opportunity_engine.cancel_activity(id).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -647,7 +647,7 @@ pub async fn get_sales_pipeline_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.lead_opportunity_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),
+        Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

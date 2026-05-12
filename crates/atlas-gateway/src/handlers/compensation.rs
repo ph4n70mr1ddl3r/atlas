@@ -48,7 +48,7 @@ pub async fn create_plan(
         payload.eligibility_criteria.unwrap_or(serde_json::json!({})),
         Some(user_id),
     ).await {
-        Ok(plan) => Ok((StatusCode::CREATED, Json(serde_json::to_value(plan).unwrap_or_default()))),
+        Ok(plan) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(plan)))),
         Err(e) => {
             error!("Failed to create compensation plan: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -63,7 +63,7 @@ pub async fn get_plan(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.compensation_engine.get_plan_by_code(org_id, &code).await {
-        Ok(Some(p)) => Ok(Json(serde_json::to_value(p).unwrap_or_default())),
+        Ok(Some(p)) => Ok(Json(crate::handlers::records::to_json_or_null(p))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -123,7 +123,7 @@ pub async fn create_component(
         payload.is_recurring.unwrap_or(true),
         payload.frequency.as_deref(),
     ).await {
-        Ok(comp) => Ok((StatusCode::CREATED, Json(serde_json::to_value(comp).unwrap_or_default()))),
+        Ok(comp) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(comp)))),
         Err(e) => {
             error!("Failed to create component: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -175,7 +175,7 @@ pub async fn create_cycle(
         &payload.total_budget, payload.currency_code.as_deref().unwrap_or("USD"),
         Some(user_id),
     ).await {
-        Ok(cycle) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cycle).unwrap_or_default()))),
+        Ok(cycle) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(cycle)))),
         Err(e) => {
             error!("Failed to create cycle: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -189,7 +189,7 @@ pub async fn get_cycle(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.compensation_engine.get_cycle(id).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -227,7 +227,7 @@ pub async fn transition_cycle(
     Json(payload): Json<TransitionCycleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.compensation_engine.transition_cycle(id, &payload.status).await {
-        Ok(cycle) => Ok(Json(serde_json::to_value(cycle).unwrap_or_default())),
+        Ok(cycle) => Ok(Json(crate::handlers::records::to_json_or_null(cycle))),
         Err(e) => {
             error!("Failed to transition cycle: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -278,7 +278,7 @@ pub async fn create_budget_pool(
         &payload.total_budget, payload.currency_code.as_deref().unwrap_or("USD"),
         Some(user_id),
     ).await {
-        Ok(pool) => Ok((StatusCode::CREATED, Json(serde_json::to_value(pool).unwrap_or_default()))),
+        Ok(pool) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(pool)))),
         Err(e) => {
             error!("Failed to create budget pool: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -324,7 +324,7 @@ pub async fn create_worksheet(
         org_id, cycle_id, payload.pool_id, payload.manager_id,
         payload.manager_name.as_deref(), Some(user_id),
     ).await {
-        Ok(ws) => Ok((StatusCode::CREATED, Json(serde_json::to_value(ws).unwrap_or_default()))),
+        Ok(ws) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ws)))),
         Err(e) => {
             error!("Failed to create worksheet: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -338,7 +338,7 @@ pub async fn get_worksheet(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.compensation_engine.get_worksheet(id).await {
-        Ok(Some(ws)) => Ok(Json(serde_json::to_value(ws).unwrap_or_default())),
+        Ok(Some(ws)) => Ok(Json(crate::handlers::records::to_json_or_null(ws))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -367,7 +367,7 @@ pub async fn submit_worksheet(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.compensation_engine.submit_worksheet(id).await {
-        Ok(ws) => Ok(Json(serde_json::to_value(ws).unwrap_or_default())),
+        Ok(ws) => Ok(Json(crate::handlers::records::to_json_or_null(ws))),
         Err(e) => {
             error!("Failed to submit worksheet: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -381,7 +381,7 @@ pub async fn approve_worksheet(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.compensation_engine.approve_worksheet(id).await {
-        Ok(ws) => Ok(Json(serde_json::to_value(ws).unwrap_or_default())),
+        Ok(ws) => Ok(Json(crate::handlers::records::to_json_or_null(ws))),
         Err(e) => {
             error!("Failed to approve worksheet: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -395,7 +395,7 @@ pub async fn reject_worksheet(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.compensation_engine.reject_worksheet(id).await {
-        Ok(ws) => Ok(Json(serde_json::to_value(ws).unwrap_or_default())),
+        Ok(ws) => Ok(Json(crate::handlers::records::to_json_or_null(ws))),
         Err(e) => {
             error!("Failed to reject worksheet: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -443,7 +443,7 @@ pub async fn add_worksheet_line(
         payload.manager_comments.as_deref(),
         Some(user_id),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_default()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line)))),
         Err(e) => {
             error!("Failed to add worksheet line: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -474,7 +474,7 @@ pub async fn update_worksheet_line(
         payload.equity_amount.as_deref().unwrap_or("0"),
         payload.manager_comments.as_deref(),
     ).await {
-        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_default())),
+        Ok(line) => Ok(Json(crate::handlers::records::to_json_or_null(line))),
         Err(e) => {
             error!("Failed to update worksheet line: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -543,7 +543,7 @@ pub async fn generate_statement(
         payload.currency_code.as_deref().unwrap_or("USD"),
         payload.components.unwrap_or(serde_json::json!([])),
     ).await {
-        Ok(stmt) => Ok((StatusCode::CREATED, Json(serde_json::to_value(stmt).unwrap_or_default()))),
+        Ok(stmt) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(stmt)))),
         Err(e) => {
             error!("Failed to generate statement: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -557,7 +557,7 @@ pub async fn get_statement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.compensation_engine.get_statement(id).await {
-        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(Some(s)) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -580,7 +580,7 @@ pub async fn publish_statement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.compensation_engine.publish_statement(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => {
             error!("Failed to publish statement: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -598,7 +598,7 @@ pub async fn get_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.compensation_engine.get_dashboard(org_id).await {
-        Ok(d) => Ok(Json(serde_json::to_value(d).unwrap_or_default())),
+        Ok(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

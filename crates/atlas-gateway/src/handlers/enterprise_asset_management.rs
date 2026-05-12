@@ -153,7 +153,7 @@ pub async fn create_asset(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(asset).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(asset))))
 }
 
 pub async fn list_assets(
@@ -175,7 +175,7 @@ pub async fn get_asset(
     let asset = state.eam_engine.get_asset(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match asset {
-        Some(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Some(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -193,7 +193,7 @@ pub async fn update_asset_status(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(asset).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(asset)))
 }
 
 pub async fn update_asset_meter(
@@ -208,7 +208,7 @@ pub async fn update_asset_meter(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(asset).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(asset)))
 }
 
 pub async fn delete_asset(
@@ -273,7 +273,7 @@ pub async fn create_work_order(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(wo).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(wo))))
 }
 
 pub async fn list_work_orders(
@@ -296,7 +296,7 @@ pub async fn get_work_order(
     let wo = state.eam_engine.get_work_order(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match wo {
-        Some(w) => Ok(Json(serde_json::to_value(w).unwrap_or_default())),
+        Some(w) => Ok(Json(crate::handlers::records::to_json_or_null(w))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -314,7 +314,7 @@ pub async fn update_work_order_status(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(wo).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(wo)))
 }
 
 pub async fn complete_work_order(
@@ -340,7 +340,7 @@ pub async fn complete_work_order(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(wo).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(wo)))
 }
 
 pub async fn delete_work_order(
@@ -408,7 +408,7 @@ pub async fn create_pm_schedule(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(sched).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(sched))))
 }
 
 pub async fn list_pm_schedules(
@@ -430,7 +430,7 @@ pub async fn get_pm_schedule(
     let sched = state.eam_engine.get_pm_schedule(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match sched {
-        Some(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Some(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -448,7 +448,7 @@ pub async fn update_pm_schedule_status(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(sched).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(sched)))
 }
 
 pub async fn delete_pm_schedule(
@@ -477,5 +477,5 @@ pub async fn get_maintenance_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let dashboard = state.eam_engine.get_dashboard(org_id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::to_value(dashboard).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(dashboard)))
 }

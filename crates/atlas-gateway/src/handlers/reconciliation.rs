@@ -74,7 +74,7 @@ pub async fn create_bank_account(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(account).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(account))))
 }
 
 /// List bank accounts
@@ -108,7 +108,7 @@ pub async fn get_bank_account(
         .map_err(|e| { error!("Get bank account error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    Ok(Json(serde_json::to_value(account).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(account)))
 }
 
 /// Delete a bank account
@@ -227,7 +227,7 @@ pub async fn create_bank_statement(
         }
     }
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(statement).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(statement))))
 }
 
 /// List bank statements for an account
@@ -262,7 +262,7 @@ pub async fn get_bank_statement(
         .map_err(|e| { error!("Get bank statement error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    Ok(Json(serde_json::to_value(statement).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(statement)))
 }
 
 /// List statement lines
@@ -340,7 +340,7 @@ pub async fn create_system_transaction(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(txn))))
 }
 
 /// List unreconciled system transactions for a bank account
@@ -387,7 +387,7 @@ pub async fn auto_match_statement(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }
 
 // ============================================================================
@@ -430,7 +430,7 @@ pub async fn manual_match(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(match_record).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(match_record)))
 }
 
 /// Unmatch a previously matched pair
@@ -454,7 +454,7 @@ pub async fn unmatch(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(match_record).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(match_record)))
 }
 
 /// List matches for a statement
@@ -507,7 +507,7 @@ pub async fn get_reconciliation_summary(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(serde_json::to_value(summary).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(summary)))
 }
 
 /// List reconciliation summaries
@@ -576,7 +576,7 @@ pub async fn create_matching_rule(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rule))))
 }
 
 /// List matching rules

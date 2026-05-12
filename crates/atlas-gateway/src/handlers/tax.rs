@@ -82,7 +82,7 @@ pub async fn create_tax_regime(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(regime).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(regime))))
 }
 
 /// List all tax regimes for the organization
@@ -116,7 +116,7 @@ pub async fn get_tax_regime(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match regime {
-        Some(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Some(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -198,7 +198,7 @@ pub async fn create_tax_jurisdiction(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(jurisdiction).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(jurisdiction))))
 }
 
 /// List tax jurisdictions
@@ -311,7 +311,7 @@ pub async fn create_tax_rate(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(rate).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rate))))
 }
 
 /// List tax rates for a regime
@@ -413,7 +413,7 @@ pub async fn create_determination_rule(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rule))))
 }
 
 /// List determination rules for a regime
@@ -466,7 +466,7 @@ pub async fn calculate_tax(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }
 
 // ============================================================================
@@ -535,7 +535,7 @@ pub async fn generate_tax_report(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(report).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(report)))
 }
 
 /// List tax reports

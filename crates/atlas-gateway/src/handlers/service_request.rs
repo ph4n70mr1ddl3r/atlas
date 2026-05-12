@@ -56,7 +56,7 @@ pub async fn create_category(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(category).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(category))))
 }
 
 /// Get a service category by code
@@ -73,7 +73,7 @@ pub async fn get_category(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match category {
-        Some(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Some(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -171,7 +171,7 @@ pub async fn create_request(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(request).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(request))))
 }
 
 /// Get a service request by ID
@@ -185,7 +185,7 @@ pub async fn get_request(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match request {
-        Some(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Some(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -204,7 +204,7 @@ pub async fn get_request_by_number(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match request {
-        Some(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Some(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -268,7 +268,7 @@ pub async fn update_request_status(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(request).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(request)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -296,7 +296,7 @@ pub async fn resolve_request(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(request).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(request)))
 }
 
 // ============================================================================
@@ -340,7 +340,7 @@ pub async fn assign_request(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(assignment).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(assignment)))
 }
 
 /// List assignments for a request
@@ -396,7 +396,7 @@ pub async fn add_update(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(update).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(update))))
 }
 
 #[derive(Debug, Deserialize)]
@@ -437,5 +437,5 @@ pub async fn get_service_request_dashboard(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(serde_json::to_value(dashboard).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(dashboard)))
 }

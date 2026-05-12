@@ -65,7 +65,7 @@ pub async fn create_account_group(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(group).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(group))))
 }
 
 /// Get an account group by ID
@@ -76,7 +76,7 @@ pub async fn get_account_group(
     let group = state.account_monitor_engine.get_account_group(id).await
         .map_err(|e| { error!("Get account group error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
     match group {
-        Some(g) => Ok(Json(serde_json::to_value(g).unwrap_or_default())),
+        Some(g) => Ok(Json(crate::handlers::records::to_json_or_null(g))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -150,7 +150,7 @@ pub async fn add_group_member(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(member).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(member))))
 }
 
 /// Remove a member from an account group
@@ -341,7 +341,7 @@ pub async fn create_saved_inquiry(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(inquiry).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(inquiry))))
 }
 
 /// Get a saved balance inquiry
@@ -352,7 +352,7 @@ pub async fn get_saved_inquiry(
     let inquiry = state.account_monitor_engine.get_saved_inquiry(id).await
         .map_err(|e| { error!("Get saved inquiry error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
     match inquiry {
-        Some(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Some(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -402,5 +402,5 @@ pub async fn get_account_monitor_summary(
     let summary = state.account_monitor_engine.get_monitor_summary(org_id).await
         .map_err(|e| { error!("Account monitor summary error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
-    Ok(Json(serde_json::to_value(summary).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(summary)))
 }

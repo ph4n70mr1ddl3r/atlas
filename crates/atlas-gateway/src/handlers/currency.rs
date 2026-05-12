@@ -66,7 +66,7 @@ pub async fn create_currency(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(currency).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(currency))))
 }
 
 /// List all currencies for the organization
@@ -94,7 +94,7 @@ pub async fn get_base_currency(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.currency_engine.get_base_currency(org_id).await {
-        Ok(currency) => Ok(Json(serde_json::to_value(currency).unwrap_or_default())),
+        Ok(currency) => Ok(Json(crate::handlers::records::to_json_or_null(currency))),
         Err(atlas_shared::AtlasError::ConfigError(_)) => Err(StatusCode::NOT_FOUND),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
@@ -171,7 +171,7 @@ pub async fn set_exchange_rate(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(rate).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rate))))
 }
 
 #[derive(Debug, Deserialize)]
@@ -235,7 +235,7 @@ pub async fn get_exchange_rate(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match rate {
-        Some(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Some(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -315,7 +315,7 @@ pub async fn convert_currency(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }
 
 // ============================================================================
@@ -359,7 +359,7 @@ pub async fn calculate_gain_loss(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }
 
 // ============================================================================
@@ -388,5 +388,5 @@ pub async fn import_rates(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let _status = if result.failed > 0 { StatusCode::PARTIAL_CONTENT } else { StatusCode::OK };
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }

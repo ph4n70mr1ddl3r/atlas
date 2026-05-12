@@ -177,7 +177,7 @@ pub async fn create_schedule(
         req.effective_start, req.effective_end,
         req.default_markup_pct.unwrap_or(0.0), created_by,
     ).await {
-        Ok(schedule) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(schedule).unwrap_or_default()))),
+        Ok(schedule) => Ok((axum::http::StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(schedule)))),
         Err(e) => {
             error!("Failed to create bill rate schedule: {}", e);
             Err(error_response(e))
@@ -190,7 +190,7 @@ pub async fn get_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.get_schedule(id).await {
-        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(Some(s)) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Schedule not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -215,7 +215,7 @@ pub async fn activate_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.activate_schedule(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -225,7 +225,7 @@ pub async fn deactivate_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.deactivate_schedule(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -260,7 +260,7 @@ pub async fn add_rate_line(
         req.bill_rate, &req.unit_of_measure,
         req.effective_start, req.effective_end, req.markup_pct,
     ).await {
-        Ok(line) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_default()))),
+        Ok(line) => Ok((axum::http::StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line)))),
         Err(e) => {
             error!("Failed to add rate line: {}", e);
             Err(error_response(e))
@@ -291,7 +291,7 @@ pub async fn find_rate_for_role(
     })?;
 
     match state.project_billing_engine.find_rate_for_role(schedule_id, &role_name, date).await {
-        Ok(Some(line)) => Ok(Json(serde_json::to_value(line).unwrap_or_default())),
+        Ok(Some(line)) => Ok(Json(crate::handlers::records::to_json_or_null(line))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "No rate found for role on given date"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -328,7 +328,7 @@ pub async fn create_billing_config(
         req.customer_po_number.as_deref(), req.contract_number.as_deref(),
         created_by,
     ).await {
-        Ok(config) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(config).unwrap_or_default()))),
+        Ok(config) => Ok((axum::http::StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(config)))),
         Err(e) => {
             error!("Failed to create billing config: {}", e);
             Err(error_response(e))
@@ -341,7 +341,7 @@ pub async fn get_billing_config(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.get_billing_config(id).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Billing config not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -355,7 +355,7 @@ pub async fn get_billing_config_by_project(
     let org_id = parse_uuid(&claims.org_id)?;
 
     match state.project_billing_engine.get_billing_config_by_project(org_id, project_id).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "No billing config for this project"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -380,7 +380,7 @@ pub async fn activate_billing_config(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.activate_billing_config(id).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -390,7 +390,7 @@ pub async fn cancel_billing_config(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.cancel_billing_config(id).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -413,7 +413,7 @@ pub async fn create_billing_event(
         &req.currency_code, req.completion_pct, req.planned_date,
         req.task_id, req.task_name.as_deref(), created_by,
     ).await {
-        Ok(event) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(event).unwrap_or_default()))),
+        Ok(event) => Ok((axum::http::StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(event)))),
         Err(e) => {
             error!("Failed to create billing event: {}", e);
             Err(error_response(e))
@@ -426,7 +426,7 @@ pub async fn get_billing_event(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.get_billing_event(id).await {
-        Ok(Some(e)) => Ok(Json(serde_json::to_value(e).unwrap_or_default())),
+        Ok(Some(e)) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Billing event not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -455,7 +455,7 @@ pub async fn complete_billing_event(
     match state.project_billing_engine.complete_billing_event(
         id, req.actual_date, req.completion_pct,
     ).await {
-        Ok(e) => Ok(Json(serde_json::to_value(e).unwrap_or_default())),
+        Ok(e) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
         Err(e) => {
             error!("Failed to complete billing event: {}", e);
             Err(error_response(e))
@@ -468,7 +468,7 @@ pub async fn cancel_billing_event(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.cancel_billing_event(id).await {
-        Ok(e) => Ok(Json(serde_json::to_value(e).unwrap_or_default())),
+        Ok(e) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
         Err(e) => Err(error_response(e)),
     }
 }
@@ -530,7 +530,7 @@ pub async fn create_invoice(
         req.customer_po_number.as_deref(), req.contract_number.as_deref(),
         req.notes.as_deref(), created_by,
     ).await {
-        Ok(invoice) => Ok((axum::http::StatusCode::CREATED, Json(serde_json::to_value(invoice).unwrap_or_default()))),
+        Ok(invoice) => Ok((axum::http::StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(invoice)))),
         Err(e) => {
             error!("Failed to create invoice: {}", e);
             Err(error_response(e))
@@ -543,7 +543,7 @@ pub async fn get_invoice(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.get_invoice(id).await {
-        Ok(Some(i)) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Ok(Some(i)) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Invoice not found"})))),
         Err(e) => Err(error_response(e)),
     }
@@ -579,7 +579,7 @@ pub async fn submit_invoice(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.submit_invoice(id).await {
-        Ok(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to submit invoice: {}", e);
             Err(error_response(e))
@@ -592,7 +592,7 @@ pub async fn approve_invoice(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.approve_invoice(id).await {
-        Ok(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to approve invoice: {}", e);
             Err(error_response(e))
@@ -606,7 +606,7 @@ pub async fn reject_invoice(
     Json(req): Json<RejectInvoiceRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.reject_invoice(id, &req.reason).await {
-        Ok(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to reject invoice: {}", e);
             Err(error_response(e))
@@ -619,7 +619,7 @@ pub async fn post_invoice(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.post_invoice(id).await {
-        Ok(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to post invoice: {}", e);
             Err(error_response(e))
@@ -632,7 +632,7 @@ pub async fn cancel_invoice(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state.project_billing_engine.cancel_invoice(id).await {
-        Ok(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to cancel invoice: {}", e);
             Err(error_response(e))
@@ -651,7 +651,7 @@ pub async fn get_project_billing_dashboard(
     let org_id = parse_uuid(&claims.org_id)?;
 
     match state.project_billing_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),
+        Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => Err(error_response(e)),
     }
 }

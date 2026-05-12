@@ -65,7 +65,7 @@ pub async fn create_policy(
         payload.contra_revenue_account_code.as_deref(),
         user_id,
     ).await {
-        Ok(p) => Ok((StatusCode::CREATED, Json(serde_json::to_value(p).unwrap_or_default()))),
+        Ok(p) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(p)))),
         Err(e) => { error!("Failed to create revenue policy: {}", e); Err(rev_map_err(e)) }
     }
 }
@@ -91,7 +91,7 @@ pub async fn get_policy(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.revenue_engine.get_policy(org_id, &code).await {
-        Ok(Some(p)) => Ok(Json(serde_json::to_value(p).unwrap_or_default())),
+        Ok(Some(p)) => Ok(Json(crate::handlers::records::to_json_or_null(p))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get revenue policy: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -152,7 +152,7 @@ pub async fn create_contract(
         payload.notes.as_deref(),
         user_id,
     ).await {
-        Ok(c) => Ok((StatusCode::CREATED, Json(serde_json::to_value(c).unwrap_or_default()))),
+        Ok(c) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(c)))),
         Err(e) => { error!("Failed to create revenue contract: {}", e); Err(rev_map_err(e)) }
     }
 }
@@ -180,7 +180,7 @@ pub async fn get_contract(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.revenue_engine.get_contract(id).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get revenue contract: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -191,7 +191,7 @@ pub async fn activate_contract(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.revenue_engine.activate_contract(id).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => { error!("Failed to activate revenue contract: {}", e); Err(rev_map_err(e)) }
     }
 }
@@ -207,7 +207,7 @@ pub async fn cancel_contract(
     Json(payload): Json<CancelContractRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.revenue_engine.cancel_contract(id, payload.reason.as_deref()).await {
-        Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => { error!("Failed to cancel revenue contract: {}", e); Err(rev_map_err(e)) }
     }
 }
@@ -259,7 +259,7 @@ pub async fn create_obligation(
         payload.deferred_revenue_account_code.as_deref(),
         user_id,
     ).await {
-        Ok(o) => Ok((StatusCode::CREATED, Json(serde_json::to_value(o).unwrap_or_default()))),
+        Ok(o) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(o)))),
         Err(e) => { error!("Failed to create obligation: {}", e); Err(rev_map_err(e)) }
     }
 }
@@ -279,7 +279,7 @@ pub async fn get_obligation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.revenue_engine.get_obligation(id).await {
-        Ok(Some(o)) => Ok(Json(serde_json::to_value(o).unwrap_or_default())),
+        Ok(Some(o)) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get obligation: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -335,7 +335,7 @@ pub async fn schedule_point_in_time(
     match state.revenue_engine.schedule_point_in_time(
         obligation_id, payload.recognition_date,
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_default()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line)))),
         Err(e) => { error!("Failed to schedule point-in-time: {}", e); Err(rev_map_err(e)) }
     }
 }
@@ -349,7 +349,7 @@ pub async fn recognize_revenue(
     Path(line_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.revenue_engine.recognize_revenue(line_id).await {
-        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_default())),
+        Ok(line) => Ok(Json(crate::handlers::records::to_json_or_null(line))),
         Err(e) => { error!("Failed to recognize revenue: {}", e); Err(rev_map_err(e)) }
     }
 }
@@ -365,7 +365,7 @@ pub async fn reverse_recognition(
     Json(payload): Json<ReverseRecognitionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.revenue_engine.reverse_recognition(line_id, &payload.reason).await {
-        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_default())),
+        Ok(line) => Ok(Json(crate::handlers::records::to_json_or_null(line))),
         Err(e) => { error!("Failed to reverse recognition: {}", e); Err(rev_map_err(e)) }
     }
 }
@@ -425,7 +425,7 @@ pub async fn create_modification(
         payload.effective_date,
         user_id,
     ).await {
-        Ok(m) => Ok((StatusCode::CREATED, Json(serde_json::to_value(m).unwrap_or_default()))),
+        Ok(m) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(m)))),
         Err(e) => { error!("Failed to create modification: {}", e); Err(rev_map_err(e)) }
     }
 }

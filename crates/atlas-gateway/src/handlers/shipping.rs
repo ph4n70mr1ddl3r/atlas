@@ -37,7 +37,7 @@ pub async fn create_carrier(
         payload.tracking_url_template.as_deref(), payload.contact_name.as_deref(),
         payload.contact_phone.as_deref(), payload.contact_email.as_deref(), user_id,
     ).await {
-        Ok(c) => Ok((StatusCode::CREATED, Json(serde_json::to_value(c).unwrap_or_default()))),
+        Ok(c) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(c)))),
         Err(e) => { error!("Failed to create carrier: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 409=>StatusCode::CONFLICT, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
 }
@@ -53,7 +53,7 @@ pub async fn list_carriers(State(state): State<Arc<AppState>>, claims: Extension
 pub async fn get_carrier(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.shipping_engine.get_carrier(id).await {
-        Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -82,7 +82,7 @@ pub async fn create_shipping_method(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         payload.carrier_id, payload.transit_time_days.unwrap_or(1), payload.is_express.unwrap_or(false), user_id,
     ).await {
-        Ok(m) => Ok((StatusCode::CREATED, Json(serde_json::to_value(m).unwrap_or_default()))),
+        Ok(m) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(m)))),
         Err(e) => { error!("Failed: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 409=>StatusCode::CONFLICT, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
 }
@@ -134,7 +134,7 @@ pub async fn create_shipment(
         payload.ship_to_postal_code.as_deref(), payload.ship_to_country.as_deref(),
         payload.estimated_delivery, payload.notes.as_deref(), user_id,
     ).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap_or_default()))),
+        Ok(s) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(s)))),
         Err(e) => { error!("Failed: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 409=>StatusCode::CONFLICT, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
 }
@@ -155,7 +155,7 @@ pub async fn list_shipments(
 pub async fn get_shipment(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.shipping_engine.get_shipment(id).await {
-        Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(Some(s)) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -164,7 +164,7 @@ pub async fn get_shipment(State(state): State<Arc<AppState>>, claims: Extension<
 pub async fn confirm_shipment(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     match state.shipping_engine.confirm_shipment(id, user_id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => { error!("Error: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 404=>StatusCode::NOT_FOUND, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
 }
@@ -179,7 +179,7 @@ pub async fn ship_confirm(
     let user_id = Uuid::parse_str(&claims.sub).ok();
     let tracking = payload.tracking_number;
     match state.shipping_engine.ship_confirm(id, tracking.as_deref(), user_id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => { error!("Error: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 404=>StatusCode::NOT_FOUND, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
 }
@@ -187,14 +187,14 @@ pub async fn ship_confirm(
 pub async fn deliver_shipment(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     match state.shipping_engine.deliver(id, user_id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => { error!("Error: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 404=>StatusCode::NOT_FOUND, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
 }
 
 pub async fn cancel_shipment(State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.shipping_engine.cancel_shipment(id).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => { error!("Error: {}", e); Err(ship_map_err(e)) }
     }
 }
@@ -229,7 +229,7 @@ pub async fn add_shipment_line(
         payload.is_fragile.unwrap_or(false), payload.is_hazardous.unwrap_or(false),
         payload.notes.as_deref(), payload.order_line_id,
     ).await {
-        Ok(l) => Ok((StatusCode::CREATED, Json(serde_json::to_value(l).unwrap_or_default()))),
+        Ok(l) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(l)))),
         Err(e) => { error!("Failed: {}", e); Err(ship_map_err(e)) }
     }
 }
@@ -256,7 +256,7 @@ pub async fn update_shipped_quantity(
     Json(payload): Json<UpdateShippedQtyRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.shipping_engine.update_line_shipped_quantity(id, &payload.shipped_quantity).await {
-        Ok(l) => Ok(Json(serde_json::to_value(l).unwrap_or_default())),
+        Ok(l) => Ok(Json(crate::handlers::records::to_json_or_null(l))),
         Err(e) => { error!("Error: {}", e); Err(ship_map_err(e)) }
     }
 }
@@ -283,7 +283,7 @@ pub async fn create_packing_slip(
         payload.dimensions_height.as_deref(), payload.dimensions_unit.as_deref(),
         payload.notes.as_deref(), user_id,
     ).await {
-        Ok(ps) => Ok((StatusCode::CREATED, Json(serde_json::to_value(ps).unwrap_or_default()))),
+        Ok(ps) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ps)))),
         Err(e) => { error!("Failed: {}", e); Err(ship_map_err(e)) }
     }
 }
@@ -317,7 +317,7 @@ pub async fn add_packing_slip_line(
         org_id, packing_slip_id, payload.shipment_line_id,
         &payload.item_code, payload.item_name.as_deref(), &payload.packed_quantity, payload.notes.as_deref(),
     ).await {
-        Ok(l) => Ok((StatusCode::CREATED, Json(serde_json::to_value(l).unwrap_or_default()))),
+        Ok(l) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(l)))),
         Err(e) => { error!("Failed: {}", e); Err(ship_map_err(e)) }
     }
 }
@@ -339,7 +339,7 @@ pub async fn delete_packing_slip_line(State(state): State<Arc<AppState>>, _claim
 pub async fn get_shipping_dashboard(State(state): State<Arc<AppState>>, claims: Extension<Claims>) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.shipping_engine.get_dashboard(org_id).await {
-        Ok(d) => Ok(Json(serde_json::to_value(d).unwrap_or_default())),
+        Ok(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

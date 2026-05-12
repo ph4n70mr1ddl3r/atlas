@@ -43,7 +43,7 @@ pub async fn create_method(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.method_type, payload.parameters.unwrap_or(serde_json::json!({})), user_id,
     ).await {
-        Ok(method) => Ok((StatusCode::CREATED, Json(serde_json::to_value(method).unwrap_or_default()))),
+        Ok(method) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(method)))),
         Err(e) => {
             error!("Failed to create forecast method: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -69,7 +69,7 @@ pub async fn get_method(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.demand_planning_engine.get_method(id).await {
-        Ok(Some(method)) => Ok(Json(serde_json::to_value(method).unwrap_or_default())),
+        Ok(Some(method)) => Ok(Json(crate::handlers::records::to_json_or_null(method))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -121,7 +121,7 @@ pub async fn create_schedule(
         payload.confidence_level.as_deref().unwrap_or("medium"),
         payload.owner_id, payload.owner_name.as_deref(), user_id,
     ).await {
-        Ok(schedule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(schedule).unwrap_or_default()))),
+        Ok(schedule) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(schedule)))),
         Err(e) => {
             error!("Failed to create schedule: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -156,7 +156,7 @@ pub async fn get_schedule(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.demand_planning_engine.get_schedule(id).await {
-        Ok(Some(schedule)) => Ok(Json(serde_json::to_value(schedule).unwrap_or_default())),
+        Ok(Some(schedule)) => Ok(Json(crate::handlers::records::to_json_or_null(schedule))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -168,7 +168,7 @@ pub async fn submit_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.demand_planning_engine.submit_schedule(id).await {
-        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_default())),
+        Ok(schedule) => Ok(Json(crate::handlers::records::to_json_or_null(schedule))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -183,7 +183,7 @@ pub async fn approve_schedule(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     match state.demand_planning_engine.approve_schedule(id, user_id).await {
-        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_default())),
+        Ok(schedule) => Ok(Json(crate::handlers::records::to_json_or_null(schedule))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -197,7 +197,7 @@ pub async fn activate_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.demand_planning_engine.activate_schedule(id).await {
-        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_default())),
+        Ok(schedule) => Ok(Json(crate::handlers::records::to_json_or_null(schedule))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -211,7 +211,7 @@ pub async fn close_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.demand_planning_engine.close_schedule(id).await {
-        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_default())),
+        Ok(schedule) => Ok(Json(crate::handlers::records::to_json_or_null(schedule))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -225,7 +225,7 @@ pub async fn cancel_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.demand_planning_engine.cancel_schedule(id).await {
-        Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_default())),
+        Ok(schedule) => Ok(Json(crate::handlers::records::to_json_or_null(schedule))),
         Err(e) => {
             error!("Error: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -282,7 +282,7 @@ pub async fn add_schedule_line(
         payload.confidence_pct.as_deref().unwrap_or("0"),
         payload.notes.as_deref(),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_default()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line)))),
         Err(e) => {
             error!("Failed to add schedule line: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -350,7 +350,7 @@ pub async fn create_history(
         payload.source_type.as_deref().unwrap_or("manual"),
         payload.source_id, payload.source_line_id,
     ).await {
-        Ok(history) => Ok((StatusCode::CREATED, Json(serde_json::to_value(history).unwrap_or_default()))),
+        Ok(history) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(history)))),
         Err(e) => {
             error!("Failed to create history: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -417,7 +417,7 @@ pub async fn consume_forecast(
         payload.source_type.as_deref().unwrap_or("manual"),
         payload.notes.as_deref(), user_id,
     ).await {
-        Ok(consumption) => Ok((StatusCode::CREATED, Json(serde_json::to_value(consumption).unwrap_or_default()))),
+        Ok(consumption) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(consumption)))),
         Err(e) => {
             error!("Failed to consume forecast: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -468,7 +468,7 @@ pub async fn measure_accuracy(
     match state.demand_planning_engine.measure_accuracy(
         org_id, payload.schedule_line_id, &payload.actual_quantity, payload.measurement_date,
     ).await {
-        Ok(accuracy) => Ok((StatusCode::CREATED, Json(serde_json::to_value(accuracy).unwrap_or_default()))),
+        Ok(accuracy) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(accuracy)))),
         Err(e) => {
             error!("Failed to measure accuracy: {}", e);
             Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
@@ -498,7 +498,7 @@ pub async fn get_demand_planning_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.demand_planning_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),
+        Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

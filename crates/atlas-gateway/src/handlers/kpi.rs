@@ -72,7 +72,7 @@ pub async fn create_kpi(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(kpi).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(kpi))))
 }
 
 /// Get a KPI definition by ID
@@ -83,7 +83,7 @@ pub async fn get_kpi(
     let kpi = state.kpi_engine.get_kpi(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match kpi {
-        Some(k) => Ok(Json(serde_json::to_value(k).unwrap_or_default())),
+        Some(k) => Ok(Json(crate::handlers::records::to_json_or_null(k))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -168,7 +168,7 @@ pub async fn record_data_point(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(dp).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(dp))))
 }
 
 /// Get the latest data point for a KPI
@@ -179,7 +179,7 @@ pub async fn get_latest_data_point(
     let dp = state.kpi_engine.get_latest_data_point(kpi_id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match dp {
-        Some(d) => Ok(Json(serde_json::to_value(d).unwrap_or_default())),
+        Some(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -266,7 +266,7 @@ pub async fn create_dashboard(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(dashboard).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(dashboard))))
 }
 
 /// Get a dashboard by ID
@@ -277,7 +277,7 @@ pub async fn get_dashboard(
     let dashboard = state.kpi_engine.get_dashboard(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match dashboard {
-        Some(d) => Ok(Json(serde_json::to_value(d).unwrap_or_default())),
+        Some(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -359,7 +359,7 @@ pub async fn add_widget(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(widget).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(widget))))
 }
 
 /// List widgets for a dashboard
@@ -405,5 +405,5 @@ pub async fn get_kpi_dashboard(
     let summary = state.kpi_engine.get_dashboard_summary(org_id).await
         .map_err(|e| { error!("KPI dashboard error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
-    Ok(Json(serde_json::to_value(summary).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(summary)))
 }

@@ -85,28 +85,35 @@ impl RateLimiter {
     
     /// Check if a request from this IP should be allowed.
     ///
-    /// Uses lock-free `DashMap` operations so the async runtime is never
-    /// blocked by a poisoned `std::sync::RwLock`.
+    /// Uses `DashMap::entry()` for an atomic read-modify-write, eliminating
+    /// the TOCTOU race that existed with separate `get` + `insert` calls.
+    /// The async runtime is never blocked by a poisoned `std::sync::RwLock`.
     pub fn check(&self, ip: &str) -> bool {
         let now = Instant::now();
         
         // Clean old entries periodically
         self.attempts.retain(|_, (_, start)| now.duration_since(*start) < self.window);
         
-        // Check current state and determine action
-        let entry = self.attempts.get(ip).map(|r| *r.value());
-        
-        match entry {
-            Some((count, start)) if now.duration_since(start) < self.window => {
-                if count >= self.max_attempts {
-                    false
+        // Atomic read-modify-write via DashMap::entry()
+        use dashmap::mapref::entry::Entry;
+        match self.attempts.entry(ip.to_string()) {
+            Entry::Occupied(mut occ) => {
+                let (count, start) = occ.get();
+                if now.duration_since(*start) < self.window {
+                    if *count >= self.max_attempts {
+                        false
+                    } else {
+                        occ.insert((count + 1, *start));
+                        true
+                    }
                 } else {
-                    self.attempts.insert(ip.to_string(), (count + 1, start));
+                    // Window expired – reset
+                    occ.insert((1, now));
                     true
                 }
             }
-            _ => {
-                self.attempts.insert(ip.to_string(), (1, now));
+            Entry::Vacant(vac) => {
+                vac.insert((1, now));
                 true
             }
         }

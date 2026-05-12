@@ -91,7 +91,7 @@ pub async fn create_contract_type(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(ct).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ct))))
 }
 
 /// Get a contract type by code
@@ -112,7 +112,7 @@ pub async fn get_contract_type(
         })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    Ok(Json(serde_json::to_value(ct).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(ct)))
 }
 
 /// List contract types
@@ -227,7 +227,7 @@ pub async fn create_contract(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(contract).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(contract))))
 }
 
 /// Get a contract by ID
@@ -245,7 +245,7 @@ pub async fn get_contract(
         })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    Ok(Json(serde_json::to_value(contract).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(contract)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -296,7 +296,7 @@ pub async fn submit_contract(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(contract).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(contract)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -327,7 +327,7 @@ pub async fn approve_contract(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(contract).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(contract)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -355,7 +355,7 @@ pub async fn reject_contract(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(contract).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(contract)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -386,7 +386,7 @@ pub async fn terminate_contract(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(contract).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(contract)))
 }
 
 /// Close a contract
@@ -407,7 +407,7 @@ pub async fn close_contract(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(contract).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(contract)))
 }
 
 // ============================================================================
@@ -470,7 +470,7 @@ pub async fn add_contract_line(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line))))
 }
 
 /// List contract lines
@@ -571,7 +571,7 @@ pub async fn add_milestone(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(milestone).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(milestone))))
 }
 
 /// List milestones
@@ -616,7 +616,7 @@ pub async fn update_milestone(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(milestone).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(milestone)))
 }
 
 // ============================================================================
@@ -664,7 +664,7 @@ pub async fn renew_contract(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(renewal).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(renewal))))
 }
 
 /// List renewals
@@ -736,7 +736,7 @@ pub async fn record_spend(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(spend).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(spend))))
 }
 
 /// List spend entries
@@ -776,5 +776,5 @@ pub async fn get_dashboard_summary(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(serde_json::to_value(summary).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(summary)))
 }

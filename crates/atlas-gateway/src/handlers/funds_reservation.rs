@@ -88,7 +88,7 @@ pub async fn create_reservation(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(reservation).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(reservation)),
     ))
 }
 
@@ -101,7 +101,7 @@ pub async fn get_reservation(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match reservation {
-        Some(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Some(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -117,7 +117,7 @@ pub async fn get_reservation_by_number(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match reservation {
-        Some(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Some(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -169,7 +169,7 @@ pub async fn consume_reservation(
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
         })?;
-    Ok(Json(serde_json::to_value(reservation).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(reservation)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -194,7 +194,7 @@ pub async fn release_reservation(
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
         })?;
-    Ok(Json(serde_json::to_value(reservation).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(reservation)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -221,7 +221,7 @@ pub async fn cancel_reservation(
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
         })?;
-    Ok(Json(serde_json::to_value(reservation).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(reservation)))
 }
 
 pub async fn delete_reservation(
@@ -293,7 +293,7 @@ pub async fn create_reservation_line(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(line).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(line)),
     ))
 }
 
@@ -341,7 +341,7 @@ pub async fn check_fund_availability(
             tracing::error!("Check fund availability error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(Json(serde_json::to_value(availability).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(availability)))
 }
 
 // ============================================================================
@@ -357,5 +357,5 @@ pub async fn get_dashboard(
         .get_dashboard(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::to_value(dashboard).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(dashboard)))
 }

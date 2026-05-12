@@ -55,7 +55,7 @@ pub async fn create_category(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(cat).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(cat))))
 }
 
 pub async fn list_categories(
@@ -75,7 +75,7 @@ pub async fn get_category(
     let cat = state.risk_management_engine.get_category(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match cat {
-        Some(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Some(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -142,7 +142,7 @@ pub async fn create_risk(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(risk).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(risk))))
 }
 
 pub async fn get_risk(
@@ -152,7 +152,7 @@ pub async fn get_risk(
     let risk = state.risk_management_engine.get_risk(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match risk {
-        Some(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Some(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -194,7 +194,7 @@ pub async fn update_risk_status(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(risk).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(risk)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -221,7 +221,7 @@ pub async fn assess_risk(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(risk).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(risk)))
 }
 
 pub async fn delete_risk(
@@ -288,7 +288,7 @@ pub async fn create_control(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(ctrl).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ctrl))))
 }
 
 pub async fn get_control(
@@ -298,7 +298,7 @@ pub async fn get_control(
     let ctrl = state.risk_management_engine.get_control(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match ctrl {
-        Some(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Some(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -339,7 +339,7 @@ pub async fn update_control_status(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(ctrl).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(ctrl)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -360,7 +360,7 @@ pub async fn update_control_effectiveness(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(ctrl).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(ctrl)))
 }
 
 pub async fn delete_control(
@@ -412,7 +412,7 @@ pub async fn create_mapping(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(mapping).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(mapping))))
 }
 
 pub async fn list_risk_mappings(
@@ -484,7 +484,7 @@ pub async fn create_control_test(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(test).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(test))))
 }
 
 pub async fn get_control_test(
@@ -494,7 +494,7 @@ pub async fn get_control_test(
     let test = state.risk_management_engine.get_control_test(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match test {
-        Some(t) => Ok(Json(serde_json::to_value(t).unwrap_or_default())),
+        Some(t) => Ok(Json(crate::handlers::records::to_json_or_null(t))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -518,7 +518,7 @@ pub async fn start_control_test(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(test).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(test)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -546,7 +546,7 @@ pub async fn complete_control_test(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(test).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(test)))
 }
 
 pub async fn delete_control_test(
@@ -612,7 +612,7 @@ pub async fn create_issue(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(issue).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(issue))))
 }
 
 pub async fn get_issue(
@@ -622,7 +622,7 @@ pub async fn get_issue(
     let issue = state.risk_management_engine.get_issue(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match issue {
-        Some(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Some(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -663,7 +663,7 @@ pub async fn update_issue_status(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(issue).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(issue)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -686,7 +686,7 @@ pub async fn resolve_issue(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(issue).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(issue)))
 }
 
 pub async fn delete_issue(
@@ -715,5 +715,5 @@ pub async fn get_risk_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let dashboard = state.risk_management_engine.get_dashboard(org_id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::to_value(dashboard).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(dashboard)))
 }

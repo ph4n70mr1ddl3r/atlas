@@ -78,7 +78,7 @@ pub async fn create_calendar(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(calendar).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(calendar))))
 }
 
 /// List accounting calendars
@@ -112,7 +112,7 @@ pub async fn get_calendar(
         .map_err(|e| { error!("Get calendar error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    Ok(Json(serde_json::to_value(calendar).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(calendar)))
 }
 
 /// Delete a calendar (soft delete)
@@ -200,7 +200,7 @@ pub async fn get_period(
         .map_err(|e| { error!("Get period error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    Ok(Json(serde_json::to_value(period).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(period)))
 }
 
 // ============================================================================
@@ -239,7 +239,7 @@ pub async fn open_period(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(period).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(period)))
 }
 
 /// Set period to pending close
@@ -264,7 +264,7 @@ pub async fn pending_close_period(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(period).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(period)))
 }
 
 /// Close a period
@@ -289,7 +289,7 @@ pub async fn close_period(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(period).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(period)))
 }
 
 /// Permanently close a period (irreversible)
@@ -314,7 +314,7 @@ pub async fn permanently_close_period(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(period).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(period)))
 }
 
 /// Reopen a closed period
@@ -339,7 +339,7 @@ pub async fn reopen_period(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(period).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(period)))
 }
 
 // ============================================================================
@@ -374,7 +374,7 @@ pub async fn update_subledger_status(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(period).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(period)))
 }
 
 // ============================================================================
@@ -431,7 +431,7 @@ pub async fn create_checklist_item(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(item).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(item))))
 }
 
 /// List checklist items for a period
@@ -480,7 +480,7 @@ pub async fn update_checklist_item(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(item).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(item)))
 }
 
 /// Delete a checklist item
@@ -599,7 +599,7 @@ pub async fn get_close_summary(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(summary).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(summary)))
 }
 
 // ============================================================================

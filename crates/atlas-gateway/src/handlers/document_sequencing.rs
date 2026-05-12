@@ -74,7 +74,7 @@ pub async fn create_sequence(
         payload.effective_to,
         Some(user_id),
     ).await {
-        Ok(seq) => Ok((StatusCode::CREATED, Json(serde_json::to_value(seq).unwrap_or_default()))),
+        Ok(seq) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(seq)))),
         Err(e) => {
             error!("Failed to create document sequence: {}", e);
             Err(match e {
@@ -121,7 +121,7 @@ pub async fn get_sequence(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.get_sequence_by_id(id).await {
-        Ok(Some(seq)) => Ok(Json(serde_json::to_value(seq).unwrap_or_default())),
+        Ok(Some(seq)) => Ok(Json(crate::handlers::records::to_json_or_null(seq))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get document sequence: {}", e);
@@ -137,7 +137,7 @@ pub async fn get_sequence_by_code(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.document_sequencing_engine.get_sequence(org_id, &code).await {
-        Ok(Some(seq)) => Ok(Json(serde_json::to_value(seq).unwrap_or_default())),
+        Ok(Some(seq)) => Ok(Json(crate::handlers::records::to_json_or_null(seq))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get document sequence by code: {}", e);
@@ -152,7 +152,7 @@ pub async fn activate_sequence(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.activate_sequence(id).await {
-        Ok(seq) => Ok(Json(serde_json::to_value(seq).unwrap_or_default())),
+        Ok(seq) => Ok(Json(crate::handlers::records::to_json_or_null(seq))),
         Err(e) => {
             error!("Failed to activate document sequence: {}", e);
             Err(match e {
@@ -170,7 +170,7 @@ pub async fn deactivate_sequence(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.deactivate_sequence(id).await {
-        Ok(seq) => Ok(Json(serde_json::to_value(seq).unwrap_or_default())),
+        Ok(seq) => Ok(Json(crate::handlers::records::to_json_or_null(seq))),
         Err(e) => {
             error!("Failed to deactivate document sequence: {}", e);
             Err(match e {
@@ -231,7 +231,7 @@ pub async fn generate_number(
         payload.document_number.as_deref(),
         Some(user_id),
     ).await {
-        Ok(audit) => Ok((StatusCode::CREATED, Json(serde_json::to_value(audit).unwrap_or_default()))),
+        Ok(audit) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(audit)))),
         Err(e) => {
             error!("Failed to generate document number: {}", e);
             Err(match e {
@@ -269,7 +269,7 @@ pub async fn generate_number_direct(
         payload.business_unit_id,
         Some(user_id),
     ).await {
-        Ok(audit) => Ok((StatusCode::CREATED, Json(serde_json::to_value(audit).unwrap_or_default()))),
+        Ok(audit) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(audit)))),
         Err(e) => {
             error!("Failed to generate direct document number: {}", e);
             Err(match e {
@@ -317,7 +317,7 @@ pub async fn create_assignment(
         payload.priority.unwrap_or(0),
         Some(user_id),
     ).await {
-        Ok(assignment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(assignment).unwrap_or_default()))),
+        Ok(assignment) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(assignment)))),
         Err(e) => {
             error!("Failed to create sequence assignment: {}", e);
             Err(match e {
@@ -336,7 +336,7 @@ pub async fn get_assignment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.get_assignment(id).await {
-        Ok(Some(assignment)) => Ok(Json(serde_json::to_value(assignment).unwrap_or_default())),
+        Ok(Some(assignment)) => Ok(Json(crate::handlers::records::to_json_or_null(assignment))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get sequence assignment: {}", e);
@@ -371,7 +371,7 @@ pub async fn deactivate_assignment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.deactivate_assignment(id).await {
-        Ok(assignment) => Ok(Json(serde_json::to_value(assignment).unwrap_or_default())),
+        Ok(assignment) => Ok(Json(crate::handlers::records::to_json_or_null(assignment))),
         Err(e) => {
             error!("Failed to deactivate sequence assignment: {}", e);
             Err(match e {
@@ -432,7 +432,7 @@ pub async fn get_audit_by_document(
     Path(document_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.document_sequencing_engine.get_audit_by_document(document_id).await {
-        Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
+        Ok(Some(entry)) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get audit by document: {}", e);
@@ -451,7 +451,7 @@ pub async fn get_document_sequencing_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.document_sequencing_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_default())),
+        Ok(summary) => Ok(Json(crate::handlers::records::to_json_or_null(summary))),
         Err(e) => {
             error!("Failed to get document sequencing dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

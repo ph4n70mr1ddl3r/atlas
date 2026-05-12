@@ -48,7 +48,7 @@ pub async fn create_location(
         payload.address.as_deref(), payload.city.as_deref(), payload.state.as_deref(),
         payload.country.as_deref(), payload.postal_code.as_deref(), user_id,
     ).await {
-        Ok(l) => Ok((StatusCode::CREATED, Json(serde_json::to_value(l).unwrap_or_default()))),
+        Ok(l) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(l)))),
         Err(e) => { error!("Failed: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -116,7 +116,7 @@ pub async fn create_receipt(
         payload.tracking_number.as_deref(), payload.waybill_number.as_deref(),
         payload.notes.as_deref(), user_id,
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap_or_default()))),
+        Ok(r) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(r)))),
         Err(e) => { error!("Failed: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -126,7 +126,7 @@ pub async fn get_receipt(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receiving_engine.get_receipt(id).await {
-        Ok(Some(r)) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(Some(r)) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -154,7 +154,7 @@ pub async fn confirm_receipt(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receiving_engine.confirm_receipt(id, user_id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -163,7 +163,7 @@ pub async fn close_receipt(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.close_receipt(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -172,7 +172,7 @@ pub async fn cancel_receipt(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.cancel_receipt(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -221,7 +221,7 @@ pub async fn add_receipt_line(
         payload.unit_price.as_deref(), payload.currency.as_deref(),
         payload.notes.as_deref(), user_id,
     ).await {
-        Ok(l) => Ok((StatusCode::CREATED, Json(serde_json::to_value(l).unwrap_or_default()))),
+        Ok(l) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(l)))),
         Err(e) => { error!("Failed: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -265,7 +265,7 @@ pub async fn create_inspection(
         payload.inspector_name.as_deref(), payload.inspection_date,
         payload.sample_size.as_deref(), payload.notes.as_deref(), user_id,
     ).await {
-        Ok(i) => Ok((StatusCode::CREATED, Json(serde_json::to_value(i).unwrap_or_default()))),
+        Ok(i) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(i)))),
         Err(e) => { error!("Failed: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -302,7 +302,7 @@ pub async fn complete_inspection(
         payload.quality_score.as_deref(), payload.rejection_reason.as_deref(),
         payload.notes.as_deref(),
     ).await {
-        Ok(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -336,7 +336,7 @@ pub async fn add_inspection_detail(
         payload.measured_value.as_deref(), payload.expected_value.as_deref(),
         payload.notes.as_deref(),
     ).await {
-        Ok(d) => Ok((StatusCode::CREATED, Json(serde_json::to_value(d).unwrap_or_default()))),
+        Ok(d) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(d)))),
         Err(e) => { error!("Failed: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -387,7 +387,7 @@ pub async fn create_delivery(
         payload.destination_type.as_deref().unwrap_or("inventory"),
         payload.account_code.as_deref(), payload.notes.as_deref(), user_id,
     ).await {
-        Ok(d) => Ok((StatusCode::CREATED, Json(serde_json::to_value(d).unwrap_or_default()))),
+        Ok(d) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(d)))),
         Err(e) => { error!("Failed: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -440,7 +440,7 @@ pub async fn create_return(
         payload.unit_price.as_deref(), payload.currency.as_deref(),
         payload.return_reason.as_deref(), payload.return_date, user_id,
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap_or_default()))),
+        Ok(r) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(r)))),
         Err(e) => { error!("Failed: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -471,7 +471,7 @@ pub async fn submit_return(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.submit_return(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -481,7 +481,7 @@ pub async fn ship_return(
     Json(payload): Json<ShipReturnRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.ship_return(id, payload.carrier.as_deref(), payload.tracking_number.as_deref()).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -490,7 +490,7 @@ pub async fn credit_return(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.credit_return(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -499,7 +499,7 @@ pub async fn cancel_return(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receiving_engine.cancel_return(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
 }
@@ -513,7 +513,7 @@ pub async fn get_receiving_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receiving_engine.get_dashboard(org_id).await {
-        Ok(d) => Ok(Json(serde_json::to_value(d).unwrap_or_default())),
+        Ok(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

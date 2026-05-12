@@ -64,7 +64,7 @@ pub async fn create_accounting_method(
         payload.effective_from, payload.effective_to,
         Some(user_id),
     ).await {
-        Ok(method) => Ok((StatusCode::CREATED, Json(serde_json::to_value(method).unwrap_or_default()))),
+        Ok(method) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(method)))),
         Err(e) => {
             error!("Failed to create accounting method: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -81,7 +81,7 @@ pub async fn get_accounting_method(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.sla_engine.get_accounting_method(org_id, &code).await {
-        Ok(Some(method)) => Ok(Json(serde_json::to_value(method).unwrap_or_default())),
+        Ok(Some(method)) => Ok(Json(crate::handlers::records::to_json_or_null(method))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -164,7 +164,7 @@ pub async fn create_derivation_rule(
         payload.effective_from, payload.effective_to,
         Some(user_id),
     ).await {
-        Ok(rule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_default()))),
+        Ok(rule) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rule)))),
         Err(e) => {
             error!("Failed to create derivation rule: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -255,7 +255,7 @@ pub async fn create_journal_entry(
         payload.currency_conversion_rate.as_deref(),
         Some(user_id),
     ).await {
-        Ok(entry) => Ok((StatusCode::CREATED, Json(serde_json::to_value(entry).unwrap_or_default()))),
+        Ok(entry) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(entry)))),
         Err(e) => {
             error!("Failed to create journal entry: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -270,7 +270,7 @@ pub async fn get_journal_entry(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sla_engine.get_journal_entry(id).await {
-        Ok(Some(entry)) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
+        Ok(Some(entry)) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -363,7 +363,7 @@ pub async fn add_journal_line(
         payload.tax_code.as_deref(), payload.tax_rate.as_deref(),
         payload.tax_amount.as_deref(),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_default()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line)))),
         Err(e) => {
             error!("Failed to add journal line: {}", e);
             Err(StatusCode::BAD_REQUEST)
@@ -384,7 +384,7 @@ pub async fn account_journal_entry(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.sla_engine.account_entry(id, Some(user_id)).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
+        Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => { error!("Failed to account entry: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -398,7 +398,7 @@ pub async fn post_journal_entry(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.sla_engine.post_entry(id, Some(user_id)).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
+        Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => { error!("Failed to post entry: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -418,7 +418,7 @@ pub async fn reverse_journal_entry(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.sla_engine.reverse_entry(id, &payload.reason, Some(user_id)).await {
-        Ok(entry) => Ok(Json(serde_json::to_value(entry).unwrap_or_default())),
+        Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => { error!("Failed to reverse entry: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -472,7 +472,7 @@ pub async fn transfer_to_gl(
         org_id, payload.from_period.as_deref(),
         payload.source_applications, Some(user_id),
     ).await {
-        Ok(log) => Ok((StatusCode::CREATED, Json(serde_json::to_value(log).unwrap_or_default()))),
+        Ok(log) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(log)))),
         Err(e) => { error!("Failed to transfer to GL: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
 }
@@ -484,7 +484,7 @@ pub async fn get_transfer_log(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.sla_engine.get_transfer_log(id).await {
-        Ok(Some(log)) => Ok(Json(serde_json::to_value(log).unwrap_or_default())),
+        Ok(Some(log)) => Ok(Json(crate::handlers::records::to_json_or_null(log))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -547,7 +547,7 @@ pub async fn get_sla_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.sla_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_default())),
+        Ok(summary) => Ok(Json(crate::handlers::records::to_json_or_null(summary))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }

@@ -347,7 +347,7 @@ pub async fn get_pending_approvals(
 
     for step in user_steps.iter().chain(role_steps.iter()) {
         if all_step_ids.insert(step.id) {
-            all_steps.push(serde_json::to_value(step).unwrap_or_default());
+            all_steps.push(crate::handlers::records::to_json_or_null(step));
         }
     }
 
@@ -383,7 +383,7 @@ pub async fn approve_approval_step(
             StatusCode::BAD_REQUEST
         })?;
 
-    Ok(Json(serde_json::to_value(request).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(request)))
 }
 
 /// Reject an approval step
@@ -404,7 +404,7 @@ pub async fn reject_approval_step(
             StatusCode::BAD_REQUEST
         })?;
 
-    Ok(Json(serde_json::to_value(request).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(request)))
 }
 
 /// Delegate an approval step to another user
@@ -430,7 +430,7 @@ pub async fn delegate_approval_step(
             StatusCode::BAD_REQUEST
         })?;
 
-    Ok(Json(serde_json::to_value(step).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(step)))
 }
 
 // ============================================================================

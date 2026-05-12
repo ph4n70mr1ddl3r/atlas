@@ -81,7 +81,7 @@ pub async fn create_cost_book(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(book).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(book)),
     ))
 }
 
@@ -95,7 +95,7 @@ pub async fn get_cost_book(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match book {
-        Some(b) => Ok(Json(serde_json::to_value(b).unwrap_or_default())),
+        Some(b) => Ok(Json(crate::handlers::records::to_json_or_null(b))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -173,7 +173,7 @@ pub async fn update_cost_book(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(book).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(book)))
 }
 
 pub async fn deactivate_cost_book(
@@ -193,7 +193,7 @@ pub async fn deactivate_cost_book(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(book).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(book)))
 }
 
 pub async fn activate_cost_book(
@@ -213,7 +213,7 @@ pub async fn activate_cost_book(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(book).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(book)))
 }
 
 pub async fn delete_cost_book(
@@ -285,7 +285,7 @@ pub async fn create_cost_element(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(element).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(element)),
     ))
 }
 
@@ -299,7 +299,7 @@ pub async fn get_cost_element(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match element {
-        Some(e) => Ok(Json(serde_json::to_value(e).unwrap_or_default())),
+        Some(e) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -386,7 +386,7 @@ pub async fn update_cost_element(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(element).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(element)))
 }
 
 // ============================================================================
@@ -445,7 +445,7 @@ pub async fn create_cost_profile(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(profile).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(profile)),
     ))
 }
 
@@ -459,7 +459,7 @@ pub async fn get_cost_profile(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match profile {
-        Some(p) => Ok(Json(serde_json::to_value(p).unwrap_or_default())),
+        Some(p) => Ok(Json(crate::handlers::records::to_json_or_null(p))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -573,7 +573,7 @@ pub async fn create_standard_cost(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(cost).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(cost)),
     ))
 }
 
@@ -587,7 +587,7 @@ pub async fn get_standard_cost(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match cost {
-        Some(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Some(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -652,7 +652,7 @@ pub async fn update_standard_cost(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(cost).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(cost)))
 }
 
 pub async fn supersede_standard_cost(
@@ -672,7 +672,7 @@ pub async fn supersede_standard_cost(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(cost).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(cost)))
 }
 
 pub async fn delete_standard_cost(
@@ -747,7 +747,7 @@ pub async fn create_cost_adjustment(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(adj).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(adj)),
     ))
 }
 
@@ -761,7 +761,7 @@ pub async fn get_cost_adjustment(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match adj {
-        Some(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Some(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -811,7 +811,7 @@ pub async fn submit_adjustment(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(adj).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(adj)))
 }
 
 pub async fn approve_adjustment(
@@ -834,7 +834,7 @@ pub async fn approve_adjustment(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(adj).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(adj)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -864,7 +864,7 @@ pub async fn reject_adjustment(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(adj).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(adj)))
 }
 
 pub async fn post_adjustment(
@@ -887,7 +887,7 @@ pub async fn post_adjustment(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(adj).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(adj)))
 }
 
 pub async fn delete_cost_adjustment(
@@ -966,7 +966,7 @@ pub async fn add_adjustment_line(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(line).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(line)),
     ))
 }
 
@@ -1075,7 +1075,7 @@ pub async fn create_cost_variance(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(variance).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(variance)),
     ))
 }
 
@@ -1089,7 +1089,7 @@ pub async fn get_cost_variance(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match variance {
-        Some(v) => Ok(Json(serde_json::to_value(v).unwrap_or_default())),
+        Some(v) => Ok(Json(crate::handlers::records::to_json_or_null(v))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -1155,7 +1155,7 @@ pub async fn analyze_variance(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(variance).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(variance)))
 }
 
 // ============================================================================
@@ -1177,5 +1177,5 @@ pub async fn get_cost_accounting_dashboard(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(serde_json::to_value(dashboard).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(dashboard)))
 }

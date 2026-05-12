@@ -57,7 +57,7 @@ pub async fn create_factor_company(
         payload.maximum_invoice_amount.as_deref(),
         Some(user_id),
     ).await {
-        Ok(fc) => Ok((StatusCode::CREATED, Json(serde_json::to_value(fc).unwrap_or_default()))),
+        Ok(fc) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(fc)))),
         Err(e) => {
             error!("Failed to create factor company: {}", e);
             Err(match e {
@@ -101,7 +101,7 @@ pub async fn get_factor_company(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.get_factor_company(id).await {
-        Ok(Some(fc)) => Ok(Json(serde_json::to_value(fc).unwrap_or_default())),
+        Ok(Some(fc)) => Ok(Json(crate::handlers::records::to_json_or_null(fc))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get factor company: {}", e);
@@ -117,7 +117,7 @@ pub async fn get_factor_company_by_code(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receivables_factoring_engine.get_factor_company_by_code(org_id, &code).await {
-        Ok(Some(fc)) => Ok(Json(serde_json::to_value(fc).unwrap_or_default())),
+        Ok(Some(fc)) => Ok(Json(crate::handlers::records::to_json_or_null(fc))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get factor company by code: {}", e);
@@ -131,7 +131,7 @@ pub async fn deactivate_factor_company(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.deactivate_factor_company(id).await {
-        Ok(fc) => Ok(Json(serde_json::to_value(fc).unwrap_or_default())),
+        Ok(fc) => Ok(Json(crate::handlers::records::to_json_or_null(fc))),
         Err(e) => {
             error!("Failed to deactivate factor company: {}", e);
             Err(match e {
@@ -147,7 +147,7 @@ pub async fn activate_factor_company(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.activate_factor_company(id).await {
-        Ok(fc) => Ok(Json(serde_json::to_value(fc).unwrap_or_default())),
+        Ok(fc) => Ok(Json(crate::handlers::records::to_json_or_null(fc))),
         Err(e) => {
             error!("Failed to activate factor company: {}", e);
             Err(match e {
@@ -204,7 +204,7 @@ pub async fn create_agreement(
         payload.credit_limit.as_deref(),
         Some(user_id),
     ).await {
-        Ok(a) => Ok((StatusCode::CREATED, Json(serde_json::to_value(a).unwrap_or_default()))),
+        Ok(a) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(a)))),
         Err(e) => {
             error!("Failed to create factoring agreement: {}", e);
             Err(match e {
@@ -244,7 +244,7 @@ pub async fn get_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.get_agreement(id).await {
-        Ok(Some(a)) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Ok(Some(a)) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get factoring agreement: {}", e);
@@ -260,7 +260,7 @@ pub async fn activate_agreement(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receivables_factoring_engine.activate_agreement(id, Some(user_id)).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Failed to activate agreement: {}", e);
             Err(match e {
@@ -276,7 +276,7 @@ pub async fn suspend_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.suspend_agreement(id).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Failed to suspend agreement: {}", e);
             Err(match e {
@@ -292,7 +292,7 @@ pub async fn terminate_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.terminate_agreement(id).await {
-        Ok(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Failed to terminate agreement: {}", e);
             Err(match e {
@@ -332,7 +332,7 @@ pub async fn create_factoring_request(
         payload.currency_code.as_deref().unwrap_or("USD"),
         payload.notes.as_deref(), Some(user_id),
     ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap_or_default()))),
+        Ok(r) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(r)))),
         Err(e) => {
             error!("Failed to create factoring request: {}", e);
             Err(match e {
@@ -373,7 +373,7 @@ pub async fn get_factoring_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.get_request(id).await {
-        Ok(Some(r)) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(Some(r)) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get factoring request: {}", e);
@@ -387,7 +387,7 @@ pub async fn submit_factoring_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.submit_request(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to submit factoring request: {}", e);
             Err(match e {
@@ -404,7 +404,7 @@ pub async fn approve_factoring_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.approve_request(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to approve factoring request: {}", e);
             Err(match e {
@@ -421,7 +421,7 @@ pub async fn fund_factoring_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.fund_request(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to fund factoring request: {}", e);
             Err(match e {
@@ -438,7 +438,7 @@ pub async fn settle_factoring_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.settle_request(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to settle factoring request: {}", e);
             Err(match e {
@@ -455,7 +455,7 @@ pub async fn cancel_factoring_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.receivables_factoring_engine.cancel_request(id).await {
-        Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_default())),
+        Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to cancel factoring request: {}", e);
             Err(match e {
@@ -503,7 +503,7 @@ pub async fn add_request_line(
         &payload.invoice_amount, &payload.eligible_amount,
         payload.days_outstanding, payload.days_overdue,
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_default()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line)))),
         Err(e) => {
             error!("Failed to add request line: {}", e);
             Err(match e {
@@ -556,7 +556,7 @@ pub async fn create_settlement(
         payload.currency_code.as_deref().unwrap_or("USD"),
         payload.notes.as_deref(), Some(user_id),
     ).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(serde_json::to_value(s).unwrap_or_default()))),
+        Ok(s) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(s)))),
         Err(e) => {
             error!("Failed to create settlement: {}", e);
             Err(match e {
@@ -599,7 +599,7 @@ pub async fn process_settlement(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receivables_factoring_engine.process_settlement(id, Some(user_id)).await {
-        Ok(s) => Ok(Json(serde_json::to_value(s).unwrap_or_default())),
+        Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => {
             error!("Failed to process settlement: {}", e);
             Err(match e {
@@ -621,7 +621,7 @@ pub async fn get_factoring_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.receivables_factoring_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),
+        Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => {
             error!("Failed to get factoring dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

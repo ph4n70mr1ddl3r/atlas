@@ -74,7 +74,7 @@ pub async fn create_retirement(
         payload.reason.as_deref(),
         Some(user_id),
     ).await {
-        Ok(ret) => Ok((StatusCode::CREATED, Json(serde_json::to_value(ret).unwrap_or_default()))),
+        Ok(ret) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ret)))),
         Err(e) => {
             error!("Failed to create asset retirement: {}", e);
             match e {
@@ -100,7 +100,7 @@ pub async fn get_retirement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.asset_retirement_engine.get(id).await {
-        Ok(Some(ret)) => Ok(Json(serde_json::to_value(ret).unwrap_or_default())),
+        Ok(Some(ret)) => Ok(Json(crate::handlers::records::to_json_or_null(ret))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get asset retirement: {}", e);
@@ -153,7 +153,7 @@ pub async fn approve_retirement(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.asset_retirement_engine.approve(id, user_id).await {
-        Ok(ret) => Ok((StatusCode::OK, Json(serde_json::to_value(ret).unwrap_or_default()))),
+        Ok(ret) => Ok((StatusCode::OK, Json(crate::handlers::records::to_json_or_null(ret)))),
         Err(e) => {
             error!("Failed to approve asset retirement: {}", e);
             match e {
@@ -180,7 +180,7 @@ pub async fn complete_retirement(
     Json(payload): Json<CompleteRetirementRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     match state.asset_retirement_engine.complete(id, payload.gl_batch_id).await {
-        Ok(ret) => Ok((StatusCode::OK, Json(serde_json::to_value(ret).unwrap_or_default()))),
+        Ok(ret) => Ok((StatusCode::OK, Json(crate::handlers::records::to_json_or_null(ret)))),
         Err(e) => {
             error!("Failed to complete asset retirement: {}", e);
             match e {
@@ -200,7 +200,7 @@ pub async fn reverse_retirement(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     match state.asset_retirement_engine.reverse(id).await {
-        Ok(ret) => Ok((StatusCode::OK, Json(serde_json::to_value(ret).unwrap_or_default()))),
+        Ok(ret) => Ok((StatusCode::OK, Json(crate::handlers::records::to_json_or_null(ret)))),
         Err(e) => {
             error!("Failed to reverse asset retirement: {}", e);
             match e {
@@ -220,7 +220,7 @@ pub async fn cancel_retirement(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     match state.asset_retirement_engine.cancel(id).await {
-        Ok(ret) => Ok((StatusCode::OK, Json(serde_json::to_value(ret).unwrap_or_default()))),
+        Ok(ret) => Ok((StatusCode::OK, Json(crate::handlers::records::to_json_or_null(ret)))),
         Err(e) => {
             error!("Failed to cancel asset retirement: {}", e);
             match e {
@@ -244,7 +244,7 @@ pub async fn get_retirement_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.asset_retirement_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),
+        Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => {
             error!("Failed to get retirement dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

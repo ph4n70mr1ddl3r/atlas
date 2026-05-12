@@ -55,7 +55,7 @@ pub async fn create_library_category(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(cat).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(cat))))
 }
 
 pub async fn list_library_categories(
@@ -126,7 +126,7 @@ pub async fn create_library_template(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(tmpl).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(tmpl))))
 }
 
 #[derive(Debug, Deserialize)]
@@ -211,7 +211,7 @@ pub async fn create_goal_plan(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(plan).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(plan))))
 }
 
 pub async fn get_goal_plan(
@@ -221,7 +221,7 @@ pub async fn get_goal_plan(
     let plan = state.goal_management_engine.get_goal_plan(id).await
         .map_err(|e| { error!("Get plan error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
     match plan {
-        Some(p) => Ok(Json(serde_json::to_value(p).unwrap_or_default())),
+        Some(p) => Ok(Json(crate::handlers::records::to_json_or_null(p))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -266,7 +266,7 @@ pub async fn update_goal_plan_status(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(plan).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(plan)))
 }
 
 pub async fn delete_goal_plan(
@@ -347,7 +347,7 @@ pub async fn create_goal(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(goal).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(goal))))
 }
 
 pub async fn get_goal(
@@ -357,7 +357,7 @@ pub async fn get_goal(
     let goal = state.goal_management_engine.get_goal(id).await
         .map_err(|e| { error!("Get goal error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
     match goal {
-        Some(g) => Ok(Json(serde_json::to_value(g).unwrap_or_default())),
+        Some(g) => Ok(Json(crate::handlers::records::to_json_or_null(g))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -411,7 +411,7 @@ pub async fn update_goal_progress(
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     })?;
-    Ok(Json(serde_json::to_value(goal).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(goal)))
 }
 
 pub async fn delete_goal(
@@ -461,7 +461,7 @@ pub async fn create_goal_alignment(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(alignment).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(alignment))))
 }
 
 pub async fn list_goal_alignments(
@@ -522,7 +522,7 @@ pub async fn create_goal_note(
         }
     })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(note).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(note))))
 }
 
 pub async fn list_goal_notes(
@@ -559,5 +559,5 @@ pub async fn get_goal_management_summary(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let summary = state.goal_management_engine.get_summary(org_id).await
         .map_err(|e| { error!("Goal summary error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
-    Ok(Json(serde_json::to_value(summary).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(summary)))
 }

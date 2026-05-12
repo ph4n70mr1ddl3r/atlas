@@ -36,7 +36,7 @@ pub async fn create_template(
         atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(result).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(result))))
 }
 
 pub async fn list_templates(
@@ -54,7 +54,7 @@ pub async fn get_template(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let tmpl = state.scorecard_engine.get_template(id).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
-    Ok(Json(serde_json::to_value(tmpl).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(tmpl)))
 }
 
 pub async fn delete_template(
@@ -90,7 +90,7 @@ pub async fn create_category(
         atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(result).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(result))))
 }
 
 pub async fn list_categories(
@@ -134,7 +134,7 @@ pub async fn create_scorecard(
         atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(result).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(result))))
 }
 
 #[derive(Debug, Deserialize)]
@@ -162,7 +162,7 @@ pub async fn get_scorecard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let sc = state.scorecard_engine.get_scorecard(id).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
-    Ok(Json(serde_json::to_value(sc).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(sc)))
 }
 
 pub async fn submit_scorecard(
@@ -178,7 +178,7 @@ pub async fn submit_scorecard(
         atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }
 
 pub async fn approve_scorecard(
@@ -192,7 +192,7 @@ pub async fn approve_scorecard(
         atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }
 
 pub async fn reject_scorecard(
@@ -204,7 +204,7 @@ pub async fn reject_scorecard(
         atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }
 
 pub async fn delete_scorecard(
@@ -244,7 +244,7 @@ pub async fn add_scorecard_line(
         atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(result).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(result))))
 }
 
 pub async fn list_scorecard_lines(
@@ -287,7 +287,7 @@ pub async fn create_review(
         atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(result).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(result))))
 }
 
 #[derive(Debug, Deserialize)]
@@ -312,7 +312,7 @@ pub async fn get_review(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let review = state.scorecard_engine.get_review(id).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
-    Ok(Json(serde_json::to_value(review).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(review)))
 }
 
 pub async fn complete_review(
@@ -338,7 +338,7 @@ pub async fn complete_review(
         atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }
 
 pub async fn delete_review(
@@ -372,7 +372,7 @@ pub async fn create_action_item(
         atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(result).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(result))))
 }
 
 pub async fn list_action_items(
@@ -392,7 +392,7 @@ pub async fn complete_action_item(
         atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    Ok(Json(serde_json::to_value(result).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }
 
 pub async fn delete_action_item(
@@ -410,5 +410,5 @@ pub async fn get_scorecard_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let dashboard = state.scorecard_engine.get_dashboard(org_id).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::to_value(dashboard).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(dashboard)))
 }

@@ -470,16 +470,17 @@ pub async fn execute_bulk_operation(
 
     match payload.operation.as_str() {
         "delete" => {
-            for rid in &record_ids {
-                let q = if entity_def.is_soft_delete {
-                    format!("UPDATE \"{table_name}\" SET deleted_at = now() WHERE id = $1 AND organization_id = $2")
-                } else {
-                    format!("DELETE FROM \"{table_name}\" WHERE id = $1 AND organization_id = $2")
-                };
-                match sqlx::query(&q).bind(rid).bind(org_id).execute(&state.db_pool).await {
-                    Ok(r) if r.rows_affected() > 0 => succeeded += 1,
-                    Ok(_) => { failed += 1; errors.push(BulkError { record_id: rid.to_string(), error: "Not found".into() }); }
-                    Err(e) => { failed += 1; errors.push(BulkError { record_id: rid.to_string(), error: e.to_string() }); }
+            // Batch delete using ANY() instead of row-by-row loop
+            let q = if entity_def.is_soft_delete {
+                format!("UPDATE \"{table_name}\" SET deleted_at = now() WHERE id = ANY($1) AND organization_id = $2")
+            } else {
+                format!("DELETE FROM \"{table_name}\" WHERE id = ANY($1) AND organization_id = $2")
+            };
+            match sqlx::query(&q).bind(&record_ids).bind(org_id).execute(&state.db_pool).await {
+                Ok(r) => succeeded = r.rows_affected() as i32,
+                Err(e) => {
+                    failed = total;
+                    errors.push(BulkError { record_id: "*".into(), error: e.to_string() });
                 }
             }
         }
@@ -499,43 +500,45 @@ pub async fn execute_bulk_operation(
                 return Err(StatusCode::BAD_REQUEST);
             }
 
-            for rid in &record_ids {
-                let set_clauses: Vec<String> = non_null.iter()
-                    .enumerate()
-                    .map(|(i, (k, _))| format!("\"{}\" = ${}::text", k, i + 1))
-                    .collect();
-                let q = format!(
-                    "UPDATE \"{}\" SET {}, updated_at = now() WHERE id = ${} AND organization_id = ${}",
-                    table_name,
-                    set_clauses.join(", "),
-                    non_null.len() + 1,
-                    non_null.len() + 2
-                );
-                let mut query = sqlx::query(&q);
-                for (_, v) in &non_null {
-                    query = query.bind(json_to_text(v));
-                }
-                query = query.bind(rid).bind(org_id);
-                match query.execute(&state.db_pool).await {
-                    Ok(r) if r.rows_affected() > 0 => succeeded += 1,
-                    Ok(_) => { failed += 1; errors.push(BulkError { record_id: rid.to_string(), error: "Not found".into() }); }
-                    Err(e) => { failed += 1; errors.push(BulkError { record_id: rid.to_string(), error: e.to_string() }); }
+            // Batch update using ANY() instead of row-by-row loop
+            let set_clauses: Vec<String> = non_null.iter()
+                .enumerate()
+                .map(|(i, (k, _))| format!("\"{}\" = ${}::text", k, i + 1))
+                .collect();
+            let q = format!(
+                "UPDATE \"{}\" SET {}, updated_at = now() WHERE id = ANY(${}) AND organization_id = ${}",
+                table_name,
+                set_clauses.join(", "),
+                non_null.len() + 1,
+                non_null.len() + 2
+            );
+            let mut query = sqlx::query(&q);
+            for (_, v) in &non_null {
+                query = query.bind(json_to_text(v));
+            }
+            query = query.bind(&record_ids).bind(org_id);
+            match query.execute(&state.db_pool).await {
+                Ok(r) => succeeded = r.rows_affected() as i32,
+                Err(e) => {
+                    failed = total;
+                    errors.push(BulkError { record_id: "*".into(), error: e.to_string() });
                 }
             }
         }
         "workflow_action" => {
+            // Batch workflow update using ANY() instead of row-by-row loop
             let action = payload.payload.get("action")
                 .and_then(|a| a.as_str())
                 .unwrap_or("")
                 .to_string();
-            for rid in &record_ids {
-                let q = format!(
-                    "UPDATE \"{table_name}\" SET workflow_state = $1::text, updated_at = now() WHERE id = $2 AND organization_id = $3 AND deleted_at IS NULL"
-                );
-                match sqlx::query(&q).bind(&action).bind(rid).bind(org_id).execute(&state.db_pool).await {
-                    Ok(r) if r.rows_affected() > 0 => succeeded += 1,
-                    Ok(_) => { failed += 1; errors.push(BulkError { record_id: rid.to_string(), error: "Not found or no workflow".into() }); }
-                    Err(e) => { failed += 1; errors.push(BulkError { record_id: rid.to_string(), error: e.to_string() }); }
+            let q = format!(
+                "UPDATE \"{table_name}\" SET workflow_state = $1::text, updated_at = now() WHERE id = ANY($2) AND organization_id = $3 AND deleted_at IS NULL"
+            );
+            match sqlx::query(&q).bind(&action).bind(&record_ids).bind(org_id).execute(&state.db_pool).await {
+                Ok(r) => succeeded = r.rows_affected() as i32,
+                Err(e) => {
+                    failed = total;
+                    errors.push(BulkError { record_id: "*".into(), error: e.to_string() });
                 }
             }
         }

@@ -72,7 +72,7 @@ pub async fn create_contract_type(
         payload.risk_scoring_enabled.unwrap_or(false),
         Some(user_id),
     ).await.map_err(|e| { tracing::error!("Create contract type: {}", e); err_status(&e) })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(ct).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ct))))
 }
 
 pub async fn get_contract_type(
@@ -81,7 +81,7 @@ pub async fn get_contract_type(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let ct = state.clm_engine.get_contract_type(id).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match ct {
-        Some(c) => Ok(Json(serde_json::to_value(c).unwrap_or_default())),
+        Some(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -136,7 +136,7 @@ pub async fn create_clause(
         payload.is_locked.unwrap_or(false),
         Some(user_id),
     ).await.map_err(|e| { tracing::error!("Create clause: {}", e); err_status(&e) })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(c).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(c))))
 }
 
 pub async fn list_clauses(
@@ -190,7 +190,7 @@ pub async fn create_template(
         payload.contract_type_id, payload.default_currency.as_deref().unwrap_or("USD"),
         payload.default_duration_days, payload.terms_and_conditions.as_deref(), Some(user_id),
     ).await.map_err(|e| { tracing::error!("Create template: {}", e); err_status(&e) })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(t).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(t))))
 }
 
 pub async fn list_templates(
@@ -256,7 +256,7 @@ pub async fn create_contract(
         payload.renewal_notice_days.unwrap_or(30),
         Some(user_id),
     ).await.map_err(|e| { tracing::error!("Create contract: {}", e); err_status(&e) })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(c).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(c))))
 }
 
 pub async fn get_contract(
@@ -265,7 +265,7 @@ pub async fn get_contract(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let c = state.clm_engine.get_contract(id).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match c {
-        Some(ct) => Ok(Json(serde_json::to_value(ct).unwrap_or_default())),
+        Some(ct) => Ok(Json(crate::handlers::records::to_json_or_null(ct))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -300,7 +300,7 @@ pub async fn transition_contract(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = parse_uuid(&claims.sub, "user_id")?;
     let c = state.clm_engine.transition_contract(id, &payload.status, Some(user_id)).await.map_err(|e| { tracing::error!("Transition: {}", e); err_status(&e) })?;
-    Ok(Json(serde_json::to_value(c).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(c)))
 }
 
 pub async fn delete_contract(
@@ -345,7 +345,7 @@ pub async fn add_contract_party(
         payload.contact_email.as_deref(), payload.contact_phone.as_deref(),
         payload.entity_reference.as_deref(), payload.is_primary.unwrap_or(false),
     ).await.map_err(|e| { tracing::error!("Add party: {}", e); err_status(&e) })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(p).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(p))))
 }
 
 pub async fn list_contract_parties(
@@ -392,7 +392,7 @@ pub async fn create_milestone(
         parse_date(payload.due_date.as_ref()),
         payload.amount.as_deref(), payload.currency.as_deref().unwrap_or("USD"),
     ).await.map_err(|e| { tracing::error!("Create milestone: {}", e); err_status(&e) })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(m).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(m))))
 }
 
 pub async fn list_milestones(
@@ -408,7 +408,7 @@ pub async fn complete_milestone(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let m = state.clm_engine.complete_milestone(id).await.map_err(|e| err_status(&e))?;
-    Ok(Json(serde_json::to_value(m).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(m)))
 }
 
 pub async fn delete_milestone(
@@ -450,7 +450,7 @@ pub async fn create_deliverable(
         payload.quantity.as_deref().unwrap_or("1"), payload.unit_of_measure.as_deref().unwrap_or("each"),
         parse_date(payload.due_date.as_ref()), payload.amount.as_deref(), payload.currency.as_deref().unwrap_or("USD"),
     ).await.map_err(|e| { tracing::error!("Create deliverable: {}", e); err_status(&e) })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(d).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(d))))
 }
 
 pub async fn list_deliverables(
@@ -468,7 +468,7 @@ pub async fn accept_deliverable(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = parse_uuid(&claims.sub, "user_id")?;
     let d = state.clm_engine.accept_deliverable(id, Some(user_id)).await.map_err(|e| err_status(&e))?;
-    Ok(Json(serde_json::to_value(d).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(d)))
 }
 
 pub async fn reject_deliverable(
@@ -476,7 +476,7 @@ pub async fn reject_deliverable(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let d = state.clm_engine.reject_deliverable(id).await.map_err(|e| err_status(&e))?;
-    Ok(Json(serde_json::to_value(d).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(d)))
 }
 
 pub async fn delete_deliverable(
@@ -517,7 +517,7 @@ pub async fn create_amendment(
         payload.previous_value.as_deref(), payload.new_value.as_deref(),
         parse_date(payload.effective_date.as_ref()), Some(user_id),
     ).await.map_err(|e| { tracing::error!("Create amendment: {}", e); err_status(&e) })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(a).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(a))))
 }
 
 pub async fn list_amendments(
@@ -535,7 +535,7 @@ pub async fn approve_amendment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = parse_uuid(&claims.sub, "user_id")?;
     let a = state.clm_engine.approve_amendment(id, Some(user_id)).await.map_err(|e| err_status(&e))?;
-    Ok(Json(serde_json::to_value(a).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(a)))
 }
 
 pub async fn reject_amendment(
@@ -543,7 +543,7 @@ pub async fn reject_amendment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let a = state.clm_engine.reject_amendment(id).await.map_err(|e| err_status(&e))?;
-    Ok(Json(serde_json::to_value(a).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(a)))
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -574,7 +574,7 @@ pub async fn create_risk(
         payload.impact.as_deref().unwrap_or("medium"),
         payload.mitigation_strategy.as_deref(), Some(user_id),
     ).await.map_err(|e| { tracing::error!("Create risk: {}", e); err_status(&e) })?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap_or_default())))
+    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(r))))
 }
 
 pub async fn list_risks(
@@ -603,5 +603,5 @@ pub async fn get_clm_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = parse_uuid(&claims.org_id, "org_id")?;
     let summary = state.clm_engine.get_dashboard(org_id).await.map_err(|e| { tracing::error!("CLM dashboard: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
-    Ok(Json(serde_json::to_value(summary).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(summary)))
 }

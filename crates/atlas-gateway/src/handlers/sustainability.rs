@@ -84,7 +84,7 @@ pub async fn create_facility(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(facility).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(facility)),
     ))
 }
 
@@ -98,7 +98,7 @@ pub async fn get_facility(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match facility {
-        Some(f) => Ok(Json(serde_json::to_value(f).unwrap_or_default())),
+        Some(f) => Ok(Json(crate::handlers::records::to_json_or_null(f))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -155,7 +155,7 @@ pub async fn update_facility_status(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(facility).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(facility)))
 }
 
 pub async fn delete_facility(
@@ -248,7 +248,7 @@ pub async fn create_emission_factor(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(ef).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(ef)),
     ))
 }
 
@@ -262,7 +262,7 @@ pub async fn get_emission_factor(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match ef {
-        Some(f) => Ok(Json(serde_json::to_value(f).unwrap_or_default())),
+        Some(f) => Ok(Json(crate::handlers::records::to_json_or_null(f))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -404,7 +404,7 @@ pub async fn create_activity(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(activity).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(activity)),
     ))
 }
 
@@ -418,7 +418,7 @@ pub async fn get_activity(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match activity {
-        Some(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Some(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -483,7 +483,7 @@ pub async fn update_activity_status(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(activity).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(activity)))
 }
 
 pub async fn delete_activity(
@@ -569,7 +569,7 @@ pub async fn create_metric(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(metric).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(metric)),
     ))
 }
 
@@ -583,7 +583,7 @@ pub async fn get_metric(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match metric {
-        Some(m) => Ok(Json(serde_json::to_value(m).unwrap_or_default())),
+        Some(m) => Ok(Json(crate::handlers::records::to_json_or_null(m))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -690,7 +690,7 @@ pub async fn create_metric_reading(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(reading).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(reading)),
     ))
 }
 
@@ -833,7 +833,7 @@ pub async fn create_goal(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(goal).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(goal)),
     ))
 }
 
@@ -847,7 +847,7 @@ pub async fn get_goal(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match goal {
-        Some(g) => Ok(Json(serde_json::to_value(g).unwrap_or_default())),
+        Some(g) => Ok(Json(crate::handlers::records::to_json_or_null(g))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -903,7 +903,7 @@ pub async fn update_goal_progress(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(goal).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(goal)))
 }
 
 pub async fn update_goal_status(
@@ -930,7 +930,7 @@ pub async fn update_goal_status(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(goal).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(goal)))
 }
 
 pub async fn delete_goal(
@@ -1035,7 +1035,7 @@ pub async fn create_carbon_offset(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(offset).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(offset)),
     ))
 }
 
@@ -1049,7 +1049,7 @@ pub async fn get_carbon_offset(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match offset {
-        Some(o) => Ok(Json(serde_json::to_value(o).unwrap_or_default())),
+        Some(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -1106,7 +1106,7 @@ pub async fn retire_carbon_offset(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(offset).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(offset)))
 }
 
 pub async fn delete_carbon_offset(
@@ -1150,5 +1150,5 @@ pub async fn get_sustainability_dashboard(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(serde_json::to_value(dashboard).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(dashboard)))
 }

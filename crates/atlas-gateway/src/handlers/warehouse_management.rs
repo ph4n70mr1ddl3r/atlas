@@ -76,7 +76,7 @@ pub async fn create_warehouse(
         payload.description.as_deref(), payload.location_code.as_deref(),
         Some(user_id),
     ).await {
-        Ok(wh) => Ok((StatusCode::CREATED, Json(serde_json::to_value(wh).unwrap_or_default()))),
+        Ok(wh) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(wh)))),
         Err(e) => { error!("Failed to create warehouse: {}", e); Err(map_error(e)) }
     }
 }
@@ -89,7 +89,7 @@ pub async fn get_warehouse(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.get_warehouse(org_id, id).await {
-        Ok(Some(wh)) => Ok(Json(serde_json::to_value(wh).unwrap_or_default())),
+        Ok(Some(wh)) => Ok(Json(crate::handlers::records::to_json_or_null(wh))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get warehouse: {}", e); Err(map_error(e)) }
     }
@@ -147,7 +147,7 @@ pub async fn create_zone(
         org_id, warehouse_id, &payload.code, &payload.name, &payload.zone_type,
         payload.description.as_deref(), payload.aisle_count,
     ).await {
-        Ok(zone) => Ok((StatusCode::CREATED, Json(serde_json::to_value(zone).unwrap_or_default()))),
+        Ok(zone) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(zone)))),
         Err(e) => { error!("Failed to create zone: {}", e); Err(map_error(e)) }
     }
 }
@@ -206,7 +206,7 @@ pub async fn create_put_away_rule(
         payload.priority.unwrap_or(10), payload.item_category.as_deref(),
         &payload.target_zone_type, &payload.strategy,
     ).await {
-        Ok(rule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_default()))),
+        Ok(rule) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rule)))),
         Err(e) => { error!("Failed to create put-away rule: {}", e); Err(map_error(e)) }
     }
 }
@@ -296,7 +296,7 @@ pub async fn create_task(
         payload.source_document.as_deref(), payload.source_document_id,
         payload.source_line_id, payload.wave_id, Some(user_id),
     ).await {
-        Ok(task) => Ok((StatusCode::CREATED, Json(serde_json::to_value(task).unwrap_or_default()))),
+        Ok(task) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(task)))),
         Err(e) => { error!("Failed to create task: {}", e); Err(map_error(e)) }
     }
 }
@@ -320,7 +320,7 @@ pub async fn create_task_for_warehouse(
         payload.source_document.as_deref(), payload.source_document_id,
         payload.source_line_id, payload.wave_id, Some(user_id),
     ).await {
-        Ok(task) => Ok((StatusCode::CREATED, Json(serde_json::to_value(task).unwrap_or_default()))),
+        Ok(task) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(task)))),
         Err(e) => { error!("Failed to create task: {}", e); Err(map_error(e)) }
     }
 }
@@ -333,7 +333,7 @@ pub async fn get_task(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.get_task(org_id, id).await {
-        Ok(Some(task)) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
+        Ok(Some(task)) => Ok(Json(crate::handlers::records::to_json_or_null(task))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get task: {}", e); Err(map_error(e)) }
     }
@@ -362,7 +362,7 @@ pub async fn start_task(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.start_task(org_id, id, None).await {
-        Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
+        Ok(task) => Ok(Json(crate::handlers::records::to_json_or_null(task))),
         Err(e) => { error!("Failed to start task: {}", e); Err(map_error(e)) }
     }
 }
@@ -375,7 +375,7 @@ pub async fn complete_task(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.complete_task(org_id, id).await {
-        Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
+        Ok(task) => Ok(Json(crate::handlers::records::to_json_or_null(task))),
         Err(e) => { error!("Failed to complete task: {}", e); Err(map_error(e)) }
     }
 }
@@ -388,7 +388,7 @@ pub async fn cancel_task(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.cancel_task(org_id, id).await {
-        Ok(task) => Ok(Json(serde_json::to_value(task).unwrap_or_default())),
+        Ok(task) => Ok(Json(crate::handlers::records::to_json_or_null(task))),
         Err(e) => { error!("Failed to cancel task: {}", e); Err(map_error(e)) }
     }
 }
@@ -433,7 +433,7 @@ pub async fn create_wave(
         payload.priority.as_deref().unwrap_or("medium"),
         payload.cut_off_date, payload.shipping_method.as_deref(), Some(user_id),
     ).await {
-        Ok(wave) => Ok((StatusCode::CREATED, Json(serde_json::to_value(wave).unwrap_or_default()))),
+        Ok(wave) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(wave)))),
         Err(e) => { error!("Failed to create wave: {}", e); Err(map_error(e)) }
     }
 }
@@ -446,7 +446,7 @@ pub async fn get_wave(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.get_wave(org_id, id).await {
-        Ok(Some(wave)) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
+        Ok(Some(wave)) => Ok(Json(crate::handlers::records::to_json_or_null(wave))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get wave: {}", e); Err(map_error(e)) }
     }
@@ -475,7 +475,7 @@ pub async fn release_wave(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.release_wave(org_id, id).await {
-        Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
+        Ok(wave) => Ok(Json(crate::handlers::records::to_json_or_null(wave))),
         Err(e) => { error!("Failed to release wave: {}", e); Err(map_error(e)) }
     }
 }
@@ -488,7 +488,7 @@ pub async fn complete_wave(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.complete_wave(org_id, id).await {
-        Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
+        Ok(wave) => Ok(Json(crate::handlers::records::to_json_or_null(wave))),
         Err(e) => { error!("Failed to complete wave: {}", e); Err(map_error(e)) }
     }
 }
@@ -501,7 +501,7 @@ pub async fn cancel_wave(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.cancel_wave(org_id, id).await {
-        Ok(wave) => Ok(Json(serde_json::to_value(wave).unwrap_or_default())),
+        Ok(wave) => Ok(Json(crate::handlers::records::to_json_or_null(wave))),
         Err(e) => { error!("Failed to cancel wave: {}", e); Err(map_error(e)) }
     }
 }
@@ -530,7 +530,7 @@ pub async fn get_warehouse_dashboard(
     let org_id = claims.org_uuid()?;
 
     match state.warehouse_management_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_default())),
+        Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => { error!("Failed to get warehouse dashboard: {}", e); Err(map_error(e)) }
     }
 }

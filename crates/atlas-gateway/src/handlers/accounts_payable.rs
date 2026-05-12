@@ -97,7 +97,7 @@ pub async fn create_ap_invoice(
         payload.source.as_deref(),
         Some(user_id),
     ).await {
-        Ok(invoice) => Ok((StatusCode::CREATED, Json(serde_json::to_value(invoice).unwrap_or_default()))),
+        Ok(invoice) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(invoice)))),
         Err(e) => {
             error!("Failed to create AP invoice: {}", e);
             Err(match e.status_code() {
@@ -116,7 +116,7 @@ pub async fn get_ap_invoice(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_payable_engine.get_invoice(id).await {
-        Ok(Some(invoice)) => Ok(Json(serde_json::to_value(invoice).unwrap_or_default())),
+        Ok(Some(invoice)) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get AP invoice: {}", e);
@@ -162,7 +162,7 @@ pub async fn submit_ap_invoice(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_payable_engine.submit_invoice(id).await {
-        Ok(invoice) => Ok(Json(serde_json::to_value(invoice).unwrap_or_default())),
+        Ok(invoice) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Err(e) => {
             error!("Failed to submit AP invoice: {}", e);
             Err(match e.status_code() {
@@ -184,7 +184,7 @@ pub async fn approve_ap_invoice(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.accounts_payable_engine.approve_invoice(id, user_id).await {
-        Ok(invoice) => Ok(Json(serde_json::to_value(invoice).unwrap_or_default())),
+        Ok(invoice) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Err(e) => {
             error!("Failed to approve AP invoice: {}", e);
             Err(match e.status_code() {
@@ -212,7 +212,7 @@ pub async fn cancel_ap_invoice(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.accounts_payable_engine.cancel_invoice(id, user_id, payload.reason.as_deref()).await {
-        Ok(invoice) => Ok(Json(serde_json::to_value(invoice).unwrap_or_default())),
+        Ok(invoice) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Err(e) => {
             error!("Failed to cancel AP invoice: {}", e);
             Err(match e.status_code() {
@@ -269,7 +269,7 @@ pub async fn add_ap_invoice_line(
         payload.tax_code.as_deref(), payload.tax_amount.as_deref(),
         Some(user_id),
     ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_default()))),
+        Ok(line) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line)))),
         Err(e) => {
             error!("Failed to add AP invoice line: {}", e);
             Err(match e.status_code() {
@@ -370,7 +370,7 @@ pub async fn add_ap_distribution(
         payload.tax_recoverable, payload.tax_recoverable_amount.as_deref(),
         payload.accounting_date, Some(user_id),
     ).await {
-        Ok(dist) => Ok((StatusCode::CREATED, Json(serde_json::to_value(dist).unwrap_or_default()))),
+        Ok(dist) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(dist)))),
         Err(e) => {
             error!("Failed to add AP distribution: {}", e);
             Err(match e.status_code() {
@@ -422,7 +422,7 @@ pub async fn apply_ap_hold(
     match state.accounts_payable_engine.apply_hold(
         org_id, invoice_id, &payload.hold_type, &payload.hold_reason, Some(user_id),
     ).await {
-        Ok(hold) => Ok((StatusCode::CREATED, Json(serde_json::to_value(hold).unwrap_or_default()))),
+        Ok(hold) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(hold)))),
         Err(e) => {
             error!("Failed to apply AP hold: {}", e);
             Err(match e.status_code() {
@@ -452,7 +452,7 @@ pub async fn release_ap_hold(
     match state.accounts_payable_engine.release_hold(
         hold_id, user_id, payload.release_reason.as_deref(),
     ).await {
-        Ok(hold) => Ok(Json(serde_json::to_value(hold).unwrap_or_default())),
+        Ok(hold) => Ok(Json(crate::handlers::records::to_json_or_null(hold))),
         Err(e) => {
             error!("Failed to release AP hold: {}", e);
             Err(match e.status_code() {
@@ -525,7 +525,7 @@ pub async fn create_ap_payment(
         payload.supplier_name.as_deref(), &payload.invoice_ids,
         Some(user_id),
     ).await {
-        Ok(payment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(payment).unwrap_or_default()))),
+        Ok(payment) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(payment)))),
         Err(e) => {
             error!("Failed to create AP payment: {}", e);
             Err(match e.status_code() {
@@ -544,7 +544,7 @@ pub async fn get_ap_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.accounts_payable_engine.get_payment(id).await {
-        Ok(Some(payment)) => Ok(Json(serde_json::to_value(payment).unwrap_or_default())),
+        Ok(Some(payment)) => Ok(Json(crate::handlers::records::to_json_or_null(payment))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get AP payment: {}", e);
@@ -589,7 +589,7 @@ pub async fn confirm_ap_payment(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.accounts_payable_engine.confirm_payment(id, user_id).await {
-        Ok(payment) => Ok(Json(serde_json::to_value(payment).unwrap_or_default())),
+        Ok(payment) => Ok(Json(crate::handlers::records::to_json_or_null(payment))),
         Err(e) => {
             error!("Failed to confirm AP payment: {}", e);
             Err(match e.status_code() {
@@ -622,7 +622,7 @@ pub async fn get_ap_aging(
     let as_of_date = query.as_of_date.unwrap_or_else(|| chrono::Utc::now().date_naive());
 
     match state.accounts_payable_engine.get_aging_summary(org_id, as_of_date).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_default())),
+        Ok(summary) => Ok(Json(crate::handlers::records::to_json_or_null(summary))),
         Err(e) => {
             error!("Failed to get AP aging: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

@@ -99,7 +99,7 @@ pub async fn create_plan(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(plan).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(plan)),
     ))
 }
 
@@ -120,7 +120,7 @@ pub async fn get_plan(
         })?;
 
     match plan {
-        Some(p) => Ok(Json(serde_json::to_value(p).unwrap_or_default())),
+        Some(p) => Ok(Json(crate::handlers::records::to_json_or_null(p))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -233,7 +233,7 @@ pub async fn create_criterion(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(criterion).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(criterion)),
     ))
 }
 
@@ -340,7 +340,7 @@ pub async fn create_inspection(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(inspection).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(inspection)),
     ))
 }
 
@@ -358,7 +358,7 @@ pub async fn get_inspection(
         })?;
 
     match inspection {
-        Some(i) => Ok(Json(serde_json::to_value(i).unwrap_or_default())),
+        Some(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -408,7 +408,7 @@ pub async fn start_inspection(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(inspection).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(inspection)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -437,7 +437,7 @@ pub async fn complete_inspection(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(inspection).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(inspection)))
 }
 
 pub async fn cancel_inspection(
@@ -457,7 +457,7 @@ pub async fn cancel_inspection(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(inspection).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(inspection)))
 }
 
 // ============================================================================
@@ -522,7 +522,7 @@ pub async fn create_result(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(result).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(result)),
     ))
 }
 
@@ -612,7 +612,7 @@ pub async fn create_ncr(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(ncr).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(ncr)),
     ))
 }
 
@@ -630,7 +630,7 @@ pub async fn get_ncr(
         })?;
 
     match ncr {
-        Some(n) => Ok(Json(serde_json::to_value(n).unwrap_or_default())),
+        Some(n) => Ok(Json(crate::handlers::records::to_json_or_null(n))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -683,7 +683,7 @@ pub async fn investigate_ncr(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(ncr).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(ncr)))
 }
 
 pub async fn start_ncr_corrective_action(
@@ -703,7 +703,7 @@ pub async fn start_ncr_corrective_action(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(ncr).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(ncr)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -738,7 +738,7 @@ pub async fn resolve_ncr(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(ncr).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(ncr)))
 }
 
 pub async fn close_ncr(
@@ -758,7 +758,7 @@ pub async fn close_ncr(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(ncr).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(ncr)))
 }
 
 // ============================================================================
@@ -822,7 +822,7 @@ pub async fn create_corrective_action(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(action).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(action)),
     ))
 }
 
@@ -840,7 +840,7 @@ pub async fn get_corrective_action(
         })?;
 
     match action {
-        Some(a) => Ok(Json(serde_json::to_value(a).unwrap_or_default())),
+        Some(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -881,7 +881,7 @@ pub async fn start_corrective_action(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(action).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(action)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -909,7 +909,7 @@ pub async fn complete_corrective_action(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(action).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(action)))
 }
 
 pub async fn verify_corrective_action(
@@ -929,7 +929,7 @@ pub async fn verify_corrective_action(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(action).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(action)))
 }
 
 // ============================================================================
@@ -988,7 +988,7 @@ pub async fn create_hold(
 
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(hold).unwrap_or_default()),
+        Json(crate::handlers::records::to_json_or_null(hold)),
     ))
 }
 
@@ -1006,7 +1006,7 @@ pub async fn get_hold(
         })?;
 
     match hold {
-        Some(h) => Ok(Json(serde_json::to_value(h).unwrap_or_default())),
+        Some(h) => Ok(Json(crate::handlers::records::to_json_or_null(h))),
         None => Err(StatusCode::NOT_FOUND),
     }
 }
@@ -1066,7 +1066,7 @@ pub async fn release_hold(
             }
         })?;
 
-    Ok(Json(serde_json::to_value(hold).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(hold)))
 }
 
 // ============================================================================
@@ -1088,5 +1088,5 @@ pub async fn get_quality_dashboard(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(serde_json::to_value(dashboard).unwrap_or_default()))
+    Ok(Json(crate::handlers::records::to_json_or_null(dashboard)))
 }

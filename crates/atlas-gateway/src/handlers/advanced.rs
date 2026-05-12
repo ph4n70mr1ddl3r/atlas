@@ -101,10 +101,10 @@ impl FilterExpression {
                         (format!("\"{}\"::text ILIKE ${}::text", safe_field, *param_idx), vec![Some(pattern)])
                     }
                     "is_null" => {
-                        ("\"{}\" IS NULL".replace("{}", &safe_field), vec![])
+                        (format!("\"{}\" IS NULL", safe_field), vec![])
                     }
                     "is_not_null" => {
-                        ("\"{}\" IS NOT NULL".replace("{}", &safe_field), vec![])
+                        (format!("\"{}\" IS NOT NULL", safe_field), vec![])
                     }
                     "in" => {
                         if let Some(arr) = value.as_array() {

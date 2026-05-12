@@ -15,6 +15,39 @@ fn sanitize_sql_identifier(name: &str) -> String {
         .collect()
 }
 
+/// Validate a SQL JOIN ON clause.
+///
+/// Only allows the pattern `identifier.identifier = identifier.identifier`
+/// (optionally qualified with a table alias). Rejects anything containing
+/// OR, AND, semicolons, or other SQL keywords that could widen the clause.
+fn validate_join_on(on: &str) -> AtlasResult<()> {
+    // Allow only: alphanumeric, underscore, dot, equals, and spaces
+    if !on.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '.' || c == '=' || c == ' ') {
+        return Err(AtlasError::ValidationFailed(
+            "JOIN ON clause contains disallowed characters".into()
+        ));
+    }
+    // Must contain exactly one '='
+    let parts: Vec<&str> = on.split('=').collect();
+    if parts.len() != 2 {
+        return Err(AtlasError::ValidationFailed(
+            "JOIN ON clause must contain exactly one '='".into()
+        ));
+    }
+    // Each side must look like identifier.identifier or just identifier
+    for part in &parts {
+        let trimmed = part.trim();
+        for segment in trimmed.split('.') {
+            if segment.is_empty() || !segment.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                return Err(AtlasError::ValidationFailed(
+                    "JOIN ON clause has invalid identifier".into()
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Escape SQL LIKE wildcard characters (`%`, `_`, `\`) so that a user-provided
 /// string is matched literally inside a `LIKE` pattern.
 fn escape_like_wildcards(s: &str) -> String {
@@ -116,33 +149,37 @@ impl DynamicQuery {
         self
     }
     
-    #[must_use] 
-    pub fn join(mut self, alias: &str, join_type: JoinType, table: &str, on: &str) -> Self {
+    /// Add a JOIN clause.
+    ///
+    /// The ON clause is validated to prevent injection — it must match the
+    /// pattern `identifier.identifier = identifier.identifier`.
+    pub fn join(mut self, alias: &str, join_type: JoinType, table: &str, on: &str) -> AtlasResult<Self> {
+        validate_join_on(on)?;
         let safe_alias = sanitize_sql_identifier(alias);
         let safe_table = sanitize_sql_identifier(table);
-        // Sanitize ON clause field references (allow only identifier.identifier patterns)
+        // Re-derive the safe ON from validated input
         let safe_on: String = on.chars()
-            .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '.' || *c == '=')
+            .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '.' || *c == '=' || *c == ' ')
             .collect();
         self.joins.insert(safe_alias, JoinDef {
             join_type,
             table: safe_table,
             on: safe_on,
         });
-        self
+        Ok(self)
     }
     
-    /// Build the SELECT query.
+    /// Build the SELECT query (parameterized).
     ///
-    /// **WARNING**: Filter values are interpolated into the SQL string via
-    /// `value_to_sql`, which performs basic escaping.  For user-facing code
-    /// prefer building parameterized queries (as the gateway handlers do)
-    /// rather than using this method directly with untrusted input.
+    /// Returns `(sql, values)` where `values` is a list of JSON values that
+    /// should be bound positionally to the query.  Filter values are **never**
+    /// interpolated into the SQL string, eliminating SQL-injection risk.
     ///
-    /// Sort fields are sanitized through `sanitize_sql_identifier`.
-    #[must_use] 
-    pub fn build_select(&self) -> String {
+    /// Sort fields and identifiers are sanitized through `sanitize_sql_identifier`.
+    pub fn build_select(&self) -> (String, Vec<serde_json::Value>) {
         let mut sql = String::from("SELECT ");
+        let mut values: Vec<serde_json::Value> = Vec::new();
+        let mut param_idx = 0;
         
         // Select clause
         sql.push_str(&self.select_fields.join(", "));
@@ -159,11 +196,15 @@ impl DynamicQuery {
             sql.push_str(&format!(" {} \"{}\" AS \"{}\" ON {}", join_keyword, join.table, alias, join.on));
         }
         
-        // Where clause
+        // Where clause (parameterized)
         if !self.filters.is_empty() {
             sql.push_str(" WHERE ");
             let conditions: Vec<String> = self.filters.iter()
-                .map(|f| self.filter_to_sql(f))
+                .map(|f| {
+                    let (cond, mut vals) = self.filter_to_sql_param(f, &mut param_idx);
+                    values.append(&mut vals);
+                    cond
+                })
                 .collect();
             sql.push_str(&conditions.join(" AND "));
         }
@@ -191,16 +232,18 @@ impl DynamicQuery {
             sql.push_str(&format!(" LIMIT {limit}"));
         }
         
-        sql
+        (sql, values)
     }
     
-    /// Build the COUNT query.
+    /// Build the COUNT query (parameterized).
     ///
-    /// **WARNING**: Same caveat as `build_select` – filter values are
-    /// string-interpolated.  Use parameterized queries for untrusted input.
-    #[must_use] 
-    pub fn build_count(&self) -> String {
+    /// Returns `(sql, values)` mirroring the parameterised approach of
+    /// `build_select` so that filter values are bound, never interpolated.
+    pub fn build_count(&self) -> (String, Vec<serde_json::Value>) {
         let mut sql = String::from("SELECT COUNT(*) FROM ");
+        let mut values: Vec<serde_json::Value> = Vec::new();
+        let mut param_idx = 0;
+
         sql.push_str(&format!("\"{}\"", self.table_name));
         
         // Joins for count
@@ -213,16 +256,20 @@ impl DynamicQuery {
             sql.push_str(&format!(" {} \"{}\" AS \"{}\" ON {}", join_keyword, join.table, alias, join.on));
         }
         
-        // Where clause
+        // Where clause (parameterized)
         if !self.filters.is_empty() {
             sql.push_str(" WHERE ");
             let conditions: Vec<String> = self.filters.iter()
-                .map(|f| self.filter_to_sql(f))
+                .map(|f| {
+                    let (cond, mut vals) = self.filter_to_sql_param(f, &mut param_idx);
+                    values.append(&mut vals);
+                    cond
+                })
                 .collect();
             sql.push_str(&conditions.join(" AND "));
         }
         
-        sql
+        (sql, values)
     }
     
     /// Build the INSERT query (parameterized).
@@ -299,6 +346,98 @@ impl DynamicQuery {
         )
     }
     
+    /// Parameterized version of `filter_to_sql`.
+    ///
+    /// Returns `(sql_fragment, bind_values)`.  The caller is responsible for
+    /// appending values to the overall bind list in the same order.
+    fn filter_to_sql_param(
+        &self,
+        filter: &QueryFilter,
+        param_idx: &mut usize,
+    ) -> (String, Vec<serde_json::Value>) {
+        // Sanitize field name to prevent injection
+        let field = format!("\"{}\"", sanitize_sql_identifier(&filter.field));
+        let value = &filter.value;
+
+        match filter.operator {
+            FilterOperator::Eq => {
+                *param_idx += 1;
+                (format!("{} = ${}", field, *param_idx), vec![value.clone()])
+            }
+            FilterOperator::Ne => {
+                *param_idx += 1;
+                (format!("{} != ${}", field, *param_idx), vec![value.clone()])
+            }
+            FilterOperator::Gt => {
+                *param_idx += 1;
+                (format!("{} > ${}", field, *param_idx), vec![value.clone()])
+            }
+            FilterOperator::Gte => {
+                *param_idx += 1;
+                (format!("{} >= ${}", field, *param_idx), vec![value.clone()])
+            }
+            FilterOperator::Lt => {
+                *param_idx += 1;
+                (format!("{} < ${}", field, *param_idx), vec![value.clone()])
+            }
+            FilterOperator::Lte => {
+                *param_idx += 1;
+                (format!("{} <= ${}", field, *param_idx), vec![value.clone()])
+            }
+            FilterOperator::In => {
+                *param_idx += 1;
+                (format!("{} = ANY(${})", field, *param_idx), vec![value.clone()])
+            }
+            FilterOperator::NotIn => {
+                *param_idx += 1;
+                (format!("NOT {} = ANY(${})", field, *param_idx), vec![value.clone()])
+            }
+            FilterOperator::Contains => {
+                let v = value.as_str().unwrap_or("");
+                let escaped = escape_like_wildcards(v);
+                *param_idx += 1;
+                (format!("{} LIKE ${}", field, *param_idx), vec![serde_json::json!(format!("%{}%", escaped))])
+            }
+            FilterOperator::StartsWith => {
+                let v = value.as_str().unwrap_or("");
+                let escaped = escape_like_wildcards(v);
+                *param_idx += 1;
+                (format!("{} LIKE ${}", field, *param_idx), vec![serde_json::json!(format!("{}%", escaped))])
+            }
+            FilterOperator::EndsWith => {
+                let v = value.as_str().unwrap_or("");
+                let escaped = escape_like_wildcards(v);
+                *param_idx += 1;
+                (format!("{} LIKE ${}", field, *param_idx), vec![serde_json::json!(format!("%{}", escaped))])
+            }
+            FilterOperator::IsNull => (format!("{field} IS NULL"), vec![]),
+            FilterOperator::IsNotNull => (format!("{field} IS NOT NULL"), vec![]),
+            FilterOperator::Between => {
+                if let Some(arr) = value.as_array() {
+                    if arr.len() == 2 {
+                        *param_idx += 1;
+                        let p1 = *param_idx;
+                        *param_idx += 1;
+                        let p2 = *param_idx;
+                        return (format!("{} BETWEEN ${} AND ${}", field, p1, p2),
+                                vec![arr[0].clone(), arr[1].clone()]);
+                    }
+                }
+                // Fallback: degenerate BETWEEN that matches nothing
+                ("1=0".to_string(), vec![])
+            }
+            _ => ("1=1".to_string(), vec![]),
+        }
+    }
+
+    /// Legacy string-interpolation filter.
+    ///
+    /// **DEPRECATED** – only retained for backward-compatible callers that
+    /// have not yet migrated to `build_select_param` / `build_count_param`.
+    /// New code should use `build_select()` / `build_count()` which return
+    /// parameterised queries.
+    #[deprecated(note = "Use build_select() / build_count() which return parameterised queries")]
+    #[allow(dead_code)]
     fn filter_to_sql(&self, filter: &QueryFilter) -> String {
         // Sanitize field name to prevent injection
         let field = format!("\"{}\"", sanitize_sql_identifier(&filter.field));
@@ -347,6 +486,7 @@ impl DynamicQuery {
     ///
     /// Interpolates values directly into the SQL string with basic escaping.
     /// Callers should prefer parameterized queries for untrusted input.
+    #[allow(dead_code)]
     fn value_to_sql(&self, value: &serde_json::Value) -> String {
         match value {
             serde_json::Value::Null => "NULL".to_string(),
@@ -416,12 +556,14 @@ mod tests {
             .sort("created_at", SortDirection::Desc)
             .limit(10);
         
-        let sql = query.build_select();
+        let (sql, values) = query.build_select();
         assert!(sql.contains("SELECT \"id\", \"name\", \"email\""));
         assert!(sql.contains("FROM \"employees\""));
-        assert!(sql.contains("WHERE \"status\" = 'active'"));
+        // Parameterized – no inline 'active'
+        assert!(sql.contains("WHERE \"status\" = $1"));
         assert!(sql.contains("ORDER BY \"created_at\" DESC"));
         assert!(sql.contains("LIMIT 10"));
+        assert_eq!(values, vec![serde_json::json!("active")]);
     }
     
     #[test]
@@ -433,9 +575,11 @@ mod tests {
                 value: serde_json::json!("123"),
             });
         
-        let count_sql = query.build_count();
+        let (count_sql, values) = query.build_count();
         assert!(count_sql.contains("SELECT COUNT(*) FROM \"orders\""));
-        assert!(count_sql.contains("WHERE \"customer_id\" = '123'"));
+        // Parameterized – no inline '123'
+        assert!(count_sql.contains("WHERE \"customer_id\" = $1"));
+        assert_eq!(values, vec![serde_json::json!("123")]);
     }
     
     #[test]
@@ -443,7 +587,7 @@ mod tests {
         let query = DynamicQuery::new("products")
             .paginate(2, 25); // Page 2, 25 per page
         
-        let sql = query.build_select();
+        let (sql, _values) = query.build_select();
         assert!(sql.contains("OFFSET 50"));
         assert!(sql.contains("LIMIT 25"));
     }
@@ -458,8 +602,9 @@ mod tests {
                 value: serde_json::Value::Null,
             });
         
-        let sql = query.build_select();
+        let (sql, values) = query.build_select();
         assert!(sql.contains("\"completed_at\" IS NULL"));
+        assert!(values.is_empty());
         
         // Contains
         let query2 = DynamicQuery::new("products")
@@ -469,8 +614,10 @@ mod tests {
                 value: serde_json::json!("widget"),
             });
         
-        let sql2 = query2.build_select();
-        assert!(sql2.contains("\"name\" LIKE '%widget%'"));
+        let (sql2, values2) = query2.build_select();
+        // Parameterized LIKE – pattern in bind value, not SQL string
+        assert!(sql2.contains("\"name\" LIKE $1"));
+        assert_eq!(values2, vec![serde_json::json!("%widget%")]);
         
         // Between
         let query3 = DynamicQuery::new("orders")
@@ -480,8 +627,9 @@ mod tests {
                 value: serde_json::json!([100, 500]),
             });
         
-        let sql3 = query3.build_select();
-        assert!(sql3.contains("\"amount\" BETWEEN 100 AND 500"));
+        let (sql3, values3) = query3.build_select();
+        assert!(sql3.contains("\"amount\" BETWEEN $1 AND $2"));
+        assert_eq!(values3, vec![serde_json::json!(100), serde_json::json!(500)]);
     }
     
     #[test]
@@ -504,7 +652,7 @@ mod tests {
     
     #[test]
     fn test_like_wildcard_escaping() {
-        // Ensure user-provided LIKE wildcards are escaped
+        // Ensure user-provided LIKE wildcards are escaped in the bind value
         let query = DynamicQuery::new("products")
             .filter(QueryFilter {
                 field: "name".to_string(),
@@ -512,10 +660,12 @@ mod tests {
                 value: serde_json::json!("100%_real"),
             });
         
-        let sql = query.build_select();
-        // The % and _ inside the user value should be escaped
-        assert!(sql.contains("\\%"));
-        assert!(sql.contains("\\_"));
+        let (_sql, values) = query.build_select();
+        // The % and _ inside the user value should be escaped in the bind param
+        assert_eq!(values.len(), 1);
+        let pattern = values[0].as_str().unwrap();
+        assert!(pattern.contains("\\%"));
+        assert!(pattern.contains("\\_"));
     }
     
     #[test]
@@ -525,5 +675,58 @@ mod tests {
         assert_eq!(escape_like_wildcards("a_b"), "a\\_b");
         assert_eq!(escape_like_wildcards("a\\b"), "a\\\\b");
         assert_eq!(escape_like_wildcards("%_\\"), "\\%\\_\\\\");
+    }
+
+    #[test]
+    fn test_sql_injection_in_identifier() {
+        let malicious = "users; DROP TABLE users--";
+        let safe = sanitize_sql_identifier(malicious);
+        assert!(!safe.contains(';'));
+        assert!(!safe.contains('-'));
+        assert!(!safe.contains(' '));
+    }
+
+    #[test]
+    fn test_sql_injection_in_filter_value() {
+        // With parameterized queries, injection values end up as bind params
+        let query = DynamicQuery::new("users")
+            .filter(QueryFilter {
+                field: "name".to_string(),
+                operator: FilterOperator::Eq,
+                value: serde_json::json!("Robert'; DROP TABLE students;--"),
+            });
+        let (sql, values) = query.build_select();
+        // The SQL should use $1, not inline the value
+        assert!(sql.contains("WHERE \"name\" = $1"));
+        // The malicious value is safely in the bind parameters
+        assert_eq!(values[0], serde_json::json!("Robert'; DROP TABLE students;--"));
+        // Crucially: no raw SQL injection in the query string
+        assert!(!sql.contains("DROP TABLE"));
+    }
+
+    #[test]
+    fn test_sql_injection_in_field_name() {
+        let query = DynamicQuery::new("users")
+            .filter(QueryFilter {
+                field: "id; DROP TABLE users--".to_string(),
+                operator: FilterOperator::Eq,
+                value: serde_json::json!(1),
+            });
+        let (sql, _values) = query.build_select();
+        // The field name should be sanitized - no semicolons, no dashes, no spaces
+        assert!(!sql.contains(';'));
+        assert!(!sql.contains("--"));
+        // The malicious SQL keywords should not appear as executable SQL
+        assert!(!sql.contains("; DROP"));
+        assert!(!sql.contains("--"));
+    }
+
+    #[test]
+    fn test_validate_join_on_rejects_malicious() {
+        assert!(validate_join_on("a.id = b.id OR 1=1").is_err());
+        assert!(validate_join_on("a.id = b.id; DROP TABLE users").is_err());
+        assert!(validate_join_on("a.id = b.id").is_ok());
+        assert!(validate_join_on("a.id = b.user_id").is_ok());
+        assert!(validate_join_on("a.id == b.id").is_err());
     }
 }

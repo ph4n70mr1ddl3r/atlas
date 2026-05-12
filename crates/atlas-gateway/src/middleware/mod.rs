@@ -9,8 +9,8 @@ use axum::{
     response::Response,
 };
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
-use std::sync::{RwLock, Arc};
+use std::sync::Arc;
+use dashmap::DashMap;
 
 /// Authentication middleware that validates JWT tokens
 pub async fn auth_middleware(
@@ -61,11 +61,12 @@ pub async fn admin_auth_middleware(
     Ok(next.run(request).await)
 }
 
-/// Simple in-memory rate limiter for login attempts
-/// In production, use Redis or similar distributed store
+/// Concurrent in-memory rate limiter for login attempts.
+/// Uses `DashMap` for lock-free concurrent access from async handlers.
+/// In production, use Redis or similar distributed store.
 pub struct RateLimiter {
-    /// Map of IP -> (attempts, `window_start`)
-    attempts: RwLock<HashMap<String, (u32, Instant)>>,
+    /// Map of IP -> (attempts, window_start)
+    attempts: DashMap<String, (u32, Instant)>,
     /// Max attempts per window
     max_attempts: u32,
     /// Window duration in seconds
@@ -76,45 +77,36 @@ impl RateLimiter {
     #[must_use] 
     pub fn new(max_attempts: u32, window_secs: u64) -> Self {
         Self {
-            attempts: RwLock::new(HashMap::new()),
+            attempts: DashMap::new(),
             max_attempts,
             window: Duration::from_secs(window_secs),
         }
     }
     
-    /// Check if a request from this IP should be allowed
+    /// Check if a request from this IP should be allowed.
     ///
-    /// Returns `false` (rate-limited) if the lock is poisoned rather than
-    /// panicking.  Under extreme contention the caller still receives a
-    /// deny-by-default response, which is the safer choice.
+    /// Uses lock-free `DashMap` operations so the async runtime is never
+    /// blocked by a poisoned `std::sync::RwLock`.
     pub fn check(&self, ip: &str) -> bool {
         let now = Instant::now();
         
-        // Clean old entries and check current state
-        let mut attempts = match self.attempts.write() {
-            Ok(g) => g,
-            Err(e) => {
-                tracing::error!("Rate limiter lock poisoned: {e}");
-                // Deny-by-default when lock is poisoned
-                return false;
-            }
-        };
-        attempts.retain(|_, (_, start)| now.duration_since(*start) < self.window);
+        // Clean old entries periodically
+        self.attempts.retain(|_, (_, start)| now.duration_since(*start) < self.window);
         
         // Check current state and determine action
-        let entry = attempts.get(ip).copied();
+        let entry = self.attempts.get(ip).map(|r| *r.value());
         
         match entry {
             Some((count, start)) if now.duration_since(start) < self.window => {
                 if count >= self.max_attempts {
                     false
                 } else {
-                    attempts.insert(ip.to_string(), (count + 1, start));
+                    self.attempts.insert(ip.to_string(), (count + 1, start));
                     true
                 }
             }
             _ => {
-                attempts.insert(ip.to_string(), (1, now));
+                self.attempts.insert(ip.to_string(), (1, now));
                 true
             }
         }
@@ -122,15 +114,9 @@ impl RateLimiter {
     
     /// Get remaining attempts for an IP
     pub fn remaining(&self, ip: &str) -> u32 {
-        let attempts = match self.attempts.read() {
-            Ok(g) => g,
-            Err(e) => {
-                tracing::error!("Rate limiter lock poisoned: {e}");
-                return 0;
-            }
-        };
-        match attempts.get(ip) {
-            Some((count, start)) => {
+        match self.attempts.get(ip) {
+            Some(entry) => {
+                let (count, start) = entry.value();
                 let now = Instant::now();
                 if now.duration_since(*start) < self.window {
                     self.max_attempts.saturating_sub(*count)

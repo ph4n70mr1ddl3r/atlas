@@ -15828,12 +15828,130 @@ impl BankStatementReconciliationService {
 }
 
 
+/// Dynamic discount offer from a supplier
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DiscountOffer {
+    pub invoice_id: String,
+    pub supplier_id: String,
+    pub invoice_amount: f64,
+    pub standard_due_date: String,
+    pub early_payment_date: String,
+    pub days_paid_early: u32,
+    pub base_discount_rate_apr: f64,
+}
+
+/// Result of evaluating a discount offer
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DiscountEvaluationResult {
+    pub offer_accepted: bool,
+    pub calculated_discount_amount: f64,
+    pub final_payment_amount: f64,
+    pub effective_apr: f64,
+    pub reasoning: String,
+}
+
+/// Service for managing Dynamic Discounting logic
+pub struct DynamicDiscountingService;
+
+impl DynamicDiscountingService {
+    /// Calculate the discount amount dynamically based on days early and base APR rate
+    pub fn calculate_discount(amount: f64, days_early: u32, apr: f64) -> f64 {
+        if days_early == 0 {
+            return 0.0;
+        }
+        // Formula: Amount * (APR / 365) * days_early
+        let daily_rate = apr / 365.0;
+        let discount = amount * daily_rate * (days_early as f64);
+        // Round to 2 decimal places
+        (discount * 100.0).round() / 100.0
+    }
+
+    /// Evaluate an offer against a buyer's target cost of capital (APR)
+    pub fn evaluate_offer(offer: &DiscountOffer, buyer_cost_of_capital_apr: f64) -> AtlasResult<DiscountEvaluationResult> {
+        if offer.invoice_amount <= 0.0 {
+            return Err(AtlasError::ValidationFailed("Invoice amount must be positive".to_string()));
+        }
+
+        let calculated_discount = Self::calculate_discount(
+            offer.invoice_amount, 
+            offer.days_paid_early, 
+            offer.base_discount_rate_apr
+        );
+
+        let final_payment = offer.invoice_amount - calculated_discount;
+        
+        // In dynamic discounting, if the supplier's offered APR is greater than or equal
+        // to the buyer's cost of capital, it makes financial sense to accept it.
+        let offer_accepted = offer.base_discount_rate_apr >= buyer_cost_of_capital_apr;
+
+        let reasoning = if offer_accepted {
+            format!("Accepted: Supplier APR ({:.2}%) >= Buyer Cost of Capital ({:.2}%)", offer.base_discount_rate_apr * 100.0, buyer_cost_of_capital_apr * 100.0)
+        } else {
+            format!("Rejected: Supplier APR ({:.2}%) < Buyer Cost of Capital ({:.2}%)", offer.base_discount_rate_apr * 100.0, buyer_cost_of_capital_apr * 100.0)
+        };
+
+        Ok(DiscountEvaluationResult {
+            offer_accepted,
+            calculated_discount_amount: calculated_discount,
+            final_payment_amount: final_payment,
+            effective_apr: offer.base_discount_rate_apr,
+            reasoning,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
     use atlas_shared::RecordId;
-    
-    
+    use super::{DynamicDiscountingService, DiscountOffer};
+
+    #[test]
+    fn test_dynamic_discounting_calculation() {
+        // $10,000 invoice, paid 30 days early, at 12% APR
+        // Discount = 10000 * (0.12 / 365) * 30 = 98.63
+        let discount = DynamicDiscountingService::calculate_discount(10000.0, 30, 0.12);
+        assert_eq!(discount, 98.63);
+
+        let no_discount = DynamicDiscountingService::calculate_discount(10000.0, 0, 0.12);
+        assert_eq!(no_discount, 0.0);
+    }
+
+    #[test]
+    fn test_dynamic_discounting_evaluation_accept() {
+        let offer = DiscountOffer {
+            invoice_id: "INV-123".to_string(),
+            supplier_id: "SUP-001".to_string(),
+            invoice_amount: 10000.0,
+            standard_due_date: "2024-12-31".to_string(),
+            early_payment_date: "2024-12-01".to_string(),
+            days_paid_early: 30,
+            base_discount_rate_apr: 0.15, // 15% APR
+        };
+
+        // Buyer cost of capital is 10%, which is less than 15%, so buyer accepts
+        let result = DynamicDiscountingService::evaluate_offer(&offer, 0.10).unwrap();
+        assert!(result.offer_accepted);
+        assert_eq!(result.calculated_discount_amount, 123.29); // 10000 * (0.15/365) * 30 = 123.287... -> 123.29
+        assert_eq!(result.final_payment_amount, 9876.71);
+    }
+
+    #[test]
+    fn test_dynamic_discounting_evaluation_reject() {
+        let offer = DiscountOffer {
+            invoice_id: "INV-124".to_string(),
+            supplier_id: "SUP-001".to_string(),
+            invoice_amount: 5000.0,
+            standard_due_date: "2024-12-31".to_string(),
+            early_payment_date: "2024-12-15".to_string(),
+            days_paid_early: 16,
+            base_discount_rate_apr: 0.08, // 8% APR
+        };
+
+        // Buyer cost of capital is 10%, which is > 8%, so buyer rejects the early payment
+        let result = DynamicDiscountingService::evaluate_offer(&offer, 0.10).unwrap();
+        assert!(!result.offer_accepted);
+    }
 
     // ========================================================================
     // General Ledger Entity Tests

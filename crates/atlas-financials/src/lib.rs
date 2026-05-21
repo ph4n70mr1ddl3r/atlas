@@ -180,4 +180,8 @@ pub use services::{
     BankReconciliationDashboard,
     // Automatic Offsets (Intercompany Balancing)
     AutomaticOffsetService,
+    // Dynamic Discounting
+    DynamicDiscountingService,
+    DiscountOffer,
+    DiscountEvaluationResult,
 };

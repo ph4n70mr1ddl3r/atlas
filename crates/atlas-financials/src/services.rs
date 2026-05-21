@@ -15900,6 +15900,64 @@ impl DynamicDiscountingService {
     }
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ForecastLineItem {
+    pub source: String,
+    pub amount: f64,
+    pub date: String,
+    pub expected_clear_date: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CashPositionResult {
+    pub date: String,
+    pub opening_balance: f64,
+    pub inflows: f64,
+    pub outflows: f64,
+    pub closing_balance: f64,
+    pub line_items: Vec<ForecastLineItem>,
+}
+
+pub struct CashForecastingService;
+
+impl CashForecastingService {
+    pub fn generate_forecast(
+        starting_balance: f64,
+        inflows: Vec<ForecastLineItem>,
+        outflows: Vec<ForecastLineItem>,
+    ) -> Vec<CashPositionResult> {
+        let mut results = Vec::new();
+        let mut current_balance = starting_balance;
+
+        let mut date_map = std::collections::BTreeMap::new();
+        for item in inflows.iter() {
+            let entry = date_map.entry(item.expected_clear_date.clone()).or_insert_with(|| (0.0, 0.0, Vec::new()));
+            entry.0 += item.amount;
+            entry.2.push(item.clone());
+        }
+        for item in outflows.iter() {
+            let entry = date_map.entry(item.expected_clear_date.clone()).or_insert_with(|| (0.0, 0.0, Vec::new()));
+            entry.1 += item.amount;
+            entry.2.push(item.clone());
+        }
+
+        for (date, (inflow, outflow, items)) in date_map {
+            let closing = current_balance + inflow - outflow;
+            results.push(CashPositionResult {
+                date: date.clone(),
+                opening_balance: current_balance,
+                inflows: inflow,
+                outflows: outflow,
+                closing_balance: closing,
+                line_items: items,
+            });
+            current_balance = closing;
+        }
+
+        results
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -34374,5 +34432,52 @@ mod auto_offset_tests {
         assert!(!AutomaticOffsetService::offsets_needed(&imbalances));
         let entries = AutomaticOffsetService::calculate_offset_entries(&imbalances);
         assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn test_cash_forecasting() {
+        use super::{CashForecastingService, ForecastLineItem};
+
+        let inflows = vec![
+            ForecastLineItem {
+                source: "AR_INV_001".to_string(),
+                amount: 1000.0,
+                date: "2024-01-01".to_string(),
+                expected_clear_date: "2024-01-05".to_string(),
+            }
+        ];
+
+        let outflows = vec![
+            ForecastLineItem {
+                source: "AP_INV_001".to_string(),
+                amount: 300.0,
+                date: "2024-01-02".to_string(),
+                expected_clear_date: "2024-01-05".to_string(),
+            },
+            ForecastLineItem {
+                source: "AP_INV_002".to_string(),
+                amount: 200.0,
+                date: "2024-01-04".to_string(),
+                expected_clear_date: "2024-01-06".to_string(),
+            }
+        ];
+
+        let results = CashForecastingService::generate_forecast(
+            5000.0, inflows, outflows
+        );
+
+        assert_eq!(results.len(), 2);
+        
+        assert_eq!(results[0].date, "2024-01-05");
+        assert_eq!(results[0].opening_balance, 5000.0);
+        assert_eq!(results[0].inflows, 1000.0);
+        assert_eq!(results[0].outflows, 300.0);
+        assert_eq!(results[0].closing_balance, 5700.0);
+
+        assert_eq!(results[1].date, "2024-01-06");
+        assert_eq!(results[1].opening_balance, 5700.0);
+        assert_eq!(results[1].inflows, 0.0);
+        assert_eq!(results[1].outflows, 200.0);
+        assert_eq!(results[1].closing_balance, 5500.0);
     }
 }

@@ -184,4 +184,8 @@ pub use services::{
     DynamicDiscountingService,
     DiscountOffer,
     DiscountEvaluationResult,
+    // Cash Forecasting
+    CashForecastingService,
+    ForecastLineItem,
+    CashPositionResult,
 };

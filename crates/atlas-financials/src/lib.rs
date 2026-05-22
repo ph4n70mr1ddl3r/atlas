@@ -11,6 +11,9 @@
 
 pub mod entities;
 pub mod services;
+pub mod average_daily_balance;
+
+pub use average_daily_balance::*;
 
 pub use services::{
     PurchaseOrderService,
@@ -191,4 +194,7 @@ pub use services::{
     // Revenue Contingency Management
     RevenueContingencyService,
     ContingencyResolutionResult,
+    // Cross-Currency Receipt Application
+    CrossCurrencyApplicationService,
+    CrossCurrencyMatchResult,
 };

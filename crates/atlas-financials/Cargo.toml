@@ -13,6 +13,10 @@ serde_json = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+rust_decimal = "1.42.0"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+rust_decimal_macros = "1.40.0"

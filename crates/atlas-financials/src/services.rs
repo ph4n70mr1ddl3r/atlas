@@ -16019,6 +16019,61 @@ impl RevenueContingencyService {
     }
 }
 
+/// Cross-Currency Receipt Application
+///
+/// Handles applying a receipt in one currency to an invoice in another currency.
+/// Calculates the applied amounts and the Realized Gain or Loss due to exchange rate fluctuations.
+pub struct CrossCurrencyApplicationService;
+
+pub struct CrossCurrencyMatchResult {
+    pub receipt_amount_applied: f64,
+    pub invoice_amount_applied: f64,
+    pub realized_gain_loss: f64,
+}
+
+impl CrossCurrencyApplicationService {
+    /// Calculates cross-currency application and realized gain/loss.
+    ///
+    /// # Arguments
+    /// * `receipt_amount_to_apply` - The amount of receipt applied in receipt currency
+    /// * `receipt_to_base_rate` - Exchange rate from receipt currency to base currency
+    /// * `invoice_amount_due` - The invoice amount to clear in invoice currency
+    /// * `invoice_issue_to_base_rate` - Exchange rate from invoice currency to base curr at invoice date
+    /// * `cross_rate_receipt_to_invoice` - Exchange rate from receipt currency to invoice currency
+    pub fn calculate_cross_currency_application(
+        receipt_amount_to_apply: f64,
+        receipt_to_base_rate: f64,
+        invoice_amount_due: f64,
+        invoice_issue_to_base_rate: f64,
+        cross_rate_receipt_to_invoice: f64,
+    ) -> CrossCurrencyMatchResult {
+        // Calculate how much invoice amount is cleared by this receipt amount
+        let mut invoice_amount_applied = receipt_amount_to_apply * cross_rate_receipt_to_invoice;
+        let mut receipt_amount_applied = receipt_amount_to_apply;
+        
+        // If applying more than due, cap it to the invoice amount due
+        if invoice_amount_applied > invoice_amount_due {
+            invoice_amount_applied = invoice_amount_due;
+            receipt_amount_applied = invoice_amount_due / cross_rate_receipt_to_invoice;
+        }
+
+        // Calculate base amounts
+        let invoice_base_amount = invoice_amount_applied * invoice_issue_to_base_rate;
+        let receipt_base_amount = receipt_amount_applied * receipt_to_base_rate;
+
+        // Realized Gain/Loss = Receipt Base Amount - Invoice Base Amount
+        // Positive means Gain (we received more base value than the invoice was worth)
+        // Negative means Loss
+        let realized_gain_loss = receipt_base_amount - invoice_base_amount;
+
+        CrossCurrencyMatchResult {
+            receipt_amount_applied,
+            invoice_amount_applied,
+            realized_gain_loss,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
@@ -34561,5 +34616,69 @@ mod auto_offset_tests {
         assert_eq!(resolution.recognized_revenue, 1000.0);
         assert_eq!(resolution.deferred_revenue, 0.0);
         assert_eq!(resolution.contract_id, "CONTRACT_A");
+    }
+
+    #[test]
+    fn test_cross_currency_application() {
+        // Invoice: 100 EUR, Base: USD. Rate at issue: 1 EUR = 1.10 USD.
+        // Base amount = 110 USD.
+        // Receipt: 85 GBP. Base: USD. Rate at receipt: 1 GBP = 1.3529 USD.
+        // Base amount = 114.9965 USD.
+        // Cross rate: 1 GBP = 1.17647 EUR (so 85 GBP = 100 EUR).
+        
+        let result = super::CrossCurrencyApplicationService::calculate_cross_currency_application(
+            85.0,        // receipt_amount_to_apply in GBP
+            1.3529,      // receipt_to_base_rate (GBP to USD)
+            100.0,       // invoice_amount_due in EUR
+            1.10,        // invoice_issue_to_base_rate (EUR to USD)
+            100.0 / 85.0 // cross_rate_receipt_to_invoice (GBP to EUR)
+        );
+
+        // It fully pays the 100 EUR invoice using 85 GBP.
+        assert!((result.invoice_amount_applied - 100.0).abs() < 0.001);
+        assert!((result.receipt_amount_applied - 85.0).abs() < 0.001);
+
+        // Realized Gain = Receipt Base Amount - Invoice Base Amount
+        // Receipt Base = 85.0 * 1.3529 = 114.9965
+        // Invoice Base = 100.0 * 1.10 = 110.0
+        // Gain = 4.9965
+        assert!((result.realized_gain_loss - 4.9965).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_cross_currency_application_partial() {
+        // Invoice: 100 EUR, Base USD. 1 EUR = 1.10 USD.
+        // Receipt: 50 GBP. 1 GBP = 1.3529 USD.
+        // Cross rate: 1 GBP = 1.17647 EUR. (50 GBP = 58.8235 EUR).
+        let result = super::CrossCurrencyApplicationService::calculate_cross_currency_application(
+            50.0,
+            1.3529,
+            100.0,
+            1.10,
+            100.0 / 85.0
+        );
+
+        assert!((result.invoice_amount_applied - 58.8235).abs() < 0.01);
+        assert!((result.receipt_amount_applied - 50.0).abs() < 0.01);
+        
+        let expected_gain = (50.0 * 1.3529) - (58.8235 * 1.10);
+        assert!((result.realized_gain_loss - expected_gain).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cross_currency_application_overpayment() {
+        // Customer pays 100 GBP for a 100 EUR invoice.
+        // Only 85 GBP is needed to clear it.
+        let result = super::CrossCurrencyApplicationService::calculate_cross_currency_application(
+            100.0,
+            1.3529,
+            100.0,
+            1.10,
+            100.0 / 85.0
+        );
+
+        assert!((result.invoice_amount_applied - 100.0).abs() < 0.001);
+        assert!((result.receipt_amount_applied - 85.0).abs() < 0.001);
+        assert!((result.realized_gain_loss - 4.9965).abs() < 0.001);
     }
 }

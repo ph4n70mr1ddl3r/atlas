@@ -18,6 +18,8 @@ pub mod late_charges;
 pub use average_daily_balance::*;
 pub use customer_refund::*;
 pub use late_charges::*;
+pub mod supplier_retainage;
+pub use supplier_retainage::*;
 
 pub use services::{
     PurchaseOrderService,

@@ -15958,11 +15958,72 @@ impl CashForecastingService {
     }
 }
 
+// ============================================================================
+// Revenue Contingency Management
+// ============================================================================
+
+/// Result of evaluating contingencies
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ContingencyResolutionResult {
+    pub contract_id: String,
+    pub is_resolved: bool,
+    pub deferred_revenue: f64,
+    pub recognized_revenue: f64,
+}
+
+/// Revenue Contingency service
+/// Oracle Fusion: Financials > Revenue Management > Revenue Contingencies
+#[allow(dead_code)]
+pub struct RevenueContingencyService {
+    schema_engine: std::sync::Arc<atlas_core::schema::SchemaEngine>,
+    workflow_engine: std::sync::Arc<atlas_core::workflow::WorkflowEngine>,
+    validation_engine: std::sync::Arc<atlas_core::validation::ValidationEngine>,
+}
+
+impl RevenueContingencyService {
+    #[must_use]
+    pub const fn new(
+        schema_engine: std::sync::Arc<atlas_core::schema::SchemaEngine>,
+        workflow_engine: std::sync::Arc<atlas_core::workflow::WorkflowEngine>,
+        validation_engine: std::sync::Arc<atlas_core::validation::ValidationEngine>,
+    ) -> Self {
+        Self { schema_engine, workflow_engine, validation_engine }
+    }
+
+    /// Evaluates if an invoice has active contingencies and returns how much revenue should be deferred
+    #[must_use]
+    pub fn evaluate_contingencies(
+        invoice_amount: f64,
+        contingency_active: bool,
+        contingency_percentage: f64,
+    ) -> f64 {
+        if !contingency_active {
+            return 0.0;
+        }
+        let percentage = contingency_percentage.clamp(0.0, 100.0);
+        invoice_amount * (percentage / 100.0)
+    }
+
+    /// Resolve a contingency, allowing revenue to be recognized
+    #[must_use]
+    pub fn resolve_contingency(
+        contract_id: &str,
+        deferred_amount: f64,
+    ) -> ContingencyResolutionResult {
+        ContingencyResolutionResult {
+            contract_id: contract_id.to_string(),
+            is_resolved: true,
+            deferred_revenue: 0.0,
+            recognized_revenue: deferred_amount,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::entities;
     use atlas_shared::RecordId;
-    use super::{DynamicDiscountingService, DiscountOffer};
+    use super::{DynamicDiscountingService, DiscountOffer, RevenueContingencyService};
 
     #[test]
     fn test_dynamic_discounting_calculation() {
@@ -34479,5 +34540,26 @@ mod auto_offset_tests {
         assert_eq!(results[1].inflows, 0.0);
         assert_eq!(results[1].outflows, 200.0);
         assert_eq!(results[1].closing_balance, 5500.0);
+    }
+
+    #[test]
+    fn test_revenue_contingency_calculation() {
+        // Active contingency with 100% deferral (e.g. Explicit Acceptance)
+        let deferred_100 = RevenueContingencyService::evaluate_contingencies(10000.0, true, 100.0);
+        assert_eq!(deferred_100, 10000.0);
+
+        // Inactive contingency
+        let deferred_0 = RevenueContingencyService::evaluate_contingencies(10000.0, false, 100.0);
+        assert_eq!(deferred_0, 0.0);
+
+        // Contingency resolving part of the amount (e.g. 20% cancellation privilege)
+        let deferred_20 = RevenueContingencyService::evaluate_contingencies(5000.0, true, 20.0);
+        assert_eq!(deferred_20, 1000.0);
+
+        let resolution = RevenueContingencyService::resolve_contingency("CONTRACT_A", deferred_20);
+        assert_eq!(resolution.is_resolved, true);
+        assert_eq!(resolution.recognized_revenue, 1000.0);
+        assert_eq!(resolution.deferred_revenue, 0.0);
+        assert_eq!(resolution.contract_id, "CONTRACT_A");
     }
 }

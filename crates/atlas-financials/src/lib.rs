@@ -188,4 +188,7 @@ pub use services::{
     CashForecastingService,
     ForecastLineItem,
     CashPositionResult,
+    // Revenue Contingency Management
+    RevenueContingencyService,
+    ContingencyResolutionResult,
 };

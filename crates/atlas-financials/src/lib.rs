@@ -13,9 +13,11 @@ pub mod entities;
 pub mod services;
 pub mod average_daily_balance;
 pub mod customer_refund;
+pub mod late_charges;
 
 pub use average_daily_balance::*;
 pub use customer_refund::*;
+pub use late_charges::*;
 
 pub use services::{
     PurchaseOrderService,

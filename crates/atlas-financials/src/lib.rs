@@ -20,6 +20,8 @@ pub use customer_refund::*;
 pub use late_charges::*;
 pub mod supplier_retainage;
 pub use supplier_retainage::*;
+pub mod receivable_factoring;
+pub use receivable_factoring::*;
 
 pub use services::{
     PurchaseOrderService,

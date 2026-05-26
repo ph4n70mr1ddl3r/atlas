@@ -248,6 +248,7 @@ impl AccountHierarchyEngine {
     pub async fn move_node(&self, id: Uuid, new_parent_id: Option<Uuid>, new_display_order: i32) -> AtlasResult<HierarchyNode> {
         let node = self.repository.get_node(id).await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Node {id} not found")))?;
+        let mut new_depth = 0;
         if let Some(pid) = new_parent_id {
             let parent = self.repository.get_node(pid).await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Parent {pid} not found")))?;
@@ -259,11 +260,8 @@ impl AccountHierarchyEngine {
             if descendants.iter().any(|d| d.id == pid) {
                 return Err(AtlasError::ValidationFailed("Cannot move node under its own descendant".into()));
             }
+            new_depth = parent.level_depth + 1;
         }
-        let new_depth = if let Some(pid) = new_parent_id {
-            let parent = self.repository.get_node(pid).await?.unwrap();
-            parent.level_depth + 1
-        } else { 0 };
         info!("Moving node {} to new parent", node.account_code);
         self.repository.move_node(id, new_parent_id, new_display_order, new_depth).await
     }

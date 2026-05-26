@@ -28,3 +28,9 @@ frontend/.turbo/
 
 # Logs
 *.log
+
+# Temporary Refactoring Utils
+markers.txt
+sections.txt
+sections_with_lines.txt
+split_types.py

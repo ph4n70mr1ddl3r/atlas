@@ -40,6 +40,8 @@ pub mod positive_pay;
 pub use positive_pay::*;
 pub mod customer_dispute;
 pub use customer_dispute::*;
+pub mod journal_import;
+pub use journal_import::*;
 
 pub use services::{
     PurchaseOrderService,

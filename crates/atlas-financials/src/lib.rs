@@ -44,6 +44,8 @@ pub mod journal_import;
 pub use journal_import::*;
 pub mod credit_memo_request;
 pub use credit_memo_request::*;
+pub mod invoice_hold;
+pub use invoice_hold::*;
 
 pub use services::{
     PurchaseOrderService,

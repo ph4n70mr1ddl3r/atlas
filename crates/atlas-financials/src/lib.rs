@@ -30,6 +30,8 @@ pub mod direct_debit_mandate;
 pub use direct_debit_mandate::*;
 pub mod multi_period_accounting;
 pub use multi_period_accounting::*;
+pub mod third_party_payment;
+pub use third_party_payment::*;
 
 pub use services::{
     PurchaseOrderService,

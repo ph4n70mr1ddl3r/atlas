@@ -26,6 +26,8 @@ pub mod bill_of_exchange;
 pub use bill_of_exchange::*;
 pub mod letter_of_credit;
 pub use letter_of_credit::*;
+pub mod direct_debit_mandate;
+pub use direct_debit_mandate::*;
 
 pub use services::{
     PurchaseOrderService,

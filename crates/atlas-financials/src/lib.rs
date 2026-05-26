@@ -36,6 +36,8 @@ pub mod promise_to_pay;
 pub use promise_to_pay::*;
 pub mod supplier_refund;
 pub use supplier_refund::*;
+pub mod positive_pay;
+pub use positive_pay::*;
 
 pub use services::{
     PurchaseOrderService,

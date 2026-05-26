@@ -38,6 +38,8 @@ pub mod supplier_refund;
 pub use supplier_refund::*;
 pub mod positive_pay;
 pub use positive_pay::*;
+pub mod customer_dispute;
+pub use customer_dispute::*;
 
 pub use services::{
     PurchaseOrderService,

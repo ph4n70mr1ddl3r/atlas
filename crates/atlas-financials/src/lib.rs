@@ -32,6 +32,8 @@ pub mod multi_period_accounting;
 pub use multi_period_accounting::*;
 pub mod third_party_payment;
 pub use third_party_payment::*;
+pub mod promise_to_pay;
+pub use promise_to_pay::*;
 
 pub use services::{
     PurchaseOrderService,

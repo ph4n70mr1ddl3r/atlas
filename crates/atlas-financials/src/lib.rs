@@ -48,6 +48,8 @@ pub mod invoice_hold;
 pub use invoice_hold::*;
 pub mod asset_retirement;
 pub use asset_retirement::*;
+pub mod remittance_batch;
+pub use remittance_batch::*;
 
 pub use services::{
     PurchaseOrderService,

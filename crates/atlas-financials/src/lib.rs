@@ -28,6 +28,8 @@ pub mod letter_of_credit;
 pub use letter_of_credit::*;
 pub mod direct_debit_mandate;
 pub use direct_debit_mandate::*;
+pub mod multi_period_accounting;
+pub use multi_period_accounting::*;
 
 pub use services::{
     PurchaseOrderService,

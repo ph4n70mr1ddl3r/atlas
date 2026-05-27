@@ -73,7 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_asset_definitions_location ON _atlas.asset_defini
 -- ============================================================================
 -- Work Orders: maintenance work orders
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS _atlas.work_orders (
+CREATE TABLE IF NOT EXISTS _atlas.maintenance_work_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
     work_order_number VARCHAR(100) NOT NULL,
@@ -126,13 +126,13 @@ CREATE TABLE IF NOT EXISTS _atlas.work_orders (
     UNIQUE(organization_id, work_order_number)
 );
 
-CREATE INDEX IF NOT EXISTS idx_work_orders_org ON _atlas.work_orders(organization_id);
-CREATE INDEX IF NOT EXISTS idx_work_orders_status ON _atlas.work_orders(status);
-CREATE INDEX IF NOT EXISTS idx_work_orders_type ON _atlas.work_orders(work_order_type);
-CREATE INDEX IF NOT EXISTS idx_work_orders_priority ON _atlas.work_orders(priority);
-CREATE INDEX IF NOT EXISTS idx_work_orders_asset ON _atlas.work_orders(asset_id);
-CREATE INDEX IF NOT EXISTS idx_work_orders_assigned ON _atlas.work_orders(assigned_to);
-CREATE INDEX IF NOT EXISTS idx_work_orders_scheduled ON _atlas.work_orders(scheduled_start);
+CREATE INDEX IF NOT EXISTS idx_maint_work_orders_org ON _atlas.maintenance_work_orders(organization_id);
+CREATE INDEX IF NOT EXISTS idx_maint_work_orders_status ON _atlas.maintenance_work_orders(status);
+CREATE INDEX IF NOT EXISTS idx_maint_work_orders_type ON _atlas.maintenance_work_orders(work_order_type);
+CREATE INDEX IF NOT EXISTS idx_maint_work_orders_priority ON _atlas.maintenance_work_orders(priority);
+CREATE INDEX IF NOT EXISTS idx_maint_work_orders_asset ON _atlas.maintenance_work_orders(asset_id);
+CREATE INDEX IF NOT EXISTS idx_maint_work_orders_assigned ON _atlas.maintenance_work_orders(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_maint_work_orders_scheduled ON _atlas.maintenance_work_orders(scheduled_start);
 
 -- ============================================================================
 -- Preventive Maintenance Schedules

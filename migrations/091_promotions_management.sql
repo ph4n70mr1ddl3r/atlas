@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS _atlas.promotion_offers (
 CREATE INDEX IF NOT EXISTS idx_promotion_offers_promo ON _atlas.promotion_offers(promotion_id);
 CREATE INDEX IF NOT EXISTS idx_promotion_offers_type ON _atlas.promotion_offers(offer_type);
 
-CREATE TABLE IF NOT EXISTS _atlas.promotion_funds (
+CREATE TABLE IF NOT EXISTS _atlas.marketing_promotion_funds (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
     promotion_id UUID NOT NULL REFERENCES _atlas.promotions(id) ON DELETE CASCADE,
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS _atlas.promotion_funds (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_promotion_funds_promo ON _atlas.promotion_funds(promotion_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_promotion_funds_promo ON _atlas.marketing_promotion_funds(promotion_id);
 
 CREATE TABLE IF NOT EXISTS _atlas.promotion_claims (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -397,7 +397,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<MaintenanceWorkOrder> {
         let row = sqlx::query(
-            r"INSERT INTO _atlas.work_orders
+            r"INSERT INTO _atlas.maintenance_work_orders
                 (organization_id, work_order_number, title, description,
                  work_order_type, priority, status,
                  asset_id, asset_number, asset_name, location_name,
@@ -424,14 +424,14 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
     }
 
     async fn get_work_order(&self, id: Uuid) -> AtlasResult<Option<MaintenanceWorkOrder>> {
-        let row = sqlx::query("SELECT * FROM _atlas.work_orders WHERE id = $1")
+        let row = sqlx::query("SELECT * FROM _atlas.maintenance_work_orders WHERE id = $1")
             .bind(id).fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_work_order))
     }
 
     async fn get_work_order_by_number(&self, org_id: Uuid, wo_number: &str) -> AtlasResult<Option<MaintenanceWorkOrder>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.work_orders WHERE organization_id = $1 AND work_order_number = $2"
+            "SELECT * FROM _atlas.maintenance_work_orders WHERE organization_id = $1 AND work_order_number = $2"
         ).bind(org_id).bind(wo_number).fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_work_order))
     }
@@ -441,7 +441,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         priority: Option<&str>, asset_id: Option<Uuid>,
     ) -> AtlasResult<Vec<MaintenanceWorkOrder>> {
         let rows = sqlx::query(
-            r"SELECT * FROM _atlas.work_orders
+            r"SELECT * FROM _atlas.maintenance_work_orders
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR work_order_type = $3)
@@ -458,7 +458,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
 
     async fn update_work_order_status(&self, id: Uuid, status: &str) -> AtlasResult<MaintenanceWorkOrder> {
         let row = sqlx::query(
-            r"UPDATE _atlas.work_orders SET status = $2,
+            r"UPDATE _atlas.maintenance_work_orders SET status = $2,
                 actual_start = CASE WHEN $3 THEN now() ELSE actual_start END,
                 actual_end = CASE WHEN $4 THEN now() ELSE actual_end END,
                 closed_at = CASE WHEN $5 THEN now() ELSE closed_at END,
@@ -482,7 +482,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         materials: serde_json::Value, labor: serde_json::Value,
     ) -> AtlasResult<MaintenanceWorkOrder> {
         let row = sqlx::query(
-            r"UPDATE _atlas.work_orders
+            r"UPDATE _atlas.maintenance_work_orders
                SET actual_cost = $2, actual_hours = $3, downtime_hours = $4,
                    resolution_code = $5, completion_notes = $6,
                    materials = $7, labor = $8,
@@ -500,7 +500,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
 
     async fn delete_work_order(&self, org_id: Uuid, wo_number: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.work_orders WHERE organization_id = $1 AND work_order_number = $2"
+            "DELETE FROM _atlas.maintenance_work_orders WHERE organization_id = $1 AND work_order_number = $2"
         ).bind(org_id).bind(wo_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound(format!("Work order '{wo_number}' not found")));
@@ -627,7 +627,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
 
         // Count work orders
         let wo_rows = sqlx::query(
-            "SELECT status, work_order_type, priority FROM _atlas.work_orders WHERE organization_id = $1"
+            "SELECT status, work_order_type, priority FROM _atlas.maintenance_work_orders WHERE organization_id = $1"
         ).bind(org_id).fetch_all(&self.pool).await.unwrap_or_default();
 
         let mut open_work_orders = 0i32;
@@ -673,7 +673,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
 
         // Compute overdue work orders
         let overdue_row = sqlx::query(
-            r"SELECT COUNT(*) as cnt FROM _atlas.work_orders
+            r"SELECT COUNT(*) as cnt FROM _atlas.maintenance_work_orders
                WHERE organization_id = $1
                  AND status IN ('draft', 'approved', 'in_progress')
                  AND scheduled_end < CURRENT_DATE",
@@ -692,7 +692,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         // Compute avg completion time
         let avg_row = sqlx::query(
             r"SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (actual_end - created_at))/86400), 0) as avg_days
-               FROM _atlas.work_orders
+               FROM _atlas.maintenance_work_orders
                WHERE organization_id = $1 AND status IN ('completed', 'closed') AND actual_end IS NOT NULL",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let avg_completion_days: f64 = avg_row.try_get("avg_days").unwrap_or(0.0);
@@ -700,14 +700,14 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
         // Compute total maintenance cost
         let cost_row = sqlx::query(
             r"SELECT COALESCE(SUM(CAST(actual_cost AS NUMERIC)), 0) as total_cost
-               FROM _atlas.work_orders WHERE organization_id = $1",
+               FROM _atlas.maintenance_work_orders WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let total_maintenance_cost: f64 = cost_row.try_get("total_cost").unwrap_or(0.0);
 
         // Compute total downtime
         let dt_row = sqlx::query(
             r"SELECT COALESCE(SUM(downtime_hours), 0) as total_dt
-               FROM _atlas.work_orders WHERE organization_id = $1",
+               FROM _atlas.maintenance_work_orders WHERE organization_id = $1",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let total_downtime_hours: f64 = dt_row.try_get("total_dt").unwrap_or(0.0);
 
@@ -721,7 +721,7 @@ impl AssetManagementRepository for PostgresAssetManagementRepository {
 
         let mttr_row = sqlx::query(
             r"SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (COALESCE(actual_end, now()) - COALESCE(actual_start, created_at)))/3600), 0) as mttr
-               FROM _atlas.work_orders
+               FROM _atlas.maintenance_work_orders
                WHERE organization_id = $1 AND status IN ('completed', 'closed')",
         ).bind(org_id).fetch_one(&self.pool).await?;
         let mttr_hours: f64 = mttr_row.try_get("mttr").unwrap_or(0.0);

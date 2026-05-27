@@ -1076,6 +1076,7 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.risk_categories").execute(pool).await.ok();
     // Clean enterprise asset management test data
     sqlx::query("DELETE FROM _atlas.preventive_maintenance_schedules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.maintenance_work_orders").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.work_orders").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.asset_definitions").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.asset_locations").execute(pool).await.ok();
@@ -1087,9 +1088,9 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.config_models").execute(pool).await.ok();
     // Clean transportation management test data
     sqlx::query("DELETE FROM _atlas.shipment_tracking_events").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.shipment_lines").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.transport_shipment_lines").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.shipment_stops").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.shipments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.transport_shipments").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.freight_rates").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.transport_lanes").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.carrier_services").execute(pool).await.ok();
@@ -1109,7 +1110,7 @@ pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
     sqlx::query("DELETE FROM _atlas.sustainability_facilities").execute(pool).await.ok();
     // Clean promotions management test data
     sqlx::query("DELETE FROM _atlas.promotion_claims").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.promotion_funds").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.marketing_promotion_funds").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.promotion_offers").execute(pool).await.ok();
     sqlx::query("DELETE FROM _atlas.promotions").execute(pool).await.ok();
     // Clean project billing test data

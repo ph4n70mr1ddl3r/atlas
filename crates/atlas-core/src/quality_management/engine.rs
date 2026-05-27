@@ -95,8 +95,6 @@ const VALID_ACTION_TYPES: &[&str] = &[
     "corrective", "preventive", "both",
 ];
 
-// TODO: Use VALID_ACTION_STATUSES for status filtering in list_corrective_actions
-#[allow(dead_code)]
 const VALID_ACTION_STATUSES: &[&str] = &[
     "open", "in_progress", "completed", "verified", "cancelled",
 ];
@@ -738,7 +736,7 @@ impl QualityManagementEngine {
         }
 
         // Check all corrective actions are completed or verified
-        let actions = self.repository.list_corrective_actions(id).await?;
+        let actions = self.repository.list_corrective_actions(id, None).await?;
         let all_closed = actions.iter().all(|a| a.status == "completed" || a.status == "verified" || a.status == "cancelled");
         if !actions.is_empty() && !all_closed {
             return Err(AtlasError::WorkflowError(
@@ -800,7 +798,7 @@ impl QualityManagementEngine {
         }
 
         // Auto-assign action number
-        let existing = self.repository.list_corrective_actions(ncr_id).await?;
+        let existing = self.repository.list_corrective_actions(ncr_id, None).await?;
         let action_number = format!("CAPA-{}-{}", ncr.ncr_number, existing.len() + 1);
 
         info!("Creating {} action {} for NCR {}", action_type, action_number, ncr.ncr_number);
@@ -821,8 +819,16 @@ impl QualityManagementEngine {
     }
 
     /// List corrective actions for an NCR
-    pub async fn list_corrective_actions(&self, ncr_id: Uuid) -> AtlasResult<Vec<CorrectiveAction>> {
-        self.repository.list_corrective_actions(ncr_id).await
+    pub async fn list_corrective_actions(&self, ncr_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CorrectiveAction>> {
+        if let Some(s) = status {
+            if !VALID_ACTION_STATUSES.contains(&s) {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Invalid action status '{}'. Must be one of: {}",
+                    s, VALID_ACTION_STATUSES.join(", ")
+                )));
+            }
+        }
+        self.repository.list_corrective_actions(ncr_id, status).await
     }
 
     /// Start working on a corrective action
@@ -1277,7 +1283,7 @@ mod tests {
             })
         }
         async fn get_corrective_action(&self, _id: Uuid) -> AtlasResult<Option<CorrectiveAction>> { Ok(None) }
-        async fn list_corrective_actions(&self, _ncr_id: Uuid) -> AtlasResult<Vec<CorrectiveAction>> { Ok(vec![]) }
+        async fn list_corrective_actions(&self, _ncr_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<CorrectiveAction>> { Ok(vec![]) }
         async fn update_corrective_action_status(&self, _id: Uuid, _status: &str, _completed_at: Option<chrono::DateTime<chrono::Utc>>, _effectiveness_rating: Option<i32>) -> AtlasResult<CorrectiveAction> {
             Err(AtlasError::EntityNotFound("Mock".to_string()))
         }
@@ -1700,7 +1706,7 @@ mod tests {
         async fn update_ncr_resolution(&self, _id: Uuid, _resolution_description: &str, _resolution_type: &str, _resolved_by: Option<&str>) -> AtlasResult<NonConformanceReport> { Err(AtlasError::EntityNotFound("mock".into())) }
         async fn create_corrective_action(&self, _org_id: Uuid, _ncr_id: Uuid, _action_number: &str, _action_type: &str, _title: &str, _description: Option<&str>, _root_cause: Option<&str>, _corrective_action_desc: Option<&str>, _preventive_action_desc: Option<&str>, _assigned_to: Option<&str>, _due_date: Option<chrono::NaiveDate>, _priority: &str, _created_by: Option<Uuid>) -> AtlasResult<CorrectiveAction> { Err(AtlasError::EntityNotFound("mock".into())) }
         async fn get_corrective_action(&self, _id: Uuid) -> AtlasResult<Option<CorrectiveAction>> { Ok(None) }
-        async fn list_corrective_actions(&self, _ncr_id: Uuid) -> AtlasResult<Vec<CorrectiveAction>> { Ok(vec![]) }
+        async fn list_corrective_actions(&self, _ncr_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<CorrectiveAction>> { Ok(vec![]) }
         async fn update_corrective_action_status(&self, _id: Uuid, _status: &str, _completed_at: Option<chrono::DateTime<chrono::Utc>>, _effectiveness_rating: Option<i32>) -> AtlasResult<CorrectiveAction> { Err(AtlasError::EntityNotFound("mock".into())) }
         async fn create_hold(&self, _org_id: Uuid, _hold_number: &str, _reason: &str, _description: Option<&str>, _item_id: Option<Uuid>, _item_code: Option<&str>, _lot_number: Option<&str>, _supplier_id: Option<Uuid>, _supplier_name: Option<&str>, _source_type: Option<&str>, _source_id: Option<Uuid>, _source_number: Option<&str>, _hold_type: &str, _created_by: Option<Uuid>) -> AtlasResult<QualityHold> { Err(AtlasError::EntityNotFound("mock".into())) }
         async fn get_hold(&self, _id: Uuid) -> AtlasResult<Option<QualityHold>> { Ok(None) }
@@ -1753,6 +1759,20 @@ mod tests {
 
         // Valid status
         let r = engine.list_holds(org, Some("active"), None).await;
+        assert!(r.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_list_corrective_actions_status_validation() {
+        let engine = make_engine();
+        let ncr_id = Uuid::new_v4();
+
+        // Invalid status
+        let r = engine.list_corrective_actions(ncr_id, Some("unknown")).await;
+        assert!(r.is_err());
+
+        // Valid status
+        let r = engine.list_corrective_actions(ncr_id, Some("open")).await;
         assert!(r.is_ok());
     }
 

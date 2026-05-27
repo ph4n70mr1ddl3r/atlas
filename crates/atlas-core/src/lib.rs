@@ -24,7 +24,217 @@ pub mod eventbus;
 pub mod notification;
 pub mod approval;
 
-// --- Financials Domain ---
+// Re-export core engines at the top level
+pub use schema::*;
+pub use workflow::{
+    WorkflowEngine, StateMachine, GuardEvaluator, GuardResult,
+    ActionExecutor, ActionResult,
+    WorkflowState, StateHistoryEntry, TransitionResult,
+    AvailableTransitions, TransitionInfo,
+    repository::{WorkflowStateRepository, PostgresWorkflowStateRepository, InMemoryWorkflowStateRepository},
+};
+pub use workflow::engine::User as WorkflowUser;
+pub use validation::*;
+pub use formula::*;
+pub use security::*;
+pub use audit::*;
+pub use config::*;
+pub use eventbus::*;
+pub use notification::{NotificationEngine, PostgresNotificationRepository as PostgresNotificationRepo};
+pub use approval::{ApprovalEngine, PostgresApprovalRepository as PostgresApprovalRepo};
+
+// --- Domain Modules (Grouped for better organization) ---
+
+pub mod financials {
+    pub use crate::period_close::{PeriodCloseEngine, PostgresPeriodCloseRepository as PostgresPeriodCloseRepo};
+    pub use crate::currency::{CurrencyEngine, PostgresCurrencyRepository as PostgresCurrencyRepo};
+    pub use crate::tax::{TaxEngine, PostgresTaxRepository as PostgresTaxRepo};
+    pub use crate::intercompany::{IntercompanyEngine, PostgresIntercompanyRepository as PostgresIntercompanyRepo};
+    pub use crate::reconciliation::{ReconciliationEngine, PostgresReconciliationRepository as PostgresReconciliationRepo};
+    pub use crate::expense::{ExpenseEngine, PostgresExpenseRepository as PostgresExpenseRepo};
+    pub use crate::budget::{BudgetEngine, PostgresBudgetRepository as PostgresBudgetRepo};
+    pub use crate::fixed_assets::{FixedAssetEngine, PostgresFixedAssetRepository as PostgresFixedAssetRepo};
+    pub use crate::collections::{CollectionsEngine, PostgresCollectionsRepository as PostgresCollectionsRepo};
+    pub use crate::revenue::{RevenueEngine, PostgresRevenueRepository as PostgresRevenueRepo};
+    pub use crate::payment::{PaymentEngine, PostgresPaymentRepository as PostgresPaymentRepo};
+    pub use crate::subledger_accounting::{SubledgerAccountingEngine, PostgresSubledgerAccountingRepository as PostgresSubledgerAccountingRepo};
+    pub use crate::encumbrance::{EncumbranceEngine, PostgresEncumbranceRepository as PostgresEncumbranceRepo};
+    pub use crate::cash_management::{CashManagementEngine, PostgresCashManagementRepository as PostgresCashManagementRepo};
+    pub use crate::withholding_tax::{WithholdingTaxEngine, PostgresWithholdingTaxRepository as PostgresWithholdingTaxRepo};
+    pub use crate::multi_book::{MultiBookAccountingEngine, PostgresMultiBookAccountingRepository as PostgresMultiBookAccountingRepo};
+    pub use crate::financial_consolidation::{FinancialConsolidationEngine, PostgresFinancialConsolidationRepository as PostgresFinancialConsolidationRepo};
+    pub use crate::recurring_journal::{RecurringJournalEngine, PostgresRecurringJournalRepository as PostgresRecurringJournalRepo};
+    pub use crate::manual_journal::{ManualJournalEngine, PostgresManualJournalRepository as PostgresManualJournalRepo};
+    pub use crate::document_sequencing::{DocumentSequencingEngine, PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo};
+    pub use crate::transaction_calendar::{TransactionCalendarEngine, PostgresTransactionCalendarRepository as PostgresTransactionCalendarRepo};
+    pub use crate::allocation::{AllocationEngine, PostgresAllocationRepository as PostgresAllocationRepo};
+    pub use crate::currency_revaluation::{CurrencyRevaluationEngine, PostgresCurrencyRevaluationRepository as PostgresCurrencyRevaluationRepo};
+    pub use crate::autoinvoice::{AutoInvoiceEngine, PostgresAutoInvoiceRepository as PostgresAutoInvoiceRepo};
+    pub use crate::credit_management::{CreditManagementEngine, PostgresCreditManagementRepository as PostgresCreditManagementRepo};
+    pub use crate::treasury::{TreasuryEngine, PostgresTreasuryRepository as PostgresTreasuryRepo};
+    pub use crate::grant_management::{GrantManagementEngine, PostgresGrantManagementRepository as PostgresGrantManagementRepo};
+    pub use crate::corporate_card::{CorporateCardEngine, PostgresCorporateCardRepository as PostgresCorporateCardRepo};
+    pub use crate::account_monitor::{AccountMonitorEngine, PostgresAccountMonitorRepository as PostgresAccountMonitorRepo};
+    pub use crate::accounts_payable::{AccountsPayableEngine, PostgresAccountsPayableRepository as PostgresAccountsPayableRepo};
+    pub use crate::accounts_receivable::{AccountsReceivableEngine, PostgresAccountsReceivableRepository as PostgresAccountsReceivableRepo};
+    pub use crate::general_ledger::{GeneralLedgerEngine, PostgresGeneralLedgerRepository as PostgresGeneralLedgerRepo};
+    pub use crate::asset_depreciation::{AssetDepreciationEngine, PostgresAssetDepreciationRepository as PostgresAssetDepreciationRepo};
+    pub use crate::netting::{NettingEngine, PostgresNettingRepository as PostgresNettingRepo};
+    pub use crate::financial_statements::{FinancialStatementEngine, PostgresFinancialStatementRepository as PostgresFinancialStatementRepo};
+    pub use crate::journal_import::{JournalImportEngine, PostgresJournalImportRepository as PostgresJournalImportRepo};
+    pub use crate::inflation_adjustment::{InflationAdjustmentEngine, PostgresInflationAdjustmentRepository as PostgresInflationAdjustmentRepo};
+    pub use crate::impairment_management::{ImpairmentManagementEngine, PostgresImpairmentManagementRepository as PostgresImpairmentManagementRepo};
+    pub use crate::bank_account_transfer::{BankAccountTransferEngine, PostgresBankAccountTransferRepository as PostgresBankAccountTransferRepo};
+    pub use crate::tax_reporting::{TaxReportingEngine, PostgresTaxReportingRepository as PostgresTaxReportingRepo};
+    pub use crate::deferred_revenue::{DeferredRevenueEngine, PostgresDeferredRevenueRepository as PostgresDeferredRevenueRepo};
+    pub use crate::accounting_hub::{AccountingHubEngine, PostgresAccountingHubRepository as PostgresAccountingHubRepo};
+    pub use crate::financial_controls::{FinancialControlsEngine, PostgresFinancialControlsRepository as PostgresFinancialControlsRepo};
+    pub use crate::revenue_management::RevenueManagementEngine;
+    pub use crate::cash_flow_forecast::CashFlowForecastEngine;
+    pub use crate::regulatory_reporting::RegulatoryReportingEngine;
+    pub use crate::advance_payment::{AdvancePaymentEngine, PostgresAdvancePaymentRepository as PostgresAdvancePaymentRepo};
+    pub use crate::customer_deposit::{CustomerDepositEngine, PostgresCustomerDepositRepository as PostgresCustomerDepositRepo};
+    pub use crate::cash_position::{CashPositionEngine, PostgresCashPositionRepository as PostgresCashPositionRepo};
+    pub use crate::payment_terms::{PaymentTermsEngine, PostgresPaymentTermsRepository as PostgresPaymentTermsRepo};
+    pub use crate::lockbox::{LockboxEngine, PostgresLockboxRepository as PostgresLockboxRepo};
+    pub use crate::ar_aging::{ArAgingEngine, PostgresArAgingRepository as PostgresArAgingRepo};
+    pub use crate::ap_aging::{ApAgingEngine, PostgresApAgingRepository as PostgresApAgingRepo};
+    pub use crate::financial_ratio::{FinancialRatioEngine, PostgresFinancialRatioRepository as PostgresFinancialRatioRepo};
+    pub use crate::receipt_write_off::{ReceiptWriteOffEngine, PostgresReceiptWriteOffRepository as PostgresReceiptWriteOffRepo};
+    pub use crate::mass_additions::{MassAdditionEngine, PostgresMassAdditionRepository as PostgresMassAdditionRepo};
+    pub use crate::asset_reclassification::{AssetReclassificationEngine, PostgresAssetReclassificationRepository as PostgresAssetReclassificationRepo};
+    pub use crate::gl_budget_transfer::{GlBudgetTransferEngine, PostgresGlBudgetTransferRepository as PostgresGlBudgetTransferRepo};
+    pub use crate::payment_format::{PaymentFormatEngine, PostgresPaymentFormatRepository as PostgresPaymentFormatRepo};
+    pub use crate::financial_dimension_set::{FinancialDimensionSetEngine, PostgresFinancialDimensionSetRepository as PostgresFinancialDimensionSetRepo};
+    pub use crate::prepayment_application::{PrepaymentApplicationEngine, PostgresPrepaymentApplicationRepository as PostgresPrepaymentApplicationRepo};
+    pub use crate::asset_retirement::{AssetRetirementEngine, PostgresAssetRetirementRepository as PostgresAssetRetirementRepo};
+    pub use crate::cip_capitalization::{CipCapitalizationEngine, PostgresCipCapitalizationRepository as PostgresCipCapitalizationRepo};
+    pub use crate::available_funds::{AvailableFundsEngine, PostgresAvailableFundsRepository as PostgresAvailableFundsRepo};
+    pub use crate::statistical_accounting::{StatisticalAccountingEngine, PostgresStatisticalAccountingRepository as PostgresStatisticalAccountingRepo};
+    pub use crate::receivables_factoring::{ReceivablesFactoringEngine, PostgresReceivablesFactoringRepository as PostgresReceivablesFactoringRepo};
+    pub use crate::account_hierarchy::{AccountHierarchyEngine, PostgresAccountHierarchyRepository as PostgresAccountHierarchyRepo};
+    pub use crate::suspense_account::{SuspenseAccountEngine, PostgresSuspenseAccountRepository as PostgresSuspenseAccountRepo};
+    pub use crate::interest_invoice::{InterestInvoiceEngine, PostgresInterestInvoiceRepository as PostgresInterestInvoiceRepo};
+    pub use crate::expense_policy_compliance::{ExpensePolicyComplianceEngine, PostgresExpensePolicyComplianceRepository as PostgresExpensePolicyComplianceRepo};
+    pub use crate::bank_guarantee::{BankGuaranteeEngine, PostgresBankGuaranteeRepository as PostgresBankGuaranteeRepo};
+    pub use crate::letter_of_credit::{LetterOfCreditEngine, PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo};
+    pub use crate::hedge_management::{HedgeManagementEngine, repository::PostgresHedgeManagementRepository as PostgresHedgeManagementRepo};
+    pub use crate::payment_risk::{PaymentRiskEngine, repository::PostgresPaymentRiskRepository as PostgresPaymentRiskRepo};
+    pub use crate::tax_registration::{TaxRegistrationEngine, PostgresTaxRegistrationRepository as PostgresTaxRegistrationRepo};
+    pub use crate::cash_concentration::{CashConcentrationEngine, PostgresCashConcentrationRepository as PostgresCashConcentrationRepo};
+    pub use crate::customer_statement::{CustomerStatementEngine, PostgresCustomerStatementRepository as PostgresCustomerStatementRepo};
+    pub use crate::remittance_batch::{RemittanceBatchEngine, PostgresRemittanceBatchRepository as PostgresRemittanceBatchRepo};
+    pub use crate::chargeback_management::{ChargebackManagementEngine, PostgresChargebackManagementRepository as PostgresChargebackManagementRepo};
+    pub use crate::finance_charge::{FinanceChargeEngine, PostgresFinanceChargeRepository};
+    pub use crate::profitability_analysis::{ProfitabilityAnalysisEngine, PostgresProfitabilityAnalysisRepository as PostgresProfitabilityAnalysisRepo};
+    pub use crate::recurring_invoice::{RecurringInvoiceEngine, PostgresRecurringInvoiceRepository as PostgresRecurringInvoiceRepo};
+    pub use crate::payment_settlement::{PaymentSettlementEngine, PostgresPaymentSettlementRepository as PostgresPaymentSettlementRepo};
+    pub use crate::payment_process_request::{PaymentProcessRequestEngine, PostgresPaymentProcessRequestRepository};
+    pub use crate::invoice_batch::{InvoiceBatchEngine, PostgresInvoiceBatchRepository};
+    pub use crate::doubtful_account_allowance::{DoubtfulAccountAllowanceEngine, PostgresDoubtfulAccountAllowanceRepository as PostgresDoubtfulAccountAllowanceRepo};
+    pub use crate::invoice_matching::{InvoiceMatchingEngine, PostgresInvoiceMatchingRepository};
+    pub use crate::distribution_set::{DistributionSetEngine, PostgresDistributionSetRepository};
+    pub use crate::auto_offset::{AutoOffsetEngine, PostgresAutoOffsetRepository as PostgresAutoOffsetRepo};
+    pub use crate::cash_flow_statement::CashFlowStatementEngine;
+    pub use crate::bank_statement_reconciliation::{BankStatementReconciliationEngine, PostgresBankStatementReconciliationRepository as PostgresBankStatementReconciliationRepo};
+    pub use crate::third_party_payment::{ThirdPartyPaymentEngine, PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo};
+    pub use crate::average_balance::{AverageBalanceEngine, PostgresAverageBalanceRepository as PostgresAverageBalanceRepo};
+    pub use crate::cash_receipt::{CashReceiptEngine, PostgresCashReceiptRepository as PostgresCashReceiptRepo};
+    pub use crate::direct_debit_mandate::{DirectDebitMandateEngine, PostgresDirectDebitMandateRepository as PostgresDirectDebitMandateRepo};
+    pub use crate::multi_period_accounting::{MultiPeriodAccountingEngine, MpaRepository, PostgresMpaRepository as PostgresMpaRepo};
+    pub use crate::dunning_letter_management::{DunningLetterManagementEngine, PostgresDunningLetterManagementRepository as PostgresDunningLetterManagementRepo};
+}
+
+pub mod hcm {
+    pub use crate::absence::{AbsenceEngine, PostgresAbsenceRepository as PostgresAbsenceRepo};
+    pub use crate::time_and_labor::{TimeAndLaborEngine, PostgresTimeAndLaborRepository as PostgresTimeAndLaborRepo};
+    pub use crate::payroll::{PayrollEngine, PostgresPayrollRepository as PostgresPayrollRepo};
+    pub use crate::compensation::{CompensationEngine, PostgresCompensationRepository as PostgresCompensationRepository};
+    pub use crate::benefits::{BenefitsEngine, PostgresBenefitsRepository as PostgresBenefitsRepo};
+    pub use crate::performance::{PerformanceEngine, PostgresPerformanceRepository as PostgresPerformanceRepo};
+    pub use crate::recruiting::{RecruitingEngine, PostgresRecruitingRepository as PostgresRecruitingRepo};
+    pub use crate::learning_management::{LearningManagementEngine, PostgresLearningManagementRepository as PostgresLearningManagementRepo};
+    pub use crate::succession_planning::{SuccessionPlanningEngine, PostgresSuccessionPlanningRepository as PostgresSuccessionPlanningRepo};
+    pub use crate::goal_management::{GoalManagementEngine, PostgresGoalManagementRepository as PostgresGoalManagementRepo};
+    pub use crate::approval_authority::{ApprovalAuthorityEngine, PostgresApprovalAuthorityRepository as PostgresApprovalAuthorityRepo};
+    pub use crate::approval_delegation::{ApprovalDelegationEngine, PostgresApprovalDelegationRepository as PostgresApprovalDelegationRepo};
+    pub use crate::data_archiving::{DataArchivingEngine, PostgresDataArchivingRepository as PostgresDataArchivingRepo};
+}
+
+pub mod scm {
+    pub use crate::sourcing::{SourcingEngine, PostgresSourcingRepository as PostgresSourcingRepo};
+    pub use crate::procurement_contracts::{ProcurementContractEngine, PostgresProcurementContractRepository as PostgresProcurementContractRepo};
+    pub use crate::inventory::{InventoryEngine, PostgresInventoryRepository as PostgresInventoryRepo};
+    pub use crate::customer_returns::{CustomerReturnsEngine, PostgresCustomerReturnsRepository as PostgresCustomerReturnsRepo};
+    pub use crate::pricing::{PricingEngine, PostgresPricingRepository as PostgresPricingRepo};
+    pub use crate::purchase_requisition::{PurchaseRequisitionEngine, PostgresPurchaseRequisitionRepository as PostgresPurchaseRequisitionRepo};
+    pub use crate::product_information::{ProductInformationEngine, PostgresProductInformationRepository as PostgresProductInformationRepo};
+    pub use crate::quality_management::{QualityManagementEngine, PostgresQualityManagementRepository as PostgresQualityManagementRepo};
+    pub use crate::order_management::{OrderManagementEngine, PostgresOrderManagementRepository as PostgresOrderManagementRepo};
+    pub use crate::manufacturing::{ManufacturingEngine, PostgresManufacturingRepository as PostgresManufacturingRepo};
+    pub use crate::warehouse_management::{WarehouseManagementEngine, PostgresWarehouseManagementRepository as PostgresWarehouseManagementRepo};
+    pub use crate::shipping::{ShippingEngine, PostgresShippingRepository as PostgresShippingRepo};
+    pub use crate::receiving::{ReceivingEngine, PostgresReceivingRepository as PostgresReceivingRepo};
+    pub use crate::supplier_qualification::{SupplierQualificationEngine, PostgresSupplierQualificationRepository as PostgresSupplierQualificationRepo};
+    pub use crate::supplier_scorecard::{SupplierScorecardEngine, PostgresScorecardRepository as PostgresScorecardRepo};
+    pub use crate::landed_cost::{LandedCostEngine, PostgresLandedCostRepository as PostgresLandedCostRepo};
+    pub use crate::contract_lifecycle::{ContractLifecycleEngine, PostgresContractLifecycleRepository as PostgresContractLifecycleRepo};
+    pub use crate::demand_planning::{DemandPlanningEngine, PostgresDemandPlanningRepository as PostgresDemandPlanningRepo};
+    pub use crate::supply_chain_planning::{SupplyChainPlanningEngine, PostgresPlanningRepository as PostgresPlanningRepo};
+    pub use crate::product_configurator::{ProductConfiguratorEngine, PostgresProductConfiguratorRepository as PostgresProductConfiguratorRepo};
+    pub use crate::transportation_management::{TransportationManagementEngine, PostgresTransportationManagementRepository as PostgresTransportationManagementRepo};
+    pub use crate::channel_revenue::{ChannelRevenueEngine, PostgresChannelRevenueRepository as PostgresChannelRevenueRepo};
+    pub use crate::rebate_management::{RebateManagementEngine, PostgresRebateManagementRepository as PostgresRebateManagementRepo};
+}
+
+pub mod crm {
+    pub use crate::sales_commission::{SalesCommissionEngine, PostgresSalesCommissionRepository as PostgresSalesCommissionRepo};
+    pub use crate::subscription::{SubscriptionEngine, PostgresSubscriptionRepository as PostgresSubscriptionRepo};
+    pub use crate::lead_opportunity::{LeadOpportunityEngine, PostgresLeadOpportunityRepository as PostgresLeadOpportunityRepo};
+    pub use crate::marketing::{MarketingEngine, PostgresMarketingRepository as PostgresMarketingRepo};
+    pub use crate::service_request::{ServiceRequestEngine, PostgresServiceRequestRepository as PostgresServiceRequestRepo};
+    pub use crate::loyalty_management::{LoyaltyManagementEngine, PostgresLoyaltyManagementRepository as PostgresLoyaltyManagementRepo};
+    pub use crate::promotions_management::{PromotionsManagementEngine, PostgresPromotionsManagementRepository as PostgresPromotionsManagementRepo};
+}
+
+pub mod projects {
+    pub use crate::project_costing::{ProjectCostingEngine, PostgresProjectCostingRepository as PostgresProjectCostingRepo};
+    pub use crate::project_resource_management::{ProjectResourceManagementEngine, PostgresProjectResourceManagementRepository as PostgresProjectResourceManagementRepo};
+    pub use crate::joint_venture::{JointVentureEngine, PostgresJointVentureRepository as PostgresJointVentureRepo};
+    pub use crate::project_billing::{ProjectBillingEngine, PostgresProjectBillingRepository as PostgresProjectBillingRepo};
+}
+
+pub mod shared {
+    pub use crate::lease::{LeaseAccountingEngine, PostgresLeaseAccountingRepository as PostgresLeaseAccountingRepo};
+    pub use crate::cost_allocation::{CostAllocationEngine, PostgresCostAllocationRepository as PostgresCostAllocationRepo};
+    pub use crate::financial_reporting::{FinancialReportingEngine, PostgresFinancialReportingRepository as PostgresFinancialReportingRepo};
+    pub use crate::descriptive_flexfield::{DescriptiveFlexfieldEngine, PostgresDescriptiveFlexfieldRepository as PostgresDescriptiveFlexfieldRepo};
+    pub use crate::cross_validation::{CrossValidationEngine, PostgresCrossValidationRepository as PostgresCrossValidationRepo};
+    pub use crate::scheduled_process::{ScheduledProcessEngine, PostgresScheduledProcessRepository as PostgresScheduledProcessRepo};
+    pub use crate::segregation_of_duties::{SegregationOfDutiesEngine, PostgresSegregationOfDutiesRepository as PostgresSegregationOfDutiesRepo};
+    pub use crate::kpi::{KpiEngine, PostgresKpiRepository as PostgresKpiRepo};
+    pub use crate::enterprise_asset_management::{EnterpriseAssetManagementEngine, PostgresAssetManagementRepository as PostgresAssetManagementRepo};
+    pub use crate::risk_management::{RiskManagementEngine, PostgresRiskManagementRepository as PostgresRiskManagementRepo};
+    pub use crate::sustainability::{SustainabilityEngine, PostgresSustainabilityRepository as PostgresSustainabilityRepo};
+    pub use crate::engineering_change_management::{EngineeringChangeEngine, PostgresEngineeringChangeManagementRepository as PostgresEcmRepository};
+    pub use crate::health_safety::{HealthSafetyEngine, PostgresHealthSafetyRepository as PostgresHealthSafetyRepo};
+    pub use crate::transfer_pricing::{TransferPricingEngine, PostgresTransferPricingRepository as PostgresTransferPricingRepo};
+    pub use crate::cost_accounting::{CostAccountingEngine, PostgresCostAccountingRepository as PostgresCostAccountingRepo};
+    pub use crate::funds_reservation::{FundsReservationEngine, PostgresFundsReservationRepository as PostgresFundsReservationRepo};
+    pub use crate::territory_management::{TerritoryManagementEngine, PostgresTerritoryManagementRepository as PostgresTerritoryManagementRepo};
+}
+
+// Re-export domain modules at top level for backward compatibility
+pub use financials::*;
+pub use hcm::*;
+pub use scm::*;
+pub use crm::*;
+pub use projects::*;
+pub use shared::*;
+
+// --- Module Declarations ---
+
+// Financials
 pub mod period_close;
 pub mod currency;
 pub mod tax;
@@ -123,7 +333,7 @@ pub mod direct_debit_mandate;
 pub mod multi_period_accounting;
 pub mod dunning_letter_management;
 
-// --- HCM Domain ---
+// HCM
 pub mod absence;
 pub mod time_and_labor;
 pub mod payroll;
@@ -138,7 +348,7 @@ pub mod approval_authority;
 pub mod approval_delegation;
 pub mod data_archiving;
 
-// --- SCM Domain ---
+// SCM
 pub mod sourcing;
 pub mod procurement_contracts;
 pub mod inventory;
@@ -163,7 +373,7 @@ pub mod transportation_management;
 pub mod channel_revenue;
 pub mod rebate_management;
 
-// --- CRM Domain ---
+// CRM
 pub mod sales_commission;
 pub mod subscription;
 pub mod lead_opportunity;
@@ -172,13 +382,13 @@ pub mod service_request;
 pub mod loyalty_management;
 pub mod promotions_management;
 
-// --- Projects Domain ---
+// Projects
 pub mod project_costing;
 pub mod project_resource_management;
 pub mod joint_venture;
 pub mod project_billing;
 
-// --- Shared & Cross-Domain ---
+// Shared
 pub mod lease;
 pub mod cost_allocation;
 pub mod financial_reporting;
@@ -196,255 +406,6 @@ pub mod transfer_pricing;
 pub mod cost_accounting;
 pub mod funds_reservation;
 pub mod territory_management;
-pub mod profit_center_accounting;
-pub mod asset_split;
-pub mod asset_merger;
-pub mod auto_cash_application;
-pub mod revenue_price_profile;
-pub mod balance_forward_billing;
-pub mod asset_capitalization;
-pub mod invoice_tolerance_matching;
-pub mod payment_maturity_discount;
-pub mod supplier_bank_validation;
-pub mod automatic_tax_determination;
-pub mod transaction_purge_archive;
-pub mod multi_level_approval;
-pub mod dynamic_discounting;
-pub mod revenue_contingency;
-pub mod cross_currency_application;
-pub mod subledger_reconciliation;
-pub mod cost_rate_card;
-pub mod cost_pool_management;
-pub mod write_off_request;
-pub mod lockbox_processing;
-pub mod financial_ratio_analysis;
-pub mod receivable_aging_snapshot;
-pub mod gl_allocation;
-pub mod revenue_waterfall;
-pub mod dunning_summary;
-pub mod waterfall_period;
-pub mod waterfall_report;
-pub mod waterfall_line_item;
-pub mod reconciliation_result;
-pub mod reconciliation_report;
-pub mod rate_card_entry;
-pub mod lockbox_match_result;
-pub mod lockbox_summary;
-pub mod financial_statement_data;
-pub mod financial_ratios;
-pub mod aging_buckets;
-pub mod aging_percentages;
-pub mod aging_trend;
-pub mod cash_flow_category;
-pub mod cash_flow_line_item;
-pub mod cash_flow_statement_result;
-pub mod application_match_result;
-pub mod generated_journal_line;
-pub mod accounting_event_result;
-pub mod depreciation_schedule_period;
-pub mod expense_policy_rule_data;
-pub mod expense_line_data;
-pub mod policy_evaluation_result;
-pub mod compliance_report;
-pub mod hedge_effectiveness_test_result;
-pub mod hedge_ineffectiveness_result;
-pub mod duplicate_detection_result;
-pub mod payment_risk_score;
-pub mod risk_factor;
-pub mod velocity_check_result;
-pub mod sanctions_match;
-pub mod reconciliation_summary;
-pub mod bank_reconciliation_dashboard;
-pub mod discount_offer;
-pub mod discount_evaluation_result;
-pub mod forecast_line_item;
-pub mod cash_position_result;
-pub mod contingency_resolution_result;
-pub mod cross_currency_match_result;
-
-pub use schema::*;
-pub use workflow::{
-    WorkflowEngine, StateMachine, GuardEvaluator, GuardResult,
-    ActionExecutor, ActionResult,
-    WorkflowState, StateHistoryEntry, TransitionResult,
-    AvailableTransitions, TransitionInfo,
-    repository::{WorkflowStateRepository, PostgresWorkflowStateRepository, InMemoryWorkflowStateRepository},
-};
-
-// Re-export the workflow engine's User type under a distinct path
-// so downstream crates can import it without colliding with
-// atlas_shared::User.
-pub use workflow::engine::User as WorkflowUser;
-
-pub use validation::*;
-pub use formula::*;
-pub use security::*;
-pub use audit::*;
-pub use config::*;
-pub use eventbus::*;
-pub use notification::{NotificationEngine, PostgresNotificationRepository as PostgresNotificationRepo};
-pub use approval::{ApprovalEngine, PostgresApprovalRepository as PostgresApprovalRepo};
-pub use period_close::{PeriodCloseEngine, PostgresPeriodCloseRepository as PostgresPeriodCloseRepo};
-pub use currency::{CurrencyEngine, PostgresCurrencyRepository as PostgresCurrencyRepo};
-pub use tax::{TaxEngine, PostgresTaxRepository as PostgresTaxRepo};
-pub use intercompany::{IntercompanyEngine, PostgresIntercompanyRepository as PostgresIntercompanyRepo};
-pub use reconciliation::{ReconciliationEngine, PostgresReconciliationRepository as PostgresReconciliationRepo};
-pub use expense::{ExpenseEngine, PostgresExpenseRepository as PostgresExpenseRepo};
-pub use budget::{BudgetEngine, PostgresBudgetRepository as PostgresBudgetRepo};
-pub use fixed_assets::{FixedAssetEngine, PostgresFixedAssetRepository as PostgresFixedAssetRepo};
-pub use collections::{CollectionsEngine, PostgresCollectionsRepository as PostgresCollectionsRepo};
-pub use revenue::{RevenueEngine, PostgresRevenueRepository as PostgresRevenueRepo};
-pub use payment::{PaymentEngine, PostgresPaymentRepository as PostgresPaymentRepo};
-pub use subledger_accounting::{SubledgerAccountingEngine, PostgresSubledgerAccountingRepository as PostgresSubledgerAccountingRepo};
-pub use encumbrance::{EncumbranceEngine, PostgresEncumbranceRepository as PostgresEncumbranceRepo};
-pub use cash_management::{CashManagementEngine, PostgresCashManagementRepository as PostgresCashManagementRepo};
-pub use sourcing::{SourcingEngine, PostgresSourcingRepository as PostgresSourcingRepo};
-pub use lease::{LeaseAccountingEngine, PostgresLeaseAccountingRepository as PostgresLeaseAccountingRepo};
-pub use project_costing::{ProjectCostingEngine, PostgresProjectCostingRepository as PostgresProjectCostingRepo};
-pub use cost_allocation::{CostAllocationEngine, PostgresCostAllocationRepository as PostgresCostAllocationRepo};
-pub use financial_reporting::{FinancialReportingEngine, PostgresFinancialReportingRepository as PostgresFinancialReportingRepo};
-pub use withholding_tax::{WithholdingTaxEngine, PostgresWithholdingTaxRepository as PostgresWithholdingTaxRepo};
-pub use multi_book::{MultiBookAccountingEngine, PostgresMultiBookAccountingRepository as PostgresMultiBookAccountingRepo};
-pub use procurement_contracts::{ProcurementContractEngine, PostgresProcurementContractRepository as PostgresProcurementContractRepo};
-pub use inventory::{InventoryEngine, PostgresInventoryRepository as PostgresInventoryRepo};
-pub use customer_returns::{CustomerReturnsEngine, PostgresCustomerReturnsRepository as PostgresCustomerReturnsRepo};
-pub use pricing::{PricingEngine, PostgresPricingRepository as PostgresPricingRepo};
-pub use sales_commission::{SalesCommissionEngine, PostgresSalesCommissionRepository as PostgresSalesCommissionRepo};
-pub use treasury::{TreasuryEngine, PostgresTreasuryRepository as PostgresTreasuryRepo};
-pub use subscription::{SubscriptionEngine, PostgresSubscriptionRepository as PostgresSubscriptionRepo};
-pub use grant_management::{GrantManagementEngine, PostgresGrantManagementRepository as PostgresGrantManagementRepo};
-pub use corporate_card::{CorporateCardEngine, PostgresCorporateCardRepository as PostgresCorporateCardRepo};
-pub use financial_consolidation::{FinancialConsolidationEngine, PostgresFinancialConsolidationRepository as PostgresFinancialConsolidationRepo};
-pub use supplier_qualification::{SupplierQualificationEngine, PostgresSupplierQualificationRepository as PostgresSupplierQualificationRepo};
-pub use recurring_journal::{RecurringJournalEngine, PostgresRecurringJournalRepository as PostgresRecurringJournalRepo};
-pub use manual_journal::{ManualJournalEngine, PostgresManualJournalRepository as PostgresManualJournalRepo};
-pub use document_sequencing::{DocumentSequencingEngine, PostgresDocumentSequencingRepository as PostgresDocumentSequencingRepo};
-pub use transaction_calendar::{TransactionCalendarEngine, PostgresTransactionCalendarRepository as PostgresTransactionCalendarRepo};
-pub use descriptive_flexfield::{DescriptiveFlexfieldEngine, PostgresDescriptiveFlexfieldRepository as PostgresDescriptiveFlexfieldRepo};
-pub use cross_validation::{CrossValidationEngine, PostgresCrossValidationRepository as PostgresCrossValidationRepo};
-pub use scheduled_process::{ScheduledProcessEngine, PostgresScheduledProcessRepository as PostgresScheduledProcessRepo};
-pub use segregation_of_duties::{SegregationOfDutiesEngine, PostgresSegregationOfDutiesRepository as PostgresSegregationOfDutiesRepo};
-pub use allocation::{AllocationEngine, PostgresAllocationRepository as PostgresAllocationRepo};
-pub use currency_revaluation::{CurrencyRevaluationEngine, PostgresCurrencyRevaluationRepository as PostgresCurrencyRevaluationRepo};
-pub use purchase_requisition::{PurchaseRequisitionEngine, PostgresPurchaseRequisitionRepository as PostgresPurchaseRequisitionRepo};
-pub use benefits::{BenefitsEngine, PostgresBenefitsRepository as PostgresBenefitsRepo};
-pub use autoinvoice::{AutoInvoiceEngine, PostgresAutoInvoiceRepository as PostgresAutoInvoiceRepo};
-pub use performance::{PerformanceEngine, PostgresPerformanceRepository as PostgresPerformanceRepo};
-pub use credit_management::{CreditManagementEngine, PostgresCreditManagementRepository as PostgresCreditManagementRepo};
-pub use product_information::{ProductInformationEngine, PostgresProductInformationRepository as PostgresProductInformationRepo};
-pub use quality_management::{QualityManagementEngine, PostgresQualityManagementRepository as PostgresQualityManagementRepo};
-pub use transfer_pricing::{TransferPricingEngine, PostgresTransferPricingRepository as PostgresTransferPricingRepo};
-pub use order_management::{OrderManagementEngine, PostgresOrderManagementRepository as PostgresOrderManagementRepo};
-pub use approval_delegation::{ApprovalDelegationEngine, PostgresApprovalDelegationRepository as PostgresApprovalDelegationRepo};
-pub use manufacturing::{ManufacturingEngine, PostgresManufacturingRepository as PostgresManufacturingRepo};
-pub use warehouse_management::{WarehouseManagementEngine, PostgresWarehouseManagementRepository as PostgresWarehouseManagementRepo};
-pub use absence::{AbsenceEngine, PostgresAbsenceRepository as PostgresAbsenceRepo};
-pub use time_and_labor::{TimeAndLaborEngine, PostgresTimeAndLaborRepository as PostgresTimeAndLaborRepo};
-pub use approval_authority::{ApprovalAuthorityEngine, PostgresApprovalAuthorityRepository as PostgresApprovalAuthorityRepo};
-pub use data_archiving::{DataArchivingEngine, PostgresDataArchivingRepository as PostgresDataArchivingRepo};
-pub use payroll::{PayrollEngine, PostgresPayrollRepository as PostgresPayrollRepo};
-pub use compensation::{CompensationEngine, PostgresCompensationRepository as PostgresCompensationRepository};
-pub use service_request::{ServiceRequestEngine, PostgresServiceRequestRepository as PostgresServiceRequestRepo};
-pub use lead_opportunity::{LeadOpportunityEngine, PostgresLeadOpportunityRepository as PostgresLeadOpportunityRepo};
-pub use demand_planning::{DemandPlanningEngine, PostgresDemandPlanningRepository as PostgresDemandPlanningRepo};
-pub use shipping::{ShippingEngine, PostgresShippingRepository as PostgresShippingRepo};
-pub use recruiting::{RecruitingEngine, PostgresRecruitingRepository as PostgresRecruitingRepo};
-pub use marketing::{MarketingEngine, PostgresMarketingRepository as PostgresMarketingRepo};
-pub use receiving::{ReceivingEngine, PostgresReceivingRepository as PostgresReceivingRepo};
-pub use supplier_scorecard::{SupplierScorecardEngine, PostgresScorecardRepository as PostgresScorecardRepo};
-pub use kpi::{KpiEngine, PostgresKpiRepository as PostgresKpiRepo};
-pub use account_monitor::{AccountMonitorEngine, PostgresAccountMonitorRepository as PostgresAccountMonitorRepo};
-pub use goal_management::{GoalManagementEngine, PostgresGoalManagementRepository as PostgresGoalManagementRepo};
-pub use landed_cost::{LandedCostEngine, PostgresLandedCostRepository as PostgresLandedCostRepo};
-pub use contract_lifecycle::{ContractLifecycleEngine, PostgresContractLifecycleRepository as PostgresContractLifecycleRepo};
-pub use succession_planning::{SuccessionPlanningEngine, PostgresSuccessionPlanningRepository as PostgresSuccessionPlanningRepo};
-pub use learning_management::{LearningManagementEngine, PostgresLearningManagementRepository as PostgresLearningManagementRepo};
-pub use joint_venture::{JointVentureEngine, PostgresJointVentureRepository as PostgresJointVentureRepo};
-pub use risk_management::{RiskManagementEngine, PostgresRiskManagementRepository as PostgresRiskManagementRepo};
-pub use enterprise_asset_management::{EnterpriseAssetManagementEngine, PostgresAssetManagementRepository as PostgresAssetManagementRepo};
-pub use project_billing::{ProjectBillingEngine, PostgresProjectBillingRepository as PostgresProjectBillingRepo};
-pub use sustainability::{SustainabilityEngine, PostgresSustainabilityRepository as PostgresSustainabilityRepo};
-pub use engineering_change_management::{EngineeringChangeEngine, PostgresEngineeringChangeManagementRepository as PostgresEcmRepository};
-pub use channel_revenue::{ChannelRevenueEngine, PostgresChannelRevenueRepository as PostgresChannelRevenueRepo};
-pub use product_configurator::{ProductConfiguratorEngine, PostgresProductConfiguratorRepository as PostgresProductConfiguratorRepo};
-pub use transportation_management::{TransportationManagementEngine, PostgresTransportationManagementRepository as PostgresTransportationManagementRepo};
-pub use territory_management::{TerritoryManagementEngine, PostgresTerritoryManagementRepository as PostgresTerritoryManagementRepo};
-pub use promotions_management::{PromotionsManagementEngine, PostgresPromotionsManagementRepository as PostgresPromotionsManagementRepo};
-pub use cost_accounting::{CostAccountingEngine, PostgresCostAccountingRepository as PostgresCostAccountingRepo};
-pub use accounts_payable::{AccountsPayableEngine, PostgresAccountsPayableRepository as PostgresAccountsPayableRepo};
-pub use supply_chain_planning::{SupplyChainPlanningEngine, PostgresPlanningRepository as PostgresPlanningRepo};
-pub use health_safety::{HealthSafetyEngine, PostgresHealthSafetyRepository as PostgresHealthSafetyRepo};
-pub use funds_reservation::{FundsReservationEngine, PostgresFundsReservationRepository as PostgresFundsReservationRepo};
-pub use rebate_management::{RebateManagementEngine, PostgresRebateManagementRepository as PostgresRebateManagementRepo};
-pub use project_resource_management::{ProjectResourceManagementEngine, PostgresProjectResourceManagementRepository as PostgresProjectResourceManagementRepo};
-pub use loyalty_management::{LoyaltyManagementEngine, PostgresLoyaltyManagementRepository as PostgresLoyaltyManagementRepo};
-pub use accounts_receivable::{AccountsReceivableEngine, PostgresAccountsReceivableRepository as PostgresAccountsReceivableRepo};
-pub use general_ledger::{GeneralLedgerEngine, PostgresGeneralLedgerRepository as PostgresGeneralLedgerRepo};
-pub use asset_depreciation::{AssetDepreciationEngine, PostgresAssetDepreciationRepository as PostgresAssetDepreciationRepo};
-pub use netting::{NettingEngine, PostgresNettingRepository as PostgresNettingRepo};
-pub use financial_statements::{FinancialStatementEngine, PostgresFinancialStatementRepository as PostgresFinancialStatementRepo};
-pub use journal_import::{JournalImportEngine, PostgresJournalImportRepository as PostgresJournalImportRepo};
-pub use inflation_adjustment::{InflationAdjustmentEngine, PostgresInflationAdjustmentRepository as PostgresInflationAdjustmentRepo};
-pub use impairment_management::{ImpairmentManagementEngine, PostgresImpairmentManagementRepository as PostgresImpairmentManagementRepo};
-pub use bank_account_transfer::{BankAccountTransferEngine, PostgresBankAccountTransferRepository as PostgresBankAccountTransferRepo};
-pub use tax_reporting::{TaxReportingEngine, PostgresTaxReportingRepository as PostgresTaxReportingRepo};
-pub use deferred_revenue::{DeferredRevenueEngine, PostgresDeferredRevenueRepository as PostgresDeferredRevenueRepo};
-pub use accounting_hub::{AccountingHubEngine, PostgresAccountingHubRepository as PostgresAccountingHubRepo};
-pub use financial_controls::{FinancialControlsEngine, PostgresFinancialControlsRepository as PostgresFinancialControlsRepo};
-pub use revenue_management::RevenueManagementEngine;
-pub use cash_flow_forecast::CashFlowForecastEngine;
-pub use regulatory_reporting::RegulatoryReportingEngine;
-pub use advance_payment::{AdvancePaymentEngine, PostgresAdvancePaymentRepository as PostgresAdvancePaymentRepo};
-pub use customer_deposit::{CustomerDepositEngine, PostgresCustomerDepositRepository as PostgresCustomerDepositRepo};
-pub use cash_position::{CashPositionEngine, PostgresCashPositionRepository as PostgresCashPositionRepo};
-pub use payment_terms::{PaymentTermsEngine, PostgresPaymentTermsRepository as PostgresPaymentTermsRepo};
-pub use lockbox::{LockboxEngine, PostgresLockboxRepository as PostgresLockboxRepo};
-pub use ar_aging::{ArAgingEngine, PostgresArAgingRepository as PostgresArAgingRepo};
-pub use ap_aging::{ApAgingEngine, PostgresArAgingRepository as PostgresApAgingRepo};
-pub use financial_ratio::{FinancialRatioEngine, PostgresFinancialRatioRepository as PostgresFinancialRatioRepo};
-pub use receipt_write_off::{ReceiptWriteOffEngine, PostgresReceiptWriteOffRepository as PostgresReceiptWriteOffRepo};
-pub use mass_additions::{MassAdditionEngine, PostgresMassAdditionRepository as PostgresMassAdditionRepo};
-pub use asset_reclassification::{AssetReclassificationEngine, PostgresAssetReclassificationRepository as PostgresAssetReclassificationRepo};
-pub use gl_budget_transfer::{GlBudgetTransferEngine, PostgresGlBudgetTransferRepository as PostgresGlBudgetTransferRepo};
-pub use payment_format::{PaymentFormatEngine, PostgresPaymentFormatRepository as PostgresPaymentFormatRepo};
-pub use financial_dimension_set::{FinancialDimensionSetEngine, PostgresFinancialDimensionSetRepository as PostgresFinancialDimensionSetRepo};
-pub use prepayment_application::{PrepaymentApplicationEngine, PostgresPrepaymentApplicationRepository as PostgresPrepaymentApplicationRepo};
-pub use asset_retirement::{AssetRetirementEngine, PostgresAssetRetirementRepository as PostgresAssetRetirementRepo};
-pub use cip_capitalization::{CipCapitalizationEngine, PostgresCipCapitalizationRepository as PostgresCipCapitalizationRepo};
-pub use available_funds::{AvailableFundsEngine, PostgresAvailableFundsRepository as PostgresAvailableFundsRepo};
-pub use statistical_accounting::{StatisticalAccountingEngine, PostgresStatisticalAccountingRepository as PostgresStatisticalAccountingRepo};
-pub use receivables_factoring::{ReceivablesFactoringEngine, PostgresReceivablesFactoringRepository as PostgresReceivablesFactoringRepo};
-pub use account_hierarchy::{AccountHierarchyEngine, PostgresAccountHierarchyRepository as PostgresAccountHierarchyRepo};
-pub use suspense_account::{SuspenseAccountEngine, PostgresSuspenseAccountRepository as PostgresSuspenseAccountRepo};
-pub use interest_invoice::{InterestInvoiceEngine, PostgresInterestInvoiceRepository as PostgresInterestInvoiceRepo};
-pub use expense_policy_compliance::{ExpensePolicyComplianceEngine, PostgresExpensePolicyComplianceRepository as PostgresExpensePolicyComplianceRepo};
-pub use bank_guarantee::{BankGuaranteeEngine, PostgresBankGuaranteeRepository as PostgresBankGuaranteeRepo};
-pub use letter_of_credit::{LetterOfCreditEngine, PostgresLetterOfCreditRepository as PostgresLetterOfCreditRepo};
-pub use hedge_management::{HedgeManagementEngine, repository::PostgresHedgeManagementRepository as PostgresHedgeManagementRepo};
-pub use payment_risk::{PaymentRiskEngine, repository::PostgresPaymentRiskRepository as PostgresPaymentRiskRepo};
-pub use tax_registration::{TaxRegistrationEngine, PostgresTaxRegistrationRepository as PostgresTaxRegistrationRepo};
-pub use cash_concentration::{CashConcentrationEngine, PostgresCashConcentrationRepository as PostgresCashConcentrationRepo};
-pub use customer_statement::{CustomerStatementEngine, PostgresCustomerStatementRepository as PostgresCustomerStatementRepo};
-pub use remittance_batch::{RemittanceBatchEngine, PostgresRemittanceBatchRepository as PostgresRemittanceBatchRepo};
-pub use chargeback_management::{ChargebackManagementEngine, PostgresChargebackManagementRepository as PostgresChargebackManagementRepo};
-pub use finance_charge::{FinanceChargeEngine, PostgresFinanceChargeRepository};
-pub use profitability_analysis::{ProfitabilityAnalysisEngine, PostgresProfitabilityAnalysisRepository as PostgresProfitabilityAnalysisRepo};
-pub use recurring_invoice::{RecurringInvoiceEngine, PostgresRecurringInvoiceRepository as PostgresRecurringInvoiceRepo};
-pub use payment_settlement::{PaymentSettlementEngine, PostgresPaymentSettlementRepository as PostgresPaymentSettlementRepo};
-pub use payment_process_request::{PaymentProcessRequestEngine, PostgresPaymentProcessRequestRepository};
-pub use invoice_batch::{InvoiceBatchEngine, PostgresInvoiceBatchRepository};
-pub use doubtful_account_allowance::{DoubtfulAccountAllowanceEngine, PostgresDoubtfulAccountAllowanceRepository as PostgresDoubtfulAccountAllowanceRepo};
-pub use invoice_matching::{InvoiceMatchingEngine, PostgresInvoiceMatchingRepository};
-pub use distribution_set::{DistributionSetEngine, PostgresDistributionSetRepository};
-pub use auto_offset::{AutoOffsetEngine, PostgresAutoOffsetRepository as PostgresAutoOffsetRepo};
-pub use cash_flow_statement::CashFlowStatementEngine;
-pub use bank_statement_reconciliation::{BankStatementReconciliationEngine, PostgresBankStatementReconciliationRepository as PostgresBankStatementReconciliationRepo};
-pub use third_party_payment::{ThirdPartyPaymentEngine, PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo};
-pub use average_balance::{AverageBalanceEngine, PostgresAverageBalanceRepository as PostgresAverageBalanceRepo};
-pub use cash_receipt::{CashReceiptEngine, PostgresCashReceiptRepository as PostgresCashReceiptRepo};
-pub use direct_debit_mandate::{DirectDebitMandateEngine, PostgresDirectDebitMandateRepository as PostgresDirectDebitMandateRepo};
-pub use multi_period_accounting::{MultiPeriodAccountingEngine, MpaRepository, PostgresMpaRepository as PostgresMpaRepo};
-pub use dunning_letter_management::{DunningLetterManagementEngine, PostgresDunningLetterManagementRepository as PostgresDunningLetterManagementRepo};
 
 mod mock_repos;
 pub use mock_repos::*;

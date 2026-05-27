@@ -149,7 +149,7 @@ reset_database() {
     # We do this by re-running the migration files in order.
     # _atlas schema and tables use CREATE IF NOT EXISTS / ON CONFLICT,
     # so re-running is safe; we also truncate test-critical tables.
-    psql "$DATABASE_URL" -v ON_ERROR_STOP=0 >/dev/null 2>&1 <<'SQL'
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=0 >/dev/null 2>&1 <<'SQL' || true
         -- Nuke all data for a clean run, but keep the schema
         TRUNCATE TABLE _atlas.audit_log CASCADE;
         TRUNCATE TABLE _atlas.workflow_states CASCADE;
@@ -167,7 +167,7 @@ SQL
     done
 
     # Seed the admin user + org (idempotent via ON CONFLICT)
-    psql "$DATABASE_URL" -v ON_ERROR_STOP=0 >/dev/null 2>&1 <<'SQL'
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=0 >/dev/null 2>&1 <<'SQL' || true
         INSERT INTO _atlas.organizations (id, name, code)
         VALUES ('00000000-0000-0000-0000-000000000001', 'Default Organization', 'DEFAULT')
         ON CONFLICT (id) DO NOTHING;
@@ -221,18 +221,18 @@ run_e2e_tests() {
         -p atlas-gateway
         --test e2e
         --quiet
-        --test-threads "$TEST_THREADS"
-        --ignored
     )
 
     if [ -n "$filter" ]; then
         cmd+=( "$filter" )
     fi
 
-    # Append any extra args (e.g. specific test name, --nocapture)
+    # Append test binary arguments after --
+    local test_args=( "--" "--ignored" "--test-threads" "$TEST_THREADS" )
     if [ ${#EXTRA_CARGO_ARGS[@]} -gt 0 ]; then
-        cmd+=( "--" "${EXTRA_CARGO_ARGS[@]}" )
+        test_args+=( "${EXTRA_CARGO_ARGS[@]}" )
     fi
+    cmd+=( "${test_args[@]}" )
 
     info "Running e2e tests (--ignored) …"
     info "  Command: ${cmd[*]}"

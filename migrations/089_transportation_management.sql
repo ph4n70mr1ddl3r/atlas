@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS _atlas.transport_lanes (
 );
 
 -- Transportation Shipments (master shipments)
-CREATE TABLE IF NOT EXISTS _atlas.shipments (
+CREATE TABLE IF NOT EXISTS _atlas.transport_shipments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
     shipment_number VARCHAR(50) NOT NULL,
@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS _atlas.shipments (
 CREATE TABLE IF NOT EXISTS _atlas.shipment_stops (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
-    shipment_id UUID NOT NULL REFERENCES _atlas.shipments(id) ON DELETE CASCADE,
+    shipment_id UUID NOT NULL REFERENCES _atlas.transport_shipments(id) ON DELETE CASCADE,
     stop_number INT NOT NULL,
     stop_type VARCHAR(20) NOT NULL, -- pickup, delivery, transfer
     location_id UUID,
@@ -195,10 +195,10 @@ CREATE TABLE IF NOT EXISTS _atlas.shipment_stops (
 );
 
 -- Shipment Lines (items within a shipment)
-CREATE TABLE IF NOT EXISTS _atlas.shipment_lines (
+CREATE TABLE IF NOT EXISTS _atlas.transport_shipment_lines (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
-    shipment_id UUID NOT NULL REFERENCES _atlas.shipments(id) ON DELETE CASCADE,
+    shipment_id UUID NOT NULL REFERENCES _atlas.transport_shipments(id) ON DELETE CASCADE,
     line_number INT NOT NULL,
     item_id UUID,
     item_number VARCHAR(50),
@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS _atlas.shipment_lines (
 CREATE TABLE IF NOT EXISTS _atlas.shipment_tracking_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
-    shipment_id UUID NOT NULL REFERENCES _atlas.shipments(id) ON DELETE CASCADE,
+    shipment_id UUID NOT NULL REFERENCES _atlas.transport_shipments(id) ON DELETE CASCADE,
     event_type VARCHAR(50) NOT NULL, -- picked_up, in_transit, out_for_delivery, delivered, exception, delayed, customs_clearance, at_hub
     event_timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
     location_description VARCHAR(300),
@@ -283,13 +283,13 @@ CREATE INDEX idx_carrier_services_active ON _atlas.carrier_services(is_active);
 CREATE INDEX idx_transport_lanes_org ON _atlas.transport_lanes(organization_id);
 CREATE INDEX idx_transport_lanes_status ON _atlas.transport_lanes(status);
 CREATE INDEX idx_transport_lanes_route ON _atlas.transport_lanes(origin_country, destination_country);
-CREATE INDEX idx_shipments_org ON _atlas.shipments(organization_id);
-CREATE INDEX idx_shipments_status ON _atlas.shipments(status);
-CREATE INDEX idx_shipments_carrier ON _atlas.shipments(carrier_id);
-CREATE INDEX idx_shipments_dates ON _atlas.shipments(planned_ship_date, planned_delivery_date);
-CREATE INDEX idx_shipments_tracking ON _atlas.shipments(tracking_number);
+CREATE INDEX idx_transport_shipments_org ON _atlas.transport_shipments(organization_id);
+CREATE INDEX idx_transport_shipments_status ON _atlas.transport_shipments(status);
+CREATE INDEX idx_transport_shipments_carrier ON _atlas.transport_shipments(carrier_id);
+CREATE INDEX idx_transport_shipments_dates ON _atlas.transport_shipments(planned_ship_date, planned_delivery_date);
+CREATE INDEX idx_transport_shipments_tracking ON _atlas.transport_shipments(tracking_number);
 CREATE INDEX idx_shipment_stops_shipment ON _atlas.shipment_stops(shipment_id);
-CREATE INDEX idx_shipment_lines_shipment ON _atlas.shipment_lines(shipment_id);
+CREATE INDEX idx_transport_shipment_lines_shipment ON _atlas.transport_shipment_lines(shipment_id);
 CREATE INDEX idx_tracking_events_shipment ON _atlas.shipment_tracking_events(shipment_id);
 CREATE INDEX idx_tracking_events_timestamp ON _atlas.shipment_tracking_events(event_timestamp);
 CREATE INDEX idx_freight_rates_org ON _atlas.freight_rates(organization_id);

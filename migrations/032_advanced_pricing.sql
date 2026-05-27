@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS _atlas.discount_rules (
     description TEXT,
     discount_type VARCHAR(30) NOT NULL DEFAULT 'percentage',
     discount_value NUMERIC(18,4) NOT NULL DEFAULT 0,
-    discount uom VARCHAR(30),
+    discount_uom VARCHAR(30),
     application_method VARCHAR(30) NOT NULL DEFAULT 'line',
     stacking_rule VARCHAR(20) NOT NULL DEFAULT 'exclusive',
     priority INT DEFAULT 10,

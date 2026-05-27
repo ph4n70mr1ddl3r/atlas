@@ -5,7 +5,7 @@
 -- Advance Payments (Oracle Fusion: AP > Advance Payments / Prepayments)
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS financials.advance_payments (
+CREATE TABLE IF NOT EXISTS _atlas.advance_payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
     advance_number VARCHAR(50) NOT NULL,
@@ -39,15 +39,15 @@ CREATE TABLE IF NOT EXISTS financials.advance_payments (
     UNIQUE(organization_id, advance_number)
 );
 
-CREATE INDEX idx_advance_payments_org ON financials.advance_payments(organization_id);
-CREATE INDEX idx_advance_payments_supplier ON financials.advance_payments(supplier_id);
-CREATE INDEX idx_advance_payments_status ON financials.advance_payments(status);
-CREATE INDEX idx_advance_payments_date ON financials.advance_payments(advance_date);
+CREATE INDEX idx_advance_payments_org ON _atlas.advance_payments(organization_id);
+CREATE INDEX idx_advance_payments_supplier ON _atlas.advance_payments(supplier_id);
+CREATE INDEX idx_advance_payments_status ON _atlas.advance_payments(status);
+CREATE INDEX idx_advance_payments_date ON _atlas.advance_payments(advance_date);
 
-CREATE TABLE IF NOT EXISTS financials.advance_applications (
+CREATE TABLE IF NOT EXISTS _atlas.advance_applications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
-    advance_id UUID NOT NULL REFERENCES financials.advance_payments(id),
+    advance_id UUID NOT NULL REFERENCES _atlas.advance_payments(id),
     advance_number VARCHAR(50),
     invoice_id UUID NOT NULL,
     invoice_number VARCHAR(50),
@@ -64,15 +64,15 @@ CREATE TABLE IF NOT EXISTS financials.advance_applications (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_advance_applications_advance ON financials.advance_applications(advance_id);
-CREATE INDEX idx_advance_applications_invoice ON financials.advance_applications(invoice_id);
-CREATE INDEX idx_advance_applications_status ON financials.advance_applications(status);
+CREATE INDEX idx_advance_applications_advance ON _atlas.advance_applications(advance_id);
+CREATE INDEX idx_advance_applications_invoice ON _atlas.advance_applications(invoice_id);
+CREATE INDEX idx_advance_applications_status ON _atlas.advance_applications(status);
 
 -- ============================================================================
 -- Customer Deposits (Oracle Fusion: AR > Customer Deposits)
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS financials.customer_deposits (
+CREATE TABLE IF NOT EXISTS _atlas.customer_deposits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
     deposit_number VARCHAR(50) NOT NULL,
@@ -105,15 +105,15 @@ CREATE TABLE IF NOT EXISTS financials.customer_deposits (
     UNIQUE(organization_id, deposit_number)
 );
 
-CREATE INDEX idx_customer_deposits_org ON financials.customer_deposits(organization_id);
-CREATE INDEX idx_customer_deposits_customer ON financials.customer_deposits(customer_id);
-CREATE INDEX idx_customer_deposits_status ON financials.customer_deposits(status);
-CREATE INDEX idx_customer_deposits_date ON financials.customer_deposits(deposit_date);
+CREATE INDEX idx_customer_deposits_org ON _atlas.customer_deposits(organization_id);
+CREATE INDEX idx_customer_deposits_customer ON _atlas.customer_deposits(customer_id);
+CREATE INDEX idx_customer_deposits_status ON _atlas.customer_deposits(status);
+CREATE INDEX idx_customer_deposits_date ON _atlas.customer_deposits(deposit_date);
 
-CREATE TABLE IF NOT EXISTS financials.deposit_applications (
+CREATE TABLE IF NOT EXISTS _atlas.deposit_applications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
-    deposit_id UUID NOT NULL REFERENCES financials.customer_deposits(id),
+    deposit_id UUID NOT NULL REFERENCES _atlas.customer_deposits(id),
     deposit_number VARCHAR(50),
     invoice_id UUID NOT NULL,
     invoice_number VARCHAR(50),
@@ -130,15 +130,15 @@ CREATE TABLE IF NOT EXISTS financials.deposit_applications (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_deposit_applications_deposit ON financials.deposit_applications(deposit_id);
-CREATE INDEX idx_deposit_applications_invoice ON financials.deposit_applications(invoice_id);
-CREATE INDEX idx_deposit_applications_status ON financials.deposit_applications(status);
+CREATE INDEX idx_deposit_applications_deposit ON _atlas.deposit_applications(deposit_id);
+CREATE INDEX idx_deposit_applications_invoice ON _atlas.deposit_applications(invoice_id);
+CREATE INDEX idx_deposit_applications_status ON _atlas.deposit_applications(status);
 
 -- ============================================================================
 -- Cash Position (Oracle Fusion: Treasury > Cash Position)
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS financials.cash_positions (
+CREATE TABLE IF NOT EXISTS _atlas.cash_positions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
     bank_account_id UUID NOT NULL,
@@ -160,13 +160,13 @@ CREATE TABLE IF NOT EXISTS financials.cash_positions (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_cash_positions_org ON financials.cash_positions(organization_id);
-CREATE INDEX idx_cash_positions_account ON financials.cash_positions(bank_account_id);
-CREATE INDEX idx_cash_positions_date ON financials.cash_positions(position_date);
-CREATE INDEX idx_cash_positions_currency ON financials.cash_positions(currency_code);
-CREATE UNIQUE INDEX idx_cash_positions_unique ON financials.cash_positions(organization_id, bank_account_id, position_date);
+CREATE INDEX idx_cash_positions_org ON _atlas.cash_positions(organization_id);
+CREATE INDEX idx_cash_positions_account ON _atlas.cash_positions(bank_account_id);
+CREATE INDEX idx_cash_positions_date ON _atlas.cash_positions(position_date);
+CREATE INDEX idx_cash_positions_currency ON _atlas.cash_positions(currency_code);
+CREATE UNIQUE INDEX idx_cash_positions_unique ON _atlas.cash_positions(organization_id, bank_account_id, position_date);
 
-CREATE TABLE IF NOT EXISTS financials.cash_position_summaries (
+CREATE TABLE IF NOT EXISTS _atlas.cash_position_summaries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL,
     currency_code VARCHAR(3) NOT NULL,
@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS financials.cash_position_summaries (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_cash_pos_summaries_org ON financials.cash_position_summaries(organization_id);
-CREATE INDEX idx_cash_pos_summaries_date ON financials.cash_position_summaries(position_date);
-CREATE INDEX idx_cash_pos_summaries_currency ON financials.cash_position_summaries(currency_code);
-CREATE UNIQUE INDEX idx_cash_pos_summaries_unique ON financials.cash_position_summaries(organization_id, currency_code, position_date);
+CREATE INDEX idx_cash_pos_summaries_org ON _atlas.cash_position_summaries(organization_id);
+CREATE INDEX idx_cash_pos_summaries_date ON _atlas.cash_position_summaries(position_date);
+CREATE INDEX idx_cash_pos_summaries_currency ON _atlas.cash_position_summaries(currency_code);
+CREATE UNIQUE INDEX idx_cash_pos_summaries_unique ON _atlas.cash_position_summaries(organization_id, currency_code, position_date);

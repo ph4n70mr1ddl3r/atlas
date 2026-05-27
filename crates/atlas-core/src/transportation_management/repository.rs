@@ -792,7 +792,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         metadata: serde_json::Value, created_by: Option<Uuid>,
     ) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r"INSERT INTO _atlas.shipments
+            r"INSERT INTO _atlas.transport_shipments
                 (organization_id, shipment_number, name, description,
                  status, shipment_type, priority,
                  carrier_id, carrier_code, carrier_name,
@@ -840,21 +840,21 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
     }
 
     async fn get_shipment(&self, id: Uuid) -> AtlasResult<Option<TransportShipment>> {
-        let row = sqlx::query("SELECT * FROM _atlas.shipments WHERE id = $1")
+        let row = sqlx::query("SELECT * FROM _atlas.transport_shipments WHERE id = $1")
             .bind(id).fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_shipment))
     }
 
     async fn get_shipment_by_number(&self, org_id: Uuid, shipment_number: &str) -> AtlasResult<Option<TransportShipment>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.shipments WHERE organization_id = $1 AND shipment_number = $2"
+            "SELECT * FROM _atlas.transport_shipments WHERE organization_id = $1 AND shipment_number = $2"
         ).bind(org_id).bind(shipment_number).fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_shipment))
     }
 
     async fn list_shipments(&self, org_id: Uuid, status: Option<&str>, shipment_type: Option<&str>) -> AtlasResult<Vec<TransportShipment>> {
         let rows = sqlx::query(
-            r"SELECT * FROM _atlas.shipments
+            r"SELECT * FROM _atlas.transport_shipments
                WHERE organization_id = $1
                  AND ($2::text IS NULL OR status = $2)
                  AND ($3::text IS NULL OR shipment_type = $3)
@@ -866,7 +866,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn update_shipment_status(&self, id: Uuid, status: &str) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            "UPDATE _atlas.shipments SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
+            "UPDATE _atlas.transport_shipments SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
         .fetch_one(&self.pool).await
         .map_err(|_| AtlasError::EntityNotFound(format!("TransportShipment {id} not found")))?;
@@ -878,7 +878,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         carrier_name: Option<&str>, carrier_service_id: Option<Uuid>, carrier_service_code: Option<&str>,
     ) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r"UPDATE _atlas.shipments
+            r"UPDATE _atlas.transport_shipments
                SET carrier_id = $2, carrier_code = $3, carrier_name = $4,
                    carrier_service_id = $5, carrier_service_code = $6, updated_at = now()
                WHERE id = $1 RETURNING *",
@@ -891,7 +891,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn update_shipment_dates(&self, id: Uuid, actual_ship_date: Option<chrono::NaiveDate>, actual_delivery_date: Option<chrono::NaiveDate>) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r"UPDATE _atlas.shipments
+            r"UPDATE _atlas.transport_shipments
                SET actual_ship_date = COALESCE($2, actual_ship_date),
                    actual_delivery_date = COALESCE($3, actual_delivery_date),
                    updated_at = now()
@@ -904,7 +904,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn update_shipment_tracking(&self, id: Uuid, tracking_number: Option<&str>, tracking_url: Option<&str>, pro_number: Option<&str>, bill_of_lading: Option<&str>) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r"UPDATE _atlas.shipments
+            r"UPDATE _atlas.transport_shipments
                SET tracking_number = COALESCE($2, tracking_number),
                    tracking_url = COALESCE($3, tracking_url),
                    pro_number = COALESCE($4, pro_number),
@@ -919,7 +919,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn update_shipment_totals(&self, id: Uuid, weight: f64, volume: f64, pieces: i32, freight: f64, fuel: f64, accessorial: f64, total: f64) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r"UPDATE _atlas.shipments
+            r"UPDATE _atlas.transport_shipments
                SET total_weight_kg = $2, total_volume_cbm = $3, total_pieces = $4,
                    freight_cost = $5, fuel_surcharge = $6, accessorial_charges = $7, total_cost = $8,
                    updated_at = now()
@@ -933,7 +933,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn update_shipment_delivery(&self, id: Uuid, received_by: Option<Uuid>) -> AtlasResult<TransportShipment> {
         let row = sqlx::query(
-            r"UPDATE _atlas.shipments
+            r"UPDATE _atlas.transport_shipments
                SET received_by = $2, actual_delivery_date = CURRENT_DATE, updated_at = now()
                WHERE id = $1 RETURNING *",
         ).bind(id).bind(received_by)
@@ -944,7 +944,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn delete_shipment(&self, org_id: Uuid, shipment_number: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.shipments WHERE organization_id = $1 AND shipment_number = $2"
+            "DELETE FROM _atlas.transport_shipments WHERE organization_id = $1 AND shipment_number = $2"
         ).bind(org_id).bind(shipment_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound(format!("TransportShipment '{shipment_number}' not found")));
@@ -1034,7 +1034,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
         metadata: serde_json::Value,
     ) -> AtlasResult<TransportShipmentLine> {
         let row = sqlx::query(
-            r"INSERT INTO _atlas.shipment_lines
+            r"INSERT INTO _atlas.transport_shipment_lines
                 (organization_id, shipment_id, line_number,
                  item_id, item_number, item_description,
                  quantity, unit_of_measure,
@@ -1057,21 +1057,21 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
     }
 
     async fn get_shipment_line(&self, id: Uuid) -> AtlasResult<Option<TransportShipmentLine>> {
-        let row = sqlx::query("SELECT * FROM _atlas.shipment_lines WHERE id = $1")
+        let row = sqlx::query("SELECT * FROM _atlas.transport_shipment_lines WHERE id = $1")
             .bind(id).fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_shipment_line))
     }
 
     async fn list_shipment_lines(&self, shipment_id: Uuid) -> AtlasResult<Vec<TransportShipmentLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.shipment_lines WHERE shipment_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.transport_shipment_lines WHERE shipment_id = $1 ORDER BY line_number"
         ).bind(shipment_id).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_shipment_line).collect())
     }
 
     async fn update_shipment_line_quantities(&self, id: Uuid, shipped: i32, received: i32) -> AtlasResult<TransportShipmentLine> {
         let row = sqlx::query(
-            r"UPDATE _atlas.shipment_lines
+            r"UPDATE _atlas.transport_shipment_lines
                SET quantity_shipped = $2, quantity_received = $3, updated_at = now()
                WHERE id = $1 RETURNING *",
         ).bind(id).bind(shipped).bind(received)
@@ -1081,7 +1081,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
     }
 
     async fn delete_shipment_line(&self, id: Uuid) -> AtlasResult<()> {
-        let result = sqlx::query("DELETE FROM _atlas.shipment_lines WHERE id = $1")
+        let result = sqlx::query("DELETE FROM _atlas.transport_shipment_lines WHERE id = $1")
             .bind(id).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound("TransportShipment line not found".to_string()));
@@ -1221,7 +1221,7 @@ impl TransportationManagementRepository for PostgresTransportationManagementRepo
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<TransportationDashboard> {
         let shipment_rows = sqlx::query(
-            "SELECT status, carrier_name, total_cost, total_weight_kg FROM _atlas.shipments WHERE organization_id = $1"
+            "SELECT status, carrier_name, total_cost, total_weight_kg FROM _atlas.transport_shipments WHERE organization_id = $1"
         ).bind(org_id).fetch_all(&self.pool).await.unwrap_or_default();
 
         let total_shipments = shipment_rows.len() as i32;

@@ -143,12 +143,11 @@ SELECT
             'amount', upcoming.amount,
             'due_date', upcoming.due_date,
             'payment_type', upcoming.payment_type
-        )) FROM financials.third_party_payments upcoming
+        ) ORDER BY upcoming.due_date) FROM financials.third_party_payments upcoming
         WHERE upcoming.organization_id = tpp.organization_id
           AND upcoming.status IN ('draft', 'submitted', 'approved')
           AND upcoming.due_date IS NOT NULL
-          AND upcoming.due_date <= CURRENT_DATE + INTERVAL '30 days'
-        ORDER BY upcoming.due_date),
+          AND upcoming.due_date <= CURRENT_DATE + INTERVAL '30 days'),
         '[]'::json
     ) AS upcoming_due
 FROM financials.third_party_payments tpp

@@ -141,7 +141,7 @@ pub trait QualityManagementRepository: Send + Sync {
     ) -> AtlasResult<CorrectiveAction>;
 
     async fn get_corrective_action(&self, id: Uuid) -> AtlasResult<Option<CorrectiveAction>>;
-    async fn list_corrective_actions(&self, ncr_id: Uuid) -> AtlasResult<Vec<CorrectiveAction>>;
+    async fn list_corrective_actions(&self, ncr_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CorrectiveAction>>;
     async fn update_corrective_action_status(
         &self, id: Uuid, status: &str,
         completed_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -644,13 +644,22 @@ impl QualityManagementRepository for PostgresQualityManagementRepository {
         Ok(row.map(|r| row_to_corrective_action(&r)))
     }
 
-    async fn list_corrective_actions(&self, ncr_id: Uuid) -> AtlasResult<Vec<CorrectiveAction>> {
-        let rows = sqlx::query(
-            "SELECT * FROM _atlas.quality_corrective_actions WHERE ncr_id=$1 ORDER BY action_number"
-        )
-        .bind(ncr_id)
-        .fetch_all(&self.pool).await
-        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+    async fn list_corrective_actions(&self, ncr_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CorrectiveAction>> {
+        let rows = if let Some(s) = status {
+            sqlx::query(
+                "SELECT * FROM _atlas.quality_corrective_actions WHERE ncr_id=$1 AND status=$2 ORDER BY action_number"
+            )
+            .bind(ncr_id)
+            .bind(s)
+            .fetch_all(&self.pool).await
+        } else {
+            sqlx::query(
+                "SELECT * FROM _atlas.quality_corrective_actions WHERE ncr_id=$1 ORDER BY action_number"
+            )
+            .bind(ncr_id)
+            .fetch_all(&self.pool).await
+        };
+        let rows = rows.map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_corrective_action).collect())
     }

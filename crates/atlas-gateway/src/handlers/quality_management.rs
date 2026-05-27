@@ -845,17 +845,27 @@ pub async fn get_corrective_action(
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListCorrectiveActionsParams {
+    pub status: Option<String>,
+}
+
 pub async fn list_corrective_actions(
     State(state): State<Arc<AppState>>,
     Path(ncr_id): Path<Uuid>,
+    Query(params): Query<ListCorrectiveActionsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let actions = state
         .quality_engine
-        .list_corrective_actions(ncr_id)
+        .list_corrective_actions(ncr_id, params.status.as_deref())
         .await
         .map_err(|e| {
             tracing::error!("List corrective actions error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            match e {
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
         })?;
 
     Ok(Json(serde_json::json!({

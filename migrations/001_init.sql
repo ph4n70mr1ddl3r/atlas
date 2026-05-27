@@ -7,6 +7,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Atlas internal schema (system tables)
 CREATE SCHEMA IF NOT EXISTS _atlas;
+CREATE SCHEMA IF NOT EXISTS financials;
 
 -- ============================================================================
 -- Users and Authentication

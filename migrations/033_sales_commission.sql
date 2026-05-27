@@ -118,6 +118,32 @@ CREATE TABLE IF NOT EXISTS _atlas.sales_quotas (
 CREATE INDEX IF NOT EXISTS idx_sales_quotas_rep ON _atlas.sales_quotas(rep_id);
 CREATE INDEX IF NOT EXISTS idx_sales_quotas_period ON _atlas.sales_quotas(period_start_date, period_end_date);
 
+-- ─── Commission Payouts ───────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS _atlas.commission_payouts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL,
+    payout_number VARCHAR(50) NOT NULL,
+    period_name VARCHAR(100) NOT NULL,
+    period_start_date DATE NOT NULL,
+    period_end_date DATE NOT NULL,
+    total_payout_amount NUMERIC(18,4) DEFAULT 0,
+    currency_code VARCHAR(3) DEFAULT 'USD',
+    rep_count INT DEFAULT 0,
+    transaction_count INT DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'draft',  -- draft, approved, paid, rejected
+    approved_by UUID,
+    approved_at TIMESTAMPTZ,
+    rejected_reason TEXT,
+    metadata JSONB DEFAULT '{}',
+    created_by UUID,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_commission_payouts_org ON _atlas.commission_payouts(organization_id);
+CREATE INDEX IF NOT EXISTS idx_commission_payouts_status ON _atlas.commission_payouts(organization_id, status);
+
 -- ─── Commission Transactions ──────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS _atlas.commission_transactions (
@@ -148,32 +174,6 @@ CREATE INDEX IF NOT EXISTS idx_commission_txns_rep ON _atlas.commission_transact
 CREATE INDEX IF NOT EXISTS idx_commission_txns_status ON _atlas.commission_transactions(organization_id, status);
 CREATE INDEX IF NOT EXISTS idx_commission_txns_date ON _atlas.commission_transactions(transaction_date);
 CREATE INDEX IF NOT EXISTS idx_commission_txns_source ON _atlas.commission_transactions(source_type, source_id) WHERE source_type IS NOT NULL;
-
--- ─── Commission Payouts ───────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS _atlas.commission_payouts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID NOT NULL,
-    payout_number VARCHAR(50) NOT NULL,
-    period_name VARCHAR(100) NOT NULL,
-    period_start_date DATE NOT NULL,
-    period_end_date DATE NOT NULL,
-    total_payout_amount NUMERIC(18,4) DEFAULT 0,
-    currency_code VARCHAR(3) DEFAULT 'USD',
-    rep_count INT DEFAULT 0,
-    transaction_count INT DEFAULT 0,
-    status VARCHAR(20) DEFAULT 'draft',  -- draft, approved, paid, rejected
-    approved_by UUID,
-    approved_at TIMESTAMPTZ,
-    rejected_reason TEXT,
-    metadata JSONB DEFAULT '{}',
-    created_by UUID,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_commission_payouts_org ON _atlas.commission_payouts(organization_id);
-CREATE INDEX IF NOT EXISTS idx_commission_payouts_status ON _atlas.commission_payouts(organization_id, status);
 
 -- ─── Commission Payout Lines ──────────────────────────────────────
 

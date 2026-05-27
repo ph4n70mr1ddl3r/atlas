@@ -55,9 +55,15 @@ CREATE TABLE IF NOT EXISTS _atlas.allocation_base_values (
     metadata JSONB DEFAULT '{}',
     created_by UUID,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE(base_id, COALESCE(department_id, '00000000-0000-0000-0000-000000000000'),
-           COALESCE(cost_center, ''), effective_date)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Unique index created separately to support COALESCE expressions in PostgreSQL
+CREATE UNIQUE INDEX IF NOT EXISTS idx_allocation_base_values_unique ON _atlas.allocation_base_values (
+    base_id,
+    COALESCE(department_id, '00000000-0000-0000-0000-000000000000'),
+    COALESCE(cost_center, ''),
+    effective_date
 );
 
 -- Allocation Rules

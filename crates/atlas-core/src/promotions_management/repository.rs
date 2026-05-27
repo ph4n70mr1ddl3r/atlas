@@ -384,7 +384,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PromoMgmtFund> {
         let row = sqlx::query(
-            r"INSERT INTO _atlas.promotion_funds
+            r"INSERT INTO _atlas.marketing_promotion_funds
                 (organization_id, promotion_id, fund_type, allocated_amount, currency_code, created_by)
                VALUES ($1,$2,$3,$4,$5,$6)
                RETURNING id, organization_id, promotion_id, fund_type,
@@ -403,7 +403,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
 
     async fn list_funds(&self, promotion_id: Uuid) -> AtlasResult<Vec<PromoMgmtFund>> {
         let rows = sqlx::query(
-            "SELECT id, organization_id, promotion_id, fund_type, allocated_amount::text as allocated_amount, committed_amount::text as committed_amount, spent_amount::text as spent_amount, currency_code, is_active, created_by, created_at, updated_at FROM _atlas.promotion_funds WHERE promotion_id = $1 AND is_active = true ORDER BY fund_type",
+            "SELECT id, organization_id, promotion_id, fund_type, allocated_amount::text as allocated_amount, committed_amount::text as committed_amount, spent_amount::text as spent_amount, currency_code, is_active, created_by, created_at, updated_at FROM _atlas.marketing_promotion_funds WHERE promotion_id = $1 AND is_active = true ORDER BY fund_type",
         )
         .bind(promotion_id).fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -412,7 +412,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
 
     async fn update_fund_committed(&self, id: Uuid, committed_amount: &str) -> AtlasResult<PromoMgmtFund> {
         let row = sqlx::query(
-            r"UPDATE _atlas.promotion_funds SET committed_amount = $2::numeric, updated_at = now() WHERE id = $1
+            r"UPDATE _atlas.marketing_promotion_funds SET committed_amount = $2::numeric, updated_at = now() WHERE id = $1
                RETURNING id, organization_id, promotion_id, fund_type,
                  allocated_amount::text as allocated_amount,
                  committed_amount::text as committed_amount,
@@ -427,7 +427,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
 
     async fn update_fund_spent(&self, id: Uuid, spent_amount: &str) -> AtlasResult<PromoMgmtFund> {
         let row = sqlx::query(
-            r"UPDATE _atlas.promotion_funds SET spent_amount = $2::numeric, updated_at = now() WHERE id = $1
+            r"UPDATE _atlas.marketing_promotion_funds SET spent_amount = $2::numeric, updated_at = now() WHERE id = $1
                RETURNING id, organization_id, promotion_id, fund_type,
                  allocated_amount::text as allocated_amount,
                  committed_amount::text as committed_amount,
@@ -441,7 +441,7 @@ impl PromotionsManagementRepository for PostgresPromotionsManagementRepository {
     }
 
     async fn delete_fund(&self, id: Uuid) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.promotion_funds WHERE id = $1")
+        sqlx::query("DELETE FROM _atlas.marketing_promotion_funds WHERE id = $1")
             .bind(id).execute(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())

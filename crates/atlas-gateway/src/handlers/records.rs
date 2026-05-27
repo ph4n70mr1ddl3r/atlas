@@ -484,15 +484,14 @@ pub async fn update_record(
     
     let old_record = old_row.map(|r| row_to_json(&r));
     
-    // Validate and sanitize field names, filter null values
+    // Validate and sanitize field names
     let values_obj = payload.values.as_object().ok_or(StatusCode::BAD_REQUEST)?;
-    let non_null: Vec<(String, &serde_json::Value)> = values_obj
+    let fields_to_process: Vec<(String, &serde_json::Value)> = values_obj
         .iter()
-        .filter(|(_, v)| !v.is_null())
         .map(|(k, v)| sanitize_identifier(k).map(|safe_k| (safe_k, v)))
         .collect::<Result<Vec<_>, _>>()?;
     
-    let set_clauses: Vec<String> = non_null.iter()
+    let set_clauses: Vec<String> = fields_to_process.iter()
         .enumerate()
         .map(|(i, (k, _))| format!("\"{}\" = ${}::text", k, i + 1))
         .collect();
@@ -506,13 +505,13 @@ pub async fn update_record(
         "UPDATE \"{}\" SET {}, updated_at = now() WHERE id = ${} AND organization_id = ${}{} RETURNING *",
         table_name,
         set_clauses.join(", "),
-        non_null.len() + 1,
-        non_null.len() + 2,
+        fields_to_process.len() + 1,
+        fields_to_process.len() + 2,
         soft_delete_update
     );
     
     let mut db_query = sqlx::query(&query);
-    for (_, value) in &non_null {
+    for (_, value) in &fields_to_process {
         db_query = db_query.bind(json_to_text(value));
     }
     db_query = db_query.bind(id);

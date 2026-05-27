@@ -83,6 +83,7 @@ impl FormulaEngine {
     
     fn parse_and_evaluate(&self, expression: &str, ctx: &EvaluationContext) -> Result<FormulaValue, String> {
         let expr = expression.trim();
+        println!("Eval: '{}'", expr);
         
         // Handle string literals
         if expr.starts_with('"') && expr.ends_with('"') {
@@ -107,27 +108,31 @@ impl FormulaEngine {
             return Err(format!("Unknown function: {func_name}"));
         }
         
-        // Handle operators
-        //
-        // Operator precedence: `+` and `-` are checked before `*` and `/`.
-        // This is the **reverse** of mathematical convention but is intentional
-        // because `evaluate_binary_op` recursively evaluates both sides.
-        //
-        // For an expression like `a * b + c * d`:
-        //   1. We find `+` first, split into `a * b` and `c * d`
-        //   2. Each side is recursively evaluated (finding their own `*`)
-        //   3. Final result: (a*b) + (c*d) ✓
-        //
-        // For `a + b * c`:
-        //   1. We find `+` first, split into `a` and `b * c`
-        //   2. `b * c` is recursively evaluated (finding `*`)
-        //   3. Final result: a + (b*c) ✓
-        //
-        // NOTE: This works for simple two-term expressions but may produce
-        // incorrect results for complex mixed-precedence chains like
-        // `a + b * c - d`. A proper recursive-descent parser (or the Pest
-        // grammar already in the crate) should be used for production-grade
-        // formula evaluation.
+        // Handle logical operators (Lowest precedence, so checked first)
+        if expr.contains("OR") {
+            if let Some(result) = self.evaluate_logical(expr, "OR", ctx)? {
+                return Ok(result);
+            }
+        }
+
+        if expr.contains("AND") {
+            if let Some(result) = self.evaluate_logical(expr, "AND", ctx)? {
+                return Ok(result);
+            }
+        }
+
+        // Handle comparison operators
+        // Check longer operators first to avoid partial matches (e.g. ">=" before ">")
+        for op in &[">=", "<=", "==", "!=", ">", "<"] {
+            if expr.contains(op) {
+                if let Some(result) = self.evaluate_compare(expr, op, ctx)? {
+                    return Ok(result);
+                }
+            }
+        }
+
+        // Handle arithmetic operators
+        // Addition and subtraction (lower than mult/div)
         if expr.contains('+') && !expr.contains('"') {
             if let Some(result) = self.evaluate_binary_op(expr, '+', ctx)? {
                 return Ok(result);
@@ -140,6 +145,7 @@ impl FormulaEngine {
             }
         }
         
+        // Multiplication and division (highest binary precedence)
         if expr.contains('*') {
             if let Some(result) = self.evaluate_binary_op(expr, '*', ctx)? {
                 return Ok(result);
@@ -148,29 +154,6 @@ impl FormulaEngine {
         
         if expr.contains('/') {
             if let Some(result) = self.evaluate_binary_op(expr, '/', ctx)? {
-                return Ok(result);
-            }
-        }
-        
-        // Handle comparison operators — check longer operators first to avoid
-        // partial matches (e.g. ">=" must be tried before ">" ).
-        for op in &[">=", "<=", "==", "!=", ">", "<"] {
-            if expr.contains(op) {
-                if let Some(result) = self.evaluate_compare(expr, op, ctx)? {
-                    return Ok(result);
-                }
-            }
-        }
-        
-        // Handle logical operators
-        if expr.contains("AND") {
-            if let Some(result) = self.evaluate_logical(expr, "AND", ctx)? {
-                return Ok(result);
-            }
-        }
-        
-        if expr.contains("OR") {
-            if let Some(result) = self.evaluate_logical(expr, "OR", ctx)? {
                 return Ok(result);
             }
         }
@@ -348,13 +331,46 @@ impl FormulaEngine {
     }
     
     fn evaluate_logical(&self, expr: &str, op: &str, ctx: &EvaluationContext) -> Result<Option<FormulaValue>, String> {
-        let parts: Vec<&str> = expr.split(op).collect();
-        if parts.len() == 2 {
-            let left = self.parse_and_evaluate(parts[0].trim(), ctx)?;
-            let right = self.parse_and_evaluate(parts[1].trim(), ctx)?;
+        let mut depth = 0;
+        let mut in_string = false;
+        let mut last_op_byte_idx: Option<usize> = None;
+        let chars: Vec<char> = expr.chars().collect();
+        let op_len = op.len();
+
+        for i in 0..chars.len().saturating_sub(op_len) {
+            let ch = chars[i];
+            match ch {
+                '"' => in_string = !in_string,
+                '(' | '[' | '{' if !in_string => depth += 1,
+                ')' | ']' | '}' if !in_string => depth -= 1,
+                _ if !in_string && depth == 0 => {
+                    let slice: String = chars[i..i + op_len].iter().collect();
+                    if slice == op {
+                        // Ensure it's a separate word (for AND/OR)
+                        let prev_ok = i == 0 || chars[i-1].is_whitespace() || chars[i-1] == ')';
+                        let next_ok = i + op_len == chars.len() || chars[i+op_len].is_whitespace() || chars[i+op_len] == '(';
+                        
+                        if prev_ok && next_ok {
+                            let byte_idx = expr.char_indices()
+                                .nth(i)
+                                .map_or(expr.len(), |(bi, _)| bi);
+                            last_op_byte_idx = Some(byte_idx);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if let Some(byte_idx) = last_op_byte_idx {
+            let left = expr[..byte_idx].trim();
+            let right = expr[byte_idx + op.len()..].trim();
             
-            let left_bool = to_bool(&left);
-            let right_bool = to_bool(&right);
+            let left_val = self.parse_and_evaluate(left, ctx)?;
+            let right_val = self.parse_and_evaluate(right, ctx)?;
+            
+            let left_bool = to_bool(&left_val);
+            let right_bool = to_bool(&right_val);
             
             let result = match op {
                 "AND" => left_bool && right_bool,
@@ -665,6 +681,24 @@ mod tests {
         
         let result = engine.evaluate("quantity > 5", &ctx).unwrap();
         assert!(matches!(result, FormulaValue::Boolean(true)));
+    }
+
+    #[test]
+    fn test_complex_logical() {
+        let engine = FormulaEngine::new();
+        let ctx = create_context();
+        
+        // true AND true AND true = true
+        let result = engine.evaluate("active AND quantity > 5 AND price > 20", &ctx).unwrap();
+        assert!(matches!(result, FormulaValue::Boolean(true)));
+        
+        // true AND true AND false = false
+        let result2 = engine.evaluate("active AND quantity > 5 AND price < 20", &ctx).unwrap();
+        assert!(matches!(result2, FormulaValue::Boolean(false)));
+
+        // false OR false OR true = true
+        let result3 = engine.evaluate("quantity < 5 OR price < 20 OR active", &ctx).unwrap();
+        assert!(matches!(result3, FormulaValue::Boolean(true)));
     }
     
     #[test]

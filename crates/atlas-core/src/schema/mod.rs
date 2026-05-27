@@ -60,7 +60,7 @@ pub fn field_type_to_sql(field_type: &FieldType) -> String {
         FieldType::RichText => "TEXT".to_string(),
         FieldType::Attachment => "UUID".to_string(),
         FieldType::Reference { .. } => "UUID".to_string(),
-        FieldType::OneToMany { .. } => "TEXT".to_string(), // Stored as JSON array of IDs; not a direct column
+        FieldType::OneToMany { .. } => "JSONB".to_string(), // Stored as JSON array of IDs
         FieldType::OneToOne { .. } => "UUID".to_string(),
         FieldType::Computed { .. } => "TEXT".to_string(), // Virtual column; may be materialized or omitted
         FieldType::Address => "JSONB".to_string(),

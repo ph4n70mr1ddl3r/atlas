@@ -114,6 +114,14 @@ impl ValidationEngine {
                         &format!("{} cannot be empty", field.label)
                     );
                 }
+            } else if let Some(arr) = value.as_array() {
+                if arr.is_empty() {
+                    result.add_error(
+                        &field.name,
+                        "required",
+                        &format!("{} must contain at least one item", field.label)
+                    );
+                }
             }
         } else {
             result.add_error(
@@ -177,6 +185,32 @@ impl ValidationEngine {
                 }
             }
             
+            FieldType::Reference { .. } | FieldType::OneToOne { .. } => {
+                if let Some(s) = value.as_str() {
+                    if uuid::Uuid::parse_str(s).is_err() {
+                        result.add_error(&field.name, "uuid", &format!("{} must be a valid UUID", field.label));
+                    }
+                } else if !value.is_null() {
+                    result.add_error(&field.name, "type", &format!("{} must be a string (UUID)", field.label));
+                }
+            }
+
+            FieldType::OneToMany { .. } => {
+                if let Some(arr) = value.as_array() {
+                    for (i, v) in arr.iter().enumerate() {
+                        if let Some(s) = v.as_str() {
+                            if uuid::Uuid::parse_str(s).is_err() {
+                                result.add_error(&field.name, "uuid", &format!("{} contains an invalid UUID at index {}", field.label, i));
+                            }
+                        } else {
+                            result.add_error(&field.name, "type", &format!("{} must contain only UUID strings", field.label));
+                        }
+                    }
+                } else if !value.is_null() {
+                    result.add_error(&field.name, "type", &format!("{} must be an array of UUIDs", field.label));
+                }
+            }
+
             FieldType::Email => {
                 if let Some(s) = value.as_str() {
                     if !s.contains('@') || !s.contains('.') {

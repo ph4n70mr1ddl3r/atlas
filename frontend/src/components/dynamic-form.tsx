@@ -57,7 +57,25 @@ export function DynamicForm({
     // Clean up empty strings for optional number fields
     const cleaned: Record<string, unknown> = {}
     for (const field of editableFields) {
-      const val = data[field.name]
+      let val = data[field.name]
+      
+      // Parse OneToMany if it's a string
+      if (field.fieldType.type === 'one_to_many' && typeof val === 'string' && val.trim() !== '') {
+        try {
+          // Try parsing as JSON array
+          const parsed = JSON.parse(val)
+          if (Array.isArray(parsed)) {
+            val = parsed
+          } else {
+            // If it's a single value, wrap in array
+            val = [parsed]
+          }
+        } catch {
+          // If not valid JSON, treat as comma-separated list
+          val = val.split(',').map(s => s.trim()).filter(s => s !== '')
+        }
+      }
+
       if (val === '' || val === undefined) {
         if (!field.isRequired) {
           cleaned[field.name] = null

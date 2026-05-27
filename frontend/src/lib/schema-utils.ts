@@ -65,7 +65,10 @@ function fieldTypeToZod(ft: FieldTypeUnion, name: string): z.ZodTypeAny {
       if (ft.values.length === 0) return z.string()
       return z.enum(ft.values as [string, ...string[]])
     case 'reference':
+    case 'one_to_one':
       return z.string().uuid().or(z.string().min(1))
+    case 'one_to_many':
+      return z.array(z.string().uuid()).or(z.string()).optional()
     case 'currency':
       return z.coerce.number()
     case 'rich_text':
@@ -74,9 +77,6 @@ function fieldTypeToZod(ft: FieldTypeUnion, name: string): z.ZodTypeAny {
       return z.any()
     case 'computed':
       // computed fields are read-only, allow any for display
-      return z.any().optional()
-    case 'one_to_many':
-    case 'one_to_one':
       return z.any().optional()
     case 'attachment':
       return z.any().optional()
@@ -140,7 +140,9 @@ export function isSelectField(ft: FieldTypeUnion): boolean {
  * Check if a field should be rendered as a textarea.
  */
 export function isTextareaField(ft: FieldTypeUnion): boolean {
-  return ft.type === 'rich_text' || (ft.type === 'string' && 'maxLength' in ft && (ft as any).maxLength != null && (ft as any).maxLength > 200)
+  return ft.type === 'rich_text' || 
+         ft.type === 'one_to_many' ||
+         (ft.type === 'string' && 'maxLength' in ft && (ft as any).maxLength != null && (ft as any).maxLength > 200)
 }
 
 /**

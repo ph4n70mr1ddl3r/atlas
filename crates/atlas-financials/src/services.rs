@@ -10393,7 +10393,7 @@ impl CostRateCardService {
         entries.iter()
             .filter(|e| e.cost_element == cost_element)
             .filter(|e| e.effective_from <= as_of_date)
-            .filter(|e| e.effective_to.is_none() || e.effective_to.unwrap() >= as_of_date)
+            .filter(|e| e.effective_to.is_none_or(|to| to >= as_of_date))
             .max_by_key(|e| e.effective_from)
             .map(|e| e.rate)
     }

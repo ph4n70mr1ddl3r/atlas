@@ -44,6 +44,16 @@ impl PositivePayService {
             };
         }
 
+        if payment_records.iter().any(|(chk, amt)| chk.is_empty() || *amt <= 0.0) {
+            return PositivePayFileResult {
+                file_id: "".to_string(),
+                bank_account_id: bank_account_id.to_string(),
+                total_records: 0,
+                total_amount: 0.0,
+                status: "REJECTED_INVALID_RECORD".to_string(),
+            };
+        }
+
         let total_records = payment_records.len() as u32;
         let total_amount: f64 = payment_records.iter().map(|(_, amt)| if *amt > 0.0 { *amt } else { 0.0 }).sum();
         
@@ -123,5 +133,28 @@ mod tests {
         let result = PositivePayService::transmit_file("");
         assert_eq!(result.transmission_status, "FAILED");
         assert_eq!(result.confirmation_code, "");
+    }
+
+    #[test]
+    fn test_generate_file_negative_amount() {
+        let records = vec![
+            ("CHK-1001".to_string(), 1500.0),
+            ("CHK-1002".to_string(), -10.0),
+        ];
+        let result = PositivePayService::generate_file("BANK-001", &records);
+        assert_eq!(result.status, "REJECTED_INVALID_RECORD");
+        assert_eq!(result.total_records, 0);
+        assert_eq!(result.total_amount, 0.0);
+    }
+
+    #[test]
+    fn test_generate_file_empty_check_number() {
+        let records = vec![
+            ("".to_string(), 1500.0),
+        ];
+        let result = PositivePayService::generate_file("BANK-001", &records);
+        assert_eq!(result.status, "REJECTED_INVALID_RECORD");
+        assert_eq!(result.total_records, 0);
+        assert_eq!(result.total_amount, 0.0);
     }
 }

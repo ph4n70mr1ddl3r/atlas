@@ -44,6 +44,12 @@ impl LateChargesService {
             ));
         }
 
+        if minimum_charge < Decimal::new(0, 0) {
+            return Err(AtlasError::ValidationFailed(
+                "Minimum charge cannot be negative".to_string(),
+            ));
+        }
+
         let daily_rate = annual_interest_rate / Decimal::new(365, 0);
         let mut late_charges = Vec::new();
 
@@ -154,5 +160,26 @@ mod tests {
         ).unwrap();
 
         assert_eq!(charges.len(), 0);
+    }
+
+    #[test]
+    fn test_calculate_late_charges_negative_minimum_charge() {
+        let service = LateChargesService::new();
+        let calculation_date = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
+        let invoices = vec![];
+
+        let res = service.calculate_late_charges(
+            &invoices,
+            dec!(0.10),
+            calculation_date,
+            dec!(-5.00),
+        );
+
+        assert!(res.is_err());
+        if let Err(AtlasError::ValidationFailed(msg)) = res {
+            assert!(msg.contains("Minimum charge cannot be negative"));
+        } else {
+            panic!("Expected ValidationFailed error");
+        }
     }
 }

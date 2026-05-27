@@ -60,7 +60,10 @@ impl AverageDailyBalanceService {
             sum_of_balances += current_balance;
             days_in_period += 1;
             
-            current_date = current_date.succ_opt().unwrap_or(current_date);
+            let Some(next_date) = current_date.succ_opt() else {
+                break;
+            };
+            current_date = next_date;
         }
 
         if days_in_period == 0 {

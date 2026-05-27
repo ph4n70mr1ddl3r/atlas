@@ -16078,7 +16078,7 @@ impl CrossCurrencyApplicationService {
 mod tests {
     use crate::entities;
     use atlas_shared::RecordId;
-    use super::{DynamicDiscountingService, DiscountOffer, RevenueContingencyService};
+    use super::{DynamicDiscountingService, DiscountOffer};
 
     #[test]
     fn test_dynamic_discounting_calculation() {
@@ -34612,7 +34612,7 @@ mod auto_offset_tests {
         assert_eq!(deferred_20, 1000.0);
 
         let resolution = RevenueContingencyService::resolve_contingency("CONTRACT_A", deferred_20);
-        assert_eq!(resolution.is_resolved, true);
+        assert!(resolution.is_resolved);
         assert_eq!(resolution.recognized_revenue, 1000.0);
         assert_eq!(resolution.deferred_revenue, 0.0);
         assert_eq!(resolution.contract_id, "CONTRACT_A");

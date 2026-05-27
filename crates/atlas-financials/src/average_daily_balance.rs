@@ -12,14 +12,16 @@ pub struct DailyBalance {
 
 /// Service to calculate Average Daily Balances (ADB), 
 /// inspired by Oracle Fusion Financials General Ledger features.
+#[derive(Default)]
 pub struct AverageDailyBalanceService {
     // In a real implementation, this would connect to the database.
     // For this demonstration, we'll keep it simple.
 }
 
 impl AverageDailyBalanceService {
+    #[must_use] 
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 
     /// Calculates the Average Daily Balance for a given period.

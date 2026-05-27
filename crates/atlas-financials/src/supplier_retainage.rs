@@ -14,7 +14,7 @@ impl SupplierRetainageService {
     /// where a portion of the payment is withheld until the project or milestone is successfully completed.
     #[must_use]
     pub fn calculate_retainage(invoice_id: &str, invoice_amount: f64, retainage_rate: f64) -> RetainageResult {
-        if invoice_amount <= 0.0 || retainage_rate < 0.0 || retainage_rate > 1.0 {
+        if invoice_amount <= 0.0 || !(0.0..=1.0).contains(&retainage_rate) {
             return RetainageResult {
                 invoice_id: invoice_id.to_string(),
                 original_amount: invoice_amount,

@@ -15,7 +15,7 @@ impl ReceivableFactoringService {
     /// This is an Oracle Fusion Financials feature for managing factored receivables.
     #[must_use]
     pub fn process_factoring(invoice_id: &str, factor_id: &str, amount: f64, discount_rate: f64) -> FactoringResult {
-        if amount <= 0.0 || discount_rate < 0.0 || discount_rate >= 1.0 {
+        if amount <= 0.0 || !(0.0..1.0).contains(&discount_rate) {
             return FactoringResult {
                 invoice_id: invoice_id.to_string(),
                 factor_id: factor_id.to_string(),

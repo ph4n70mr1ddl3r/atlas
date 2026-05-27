@@ -56,83 +56,34 @@ workflow:
 - Services subscribe to relevant config changes
 - No deployment required for business logic changes
 
-### 3. Microservices Domain Separation
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         API Gateway                              │
-│                    (Authentication, Routing)                      │
-└─────────────────────────────────────────────────────────────────┘
-         │              │              │              │
-    ┌────┴────┐   ┌────┴────┐   ┌────┴────┐   ┌────┴────┐
-    │   HCM   │   │Financials│  │   SCM   │   │   CRM   │
-    │         │   │         │  │         │   │         │
-    └─────────┘   └─────────┘  └─────────┘   └─────────┘
-         │              │              │              │
-    ┌────┴────────────────────────────────────────────┴────┐
-    │                    Core Engine                          │
-    │  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
-    │  │ Schema   │  │ Workflow │  │ Configuration Store  │  │
-    │  │ Engine   │  │ Engine   │  │ (Hot-Reload)         │  │
-    │  └──────────┘  └──────────┘  └──────────────────────┘  │
-    └────────────────────────────────────────────────────────┘
-         │
-    ┌────┴────┐
-    │PostgreSQL│ (Primary data + Configuration)
-    └─────────┘
-         │
-    ┌────┴────┐
-    │  NATS   │ (Event Bus for inter-service communication)
-    └─────────┘
-```
+### 3. Evolutionary Architecture
+- **Current State**: Modular monolith with shared `atlas-core` and domain crates.
+- **Goal State**: True microservices with domain-specific binaries.
+- **Migration Strategy**: Gradual decoupling of domain engines from `atlas-core` into their respective crates.
 
 ---
 
 ## Domain Modules
 
-### Core Engine (atlas-core)
-- **Schema Engine**: Dynamic entity definitions, fields, relationships
-- **Workflow Engine**: State machines, transitions, guards, actions
-- **Validation Engine**: Declarative rules, cross-field validation
-- **Formula Engine**: Computed fields, aggregations, expressions
-- **Security Engine**: Row-level security, field-level access
-- **Audit Engine**: Complete change tracking, time-travel queries
+Currently, many domain-specific engines reside within `atlas-core` for ease of development. These are planned to be moved to their respective domain crates as the system matures.
 
 ### HCM - Human Capital Management (atlas-hcm)
-- Organizations & Positions
-- Employees & Contractors
-- Payroll & Benefits
-- Time & Attendance
-- Performance Management
+- Payroll Engine (Current: `atlas-core/payroll`)
+- Benefits & Compensation (Current: `atlas-core/benefits`, `atlas-core/compensation`)
+- Time & Absence (Current: `atlas-core/absence`, `atlas-core/time_and_labor`)
 
 ### Financials (atlas-financials)
-- Chart of Accounts
-- General Ledger
-- Accounts Payable
-- Accounts Receivable
-- Fixed Assets
-- Cost Management
-- Budgeting & Planning
+- General Ledger & Subledger (Current: `atlas-core/general_ledger`, `atlas-core/subledger_accounting`)
+- Tax & Currency (Current: `atlas-core/tax`, `atlas-core/currency`)
+- Fixed Assets & Expenses (Current: `atlas-core/fixed_assets`, `atlas-core/expense`)
 
 ### SCM - Supply Chain Management (atlas-scm)
-- Products & Inventory
-- Suppliers & Sourcing
-- Purchase Orders
-- Sales Orders
-- Warehouse Management
-- Demand Planning
+- Inventory & Warehouse (Current: `atlas-core/inventory`, `atlas-core/warehouse_management`)
+- Sourcing & Procurement (Current: `atlas-core/sourcing`, `atlas-core/purchase_requisition`)
 
 ### CRM - Customer Relationship Management (atlas-crm)
-- Customers & Contacts
-- Leads & Opportunities
-- Sales Pipeline
-- Marketing Campaigns
-- Service Cases
+- Sales & Marketing (Current: `atlas-core/sales_commission`, `atlas-core/marketing`)
 
-### Project Management (atlas-projects)
-- Projects & Tasks
-- Resource Allocation
-- Timesheets
-- Project Billing
 
 ---
 
@@ -262,35 +213,22 @@ atlas/
 ├── docker-compose.yml
 │
 ├── crates/
-│   ├── atlas-core/               # Core declarative engine
+│   ├── atlas-core/               # Core engine + Domain engines (to be decoupled)
 │   │   ├── src/
-│   │   │   ├── schema/           # Dynamic schema engine
-│   │   │   ├── workflow/         # State machine engine
-│   │   │   ├── validation/       # Rule engine
-│   │   │   ├── formula/          # Expression evaluator
-│   │   │   ├── security/         # Access control
-│   │   │   └── audit/            # Change tracking
-│   │   └── Cargo.toml
+│   │   │   ├── schema/           # Generic schema engine
+│   │   │   ├── workflow/         # Generic state machine
+│   │   │   ├── validation/       # Generic rule engine
+│   │   │   └── ...               # Domain-specific modules (Migration Target)
 │   │
-│   ├── atlas-macros/             # Derive macros for entities
-│   │   └── Cargo.toml
+│   ├── atlas-gateway/            # Unified API Gateway & Monolith Host
 │   │
-│   ├── atlas-shared/             # Shared types, proto, utils
-│   │   ├── src/
-│   │   │   ├── proto/            # Protobuf definitions
-│   │   │   ├── errors.rs
-│   │   │   ├── types.rs
-│   │   │   └── lib.rs
-│   │   └── Cargo.toml
-│   │
-│   ├── atlas-gateway/            # API Gateway & Auth
-│   │   └── Cargo.toml
-│   │
-│   ├── atlas-hcm/                # Human Capital Management
-│   ├── atlas-financials/          # Financial modules
-│   ├── atlas-scm/                # Supply Chain
-│   ├── atlas-crm/                # Customer Relations
-│   └── atlas-projects/           # Project Management
+│   ├── atlas-hcm/                # HCM Domain logic
+│   ├── atlas-financials/          # Financials Domain logic
+│   ├── atlas-scm/                # Supply Chain logic
+│   ├── atlas-crm/                # CRM logic
+│   └── atlas-projects/           # Projects logic
+```
+
 │
 ├── frontend/
 │   ├── package.json              # Node.js dependencies

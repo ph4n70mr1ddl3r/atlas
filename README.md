@@ -31,7 +31,7 @@ No restarts required for:
 ## Tech Stack
 
 - **Backend**: Rust with Axum 0.7
-- **Frontend**: Leptos (WASM) - Full Rust stack
+- **Frontend**: React + TypeScript (Vite)
 - **Database**: PostgreSQL 16
 - **Event Bus**: NATS
 - **ORM**: SQLx with compile-time query checking

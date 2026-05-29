@@ -58,6 +58,8 @@ pub mod evaluated_receipt_settlement;
 pub use evaluated_receipt_settlement::*;
 pub mod payment_process_profile;
 pub use payment_process_profile::*;
+pub mod intercompany_balancing;
+pub use intercompany_balancing::*;
 
 pub use services::{
     PurchaseOrderService,

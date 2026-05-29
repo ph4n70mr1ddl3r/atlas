@@ -5067,6 +5067,48 @@ pub fn autopost_criteria_definition() -> EntityDefinition {
 }
 
 // ============================================================================
+// Data Access Sets (Oracle Fusion: GL > Manage Data Access Sets)
+// ============================================================================
+
+/// Data Access Set entity
+/// Oracle Fusion: GL > Manage Data Access Sets
+#[must_use]
+pub fn data_access_set_definition() -> EntityDefinition {
+    SchemaBuilder::new("data_access_sets", "Data Access Set")
+        .plural_label("Data Access Sets")
+        .table_name("fin_data_access_sets")
+        .description("Security sets providing access to ledgers/ledger sets by segment value")
+        .icon("shield-check")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .required_string("chart_of_accounts_id", "Chart of Accounts")
+        .required_string("accounting_calendar", "Accounting Calendar")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Data Access Set Detail entity
+/// Individual access rules within a data access set
+#[must_use]
+pub fn data_access_set_detail_definition() -> EntityDefinition {
+    SchemaBuilder::new("data_access_set_details", "Data Access Detail")
+        .plural_label("Data Access Details")
+        .table_name("fin_data_access_set_details")
+        .description("Individual access rule within a data access set")
+        .icon("key")
+        .reference("data_access_set_id", "Data Access Set", "data_access_sets")
+        .reference("ledger_id", "Ledger", "accounting_books")
+        .reference("ledger_set_id", "Ledger Set", "ledger_sets")
+        .enumeration("access_level", "Access Level", vec![
+            "read_only", "read_write",
+        ])
+        .boolean("all_segment_values", "All Segment Values")
+        .string("specific_segment_value", "Specific Segment Value")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
 // Inflation Adjustment (IAS 29 Hyperinflationary Economy Accounting)
 // Oracle Fusion: Financials > General Ledger > Inflation Adjustment
 // ============================================================================

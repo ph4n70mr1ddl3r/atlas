@@ -113,6 +113,7 @@ pub use services::{
     EnterpriseStructureService,
     IntercompanyBalancingService,
     AutoPostService,
+    DataAccessService,
     InflationAdjustmentService,
     ImpairmentManagementService,
     BankAccountTransferService,

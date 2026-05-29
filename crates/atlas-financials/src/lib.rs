@@ -64,6 +64,8 @@ pub mod journal_approval;
 pub use journal_approval::*;
 pub mod automatch_rules;
 pub use automatch_rules::*;
+pub mod autoaccounting;
+pub use autoaccounting::*;
 
 pub use services::{
     PurchaseOrderService,

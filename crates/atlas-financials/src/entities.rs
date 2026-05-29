@@ -2513,6 +2513,7 @@ pub fn accounting_book_definition() -> EntityDefinition {
             "draft", "active", "inactive", "suspended",
         ])
         .boolean("auto_propagation", "Auto Propagation")
+        .reference("reversal_criteria_set_id", "Reversal Criteria Set", "journal_reversal_criteria_sets")
         .boolean("is_active", "Active")
         .build()
 }
@@ -4837,6 +4838,46 @@ pub fn journal_reversal_request_definition() -> EntityDefinition {
         ])
         .rich_text("notes", "Notes")
         .workflow(workflow)
+        .build()
+}
+
+// ============================================================================
+// Journal Reversal Criteria (Oracle Fusion: GL > Manage Journal Reversal Criteria Sets)
+// ============================================================================
+
+/// Journal Reversal Criteria Set entity
+/// Oracle Fusion: GL > Manage Journal Reversal Criteria Sets
+#[must_use]
+pub fn journal_reversal_criteria_set_definition() -> EntityDefinition {
+    SchemaBuilder::new("journal_reversal_criteria_sets", "Journal Reversal Criteria Set")
+        .plural_label("Journal Reversal Criteria Sets")
+        .table_name("fin_journal_reversal_criteria_sets")
+        .description("Criteria sets for automatic journal reversal by category")
+        .icon("clipboard-check")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Journal Reversal Criteria Rule entity
+/// Rules within a journal reversal criteria set
+#[must_use]
+pub fn journal_reversal_criteria_rule_definition() -> EntityDefinition {
+    SchemaBuilder::new("journal_reversal_criteria_rules", "Journal Reversal Criteria Rule")
+        .plural_label("Journal Reversal Criteria Rules")
+        .table_name("fin_journal_reversal_criteria_rules")
+        .description("Rules within a journal reversal criteria set")
+        .icon("list-ul")
+        .reference("criteria_set_id", "Criteria Set", "journal_reversal_criteria_sets")
+        .required_string("journal_category", "Journal Category")
+        .enumeration("reversal_period", "Reversal Period", vec![
+            "next_period", "next_day", "same_period", "same_day",
+        ])
+        .enumeration("reversal_method", "Reversal Method", vec![
+            "switch_dr_cr", "sign_reverse",
+        ])
+        .boolean("is_automatic_reversal", "Automatic Reversal")
         .build()
 }
 

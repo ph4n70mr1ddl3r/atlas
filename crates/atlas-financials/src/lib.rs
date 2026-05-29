@@ -107,6 +107,7 @@ pub use services::{
     FinancialStatementService,
     TaxFilingService,
     JournalReversalService,
+    JournalReversalCriteriaService,
     InflationAdjustmentService,
     ImpairmentManagementService,
     BankAccountTransferService,

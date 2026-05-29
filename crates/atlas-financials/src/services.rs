@@ -3884,6 +3884,59 @@ impl JournalReversalService {
     }
 }
 
+// Journal Reversal Criteria Service
+// ============================================================================
+
+/// Journal Reversal Criteria service
+/// Oracle Fusion: GL > Manage Journal Reversal Criteria Sets
+#[allow(dead_code)]
+pub struct JournalReversalCriteriaService {
+    schema_engine: Arc<SchemaEngine>,
+}
+
+impl JournalReversalCriteriaService {
+    #[must_use]
+    pub const fn new(schema_engine: Arc<SchemaEngine>) -> Self {
+        Self { schema_engine }
+    }
+
+    /// Evaluates if a journal entry should be automatically reversed based on criteria
+    /// Oracle Fusion: GL > Journal Reversal > Automatic Reversal
+    #[must_use]
+    pub fn evaluate_journal_for_reversal(
+        &self,
+        category: &str,
+        has_criteria_set: bool,
+        rules: &[(String, String, bool)], // (category, method, auto_reversal)
+    ) -> Option<(String, bool)> { // returns (method, auto_reversal)
+        if !has_criteria_set {
+            return None;
+        }
+
+        for (rule_category, method, auto_reversal) in rules {
+            if rule_category == category {
+                return Some((method.clone(), *auto_reversal));
+            }
+        }
+
+        None
+    }
+
+    /// Determines the reversal period based on the rule and accounting date
+    #[must_use]
+    pub fn determine_reversal_period(
+        &self,
+        reversal_period_type: &str,
+        current_period: &str,
+    ) -> String {
+        match reversal_period_type {
+            "next_period" => format!("{}_next", current_period), // Placeholder logic
+            "same_period" => current_period.to_string(),
+            _ => current_period.to_string(),
+        }
+    }
+}
+
 // ============================================================================
 // Inflation Adjustment Service (IAS 29)
 // ============================================================================
@@ -16076,6 +16129,8 @@ impl CrossCurrencyApplicationService {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+    use atlas_core::{SchemaEngine, MockSchemaRepository};
     use crate::entities;
     use atlas_shared::RecordId;
     use super::{DynamicDiscountingService, DiscountOffer};
@@ -21560,6 +21615,8 @@ mod tests {
         all.push(entities::tax_return_definition());
         all.push(entities::tax_payment_definition());
         all.push(entities::journal_reversal_request_definition());
+        all.push(entities::journal_reversal_criteria_set_definition());
+        all.push(entities::journal_reversal_criteria_rule_definition());
 
         // Wave 4: New Oracle Fusion features (20)
         all.push(entities::recurring_journal_template_definition());
@@ -21583,12 +21640,70 @@ mod tests {
         all.push(entities::subscription_contract_definition());
         all.push(entities::subscription_billing_event_definition());
 
-        // Total: 27 + 46 + 36 + 20 = 129
-        assert_eq!(all.len(), 129, "Should have 129 total entity definitions");
+        // Total: 27 + 46 + 36 + 2 + 20 = 131
+        assert_eq!(all.len(), 131, "Should have 131 total entity definitions");
 
         // All unique names
         let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names.len(), 129, "All 129 entity names must be globally unique");
+        assert_eq!(names.len(), 131, "All 131 entity names must be globally unique");
+    }
+
+    // ========================================================================
+    // Journal Reversal Criteria Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_journal_reversal_criteria_set_definition() {
+        let def = entities::journal_reversal_criteria_set_definition();
+        assert_eq!(def.name, "journal_reversal_criteria_sets");
+        assert_eq!(def.table_name, Some("fin_journal_reversal_criteria_sets".to_string()));
+    }
+
+    #[test]
+    fn test_journal_reversal_criteria_rule_definition() {
+        let def = entities::journal_reversal_criteria_rule_definition();
+        assert_eq!(def.name, "journal_reversal_criteria_rules");
+        assert!(def.fields.iter().any(|f| f.name == "reversal_period"));
+        assert!(def.fields.iter().any(|f| f.name == "reversal_method"));
+    }
+
+    #[test]
+    fn test_evaluate_journal_for_reversal_match() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::JournalReversalCriteriaService::new(schema_engine);
+        
+        let rules = vec![
+            ("accrual".to_string(), "switch_dr_cr".to_string(), true),
+            ("adjustment".to_string(), "sign_reverse".to_string(), false),
+        ];
+        
+        let result = service.evaluate_journal_for_reversal("accrual", true, &rules);
+        assert!(result.is_some());
+        let (method, auto) = result.unwrap();
+        assert_eq!(method, "switch_dr_cr");
+        assert!(auto);
+    }
+
+    #[test]
+    fn test_evaluate_journal_for_reversal_no_match() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::JournalReversalCriteriaService::new(schema_engine);
+        
+        let rules = vec![
+            ("accrual".to_string(), "switch_dr_cr".to_string(), true),
+        ];
+        
+        let result = service.evaluate_journal_for_reversal("manual", true, &rules);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_determine_reversal_period_next() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::JournalReversalCriteriaService::new(schema_engine);
+        
+        let period = service.determine_reversal_period("next_period", "JAN-2026");
+        assert_eq!(period, "JAN-2026_next");
     }
 
     // ========================================================================

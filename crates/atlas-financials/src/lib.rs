@@ -50,6 +50,8 @@ pub mod asset_retirement;
 pub use asset_retirement::*;
 pub mod remittance_batch;
 pub use remittance_batch::*;
+pub mod petty_cash;
+pub use petty_cash::*;
 
 pub use services::{
     PurchaseOrderService,

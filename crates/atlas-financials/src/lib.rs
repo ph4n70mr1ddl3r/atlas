@@ -112,6 +112,7 @@ pub use services::{
     LedgerSetService,
     EnterpriseStructureService,
     IntercompanyBalancingService,
+    AutoPostService,
     InflationAdjustmentService,
     ImpairmentManagementService,
     BankAccountTransferService,

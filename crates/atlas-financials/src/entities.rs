@@ -5029,6 +5029,44 @@ pub fn intercompany_balancing_rule_definition() -> EntityDefinition {
 }
 
 // ============================================================================
+// AutoPost Criteria (Oracle Fusion: GL > Manage AutoPost Criteria Sets)
+// ============================================================================
+
+/// AutoPost Criteria Set entity
+/// Oracle Fusion: GL > Manage AutoPost Criteria Sets
+#[must_use]
+pub fn autopost_criteria_set_definition() -> EntityDefinition {
+    SchemaBuilder::new("autopost_criteria_sets", "AutoPost Criteria Set")
+        .plural_label("AutoPost Criteria Sets")
+        .table_name("fin_autopost_criteria_sets")
+        .description("Sets of criteria for automatic journal posting")
+        .icon("mail-forward")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// AutoPost Criteria entity
+/// Individual rules within an AutoPost criteria set
+#[must_use]
+pub fn autopost_criteria_definition() -> EntityDefinition {
+    SchemaBuilder::new("autopost_criteria", "AutoPost Criteria")
+        .plural_label("AutoPost Criteria")
+        .table_name("fin_autopost_criteria")
+        .description("Individual rule within an AutoPost criteria set")
+        .icon("list-check")
+        .reference("criteria_set_id", "Criteria Set", "autopost_criteria_sets")
+        .reference("ledger_id", "Ledger", "accounting_books")
+        .reference("journal_source_id", "Journal Source", "journal_sources")
+        .reference("journal_category_id", "Journal Category", "journal_categories")
+        .integer("num_days_before", "Number of Days Before")
+        .integer("num_days_after", "Number of Days After")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
 // Inflation Adjustment (IAS 29 Hyperinflationary Economy Accounting)
 // Oracle Fusion: Financials > General Ledger > Inflation Adjustment
 // ============================================================================

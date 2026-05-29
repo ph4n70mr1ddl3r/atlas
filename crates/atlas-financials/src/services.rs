@@ -4113,6 +4113,50 @@ impl IntercompanyBalancingService {
     }
 }
 
+// AutoPost Service
+// ============================================================================
+
+/// AutoPost service
+/// Oracle Fusion: GL > Manage AutoPost Criteria Sets
+#[allow(dead_code)]
+pub struct AutoPostService {
+    schema_engine: Arc<SchemaEngine>,
+}
+
+impl AutoPostService {
+    #[must_use]
+    pub const fn new(schema_engine: Arc<SchemaEngine>) -> Self {
+        Self { schema_engine }
+    }
+
+    /// Evaluates if a journal entry should be automatically posted
+    #[must_use]
+    pub fn should_autopost(
+        &self,
+        ledger_id: RecordId,
+        source_id: RecordId,
+        category_id: RecordId,
+        rules: &[(RecordId, RecordId, RecordId)], // (ledger, source, category)
+    ) -> bool {
+        rules.iter().any(|(l_id, s_id, c_id)| {
+            *l_id == ledger_id && *s_id == source_id && *c_id == category_id
+        })
+    }
+
+    /// Validates a posting date against criteria threshold
+    #[must_use]
+    pub fn is_date_within_threshold(
+        &self,
+        accounting_date: chrono::NaiveDate,
+        today: chrono::NaiveDate,
+        num_days_before: i32,
+        num_days_after: i32,
+    ) -> bool {
+        let diff = (accounting_date - today).num_days();
+        diff >= -i64::from(num_days_before) && diff <= i64::from(num_days_after)
+    }
+}
+
 // ============================================================================
 // Inflation Adjustment Service (IAS 29)
 // ============================================================================
@@ -21800,6 +21844,8 @@ mod tests {
         all.push(entities::legal_entity_definition());
         all.push(entities::business_unit_definition());
         all.push(entities::intercompany_balancing_rule_definition());
+        all.push(entities::autopost_criteria_set_definition());
+        all.push(entities::autopost_criteria_definition());
 
         // Wave 4: New Oracle Fusion features (20)
         all.push(entities::recurring_journal_template_definition());
@@ -21823,12 +21869,55 @@ mod tests {
         all.push(entities::subscription_contract_definition());
         all.push(entities::subscription_billing_event_definition());
 
-        // Total: 27 + 46 + 36 + 9 + 20 = 138
-        assert_eq!(all.len(), 138, "Should have 138 total entity definitions");
+        // Total: 27 + 46 + 36 + 11 + 20 = 140
+        assert_eq!(all.len(), 140, "Should have 140 total entity definitions");
 
         // All unique names
         let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names.len(), 138, "All 138 entity names must be globally unique");
+        assert_eq!(names.len(), 140, "All 140 entity names must be globally unique");
+    }
+
+    // ========================================================================
+    // AutoPost Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_autopost_criteria_set_definition() {
+        let def = entities::autopost_criteria_set_definition();
+        assert_eq!(def.name, "autopost_criteria_sets");
+    }
+
+    #[test]
+    fn test_autopost_criteria_definition() {
+        let def = entities::autopost_criteria_definition();
+        assert_eq!(def.name, "autopost_criteria");
+        assert!(def.fields.iter().any(|f| f.name == "num_days_before"));
+    }
+
+    #[test]
+    fn test_should_autopost_match() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::AutoPostService::new(schema_engine);
+        
+        let l_id = uuid::Uuid::new_v4();
+        let s_id = uuid::Uuid::new_v4();
+        let c_id = uuid::Uuid::new_v4();
+        let rules = vec![(l_id, s_id, c_id)];
+        
+        assert!(service.should_autopost(l_id, s_id, c_id, &rules));
+        assert!(!service.should_autopost(l_id, s_id, uuid::Uuid::new_v4(), &rules));
+    }
+
+    #[test]
+    fn test_is_date_within_threshold() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::AutoPostService::new(schema_engine);
+        
+        let today = chrono::NaiveDate::from_ymd_opt(2026, 5, 29).unwrap();
+        let accounting_date = chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
+        
+        assert!(service.is_date_within_threshold(accounting_date, today, 0, 5));
+        assert!(!service.is_date_within_threshold(accounting_date, today, 0, 2));
     }
 
     // ========================================================================

@@ -54,6 +54,8 @@ pub mod petty_cash;
 pub use petty_cash::*;
 pub mod escheatment;
 pub use escheatment::*;
+pub mod evaluated_receipt_settlement;
+pub use evaluated_receipt_settlement::*;
 
 pub use services::{
     PurchaseOrderService,

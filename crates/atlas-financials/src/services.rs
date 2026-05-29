@@ -4038,6 +4038,47 @@ impl LedgerSetService {
     }
 }
 
+// Enterprise Structure Service
+// ============================================================================
+
+/// Enterprise Structure service
+/// Oracle Fusion: Financials > General Ledger > Enterprise Structure
+#[allow(dead_code)]
+pub struct EnterpriseStructureService {
+    schema_engine: Arc<SchemaEngine>,
+}
+
+impl EnterpriseStructureService {
+    #[must_use]
+    pub const fn new(schema_engine: Arc<SchemaEngine>) -> Self {
+        Self { schema_engine }
+    }
+
+    /// Validates a business unit's default settings
+    pub fn validate_business_unit_settings(
+        &self,
+        has_ledger: bool,
+        has_legal_entity: bool,
+    ) -> Result<(), String> {
+        if !has_ledger {
+            return Err("Business unit must have a default ledger assigned".to_string());
+        }
+        if !has_legal_entity {
+            return Err("Business unit must be associated with a legal entity".to_string());
+        }
+        Ok(())
+    }
+
+    /// Checks if a legal entity is active based on inception date
+    pub fn is_legal_entity_valid_at(
+        &self,
+        inception_date: chrono::NaiveDate,
+        check_date: chrono::NaiveDate,
+    ) -> bool {
+        check_date >= inception_date
+    }
+}
+
 // ============================================================================
 // Inflation Adjustment Service (IAS 29)
 // ============================================================================
@@ -21722,6 +21763,8 @@ mod tests {
         all.push(entities::ledger_set_assignment_definition());
         all.push(entities::journal_source_definition());
         all.push(entities::journal_category_definition());
+        all.push(entities::legal_entity_definition());
+        all.push(entities::business_unit_definition());
 
         // Wave 4: New Oracle Fusion features (20)
         all.push(entities::recurring_journal_template_definition());
@@ -21745,12 +21788,50 @@ mod tests {
         all.push(entities::subscription_contract_definition());
         all.push(entities::subscription_billing_event_definition());
 
-        // Total: 27 + 46 + 36 + 6 + 20 = 135
-        assert_eq!(all.len(), 135, "Should have 135 total entity definitions");
+        // Total: 27 + 46 + 36 + 8 + 20 = 137
+        assert_eq!(all.len(), 137, "Should have 137 total entity definitions");
 
         // All unique names
         let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names.len(), 135, "All 135 entity names must be globally unique");
+        assert_eq!(names.len(), 137, "All 137 entity names must be globally unique");
+    }
+
+    // ========================================================================
+    // Enterprise Structure Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_legal_entity_definition() {
+        let def = entities::legal_entity_definition();
+        assert_eq!(def.name, "legal_entities");
+        assert!(def.fields.iter().any(|f| f.name == "inception_date"));
+    }
+
+    #[test]
+    fn test_business_unit_definition() {
+        let def = entities::business_unit_definition();
+        assert_eq!(def.name, "business_units");
+        assert!(def.fields.iter().any(|f| f.name == "default_legal_entity_id"));
+    }
+
+    #[test]
+    fn test_validate_business_unit_settings() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::EnterpriseStructureService::new(schema_engine);
+        
+        assert!(service.validate_business_unit_settings(true, true).is_ok());
+        assert!(service.validate_business_unit_settings(false, true).is_err());
+        assert!(service.validate_business_unit_settings(true, false).is_err());
+    }
+
+    #[test]
+    fn test_is_legal_entity_valid_at() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::EnterpriseStructureService::new(schema_engine);
+        
+        let inception = chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
+        assert!(service.is_legal_entity_valid_at(inception, chrono::NaiveDate::from_ymd_opt(2021, 1, 1).unwrap()));
+        assert!(!service.is_legal_entity_valid_at(inception, chrono::NaiveDate::from_ymd_opt(2019, 1, 1).unwrap()));
     }
 
     // ========================================================================

@@ -4958,6 +4958,52 @@ pub fn journal_category_definition() -> EntityDefinition {
 }
 
 // ============================================================================
+// Legal Entities (Oracle Fusion: Financials > General Ledger > Legal Entities)
+// ============================================================================
+
+/// Legal Entity entity
+/// Oracle Fusion: Financials > General Ledger > Legal Entities
+#[must_use]
+pub fn legal_entity_definition() -> EntityDefinition {
+    SchemaBuilder::new("legal_entities", "Legal Entity")
+        .plural_label("Legal Entities")
+        .table_name("fin_legal_entities")
+        .description("Legal entities representing legal existence for reporting and tax")
+        .icon("building")
+        .required_string("name", "Name")
+        .string("legal_entity_identifier", "Legal Entity Identifier")
+        .string("registration_number", "Registration Number")
+        .date("inception_date", "Inception Date")
+        .date("registration_date", "Registration Date")
+        .string("place_of_registration", "Place of Registration")
+        .boolean("is_primary_legal_entity", "Primary Legal Entity")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
+// Business Units (Oracle Fusion: Financials > General Ledger > Business Units)
+// ============================================================================
+
+/// Business Unit entity
+/// Oracle Fusion: Financials > General Ledger > Business Units
+#[must_use]
+pub fn business_unit_definition() -> EntityDefinition {
+    SchemaBuilder::new("business_units", "Business Unit")
+        .plural_label("Business Units")
+        .table_name("fin_business_units")
+        .description("Business units for grouping transactions and management reporting")
+        .icon("sitemap")
+        .required_string("name", "Name")
+        .required_string("code", "Code")
+        .reference("manager_id", "Manager", "employees")
+        .reference("default_legal_entity_id", "Default Legal Entity", "legal_entities")
+        .reference("default_ledger_id", "Default Ledger", "accounting_books")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
 // Inflation Adjustment (IAS 29 Hyperinflationary Economy Accounting)
 // Oracle Fusion: Financials > General Ledger > Inflation Adjustment
 // ============================================================================

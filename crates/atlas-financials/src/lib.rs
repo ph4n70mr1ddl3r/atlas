@@ -110,6 +110,7 @@ pub use services::{
     JournalReversalCriteriaService,
     JournalConfigurationService,
     LedgerSetService,
+    EnterpriseStructureService,
     InflationAdjustmentService,
     ImpairmentManagementService,
     BankAccountTransferService,

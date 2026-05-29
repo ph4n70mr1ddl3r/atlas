@@ -4918,6 +4918,46 @@ pub fn ledger_set_assignment_definition() -> EntityDefinition {
 }
 
 // ============================================================================
+// Journal Sources & Categories (Oracle Fusion: GL > Manage Journal Sources/Categories)
+// ============================================================================
+
+/// Journal Source entity
+/// Oracle Fusion: GL > Manage Journal Sources
+#[must_use]
+pub fn journal_source_definition() -> EntityDefinition {
+    SchemaBuilder::new("journal_sources", "Journal Source")
+        .plural_label("Journal Sources")
+        .table_name("fin_journal_sources")
+        .description("Source of journal entries (e.g., Payables, Manual, Spreadsheet)")
+        .icon("file-import")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .boolean("import_journal_references", "Import Journal References")
+        .boolean("freeze_journals", "Freeze Journals")
+        .boolean("require_journal_approval", "Require Journal Approval")
+        .enumeration("action_if_unbalanced", "Action if Unbalanced", vec![
+            "error", "warning", "post_to_suspense",
+        ])
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Journal Category entity
+/// Oracle Fusion: GL > Manage Journal Categories
+#[must_use]
+pub fn journal_category_definition() -> EntityDefinition {
+    SchemaBuilder::new("journal_categories", "Journal Category")
+        .plural_label("Journal Categories")
+        .table_name("fin_journal_categories")
+        .description("Category of journal entries (e.g., Accrual, Adjustment, Payments)")
+        .icon("tags")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
 // Inflation Adjustment (IAS 29 Hyperinflationary Economy Accounting)
 // Oracle Fusion: Financials > General Ledger > Inflation Adjustment
 // ============================================================================

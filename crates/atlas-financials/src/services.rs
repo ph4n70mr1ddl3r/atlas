@@ -3937,6 +3937,53 @@ impl JournalReversalCriteriaService {
     }
 }
 
+// Journal Configuration Service
+// ============================================================================
+
+/// Journal Configuration service
+/// Oracle Fusion: GL > Manage Journal Sources & Categories
+#[allow(dead_code)]
+pub struct JournalConfigurationService {
+    schema_engine: Arc<SchemaEngine>,
+}
+
+impl JournalConfigurationService {
+    #[must_use]
+    pub const fn new(schema_engine: Arc<SchemaEngine>) -> Self {
+        Self { schema_engine }
+    }
+
+    /// Checks if a journal entry from a specific source requires approval
+    #[must_use]
+    pub fn requires_approval(
+        &self,
+        source_name: &str,
+        sources: &[(String, bool)], // (name, require_approval)
+    ) -> bool {
+        sources.iter().any(|(name, req)| name == source_name && *req)
+    }
+
+    /// Checks if a journal entry from a specific source is frozen
+    #[must_use]
+    pub fn is_frozen(
+        &self,
+        source_name: &str,
+        sources: &[(String, bool)], // (name, is_frozen)
+    ) -> bool {
+        sources.iter().any(|(name, frozen)| name == source_name && *frozen)
+    }
+
+    /// Validates a journal entry category
+    #[must_use]
+    pub fn is_valid_category(
+        &self,
+        category_name: &str,
+        categories: &[String],
+    ) -> bool {
+        categories.contains(&category_name.to_string())
+    }
+}
+
 // Ledger Set Service
 // ============================================================================
 
@@ -21673,6 +21720,8 @@ mod tests {
         all.push(entities::journal_reversal_criteria_rule_definition());
         all.push(entities::ledger_set_definition());
         all.push(entities::ledger_set_assignment_definition());
+        all.push(entities::journal_source_definition());
+        all.push(entities::journal_category_definition());
 
         // Wave 4: New Oracle Fusion features (20)
         all.push(entities::recurring_journal_template_definition());
@@ -21696,12 +21745,69 @@ mod tests {
         all.push(entities::subscription_contract_definition());
         all.push(entities::subscription_billing_event_definition());
 
-        // Total: 27 + 46 + 36 + 4 + 20 = 133
-        assert_eq!(all.len(), 133, "Should have 133 total entity definitions");
+        // Total: 27 + 46 + 36 + 6 + 20 = 135
+        assert_eq!(all.len(), 135, "Should have 135 total entity definitions");
 
         // All unique names
         let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names.len(), 133, "All 133 entity names must be globally unique");
+        assert_eq!(names.len(), 135, "All 135 entity names must be globally unique");
+    }
+
+    // ========================================================================
+    // Journal Configuration Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_journal_source_definition() {
+        let def = entities::journal_source_definition();
+        assert_eq!(def.name, "journal_sources");
+        assert!(def.fields.iter().any(|f| f.name == "require_journal_approval"));
+    }
+
+    #[test]
+    fn test_journal_category_definition() {
+        let def = entities::journal_category_definition();
+        assert_eq!(def.name, "journal_categories");
+    }
+
+    #[test]
+    fn test_journal_requires_approval() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::JournalConfigurationService::new(schema_engine);
+        
+        let sources = vec![
+            ("Payables".to_string(), true),
+            ("Manual".to_string(), false),
+        ];
+        
+        assert!(service.requires_approval("Payables", &sources));
+        assert!(!service.requires_approval("Manual", &sources));
+        assert!(!service.requires_approval("Unknown", &sources));
+    }
+
+    #[test]
+    fn test_journal_is_frozen() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::JournalConfigurationService::new(schema_engine);
+        
+        let sources = vec![
+            ("Assets".to_string(), true),
+            ("Manual".to_string(), false),
+        ];
+        
+        assert!(service.is_frozen("Assets", &sources));
+        assert!(!service.is_frozen("Manual", &sources));
+    }
+
+    #[test]
+    fn test_is_valid_category() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::JournalConfigurationService::new(schema_engine);
+        
+        let categories = vec!["Adjustment".to_string(), "Accrual".to_string()];
+        
+        assert!(service.is_valid_category("Adjustment", &categories));
+        assert!(!service.is_valid_category("Manual", &categories));
     }
 
     // ========================================================================

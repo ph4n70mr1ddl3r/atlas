@@ -62,6 +62,8 @@ pub mod intercompany_balancing;
 pub use intercompany_balancing::*;
 pub mod journal_approval;
 pub use journal_approval::*;
+pub mod automatch_rules;
+pub use automatch_rules::*;
 
 pub use services::{
     PurchaseOrderService,

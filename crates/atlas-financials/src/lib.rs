@@ -72,6 +72,8 @@ pub mod sla_mapping_sets;
 pub use sla_mapping_sets::*;
 pub mod receipt_reversal;
 pub use receipt_reversal::*;
+pub mod coa_mapping;
+pub use coa_mapping::*;
 
 pub use services::{
     PurchaseOrderService,

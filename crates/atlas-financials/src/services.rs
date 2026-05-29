@@ -4079,6 +4079,40 @@ impl EnterpriseStructureService {
     }
 }
 
+// Intercompany Balancing Service
+// ============================================================================
+
+/// Intercompany Balancing service
+/// Oracle Fusion: GL > Manage Intercompany Balancing Rules
+#[allow(dead_code)]
+pub struct IntercompanyBalancingService {
+    schema_engine: Arc<SchemaEngine>,
+}
+
+impl IntercompanyBalancingService {
+    #[must_use]
+    pub const fn new(schema_engine: Arc<SchemaEngine>) -> Self {
+        Self { schema_engine }
+    }
+
+    /// Derives the balancing account based on rules
+    #[must_use]
+    pub fn derive_balancing_account(
+        &self,
+        from_entity: &str,
+        to_entity: &str,
+        rules: &[(String, String, String, String)], // (from, to, due_to, due_from)
+        is_due_to: bool,
+    ) -> Option<String> {
+        for (f, t, due_to, due_from) in rules {
+            if f == from_entity && t == to_entity {
+                return Some(if is_due_to { due_to.clone() } else { due_from.clone() });
+            }
+        }
+        None
+    }
+}
+
 // ============================================================================
 // Inflation Adjustment Service (IAS 29)
 // ============================================================================
@@ -21765,6 +21799,7 @@ mod tests {
         all.push(entities::journal_category_definition());
         all.push(entities::legal_entity_definition());
         all.push(entities::business_unit_definition());
+        all.push(entities::intercompany_balancing_rule_definition());
 
         // Wave 4: New Oracle Fusion features (20)
         all.push(entities::recurring_journal_template_definition());
@@ -21788,12 +21823,48 @@ mod tests {
         all.push(entities::subscription_contract_definition());
         all.push(entities::subscription_billing_event_definition());
 
-        // Total: 27 + 46 + 36 + 8 + 20 = 137
-        assert_eq!(all.len(), 137, "Should have 137 total entity definitions");
+        // Total: 27 + 46 + 36 + 9 + 20 = 138
+        assert_eq!(all.len(), 138, "Should have 138 total entity definitions");
 
         // All unique names
         let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names.len(), 137, "All 137 entity names must be globally unique");
+        assert_eq!(names.len(), 138, "All 138 entity names must be globally unique");
+    }
+
+    // ========================================================================
+    // Intercompany Balancing Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_intercompany_balancing_rule_definition() {
+        let def = entities::intercompany_balancing_rule_definition();
+        assert_eq!(def.name, "intercompany_balancing_rules");
+        assert!(def.fields.iter().any(|f| f.name == "due_to_account"));
+    }
+
+    #[test]
+    fn test_derive_balancing_account_match() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::IntercompanyBalancingService::new(schema_engine);
+        
+        let rules = vec![
+            ("USA".to_string(), "UK".to_string(), "1000".to_string(), "2000".to_string()),
+        ];
+        
+        assert_eq!(service.derive_balancing_account("USA", "UK", &rules, true), Some("1000".to_string()));
+        assert_eq!(service.derive_balancing_account("USA", "UK", &rules, false), Some("2000".to_string()));
+    }
+
+    #[test]
+    fn test_derive_balancing_account_no_match() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::IntercompanyBalancingService::new(schema_engine);
+        
+        let rules = vec![
+            ("USA".to_string(), "UK".to_string(), "1000".to_string(), "2000".to_string()),
+        ];
+        
+        assert_eq!(service.derive_balancing_account("USA", "FRANCE", &rules, true), None);
     }
 
     // ========================================================================

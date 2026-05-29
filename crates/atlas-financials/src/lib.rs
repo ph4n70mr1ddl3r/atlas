@@ -111,6 +111,7 @@ pub use services::{
     JournalConfigurationService,
     LedgerSetService,
     EnterpriseStructureService,
+    IntercompanyBalancingService,
     InflationAdjustmentService,
     ImpairmentManagementService,
     BankAccountTransferService,

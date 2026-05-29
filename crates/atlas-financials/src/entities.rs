@@ -5004,6 +5004,31 @@ pub fn business_unit_definition() -> EntityDefinition {
 }
 
 // ============================================================================
+// Intercompany Balancing (Oracle Fusion: GL > Manage Intercompany Balancing Rules)
+// ============================================================================
+
+/// Intercompany Balancing Rule entity
+/// Oracle Fusion: GL > Manage Intercompany Balancing Rules
+#[must_use]
+pub fn intercompany_balancing_rule_definition() -> EntityDefinition {
+    SchemaBuilder::new("intercompany_balancing_rules", "Intercompany Balancing Rule")
+        .plural_label("Intercompany Balancing Rules")
+        .table_name("fin_intercompany_balancing_rules")
+        .description("Rules for deriving Due-To/Due-From accounts for intercompany journals")
+        .icon("balance-scale")
+        .required_string("name", "Name")
+        .enumeration("rule_level", "Rule Level", vec![
+            "primary_balancing_segment", "legal_entity", "ledger",
+        ])
+        .reference("from_legal_entity_id", "From Legal Entity", "legal_entities")
+        .reference("to_legal_entity_id", "To Legal Entity", "legal_entities")
+        .required_string("due_to_account", "Due-To Account")
+        .required_string("due_from_account", "Due-From Account")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
 // Inflation Adjustment (IAS 29 Hyperinflationary Economy Accounting)
 // Oracle Fusion: Financials > General Ledger > Inflation Adjustment
 // ============================================================================

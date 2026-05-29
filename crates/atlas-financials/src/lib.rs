@@ -74,6 +74,10 @@ pub mod receipt_reversal;
 pub use receipt_reversal::*;
 pub mod coa_mapping;
 pub use coa_mapping::*;
+pub mod supplier_merge;
+pub use supplier_merge::*;
+pub mod intercompany_invoicing;
+pub use intercompany_invoicing::*;
 
 pub use services::{
     PurchaseOrderService,

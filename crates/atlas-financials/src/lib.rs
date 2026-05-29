@@ -60,6 +60,8 @@ pub mod payment_process_profile;
 pub use payment_process_profile::*;
 pub mod intercompany_balancing;
 pub use intercompany_balancing::*;
+pub mod journal_approval;
+pub use journal_approval::*;
 
 pub use services::{
     PurchaseOrderService,

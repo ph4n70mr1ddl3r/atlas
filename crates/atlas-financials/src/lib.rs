@@ -52,6 +52,8 @@ pub mod remittance_batch;
 pub use remittance_batch::*;
 pub mod petty_cash;
 pub use petty_cash::*;
+pub mod escheatment;
+pub use escheatment::*;
 
 pub use services::{
     PurchaseOrderService,

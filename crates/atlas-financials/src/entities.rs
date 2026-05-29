@@ -4882,6 +4882,42 @@ pub fn journal_reversal_criteria_rule_definition() -> EntityDefinition {
 }
 
 // ============================================================================
+// Ledger Sets (Oracle Fusion: GL > Manage Ledger Sets)
+// ============================================================================
+
+/// Ledger Set entity
+/// Oracle Fusion: GL > Manage Ledger Sets
+#[must_use]
+pub fn ledger_set_definition() -> EntityDefinition {
+    SchemaBuilder::new("ledger_sets", "Ledger Set")
+        .plural_label("Ledger Sets")
+        .table_name("fin_ledger_sets")
+        .description("Grouping of ledgers sharing same COA and Calendar for easier management")
+        .icon("layer-group")
+        .required_string("name", "Name")
+        .string("description", "Description")
+        .required_string("chart_of_accounts_id", "Chart of Accounts")
+        .required_string("accounting_calendar", "Accounting Calendar")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+/// Ledger Set Assignment entity
+/// Links a ledger to a ledger set
+#[must_use]
+pub fn ledger_set_assignment_definition() -> EntityDefinition {
+    SchemaBuilder::new("ledger_set_assignments", "Ledger Set Assignment")
+        .plural_label("Ledger Set Assignments")
+        .table_name("fin_ledger_set_assignments")
+        .description("Assignment of a ledger to a ledger set")
+        .icon("link")
+        .reference("ledger_set_id", "Ledger Set", "ledger_sets")
+        .reference("ledger_id", "Ledger", "accounting_books")
+        .boolean("is_active", "Active")
+        .build()
+}
+
+// ============================================================================
 // Inflation Adjustment (IAS 29 Hyperinflationary Economy Accounting)
 // Oracle Fusion: Financials > General Ledger > Inflation Adjustment
 // ============================================================================

@@ -108,6 +108,7 @@ pub use services::{
     TaxFilingService,
     JournalReversalService,
     JournalReversalCriteriaService,
+    LedgerSetService,
     InflationAdjustmentService,
     ImpairmentManagementService,
     BankAccountTransferService,

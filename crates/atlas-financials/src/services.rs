@@ -3937,6 +3937,60 @@ impl JournalReversalCriteriaService {
     }
 }
 
+// Ledger Set Service
+// ============================================================================
+
+/// Ledger Set service
+/// Oracle Fusion: GL > Manage Ledger Sets
+#[allow(dead_code)]
+pub struct LedgerSetService {
+    schema_engine: Arc<SchemaEngine>,
+}
+
+impl LedgerSetService {
+    #[must_use]
+    pub const fn new(schema_engine: Arc<SchemaEngine>) -> Self {
+        Self { schema_engine }
+    }
+
+    /// Validates if a ledger is compatible with a ledger set
+    /// Oracle Fusion: Ledger Sets must share same COA and Accounting Calendar
+    pub fn validate_ledger_compatibility(
+        &self,
+        set_coa: &str,
+        set_calendar: &str,
+        ledger_coa: &str,
+        ledger_calendar: &str,
+    ) -> Result<(), String> {
+        if set_coa != ledger_coa {
+            return Err(format!(
+                "Chart of Accounts mismatch: Set uses '{}', Ledger uses '{}'",
+                set_coa, ledger_coa
+            ));
+        }
+        if set_calendar != ledger_calendar {
+            return Err(format!(
+                "Accounting Calendar mismatch: Set uses '{}', Ledger uses '{}'",
+                set_calendar, ledger_calendar
+            ));
+        }
+        Ok(())
+    }
+
+    /// Check if a user has access to a ledger via a ledger set
+    #[must_use]
+    pub fn has_ledger_access(
+        &self,
+        ledger_set_id: RecordId,
+        target_ledger_id: RecordId,
+        assignments: &[(RecordId, RecordId)], // (set_id, ledger_id)
+    ) -> bool {
+        assignments.iter().any(|(s_id, l_id)| {
+            *s_id == ledger_set_id && *l_id == target_ledger_id
+        })
+    }
+}
+
 // ============================================================================
 // Inflation Adjustment Service (IAS 29)
 // ============================================================================
@@ -21617,6 +21671,8 @@ mod tests {
         all.push(entities::journal_reversal_request_definition());
         all.push(entities::journal_reversal_criteria_set_definition());
         all.push(entities::journal_reversal_criteria_rule_definition());
+        all.push(entities::ledger_set_definition());
+        all.push(entities::ledger_set_assignment_definition());
 
         // Wave 4: New Oracle Fusion features (20)
         all.push(entities::recurring_journal_template_definition());
@@ -21640,12 +21696,59 @@ mod tests {
         all.push(entities::subscription_contract_definition());
         all.push(entities::subscription_billing_event_definition());
 
-        // Total: 27 + 46 + 36 + 2 + 20 = 131
-        assert_eq!(all.len(), 131, "Should have 131 total entity definitions");
+        // Total: 27 + 46 + 36 + 4 + 20 = 133
+        assert_eq!(all.len(), 133, "Should have 133 total entity definitions");
 
         // All unique names
         let names: std::collections::HashSet<&str> = all.iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names.len(), 131, "All 131 entity names must be globally unique");
+        assert_eq!(names.len(), 133, "All 133 entity names must be globally unique");
+    }
+
+    // ========================================================================
+    // Ledger Set Service Tests
+    // ========================================================================
+
+    #[test]
+    fn test_ledger_set_definition() {
+        let def = entities::ledger_set_definition();
+        assert_eq!(def.name, "ledger_sets");
+        assert!(def.fields.iter().any(|f| f.name == "chart_of_accounts_id"));
+    }
+
+    #[test]
+    fn test_validate_ledger_compatibility_ok() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::LedgerSetService::new(schema_engine);
+        
+        let result = service.validate_ledger_compatibility(
+            "US_COA", "STD_CAL", "US_COA", "STD_CAL"
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_ledger_compatibility_fail_coa() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::LedgerSetService::new(schema_engine);
+        
+        let result = service.validate_ledger_compatibility(
+            "US_COA", "STD_CAL", "UK_COA", "STD_CAL"
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Chart of Accounts mismatch"));
+    }
+
+    #[test]
+    fn test_has_ledger_access() {
+        let schema_engine = Arc::new(SchemaEngine::new(Arc::new(MockSchemaRepository)));
+        let service = super::LedgerSetService::new(schema_engine);
+        
+        let set_id = uuid::Uuid::new_v4();
+        let ledger_id = uuid::Uuid::new_v4();
+        let assignments = vec![(set_id, ledger_id)];
+        
+        assert!(service.has_ledger_access(set_id, ledger_id, &assignments));
+        assert!(!service.has_ledger_access(set_id, uuid::Uuid::new_v4(), &assignments));
     }
 
     // ========================================================================

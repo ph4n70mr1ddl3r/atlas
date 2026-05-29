@@ -56,6 +56,8 @@ pub mod escheatment;
 pub use escheatment::*;
 pub mod evaluated_receipt_settlement;
 pub use evaluated_receipt_settlement::*;
+pub mod payment_process_profile;
+pub use payment_process_profile::*;
 
 pub use services::{
     PurchaseOrderService,

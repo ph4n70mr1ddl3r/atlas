@@ -70,6 +70,8 @@ pub mod tax_exemptions;
 pub use tax_exemptions::*;
 pub mod sla_mapping_sets;
 pub use sla_mapping_sets::*;
+pub mod receipt_reversal;
+pub use receipt_reversal::*;
 
 pub use services::{
     PurchaseOrderService,

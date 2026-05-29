@@ -66,6 +66,8 @@ pub mod automatch_rules;
 pub use automatch_rules::*;
 pub mod autoaccounting;
 pub use autoaccounting::*;
+pub mod tax_exemptions;
+pub use tax_exemptions::*;
 
 pub use services::{
     PurchaseOrderService,

@@ -68,6 +68,8 @@ pub mod autoaccounting;
 pub use autoaccounting::*;
 pub mod tax_exemptions;
 pub use tax_exemptions::*;
+pub mod sla_mapping_sets;
+pub use sla_mapping_sets::*;
 
 pub use services::{
     PurchaseOrderService,

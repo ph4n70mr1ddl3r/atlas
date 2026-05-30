@@ -28,6 +28,8 @@ pub mod journal_reversal_criteria;
 pub use journal_reversal_criteria::*;
 pub mod enterprise_structure;
 pub use enterprise_structure::*;
+pub mod journal_sources_categories;
+pub use journal_sources_categories::*;
 pub mod supplier_retainage;
 pub use supplier_retainage::*;
 pub mod receivable_factoring;

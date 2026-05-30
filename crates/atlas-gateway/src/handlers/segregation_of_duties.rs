@@ -70,7 +70,7 @@ pub async fn create_sod_rule(
     let effective_to = body["effective_to"].as_str()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.sod_engine.create_rule(
+    match state.shared.sod_engine.create_rule(
         org_id, &code, &name, description,
         first_duties, second_duties,
         &enforcement_mode, &risk_level,
@@ -90,7 +90,7 @@ pub async fn get_sod_rule(
     Path(code): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
-    match state.sod_engine.get_rule(org_id, &code).await {
+    match state.shared.sod_engine.get_rule(org_id, &code).await {
         Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Rule not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
@@ -105,7 +105,7 @@ pub async fn list_sod_rules(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
     let active_only = query.active_only.unwrap_or(false);
-    match state.sod_engine.list_rules(org_id, active_only).await {
+    match state.shared.sod_engine.list_rules(org_id, active_only).await {
         Ok(rules) => Ok(Json(json!({"data": rules}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -117,7 +117,7 @@ pub async fn activate_sod_rule(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.sod_engine.activate_rule(id).await {
+    match state.shared.sod_engine.activate_rule(id).await {
         Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -130,7 +130,7 @@ pub async fn deactivate_sod_rule(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.sod_engine.deactivate_rule(id).await {
+    match state.shared.sod_engine.deactivate_rule(id).await {
         Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -144,7 +144,7 @@ pub async fn delete_sod_rule(
     Path(code): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
-    match state.sod_engine.delete_rule(org_id, &code).await {
+    match state.shared.sod_engine.delete_rule(org_id, &code).await {
         Ok(()) => Ok(Json(json!({"message": "Rule deleted"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -172,7 +172,7 @@ pub async fn assign_sod_role(
     let role_name = body["role_name"].as_str().unwrap_or("").to_string();
     let duty_code = body["duty_code"].as_str().unwrap_or("").to_string();
 
-    match state.sod_engine.assign_role(
+    match state.shared.sod_engine.assign_role(
         org_id, user_id, &role_name, &duty_code,
         claims.user_uuid_json().ok(),
     ).await {
@@ -190,7 +190,7 @@ pub async fn list_sod_assignments(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
     let user_id = query.user_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
-    match state.sod_engine.list_role_assignments(org_id, user_id).await {
+    match state.shared.sod_engine.list_role_assignments(org_id, user_id).await {
         Ok(assignments) => Ok(Json(json!({"data": assignments}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -202,7 +202,7 @@ pub async fn remove_sod_assignment(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.sod_engine.remove_role_assignment(id).await {
+    match state.shared.sod_engine.remove_role_assignment(id).await {
         Ok(assignment) => Ok(Json(serde_json::to_value(assignment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -229,7 +229,7 @@ pub async fn check_sod_conflict(
         .ok_or_else(|| (StatusCode::BAD_REQUEST, Json(json!({"error": "user_id is required"}))))?;
     let duty_code = body["duty_code"].as_str().unwrap_or("").to_string();
 
-    match state.sod_engine.check_conflicts_for_assignment(org_id, user_id, &duty_code).await {
+    match state.shared.sod_engine.check_conflicts_for_assignment(org_id, user_id, &duty_code).await {
         Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -241,7 +241,7 @@ pub async fn run_sod_detection(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
-    match state.sod_engine.run_full_detection(org_id).await {
+    match state.shared.sod_engine.run_full_detection(org_id).await {
         Ok(count) => Ok(Json(json!({"new_violations_detected": count}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -259,7 +259,7 @@ pub async fn list_sod_violations(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
     let user_id = query.user_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
-    match state.sod_engine.list_violations(
+    match state.shared.sod_engine.list_violations(
         org_id, user_id, query.status.as_deref(), query.risk_level.as_deref(),
     ).await {
         Ok(violations) => Ok(Json(json!({"data": violations}))),
@@ -273,7 +273,7 @@ pub async fn get_sod_violation(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.sod_engine.get_violation(id).await {
+    match state.shared.sod_engine.get_violation(id).await {
         Ok(Some(v)) => Ok(Json(serde_json::to_value(v).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Violation not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
@@ -287,7 +287,7 @@ pub async fn resolve_sod_violation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let resolved_by = claims.user_uuid_json()?;
-    match state.sod_engine.resolve_violation(id, resolved_by).await {
+    match state.shared.sod_engine.resolve_violation(id, resolved_by).await {
         Ok(v) => Ok(Json(serde_json::to_value(v).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -301,7 +301,7 @@ pub async fn accept_sod_exception(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let accepted_by = claims.user_uuid_json()?;
-    match state.sod_engine.accept_exception(id, accepted_by).await {
+    match state.shared.sod_engine.accept_exception(id, accepted_by).await {
         Ok(v) => Ok(Json(serde_json::to_value(v).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -335,7 +335,7 @@ pub async fn create_sod_mitigation(
     let effective_to = body["effective_to"].as_str()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.sod_engine.add_mitigating_control(
+    match state.shared.sod_engine.add_mitigating_control(
         org_id, violation_id,
         &control_name, &control_description,
         control_owner_id, &review_frequency,
@@ -354,7 +354,7 @@ pub async fn list_sod_mitigations(
     Extension(_claims): Extension<Claims>,
     Path(violation_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.sod_engine.get_mitigating_controls(violation_id).await {
+    match state.shared.sod_engine.get_mitigating_controls(violation_id).await {
         Ok(controls) => Ok(Json(json!({"data": controls}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -367,7 +367,7 @@ pub async fn approve_sod_mitigation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let approved_by = claims.user_uuid_json()?;
-    match state.sod_engine.approve_mitigating_control(id, approved_by).await {
+    match state.shared.sod_engine.approve_mitigating_control(id, approved_by).await {
         Ok(control) => Ok(Json(serde_json::to_value(control).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -380,7 +380,7 @@ pub async fn revoke_sod_mitigation(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.sod_engine.revoke_mitigating_control(id).await {
+    match state.shared.sod_engine.revoke_mitigating_control(id).await {
         Ok(control) => Ok(Json(serde_json::to_value(control).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -397,7 +397,7 @@ pub async fn get_sod_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
-    match state.sod_engine.get_dashboard(org_id).await {
+    match state.shared.sod_engine.get_dashboard(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }

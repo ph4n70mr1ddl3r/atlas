@@ -31,7 +31,7 @@ pub async fn create_carrier(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.shipping_engine.create_carrier(
+    match state.scm.shipping_engine.create_carrier(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         payload.carrier_type.as_deref().unwrap_or("external"),
         payload.tracking_url_template.as_deref(), payload.contact_name.as_deref(),
@@ -44,7 +44,7 @@ pub async fn create_carrier(
 
 pub async fn list_carriers(State(state): State<Arc<AppState>>, claims: Extension<Claims>) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.list_carriers(org_id).await {
+    match state.scm.shipping_engine.list_carriers(org_id).await {
         Ok(c) => Ok(Json(serde_json::json!({"data": c}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -52,7 +52,7 @@ pub async fn list_carriers(State(state): State<Arc<AppState>>, claims: Extension
 
 pub async fn get_carrier(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.get_carrier(id).await {
+    match state.scm.shipping_engine.get_carrier(id).await {
         Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -61,7 +61,7 @@ pub async fn get_carrier(State(state): State<Arc<AppState>>, claims: Extension<C
 
 pub async fn delete_carrier(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(code): Path<String>) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.delete_carrier(org_id, &code).await {
+    match state.scm.shipping_engine.delete_carrier(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -78,7 +78,7 @@ pub async fn create_shipping_method(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.shipping_engine.create_method(
+    match state.scm.shipping_engine.create_method(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         payload.carrier_id, payload.transit_time_days.unwrap_or(1), payload.is_express.unwrap_or(false), user_id,
     ).await {
@@ -89,7 +89,7 @@ pub async fn create_shipping_method(
 
 pub async fn list_shipping_methods(State(state): State<Arc<AppState>>, claims: Extension<Claims>) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.list_methods(org_id).await {
+    match state.scm.shipping_engine.list_methods(org_id).await {
         Ok(m) => Ok(Json(serde_json::json!({"data": m}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -97,7 +97,7 @@ pub async fn list_shipping_methods(State(state): State<Arc<AppState>>, claims: E
 
 pub async fn delete_shipping_method(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(code): Path<String>) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.delete_method(org_id, &code).await {
+    match state.scm.shipping_engine.delete_method(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -122,7 +122,7 @@ pub async fn create_shipment(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.shipping_engine.create_shipment(
+    match state.scm.shipping_engine.create_shipment(
         org_id, &payload.shipment_number, payload.description.as_deref(),
         payload.carrier_id, payload.carrier_name.as_deref(),
         payload.shipping_method_id, payload.shipping_method_name.as_deref(),
@@ -146,7 +146,7 @@ pub async fn list_shipments(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>, Query(query): Query<ListShipmentsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.list_shipments(org_id, query.status.as_deref()).await {
+    match state.scm.shipping_engine.list_shipments(org_id, query.status.as_deref()).await {
         Ok(s) => Ok(Json(serde_json::json!({"data": s}))),
         Err(e) => { error!("Error: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
@@ -154,7 +154,7 @@ pub async fn list_shipments(
 
 pub async fn get_shipment(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.get_shipment(id).await {
+    match state.scm.shipping_engine.get_shipment(id).await {
         Ok(Some(s)) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -163,7 +163,7 @@ pub async fn get_shipment(State(state): State<Arc<AppState>>, claims: Extension<
 
 pub async fn confirm_shipment(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.shipping_engine.confirm_shipment(id, user_id).await {
+    match state.scm.shipping_engine.confirm_shipment(id, user_id).await {
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => { error!("Error: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 404=>StatusCode::NOT_FOUND, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
@@ -178,7 +178,7 @@ pub async fn ship_confirm(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     let tracking = payload.tracking_number;
-    match state.shipping_engine.ship_confirm(id, tracking.as_deref(), user_id).await {
+    match state.scm.shipping_engine.ship_confirm(id, tracking.as_deref(), user_id).await {
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => { error!("Error: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 404=>StatusCode::NOT_FOUND, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
@@ -186,14 +186,14 @@ pub async fn ship_confirm(
 
 pub async fn deliver_shipment(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.shipping_engine.deliver(id, user_id).await {
+    match state.scm.shipping_engine.deliver(id, user_id).await {
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => { error!("Error: {}", e); Err(match e.status_code() { 400=>StatusCode::BAD_REQUEST, 404=>StatusCode::NOT_FOUND, _=>StatusCode::INTERNAL_SERVER_ERROR }) }
     }
 }
 
 pub async fn cancel_shipment(State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.shipping_engine.cancel_shipment(id).await {
+    match state.scm.shipping_engine.cancel_shipment(id).await {
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => { error!("Error: {}", e); Err(ship_map_err(e)) }
     }
@@ -201,7 +201,7 @@ pub async fn cancel_shipment(State(state): State<Arc<AppState>>, _claims: Extens
 
 pub async fn delete_shipment(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(num): Path<String>) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.delete_shipment(org_id, &num).await {
+    match state.scm.shipping_engine.delete_shipment(org_id, &num).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT), Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -221,7 +221,7 @@ pub async fn add_shipment_line(
     Path(shipment_id): Path<Uuid>, Json(payload): Json<AddShipmentLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.add_shipment_line(
+    match state.scm.shipping_engine.add_shipment_line(
         org_id, shipment_id, &payload.item_code, payload.item_name.as_deref(),
         payload.item_description.as_deref(), &payload.requested_quantity,
         payload.unit_of_measure.as_deref(), payload.weight.as_deref(), payload.weight_unit.as_deref(),
@@ -236,14 +236,14 @@ pub async fn add_shipment_line(
 
 pub async fn list_shipment_lines(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(shipment_id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.list_shipment_lines(shipment_id).await {
+    match state.scm.shipping_engine.list_shipment_lines(shipment_id).await {
         Ok(l) => Ok(Json(serde_json::json!({"data": l}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
 
 pub async fn delete_shipment_line(State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<StatusCode, StatusCode> {
-    match state.shipping_engine.delete_shipment_line(id).await {
+    match state.scm.shipping_engine.delete_shipment_line(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT), Err(e) => { error!("Error: {}", e); Err(ship_map_err(e)) }
     }
 }
@@ -255,7 +255,7 @@ pub async fn update_shipped_quantity(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<UpdateShippedQtyRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.shipping_engine.update_line_shipped_quantity(id, &payload.shipped_quantity).await {
+    match state.scm.shipping_engine.update_line_shipped_quantity(id, &payload.shipped_quantity).await {
         Ok(l) => Ok(Json(crate::handlers::records::to_json_or_null(l))),
         Err(e) => { error!("Error: {}", e); Err(ship_map_err(e)) }
     }
@@ -276,7 +276,7 @@ pub async fn create_packing_slip(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.shipping_engine.create_packing_slip(
+    match state.scm.shipping_engine.create_packing_slip(
         org_id, shipment_id, &payload.packing_slip_number, payload.package_number.unwrap_or(1),
         payload.package_type.as_deref(), payload.weight.as_deref(), payload.weight_unit.as_deref(),
         payload.dimensions_length.as_deref(), payload.dimensions_width.as_deref(),
@@ -290,14 +290,14 @@ pub async fn create_packing_slip(
 
 pub async fn list_packing_slips(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(shipment_id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.list_packing_slips(shipment_id).await {
+    match state.scm.shipping_engine.list_packing_slips(shipment_id).await {
         Ok(ps) => Ok(Json(serde_json::json!({"data": ps}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
 
 pub async fn delete_packing_slip(State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<StatusCode, StatusCode> {
-    match state.shipping_engine.delete_packing_slip(id).await {
+    match state.scm.shipping_engine.delete_packing_slip(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT), Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
@@ -313,7 +313,7 @@ pub async fn add_packing_slip_line(
     Path(packing_slip_id): Path<Uuid>, Json(payload): Json<AddPackingSlipLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.add_packing_slip_line(
+    match state.scm.shipping_engine.add_packing_slip_line(
         org_id, packing_slip_id, payload.shipment_line_id,
         &payload.item_code, payload.item_name.as_deref(), &payload.packed_quantity, payload.notes.as_deref(),
     ).await {
@@ -324,21 +324,21 @@ pub async fn add_packing_slip_line(
 
 pub async fn list_packing_slip_lines(State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(packing_slip_id): Path<Uuid>) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.list_packing_slip_lines(packing_slip_id).await {
+    match state.scm.shipping_engine.list_packing_slip_lines(packing_slip_id).await {
         Ok(l) => Ok(Json(serde_json::json!({"data": l}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
 
 pub async fn delete_packing_slip_line(State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>) -> Result<StatusCode, StatusCode> {
-    match state.shipping_engine.delete_packing_slip_line(id).await {
+    match state.scm.shipping_engine.delete_packing_slip_line(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT), Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
 }
 
 pub async fn get_shipping_dashboard(State(state): State<Arc<AppState>>, claims: Extension<Claims>) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.shipping_engine.get_dashboard(org_id).await {
+    match state.scm.shipping_engine.get_dashboard(org_id).await {
         Ok(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

@@ -44,7 +44,7 @@ pub async fn create_value_set(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.dff_engine.create_value_set(
+    match state.shared.dff_engine.create_value_set(
         org_id,
         &body.code,
         &body.name,
@@ -76,7 +76,7 @@ pub async fn list_value_sets(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.list_value_sets(org_id).await {
+    match state.shared.dff_engine.list_value_sets(org_id).await {
         Ok(list) => Ok(Json(json!(list))),
         Err(e) => {
             error!("Failed to list value sets: {}", e);
@@ -92,7 +92,7 @@ pub async fn get_value_set(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.get_value_set(org_id, &code).await {
+    match state.shared.dff_engine.get_value_set(org_id, &code).await {
         Ok(Some(vs)) => Ok(Json(serde_json::to_value(vs).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => Err(map_error_status(&e)),
@@ -106,7 +106,7 @@ pub async fn delete_value_set(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.delete_value_set(org_id, &code).await {
+    match state.shared.dff_engine.delete_value_set(org_id, &code).await {
         Ok(()) => {
             info!("Deleted value set '{}'", code);
             Ok(StatusCode::NO_CONTENT)
@@ -140,7 +140,7 @@ pub async fn create_value_set_entry(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.dff_engine.create_value_set_entry(
+    match state.shared.dff_engine.create_value_set_entry(
         org_id,
         &code,
         &body.value,
@@ -177,7 +177,7 @@ pub async fn list_value_set_entries(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.list_value_set_entries(
+    match state.shared.dff_engine.list_value_set_entries(
         org_id, &code, query.parent_value.as_deref(),
     ).await {
         Ok(list) => Ok(Json(json!(list))),
@@ -190,7 +190,7 @@ pub async fn delete_value_set_entry(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.dff_engine.delete_value_set_entry(id).await {
+    match state.shared.dff_engine.delete_value_set_entry(id).await {
         Ok(()) => {
             info!("Deleted value set entry {}", id);
             Ok(StatusCode::NO_CONTENT)
@@ -221,7 +221,7 @@ pub async fn create_flexfield(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.dff_engine.create_flexfield(
+    match state.shared.dff_engine.create_flexfield(
         org_id,
         &body.code,
         &body.name,
@@ -248,7 +248,7 @@ pub async fn list_flexfields(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.list_flexfields(org_id).await {
+    match state.shared.dff_engine.list_flexfields(org_id).await {
         Ok(list) => Ok(Json(json!(list))),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -261,7 +261,7 @@ pub async fn get_flexfield(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.get_flexfield(org_id, &code).await {
+    match state.shared.dff_engine.get_flexfield(org_id, &code).await {
         Ok(Some(ff)) => Ok(Json(serde_json::to_value(ff).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => Err(map_error_status(&e)),
@@ -273,7 +273,7 @@ pub async fn activate_flexfield(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, StatusCode> {
-    match state.dff_engine.activate_flexfield(id).await {
+    match state.shared.dff_engine.activate_flexfield(id).await {
         Ok(ff) => {
             info!("Activated flexfield '{}'", ff.code);
             Ok(Json(serde_json::to_value(ff).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
@@ -287,7 +287,7 @@ pub async fn deactivate_flexfield(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, StatusCode> {
-    match state.dff_engine.deactivate_flexfield(id).await {
+    match state.shared.dff_engine.deactivate_flexfield(id).await {
         Ok(ff) => {
             info!("Deactivated flexfield '{}'", ff.code);
             Ok(Json(serde_json::to_value(ff).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
@@ -303,7 +303,7 @@ pub async fn delete_flexfield(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.delete_flexfield(org_id, &code).await {
+    match state.shared.dff_engine.delete_flexfield(org_id, &code).await {
         Ok(()) => {
             info!("Deleted flexfield '{}'", code);
             Ok(StatusCode::NO_CONTENT)
@@ -333,7 +333,7 @@ pub async fn create_context(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.dff_engine.create_context(
+    match state.shared.dff_engine.create_context(
         org_id,
         &flexfield_code,
         &body.code,
@@ -360,7 +360,7 @@ pub async fn list_contexts(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.list_contexts(org_id, &flexfield_code).await {
+    match state.shared.dff_engine.list_contexts(org_id, &flexfield_code).await {
         Ok(list) => Ok(Json(json!(list))),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -371,7 +371,7 @@ pub async fn disable_context(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, StatusCode> {
-    match state.dff_engine.disable_context(id).await {
+    match state.shared.dff_engine.disable_context(id).await {
         Ok(ctx) => Ok(Json(serde_json::to_value(ctx).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -382,7 +382,7 @@ pub async fn enable_context(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, StatusCode> {
-    match state.dff_engine.enable_context(id).await {
+    match state.shared.dff_engine.enable_context(id).await {
         Ok(ctx) => Ok(Json(serde_json::to_value(ctx).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -393,7 +393,7 @@ pub async fn delete_context(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.dff_engine.delete_context(id).await {
+    match state.shared.dff_engine.delete_context(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -428,7 +428,7 @@ pub async fn create_segment(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.dff_engine.create_segment(
+    match state.shared.dff_engine.create_segment(
         org_id,
         &flexfield_code,
         &context_code,
@@ -464,7 +464,7 @@ pub async fn list_segments_by_context(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.list_segments_by_context(org_id, &flexfield_code, &context_code).await {
+    match state.shared.dff_engine.list_segments_by_context(org_id, &flexfield_code, &context_code).await {
         Ok(list) => Ok(Json(json!(list))),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -477,7 +477,7 @@ pub async fn list_segments_by_flexfield(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.list_segments_by_flexfield(org_id, &flexfield_code).await {
+    match state.shared.dff_engine.list_segments_by_flexfield(org_id, &flexfield_code).await {
         Ok(list) => Ok(Json(json!(list))),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -488,7 +488,7 @@ pub async fn delete_segment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.dff_engine.delete_segment(id).await {
+    match state.shared.dff_engine.delete_segment(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -513,7 +513,7 @@ pub async fn set_flexfield_data(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.dff_engine.set_data(
+    match state.shared.dff_engine.set_data(
         org_id,
         &entity_name,
         entity_id,
@@ -543,7 +543,7 @@ pub async fn get_flexfield_data(
     Path((entity_name, entity_id)): Path<(String, Uuid)>,
     Query(query): Query<GetDataQuery>,
 ) -> Result<Json<Value>, StatusCode> {
-    match state.dff_engine.get_data(
+    match state.shared.dff_engine.get_data(
         &entity_name,
         entity_id,
         query.context_code.as_deref(),
@@ -558,7 +558,7 @@ pub async fn delete_flexfield_data(
     _claims: Extension<Claims>,
     Path((entity_name, entity_id)): Path<(String, Uuid)>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.dff_engine.delete_data(&entity_name, entity_id).await {
+    match state.shared.dff_engine.delete_data(&entity_name, entity_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -574,7 +574,7 @@ pub async fn get_flexfield_dashboard(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.dff_engine.get_dashboard_summary(org_id).await {
+    match state.shared.dff_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(map_error_status(&e)),
     }

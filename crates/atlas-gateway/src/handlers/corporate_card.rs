@@ -86,7 +86,7 @@ pub async fn create_program(
     let billing_day: i32 = body["billing_cycle_day"].as_i64().unwrap_or(1) as i32;
     let description = body["description"].as_str();
 
-    match state.corporate_card_engine.create_program(
+    match state.financials.corporate_card_engine.create_program(
         org_id, program_code, name, description,
         issuer_bank, card_network, card_type, currency_code,
         single_limit, monthly_limit, cash_limit, atm_limit,
@@ -114,7 +114,7 @@ pub async fn get_program(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
-    match state.corporate_card_engine.get_program(org_id, &code).await {
+    match state.financials.corporate_card_engine.get_program(org_id, &code).await {
         Ok(Some(p)) => Ok(Json(serde_json::to_value(p).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Program not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
@@ -131,7 +131,7 @@ pub async fn list_programs(
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
     let active_only = query.active_only.unwrap_or(false);
 
-    match state.corporate_card_engine.list_programs(org_id, active_only).await {
+    match state.financials.corporate_card_engine.list_programs(org_id, active_only).await {
         Ok(programs) => Ok(Json(json!({"data": programs}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -172,7 +172,7 @@ pub async fn issue_card(
     let gl_expense = body["gl_expense_account"].as_str();
     let cost_center = body["cost_center"].as_str();
 
-    match state.corporate_card_engine.issue_card(
+    match state.financials.corporate_card_engine.issue_card(
         org_id, program_id, card_number_masked, cardholder_name,
         cardholder_id, cardholder_email, department_id, department_name,
         issue_date, expiry_date, gl_liability, gl_expense,
@@ -195,7 +195,7 @@ pub async fn get_card(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.get_card(id).await {
+    match state.financials.corporate_card_engine.get_card(id).await {
         Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Card not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
@@ -213,7 +213,7 @@ pub async fn list_cards(
     let program_id = query.program_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
     let cardholder_id = query.cardholder_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.corporate_card_engine.list_cards(
+    match state.financials.corporate_card_engine.list_cards(
         org_id, program_id, cardholder_id, query.status.as_deref(),
     ).await {
         Ok(cards) => Ok(Json(json!({"data": cards}))),
@@ -226,7 +226,7 @@ pub async fn suspend_card(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.suspend_card(id).await {
+    match state.financials.corporate_card_engine.suspend_card(id).await {
         Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -244,7 +244,7 @@ pub async fn reactivate_card(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.reactivate_card(id).await {
+    match state.financials.corporate_card_engine.reactivate_card(id).await {
         Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -262,7 +262,7 @@ pub async fn cancel_card(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.cancel_card(id).await {
+    match state.financials.corporate_card_engine.cancel_card(id).await {
         Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -280,7 +280,7 @@ pub async fn report_lost(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.report_lost(id).await {
+    match state.financials.corporate_card_engine.report_lost(id).await {
         Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -298,7 +298,7 @@ pub async fn report_stolen(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.report_stolen(id).await {
+    match state.financials.corporate_card_engine.report_stolen(id).await {
         Ok(card) => Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -344,7 +344,7 @@ pub async fn import_transaction(
     let exchange_rate = body["exchange_rate"].as_str();
     let transaction_type = body["transaction_type"].as_str().unwrap_or("charge");
 
-    match state.corporate_card_engine.import_transaction(
+    match state.financials.corporate_card_engine.import_transaction(
         org_id, card_id, transaction_reference, posting_date, transaction_date,
         merchant_name, merchant_category, merchant_category_code, amount,
         currency_code, original_amount, original_currency, exchange_rate,
@@ -368,7 +368,7 @@ pub async fn get_transaction(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.get_transaction(id).await {
+    match state.financials.corporate_card_engine.get_transaction(id).await {
         Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Transaction not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
@@ -387,7 +387,7 @@ pub async fn list_transactions(
     let date_from = query.date_from.as_ref().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
     let date_to = query.date_to.as_ref().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.corporate_card_engine.list_transactions(
+    match state.financials.corporate_card_engine.list_transactions(
         org_id, card_id, query.status.as_deref(), date_from, date_to,
     ).await {
         Ok(txns) => Ok(Json(json!({"data": txns}))),
@@ -409,7 +409,7 @@ pub async fn match_transaction(
     let expense_line_id = body["expense_line_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
     let match_confidence = body["match_confidence"].as_str();
 
-    match state.corporate_card_engine.match_transaction(
+    match state.financials.corporate_card_engine.match_transaction(
         id, expense_report_id, expense_line_id, matched_by, match_confidence,
     ).await {
         Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
@@ -429,7 +429,7 @@ pub async fn unmatch_transaction(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.unmatch_transaction(id).await {
+    match state.financials.corporate_card_engine.unmatch_transaction(id).await {
         Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -450,7 +450,7 @@ pub async fn dispute_transaction(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let reason = body["reason"].as_str().unwrap_or("");
 
-    match state.corporate_card_engine.dispute_transaction(id, reason).await {
+    match state.financials.corporate_card_engine.dispute_transaction(id, reason).await {
         Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -473,7 +473,7 @@ pub async fn resolve_dispute(
     let resolution = body["resolution"].as_str().unwrap_or("");
     let resolved_status = body["resolved_status"].as_str().unwrap_or("approved");
 
-    match state.corporate_card_engine.resolve_dispute(id, resolution, resolved_status).await {
+    match state.financials.corporate_card_engine.resolve_dispute(id, resolution, resolved_status).await {
         Ok(txn) => Ok((StatusCode::OK, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -525,7 +525,7 @@ pub async fn import_statement(
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
     let minimum_payment = body["minimum_payment"].as_str().unwrap_or("0");
 
-    match state.corporate_card_engine.import_statement(
+    match state.financials.corporate_card_engine.import_statement(
         org_id, program_id, statement_number, statement_date,
         period_start, period_end, opening_balance, closing_balance,
         total_charges, total_credits, total_payments, total_fees, total_interest,
@@ -548,7 +548,7 @@ pub async fn get_statement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.get_statement(id).await {
+    match state.financials.corporate_card_engine.get_statement(id).await {
         Ok(Some(s)) => Ok(Json(serde_json::to_value(s).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Statement not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
@@ -565,7 +565,7 @@ pub async fn list_statements(
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
     let program_id = query.program_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.corporate_card_engine.list_statements(
+    match state.financials.corporate_card_engine.list_statements(
         org_id, program_id, query.status.as_deref(),
     ).await {
         Ok(stmts) => Ok(Json(json!({"data": stmts}))),
@@ -578,7 +578,7 @@ pub async fn reconcile_statement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.corporate_card_engine.reconcile_statement(id).await {
+    match state.financials.corporate_card_engine.reconcile_statement(id).await {
         Ok(stmt) => Ok((StatusCode::OK, Json(serde_json::to_value(stmt).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -599,7 +599,7 @@ pub async fn pay_statement(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let payment_reference = body["payment_reference"].as_str().unwrap_or("");
 
-    match state.corporate_card_engine.pay_statement(id, payment_reference).await {
+    match state.financials.corporate_card_engine.pay_statement(id, payment_reference).await {
         Ok(stmt) => Ok((StatusCode::OK, Json(serde_json::to_value(stmt).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -639,7 +639,7 @@ pub async fn request_limit_override(
     let effective_to = body["effective_to"].as_str()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.corporate_card_engine.request_limit_override(
+    match state.financials.corporate_card_engine.request_limit_override(
         org_id, card_id, override_type, new_value, reason,
         effective_from, effective_to, created_by,
     ).await {
@@ -664,7 +664,7 @@ pub async fn approve_limit_override(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let approved_by = parse_uuid(&claims.sub)?;
 
-    match state.corporate_card_engine.approve_limit_override(id, approved_by).await {
+    match state.financials.corporate_card_engine.approve_limit_override(id, approved_by).await {
         Ok(ovr) => Ok((StatusCode::OK, Json(serde_json::to_value(ovr).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -685,7 +685,7 @@ pub async fn reject_limit_override(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let rejected_by = parse_uuid(&claims.sub)?;
 
-    match state.corporate_card_engine.reject_limit_override(id, rejected_by).await {
+    match state.financials.corporate_card_engine.reject_limit_override(id, rejected_by).await {
         Ok(ovr) => Ok((StatusCode::OK, Json(serde_json::to_value(ovr).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -705,7 +705,7 @@ pub async fn list_limit_overrides(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let card_id = query.card_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.corporate_card_engine.list_limit_overrides(
+    match state.financials.corporate_card_engine.list_limit_overrides(
         card_id, query.status.as_deref(),
     ).await {
         Ok(overrides) => Ok(Json(json!({"data": overrides}))),
@@ -725,7 +725,7 @@ pub async fn get_corporate_card_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
-    match state.corporate_card_engine.get_dashboard_summary(org_id).await {
+    match state.financials.corporate_card_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }

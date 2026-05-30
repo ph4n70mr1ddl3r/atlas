@@ -43,7 +43,7 @@ pub async fn create_control_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financial_controls_engine.create_rule(
+    match state.financials.financial_controls_engine.create_rule(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.category, &payload.risk_level, &payload.control_type,
         payload.conditions.clone(), payload.threshold_value.as_deref(),
@@ -69,7 +69,7 @@ pub async fn list_control_rules(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financial_controls_engine.list_rules(org_id, None, None).await {
+    match state.financials.financial_controls_engine.list_rules(org_id, None, None).await {
         Ok(rules) => Ok(Json(serde_json::json!({ "data": rules }))),
         Err(e) => { error!("Failed to list rules: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -81,7 +81,7 @@ pub async fn delete_control_rule(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financial_controls_engine.delete_rule(org_id, &code).await {
+    match state.financials.financial_controls_engine.delete_rule(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete rule: {}", e);
@@ -98,7 +98,7 @@ pub async fn get_financial_controls_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financial_controls_engine.get_dashboard_summary(org_id).await {
+    match state.financials.financial_controls_engine.get_dashboard_summary(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

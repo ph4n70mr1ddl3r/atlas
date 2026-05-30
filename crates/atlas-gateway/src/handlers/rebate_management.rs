@@ -66,7 +66,7 @@ pub async fn create_agreement(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let agreement = state.rebate_management_engine
+    let agreement = state.scm.rebate_management_engine
         .create_agreement(
             org_id,
             &payload.agreement_number,
@@ -117,7 +117,7 @@ pub async fn get_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let agreement = state.rebate_management_engine
+    let agreement = state.scm.rebate_management_engine
         .get_agreement(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -141,7 +141,7 @@ pub async fn list_agreements(
     Query(query): Query<ListAgreementsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let agreements = state.rebate_management_engine
+    let agreements = state.scm.rebate_management_engine
         .list_agreements(
             org_id,
             query.status.as_deref(),
@@ -160,7 +160,7 @@ pub async fn activate_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let agreement = state.rebate_management_engine
+    let agreement = state.scm.rebate_management_engine
         .activate_agreement(id)
         .await
         .map_err(|e| {
@@ -176,7 +176,7 @@ pub async fn hold_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let agreement = state.rebate_management_engine
+    let agreement = state.scm.rebate_management_engine
         .hold_agreement(id)
         .await
         .map_err(|e| {
@@ -192,7 +192,7 @@ pub async fn terminate_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let agreement = state.rebate_management_engine
+    let agreement = state.scm.rebate_management_engine
         .terminate_agreement(id)
         .await
         .map_err(|e| {
@@ -208,7 +208,7 @@ pub async fn delete_agreement(
     Path(number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.rebate_management_engine
+    state.scm.rebate_management_engine
         .delete_agreement(org_id, &number)
         .await
         .map_err(|e| {
@@ -244,7 +244,7 @@ pub async fn create_tier(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let tier = state.rebate_management_engine
+    let tier = state.scm.rebate_management_engine
         .create_tier(
             org_id, agreement_id,
             payload.tier_number, payload.from_value, payload.to_value,
@@ -268,7 +268,7 @@ pub async fn list_tiers(
     _claims: Extension<Claims>,
     Path(agreement_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let tiers = state.rebate_management_engine
+    let tiers = state.scm.rebate_management_engine
         .list_tiers(agreement_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -280,7 +280,7 @@ pub async fn delete_tier(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.rebate_management_engine
+    state.scm.rebate_management_engine
         .delete_tier(id)
         .await
         .map_err(|e| {
@@ -321,7 +321,7 @@ pub async fn create_transaction(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let txn = state.rebate_management_engine
+    let txn = state.scm.rebate_management_engine
         .create_transaction(
             org_id, agreement_id,
             &payload.transaction_number,
@@ -356,7 +356,7 @@ pub async fn get_transaction(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let txn = state.rebate_management_engine
+    let txn = state.scm.rebate_management_engine
         .get_transaction(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -377,7 +377,7 @@ pub async fn list_transactions(
     Path(agreement_id): Path<Uuid>,
     Query(query): Query<ListTransactionsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let txns = state.rebate_management_engine
+    let txns = state.scm.rebate_management_engine
         .list_transactions(agreement_id, query.status.as_deref())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -397,7 +397,7 @@ pub async fn update_transaction_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateTransactionStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let txn = state.rebate_management_engine
+    let txn = state.scm.rebate_management_engine
         .update_transaction_status(id, &payload.status, payload.reason.as_deref())
         .await
         .map_err(|e| {
@@ -416,7 +416,7 @@ pub async fn delete_transaction(
     Path(number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.rebate_management_engine
+    state.scm.rebate_management_engine
         .delete_transaction(org_id, &number)
         .await
         .map_err(|e| match e {
@@ -448,7 +448,7 @@ pub async fn create_accrual(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let accrual = state.rebate_management_engine
+    let accrual = state.scm.rebate_management_engine
         .create_accrual(
             org_id, agreement_id,
             &payload.accrual_number,
@@ -476,7 +476,7 @@ pub async fn get_accrual(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let accrual = state.rebate_management_engine
+    let accrual = state.scm.rebate_management_engine
         .get_accrual(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -497,7 +497,7 @@ pub async fn list_accruals(
     Path(agreement_id): Path<Uuid>,
     Query(query): Query<ListAccrualsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let accruals = state.rebate_management_engine
+    let accruals = state.scm.rebate_management_engine
         .list_accruals(agreement_id, query.status.as_deref())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -509,7 +509,7 @@ pub async fn post_accrual(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let accrual = state.rebate_management_engine
+    let accrual = state.scm.rebate_management_engine
         .post_accrual(id)
         .await
         .map_err(|e| match e {
@@ -524,7 +524,7 @@ pub async fn reverse_accrual(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let accrual = state.rebate_management_engine
+    let accrual = state.scm.rebate_management_engine
         .reverse_accrual(id)
         .await
         .map_err(|e| match e {
@@ -540,7 +540,7 @@ pub async fn delete_accrual(
     Path(number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.rebate_management_engine
+    state.scm.rebate_management_engine
         .delete_accrual(org_id, &number)
         .await
         .map_err(|e| match e {
@@ -575,7 +575,7 @@ pub async fn create_settlement(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let settlement = state.rebate_management_engine
+    let settlement = state.scm.rebate_management_engine
         .create_settlement(
             org_id, agreement_id,
             &payload.settlement_number,
@@ -606,7 +606,7 @@ pub async fn get_settlement(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let settlement = state.rebate_management_engine
+    let settlement = state.scm.rebate_management_engine
         .get_settlement(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -627,7 +627,7 @@ pub async fn list_settlements(
     Path(agreement_id): Path<Uuid>,
     Query(query): Query<ListSettlementsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let settlements = state.rebate_management_engine
+    let settlements = state.scm.rebate_management_engine
         .list_settlements(agreement_id, query.status.as_deref())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -640,7 +640,7 @@ pub async fn approve_settlement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let settlement = state.rebate_management_engine
+    let settlement = state.scm.rebate_management_engine
         .approve_settlement(id, user_id)
         .await
         .map_err(|e| match e {
@@ -655,7 +655,7 @@ pub async fn pay_settlement(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let settlement = state.rebate_management_engine
+    let settlement = state.scm.rebate_management_engine
         .pay_settlement(id)
         .await
         .map_err(|e| match e {
@@ -671,7 +671,7 @@ pub async fn cancel_settlement(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let settlement = state.rebate_management_engine
+    let settlement = state.scm.rebate_management_engine
         .cancel_settlement(id)
         .await
         .map_err(|e| match e {
@@ -687,7 +687,7 @@ pub async fn delete_settlement(
     Path(number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.rebate_management_engine
+    state.scm.rebate_management_engine
         .delete_settlement(org_id, &number)
         .await
         .map_err(|e| match e {
@@ -702,7 +702,7 @@ pub async fn list_settlement_lines(
     _claims: Extension<Claims>,
     Path(settlement_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let lines = state.rebate_management_engine
+    let lines = state.scm.rebate_management_engine
         .list_settlement_lines(settlement_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -718,7 +718,7 @@ pub async fn get_rebate_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let dashboard = state.rebate_management_engine
+    let dashboard = state.scm.rebate_management_engine
         .get_dashboard(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

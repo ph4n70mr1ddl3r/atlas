@@ -31,13 +31,13 @@ pub async fn create_entity(
     }
     
     // Save entity definition
-    if let Err(e) = state.schema_engine.upsert_entity(definition.clone()).await {
+    if let Err(e) = state.core.schema_engine.upsert_entity(definition.clone()).await {
         warn!("Failed to upsert entity: {:?}", e);
     }
     
     // Load workflow if present
     if let Some(workflow) = &definition.workflow {
-        if let Err(e) = state.workflow_engine.load_workflow(workflow.clone()).await {
+        if let Err(e) = state.core.workflow_engine.load_workflow(workflow.clone()).await {
             warn!("Failed to load workflow: {:?}", e);
         }
     }
@@ -71,13 +71,13 @@ pub async fn update_entity(
     let mut definition = payload.definition;
     definition.name = entity.clone();
     
-    state.schema_engine.upsert_entity(definition.clone())
+    state.core.schema_engine.upsert_entity(definition.clone())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
     // Reload workflow if present
     if let Some(workflow) = &definition.workflow {
-        state.workflow_engine.load_workflow(workflow.clone())
+        state.core.workflow_engine.load_workflow(workflow.clone())
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
@@ -102,7 +102,7 @@ pub async fn delete_entity(
     info!("Deleting entity: {}", entity);
 
     if !params.drop_table {
-        state.schema_engine.delete_entity(&entity)
+        state.core.schema_engine.delete_entity(&entity)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -122,7 +122,7 @@ pub async fn delete_entity(
         warn!("Failed to drop table: {}", e);
     }
 
-    state.schema_engine.delete_entity(&entity)
+    state.core.schema_engine.delete_entity(&entity)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -146,7 +146,7 @@ pub async fn create_workflow(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     info!("Creating workflow: {}", workflow.name);
     
-    state.workflow_engine.load_workflow(workflow.clone())
+    state.core.workflow_engine.load_workflow(workflow.clone())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
@@ -164,9 +164,9 @@ pub async fn update_workflow(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     info!("Updating workflow for entity: {}", entity);
     
-    let _ = state.workflow_engine.unload_workflow(&workflow.name).await;
+    let _ = state.core.workflow_engine.unload_workflow(&workflow.name).await;
     
-    state.workflow_engine.load_workflow(workflow.clone())
+    state.core.workflow_engine.load_workflow(workflow.clone())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
@@ -180,11 +180,11 @@ pub async fn update_workflow(
 pub async fn get_config(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let entities = state.schema_engine.entity_names();
+    let entities = state.core.schema_engine.entity_names();
     
     Ok(Json(serde_json::json!({
         "entities": entities,
-        "version": state.schema_engine.get_version().await,
+        "version": state.core.schema_engine.get_version().await,
     })))
 }
 
@@ -199,14 +199,14 @@ pub async fn get_config_value(
         Some(&"entity")
             if parts.len() >= 2 => {
                 let entity_name = parts[1];
-                if let Some(entity) = state.schema_engine.get_entity(entity_name) {
+                if let Some(entity) = state.core.schema_engine.get_entity(entity_name) {
                     return Ok(Json(crate::handlers::records::to_json_or_null(entity)));
                 }
             }
         Some(&"workflow")
             if parts.len() >= 2 => {
                 let workflow_name = parts[1];
-                if let Some(workflow) = state.workflow_engine.get_workflow(workflow_name).await {
+                if let Some(workflow) = state.core.workflow_engine.get_workflow(workflow_name).await {
                     return Ok(Json(crate::handlers::records::to_json_or_null(workflow)));
                 }
             }
@@ -227,7 +227,7 @@ pub async fn set_config_value(
     if parts.first() == Some(&"entity")
         && parts.len() >= 2 {
             if let Ok(definition) = serde_json::from_value::<EntityDefinition>(value) {
-                state.schema_engine.upsert_entity(definition)
+                state.core.schema_engine.upsert_entity(definition)
                     .await
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
                 
@@ -247,7 +247,7 @@ pub async fn clear_cache(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     info!("Clearing all caches");
     
-    state.schema_engine.refresh()
+    state.core.schema_engine.refresh()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
@@ -263,8 +263,8 @@ pub async fn invalidate_entity_cache(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Invalidating cache for entity: {}", entity);
     
-    if let Some(definition) = state.schema_engine.get_entity(&entity) {
-        state.schema_engine.upsert_entity(definition)
+    if let Some(definition) = state.core.schema_engine.get_entity(&entity) {
+        state.core.schema_engine.upsert_entity(definition)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }

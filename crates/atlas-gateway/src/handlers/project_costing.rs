@@ -109,7 +109,7 @@ pub async fn create_cost_transaction(
     let org_id = parse_uuid(&claims.org_id)?;
     let created_by = parse_uuid(&claims.sub).ok();
 
-    match state.project_costing_engine.create_cost_transaction(
+    match state.projects.project_costing_engine.create_cost_transaction(
         org_id,
         req.project_id,
         req.project_number.as_deref(),
@@ -148,7 +148,7 @@ pub async fn list_cost_transactions(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_costing_engine.list_cost_transactions(
+    match state.projects.project_costing_engine.list_cost_transactions(
         org_id,
         filters.project_id,
         filters.cost_type.as_deref(),
@@ -163,7 +163,7 @@ pub async fn get_cost_transaction(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_costing_engine.get_cost_transaction(id).await {
+    match state.projects.project_costing_engine.get_cost_transaction(id).await {
         Ok(Some(txn)) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Cost transaction not found"})))),
         Err(e) => Err(error_response(e)),
@@ -177,7 +177,7 @@ pub async fn approve_cost_transaction(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let approved_by = parse_uuid(&claims.sub).ok();
 
-    match state.project_costing_engine.approve_cost_transaction(id, approved_by).await {
+    match state.projects.project_costing_engine.approve_cost_transaction(id, approved_by).await {
         Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve cost transaction: {}", e);
@@ -196,7 +196,7 @@ pub async fn reverse_cost_transaction(
     let created_by = parse_uuid(&claims.sub).ok();
 
     let reason = body.get("reason").and_then(|v| v.as_str());
-    match state.project_costing_engine.reverse_cost_transaction(org_id, id, reason, created_by).await {
+    match state.projects.project_costing_engine.reverse_cost_transaction(org_id, id, reason, created_by).await {
         Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reverse cost transaction: {}", e);
@@ -217,7 +217,7 @@ pub async fn create_burden_schedule(
     let org_id = parse_uuid(&claims.org_id)?;
     let created_by = parse_uuid(&claims.sub).ok();
 
-    match state.project_costing_engine.create_burden_schedule(
+    match state.projects.project_costing_engine.create_burden_schedule(
         org_id, &req.code, &req.name, req.description.as_deref(),
         req.effective_from, req.effective_to,
         req.is_default.unwrap_or(false), created_by,
@@ -236,7 +236,7 @@ pub async fn list_burden_schedules(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_costing_engine.list_burden_schedules(org_id).await {
+    match state.projects.project_costing_engine.list_burden_schedules(org_id).await {
         Ok(schedules) => Ok(Json(json!({"data": schedules}))),
         Err(e) => Err(error_response(e)),
     }
@@ -249,7 +249,7 @@ pub async fn get_burden_schedule(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_costing_engine.get_burden_schedule(org_id, &code).await {
+    match state.projects.project_costing_engine.get_burden_schedule(org_id, &code).await {
         Ok(Some(schedule)) => Ok(Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Burden schedule not found"})))),
         Err(e) => Err(error_response(e)),
@@ -260,7 +260,7 @@ pub async fn activate_burden_schedule(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_costing_engine.activate_burden_schedule(id).await {
+    match state.projects.project_costing_engine.activate_burden_schedule(id).await {
         Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
     }
@@ -274,7 +274,7 @@ pub async fn add_burden_schedule_line(
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_costing_engine.add_burden_schedule_line(
+    match state.projects.project_costing_engine.add_burden_schedule_line(
         org_id, schedule_id, &req.cost_type,
         req.expenditure_category.as_deref(), &req.burden_rate_percent,
         req.burden_account_code.as_deref(),
@@ -291,7 +291,7 @@ pub async fn list_burden_schedule_lines(
     State(state): State<Arc<AppState>>,
     Path(schedule_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_costing_engine.list_burden_schedule_lines(schedule_id).await {
+    match state.projects.project_costing_engine.list_burden_schedule_lines(schedule_id).await {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
         Err(e) => Err(error_response(e)),
     }
@@ -309,7 +309,7 @@ pub async fn create_cost_adjustment(
     let org_id = parse_uuid(&claims.org_id)?;
     let created_by = parse_uuid(&claims.sub).ok();
 
-    match state.project_costing_engine.create_cost_adjustment(
+    match state.projects.project_costing_engine.create_cost_adjustment(
         org_id, req.original_transaction_id, &req.adjustment_type,
         &req.adjustment_amount, &req.reason, req.description.as_deref(),
         req.effective_date, req.transfer_to_project_id, req.transfer_to_task_id,
@@ -331,7 +331,7 @@ pub async fn list_cost_adjustments(
     let org_id = parse_uuid(&claims.org_id)?;
 
     let status = params.get("status").map(std::string::String::as_str);
-    match state.project_costing_engine.list_cost_adjustments(org_id, status).await {
+    match state.projects.project_costing_engine.list_cost_adjustments(org_id, status).await {
         Ok(adjustments) => Ok(Json(json!({"data": adjustments}))),
         Err(e) => Err(error_response(e)),
     }
@@ -344,7 +344,7 @@ pub async fn approve_cost_adjustment(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let approved_by = parse_uuid(&claims.sub).ok();
 
-    match state.project_costing_engine.approve_cost_adjustment(id, approved_by).await {
+    match state.projects.project_costing_engine.approve_cost_adjustment(id, approved_by).await {
         Ok(adj) => Ok(Json(serde_json::to_value(adj).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve cost adjustment: {}", e);
@@ -365,7 +365,7 @@ pub async fn distribute_cost_transaction(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_costing_engine.distribute_cost_transaction(
+    match state.projects.project_costing_engine.distribute_cost_transaction(
         org_id, id, &req.raw_cost_account, &req.burden_account, &req.ap_ar_account,
     ).await {
         Ok(distributions) => Ok(Json(json!({"data": distributions}))),
@@ -380,7 +380,7 @@ pub async fn list_cost_distributions(
     State(state): State<Arc<AppState>>,
     Path(transaction_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_costing_engine.list_cost_distributions(transaction_id).await {
+    match state.projects.project_costing_engine.list_cost_distributions(transaction_id).await {
         Ok(distributions) => Ok(Json(json!({"data": distributions}))),
         Err(e) => Err(error_response(e)),
     }
@@ -395,7 +395,7 @@ pub async fn post_distributions(
 
     let gl_batch_id = body.get("gl_batch_id").and_then(|v| v.as_str()).and_then(|s| s.parse::<Uuid>().ok());
 
-    match state.project_costing_engine.post_distributions(org_id, gl_batch_id).await {
+    match state.projects.project_costing_engine.post_distributions(org_id, gl_batch_id).await {
         Ok(count) => Ok(Json(json!({"posted_count": count}))),
         Err(e) => Err(error_response(e)),
     }
@@ -411,7 +411,7 @@ pub async fn get_costing_summary(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_costing_engine.get_costing_summary(org_id).await {
+    match state.projects.project_costing_engine.get_costing_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err(error_response(e)),
     }

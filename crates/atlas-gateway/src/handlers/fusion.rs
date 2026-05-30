@@ -37,7 +37,7 @@ pub async fn get_unread_count(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
-    let count = state.notification_engine
+    let count = state.core.notification_engine
         .unread_count(org_id, user_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -57,7 +57,7 @@ pub async fn list_notifications(
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let offset = params.offset.unwrap_or(0).max(0);
 
-    let notifications = state.notification_engine
+    let notifications = state.core.notification_engine
         .list(org_id, user_id, include_read, limit, offset)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -77,7 +77,7 @@ pub async fn mark_notification_read(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.notification_engine
+    state.core.notification_engine
         .mark_read(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -92,7 +92,7 @@ pub async fn mark_all_notifications_read(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let count = state.notification_engine
+    let count = state.core.notification_engine
         .mark_all_read(org_id, user_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -105,7 +105,7 @@ pub async fn dismiss_notification(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.notification_engine
+    state.core.notification_engine
         .dismiss(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -328,7 +328,7 @@ pub async fn get_pending_approvals(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Get steps assigned to this user
-    let user_steps = state.approval_engine
+    let user_steps = state.core.approval_engine
         .get_pending_for_user(org_id, user_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -336,7 +336,7 @@ pub async fn get_pending_approvals(
     // Get steps assigned to user's roles
     let mut role_steps = Vec::new();
     for role in &claims.roles {
-        if let Ok(steps) = state.approval_engine.get_pending_for_role(org_id, role).await {
+        if let Ok(steps) = state.core.approval_engine.get_pending_for_role(org_id, role).await {
             role_steps.extend(steps);
         }
     }
@@ -375,7 +375,7 @@ pub async fn approve_approval_step(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let request = state.approval_engine
+    let request = state.core.approval_engine
         .approve_step(org_id, step_id, user_id, payload.comment.as_deref())
         .await
         .map_err(|e| {
@@ -396,7 +396,7 @@ pub async fn reject_approval_step(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let request = state.approval_engine
+    let request = state.core.approval_engine
         .reject_step(org_id, step_id, user_id, payload.comment.as_deref())
         .await
         .map_err(|e| {
@@ -422,7 +422,7 @@ pub async fn delegate_approval_step(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let step = state.approval_engine
+    let step = state.core.approval_engine
         .delegate_step(org_id, step_id, user_id, payload.delegated_to)
         .await
         .map_err(|e| {
@@ -479,7 +479,7 @@ pub async fn check_duplicates(
         // Build WHERE clause from match criteria
         let mut conditions = Vec::new();
         let mut bind_values: Vec<String> = Vec::new();
-        let entity_def = state.schema_engine.get_entity(&payload.entity_type);
+        let entity_def = state.core.schema_engine.get_entity(&payload.entity_type);
         let table_name = match entity_def {
             Some(ref def) => def.table_name.as_deref().unwrap_or(&payload.entity_type),
             None => &payload.entity_type,

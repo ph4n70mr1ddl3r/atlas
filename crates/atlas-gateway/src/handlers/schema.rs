@@ -18,7 +18,7 @@ pub async fn get_entity_schema(
 ) -> Result<Json<EntityDefinition>, StatusCode> {
     debug!("Getting schema for entity: {}", entity);
     
-    match state.schema_engine.get_entity(&entity) {
+    match state.core.schema_engine.get_entity(&entity) {
         Some(schema) => Ok(Json(schema)),
         None => Err(StatusCode::NOT_FOUND),
     }
@@ -50,7 +50,7 @@ pub async fn get_entity_form(
 ) -> Result<Json<FormConfig>, StatusCode> {
     debug!("Getting form config for entity: {}", entity);
     
-    let entity_def = match state.schema_engine.get_entity(&entity) {
+    let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
@@ -108,7 +108,7 @@ pub async fn get_entity_list_view(
 ) -> Result<Json<ListViewConfig>, StatusCode> {
     debug!("Getting list view config for entity: {}", entity);
     
-    let entity_def = match state.schema_engine.get_entity(&entity) {
+    let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };

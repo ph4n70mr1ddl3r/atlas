@@ -68,7 +68,7 @@ pub async fn create_revaluation_definition(
         accounts: None, // Processed separately via add_account endpoint
     };
 
-    match state.currency_revaluation_engine.create_definition(org_id, &request, None).await {
+    match state.financials.currency_revaluation_engine.create_definition(org_id, &request, None).await {
         Ok(def) => Ok((StatusCode::CREATED, Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -92,7 +92,7 @@ pub async fn get_revaluation_definition(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.currency_revaluation_engine.get_definition(org_id, &code).await {
+    match state.financials.currency_revaluation_engine.get_definition(org_id, &code).await {
         Ok(Some(def)) => Ok(Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Definition not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
@@ -112,7 +112,7 @@ pub async fn list_revaluation_definitions(
 
     let active_only = query.active_only.unwrap_or(false);
 
-    match state.currency_revaluation_engine.list_definitions(org_id, active_only).await {
+    match state.financials.currency_revaluation_engine.list_definitions(org_id, active_only).await {
         Ok(definitions) => Ok(Json(json!({"data": definitions}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -124,7 +124,7 @@ pub async fn activate_revaluation_definition(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.currency_revaluation_engine.activate_definition(id).await {
+    match state.financials.currency_revaluation_engine.activate_definition(id).await {
         Ok(def) => Ok((StatusCode::OK, Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -143,7 +143,7 @@ pub async fn deactivate_revaluation_definition(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.currency_revaluation_engine.deactivate_definition(id).await {
+    match state.financials.currency_revaluation_engine.deactivate_definition(id).await {
         Ok(def) => Ok((StatusCode::OK, Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -167,7 +167,7 @@ pub async fn delete_revaluation_definition(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.currency_revaluation_engine.delete_definition(org_id, &code).await {
+    match state.financials.currency_revaluation_engine.delete_definition(org_id, &code).await {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "Deleted"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -196,7 +196,7 @@ pub async fn add_revaluation_account(
         is_included: body["is_included"].as_bool().unwrap_or(true),
     };
 
-    match state.currency_revaluation_engine.add_account(org_id, &code, &request).await {
+    match state.financials.currency_revaluation_engine.add_account(org_id, &code, &request).await {
         Ok(acct) => Ok((StatusCode::CREATED, Json(serde_json::to_value(acct).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -220,7 +220,7 @@ pub async fn list_revaluation_accounts(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.currency_revaluation_engine.list_accounts(org_id, &code).await {
+    match state.financials.currency_revaluation_engine.list_accounts(org_id, &code).await {
         Ok(accounts) => Ok(Json(json!({"data": accounts}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -231,7 +231,7 @@ pub async fn remove_revaluation_account(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.currency_revaluation_engine.remove_account(id).await {
+    match state.financials.currency_revaluation_engine.remove_account(id).await {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "Removed"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -282,7 +282,7 @@ pub async fn execute_revaluation(
         balances,
     };
 
-    match state.currency_revaluation_engine.execute_revaluation(org_id, &request, None).await {
+    match state.financials.currency_revaluation_engine.execute_revaluation(org_id, &request, None).await {
         Ok(run) => Ok((StatusCode::CREATED, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -301,7 +301,7 @@ pub async fn get_revaluation_run(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.currency_revaluation_engine.get_run(id).await {
+    match state.financials.currency_revaluation_engine.get_run(id).await {
         Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Run not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
@@ -319,7 +319,7 @@ pub async fn list_revaluation_runs(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.currency_revaluation_engine.list_runs(org_id, query.status.as_deref()).await {
+    match state.financials.currency_revaluation_engine.list_runs(org_id, query.status.as_deref()).await {
         Ok(runs) => Ok(Json(json!({"data": runs}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -333,7 +333,7 @@ pub async fn post_revaluation_run(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let posted_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.currency_revaluation_engine.post_run(id, posted_by).await {
+    match state.financials.currency_revaluation_engine.post_run(id, posted_by).await {
         Ok(run) => Ok((StatusCode::OK, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -354,7 +354,7 @@ pub async fn reverse_revaluation_run(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let reversed_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.currency_revaluation_engine.reverse_run(id, reversed_by).await {
+    match state.financials.currency_revaluation_engine.reverse_run(id, reversed_by).await {
         Ok(run) => Ok((StatusCode::OK, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -372,7 +372,7 @@ pub async fn cancel_revaluation_run(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.currency_revaluation_engine.cancel_run(id).await {
+    match state.financials.currency_revaluation_engine.cancel_run(id).await {
         Ok(run) => Ok((StatusCode::OK, Json(serde_json::to_value(run).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -399,7 +399,7 @@ pub async fn get_revaluation_dashboard(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.currency_revaluation_engine.get_dashboard(org_id).await {
+    match state.financials.currency_revaluation_engine.get_dashboard(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }

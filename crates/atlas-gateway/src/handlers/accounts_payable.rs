@@ -70,7 +70,7 @@ pub async fn create_ap_invoice(
 
     info!("Creating AP invoice '{}' for org {}", payload.invoice_number, org_id);
 
-    match state.accounts_payable_engine.create_invoice(
+    match state.financials.accounts_payable_engine.create_invoice(
         org_id,
         &payload.invoice_number,
         payload.invoice_date,
@@ -115,7 +115,7 @@ pub async fn get_ap_invoice(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.accounts_payable_engine.get_invoice(id).await {
+    match state.financials.accounts_payable_engine.get_invoice(id).await {
         Ok(Some(invoice)) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -141,7 +141,7 @@ pub async fn list_ap_invoices(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.accounts_payable_engine.list_invoices(
+    match state.financials.accounts_payable_engine.list_invoices(
         org_id, query.supplier_id, query.status.as_deref(), query.invoice_type.as_deref(),
     ).await {
         Ok(invoices) => Ok(Json(serde_json::json!({ "data": invoices }))),
@@ -161,7 +161,7 @@ pub async fn submit_ap_invoice(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.accounts_payable_engine.submit_invoice(id).await {
+    match state.financials.accounts_payable_engine.submit_invoice(id).await {
         Ok(invoice) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Err(e) => {
             error!("Failed to submit AP invoice: {}", e);
@@ -183,7 +183,7 @@ pub async fn approve_ap_invoice(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.accounts_payable_engine.approve_invoice(id, user_id).await {
+    match state.financials.accounts_payable_engine.approve_invoice(id, user_id).await {
         Ok(invoice) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Err(e) => {
             error!("Failed to approve AP invoice: {}", e);
@@ -211,7 +211,7 @@ pub async fn cancel_ap_invoice(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.accounts_payable_engine.cancel_invoice(id, user_id, payload.reason.as_deref()).await {
+    match state.financials.accounts_payable_engine.cancel_invoice(id, user_id, payload.reason.as_deref()).await {
         Ok(invoice) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Err(e) => {
             error!("Failed to cancel AP invoice: {}", e);
@@ -260,7 +260,7 @@ pub async fn add_ap_invoice_line(
 
     info!("Adding line to AP invoice {}", invoice_id);
 
-    match state.accounts_payable_engine.add_line(
+    match state.financials.accounts_payable_engine.add_line(
         org_id, invoice_id, &payload.line_type,
         payload.description.as_deref(), &payload.amount,
         payload.unit_price.as_deref(), payload.quantity_invoiced.as_deref(),
@@ -287,7 +287,7 @@ pub async fn list_ap_invoice_lines(
     _claims: Extension<Claims>,
     Path(invoice_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.accounts_payable_engine.list_lines(invoice_id).await {
+    match state.financials.accounts_payable_engine.list_lines(invoice_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list AP invoice lines: {}", e);
@@ -302,7 +302,7 @@ pub async fn delete_ap_invoice_line(
     _claims: Extension<Claims>,
     Path((invoice_id, line_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.accounts_payable_engine.delete_line(invoice_id, line_id).await {
+    match state.financials.accounts_payable_engine.delete_line(invoice_id, line_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete AP invoice line: {}", e);
@@ -359,7 +359,7 @@ pub async fn add_ap_distribution(
 
     info!("Adding distribution to AP invoice {}", invoice_id);
 
-    match state.accounts_payable_engine.add_distribution(
+    match state.financials.accounts_payable_engine.add_distribution(
         org_id, invoice_id, payload.invoice_line_id,
         &payload.distribution_type, payload.account_combination.as_deref(),
         payload.description.as_deref(), &payload.amount,
@@ -388,7 +388,7 @@ pub async fn list_ap_distributions(
     _claims: Extension<Claims>,
     Path(invoice_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.accounts_payable_engine.list_distributions(invoice_id).await {
+    match state.financials.accounts_payable_engine.list_distributions(invoice_id).await {
         Ok(distributions) => Ok(Json(serde_json::json!({ "data": distributions }))),
         Err(e) => {
             error!("Failed to list AP distributions: {}", e);
@@ -419,7 +419,7 @@ pub async fn apply_ap_hold(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.accounts_payable_engine.apply_hold(
+    match state.financials.accounts_payable_engine.apply_hold(
         org_id, invoice_id, &payload.hold_type, &payload.hold_reason, Some(user_id),
     ).await {
         Ok(hold) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(hold)))),
@@ -449,7 +449,7 @@ pub async fn release_ap_hold(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.accounts_payable_engine.release_hold(
+    match state.financials.accounts_payable_engine.release_hold(
         hold_id, user_id, payload.release_reason.as_deref(),
     ).await {
         Ok(hold) => Ok(Json(crate::handlers::records::to_json_or_null(hold))),
@@ -470,7 +470,7 @@ pub async fn list_ap_holds(
     _claims: Extension<Claims>,
     Path(invoice_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.accounts_payable_engine.list_holds(invoice_id).await {
+    match state.financials.accounts_payable_engine.list_holds(invoice_id).await {
         Ok(holds) => Ok(Json(serde_json::json!({ "data": holds }))),
         Err(e) => {
             error!("Failed to list AP holds: {}", e);
@@ -516,7 +516,7 @@ pub async fn create_ap_payment(
 
     info!("Creating AP payment '{}' for supplier {}", payload.payment_number, payload.supplier_id);
 
-    match state.accounts_payable_engine.create_payment(
+    match state.financials.accounts_payable_engine.create_payment(
         org_id, &payload.payment_number, payload.payment_date,
         &payload.payment_method, &payload.payment_currency_code,
         &payload.payment_amount, payload.bank_account_id,
@@ -543,7 +543,7 @@ pub async fn get_ap_payment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.accounts_payable_engine.get_payment(id).await {
+    match state.financials.accounts_payable_engine.get_payment(id).await {
         Ok(Some(payment)) => Ok(Json(crate::handlers::records::to_json_or_null(payment))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -568,7 +568,7 @@ pub async fn list_ap_payments(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.accounts_payable_engine.list_payments(
+    match state.financials.accounts_payable_engine.list_payments(
         org_id, query.supplier_id, query.status.as_deref(),
     ).await {
         Ok(payments) => Ok(Json(serde_json::json!({ "data": payments }))),
@@ -588,7 +588,7 @@ pub async fn confirm_ap_payment(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.accounts_payable_engine.confirm_payment(id, user_id).await {
+    match state.financials.accounts_payable_engine.confirm_payment(id, user_id).await {
         Ok(payment) => Ok(Json(crate::handlers::records::to_json_or_null(payment))),
         Err(e) => {
             error!("Failed to confirm AP payment: {}", e);
@@ -621,7 +621,7 @@ pub async fn get_ap_aging(
 
     let as_of_date = query.as_of_date.unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    match state.accounts_payable_engine.get_aging_summary(org_id, as_of_date).await {
+    match state.financials.accounts_payable_engine.get_aging_summary(org_id, as_of_date).await {
         Ok(summary) => Ok(Json(crate::handlers::records::to_json_or_null(summary))),
         Err(e) => {
             error!("Failed to get AP aging: {}", e);

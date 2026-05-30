@@ -69,7 +69,7 @@ pub async fn create_chargeback(
     let currency = req.currency_code.as_deref().unwrap_or("USD");
     let tax = req.tax_amount.unwrap_or(0.0);
 
-    match state.chargeback_engine.create_chargeback(
+    match state.financials.chargeback_engine.create_chargeback(
         org_id,
         customer_id,
         req.customer_number.as_deref(),
@@ -124,7 +124,7 @@ pub async fn list_chargebacks(
     let org_id = parse_uuid(&claims.org_id)?;
     let customer_id = query.customer_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
 
-    match state.chargeback_engine.list_chargebacks(
+    match state.financials.chargeback_engine.list_chargebacks(
         org_id,
         query.status.as_deref(),
         customer_id,
@@ -146,7 +146,7 @@ pub async fn get_chargeback(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.chargeback_engine.get_chargeback(id).await {
+    match state.financials.chargeback_engine.get_chargeback(id).await {
         Ok(Some(cb)) => Ok(Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Chargeback not found"})))),
         Err(e) => {
@@ -163,7 +163,7 @@ pub async fn get_chargeback_by_number(
     Path(number): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.chargeback_engine.get_chargeback_by_number(org_id, &number).await {
+    match state.financials.chargeback_engine.get_chargeback_by_number(org_id, &number).await {
         Ok(Some(cb)) => Ok(Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Chargeback not found"})))),
         Err(e) => {
@@ -180,7 +180,7 @@ pub async fn delete_chargeback(
     Path(number): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.chargeback_engine.delete_chargeback(org_id, &number).await {
+    match state.financials.chargeback_engine.delete_chargeback(org_id, &number).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete chargeback: {}", e);
@@ -208,7 +208,7 @@ pub async fn transition_chargeback(
     Path(id): Path<Uuid>,
     Json(req): Json<TransitionRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.chargeback_engine.transition_chargeback(
+    match state.financials.chargeback_engine.transition_chargeback(
         id,
         &req.status,
         req.resolution_notes.as_deref(),
@@ -237,7 +237,7 @@ pub async fn assign_chargeback(
     Path(id): Path<Uuid>,
     Json(req): Json<AssignRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.chargeback_engine.assign_chargeback(
+    match state.financials.chargeback_engine.assign_chargeback(
         id,
         req.assigned_to.as_deref(),
         req.assigned_team.as_deref(),
@@ -263,7 +263,7 @@ pub async fn update_notes(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateNotesRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.chargeback_engine.update_notes(id, req.notes.as_deref()).await {
+    match state.financials.chargeback_engine.update_notes(id, req.notes.as_deref()).await {
         Ok(cb) => Ok(Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to update chargeback notes: {}", e);
@@ -304,7 +304,7 @@ pub async fn add_line(
     let org_id = parse_uuid(&claims.org_id)?;
     let line_type = req.line_type.as_deref().unwrap_or("chargeback");
 
-    match state.chargeback_engine.add_chargeback_line(
+    match state.financials.chargeback_engine.add_chargeback_line(
         org_id,
         chargeback_id,
         line_type,
@@ -335,7 +335,7 @@ pub async fn list_lines(
     Extension(_claims): Extension<Claims>,
     Path(chargeback_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.chargeback_engine.list_chargeback_lines(chargeback_id).await {
+    match state.financials.chargeback_engine.list_chargeback_lines(chargeback_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => {
             error!("Failed to list chargeback lines: {}", e);
@@ -350,7 +350,7 @@ pub async fn remove_line(
     Extension(_claims): Extension<Claims>,
     Path((chargeback_id, line_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    match state.chargeback_engine.remove_chargeback_line(chargeback_id, line_id).await {
+    match state.financials.chargeback_engine.remove_chargeback_line(chargeback_id, line_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to remove chargeback line: {}", e);
@@ -369,7 +369,7 @@ pub async fn list_activities(
     Extension(_claims): Extension<Claims>,
     Path(chargeback_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.chargeback_engine.list_activities(chargeback_id).await {
+    match state.financials.chargeback_engine.list_activities(chargeback_id).await {
         Ok(activities) => Ok(Json(serde_json::json!({"data": activities}))),
         Err(e) => {
             error!("Failed to list chargeback activities: {}", e);
@@ -388,7 +388,7 @@ pub async fn get_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.chargeback_engine.get_dashboard(org_id).await {
+    match state.financials.chargeback_engine.get_dashboard(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get chargeback dashboard: {}", e);

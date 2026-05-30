@@ -51,7 +51,7 @@ pub async fn create_price_list(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreatePriceListRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.create_price_list(
+    match state.scm.pricing_engine.create_price_list(
         parse_uuid(&claims.org_id)?,
         &req.code, &req.name, req.description.as_deref(),
         &req.currency_code, &req.list_type, &req.pricing_basis,
@@ -70,7 +70,7 @@ pub async fn get_price_list(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.get_price_list(
+    match state.scm.pricing_engine.get_price_list(
         parse_uuid(&claims.org_id)?, &code,
     ).await {
         Ok(Some(pl)) => Ok(Json(serde_json::to_value(pl).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -90,7 +90,7 @@ pub async fn list_price_lists(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListPriceListsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.list_price_lists(
+    match state.scm.pricing_engine.list_price_lists(
         parse_uuid(&claims.org_id)?,
         query.list_type.as_deref(), query.status.as_deref(),
     ).await {
@@ -103,7 +103,7 @@ pub async fn activate_price_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.activate_price_list(id).await {
+    match state.scm.pricing_engine.activate_price_list(id).await {
         Ok(pl) => Ok(Json(serde_json::to_value(pl).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -113,7 +113,7 @@ pub async fn deactivate_price_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.deactivate_price_list(id).await {
+    match state.scm.pricing_engine.deactivate_price_list(id).await {
         Ok(pl) => Ok(Json(serde_json::to_value(pl).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -124,7 +124,7 @@ pub async fn delete_price_list(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.delete_price_list(
+    match state.scm.pricing_engine.delete_price_list(
         parse_uuid(&claims.org_id)?, &code,
     ).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -166,7 +166,7 @@ pub async fn add_price_list_line(
     Path(price_list_id): Path<Uuid>,
     Json(req): Json<AddPriceListLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.add_price_list_line(
+    match state.scm.pricing_engine.add_price_list_line(
         parse_uuid(&claims.org_id)?,
         price_list_id,
         req.item_id, req.item_code.as_deref(), req.item_description.as_deref(),
@@ -187,7 +187,7 @@ pub async fn list_price_list_lines(
     State(state): State<Arc<AppState>>,
     Path(price_list_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.list_price_list_lines(price_list_id).await {
+    match state.scm.pricing_engine.list_price_list_lines(price_list_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -197,7 +197,7 @@ pub async fn delete_price_list_line(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.delete_price_list_line(id).await {
+    match state.scm.pricing_engine.delete_price_list_line(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -224,7 +224,7 @@ pub async fn add_price_tier(
     Path(price_list_line_id): Path<Uuid>,
     Json(req): Json<AddPriceTierRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.add_price_tier(
+    match state.scm.pricing_engine.add_price_tier(
         parse_uuid(&claims.org_id)?,
         price_list_line_id,
         &req.from_quantity, req.to_quantity.as_deref(),
@@ -242,7 +242,7 @@ pub async fn list_price_tiers(
     State(state): State<Arc<AppState>>,
     Path(price_list_line_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.list_price_tiers(price_list_line_id).await {
+    match state.scm.pricing_engine.list_price_tiers(price_list_line_id).await {
         Ok(tiers) => Ok(Json(serde_json::json!({"data": tiers}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -280,7 +280,7 @@ pub async fn create_discount_rule(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateDiscountRuleRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.create_discount_rule(
+    match state.scm.pricing_engine.create_discount_rule(
         parse_uuid(&claims.org_id)?,
         &req.code, &req.name, req.description.as_deref(),
         &req.discount_type, &req.discount_value,
@@ -301,7 +301,7 @@ pub async fn get_discount_rule(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.get_discount_rule(
+    match state.scm.pricing_engine.get_discount_rule(
         parse_uuid(&claims.org_id)?, &code,
     ).await {
         Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -320,7 +320,7 @@ pub async fn list_discount_rules(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListDiscountRulesQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.list_discount_rules(
+    match state.scm.pricing_engine.list_discount_rules(
         parse_uuid(&claims.org_id)?, query.status.as_deref(),
     ).await {
         Ok(rules) => Ok(Json(serde_json::json!({"data": rules}))),
@@ -333,7 +333,7 @@ pub async fn delete_discount_rule(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.delete_discount_rule(
+    match state.scm.pricing_engine.delete_discount_rule(
         parse_uuid(&claims.org_id)?, &code,
     ).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -376,7 +376,7 @@ pub async fn create_charge_definition(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateChargeDefinitionRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.create_charge_definition(
+    match state.scm.pricing_engine.create_charge_definition(
         parse_uuid(&claims.org_id)?,
         &req.code, &req.name, req.description.as_deref(),
         &req.charge_type, &req.charge_category, &req.calculation_method,
@@ -397,7 +397,7 @@ pub async fn get_charge_definition(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.get_charge_definition(
+    match state.scm.pricing_engine.get_charge_definition(
         parse_uuid(&claims.org_id)?, &code,
     ).await {
         Ok(Some(charge)) => Ok(Json(serde_json::to_value(charge).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -416,7 +416,7 @@ pub async fn list_charge_definitions(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListChargeDefinitionsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.list_charge_definitions(
+    match state.scm.pricing_engine.list_charge_definitions(
         parse_uuid(&claims.org_id)?, query.charge_type.as_deref(),
     ).await {
         Ok(charges) => Ok(Json(serde_json::json!({"data": charges}))),
@@ -429,7 +429,7 @@ pub async fn delete_charge_definition(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.delete_charge_definition(
+    match state.scm.pricing_engine.delete_charge_definition(
         parse_uuid(&claims.org_id)?, &code,
     ).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -466,7 +466,7 @@ pub async fn create_pricing_strategy(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreatePricingStrategyRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.create_pricing_strategy(
+    match state.scm.pricing_engine.create_pricing_strategy(
         parse_uuid(&claims.org_id)?,
         &req.code, &req.name, req.description.as_deref(),
         &req.strategy_type, req.priority, req.condition,
@@ -485,7 +485,7 @@ pub async fn list_pricing_strategies(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.list_pricing_strategies(
+    match state.scm.pricing_engine.list_pricing_strategies(
         parse_uuid(&claims.org_id)?,
     ).await {
         Ok(strategies) => Ok(Json(serde_json::json!({"data": strategies}))),
@@ -514,7 +514,7 @@ pub async fn calculate_price(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CalculatePriceRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.calculate_price(
+    match state.scm.pricing_engine.calculate_price(
         parse_uuid(&claims.org_id)?,
         &req.item_code, &req.quantity, &req.currency_code,
         &req.entity_type, req.entity_id, req.line_id,
@@ -543,7 +543,7 @@ pub async fn list_calculation_logs(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListCalculationLogsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.list_calculation_logs(
+    match state.scm.pricing_engine.list_calculation_logs(
         parse_uuid(&claims.org_id)?,
         query.entity_type.as_deref(), query.entity_id,
     ).await {
@@ -560,7 +560,7 @@ pub async fn get_pricing_dashboard(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.pricing_engine.get_dashboard_summary(
+    match state.scm.pricing_engine.get_dashboard_summary(
         parse_uuid(&claims.org_id)?,
     ).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),

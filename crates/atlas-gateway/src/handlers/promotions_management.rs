@@ -81,7 +81,7 @@ pub async fn create_promotion(
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.promotions_engine.create_promotion(
+    match state.crm.promotions_engine.create_promotion(
         org_id,
         &payload.code,
         &payload.name,
@@ -120,7 +120,7 @@ pub async fn get_promotion(
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.get_promotion(id).await {
+    match state.crm.promotions_engine.get_promotion(id).await {
         Ok(Some(p)) => Ok(Json(serde_json::to_value(p).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get promotion: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -136,7 +136,7 @@ pub async fn list_promotions(
     let include_inactive = query.include_inactive
         .is_some_and(|s| s == "true" || s == "1");
 
-    match state.promotions_engine.list_promotions(
+    match state.crm.promotions_engine.list_promotions(
         org_id,
         query.promotion_type.as_deref(),
         query.status.as_deref(),
@@ -171,7 +171,7 @@ pub async fn update_promotion(
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.promotions_engine.update_promotion(
+    match state.crm.promotions_engine.update_promotion(
         id,
         payload.name.as_deref(),
         payload.description.as_deref(),
@@ -199,7 +199,7 @@ pub async fn activate_promotion(
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.activate_promotion(id).await {
+    match state.crm.promotions_engine.activate_promotion(id).await {
         Ok(p) => Ok(Json(serde_json::to_value(p).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to activate promotion: {}", e);
@@ -214,7 +214,7 @@ pub async fn hold_promotion(
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.hold_promotion(id).await {
+    match state.crm.promotions_engine.hold_promotion(id).await {
         Ok(p) => Ok(Json(serde_json::to_value(p).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to hold promotion: {}", e);
@@ -229,7 +229,7 @@ pub async fn complete_promotion(
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.complete_promotion(id).await {
+    match state.crm.promotions_engine.complete_promotion(id).await {
         Ok(p) => Ok(Json(serde_json::to_value(p).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to complete promotion: {}", e);
@@ -244,7 +244,7 @@ pub async fn cancel_promotion(
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.cancel_promotion(id).await {
+    match state.crm.promotions_engine.cancel_promotion(id).await {
         Ok(p) => Ok(Json(serde_json::to_value(p).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to cancel promotion: {}", e);
@@ -259,7 +259,7 @@ pub async fn delete_promotion(
     Path(id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.delete_promotion(id).await {
+    match state.crm.promotions_engine.delete_promotion(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete promotion: {}", e);
@@ -294,7 +294,7 @@ pub async fn create_offer(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let promotion_id = Uuid::parse_str(&promotion_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.promotions_engine.create_offer(
+    match state.crm.promotions_engine.create_offer(
         org_id,
         promotion_id,
         &payload.offer_type,
@@ -321,7 +321,7 @@ pub async fn list_offers(
     Path(promotion_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let promotion_id = Uuid::parse_str(&promotion_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.list_offers(promotion_id).await {
+    match state.crm.promotions_engine.list_offers(promotion_id).await {
         Ok(offers) => Ok(Json(serde_json::to_value(offers).unwrap_or(serde_json::Value::Null))),
         Err(e) => { error!("Failed to list offers: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -333,7 +333,7 @@ pub async fn delete_offer(
     Path(offer_id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let offer_id = Uuid::parse_str(&offer_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.delete_offer(offer_id).await {
+    match state.crm.promotions_engine.delete_offer(offer_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Failed to delete offer: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -360,7 +360,7 @@ pub async fn create_fund(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let promotion_id = Uuid::parse_str(&promotion_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.promotions_engine.create_fund(
+    match state.crm.promotions_engine.create_fund(
         org_id,
         promotion_id,
         &payload.fund_type,
@@ -382,7 +382,7 @@ pub async fn list_funds(
     Path(promotion_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let promotion_id = Uuid::parse_str(&promotion_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.list_funds(promotion_id).await {
+    match state.crm.promotions_engine.list_funds(promotion_id).await {
         Ok(funds) => Ok(Json(serde_json::to_value(funds).unwrap_or(serde_json::Value::Null))),
         Err(e) => { error!("Failed to list funds: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -401,7 +401,7 @@ pub async fn update_fund_committed(
     Json(payload): Json<UpdateFundAmountRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let fund_id = Uuid::parse_str(&fund_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.update_fund_committed(fund_id, &payload.amount).await {
+    match state.crm.promotions_engine.update_fund_committed(fund_id, &payload.amount).await {
         Ok(f) => Ok(Json(serde_json::to_value(f).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to update fund committed: {}", e);
@@ -417,7 +417,7 @@ pub async fn update_fund_spent(
     Json(payload): Json<UpdateFundAmountRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let fund_id = Uuid::parse_str(&fund_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.update_fund_spent(fund_id, &payload.amount).await {
+    match state.crm.promotions_engine.update_fund_spent(fund_id, &payload.amount).await {
         Ok(f) => Ok(Json(serde_json::to_value(f).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to update fund spent: {}", e);
@@ -432,7 +432,7 @@ pub async fn delete_fund(
     Path(fund_id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let fund_id = Uuid::parse_str(&fund_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.delete_fund(fund_id).await {
+    match state.crm.promotions_engine.delete_fund(fund_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Failed to delete fund: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -467,7 +467,7 @@ pub async fn create_claim(
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.promotions_engine.create_claim(
+    match state.crm.promotions_engine.create_claim(
         org_id,
         promotion_id,
         &payload.claim_type,
@@ -493,7 +493,7 @@ pub async fn get_claim(
     Path(claim_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let claim_id = Uuid::parse_str(&claim_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.get_claim(claim_id).await {
+    match state.crm.promotions_engine.get_claim(claim_id).await {
         Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get claim: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -507,7 +507,7 @@ pub async fn list_claims(
     Query(query): Query<ListClaimsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let promotion_id = Uuid::parse_str(&promotion_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.list_claims(promotion_id, query.status.as_deref()).await {
+    match state.crm.promotions_engine.list_claims(promotion_id, query.status.as_deref()).await {
         Ok(claims) => Ok(Json(serde_json::to_value(claims).unwrap_or(serde_json::Value::Null))),
         Err(e) => { error!("Failed to list claims: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -519,7 +519,7 @@ pub async fn review_claim(
     Path(claim_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let claim_id = Uuid::parse_str(&claim_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.review_claim(claim_id).await {
+    match state.crm.promotions_engine.review_claim(claim_id).await {
         Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to review claim: {}", e);
@@ -541,7 +541,7 @@ pub async fn approve_claim(
     Json(payload): Json<ApproveClaimRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let claim_id = Uuid::parse_str(&claim_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.approve_claim(claim_id, payload.approved_amount.as_deref()).await {
+    match state.crm.promotions_engine.approve_claim(claim_id, payload.approved_amount.as_deref()).await {
         Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to approve claim: {}", e);
@@ -563,7 +563,7 @@ pub async fn reject_claim(
     Json(payload): Json<RejectClaimRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let claim_id = Uuid::parse_str(&claim_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.reject_claim(claim_id, &payload.reason).await {
+    match state.crm.promotions_engine.reject_claim(claim_id, &payload.reason).await {
         Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to reject claim: {}", e);
@@ -585,7 +585,7 @@ pub async fn settle_claim(
     Json(payload): Json<SettleClaimRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let claim_id = Uuid::parse_str(&claim_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.settle_claim(claim_id, &payload.paid_amount).await {
+    match state.crm.promotions_engine.settle_claim(claim_id, &payload.paid_amount).await {
         Ok(c) => Ok(Json(serde_json::to_value(c).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to settle claim: {}", e);
@@ -600,7 +600,7 @@ pub async fn delete_claim(
     Path(claim_id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let claim_id = Uuid::parse_str(&claim_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.promotions_engine.delete_claim(claim_id).await {
+    match state.crm.promotions_engine.delete_claim(claim_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete claim: {}", e);
@@ -618,7 +618,7 @@ pub async fn get_promotions_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.promotions_engine.get_dashboard(org_id).await {
+    match state.crm.promotions_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or(serde_json::Value::Null))),
         Err(e) => { error!("Failed to get promotions dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

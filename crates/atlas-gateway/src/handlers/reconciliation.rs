@@ -50,7 +50,7 @@ pub async fn create_bank_account(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let account = state.reconciliation_engine
+    let account = state.financials.reconciliation_engine
         .create_bank_account(
             org_id,
             &payload.account_number,
@@ -85,7 +85,7 @@ pub async fn list_bank_accounts(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let accounts = state.reconciliation_engine
+    let accounts = state.financials.reconciliation_engine
         .list_bank_accounts(org_id)
         .await
         .map_err(|e| { error!("List bank accounts error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -102,7 +102,7 @@ pub async fn get_bank_account(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let account = state.reconciliation_engine
+    let account = state.financials.reconciliation_engine
         .get_bank_account(id)
         .await
         .map_err(|e| { error!("Get bank account error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
@@ -120,7 +120,7 @@ pub async fn delete_bank_account(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.reconciliation_engine
+    state.financials.reconciliation_engine
         .delete_bank_account(id)
         .await
         .map_err(|e| { error!("Delete bank account error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -175,7 +175,7 @@ pub async fn create_bank_statement(
     let end_date = chrono::NaiveDate::parse_from_str(&payload.end_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let statement = state.reconciliation_engine
+    let statement = state.financials.reconciliation_engine
         .create_bank_statement(
             org_id,
             payload.bank_account_id,
@@ -205,7 +205,7 @@ pub async fn create_bank_statement(
             let tx_date = chrono::NaiveDate::parse_from_str(&line.transaction_date, "%Y-%m-%d")
                 .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-            state.reconciliation_engine
+            state.financials.reconciliation_engine
                 .add_statement_line(
                     org_id,
                     statement.id,
@@ -239,7 +239,7 @@ pub async fn list_bank_statements(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let statements = state.reconciliation_engine
+    let statements = state.financials.reconciliation_engine
         .list_bank_statements(org_id, bank_account_id)
         .await
         .map_err(|e| { error!("List bank statements error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -256,7 +256,7 @@ pub async fn get_bank_statement(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let statement = state.reconciliation_engine
+    let statement = state.financials.reconciliation_engine
         .get_bank_statement(statement_id)
         .await
         .map_err(|e| { error!("Get bank statement error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
@@ -274,7 +274,7 @@ pub async fn list_statement_lines(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let lines = state.reconciliation_engine
+    let lines = state.financials.reconciliation_engine
         .list_statement_lines(statement_id)
         .await
         .map_err(|e| { error!("List statement lines error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -315,7 +315,7 @@ pub async fn create_system_transaction(
     let tx_date = chrono::NaiveDate::parse_from_str(&payload.transaction_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let txn = state.reconciliation_engine
+    let txn = state.financials.reconciliation_engine
         .create_system_transaction(
             org_id,
             payload.bank_account_id,
@@ -352,7 +352,7 @@ pub async fn list_unreconciled_transactions(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let transactions = state.reconciliation_engine
+    let transactions = state.financials.reconciliation_engine
         .list_unreconciled_transactions(org_id, bank_account_id)
         .await
         .map_err(|e| { error!("List unreconciled transactions error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -375,7 +375,7 @@ pub async fn auto_match_statement(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let result = state.reconciliation_engine
+    let result = state.financials.reconciliation_engine
         .auto_match(org_id, statement_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -412,7 +412,7 @@ pub async fn manual_match(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let match_record = state.reconciliation_engine
+    let match_record = state.financials.reconciliation_engine
         .manual_match(
             org_id,
             statement_id,
@@ -442,7 +442,7 @@ pub async fn unmatch(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let match_record = state.reconciliation_engine
+    let match_record = state.financials.reconciliation_engine
         .unmatch(match_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -466,7 +466,7 @@ pub async fn list_matches(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let matches = state.reconciliation_engine
+    let matches = state.financials.reconciliation_engine
         .list_matches(statement_id)
         .await
         .map_err(|e| { error!("List matches error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -499,7 +499,7 @@ pub async fn get_reconciliation_summary(
     let period_end = chrono::NaiveDate::parse_from_str(&params.period_end, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let summary = state.reconciliation_engine
+    let summary = state.financials.reconciliation_engine
         .get_reconciliation_summary(org_id, params.bank_account_id, period_start, period_end)
         .await
         .map_err(|e| {
@@ -518,7 +518,7 @@ pub async fn list_reconciliation_summaries(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let summaries = state.reconciliation_engine
+    let summaries = state.financials.reconciliation_engine
         .list_reconciliation_summaries(org_id)
         .await
         .map_err(|e| { error!("List reconciliation summaries error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -556,7 +556,7 @@ pub async fn create_matching_rule(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let rule = state.reconciliation_engine
+    let rule = state.financials.reconciliation_engine
         .create_matching_rule(
             org_id,
             &payload.name,
@@ -587,7 +587,7 @@ pub async fn list_matching_rules(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let rules = state.reconciliation_engine
+    let rules = state.financials.reconciliation_engine
         .list_matching_rules(org_id)
         .await
         .map_err(|e| { error!("List matching rules error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -604,7 +604,7 @@ pub async fn delete_matching_rule(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.reconciliation_engine
+    state.financials.reconciliation_engine
         .delete_matching_rule(id)
         .await
         .map_err(|e| { error!("Delete matching rule error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;

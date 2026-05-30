@@ -76,7 +76,7 @@ pub async fn create_absence_type(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.create_absence_type(
+    match state.hcm.absence_engine.create_absence_type(
         org_id,
         &payload.code,
         &payload.name,
@@ -107,7 +107,7 @@ pub async fn get_absence_type(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.get_absence_type(org_id, &code).await {
+    match state.hcm.absence_engine.get_absence_type(org_id, &code).await {
         Ok(Some(at)) => Ok(Json(crate::handlers::records::to_json_or_null(at))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -126,7 +126,7 @@ pub async fn list_absence_types(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.list_absence_types(org_id, params.category.as_deref()).await {
+    match state.hcm.absence_engine.list_absence_types(org_id, params.category.as_deref()).await {
         Ok(types) => Ok(Json(serde_json::json!({ "data": types }))),
         Err(e) => {
             error!("Failed to list absence types: {}", e);
@@ -144,7 +144,7 @@ pub async fn delete_absence_type(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.delete_absence_type(org_id, &code).await {
+    match state.hcm.absence_engine.delete_absence_type(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete absence type: {}", e);
@@ -190,7 +190,7 @@ pub async fn create_absence_plan(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.create_absence_plan(
+    match state.hcm.absence_engine.create_absence_plan(
         org_id,
         &payload.code,
         &payload.name,
@@ -223,7 +223,7 @@ pub async fn get_absence_plan(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.get_absence_plan(org_id, &code).await {
+    match state.hcm.absence_engine.get_absence_plan(org_id, &code).await {
         Ok(Some(plan)) => Ok(Json(crate::handlers::records::to_json_or_null(plan))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -242,7 +242,7 @@ pub async fn list_absence_plans(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.list_absence_plans(org_id, params.absence_type_id).await {
+    match state.hcm.absence_engine.list_absence_plans(org_id, params.absence_type_id).await {
         Ok(plans) => Ok(Json(serde_json::json!({ "data": plans }))),
         Err(e) => {
             error!("Failed to list absence plans: {}", e);
@@ -260,7 +260,7 @@ pub async fn delete_absence_plan(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.delete_absence_plan(org_id, &code).await {
+    match state.hcm.absence_engine.delete_absence_plan(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete absence plan: {}", e);
@@ -304,7 +304,7 @@ pub async fn create_entry(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.create_entry(
+    match state.hcm.absence_engine.create_entry(
         org_id,
         payload.employee_id,
         payload.employee_name.as_deref(),
@@ -338,7 +338,7 @@ pub async fn get_entry(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.get_entry(org_id, id).await {
+    match state.hcm.absence_engine.get_entry(org_id, id).await {
         Ok(Some(entry)) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -357,7 +357,7 @@ pub async fn list_entries(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.list_entries(
+    match state.hcm.absence_engine.list_entries(
         org_id, params.employee_id, params.absence_type_id, params.status.as_deref(),
     ).await {
         Ok(entries) => Ok(Json(serde_json::json!({ "data": entries }))),
@@ -380,7 +380,7 @@ pub async fn submit_entry(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.submit_entry(org_id, id, Some(user_id)).await {
+    match state.hcm.absence_engine.submit_entry(org_id, id, Some(user_id)).await {
         Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => {
             error!("Failed to submit absence entry: {}", e);
@@ -401,7 +401,7 @@ pub async fn approve_entry(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.approve_entry(org_id, id, user_id).await {
+    match state.hcm.absence_engine.approve_entry(org_id, id, user_id).await {
         Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => {
             error!("Failed to approve absence entry: {}", e);
@@ -429,7 +429,7 @@ pub async fn reject_entry(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.reject_entry(org_id, id, user_id, payload.reason.as_deref()).await {
+    match state.hcm.absence_engine.reject_entry(org_id, id, user_id, payload.reason.as_deref()).await {
         Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => {
             error!("Failed to reject absence entry: {}", e);
@@ -454,7 +454,7 @@ pub async fn cancel_entry(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.cancel_entry(org_id, id, payload.reason.as_deref()).await {
+    match state.hcm.absence_engine.cancel_entry(org_id, id, payload.reason.as_deref()).await {
         Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => {
             error!("Failed to cancel absence entry: {}", e);
@@ -483,7 +483,7 @@ pub async fn get_balance(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Look up the plan
-    let plan = state.absence_engine.get_absence_plan(org_id, &params.plan_code).await
+    let plan = state.hcm.absence_engine.get_absence_plan(org_id, &params.plan_code).await
         .map_err(|e| {
             error!("Failed to get absence plan: {}", e);
             map_error(e)
@@ -491,9 +491,9 @@ pub async fn get_balance(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     // Calculate current period based on frequency
-    let (period_start, period_end) = state.absence_engine.calculate_current_period(&plan.accrual_frequency);
+    let (period_start, period_end) = state.hcm.absence_engine.calculate_current_period(&plan.accrual_frequency);
 
-    match state.absence_engine.get_or_create_balance(
+    match state.hcm.absence_engine.get_or_create_balance(
         org_id, params.employee_id, plan.id, period_start, period_end,
     ).await {
         Ok(balance) => Ok(Json(crate::handlers::records::to_json_or_null(balance))),
@@ -518,7 +518,7 @@ pub async fn list_balances(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.list_balances(org_id, params.employee_id).await {
+    match state.hcm.absence_engine.list_balances(org_id, params.employee_id).await {
         Ok(balances) => Ok(Json(serde_json::json!({ "data": balances }))),
         Err(e) => {
             error!("Failed to list balances: {}", e);
@@ -540,7 +540,7 @@ pub async fn get_entry_history(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.get_entry_history(org_id, id).await {
+    match state.hcm.absence_engine.get_entry_history(org_id, id).await {
         Ok(history) => Ok(Json(serde_json::json!({ "data": history }))),
         Err(e) => {
             error!("Failed to get entry history: {}", e);
@@ -561,7 +561,7 @@ pub async fn get_absence_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.absence_engine.get_dashboard(org_id).await {
+    match state.hcm.absence_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => {
             error!("Failed to get absence dashboard: {}", e);

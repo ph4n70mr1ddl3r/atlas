@@ -40,7 +40,7 @@ pub async fn record_position(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.cash_position_engine.record_position(
+    match state.financials.cash_position_engine.record_position(
         org_id, payload.bank_account_id,
         payload.bank_account_number.as_deref(), payload.bank_account_name.as_deref(),
         &payload.currency_code, &payload.opening_balance, &payload.total_inflows,
@@ -71,7 +71,7 @@ pub async fn list_positions(
     Query(query): Query<ListPositionsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.cash_position_engine.list_positions(org_id, query.position_date, query.currency_code.as_deref()).await {
+    match state.financials.cash_position_engine.list_positions(org_id, query.position_date, query.currency_code.as_deref()).await {
         Ok(positions) => Ok(Json(serde_json::json!({ "data": positions }))),
         Err(e) => { error!("Failed to list positions: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -82,7 +82,7 @@ pub async fn get_cash_position_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.cash_position_engine.get_dashboard(org_id).await {
+    match state.financials.cash_position_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

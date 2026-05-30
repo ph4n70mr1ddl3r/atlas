@@ -54,7 +54,7 @@ pub async fn create_reservation(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let reservation = state.funds_reservation_engine
+    let reservation = state.shared.funds_reservation_engine
         .create_reservation(
             org_id,
             &payload.reservation_number,
@@ -96,7 +96,7 @@ pub async fn get_reservation(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let reservation = state.funds_reservation_engine
+    let reservation = state.shared.funds_reservation_engine
         .get_reservation(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -112,7 +112,7 @@ pub async fn get_reservation_by_number(
     Path(number): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let reservation = state.funds_reservation_engine
+    let reservation = state.shared.funds_reservation_engine
         .get_reservation_by_number(org_id, &number)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -135,7 +135,7 @@ pub async fn list_reservations(
     Query(query): Query<ListReservationsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let reservations = state.funds_reservation_engine
+    let reservations = state.shared.funds_reservation_engine
         .list_reservations(
             org_id,
             query.status.as_deref(),
@@ -158,7 +158,7 @@ pub async fn consume_reservation(
     Path(id): Path<Uuid>,
     Json(payload): Json<ConsumeRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let reservation = state.funds_reservation_engine
+    let reservation = state.shared.funds_reservation_engine
         .consume_reservation(id, payload.consume_amount)
         .await
         .map_err(|e| {
@@ -183,7 +183,7 @@ pub async fn release_reservation(
     Path(id): Path<Uuid>,
     Json(payload): Json<ReleaseRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let reservation = state.funds_reservation_engine
+    let reservation = state.shared.funds_reservation_engine
         .release_reservation(id, payload.release_amount)
         .await
         .map_err(|e| {
@@ -210,7 +210,7 @@ pub async fn cancel_reservation(
     Json(payload): Json<CancelRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let reservation = state.funds_reservation_engine
+    let reservation = state.shared.funds_reservation_engine
         .cancel_reservation(id, Some(user_id), payload.reason.as_deref())
         .await
         .map_err(|e| {
@@ -230,7 +230,7 @@ pub async fn delete_reservation(
     Path(number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.funds_reservation_engine
+    state.shared.funds_reservation_engine
         .delete_reservation(org_id, &number)
         .await
         .map_err(|e| {
@@ -268,7 +268,7 @@ pub async fn create_reservation_line(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let line = state.funds_reservation_engine
+    let line = state.shared.funds_reservation_engine
         .create_reservation_line(
             org_id,
             reservation_id,
@@ -301,7 +301,7 @@ pub async fn list_reservation_lines(
     State(state): State<Arc<AppState>>,
     Path(reservation_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let lines = state.funds_reservation_engine
+    let lines = state.shared.funds_reservation_engine
         .list_reservation_lines(reservation_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -327,7 +327,7 @@ pub async fn check_fund_availability(
     Query(query): Query<FundAvailabilityQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let availability = state.funds_reservation_engine
+    let availability = state.shared.funds_reservation_engine
         .check_fund_availability(
             org_id,
             query.budget_id,
@@ -353,7 +353,7 @@ pub async fn get_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let dashboard = state.funds_reservation_engine
+    let dashboard = state.shared.funds_reservation_engine
         .get_dashboard(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

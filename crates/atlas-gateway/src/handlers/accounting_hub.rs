@@ -41,7 +41,7 @@ pub async fn create_mapping_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.accounting_hub_engine.create_mapping_rule(
+    match state.financials.accounting_hub_engine.create_mapping_rule(
         org_id, payload.external_system_id, &payload.code, &payload.name,
         payload.description.as_deref(), &payload.event_type, &payload.event_class,
         payload.priority.unwrap_or(1), payload.conditions.clone(),
@@ -66,7 +66,7 @@ pub async fn list_mapping_rules(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.accounting_hub_engine.list_mapping_rules(org_id, None).await {
+    match state.financials.accounting_hub_engine.list_mapping_rules(org_id, None).await {
         Ok(rules) => Ok(Json(serde_json::json!({ "data": rules }))),
         Err(e) => { error!("Failed to list rules: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -78,7 +78,7 @@ pub async fn delete_mapping_rule(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.accounting_hub_engine.delete_mapping_rule(org_id, &code).await {
+    match state.financials.accounting_hub_engine.delete_mapping_rule(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete rule: {}", e);
@@ -95,7 +95,7 @@ pub async fn get_accounting_hub_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.accounting_hub_engine.get_dashboard_summary(org_id).await {
+    match state.financials.accounting_hub_engine.get_dashboard_summary(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

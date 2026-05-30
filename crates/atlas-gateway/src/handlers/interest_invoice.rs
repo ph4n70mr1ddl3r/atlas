@@ -58,7 +58,7 @@ pub async fn create_schedule(
     let effective_to = body["effective_to"].as_str()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.interest_invoice_engine.create_schedule(
+    match state.financials.interest_invoice_engine.create_schedule(
         org_id, &schedule_code, &name, description, &annual_rate,
         &compounding_frequency, &charge_type, grace_period_days,
         &minimum_charge, maximum_charge, &currency_code,
@@ -84,7 +84,7 @@ pub async fn get_schedule(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.interest_invoice_engine.get_schedule(org_id, &schedule_code).await {
+    match state.financials.interest_invoice_engine.get_schedule(org_id, &schedule_code).await {
         Ok(Some(schedule)) => Ok(Json(serde_json::to_value(schedule).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Schedule not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -103,7 +103,7 @@ pub async fn list_schedules(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.interest_invoice_engine.list_schedules(org_id, params.status.as_deref()).await {
+    match state.financials.interest_invoice_engine.list_schedules(org_id, params.status.as_deref()).await {
         Ok(schedules) => Ok(Json(json!({"data": schedules}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -116,7 +116,7 @@ pub async fn activate_schedule(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.activate_schedule(id).await {
+    match state.financials.interest_invoice_engine.activate_schedule(id).await {
         Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -129,7 +129,7 @@ pub async fn deactivate_schedule(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.deactivate_schedule(id).await {
+    match state.financials.interest_invoice_engine.deactivate_schedule(id).await {
         Ok(schedule) => Ok(Json(serde_json::to_value(schedule).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -147,7 +147,7 @@ pub async fn delete_schedule(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.interest_invoice_engine.delete_schedule(org_id, &schedule_code).await {
+    match state.financials.interest_invoice_engine.delete_schedule(org_id, &schedule_code).await {
         Ok(()) => Ok(Json(json!({"message": "Schedule deleted"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -182,7 +182,7 @@ pub async fn register_overdue_invoice(
     let overdue_days = body["overdue_days"].as_i64().unwrap_or(0) as i32;
     let currency_code = body["currency_code"].as_str().unwrap_or("USD").to_string();
 
-    match state.interest_invoice_engine.register_overdue_invoice(
+    match state.financials.interest_invoice_engine.register_overdue_invoice(
         org_id, &invoice_number, customer_id, customer_name,
         &original_amount, &outstanding_amount, due_date, overdue_days, &currency_code,
     ).await {
@@ -203,7 +203,7 @@ pub async fn list_overdue_invoices(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.interest_invoice_engine.list_overdue_invoices(org_id, params.status.as_deref()).await {
+    match state.financials.interest_invoice_engine.list_overdue_invoices(org_id, params.status.as_deref()).await {
         Ok(invoices) => Ok(Json(json!({"data": invoices}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -216,7 +216,7 @@ pub async fn close_overdue_invoice(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.close_overdue_invoice(id).await {
+    match state.financials.interest_invoice_engine.close_overdue_invoice(id).await {
         Ok(inv) => Ok(Json(serde_json::to_value(inv).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -244,7 +244,7 @@ pub async fn calculate_interest(
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    match state.interest_invoice_engine.calculate_interest(
+    match state.financials.interest_invoice_engine.calculate_interest(
         org_id, description, schedule_id, calculation_date, parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(run) => Ok((StatusCode::CREATED, Json(serde_json::to_value(run).unwrap_or(Value::Null)))),
@@ -259,7 +259,7 @@ pub async fn get_calculation_run(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.get_calculation_run(id).await {
+    match state.financials.interest_invoice_engine.get_calculation_run(id).await {
         Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Calculation run not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -277,7 +277,7 @@ pub async fn list_calculation_runs(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.interest_invoice_engine.list_calculation_runs(org_id).await {
+    match state.financials.interest_invoice_engine.list_calculation_runs(org_id).await {
         Ok(runs) => Ok(Json(json!({"data": runs}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -290,7 +290,7 @@ pub async fn list_calculation_lines(
     Extension(_claims): Extension<Claims>,
     Path(run_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.list_calculation_lines(run_id).await {
+    match state.financials.interest_invoice_engine.list_calculation_lines(run_id).await {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -303,7 +303,7 @@ pub async fn cancel_calculation_run(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.cancel_calculation_run(id).await {
+    match state.financials.interest_invoice_engine.cancel_calculation_run(id).await {
         Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -333,7 +333,7 @@ pub async fn generate_interest_invoices(
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
     let gl_account_code = body["gl_account_code"].as_str();
 
-    match state.interest_invoice_engine.generate_interest_invoices(
+    match state.financials.interest_invoice_engine.generate_interest_invoices(
         org_id, run_id, invoice_date, due_date,
         gl_account_code, parse_uuid(&claims.sub).ok(),
     ).await {
@@ -354,7 +354,7 @@ pub async fn get_interest_invoice(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.interest_invoice_engine.get_interest_invoice(org_id, &invoice_number).await {
+    match state.financials.interest_invoice_engine.get_interest_invoice(org_id, &invoice_number).await {
         Ok(Some(inv)) => Ok(Json(serde_json::to_value(inv).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Interest invoice not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -373,7 +373,7 @@ pub async fn list_interest_invoices(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.interest_invoice_engine.list_interest_invoices(org_id, params.status.as_deref()).await {
+    match state.financials.interest_invoice_engine.list_interest_invoices(org_id, params.status.as_deref()).await {
         Ok(invoices) => Ok(Json(json!({"data": invoices}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -386,7 +386,7 @@ pub async fn post_interest_invoice(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.post_interest_invoice(id).await {
+    match state.financials.interest_invoice_engine.post_interest_invoice(id).await {
         Ok(inv) => Ok(Json(serde_json::to_value(inv).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -399,7 +399,7 @@ pub async fn reverse_interest_invoice(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.reverse_interest_invoice(id).await {
+    match state.financials.interest_invoice_engine.reverse_interest_invoice(id).await {
         Ok(inv) => Ok(Json(serde_json::to_value(inv).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -412,7 +412,7 @@ pub async fn cancel_interest_invoice(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.cancel_interest_invoice(id).await {
+    match state.financials.interest_invoice_engine.cancel_interest_invoice(id).await {
         Ok(inv) => Ok(Json(serde_json::to_value(inv).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -425,7 +425,7 @@ pub async fn list_interest_invoice_lines(
     Extension(_claims): Extension<Claims>,
     Path(invoice_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.interest_invoice_engine.list_interest_invoice_lines(invoice_id).await {
+    match state.financials.interest_invoice_engine.list_interest_invoice_lines(invoice_id).await {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -446,7 +446,7 @@ pub async fn get_interest_invoice_dashboard(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.interest_invoice_engine.get_dashboard_summary(org_id).await {
+    match state.financials.interest_invoice_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

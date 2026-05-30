@@ -59,7 +59,7 @@ pub async fn create_batch(
     let format_program = body["format_program"].as_str();
     let notes = body["notes"].as_str();
 
-    match state.remittance_batch_engine.create_batch(
+    match state.financials.remittance_batch_engine.create_batch(
         org_id, batch_name,
         bank_account_id, bank_account_name, bank_name,
         remittance_method, currency_code, batch_date, gl_date,
@@ -78,7 +78,7 @@ pub async fn get_batch(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.remittance_batch_engine.get_batch(id).await {
+    match state.financials.remittance_batch_engine.get_batch(id).await {
         Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Remittance batch not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -97,7 +97,7 @@ pub async fn get_batch_by_number(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.remittance_batch_engine.get_batch_by_number(org_id, &batch_number).await {
+    match state.financials.remittance_batch_engine.get_batch_by_number(org_id, &batch_number).await {
         Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Remittance batch not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -116,7 +116,7 @@ pub async fn list_batches(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.remittance_batch_engine.list_batches(
+    match state.financials.remittance_batch_engine.list_batches(
         org_id, params.status.as_deref(), params.currency_code.as_deref(), params.remittance_method.as_deref(),
     ).await {
         Ok(batches) => Ok(Json(json!({"data": batches}))),
@@ -135,7 +135,7 @@ pub async fn approve_batch(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.remittance_batch_engine.approve_batch(id).await {
+    match state.financials.remittance_batch_engine.approve_batch(id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -148,7 +148,7 @@ pub async fn format_batch(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.remittance_batch_engine.format_batch(id).await {
+    match state.financials.remittance_batch_engine.format_batch(id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -163,7 +163,7 @@ pub async fn transmit_batch(
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let reference_number = body["reference_number"].as_str();
-    match state.remittance_batch_engine.transmit_batch(id, reference_number).await {
+    match state.financials.remittance_batch_engine.transmit_batch(id, reference_number).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -176,7 +176,7 @@ pub async fn confirm_batch(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.remittance_batch_engine.confirm_batch(id).await {
+    match state.financials.remittance_batch_engine.confirm_batch(id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -189,7 +189,7 @@ pub async fn settle_batch(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.remittance_batch_engine.settle_batch(id).await {
+    match state.financials.remittance_batch_engine.settle_batch(id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -204,7 +204,7 @@ pub async fn reverse_batch(
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let reason = body["reason"].as_str();
-    match state.remittance_batch_engine.reverse_batch(id, reason).await {
+    match state.financials.remittance_batch_engine.reverse_batch(id, reason).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -219,7 +219,7 @@ pub async fn cancel_batch(
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let reason = body["reason"].as_str();
-    match state.remittance_batch_engine.cancel_batch(id, reason).await {
+    match state.financials.remittance_batch_engine.cancel_batch(id, reason).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -257,7 +257,7 @@ pub async fn add_receipt(
     let exchange_rate = body["exchange_rate"].as_str();
     let metadata = body.get("metadata").cloned().unwrap_or(serde_json::json!({}));
 
-    match state.remittance_batch_engine.add_receipt(
+    match state.financials.remittance_batch_engine.add_receipt(
         org_id, batch_id, receipt_id, receipt_number,
         customer_id, customer_number, customer_name,
         receipt_date, receipt_amount, applied_amount,
@@ -275,7 +275,7 @@ pub async fn list_batch_receipts(
     Extension(_claims): Extension<Claims>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.remittance_batch_engine.list_batch_receipts(batch_id).await {
+    match state.financials.remittance_batch_engine.list_batch_receipts(batch_id).await {
         Ok(receipts) => Ok(Json(json!({"data": receipts}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -288,7 +288,7 @@ pub async fn remove_receipt(
     Extension(_claims): Extension<Claims>,
     Path((batch_id, receipt_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.remittance_batch_engine.remove_receipt(batch_id, receipt_id).await {
+    match state.financials.remittance_batch_engine.remove_receipt(batch_id, receipt_id).await {
         Ok(()) => Ok(Json(json!({"message": "Receipt removed from batch"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -305,7 +305,7 @@ pub async fn mark_advice_sent(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.remittance_batch_engine.mark_advice_sent(id).await {
+    match state.financials.remittance_batch_engine.mark_advice_sent(id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -326,7 +326,7 @@ pub async fn get_batch_summary(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.remittance_batch_engine.get_batch_summary(org_id).await {
+    match state.financials.remittance_batch_engine.get_batch_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

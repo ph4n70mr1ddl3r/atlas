@@ -35,7 +35,7 @@ pub async fn generate_entity_report(
 ) -> Result<Json<ReportResponse>, StatusCode> {
     info!("Generating report for entity: {}", entity);
 
-    let entity_def = state.schema_engine.get_entity(&entity)
+    let entity_def = state.core.schema_engine.get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
@@ -133,11 +133,11 @@ pub async fn dashboard_report(
     let org_id = uuid::Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entities = state.schema_engine.entity_names();
+    let entities = state.core.schema_engine.entity_names();
     let mut entity_counts = serde_json::Map::new();
 
     for entity_name in &entities {
-        if let Some(def) = state.schema_engine.get_entity(entity_name) {
+        if let Some(def) = state.core.schema_engine.get_entity(entity_name) {
             let table = def.table_name.as_deref().unwrap_or(entity_name);
             let Ok(table) = sanitize_identifier(table) else {
                 continue;
@@ -158,7 +158,7 @@ pub async fn dashboard_report(
     }
 
     // Get recent audit entries
-    let recent_audit = state.audit_engine.query(&atlas_core::audit::AuditQuery {
+    let recent_audit = state.core.audit_engine.query(&atlas_core::audit::AuditQuery {
         entity_type: None,
         entity_id: None,
         action: None,
@@ -210,7 +210,7 @@ pub async fn import_data(
 ) -> Result<Json<ImportResponse>, StatusCode> {
     info!("Importing data for entity: {} (format: {})", payload.entity, payload.format);
 
-    let entity_def = state.schema_engine.get_entity(&payload.entity)
+    let entity_def = state.core.schema_engine.get_entity(&payload.entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = entity_def.table_name.as_deref().unwrap_or(&payload.entity);
@@ -317,7 +317,7 @@ pub async fn export_data(
 ) -> Result<Json<ExportResponse>, StatusCode> {
     info!("Exporting data for entity: {}", entity);
 
-    let entity_def = state.schema_engine.get_entity(&entity)
+    let entity_def = state.core.schema_engine.get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);

@@ -79,7 +79,7 @@ pub async fn create_policy(
     let margin_pct = body["margin_pct"].as_str();
     let cost_base = body["cost_base"].as_str();
 
-    match state.transfer_pricing_engine.create_policy(
+    match state.shared.transfer_pricing_engine.create_policy(
         org_id, policy_code, name, description, pricing_method,
         from_entity_id, from_entity_name, to_entity_id, to_entity_name,
         product_category, item_id, item_code, geography, tax_jurisdiction,
@@ -107,7 +107,7 @@ pub async fn get_policy(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
-    match state.transfer_pricing_engine.get_policy(org_id, &code).await {
+    match state.shared.transfer_pricing_engine.get_policy(org_id, &code).await {
         Ok(Some(policy)) => Ok(Json(serde_json::to_value(policy).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Policy not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
@@ -123,7 +123,7 @@ pub async fn list_policies(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
-    match state.transfer_pricing_engine.list_policies(org_id, params.status.as_deref()).await {
+    match state.shared.transfer_pricing_engine.list_policies(org_id, params.status.as_deref()).await {
         Ok(policies) => Ok(Json(json!({"data": policies}))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(json!({"error": format!("{}", e)})))),
     }
@@ -135,7 +135,7 @@ pub async fn activate_policy(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.activate_policy(id).await {
+    match state.shared.transfer_pricing_engine.activate_policy(id).await {
         Ok(policy) => Ok(Json(serde_json::to_value(policy).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -151,7 +151,7 @@ pub async fn deactivate_policy(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.deactivate_policy(id).await {
+    match state.shared.transfer_pricing_engine.deactivate_policy(id).await {
         Ok(policy) => Ok(Json(serde_json::to_value(policy).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -170,7 +170,7 @@ pub async fn delete_policy(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
-    match state.transfer_pricing_engine.delete_policy(org_id, &code).await {
+    match state.shared.transfer_pricing_engine.delete_policy(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             let msg = format!("{e}");
@@ -213,7 +213,7 @@ pub async fn create_transaction(
     let source_id = body["source_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
     let source_number = body["source_number"].as_str();
 
-    match state.transfer_pricing_engine.create_transaction(
+    match state.shared.transfer_pricing_engine.create_transaction(
         org_id, policy_id, from_entity_id, from_entity_name,
         to_entity_id, to_entity_name, item_id, item_code, item_description,
         quantity, unit_cost, transfer_price, currency_code, transaction_date,
@@ -235,7 +235,7 @@ pub async fn get_transaction(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.get_transaction(id).await {
+    match state.shared.transfer_pricing_engine.get_transaction(id).await {
         Ok(Some(txn)) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Transaction not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
@@ -252,7 +252,7 @@ pub async fn list_transactions(
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
     let policy_id = params.policy_id.as_deref().and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.transfer_pricing_engine.list_transactions(org_id, params.status.as_deref(), policy_id).await {
+    match state.shared.transfer_pricing_engine.list_transactions(org_id, params.status.as_deref(), policy_id).await {
         Ok(txns) => Ok(Json(json!({"data": txns}))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(json!({"error": format!("{}", e)})))),
     }
@@ -264,7 +264,7 @@ pub async fn submit_transaction(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.submit_transaction(id).await {
+    match state.shared.transfer_pricing_engine.submit_transaction(id).await {
         Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -281,7 +281,7 @@ pub async fn approve_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let approved_by = Uuid::parse_str(&claims.sub).ok();
-    match state.transfer_pricing_engine.approve_transaction(id, approved_by).await {
+    match state.shared.transfer_pricing_engine.approve_transaction(id, approved_by).await {
         Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -297,7 +297,7 @@ pub async fn reject_transaction(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.reject_transaction(id).await {
+    match state.shared.transfer_pricing_engine.reject_transaction(id).await {
         Ok(txn) => Ok(Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -335,7 +335,7 @@ pub async fn create_benchmark(
     let prepared_by = body["prepared_by"].as_str().and_then(|s| Uuid::parse_str(s).ok());
     let prepared_by_name = body["prepared_by_name"].as_str();
 
-    match state.transfer_pricing_engine.create_benchmark(
+    match state.shared.transfer_pricing_engine.create_benchmark(
         org_id, title, description, policy_id, analysis_method, fiscal_year,
         from_entity_id, from_entity_name, to_entity_id, to_entity_name,
         product_category, tested_party, prepared_by, prepared_by_name, created_by,
@@ -351,7 +351,7 @@ pub async fn get_benchmark(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.get_benchmark(id).await {
+    match state.shared.transfer_pricing_engine.get_benchmark(id).await {
         Ok(Some(bm)) => Ok(Json(serde_json::to_value(bm).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Benchmark not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
@@ -367,7 +367,7 @@ pub async fn list_benchmarks(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
-    match state.transfer_pricing_engine.list_benchmarks(org_id, params.status.as_deref()).await {
+    match state.shared.transfer_pricing_engine.list_benchmarks(org_id, params.status.as_deref()).await {
         Ok(bms) => Ok(Json(json!({"data": bms}))),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(json!({"error": format!("{}", e)})))),
     }
@@ -379,7 +379,7 @@ pub async fn submit_benchmark(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.submit_benchmark_for_review(id).await {
+    match state.shared.transfer_pricing_engine.submit_benchmark_for_review(id).await {
         Ok(bm) => Ok(Json(serde_json::to_value(bm).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -396,7 +396,7 @@ pub async fn approve_benchmark(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let reviewed_by = Uuid::parse_str(&claims.sub).ok();
-    match state.transfer_pricing_engine.approve_benchmark(id, reviewed_by, None).await {
+    match state.shared.transfer_pricing_engine.approve_benchmark(id, reviewed_by, None).await {
         Ok(bm) => Ok(Json(serde_json::to_value(bm).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -412,7 +412,7 @@ pub async fn reject_benchmark(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.reject_benchmark(id).await {
+    match state.shared.transfer_pricing_engine.reject_benchmark(id).await {
         Ok(bm) => Ok(Json(serde_json::to_value(bm).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -428,7 +428,7 @@ pub async fn delete_benchmark(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.delete_benchmark(id).await {
+    match state.shared.transfer_pricing_engine.delete_benchmark(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             let msg = format!("{e}");
@@ -466,7 +466,7 @@ pub async fn add_comparable(
     let employees = body["employees"].as_i64().map(|v| v as i32);
     let data_source = body["data_source"].as_str();
 
-    match state.transfer_pricing_engine.add_comparable(
+    match state.shared.transfer_pricing_engine.add_comparable(
         org_id, benchmark_id, comparable_number, company_name,
         country, industry_code, industry_description, fiscal_year,
         revenue, operating_income, operating_margin_pct,
@@ -487,7 +487,7 @@ pub async fn list_comparables(
     Extension(_claims): Extension<Claims>,
     Path(benchmark_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.list_comparables(benchmark_id).await {
+    match state.shared.transfer_pricing_engine.list_comparables(benchmark_id).await {
         Ok(comps) => Ok(Json(json!({"data": comps}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
     }
@@ -518,7 +518,7 @@ pub async fn create_documentation(
     let filing_deadline = body["filing_deadline"].as_str().and_then(|s| s.parse().ok());
     let responsible_party = body["responsible_party"].as_str();
 
-    match state.transfer_pricing_engine.create_documentation(
+    match state.shared.transfer_pricing_engine.create_documentation(
         org_id, title, doc_type, fiscal_year, country,
         reporting_entity_id, reporting_entity_name, description,
         content_summary, filing_deadline, responsible_party, created_by,
@@ -534,7 +534,7 @@ pub async fn get_documentation(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.get_documentation(id).await {
+    match state.shared.transfer_pricing_engine.get_documentation(id).await {
         Ok(Some(doc)) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Documentation not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
@@ -550,7 +550,7 @@ pub async fn list_documentation(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
-    match state.transfer_pricing_engine.list_documentation(
+    match state.shared.transfer_pricing_engine.list_documentation(
         org_id, params.doc_type.as_deref(), params.status.as_deref()
     ).await {
         Ok(docs) => Ok(Json(json!({"data": docs}))),
@@ -564,7 +564,7 @@ pub async fn submit_documentation(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.submit_documentation_for_review(id).await {
+    match state.shared.transfer_pricing_engine.submit_documentation_for_review(id).await {
         Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -581,7 +581,7 @@ pub async fn approve_documentation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let approved_by = Uuid::parse_str(&claims.sub).ok();
-    match state.transfer_pricing_engine.approve_documentation(id, approved_by).await {
+    match state.shared.transfer_pricing_engine.approve_documentation(id, approved_by).await {
         Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -597,7 +597,7 @@ pub async fn file_documentation(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.transfer_pricing_engine.file_documentation(id).await {
+    match state.shared.transfer_pricing_engine.file_documentation(id).await {
         Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             let msg = format!("{e}");
@@ -619,7 +619,7 @@ pub async fn get_tp_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"}))))?;
 
-    match state.transfer_pricing_engine.get_dashboard(org_id).await {
+    match state.shared.transfer_pricing_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)})))),
     }

@@ -56,7 +56,7 @@ pub async fn create_netting_agreement(
 
     info!("Creating netting agreement '{}' for org {}", payload.agreement_number, org_id);
 
-    match state.netting_engine.create_agreement(
+    match state.financials.netting_engine.create_agreement(
         org_id,
         &payload.agreement_number,
         &payload.name,
@@ -104,7 +104,7 @@ pub async fn list_netting_agreements(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.netting_engine.list_agreements(org_id, query.status.as_deref()).await {
+    match state.financials.netting_engine.list_agreements(org_id, query.status.as_deref()).await {
         Ok(agreements) => Ok(Json(serde_json::json!({ "data": agreements }))),
         Err(e) => {
             error!("Failed to list netting agreements: {}", e);
@@ -118,7 +118,7 @@ pub async fn get_netting_agreement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.netting_engine.get_agreement(id).await {
+    match state.financials.netting_engine.get_agreement(id).await {
         Ok(Some(agreement)) => Ok(to_json(agreement)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -133,7 +133,7 @@ pub async fn activate_netting_agreement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.netting_engine.activate_agreement(id).await {
+    match state.financials.netting_engine.activate_agreement(id).await {
         Ok(agreement) => Ok(to_json(agreement)),
         Err(e) => {
             error!("Failed to activate netting agreement: {}", e);
@@ -158,7 +158,7 @@ pub async fn create_netting_batch(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.netting_engine.create_batch(
+    match state.financials.netting_engine.create_batch(
         org_id,
         payload.agreement_id,
         payload.settlement_date,
@@ -180,7 +180,7 @@ pub async fn submit_netting_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.netting_engine.submit_batch(id, Some(user_id)).await {
+    match state.financials.netting_engine.submit_batch(id, Some(user_id)).await {
         Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to submit netting batch: {}", e);
@@ -196,7 +196,7 @@ pub async fn approve_netting_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.netting_engine.approve_batch(id, Some(user_id)).await {
+    match state.financials.netting_engine.approve_batch(id, Some(user_id)).await {
         Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to approve netting batch: {}", e);
@@ -210,7 +210,7 @@ pub async fn settle_netting_batch(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.netting_engine.settle_batch(id).await {
+    match state.financials.netting_engine.settle_batch(id).await {
         Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to settle netting batch: {}", e);
@@ -225,7 +225,7 @@ pub async fn get_netting_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.netting_engine.get_dashboard(org_id).await {
+    match state.financials.netting_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get netting dashboard: {}", e);

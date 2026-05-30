@@ -83,7 +83,7 @@ pub async fn create_derivative(
     let risk_factor = body["risk_factor"].as_str();
     let notes = body["notes"].as_str();
 
-    match state.hedge_management_engine.create_derivative(
+    match state.financials.hedge_management_engine.create_derivative(
         org_id, &instrument_type, &underlying_type, underlying_description,
         &currency_code, counter_currency_code, &notional_amount,
         strike_rate, forward_rate, spot_rate, option_type, premium_amount,
@@ -109,7 +109,7 @@ pub async fn get_derivative(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.hedge_management_engine.get_derivative(org_id, &instrument_number).await {
+    match state.financials.hedge_management_engine.get_derivative(org_id, &instrument_number).await {
         Ok(Some(deriv)) => Ok(Json(serde_json::to_value(deriv).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Derivative not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -128,7 +128,7 @@ pub async fn list_derivatives(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.hedge_management_engine.list_derivatives(
+    match state.financials.hedge_management_engine.list_derivatives(
         org_id, params.status.as_deref(), params.instrument_type.as_deref(),
     ).await {
         Ok(derivs) => Ok(Json(json!({"data": derivs}))),
@@ -143,7 +143,7 @@ pub async fn activate_derivative(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.activate_derivative(id).await {
+    match state.financials.hedge_management_engine.activate_derivative(id).await {
         Ok(deriv) => Ok(Json(serde_json::to_value(deriv).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -156,7 +156,7 @@ pub async fn mature_derivative(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.mature_derivative(id).await {
+    match state.financials.hedge_management_engine.mature_derivative(id).await {
         Ok(deriv) => Ok(Json(serde_json::to_value(deriv).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -169,7 +169,7 @@ pub async fn settle_derivative(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.settle_derivative(id).await {
+    match state.financials.hedge_management_engine.settle_derivative(id).await {
         Ok(deriv) => Ok(Json(serde_json::to_value(deriv).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -182,7 +182,7 @@ pub async fn cancel_derivative(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.cancel_derivative(id).await {
+    match state.financials.hedge_management_engine.cancel_derivative(id).await {
         Ok(deriv) => Ok(Json(serde_json::to_value(deriv).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -200,7 +200,7 @@ pub async fn update_derivative_valuation(
     let unrealized_gain_loss = body["unrealized_gain_loss"].as_str().unwrap_or("0");
     let valuation_method = body["valuation_method"].as_str();
 
-    match state.hedge_management_engine.update_derivative_valuation(
+    match state.financials.hedge_management_engine.update_derivative_valuation(
         id, fair_value, unrealized_gain_loss, valuation_method,
     ).await {
         Ok(deriv) => Ok(Json(serde_json::to_value(deriv).unwrap_or(Value::Null))),
@@ -220,7 +220,7 @@ pub async fn delete_derivative(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.hedge_management_engine.delete_derivative(org_id, &instrument_number).await {
+    match state.financials.hedge_management_engine.delete_derivative(org_id, &instrument_number).await {
         Ok(()) => Ok(Json(json!({"message": "Derivative deleted"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -260,7 +260,7 @@ pub async fn create_hedge_relationship(
     let hedge_documentation_ref = body["hedge_documentation_ref"].as_str();
     let notes = body["notes"].as_str();
 
-    match state.hedge_management_engine.create_hedge_relationship(
+    match state.financials.hedge_management_engine.create_hedge_relationship(
         org_id, &hedge_type, derivative_id, derivative_number,
         hedged_item_description, hedged_item_id, &hedged_risk,
         hedge_strategy, hedged_item_reference, hedged_item_currency,
@@ -285,7 +285,7 @@ pub async fn get_hedge_relationship(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.hedge_management_engine.get_hedge_relationship(org_id, &hedge_id).await {
+    match state.financials.hedge_management_engine.get_hedge_relationship(org_id, &hedge_id).await {
         Ok(Some(hedge)) => Ok(Json(serde_json::to_value(hedge).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Hedge relationship not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -304,7 +304,7 @@ pub async fn list_hedge_relationships(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.hedge_management_engine.list_hedge_relationships(
+    match state.financials.hedge_management_engine.list_hedge_relationships(
         org_id, params.status.as_deref(), params.hedge_type.as_deref(),
     ).await {
         Ok(hedges) => Ok(Json(json!({"data": hedges}))),
@@ -319,7 +319,7 @@ pub async fn designate_hedge(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.designate_hedge(id).await {
+    match state.financials.hedge_management_engine.designate_hedge(id).await {
         Ok(hedge) => Ok(Json(serde_json::to_value(hedge).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -332,7 +332,7 @@ pub async fn activate_hedge(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.activate_hedge(id).await {
+    match state.financials.hedge_management_engine.activate_hedge(id).await {
         Ok(hedge) => Ok(Json(serde_json::to_value(hedge).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -345,7 +345,7 @@ pub async fn de_designate_hedge(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.de_designate_hedge(id).await {
+    match state.financials.hedge_management_engine.de_designate_hedge(id).await {
         Ok(hedge) => Ok(Json(serde_json::to_value(hedge).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -358,7 +358,7 @@ pub async fn terminate_hedge(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.terminate_hedge(id).await {
+    match state.financials.hedge_management_engine.terminate_hedge(id).await {
         Ok(hedge) => Ok(Json(serde_json::to_value(hedge).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -376,7 +376,7 @@ pub async fn delete_hedge_relationship(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.hedge_management_engine.delete_hedge_relationship(org_id, &hedge_id).await {
+    match state.financials.hedge_management_engine.delete_hedge_relationship(org_id, &hedge_id).await {
         Ok(()) => Ok(Json(json!({"message": "Hedge relationship deleted"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -411,7 +411,7 @@ pub async fn run_effectiveness_test(
     let test_period_end = body["test_period_end"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
     let notes = body["notes"].as_str();
 
-    match state.hedge_management_engine.run_effectiveness_test(
+    match state.financials.hedge_management_engine.run_effectiveness_test(
         org_id, hedge_relationship_id, &test_type, test_date,
         &derivative_fair_value_change, &hedged_item_fair_value_change,
         test_period_start, test_period_end, notes, parse_uuid(&claims.sub).ok(),
@@ -428,7 +428,7 @@ pub async fn get_effectiveness_test(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.get_effectiveness_test(id).await {
+    match state.financials.hedge_management_engine.get_effectiveness_test(id).await {
         Ok(Some(test)) => Ok(Json(serde_json::to_value(test).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Effectiveness test not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -442,7 +442,7 @@ pub async fn list_effectiveness_tests(
     Extension(_claims): Extension<Claims>,
     Path(hedge_relationship_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.list_effectiveness_tests(hedge_relationship_id).await {
+    match state.financials.hedge_management_engine.list_effectiveness_tests(hedge_relationship_id).await {
         Ok(tests) => Ok(Json(json!({"data": tests}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -479,7 +479,7 @@ pub async fn create_documentation(
     let prepared_by = body["prepared_by"].as_str();
     let notes = body["notes"].as_str();
 
-    match state.hedge_management_engine.create_documentation(
+    match state.financials.hedge_management_engine.create_documentation(
         org_id, hedge_relationship_id, hedge_id, &hedge_type,
         risk_management_objective, hedging_strategy_description,
         hedged_item_description, hedged_risk_description,
@@ -504,7 +504,7 @@ pub async fn get_documentation(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.hedge_management_engine.get_documentation(org_id, &document_number).await {
+    match state.financials.hedge_management_engine.get_documentation(org_id, &document_number).await {
         Ok(Some(doc)) => Ok(Json(serde_json::to_value(doc).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Documentation not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -526,7 +526,7 @@ pub async fn list_documentation(
     let hedge_relationship_id = params.hedge_relationship_id.as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.hedge_management_engine.list_documentation(org_id, hedge_relationship_id).await {
+    match state.financials.hedge_management_engine.list_documentation(org_id, hedge_relationship_id).await {
         Ok(docs) => Ok(Json(json!({"data": docs}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -539,7 +539,7 @@ pub async fn approve_documentation(
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.hedge_management_engine.approve_documentation(id, parse_uuid(&claims.sub).ok()).await {
+    match state.financials.hedge_management_engine.approve_documentation(id, parse_uuid(&claims.sub).ok()).await {
         Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -557,7 +557,7 @@ pub async fn delete_documentation(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.hedge_management_engine.delete_documentation(org_id, &document_number).await {
+    match state.financials.hedge_management_engine.delete_documentation(org_id, &document_number).await {
         Ok(()) => Ok(Json(json!({"message": "Documentation deleted"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -578,7 +578,7 @@ pub async fn get_hedge_dashboard(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.hedge_management_engine.get_dashboard_summary(org_id).await {
+    match state.financials.hedge_management_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

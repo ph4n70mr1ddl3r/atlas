@@ -42,7 +42,7 @@ pub async fn create_grouping_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.autoinvoice_engine.create_grouping_rule(
+    match state.financials.autoinvoice_engine.create_grouping_rule(
         org_id,
         &payload.name,
         payload.description.as_deref(),
@@ -66,7 +66,7 @@ pub async fn list_grouping_rules(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.autoinvoice_engine.list_grouping_rules(org_id).await {
+    match state.financials.autoinvoice_engine.list_grouping_rules(org_id).await {
         Ok(rules) => Ok(Json(serde_json::json!({"data": rules}))),
         Err(e) => { error!("Error listing grouping rules: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -77,7 +77,7 @@ pub async fn get_grouping_rule(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.autoinvoice_engine.get_grouping_rule(id).await {
+    match state.financials.autoinvoice_engine.get_grouping_rule(id).await {
         Ok(Some(rule)) => Ok(Json(crate::handlers::records::to_json_or_null(rule))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -89,7 +89,7 @@ pub async fn delete_grouping_rule(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.autoinvoice_engine.delete_grouping_rule(id).await {
+    match state.financials.autoinvoice_engine.delete_grouping_rule(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -122,7 +122,7 @@ pub async fn create_validation_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.autoinvoice_engine.create_validation_rule(
+    match state.financials.autoinvoice_engine.create_validation_rule(
         org_id,
         &payload.name,
         payload.description.as_deref(),
@@ -150,7 +150,7 @@ pub async fn list_validation_rules(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.autoinvoice_engine.list_validation_rules(org_id).await {
+    match state.financials.autoinvoice_engine.list_validation_rules(org_id).await {
         Ok(rules) => Ok(Json(serde_json::json!({"data": rules}))),
         Err(e) => { error!("Error listing validation rules: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -161,7 +161,7 @@ pub async fn delete_validation_rule(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.autoinvoice_engine.delete_validation_rule(id).await {
+    match state.financials.autoinvoice_engine.delete_validation_rule(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -259,7 +259,7 @@ pub async fn import_batch(
         }).collect(),
     };
 
-    match state.autoinvoice_engine.import_batch(org_id, &import_request, user_id).await {
+    match state.financials.autoinvoice_engine.import_batch(org_id, &import_request, user_id).await {
         Ok(batch) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(batch)))),
         Err(e) => {
             error!("Failed to import batch: {}", e);
@@ -274,7 +274,7 @@ pub async fn list_batches(
     Query(params): Query<ListBatchesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.autoinvoice_engine.list_batches(org_id, params.status.as_deref()).await {
+    match state.financials.autoinvoice_engine.list_batches(org_id, params.status.as_deref()).await {
         Ok(batches) => Ok(Json(serde_json::json!({"data": batches}))),
         Err(e) => { error!("Error listing batches: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -290,7 +290,7 @@ pub async fn get_batch(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.autoinvoice_engine.get_batch(id).await {
+    match state.financials.autoinvoice_engine.get_batch(id).await {
         Ok(Some(batch)) => Ok(Json(crate::handlers::records::to_json_or_null(batch))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -302,7 +302,7 @@ pub async fn validate_batch(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.autoinvoice_engine.validate_batch(id).await {
+    match state.financials.autoinvoice_engine.validate_batch(id).await {
         Ok(batch) => Ok(Json(crate::handlers::records::to_json_or_null(batch))),
         Err(e) => {
             error!("Failed to validate batch: {}", e);
@@ -316,7 +316,7 @@ pub async fn process_batch(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.autoinvoice_engine.process_batch(id).await {
+    match state.financials.autoinvoice_engine.process_batch(id).await {
         Ok(batch) => Ok(Json(crate::handlers::records::to_json_or_null(batch))),
         Err(e) => {
             error!("Failed to process batch: {}", e);
@@ -371,7 +371,7 @@ pub async fn import_and_process(
         }).collect(),
     };
 
-    match state.autoinvoice_engine.import_and_process(org_id, &import_request, user_id).await {
+    match state.financials.autoinvoice_engine.import_and_process(org_id, &import_request, user_id).await {
         Ok(batch) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(batch)))),
         Err(e) => {
             error!("Failed to import and process: {}", e);
@@ -389,7 +389,7 @@ pub async fn get_batch_lines(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.autoinvoice_engine.get_batch_lines(id).await {
+    match state.financials.autoinvoice_engine.get_batch_lines(id).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -400,7 +400,7 @@ pub async fn get_batch_results(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.autoinvoice_engine.get_batch_results(id).await {
+    match state.financials.autoinvoice_engine.get_batch_results(id).await {
         Ok(results) => Ok(Json(serde_json::json!({"data": results}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -411,7 +411,7 @@ pub async fn get_invoice(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.autoinvoice_engine.get_invoice_lines(id).await {
+    match state.financials.autoinvoice_engine.get_invoice_lines(id).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -428,7 +428,7 @@ pub async fn update_invoice_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateInvoiceStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.autoinvoice_engine.update_invoice_status(id, &payload.status).await {
+    match state.financials.autoinvoice_engine.update_invoice_status(id, &payload.status).await {
         Ok(invoice) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Err(e) => {
             error!("Failed to update invoice status: {}", e);
@@ -446,7 +446,7 @@ pub async fn get_autoinvoice_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.autoinvoice_engine.get_summary(org_id).await {
+    match state.financials.autoinvoice_engine.get_summary(org_id).await {
         Ok(summary) => Ok(Json(crate::handlers::records::to_json_or_null(summary))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

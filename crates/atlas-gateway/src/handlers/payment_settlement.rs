@@ -49,7 +49,7 @@ pub async fn create_batch(
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid gl_date: {}", e)}))))?;
     let bank_account_id = req.bank_account_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
 
-    match state.payment_settlement_engine.create_batch(
+    match state.financials.payment_settlement_engine.create_batch(
         org_id,
         &req.batch_name,
         req.description.as_deref(),
@@ -85,7 +85,7 @@ pub async fn list_batches(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.payment_settlement_engine.list_batches(
+    match state.financials.payment_settlement_engine.list_batches(
         org_id,
         query.status.as_deref(),
     ).await {
@@ -103,7 +103,7 @@ pub async fn get_batch(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_settlement_engine.get_batch(id).await {
+    match state.financials.payment_settlement_engine.get_batch(id).await {
         Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Settlement batch not found"})))),
         Err(e) => {
@@ -120,7 +120,7 @@ pub async fn get_batch_by_number(
     Path(number): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.payment_settlement_engine.get_batch_by_number(org_id, &number).await {
+    match state.financials.payment_settlement_engine.get_batch_by_number(org_id, &number).await {
         Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Settlement batch not found"})))),
         Err(e) => {
@@ -137,7 +137,7 @@ pub async fn delete_batch(
     Path(number): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.payment_settlement_engine.delete_batch(org_id, &number).await {
+    match state.financials.payment_settlement_engine.delete_batch(org_id, &number).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete settlement batch: {}", e);
@@ -163,7 +163,7 @@ pub async fn submit_batch(
     Path(id): Path<Uuid>,
     Json(_req): Json<SubmitRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_settlement_engine.submit_batch(id, None).await {
+    match state.financials.payment_settlement_engine.submit_batch(id, None).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to submit settlement batch: {}", e);
@@ -185,7 +185,7 @@ pub async fn approve_batch(
     Path(id): Path<Uuid>,
     Json(_req): Json<ApproveRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_settlement_engine.approve_batch(id, None).await {
+    match state.financials.payment_settlement_engine.approve_batch(id, None).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to approve settlement batch: {}", e);
@@ -207,7 +207,7 @@ pub async fn settle_batch(
     Path(id): Path<Uuid>,
     Json(_req): Json<SettleRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_settlement_engine.settle_batch(id, None).await {
+    match state.financials.payment_settlement_engine.settle_batch(id, None).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to settle batch: {}", e);
@@ -229,7 +229,7 @@ pub async fn cancel_batch(
     Path(id): Path<Uuid>,
     Json(req): Json<CancelRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_settlement_engine.cancel_batch(id, None, req.reason.as_deref()).await {
+    match state.financials.payment_settlement_engine.cancel_batch(id, None, req.reason.as_deref()).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to cancel settlement batch: {}", e);
@@ -284,7 +284,7 @@ pub async fn add_line(
     let discount_date = req.discount_date.as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.payment_settlement_engine.add_line(
+    match state.financials.payment_settlement_engine.add_line(
         org_id,
         batch_id,
         invoice_id,
@@ -323,7 +323,7 @@ pub async fn list_lines(
     Extension(_claims): Extension<Claims>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_settlement_engine.list_lines(batch_id).await {
+    match state.financials.payment_settlement_engine.list_lines(batch_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => {
             error!("Failed to list settlement lines: {}", e);
@@ -338,7 +338,7 @@ pub async fn remove_line(
     Extension(_claims): Extension<Claims>,
     Path((batch_id, line_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_settlement_engine.remove_line(batch_id, line_id).await {
+    match state.financials.payment_settlement_engine.remove_line(batch_id, line_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to remove settlement line: {}", e);
@@ -357,7 +357,7 @@ pub async fn list_activities(
     Extension(_claims): Extension<Claims>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_settlement_engine.list_activities(batch_id).await {
+    match state.financials.payment_settlement_engine.list_activities(batch_id).await {
         Ok(activities) => Ok(Json(serde_json::json!({"data": activities}))),
         Err(e) => {
             error!("Failed to list settlement activities: {}", e);
@@ -372,7 +372,7 @@ pub async fn get_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.payment_settlement_engine.get_dashboard(org_id).await {
+    match state.financials.payment_settlement_engine.get_dashboard(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get settlement dashboard: {}", e);

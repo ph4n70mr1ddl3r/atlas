@@ -41,7 +41,7 @@ pub async fn create_book(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.average_balance_engine.create_book(
+    match state.financials.average_balance_engine.create_book(
         org_id, &payload.book_code, &payload.book_name,
         payload.description.as_deref(),
         payload.period_type.as_deref().unwrap_or("daily"),
@@ -75,7 +75,7 @@ pub async fn list_books(
     Query(query): Query<ListBooksQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.average_balance_engine.list_books(org_id, query.status.as_deref()).await {
+    match state.financials.average_balance_engine.list_books(org_id, query.status.as_deref()).await {
         Ok(books) => Ok(Json(serde_json::json!({ "data": books }))),
         Err(e) => {
             error!("Failed to list average balance books: {}", e);
@@ -91,7 +91,7 @@ pub async fn get_book(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.average_balance_engine.get_book(id).await {
+    match state.financials.average_balance_engine.get_book(id).await {
         Ok(Some(b)) => Ok(to_json(b)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get book: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -102,7 +102,7 @@ pub async fn activate_book(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.average_balance_engine.activate_book(id).await {
+    match state.financials.average_balance_engine.activate_book(id).await {
         Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to activate book: {}", e);
@@ -119,7 +119,7 @@ pub async fn deactivate_book(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.average_balance_engine.deactivate_book(id).await {
+    match state.financials.average_balance_engine.deactivate_book(id).await {
         Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to deactivate book: {}", e);
@@ -136,7 +136,7 @@ pub async fn delete_book(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.average_balance_engine.delete_book(id).await {
+    match state.financials.average_balance_engine.delete_book(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete book: {}", e);
@@ -169,7 +169,7 @@ pub async fn add_account(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.average_balance_engine.add_account(
+    match state.financials.average_balance_engine.add_account(
         org_id, book_id, &payload.gl_account,
         payload.gl_account_name.as_deref(), payload.account_type.as_deref(),
         payload.track_negative.unwrap_or(false),
@@ -191,7 +191,7 @@ pub async fn list_accounts(
     State(state): State<Arc<AppState>>,
     Path(book_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.average_balance_engine.list_accounts(book_id).await {
+    match state.financials.average_balance_engine.list_accounts(book_id).await {
         Ok(accounts) => Ok(Json(serde_json::json!({ "data": accounts }))),
         Err(e) => { error!("Failed to list accounts: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -201,7 +201,7 @@ pub async fn remove_account(
     State(state): State<Arc<AppState>>,
     Path(account_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.average_balance_engine.remove_account(account_id).await {
+    match state.financials.average_balance_engine.remove_account(account_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Failed to remove account: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -231,7 +231,7 @@ pub async fn upsert_daily_balance(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.average_balance_engine.upsert_daily_balance(
+    match state.financials.average_balance_engine.upsert_daily_balance(
         org_id, book_id, payload.account_id, payload.balance_date,
         &payload.closing_balance, &payload.opening_balance,
         &payload.total_debits, &payload.total_credits,
@@ -262,7 +262,7 @@ pub async fn list_daily_balances(
     Path(book_id): Path<Uuid>,
     Query(query): Query<ListDailyBalancesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.average_balance_engine.list_daily_balances(
+    match state.financials.average_balance_engine.list_daily_balances(
         book_id, query.account_id, query.from_date, query.to_date,
     ).await {
         Ok(balances) => Ok(Json(serde_json::json!({ "data": balances }))),
@@ -291,7 +291,7 @@ pub async fn calculate_average_balance(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.average_balance_engine.calculate_average_balance(
+    match state.financials.average_balance_engine.calculate_average_balance(
         org_id, book_id, payload.account_id,
         payload.period_start_date, payload.period_end_date,
         payload.calculation_type.as_deref().unwrap_or("daily"),
@@ -313,7 +313,7 @@ pub async fn get_calculation(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.average_balance_engine.get_calculation(id).await {
+    match state.financials.average_balance_engine.get_calculation(id).await {
         Ok(Some(c)) => Ok(to_json(c)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get calculation: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -332,7 +332,7 @@ pub async fn list_calculations(
     Path(book_id): Path<Uuid>,
     Query(query): Query<ListCalculationsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.average_balance_engine.list_calculations(
+    match state.financials.average_balance_engine.list_calculations(
         book_id, query.account_id, query.calculation_type.as_deref(), query.status.as_deref(),
     ).await {
         Ok(calcs) => Ok(Json(serde_json::json!({ "data": calcs }))),
@@ -352,7 +352,7 @@ pub async fn approve_calculation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.average_balance_engine.approve_calculation(id, Some(user_id)).await {
+    match state.financials.average_balance_engine.approve_calculation(id, Some(user_id)).await {
         Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to approve calculation: {}", e);
@@ -369,7 +369,7 @@ pub async fn post_calculation(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.average_balance_engine.post_calculation(id).await {
+    match state.financials.average_balance_engine.post_calculation(id).await {
         Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to post calculation: {}", e);
@@ -391,7 +391,7 @@ pub async fn get_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.average_balance_engine.get_dashboard(org_id).await {
+    match state.financials.average_balance_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

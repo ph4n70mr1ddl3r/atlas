@@ -84,7 +84,7 @@ pub async fn create_risk_profile(
         return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "code and name are required"}))));
     }
 
-    match state.payment_risk_engine.create_risk_profile(
+    match state.financials.payment_risk_engine.create_risk_profile(
         org_id, &code, &name,
         body["description"].as_str(),
         body["profile_type"].as_str().unwrap_or("global"),
@@ -119,7 +119,7 @@ pub async fn get_risk_profile(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
 
-    match state.payment_risk_engine.get_risk_profile(org_id, &code).await {
+    match state.financials.payment_risk_engine.get_risk_profile(org_id, &code).await {
         Ok(Some(profile)) => Ok(Json(serde_json::to_value(profile).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Risk profile not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -135,7 +135,7 @@ pub async fn list_risk_profiles(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
 
-    match state.payment_risk_engine.list_risk_profiles(
+    match state.financials.payment_risk_engine.list_risk_profiles(
         org_id, params.profile_type.as_deref(), params.is_active,
     ).await {
         Ok(profiles) => Ok(Json(json!({"data": profiles}))),
@@ -152,7 +152,7 @@ pub async fn set_risk_profile_active(
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let is_active = body["is_active"].as_bool().unwrap_or(true);
-    match state.payment_risk_engine.set_risk_profile_active(id, is_active).await {
+    match state.financials.payment_risk_engine.set_risk_profile_active(id, is_active).await {
         Ok(profile) => Ok(Json(serde_json::to_value(profile).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -167,7 +167,7 @@ pub async fn delete_risk_profile(
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
 
-    match state.payment_risk_engine.delete_risk_profile(org_id, &code).await {
+    match state.financials.payment_risk_engine.delete_risk_profile(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -196,7 +196,7 @@ pub async fn create_fraud_alert(
     let invoice_id = body["invoice_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
     let supplier_id = body["supplier_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.payment_risk_engine.create_fraud_alert(
+    match state.financials.payment_risk_engine.create_fraud_alert(
         org_id, &alert_type, &severity,
         payment_id, invoice_id, supplier_id,
         body["supplier_number"].as_str(),
@@ -226,7 +226,7 @@ pub async fn get_fraud_alert(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
 
-    match state.payment_risk_engine.get_fraud_alert(org_id, &alert_number).await {
+    match state.financials.payment_risk_engine.get_fraud_alert(org_id, &alert_number).await {
         Ok(Some(alert)) => Ok(Json(serde_json::to_value(alert).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Fraud alert not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -242,7 +242,7 @@ pub async fn list_fraud_alerts(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
 
-    match state.payment_risk_engine.list_fraud_alerts(
+    match state.financials.payment_risk_engine.list_fraud_alerts(
         org_id, params.status.as_deref(), params.alert_type.as_deref(), params.severity.as_deref(),
     ).await {
         Ok(alerts) => Ok(Json(json!({"data": alerts}))),
@@ -259,7 +259,7 @@ pub async fn transition_fraud_alert(
     Json(body): Json<StatusTransitionBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let resolved_by = claims.user_uuid_json().ok();
-    match state.payment_risk_engine.transition_fraud_alert(
+    match state.financials.payment_risk_engine.transition_fraud_alert(
         id, &body.status, body.resolution_notes.as_deref(), resolved_by,
     ).await {
         Ok(alert) => Ok(Json(serde_json::to_value(alert).unwrap_or(Value::Null))),
@@ -275,7 +275,7 @@ pub async fn assign_fraud_alert(
     Path(id): Path<Uuid>,
     Json(body): Json<AssignBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.payment_risk_engine.assign_fraud_alert(
+    match state.financials.payment_risk_engine.assign_fraud_alert(
         id, body.assigned_to.as_deref(), body.assigned_team.as_deref(),
     ).await {
         Ok(alert) => Ok(Json(serde_json::to_value(alert).unwrap_or(Value::Null))),
@@ -305,7 +305,7 @@ pub async fn create_screening_result(
     let supplier_id = body["supplier_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
     let payment_id = body["payment_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.payment_risk_engine.create_screening_result(
+    match state.financials.payment_risk_engine.create_screening_result(
         org_id, &screening_type, supplier_id,
         body["supplier_name"].as_str(), payment_id,
         &screened_list,
@@ -333,7 +333,7 @@ pub async fn get_screening_result(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
 
-    match state.payment_risk_engine.get_screening_result(org_id, &screening_id).await {
+    match state.financials.payment_risk_engine.get_screening_result(org_id, &screening_id).await {
         Ok(Some(result)) => Ok(Json(serde_json::to_value(result).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Screening result not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -352,7 +352,7 @@ pub async fn list_screening_results(
     let supplier_id = params.supplier_id.as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.payment_risk_engine.list_screening_results(
+    match state.financials.payment_risk_engine.list_screening_results(
         org_id, supplier_id, params.match_status.as_deref(),
     ).await {
         Ok(results) => Ok(Json(json!({"data": results}))),
@@ -368,7 +368,7 @@ pub async fn review_screening_result(
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.payment_risk_engine.review_screening_result(
+    match state.financials.payment_risk_engine.review_screening_result(
         id, &body.reviewed_by, body.review_notes.as_deref(), &body.action_taken,
     ).await {
         Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or(Value::Null))),
@@ -398,7 +398,7 @@ pub async fn create_assessment(
         return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "supplier_name is required"}))));
     }
 
-    match state.payment_risk_engine.create_assessment(
+    match state.financials.payment_risk_engine.create_assessment(
         org_id, supplier_id, &supplier_name,
         body["assessment_type"].as_str().unwrap_or("periodic"),
         body["financial_risk_score"].as_str(),
@@ -435,7 +435,7 @@ pub async fn get_assessment(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
 
-    match state.payment_risk_engine.get_assessment(org_id, &assessment_number).await {
+    match state.financials.payment_risk_engine.get_assessment(org_id, &assessment_number).await {
         Ok(Some(assessment)) => Ok(Json(serde_json::to_value(assessment).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Assessment not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -454,7 +454,7 @@ pub async fn list_assessments(
     let supplier_id = params.supplier_id.as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.payment_risk_engine.list_assessments(
+    match state.financials.payment_risk_engine.list_assessments(
         org_id, supplier_id, params.status.as_deref(),
     ).await {
         Ok(assessments) => Ok(Json(json!({"data": assessments}))),
@@ -470,7 +470,7 @@ pub async fn transition_assessment(
     Path(id): Path<Uuid>,
     Json(body): Json<StatusTransitionBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.payment_risk_engine.transition_assessment(id, &body.status).await {
+    match state.financials.payment_risk_engine.transition_assessment(id, &body.status).await {
         Ok(assessment) => Ok(Json(serde_json::to_value(assessment).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -485,7 +485,7 @@ pub async fn delete_assessment(
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
     let org_id = claims.org_uuid_json()?;
 
-    match state.payment_risk_engine.delete_assessment(org_id, &assessment_number).await {
+    match state.financials.payment_risk_engine.delete_assessment(org_id, &assessment_number).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

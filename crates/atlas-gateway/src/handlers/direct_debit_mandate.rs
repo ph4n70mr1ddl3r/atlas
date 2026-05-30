@@ -54,7 +54,7 @@ pub async fn create_mandate(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.direct_debit_mandate_engine.create_mandate(
+    match state.financials.direct_debit_mandate_engine.create_mandate(
         org_id, &payload.mandate_number, payload.customer_id,
         payload.customer_name.as_deref(), payload.customer_account_number.as_deref(),
         payload.mandate_type.as_deref().unwrap_or("core"),
@@ -97,7 +97,7 @@ pub async fn list_mandates(
     Query(query): Query<ListMandatesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.direct_debit_mandate_engine.list_mandates(org_id, query.customer_id, query.status.as_deref()).await {
+    match state.financials.direct_debit_mandate_engine.list_mandates(org_id, query.customer_id, query.status.as_deref()).await {
         Ok(mandates) => Ok(Json(serde_json::json!({ "data": mandates }))),
         Err(e) => {
             error!("Failed to list mandates: {}", e);
@@ -113,7 +113,7 @@ pub async fn get_mandate(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.get_mandate(id).await {
+    match state.financials.direct_debit_mandate_engine.get_mandate(id).await {
         Ok(Some(m)) => Ok(to_json(m)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get mandate: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -124,7 +124,7 @@ pub async fn activate_mandate(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.activate_mandate(id).await {
+    match state.financials.direct_debit_mandate_engine.activate_mandate(id).await {
         Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to activate mandate: {}", e);
@@ -147,7 +147,7 @@ pub async fn cancel_mandate(
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelMandateRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.cancel_mandate(id, &payload.reason).await {
+    match state.financials.direct_debit_mandate_engine.cancel_mandate(id, &payload.reason).await {
         Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to cancel mandate: {}", e);
@@ -170,7 +170,7 @@ pub async fn revoke_mandate(
     Path(id): Path<Uuid>,
     Json(payload): Json<RevokeMandateRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.revoke_mandate(id, &payload.reason).await {
+    match state.financials.direct_debit_mandate_engine.revoke_mandate(id, &payload.reason).await {
         Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to revoke mandate: {}", e);
@@ -209,7 +209,7 @@ pub async fn create_collection(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.direct_debit_mandate_engine.create_collection(
+    match state.financials.direct_debit_mandate_engine.create_collection(
         org_id, payload.mandate_id, &payload.collection_number,
         payload.collection_type.as_deref().unwrap_or("recurring"),
         &payload.amount,
@@ -235,7 +235,7 @@ pub async fn get_collection(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.get_collection(id).await {
+    match state.financials.direct_debit_mandate_engine.get_collection(id).await {
         Ok(Some(c)) => Ok(to_json(c)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get collection: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -252,7 +252,7 @@ pub async fn list_collections(
     Path(mandate_id): Path<Uuid>,
     Query(query): Query<ListCollectionsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.list_collections(
+    match state.financials.direct_debit_mandate_engine.list_collections(
         mandate_id, query.status.as_deref(),
     ).await {
         Ok(collections) => Ok(Json(serde_json::json!({ "data": collections }))),
@@ -270,7 +270,7 @@ pub async fn submit_collection(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.submit_collection(id).await {
+    match state.financials.direct_debit_mandate_engine.submit_collection(id).await {
         Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to submit collection: {}", e);
@@ -293,7 +293,7 @@ pub async fn complete_collection(
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteCollectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.complete_collection(id, payload.bank_reference.as_deref()).await {
+    match state.financials.direct_debit_mandate_engine.complete_collection(id, payload.bank_reference.as_deref()).await {
         Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to complete collection: {}", e);
@@ -317,7 +317,7 @@ pub async fn fail_collection(
     Path(id): Path<Uuid>,
     Json(payload): Json<FailCollectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.fail_collection(id, &payload.reason_code, payload.reason_text.as_deref()).await {
+    match state.financials.direct_debit_mandate_engine.fail_collection(id, &payload.reason_code, payload.reason_text.as_deref()).await {
         Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to fail collection: {}", e);
@@ -341,7 +341,7 @@ pub async fn return_collection(
     Path(id): Path<Uuid>,
     Json(payload): Json<ReturnCollectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.return_collection(id, &payload.reason_code, payload.reason_text.as_deref()).await {
+    match state.financials.direct_debit_mandate_engine.return_collection(id, &payload.reason_code, payload.reason_text.as_deref()).await {
         Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to return collection: {}", e);
@@ -365,7 +365,7 @@ pub async fn reverse_collection(
     Path(id): Path<Uuid>,
     Json(payload): Json<ReverseCollectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.direct_debit_mandate_engine.reverse_collection(id, &payload.reason_code, payload.reason_text.as_deref()).await {
+    match state.financials.direct_debit_mandate_engine.reverse_collection(id, &payload.reason_code, payload.reason_text.as_deref()).await {
         Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to reverse collection: {}", e);
@@ -387,7 +387,7 @@ pub async fn get_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.direct_debit_mandate_engine.get_dashboard(org_id).await {
+    match state.financials.direct_debit_mandate_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

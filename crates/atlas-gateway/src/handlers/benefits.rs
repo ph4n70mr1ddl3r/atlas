@@ -59,7 +59,7 @@ pub async fn create_benefits_plan(
 
     info!("Creating benefits plan {} for org {} by user {}", payload.code, org_id, user_id);
 
-    match state.benefits_engine.create_plan(
+    match state.hcm.benefits_engine.create_plan(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.plan_type, payload.coverage_tiers,
         payload.provider_name.as_deref(), payload.provider_plan_id.as_deref(),
@@ -90,7 +90,7 @@ pub async fn get_benefits_plan(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.benefits_engine.get_plan(org_id, &code).await {
+    match state.hcm.benefits_engine.get_plan(org_id, &code).await {
         Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -114,7 +114,7 @@ pub async fn list_benefits_plans(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.benefits_engine.list_plans(org_id, query.plan_type.as_deref()).await {
+    match state.hcm.benefits_engine.list_plans(org_id, query.plan_type.as_deref()).await {
         Ok(plans) => Ok(Json(serde_json::json!({"data": plans}))),
         Err(e) => {
             error!("Failed to list benefits plans: {}", e);
@@ -132,7 +132,7 @@ pub async fn delete_benefits_plan(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.benefits_engine.delete_plan(org_id, &code).await {
+    match state.hcm.benefits_engine.delete_plan(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete benefits plan: {}", e);
@@ -178,7 +178,7 @@ pub async fn create_enrollment(
 
     info!("Creating benefits enrollment for employee {} in plan {}", payload.employee_id, payload.plan_code);
 
-    match state.benefits_engine.enroll(
+    match state.hcm.benefits_engine.enroll(
         org_id, payload.employee_id, payload.employee_name.as_deref(),
         &payload.plan_code, &payload.coverage_tier, &payload.enrollment_type,
         payload.effective_start_date, payload.effective_end_date,
@@ -212,7 +212,7 @@ pub async fn get_enrollment(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.benefits_engine.get_enrollment(id).await {
+    match state.hcm.benefits_engine.get_enrollment(id).await {
         Ok(Some(enrollment)) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -238,7 +238,7 @@ pub async fn list_enrollments(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.benefits_engine.list_enrollments(
+    match state.hcm.benefits_engine.list_enrollments(
         org_id, query.employee_id, query.plan_id, query.status.as_deref(),
     ).await {
         Ok(enrollments) => Ok(Json(serde_json::json!({"data": enrollments}))),
@@ -258,7 +258,7 @@ pub async fn activate_enrollment(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.benefits_engine.activate_enrollment(id, user_id).await {
+    match state.hcm.benefits_engine.activate_enrollment(id, user_id).await {
         Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to activate enrollment: {}", e);
@@ -277,7 +277,7 @@ pub async fn waive_enrollment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.benefits_engine.waive_enrollment(id).await {
+    match state.hcm.benefits_engine.waive_enrollment(id).await {
         Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to waive enrollment: {}", e);
@@ -302,7 +302,7 @@ pub async fn cancel_enrollment(
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelEnrollmentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.benefits_engine.cancel_enrollment(id, payload.cancellation_reason.as_deref()).await {
+    match state.hcm.benefits_engine.cancel_enrollment(id, payload.cancellation_reason.as_deref()).await {
         Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to cancel enrollment: {}", e);
@@ -321,7 +321,7 @@ pub async fn suspend_enrollment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.benefits_engine.suspend_enrollment(id).await {
+    match state.hcm.benefits_engine.suspend_enrollment(id).await {
         Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to suspend enrollment: {}", e);
@@ -340,7 +340,7 @@ pub async fn reactivate_enrollment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.benefits_engine.reactivate_enrollment(id).await {
+    match state.hcm.benefits_engine.reactivate_enrollment(id).await {
         Ok(enrollment) => Ok(Json(serde_json::to_value(enrollment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reactivate enrollment: {}", e);
@@ -372,7 +372,7 @@ pub async fn generate_deductions(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.benefits_engine.generate_deductions(
+    match state.hcm.benefits_engine.generate_deductions(
         org_id, payload.pay_period_start, payload.pay_period_end,
     ).await {
         Ok(deductions) => Ok(Json(serde_json::json!({"data": deductions, "count": deductions.len()}))),
@@ -398,7 +398,7 @@ pub async fn list_deductions(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.benefits_engine.list_deductions(org_id, query.employee_id, query.enrollment_id).await {
+    match state.hcm.benefits_engine.list_deductions(org_id, query.employee_id, query.enrollment_id).await {
         Ok(deductions) => Ok(Json(serde_json::json!({"data": deductions}))),
         Err(e) => {
             error!("Failed to list deductions: {}", e);
@@ -415,7 +415,7 @@ pub async fn get_benefits_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.benefits_engine.get_summary(org_id).await {
+    match state.hcm.benefits_engine.get_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to get benefits summary: {}", e);

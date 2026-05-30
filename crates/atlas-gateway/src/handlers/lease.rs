@@ -110,7 +110,7 @@ pub async fn create_lease(
     let org_id = parse_uuid(&claims.org_id)?;
     let created_by = parse_uuid(&claims.sub).ok();
 
-    let lease = state.lease_accounting_engine.create_lease(
+    let lease = state.shared.lease_accounting_engine.create_lease(
         org_id,
         &req.title,
         req.description.as_deref(),
@@ -153,7 +153,7 @@ pub async fn get_lease(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let lease = state.lease_accounting_engine.get_lease(id).await.map_err(error_response)?;
+    let lease = state.shared.lease_accounting_engine.get_lease(id).await.map_err(error_response)?;
 
     match lease {
         Some(l) => Ok(Json(serde_json::to_value(l).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -169,7 +169,7 @@ pub async fn list_leases(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    let leases = state.lease_accounting_engine.list_leases(
+    let leases = state.shared.lease_accounting_engine.list_leases(
         org_id,
         filters.status.as_deref(),
         filters.classification.as_deref(),
@@ -185,7 +185,7 @@ pub async fn activate_lease(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let activated_by = parse_uuid(&claims.sub).ok();
-    let lease = state.lease_accounting_engine.activate_lease(id, activated_by).await.map_err(error_response)?;
+    let lease = state.shared.lease_accounting_engine.activate_lease(id, activated_by).await.map_err(error_response)?;
 
     Ok(Json(serde_json::to_value(lease).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
 }
@@ -195,7 +195,7 @@ pub async fn list_lease_payments(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let payments = state.lease_accounting_engine.list_payments(id).await.map_err(error_response)?;
+    let payments = state.shared.lease_accounting_engine.list_payments(id).await.map_err(error_response)?;
 
     Ok(Json(json!({"data": payments})))
 }
@@ -206,7 +206,7 @@ pub async fn process_lease_payment(
     Path(id): Path<Uuid>,
     Json(req): Json<ProcessPaymentRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let payment = state.lease_accounting_engine.process_payment(
+    let payment = state.shared.lease_accounting_engine.process_payment(
         id, req.period_number, req.payment_reference.as_deref(),
     ).await.map_err(error_response)?;
 
@@ -223,7 +223,7 @@ pub async fn create_lease_modification(
     let org_id = parse_uuid(&claims.org_id)?;
     let created_by = parse_uuid(&claims.sub).ok();
 
-    let modification = state.lease_accounting_engine.create_modification(
+    let modification = state.shared.lease_accounting_engine.create_modification(
         org_id, id,
         &req.modification_type,
         req.description.as_deref(),
@@ -242,7 +242,7 @@ pub async fn list_lease_modifications(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let modifications = state.lease_accounting_engine.list_modifications(id).await.map_err(error_response)?;
+    let modifications = state.shared.lease_accounting_engine.list_modifications(id).await.map_err(error_response)?;
 
     Ok(Json(json!({"data": modifications})))
 }
@@ -253,7 +253,7 @@ pub async fn record_lease_impairment(
     Path(id): Path<Uuid>,
     Json(req): Json<ImpairmentRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let lease = state.lease_accounting_engine.record_impairment(
+    let lease = state.shared.lease_accounting_engine.record_impairment(
         id, &req.impairment_amount, req.impairment_date,
     ).await.map_err(error_response)?;
 
@@ -270,7 +270,7 @@ pub async fn terminate_lease(
     let org_id = parse_uuid(&claims.org_id)?;
     let created_by = parse_uuid(&claims.sub).ok();
 
-    let termination = state.lease_accounting_engine.terminate_lease(
+    let termination = state.shared.lease_accounting_engine.terminate_lease(
         org_id, id,
         &req.termination_type,
         req.termination_date,
@@ -287,7 +287,7 @@ pub async fn list_lease_terminations(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let terminations = state.lease_accounting_engine.list_terminations(id).await.map_err(error_response)?;
+    let terminations = state.shared.lease_accounting_engine.list_terminations(id).await.map_err(error_response)?;
 
     Ok(Json(json!({"data": terminations})))
 }
@@ -299,7 +299,7 @@ pub async fn get_lease_dashboard(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    let summary = state.lease_accounting_engine.get_dashboard_summary(org_id).await.map_err(error_response)?;
+    let summary = state.shared.lease_accounting_engine.get_dashboard_summary(org_id).await.map_err(error_response)?;
 
     Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
 }

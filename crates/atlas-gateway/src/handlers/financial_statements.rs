@@ -55,7 +55,7 @@ pub async fn generate_financial_statement(
         column_definitions: None,
     };
 
-    match state.financial_statements_engine.generate_statement(
+    match state.financials.financial_statements_engine.generate_statement(
         org_id,
         request,
         Some(user_id),
@@ -81,7 +81,7 @@ pub async fn list_financial_statements(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financial_statements_engine.list_statements(
+    match state.financials.financial_statements_engine.list_statements(
         org_id,
         query.report_type.as_deref(),
     ).await {
@@ -98,7 +98,7 @@ pub async fn get_financial_statement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financial_statements_engine.get_statement(id).await {
+    match state.financials.financial_statements_engine.get_statement(id).await {
         Ok(Some(statement)) => Ok(to_json(statement)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {

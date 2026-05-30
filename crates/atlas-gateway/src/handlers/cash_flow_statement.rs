@@ -38,7 +38,7 @@ pub async fn create_cash_flow_statement(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.cash_flow_statement_engine.create_statement(
+    match state.financials.cash_flow_statement_engine.create_statement(
         org_id,
         &payload.statement_number,
         &payload.method,
@@ -75,7 +75,7 @@ pub async fn list_cash_flow_statements(
     Query(query): Query<ListCashFlowStatementsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.cash_flow_statement_engine.list_statements(
+    match state.financials.cash_flow_statement_engine.list_statements(
         org_id, query.status.as_deref(), query.method.as_deref(),
     ).await {
         Ok(stmts) => Ok(Json(serde_json::json!({ "data": stmts }))),
@@ -97,7 +97,7 @@ pub async fn get_cash_flow_statement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.cash_flow_statement_engine.get_statement(id).await {
+    match state.financials.cash_flow_statement_engine.get_statement(id).await {
         Ok(Some(stmt)) => Ok(to_json(stmt)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -115,7 +115,7 @@ pub async fn calculate_cash_flow_statement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.cash_flow_statement_engine.calculate(id).await {
+    match state.financials.cash_flow_statement_engine.calculate(id).await {
         Ok(stmt) => Ok(to_json(stmt)),
         Err(e) => {
             error!("Failed to calculate cash flow statement: {}", e);
@@ -138,7 +138,7 @@ pub async fn review_cash_flow_statement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.cash_flow_statement_engine.review(id, user_id).await {
+    match state.financials.cash_flow_statement_engine.review(id, user_id).await {
         Ok(stmt) => Ok(to_json(stmt)),
         Err(e) => {
             error!("Failed to review cash flow statement: {}", e);
@@ -159,7 +159,7 @@ pub async fn publish_cash_flow_statement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.cash_flow_statement_engine.publish(id).await {
+    match state.financials.cash_flow_statement_engine.publish(id).await {
         Ok(stmt) => Ok(to_json(stmt)),
         Err(e) => {
             error!("Failed to publish cash flow statement: {}", e);
@@ -180,7 +180,7 @@ pub async fn archive_cash_flow_statement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.cash_flow_statement_engine.archive(id).await {
+    match state.financials.cash_flow_statement_engine.archive(id).await {
         Ok(stmt) => Ok(to_json(stmt)),
         Err(e) => {
             error!("Failed to archive cash flow statement: {}", e);
@@ -215,7 +215,7 @@ pub async fn add_cash_flow_line(
     Path(statement_id): Path<Uuid>,
     Json(payload): Json<AddCashFlowLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    match state.cash_flow_statement_engine.add_line(
+    match state.financials.cash_flow_statement_engine.add_line(
         statement_id,
         payload.line_number,
         &payload.category,
@@ -247,7 +247,7 @@ pub async fn list_cash_flow_lines(
     State(state): State<Arc<AppState>>,
     Path(statement_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.cash_flow_statement_engine.list_lines(statement_id).await {
+    match state.financials.cash_flow_statement_engine.list_lines(statement_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list cash flow lines: {}", e);
@@ -264,7 +264,7 @@ pub async fn remove_cash_flow_line(
     State(state): State<Arc<AppState>>,
     Path(line_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.cash_flow_statement_engine.remove_line(line_id).await {
+    match state.financials.cash_flow_statement_engine.remove_line(line_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to remove cash flow line: {}", e);
@@ -282,7 +282,7 @@ pub async fn get_cash_flow_statement_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.cash_flow_statement_engine.get_dashboard(org_id).await {
+    match state.financials.cash_flow_statement_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get cash flow dashboard: {}", e);

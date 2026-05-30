@@ -48,7 +48,7 @@ pub async fn create_currency(
 
     info!("Creating currency {} for org {} by user {}", payload.code, org_id, user_id);
 
-    let currency = state.currency_engine
+    let currency = state.financials.currency_engine
         .create_currency(
             org_id,
             &payload.code,
@@ -77,7 +77,7 @@ pub async fn list_currencies(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let currencies = state.currency_engine
+    let currencies = state.financials.currency_engine
         .list_currencies(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -93,7 +93,7 @@ pub async fn get_base_currency(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.currency_engine.get_base_currency(org_id).await {
+    match state.financials.currency_engine.get_base_currency(org_id).await {
         Ok(currency) => Ok(Json(crate::handlers::records::to_json_or_null(currency))),
         Err(atlas_shared::AtlasError::ConfigError(_)) => Err(StatusCode::NOT_FOUND),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -109,7 +109,7 @@ pub async fn delete_currency(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.currency_engine
+    state.financials.currency_engine
         .delete_currency(org_id, &code)
         .await
         .map_err(|e| match e {
@@ -151,7 +151,7 @@ pub async fn set_exchange_rate(
     info!("Setting exchange rate {} -> {} = {} by user {}",
         payload.from_currency, payload.to_currency, payload.rate, user_id);
 
-    let rate = state.currency_engine
+    let rate = state.financials.currency_engine
         .set_exchange_rate(
             org_id,
             &payload.from_currency,
@@ -196,7 +196,7 @@ pub async fn list_exchange_rates(
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let offset = params.offset.unwrap_or(0).max(0);
 
-    let rates = state.currency_engine
+    let rates = state.financials.currency_engine
         .list_rates(
             org_id,
             params.from_currency.as_deref(),
@@ -229,7 +229,7 @@ pub async fn get_exchange_rate(
     let date = params.effective_date
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    let rate = state.currency_engine
+    let rate = state.financials.currency_engine
         .get_exchange_rate(org_id, &from, &to, &rate_type, date)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -255,7 +255,7 @@ pub async fn delete_exchange_rate(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.currency_engine
+    state.financials.currency_engine
         .delete_exchange_rate(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -294,7 +294,7 @@ pub async fn convert_currency(
     info!("Converting {} {} -> {} by user {}",
         payload.amount, payload.from_currency, payload.to_currency, user_id);
 
-    let result = state.currency_engine
+    let result = state.financials.currency_engine
         .convert(
             org_id,
             &payload.from_currency,
@@ -341,7 +341,7 @@ pub async fn calculate_gain_loss(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let result = state.currency_engine
+    let result = state.financials.currency_engine
         .calculate_unrealized_gain_loss(
             org_id,
             &payload.currency,
@@ -382,7 +382,7 @@ pub async fn import_rates(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let result = state.currency_engine
+    let result = state.financials.currency_engine
         .import_rates(org_id, payload.rates, Some(user_id))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

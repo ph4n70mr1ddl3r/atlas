@@ -52,7 +52,7 @@ pub async fn create_work_definition(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.create_work_definition(org_id, payload).await {
+    match state.scm.manufacturing_engine.create_work_definition(org_id, payload).await {
         Ok(def) => Ok((StatusCode::CREATED, Json(serde_json::to_value(def).unwrap_or(serde_json::Value::Null)))),
         Err(e) => {
             error!("Failed to create work definition: {}", e);
@@ -68,7 +68,7 @@ pub async fn get_work_definition(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.get_work_definition(org_id, &definition_number).await {
+    match state.scm.manufacturing_engine.get_work_definition(org_id, &definition_number).await {
         Ok(Some(def)) => Ok(Json(serde_json::to_value(def).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get work definition: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -82,7 +82,7 @@ pub async fn list_work_definitions(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.list_work_definitions(org_id, params.status.as_deref()).await {
+    match state.scm.manufacturing_engine.list_work_definitions(org_id, params.status.as_deref()).await {
         Ok(defs) => Ok(Json(serde_json::to_value(defs).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to list work definitions: {}", e);
@@ -97,7 +97,7 @@ pub async fn activate_work_definition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.activate_work_definition(org_id, id).await {
+    match state.scm.manufacturing_engine.activate_work_definition(org_id, id).await {
         Ok(def) => Ok(Json(serde_json::to_value(def).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to activate work definition: {}", e);
@@ -112,7 +112,7 @@ pub async fn deactivate_work_definition(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.deactivate_work_definition(org_id, id).await {
+    match state.scm.manufacturing_engine.deactivate_work_definition(org_id, id).await {
         Ok(def) => Ok(Json(serde_json::to_value(def).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to deactivate work definition: {}", e);
@@ -127,7 +127,7 @@ pub async fn delete_work_definition(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.delete_work_definition(org_id, id).await {
+    match state.scm.manufacturing_engine.delete_work_definition(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete work definition: {}", e);
@@ -152,7 +152,7 @@ pub async fn add_work_definition_component(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.add_work_definition_component(
+    match state.scm.manufacturing_engine.add_work_definition_component(
         org_id, id, &payload.component_item_code,
         &payload.quantity_required,
         payload.unit_of_measure.as_deref().unwrap_or("EA"),
@@ -172,13 +172,13 @@ pub async fn list_work_definition_components(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Verify the work definition belongs to the user's org
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.get_work_definition_by_id(id).await {
+    match state.scm.manufacturing_engine.get_work_definition_by_id(id).await {
         Ok(Some(def)) if def.organization_id != org_id => return Err(StatusCode::NOT_FOUND),
         Ok(None) => return Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to verify work definition: {}", e); return Err(StatusCode::INTERNAL_SERVER_ERROR); }
         _ => {}
     }
-    match state.manufacturing_engine.list_work_definition_components(id).await {
+    match state.scm.manufacturing_engine.list_work_definition_components(id).await {
         Ok(comps) => Ok(Json(serde_json::to_value(comps).unwrap_or(serde_json::Value::Null))),
         Err(e) => { error!("Failed to list components: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -190,7 +190,7 @@ pub async fn delete_work_definition_component(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.delete_work_definition_component(org_id, id).await {
+    match state.scm.manufacturing_engine.delete_work_definition_component(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete component: {}", e);
@@ -215,7 +215,7 @@ pub async fn add_work_definition_operation(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.add_work_definition_operation(
+    match state.scm.manufacturing_engine.add_work_definition_operation(
         org_id, id, payload.operation_sequence, &payload.operation_name,
         payload.work_center_code.as_deref(),
     ).await {
@@ -234,13 +234,13 @@ pub async fn list_work_definition_operations(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Verify the work definition belongs to the user's org
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.get_work_definition_by_id(id).await {
+    match state.scm.manufacturing_engine.get_work_definition_by_id(id).await {
         Ok(Some(def)) if def.organization_id != org_id => return Err(StatusCode::NOT_FOUND),
         Ok(None) => return Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to verify work definition: {}", e); return Err(StatusCode::INTERNAL_SERVER_ERROR); }
         _ => {}
     }
-    match state.manufacturing_engine.list_work_definition_operations(id).await {
+    match state.scm.manufacturing_engine.list_work_definition_operations(id).await {
         Ok(ops) => Ok(Json(serde_json::to_value(ops).unwrap_or(serde_json::Value::Null))),
         Err(e) => { error!("Failed to list operations: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -252,7 +252,7 @@ pub async fn delete_work_definition_operation(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.delete_work_definition_operation(org_id, id).await {
+    match state.scm.manufacturing_engine.delete_work_definition_operation(org_id, id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete operation: {}", e);
@@ -272,7 +272,7 @@ pub async fn create_work_order(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.create_work_order(org_id, payload).await {
+    match state.scm.manufacturing_engine.create_work_order(org_id, payload).await {
         Ok(wo) => Ok((StatusCode::CREATED, Json(serde_json::to_value(wo).unwrap_or(serde_json::Value::Null)))),
         Err(e) => {
             error!("Failed to create work order: {}", e);
@@ -288,7 +288,7 @@ pub async fn get_work_order(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.get_work_order(org_id, &work_order_number).await {
+    match state.scm.manufacturing_engine.get_work_order(org_id, &work_order_number).await {
         Ok(Some(wo)) => Ok(Json(serde_json::to_value(wo).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get work order: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -302,7 +302,7 @@ pub async fn list_work_orders(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.list_work_orders(org_id, params.status.as_deref()).await {
+    match state.scm.manufacturing_engine.list_work_orders(org_id, params.status.as_deref()).await {
         Ok(orders) => Ok(Json(serde_json::to_value(orders).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to list work orders: {}", e);
@@ -317,7 +317,7 @@ pub async fn release_work_order(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.release_work_order(org_id, id).await {
+    match state.scm.manufacturing_engine.release_work_order(org_id, id).await {
         Ok(wo) => Ok(Json(serde_json::to_value(wo).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to release work order: {}", e);
@@ -332,7 +332,7 @@ pub async fn start_work_order(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.start_work_order(org_id, id).await {
+    match state.scm.manufacturing_engine.start_work_order(org_id, id).await {
         Ok(wo) => Ok(Json(serde_json::to_value(wo).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to start work order: {}", e);
@@ -347,7 +347,7 @@ pub async fn complete_work_order(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.complete_work_order(org_id, id).await {
+    match state.scm.manufacturing_engine.complete_work_order(org_id, id).await {
         Ok(wo) => Ok(Json(serde_json::to_value(wo).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to complete work order: {}", e);
@@ -362,7 +362,7 @@ pub async fn close_work_order(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.close_work_order(org_id, id).await {
+    match state.scm.manufacturing_engine.close_work_order(org_id, id).await {
         Ok(wo) => Ok(Json(serde_json::to_value(wo).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to close work order: {}", e);
@@ -383,7 +383,7 @@ pub async fn cancel_work_order(
     Json(payload): Json<CancelPayload>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.cancel_work_order(org_id, id, payload.reason.as_deref()).await {
+    match state.scm.manufacturing_engine.cancel_work_order(org_id, id, payload.reason.as_deref()).await {
         Ok(wo) => Ok(Json(serde_json::to_value(wo).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to cancel work order: {}", e);
@@ -403,7 +403,7 @@ pub async fn report_completion(
     Json(payload): Json<ReportCompletionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.report_completion(org_id, id, payload).await {
+    match state.scm.manufacturing_engine.report_completion(org_id, id, payload).await {
         Ok(wo) => Ok(Json(serde_json::to_value(wo).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to report completion: {}", e);
@@ -419,7 +419,7 @@ pub async fn issue_materials(
     Json(payload): Json<Vec<IssueMaterialRequest>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.issue_materials(org_id, id, payload).await {
+    match state.scm.manufacturing_engine.issue_materials(org_id, id, payload).await {
         Ok(materials) => Ok(Json(serde_json::to_value(materials).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to issue materials: {}", e);
@@ -440,7 +440,7 @@ pub async fn return_material(
     Json(payload): Json<ReturnMaterialPayload>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.return_material(org_id, id, &payload.quantity_returned).await {
+    match state.scm.manufacturing_engine.return_material(org_id, id, &payload.quantity_returned).await {
         Ok(mat) => Ok(Json(serde_json::to_value(mat).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to return material: {}", e);
@@ -466,7 +466,7 @@ pub async fn update_operation_status(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.update_operation_status(org_id, id, &payload.status).await {
+    match state.scm.manufacturing_engine.update_operation_status(org_id, id, &payload.status).await {
         Ok(op) => Ok(Json(serde_json::to_value(op).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to update operation status: {}", e);
@@ -482,13 +482,13 @@ pub async fn list_work_order_operations(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Verify the work order belongs to the user's org
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.get_work_order_by_id(id).await {
+    match state.scm.manufacturing_engine.get_work_order_by_id(id).await {
         Ok(Some(wo)) if wo.organization_id != org_id => return Err(StatusCode::NOT_FOUND),
         Ok(None) => return Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to verify work order: {}", e); return Err(StatusCode::INTERNAL_SERVER_ERROR); }
         _ => {}
     }
-    match state.manufacturing_engine.list_work_order_operations(id).await {
+    match state.scm.manufacturing_engine.list_work_order_operations(id).await {
         Ok(ops) => Ok(Json(serde_json::to_value(ops).unwrap_or(serde_json::Value::Null))),
         Err(e) => { error!("Failed to list operations: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -501,13 +501,13 @@ pub async fn list_work_order_materials(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Verify the work order belongs to the user's org
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.manufacturing_engine.get_work_order_by_id(id).await {
+    match state.scm.manufacturing_engine.get_work_order_by_id(id).await {
         Ok(Some(wo)) if wo.organization_id != org_id => return Err(StatusCode::NOT_FOUND),
         Ok(None) => return Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to verify work order: {}", e); return Err(StatusCode::INTERNAL_SERVER_ERROR); }
         _ => {}
     }
-    match state.manufacturing_engine.list_work_order_materials(id).await {
+    match state.scm.manufacturing_engine.list_work_order_materials(id).await {
         Ok(mats) => Ok(Json(serde_json::to_value(mats).unwrap_or(serde_json::Value::Null))),
         Err(e) => { error!("Failed to list materials: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -523,7 +523,7 @@ pub async fn get_manufacturing_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.manufacturing_engine.get_dashboard(org_id).await {
+    match state.scm.manufacturing_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or(serde_json::Value::Null))),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

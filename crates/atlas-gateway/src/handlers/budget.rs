@@ -57,7 +57,7 @@ pub async fn create_budget_definition(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.create_definition(
+    match state.financials.budget_engine.create_definition(
         org_id,
         &payload.code,
         &payload.name,
@@ -94,7 +94,7 @@ pub async fn get_budget_definition(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.get_definition(org_id, &code).await {
+    match state.financials.budget_engine.get_definition(org_id, &code).await {
         Ok(Some(def)) => Ok(Json(serde_json::to_value(def).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -112,7 +112,7 @@ pub async fn list_budget_definitions(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.list_definitions(org_id).await {
+    match state.financials.budget_engine.list_definitions(org_id).await {
         Ok(defs) => Ok(Json(serde_json::json!({ "data": defs }))),
         Err(e) => {
             error!("Failed to list budget definitions: {}", e);
@@ -130,7 +130,7 @@ pub async fn delete_budget_definition(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.delete_definition(org_id, &code).await {
+    match state.financials.budget_engine.delete_definition(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete budget definition: {}", e);
@@ -163,7 +163,7 @@ pub async fn create_budget_version(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.create_version(
+    match state.financials.budget_engine.create_version(
         org_id,
         &budget_code,
         payload.label.as_deref(),
@@ -196,11 +196,11 @@ pub async fn list_budget_versions(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let definition = state.budget_engine.get_definition(org_id, &budget_code).await
+    let definition = state.financials.budget_engine.get_definition(org_id, &budget_code).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    match state.budget_engine.list_versions(definition.id).await {
+    match state.financials.budget_engine.list_versions(definition.id).await {
         Ok(versions) => Ok(Json(serde_json::json!({ "data": versions }))),
         Err(e) => {
             error!("Failed to list budget versions: {}", e);
@@ -215,7 +215,7 @@ pub async fn get_budget_version(
     _claims: Extension<Claims>,
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.budget_engine.get_version(version_id).await {
+    match state.financials.budget_engine.get_version(version_id).await {
         Ok(Some(version)) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -238,7 +238,7 @@ pub async fn submit_budget_version(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.submit_version(version_id, user_id).await {
+    match state.financials.budget_engine.submit_version(version_id, user_id).await {
         Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit budget version: {}", e);
@@ -261,7 +261,7 @@ pub async fn approve_budget_version(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.approve_version(version_id, user_id).await {
+    match state.financials.budget_engine.approve_version(version_id, user_id).await {
         Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve budget version: {}", e);
@@ -280,7 +280,7 @@ pub async fn activate_budget_version(
     _claims: Extension<Claims>,
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.budget_engine.activate_version(version_id).await {
+    match state.financials.budget_engine.activate_version(version_id).await {
         Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to activate budget version: {}", e);
@@ -305,7 +305,7 @@ pub async fn reject_budget_version(
     Path(version_id): Path<Uuid>,
     Json(payload): Json<RejectBudgetRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.budget_engine.reject_version(version_id, payload.reason.as_deref()).await {
+    match state.financials.budget_engine.reject_version(version_id, payload.reason.as_deref()).await {
         Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reject budget version: {}", e);
@@ -324,7 +324,7 @@ pub async fn close_budget_version(
     _claims: Extension<Claims>,
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.budget_engine.close_version(version_id).await {
+    match state.financials.budget_engine.close_version(version_id).await {
         Ok(version) => Ok(Json(serde_json::to_value(version).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to close budget version: {}", e);
@@ -371,7 +371,7 @@ pub async fn add_budget_line(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.add_line(
+    match state.financials.budget_engine.add_line(
         org_id,
         version_id,
         &payload.account_code,
@@ -412,7 +412,7 @@ pub async fn list_budget_lines(
     _claims: Extension<Claims>,
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.budget_engine.list_lines(version_id).await {
+    match state.financials.budget_engine.list_lines(version_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list budget lines: {}", e);
@@ -427,7 +427,7 @@ pub async fn delete_budget_line(
     _claims: Extension<Claims>,
     Path((version_id, line_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.budget_engine.delete_line(version_id, line_id).await {
+    match state.financials.budget_engine.delete_line(version_id, line_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete budget line: {}", e);
@@ -472,7 +472,7 @@ pub async fn create_budget_transfer(
 
     let transfer_number = format!("BTR-{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase());
 
-    match state.budget_engine.create_transfer(
+    match state.financials.budget_engine.create_transfer(
         org_id,
         version_id,
         &transfer_number,
@@ -513,7 +513,7 @@ pub async fn approve_budget_transfer(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.approve_transfer(transfer_id, user_id).await {
+    match state.financials.budget_engine.approve_transfer(transfer_id, user_id).await {
         Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve budget transfer: {}", e);
@@ -533,7 +533,7 @@ pub async fn reject_budget_transfer(
     Path(transfer_id): Path<Uuid>,
     Json(payload): Json<RejectBudgetRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.budget_engine.reject_transfer(transfer_id, payload.reason.as_deref()).await {
+    match state.financials.budget_engine.reject_transfer(transfer_id, payload.reason.as_deref()).await {
         Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reject budget transfer: {}", e);
@@ -552,7 +552,7 @@ pub async fn list_budget_transfers(
     _claims: Extension<Claims>,
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.budget_engine.list_transfers(version_id).await {
+    match state.financials.budget_engine.list_transfers(version_id).await {
         Ok(transfers) => Ok(Json(serde_json::json!({ "data": transfers }))),
         Err(e) => {
             error!("Failed to list budget transfers: {}", e);
@@ -571,7 +571,7 @@ pub async fn get_budget_variance(
     _claims: Extension<Claims>,
     Path(version_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.budget_engine.get_variance_report(version_id).await {
+    match state.financials.budget_engine.get_variance_report(version_id).await {
         Ok(report) => Ok(Json(serde_json::to_value(report).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to generate budget variance report: {}", e);
@@ -606,7 +606,7 @@ pub async fn check_budget_control(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.budget_engine.check_budget_control(
+    match state.financials.budget_engine.check_budget_control(
         org_id,
         &budget_code,
         &payload.account_code,

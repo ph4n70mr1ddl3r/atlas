@@ -37,7 +37,7 @@ pub async fn create_tax_template(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.tax_reporting_engine.create_template(
+    match state.financials.tax_reporting_engine.create_template(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.tax_type, payload.jurisdiction_code.as_deref(),
         &payload.filing_frequency, payload.return_form_number.as_deref(),
@@ -60,7 +60,7 @@ pub async fn list_tax_templates(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.tax_reporting_engine.list_templates(org_id).await {
+    match state.financials.tax_reporting_engine.list_templates(org_id).await {
         Ok(templates) => Ok(Json(serde_json::json!({ "data": templates }))),
         Err(e) => { error!("Failed to list templates: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -82,7 +82,7 @@ pub async fn create_tax_return(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.tax_reporting_engine.create_return(
+    match state.financials.tax_reporting_engine.create_return(
         org_id, payload.template_id,
         payload.filing_period_start, payload.filing_period_end,
         payload.filing_due_date, Some(user_id),
@@ -97,7 +97,7 @@ pub async fn list_tax_returns(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.tax_reporting_engine.list_returns(org_id, None).await {
+    match state.financials.tax_reporting_engine.list_returns(org_id, None).await {
         Ok(returns) => Ok(Json(serde_json::json!({ "data": returns }))),
         Err(e) => { error!("Failed to list returns: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -107,7 +107,7 @@ pub async fn get_tax_return(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.tax_reporting_engine.get_return(id).await {
+    match state.financials.tax_reporting_engine.get_return(id).await {
         Ok(Some(r)) => Ok(to_json(r)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get return: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -127,7 +127,7 @@ pub async fn file_tax_return(
     Json(payload): Json<FileTaxReturnRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.tax_reporting_engine.file_return(
+    match state.financials.tax_reporting_engine.file_return(
         id, &payload.filing_method, payload.filing_reference.as_deref(), Some(user_id),
     ).await {
         Ok(r) => Ok(to_json(r)),
@@ -146,7 +146,7 @@ pub async fn pay_tax_return(
     Path(id): Path<Uuid>,
     Json(payload): Json<PayTaxReturnRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.tax_reporting_engine.mark_paid(
+    match state.financials.tax_reporting_engine.mark_paid(
         id, &payload.payment_amount, payload.payment_reference.as_deref(),
     ).await {
         Ok(r) => Ok(to_json(r)),
@@ -159,7 +159,7 @@ pub async fn get_tax_reporting_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.tax_reporting_engine.get_dashboard(org_id).await {
+    match state.financials.tax_reporting_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

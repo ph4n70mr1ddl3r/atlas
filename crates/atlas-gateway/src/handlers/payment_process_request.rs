@@ -72,7 +72,7 @@ pub async fn create_request(
     let supplier_id = req.supplier_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
     let bank_account_id = req.bank_account_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
 
-    match state.payment_process_request_engine.create_request(
+    match state.financials.payment_process_request_engine.create_request(
         org_id,
         &req.request_name,
         req.description.as_deref(),
@@ -119,7 +119,7 @@ pub async fn list_requests(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.payment_process_request_engine.list_requests(
+    match state.financials.payment_process_request_engine.list_requests(
         org_id,
         query.status.as_deref(),
     ).await {
@@ -139,7 +139,7 @@ pub async fn get_request(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.payment_process_request_engine.get_request(org_id, id).await {
+    match state.financials.payment_process_request_engine.get_request(org_id, id).await {
         Ok(ppr) => Ok(Json(serde_json::to_value(ppr).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get PPR: {}", e);
@@ -160,7 +160,7 @@ pub async fn get_request_by_number(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.payment_process_request_engine.get_request_by_number(org_id, &number).await {
+    match state.financials.payment_process_request_engine.get_request_by_number(org_id, &number).await {
         Ok(ppr) => Ok(Json(serde_json::to_value(ppr).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get PPR by number: {}", e);
@@ -181,7 +181,7 @@ pub async fn delete_request(
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.payment_process_request_engine.delete_request(org_id, &number).await {
+    match state.financials.payment_process_request_engine.delete_request(org_id, &number).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete PPR: {}", e);
@@ -211,7 +211,7 @@ macro_rules! lifecycle_handler {
                 Err(e) => return Err(e),
             };
 
-            match state.payment_process_request_engine.$method(org_id, id, user_id).await {
+            match state.financials.payment_process_request_engine.$method(org_id, id, user_id).await {
                 Ok(ppr) => Ok(Json(serde_json::to_value(ppr).unwrap_or(serde_json::Value::Null))),
                 Err(e) => {
                     error!("Failed to {} PPR: {}", $action, e);
@@ -242,7 +242,7 @@ pub async fn cancel_request(
     let org_id = parse_uuid(&claims.org_id)?;
     let user_id = parse_uuid(&claims.sub)?;
 
-    match state.payment_process_request_engine.cancel_request(
+    match state.financials.payment_process_request_engine.cancel_request(
         org_id, id, user_id, req.reason.as_deref()
     ).await {
         Ok(ppr) => Ok(Json(serde_json::to_value(ppr).unwrap_or(serde_json::Value::Null))),
@@ -302,7 +302,7 @@ pub async fn add_document(
         .transpose()
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid discount_date: {}", e)}))))?;
 
-    match state.payment_process_request_engine.add_document(
+    match state.financials.payment_process_request_engine.add_document(
         org_id, ppr_id,
         invoice_id, req.invoice_number.as_deref(), invoice_date, req.invoice_amount,
         supplier_id, req.supplier_number.as_deref(), req.supplier_name.as_deref(),
@@ -326,7 +326,7 @@ pub async fn list_documents(
     Extension(_claims): Extension<Claims>,
     Path(ppr_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_process_request_engine.list_documents(ppr_id).await {
+    match state.financials.payment_process_request_engine.list_documents(ppr_id).await {
         Ok(docs) => Ok(Json(serde_json::json!({"data": docs}))),
         Err(e) => {
             error!("Failed to list PPR documents: {}", e);
@@ -343,7 +343,7 @@ pub async fn remove_document(
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.payment_process_request_engine.remove_document(org_id, ppr_id, doc_id).await {
+    match state.financials.payment_process_request_engine.remove_document(org_id, ppr_id, doc_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to remove document from PPR: {}", e);
@@ -362,7 +362,7 @@ pub async fn list_activities(
     Extension(_claims): Extension<Claims>,
     Path(ppr_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.payment_process_request_engine.list_activities(ppr_id).await {
+    match state.financials.payment_process_request_engine.list_activities(ppr_id).await {
         Ok(activities) => Ok(Json(serde_json::json!({"data": activities}))),
         Err(e) => {
             error!("Failed to list PPR activities: {}", e);
@@ -378,7 +378,7 @@ pub async fn get_dashboard(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.payment_process_request_engine.get_dashboard(org_id).await {
+    match state.financials.payment_process_request_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get PPR dashboard: {}", e);

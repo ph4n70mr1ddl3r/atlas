@@ -53,7 +53,7 @@ pub async fn create_requisition(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.recruiting_engine.create_requisition(
+    match state.hcm.recruiting_engine.create_requisition(
         org_id, &payload.requisition_number, &payload.title, payload.description.as_deref(),
         payload.department.as_deref(), payload.location.as_deref(),
         payload.employment_type.as_deref().unwrap_or("full_time"),
@@ -83,7 +83,7 @@ pub async fn list_requisitions(
     Query(params): Query<ListRequisitionsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.list_requisitions(org_id, params.status.as_deref()).await {
+    match state.hcm.recruiting_engine.list_requisitions(org_id, params.status.as_deref()).await {
         Ok(r) => Ok(Json(serde_json::json!({"data": r}))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -93,7 +93,7 @@ pub async fn get_requisition(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.get_requisition(id).await {
+    match state.hcm.recruiting_engine.get_requisition(id).await {
         Ok(Some(r)) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -104,7 +104,7 @@ pub async fn open_requisition(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.open_requisition(id).await {
+    match state.hcm.recruiting_engine.open_requisition(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -113,7 +113,7 @@ pub async fn open_requisition(
 pub async fn hold_requisition(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.hold_requisition(id).await {
+    match state.hcm.recruiting_engine.hold_requisition(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -122,7 +122,7 @@ pub async fn hold_requisition(
 pub async fn close_requisition(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.close_requisition(id).await {
+    match state.hcm.recruiting_engine.close_requisition(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -131,7 +131,7 @@ pub async fn close_requisition(
 pub async fn cancel_requisition(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.cancel_requisition(id).await {
+    match state.hcm.recruiting_engine.cancel_requisition(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -141,7 +141,7 @@ pub async fn delete_requisition(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.delete_requisition(org_id, &number).await {
+    match state.hcm.recruiting_engine.delete_requisition(org_id, &number).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -180,7 +180,7 @@ pub async fn create_candidate(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.recruiting_engine.create_candidate(
+    match state.hcm.recruiting_engine.create_candidate(
         org_id, &payload.first_name, &payload.last_name,
         payload.email.as_deref(), payload.phone.as_deref(), payload.address.as_deref(),
         payload.city.as_deref(), payload.state.as_deref(), payload.country.as_deref(),
@@ -200,7 +200,7 @@ pub async fn get_candidate(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.get_candidate(id).await {
+    match state.hcm.recruiting_engine.get_candidate(id).await {
         Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -217,7 +217,7 @@ pub async fn list_candidates(
     Query(params): Query<ListCandidatesParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.list_candidates(org_id, params.status.as_deref()).await {
+    match state.hcm.recruiting_engine.list_candidates(org_id, params.status.as_deref()).await {
         Ok(c) => Ok(Json(serde_json::json!({"data": c}))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -233,7 +233,7 @@ pub async fn update_candidate_status(
     Json(payload): Json<UpdateCandidateStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.update_candidate_status(id, &payload.status).await {
+    match state.hcm.recruiting_engine.update_candidate_status(id, &payload.status).await {
         Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -242,7 +242,7 @@ pub async fn update_candidate_status(
 pub async fn delete_candidate(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.recruiting_engine.delete_candidate(id).await {
+    match state.hcm.recruiting_engine.delete_candidate(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -264,7 +264,7 @@ pub async fn create_application(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.recruiting_engine.create_application(
+    match state.hcm.recruiting_engine.create_application(
         org_id, payload.requisition_id, payload.candidate_id, user_id,
     ).await {
         Ok(a) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(a)))),
@@ -275,7 +275,7 @@ pub async fn create_application(
 pub async fn get_application(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.get_application(id).await {
+    match state.hcm.recruiting_engine.get_application(id).await {
         Ok(Some(a)) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -294,7 +294,7 @@ pub async fn list_applications(
     Query(params): Query<ListApplicationsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.list_applications(
+    match state.hcm.recruiting_engine.list_applications(
         org_id, params.requisition_id, params.candidate_id, params.status.as_deref(),
     ).await {
         Ok(a) => Ok(Json(serde_json::json!({"data": a}))),
@@ -312,7 +312,7 @@ pub async fn update_application_status(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<UpdateApplicationStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.update_application_status(id, &payload.status, payload.notes.as_deref()).await {
+    match state.hcm.recruiting_engine.update_application_status(id, &payload.status, payload.notes.as_deref()).await {
         Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -321,7 +321,7 @@ pub async fn update_application_status(
 pub async fn withdraw_application(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.withdraw_application(id).await {
+    match state.hcm.recruiting_engine.withdraw_application(id).await {
         Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -351,7 +351,7 @@ pub async fn create_interview(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.recruiting_engine.create_interview(
+    match state.hcm.recruiting_engine.create_interview(
         org_id, application_id,
         payload.interview_type.as_deref().unwrap_or("phone"),
         payload.round.unwrap_or(1),
@@ -370,7 +370,7 @@ pub async fn list_interviews(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>,
     Path(application_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.list_interviews(application_id).await {
+    match state.hcm.recruiting_engine.list_interviews(application_id).await {
         Ok(i) => Ok(Json(serde_json::json!({"data": i}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -387,7 +387,7 @@ pub async fn complete_interview(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<CompleteInterviewRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.complete_interview(
+    match state.hcm.recruiting_engine.complete_interview(
         id, payload.feedback.as_deref(), payload.rating, payload.recommendation.as_deref(),
     ).await {
         Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
@@ -398,7 +398,7 @@ pub async fn complete_interview(
 pub async fn cancel_interview(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.cancel_interview(id).await {
+    match state.hcm.recruiting_engine.cancel_interview(id).await {
         Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -407,7 +407,7 @@ pub async fn cancel_interview(
 pub async fn delete_interview(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.recruiting_engine.delete_interview(id).await {
+    match state.hcm.recruiting_engine.delete_interview(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -441,7 +441,7 @@ pub async fn create_offer(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.recruiting_engine.create_offer(
+    match state.hcm.recruiting_engine.create_offer(
         org_id, application_id, payload.offer_number.as_deref(),
         &payload.job_title, payload.department.as_deref(), payload.location.as_deref(),
         payload.employment_type.as_deref().unwrap_or("full_time"),
@@ -458,7 +458,7 @@ pub async fn create_offer(
 pub async fn get_offer(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.get_offer(id).await {
+    match state.hcm.recruiting_engine.get_offer(id).await {
         Ok(Some(o)) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -475,7 +475,7 @@ pub async fn list_offers(
     Query(params): Query<ListOffersParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.list_offers(org_id, params.status.as_deref()).await {
+    match state.hcm.recruiting_engine.list_offers(org_id, params.status.as_deref()).await {
         Ok(o) => Ok(Json(serde_json::json!({"data": o}))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -485,7 +485,7 @@ pub async fn approve_offer(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.recruiting_engine.approve_offer(id, user_id).await {
+    match state.hcm.recruiting_engine.approve_offer(id, user_id).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -494,7 +494,7 @@ pub async fn approve_offer(
 pub async fn extend_offer(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.extend_offer(id).await {
+    match state.hcm.recruiting_engine.extend_offer(id).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -509,7 +509,7 @@ pub async fn accept_offer(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<RespondOfferRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.accept_offer(id, payload.notes.as_deref()).await {
+    match state.hcm.recruiting_engine.accept_offer(id, payload.notes.as_deref()).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -519,7 +519,7 @@ pub async fn decline_offer(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<RespondOfferRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.decline_offer(id, payload.notes.as_deref()).await {
+    match state.hcm.recruiting_engine.decline_offer(id, payload.notes.as_deref()).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -528,7 +528,7 @@ pub async fn decline_offer(
 pub async fn withdraw_offer(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.recruiting_engine.withdraw_offer(id).await {
+    match state.hcm.recruiting_engine.withdraw_offer(id).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => { error!("Error: {}", e); Err(rec_map_err(e)) }
     }
@@ -537,7 +537,7 @@ pub async fn withdraw_offer(
 pub async fn delete_offer(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.recruiting_engine.delete_offer(id).await {
+    match state.hcm.recruiting_engine.delete_offer(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -551,7 +551,7 @@ pub async fn get_recruiting_dashboard(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.recruiting_engine.get_dashboard(org_id).await {
+    match state.hcm.recruiting_engine.get_dashboard(org_id).await {
         Ok(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

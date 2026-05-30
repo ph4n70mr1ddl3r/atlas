@@ -58,7 +58,7 @@ pub async fn create_tax_regime(
 
     info!("Creating tax regime {} for org {} by user {}", payload.code, org_id, user_id);
 
-    let regime = state.tax_engine
+    let regime = state.financials.tax_engine
         .create_regime(
             org_id,
             &payload.code,
@@ -93,7 +93,7 @@ pub async fn list_tax_regimes(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let regimes = state.tax_engine
+    let regimes = state.financials.tax_engine
         .list_regimes(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -110,7 +110,7 @@ pub async fn get_tax_regime(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let regime = state.tax_engine
+    let regime = state.financials.tax_engine
         .get_regime(org_id, &code)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -130,7 +130,7 @@ pub async fn delete_tax_regime(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.tax_engine
+    state.financials.tax_engine
         .delete_regime(org_id, &code)
         .await
         .map_err(|e| match e {
@@ -174,7 +174,7 @@ pub async fn create_tax_jurisdiction(
 
     info!("Creating tax jurisdiction {} for org {} by user {}", payload.code, org_id, user_id);
 
-    let jurisdiction = state.tax_engine
+    let jurisdiction = state.financials.tax_engine
         .create_jurisdiction(
             org_id,
             &payload.regime_code,
@@ -210,7 +210,7 @@ pub async fn list_tax_jurisdictions(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let jurisdictions = state.tax_engine
+    let jurisdictions = state.financials.tax_engine
         .list_jurisdictions(org_id, params.regime_code.as_deref())
         .await
         .map_err(|e| {
@@ -235,7 +235,7 @@ pub async fn delete_tax_jurisdiction(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.tax_engine
+    state.financials.tax_engine
         .delete_jurisdiction(org_id, &regime_code, &code)
         .await
         .map_err(|e| match e {
@@ -285,7 +285,7 @@ pub async fn create_tax_rate(
     let effective_from = payload.effective_from
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    let rate = state.tax_engine
+    let rate = state.financials.tax_engine
         .create_tax_rate(
             org_id,
             &payload.regime_code,
@@ -323,7 +323,7 @@ pub async fn list_tax_rates(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let rates = state.tax_engine
+    let rates = state.financials.tax_engine
         .list_tax_rates(org_id, &regime_code)
         .await
         .map_err(|e| match e {
@@ -343,7 +343,7 @@ pub async fn delete_tax_rate(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.tax_engine
+    state.financials.tax_engine
         .delete_tax_rate(org_id, &regime_code, &code)
         .await
         .map_err(|e| match e {
@@ -389,7 +389,7 @@ pub async fn create_determination_rule(
 
     info!("Creating tax determination rule '{}' for org {} by user {}", payload.name, org_id, user_id);
 
-    let rule = state.tax_engine
+    let rule = state.financials.tax_engine
         .create_determination_rule(
             org_id,
             &payload.regime_code,
@@ -425,7 +425,7 @@ pub async fn list_determination_rules(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let rules = state.tax_engine
+    let rules = state.financials.tax_engine
         .list_determination_rules(org_id, &regime_code)
         .await
         .map_err(|e| match e {
@@ -454,7 +454,7 @@ pub async fn calculate_tax(
     info!("Calculating tax for {} lines, org {} by user {}",
         payload.lines.len(), org_id, user_id);
 
-    let result = state.tax_engine
+    let result = state.financials.tax_engine
         .calculate_tax(org_id, payload, Some(user_id))
         .await
         .map_err(|e| {
@@ -482,7 +482,7 @@ pub async fn get_tax_lines(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let lines = state.tax_engine
+    let lines = state.financials.tax_engine
         .get_tax_lines(&entity_type, entity_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -516,7 +516,7 @@ pub async fn generate_tax_report(
     info!("Generating tax report for regime {} org {} by user {}",
         payload.regime_code, org_id, user_id);
 
-    let report = state.tax_engine
+    let report = state.financials.tax_engine
         .generate_tax_report(
             org_id,
             &payload.regime_code,
@@ -547,7 +547,7 @@ pub async fn list_tax_reports(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let reports = state.tax_engine
+    let reports = state.financials.tax_engine
         .list_tax_reports(org_id, params.regime_code.as_deref())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

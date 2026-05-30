@@ -37,7 +37,7 @@ pub async fn create_forecast(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.cash_flow_forecast_engine.create_forecast(
+    match state.financials.cash_flow_forecast_engine.create_forecast(
         org_id, &payload.forecast_number, &payload.name, payload.description.as_deref(),
         &payload.forecast_horizon, payload.periods_out, payload.start_date, payload.end_date,
         &payload.base_currency_code, &payload.opening_balance, Some(user_id),
@@ -63,7 +63,7 @@ pub async fn list_forecasts(
     Query(query): Query<ListForecastsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.cash_flow_forecast_engine.list_forecasts(org_id, query.status.as_deref()).await {
+    match state.financials.cash_flow_forecast_engine.list_forecasts(org_id, query.status.as_deref()).await {
         Ok(forecasts) => Ok(Json(serde_json::json!({ "data": forecasts }))),
         Err(e) => { error!("Failed to list forecasts: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -73,7 +73,7 @@ pub async fn get_forecast(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.cash_flow_forecast_engine.get_forecast_by_id(id).await {
+    match state.financials.cash_flow_forecast_engine.get_forecast_by_id(id).await {
         Ok(Some(f)) => Ok(to_json(f)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get forecast: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -84,7 +84,7 @@ pub async fn activate_forecast(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.cash_flow_forecast_engine.activate_forecast(id).await {
+    match state.financials.cash_flow_forecast_engine.activate_forecast(id).await {
         Ok(f) => Ok(to_json(f)),
         Err(e) => {
             error!("Failed to activate forecast: {}", e);
@@ -103,7 +103,7 @@ pub async fn approve_forecast(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.cash_flow_forecast_engine.approve_forecast(id, user_id).await {
+    match state.financials.cash_flow_forecast_engine.approve_forecast(id, user_id).await {
         Ok(f) => Ok(to_json(f)),
         Err(e) => {
             error!("Failed to approve forecast: {}", e);
@@ -132,7 +132,7 @@ pub async fn create_scenario(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let sn = format!("SC-{}", &Uuid::new_v4().to_string()[..8].to_uppercase());
-    match state.cash_flow_forecast_engine.create_scenario(
+    match state.financials.cash_flow_forecast_engine.create_scenario(
         org_id, payload.forecast_id, &sn, &payload.name,
         payload.description.as_deref(), &payload.scenario_type, &payload.adjustment_factor,
     ).await {
@@ -151,7 +151,7 @@ pub async fn list_scenarios(
     State(state): State<Arc<AppState>>,
     Path(forecast_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.cash_flow_forecast_engine.list_scenarios(forecast_id).await {
+    match state.financials.cash_flow_forecast_engine.list_scenarios(forecast_id).await {
         Ok(scenarios) => Ok(Json(serde_json::json!({ "data": scenarios }))),
         Err(e) => { error!("Failed to list scenarios: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -180,7 +180,7 @@ pub async fn create_entry(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.cash_flow_forecast_engine.create_entry(
+    match state.financials.cash_flow_forecast_engine.create_entry(
         org_id, payload.forecast_id, payload.scenario_id,
         &payload.period_name, payload.period_start_date, payload.period_end_date,
         &payload.source_category, &payload.flow_direction,
@@ -202,7 +202,7 @@ pub async fn list_entries(
     State(state): State<Arc<AppState>>,
     Path(forecast_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.cash_flow_forecast_engine.list_entries(forecast_id).await {
+    match state.financials.cash_flow_forecast_engine.list_entries(forecast_id).await {
         Ok(entries) => Ok(Json(serde_json::json!({ "data": entries }))),
         Err(e) => { error!("Failed to list entries: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -213,7 +213,7 @@ pub async fn get_cash_forecast_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.cash_flow_forecast_engine.get_dashboard(org_id).await {
+    match state.financials.cash_flow_forecast_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

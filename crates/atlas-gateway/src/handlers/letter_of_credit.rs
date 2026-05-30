@@ -136,7 +136,7 @@ pub async fn create_lc(
         .or_else(|| body["reference_contract_number"].as_str());
     let notes = body["notes"].as_str();
 
-    match state.letter_of_credit_engine.create_lc(
+    match state.financials.letter_of_credit_engine.create_lc(
         org_id, &lc_number, &lc_type, &lc_form,
         description,
         &applicant_name, applicant_address, &applicant_bank_name, applicant_bank_swift,
@@ -171,7 +171,7 @@ pub async fn get_lc(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.letter_of_credit_engine.get_lc_by_number(org_id, &lc_number).await {
+    match state.financials.letter_of_credit_engine.get_lc_by_number(org_id, &lc_number).await {
         Ok(Some(lc)) => Ok((StatusCode::OK, Json(serde_json::to_value(&lc).unwrap_or(Value::Null)))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Letter of credit not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -190,7 +190,7 @@ pub async fn list_lcs(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.letter_of_credit_engine.list_lcs(
+    match state.financials.letter_of_credit_engine.list_lcs(
         org_id, params.status.as_deref(), params.lc_type.as_deref(),
     ).await {
         Ok(lcs) => Ok((StatusCode::OK, Json(json!({"data": lcs})))),
@@ -210,7 +210,7 @@ pub async fn delete_lc(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.letter_of_credit_engine.delete_lc(org_id, &lc_number).await {
+    match state.financials.letter_of_credit_engine.delete_lc(org_id, &lc_number).await {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "Letter of credit deleted"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -232,7 +232,7 @@ pub async fn issue_lc(
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    match state.letter_of_credit_engine.issue_lc(id, issue_date).await {
+    match state.financials.letter_of_credit_engine.issue_lc(id, issue_date).await {
         Ok(lc) => Ok((StatusCode::OK, Json(serde_json::to_value(&lc).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -245,7 +245,7 @@ pub async fn advise_lc(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.advise_lc(id).await {
+    match state.financials.letter_of_credit_engine.advise_lc(id).await {
         Ok(lc) => Ok((StatusCode::OK, Json(serde_json::to_value(&lc).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -260,7 +260,7 @@ pub async fn confirm_lc(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let approved_by = parse_uuid(&claims.sub).unwrap_or_default();
 
-    match state.letter_of_credit_engine.confirm_lc(id, approved_by).await {
+    match state.financials.letter_of_credit_engine.confirm_lc(id, approved_by).await {
         Ok(lc) => Ok((StatusCode::OK, Json(serde_json::to_value(&lc).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -273,7 +273,7 @@ pub async fn accept_lc(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.accept_lc(id).await {
+    match state.financials.letter_of_credit_engine.accept_lc(id).await {
         Ok(lc) => Ok((StatusCode::OK, Json(serde_json::to_value(&lc).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -286,7 +286,7 @@ pub async fn pay_lc(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.pay_lc(id).await {
+    match state.financials.letter_of_credit_engine.pay_lc(id).await {
         Ok(lc) => Ok((StatusCode::OK, Json(serde_json::to_value(&lc).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -299,7 +299,7 @@ pub async fn cancel_lc(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.cancel_lc(id).await {
+    match state.financials.letter_of_credit_engine.cancel_lc(id).await {
         Ok(lc) => Ok((StatusCode::OK, Json(serde_json::to_value(&lc).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -321,7 +321,7 @@ pub async fn process_expired(
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    match state.letter_of_credit_engine.process_expired(org_id, as_of_date).await {
+    match state.financials.letter_of_credit_engine.process_expired(org_id, as_of_date).await {
         Ok(expired) => Ok((StatusCode::OK, Json(json!({
             "expired_count": expired.len(),
             "expired_lcs": expired,
@@ -369,7 +369,7 @@ pub async fn create_amendment(
     let effective_date = body["effectiveDate"].as_str()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.letter_of_credit_engine.create_amendment(
+    match state.financials.letter_of_credit_engine.create_amendment(
         org_id, lc_id, &amendment_type,
         previous_amount, new_amount,
         previous_expiry_date, new_expiry_date,
@@ -389,7 +389,7 @@ pub async fn list_amendments(
     Extension(_claims): Extension<Claims>,
     Path(lc_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.list_amendments(lc_id).await {
+    match state.financials.letter_of_credit_engine.list_amendments(lc_id).await {
         Ok(amendments) => Ok((StatusCode::OK, Json(json!({"data": amendments})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -404,7 +404,7 @@ pub async fn approve_amendment(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let approved_by = parse_uuid(&claims.sub).unwrap_or_default();
 
-    match state.letter_of_credit_engine.approve_amendment(amendment_id, approved_by).await {
+    match state.financials.letter_of_credit_engine.approve_amendment(amendment_id, approved_by).await {
         Ok(amendment) => Ok((StatusCode::OK, Json(serde_json::to_value(&amendment).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -417,7 +417,7 @@ pub async fn reject_amendment(
     Extension(_claims): Extension<Claims>,
     Path(amendment_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.reject_amendment(amendment_id).await {
+    match state.financials.letter_of_credit_engine.reject_amendment(amendment_id).await {
         Ok(amendment) => Ok((StatusCode::OK, Json(serde_json::to_value(&amendment).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -458,7 +458,7 @@ pub async fn add_required_document(
     let special_instructions = body["specialInstructions"].as_str()
         .or_else(|| body["special_instructions"].as_str());
 
-    match state.letter_of_credit_engine.add_required_document(
+    match state.financials.letter_of_credit_engine.add_required_document(
         org_id, lc_id, &document_type, document_code, description,
         original_copies, copy_count, is_mandatory, special_instructions,
     ).await {
@@ -474,7 +474,7 @@ pub async fn list_required_documents(
     Extension(_claims): Extension<Claims>,
     Path(lc_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.list_required_documents(lc_id).await {
+    match state.financials.letter_of_credit_engine.list_required_documents(lc_id).await {
         Ok(docs) => Ok((StatusCode::OK, Json(json!({"data": docs})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -487,7 +487,7 @@ pub async fn delete_required_document(
     Extension(_claims): Extension<Claims>,
     Path(doc_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.delete_required_document(doc_id).await {
+    match state.financials.letter_of_credit_engine.delete_required_document(doc_id).await {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "Required document deleted"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -542,7 +542,7 @@ pub async fn create_shipment(
         .unwrap_or("USD").to_string();
     let notes = body["notes"].as_str();
 
-    match state.letter_of_credit_engine.create_shipment(
+    match state.financials.letter_of_credit_engine.create_shipment(
         org_id, lc_id, &shipment_number,
         vessel_name, voyage_number, bill_of_lading_number, carrier_name,
         port_of_loading, port_of_discharge,
@@ -562,7 +562,7 @@ pub async fn list_shipments(
     Extension(_claims): Extension<Claims>,
     Path(lc_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.list_shipments(lc_id).await {
+    match state.financials.letter_of_credit_engine.list_shipments(lc_id).await {
         Ok(shipments) => Ok((StatusCode::OK, Json(json!({"data": shipments})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -575,7 +575,7 @@ pub async fn update_shipment_status(
     Extension(_claims): Extension<Claims>,
     Path((shipment_id, status)): Path<(Uuid, String)>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.update_shipment_status(shipment_id, &status).await {
+    match state.financials.letter_of_credit_engine.update_shipment_status(shipment_id, &status).await {
         Ok(shipment) => Ok((StatusCode::OK, Json(serde_json::to_value(&shipment).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -619,7 +619,7 @@ pub async fn create_presentation(
     let discrepancies = body["discrepancies"].as_str();
     let notes = body["notes"].as_str();
 
-    match state.letter_of_credit_engine.create_presentation(
+    match state.financials.letter_of_credit_engine.create_presentation(
         org_id, lc_id, &presentation_number, shipment_id,
         presentation_date, presenting_bank_name,
         &total_amount, &currency_code,
@@ -638,7 +638,7 @@ pub async fn list_presentations(
     Extension(_claims): Extension<Claims>,
     Path(lc_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.list_presentations(lc_id).await {
+    match state.financials.letter_of_credit_engine.list_presentations(lc_id).await {
         Ok(presentations) => Ok((StatusCode::OK, Json(json!({"data": presentations})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -651,7 +651,7 @@ pub async fn accept_presentation(
     Extension(_claims): Extension<Claims>,
     Path(presentation_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.accept_presentation(presentation_id).await {
+    match state.financials.letter_of_credit_engine.accept_presentation(presentation_id).await {
         Ok(presentation) => Ok((StatusCode::OK, Json(serde_json::to_value(&presentation).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -672,7 +672,7 @@ pub async fn pay_presentation(
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    match state.letter_of_credit_engine.pay_presentation(presentation_id, &paid_amount, payment_date).await {
+    match state.financials.letter_of_credit_engine.pay_presentation(presentation_id, &paid_amount, payment_date).await {
         Ok(presentation) => Ok((StatusCode::OK, Json(serde_json::to_value(&presentation).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -685,7 +685,7 @@ pub async fn reject_presentation(
     Extension(_claims): Extension<Claims>,
     Path(presentation_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.reject_presentation(presentation_id).await {
+    match state.financials.letter_of_credit_engine.reject_presentation(presentation_id).await {
         Ok(presentation) => Ok((StatusCode::OK, Json(serde_json::to_value(&presentation).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -727,7 +727,7 @@ pub async fn add_presentation_document(
         .unwrap_or(true);
     let discrepancies = body["discrepancies"].as_str();
 
-    match state.letter_of_credit_engine.add_presentation_document(
+    match state.financials.letter_of_credit_engine.add_presentation_document(
         org_id, presentation_id,
         required_document_id, &document_type, document_reference,
         description, original_copies, copy_count,
@@ -745,7 +745,7 @@ pub async fn list_presentation_documents(
     Extension(_claims): Extension<Claims>,
     Path(presentation_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.letter_of_credit_engine.list_presentation_documents(presentation_id).await {
+    match state.financials.letter_of_credit_engine.list_presentation_documents(presentation_id).await {
         Ok(docs) => Ok((StatusCode::OK, Json(json!({"data": docs})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -766,7 +766,7 @@ pub async fn get_dashboard(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.letter_of_credit_engine.get_dashboard(org_id).await {
+    match state.financials.letter_of_credit_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok((StatusCode::OK, Json(serde_json::to_value(&dashboard).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

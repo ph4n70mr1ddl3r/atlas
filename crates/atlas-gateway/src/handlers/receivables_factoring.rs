@@ -46,7 +46,7 @@ pub async fn create_factor_company(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.receivables_factoring_engine.create_factor_company(
+    match state.financials.receivables_factoring_engine.create_factor_company(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         payload.contact_name.as_deref(), payload.contact_email.as_deref(), payload.contact_phone.as_deref(),
         payload.bank_name.as_deref(), payload.bank_account_number.as_deref(),
@@ -87,7 +87,7 @@ pub async fn list_factor_companies(
     Query(query): Query<ListFactorCompaniesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receivables_factoring_engine.list_factor_companies(org_id, query.is_active).await {
+    match state.financials.receivables_factoring_engine.list_factor_companies(org_id, query.is_active).await {
         Ok(companies) => Ok(Json(serde_json::json!({ "data": companies }))),
         Err(e) => {
             error!("Failed to list factor companies: {}", e);
@@ -100,7 +100,7 @@ pub async fn get_factor_company(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.get_factor_company(id).await {
+    match state.financials.receivables_factoring_engine.get_factor_company(id).await {
         Ok(Some(fc)) => Ok(Json(crate::handlers::records::to_json_or_null(fc))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -116,7 +116,7 @@ pub async fn get_factor_company_by_code(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receivables_factoring_engine.get_factor_company_by_code(org_id, &code).await {
+    match state.financials.receivables_factoring_engine.get_factor_company_by_code(org_id, &code).await {
         Ok(Some(fc)) => Ok(Json(crate::handlers::records::to_json_or_null(fc))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -130,7 +130,7 @@ pub async fn deactivate_factor_company(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.deactivate_factor_company(id).await {
+    match state.financials.receivables_factoring_engine.deactivate_factor_company(id).await {
         Ok(fc) => Ok(Json(crate::handlers::records::to_json_or_null(fc))),
         Err(e) => {
             error!("Failed to deactivate factor company: {}", e);
@@ -146,7 +146,7 @@ pub async fn activate_factor_company(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.activate_factor_company(id).await {
+    match state.financials.receivables_factoring_engine.activate_factor_company(id).await {
         Ok(fc) => Ok(Json(crate::handlers::records::to_json_or_null(fc))),
         Err(e) => {
             error!("Failed to activate factor company: {}", e);
@@ -189,7 +189,7 @@ pub async fn create_agreement(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.receivables_factoring_engine.create_agreement(
+    match state.financials.receivables_factoring_engine.create_agreement(
         org_id, &payload.agreement_number, payload.factor_company_id,
         &payload.agreement_name, payload.description.as_deref(),
         payload.agreement_type.as_deref().unwrap_or("spot"),
@@ -228,7 +228,7 @@ pub async fn list_agreements(
     Query(query): Query<ListAgreementsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receivables_factoring_engine.list_agreements(
+    match state.financials.receivables_factoring_engine.list_agreements(
         org_id, query.status.as_deref(), query.factor_company_id,
     ).await {
         Ok(agreements) => Ok(Json(serde_json::json!({ "data": agreements }))),
@@ -243,7 +243,7 @@ pub async fn get_agreement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.get_agreement(id).await {
+    match state.financials.receivables_factoring_engine.get_agreement(id).await {
         Ok(Some(a)) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -259,7 +259,7 @@ pub async fn activate_agreement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receivables_factoring_engine.activate_agreement(id, Some(user_id)).await {
+    match state.financials.receivables_factoring_engine.activate_agreement(id, Some(user_id)).await {
         Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Failed to activate agreement: {}", e);
@@ -275,7 +275,7 @@ pub async fn suspend_agreement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.suspend_agreement(id).await {
+    match state.financials.receivables_factoring_engine.suspend_agreement(id).await {
         Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Failed to suspend agreement: {}", e);
@@ -291,7 +291,7 @@ pub async fn terminate_agreement(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.terminate_agreement(id).await {
+    match state.financials.receivables_factoring_engine.terminate_agreement(id).await {
         Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Failed to terminate agreement: {}", e);
@@ -325,7 +325,7 @@ pub async fn create_factoring_request(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.receivables_factoring_engine.create_request(
+    match state.financials.receivables_factoring_engine.create_request(
         org_id, &payload.request_number, payload.agreement_id,
         payload.request_date,
         payload.recourse_type.as_deref().unwrap_or("recourse"),
@@ -357,7 +357,7 @@ pub async fn list_factoring_requests(
     Query(query): Query<ListFactoringRequestsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receivables_factoring_engine.list_requests(
+    match state.financials.receivables_factoring_engine.list_requests(
         org_id, query.agreement_id, query.status.as_deref(),
     ).await {
         Ok(requests) => Ok(Json(serde_json::json!({ "data": requests }))),
@@ -372,7 +372,7 @@ pub async fn get_factoring_request(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.get_request(id).await {
+    match state.financials.receivables_factoring_engine.get_request(id).await {
         Ok(Some(r)) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -386,7 +386,7 @@ pub async fn submit_factoring_request(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.submit_request(id).await {
+    match state.financials.receivables_factoring_engine.submit_request(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to submit factoring request: {}", e);
@@ -403,7 +403,7 @@ pub async fn approve_factoring_request(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.approve_request(id).await {
+    match state.financials.receivables_factoring_engine.approve_request(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to approve factoring request: {}", e);
@@ -420,7 +420,7 @@ pub async fn fund_factoring_request(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.fund_request(id).await {
+    match state.financials.receivables_factoring_engine.fund_request(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to fund factoring request: {}", e);
@@ -437,7 +437,7 @@ pub async fn settle_factoring_request(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.settle_request(id).await {
+    match state.financials.receivables_factoring_engine.settle_request(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to settle factoring request: {}", e);
@@ -454,7 +454,7 @@ pub async fn cancel_factoring_request(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.cancel_request(id).await {
+    match state.financials.receivables_factoring_engine.cancel_request(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => {
             error!("Failed to cancel factoring request: {}", e);
@@ -495,7 +495,7 @@ pub async fn add_request_line(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.receivables_factoring_engine.add_request_line(
+    match state.financials.receivables_factoring_engine.add_request_line(
         org_id, request_id, payload.line_number,
         payload.transaction_id, payload.transaction_number.as_deref(),
         payload.customer_id, payload.customer_number.as_deref(), payload.customer_name.as_deref(),
@@ -519,7 +519,7 @@ pub async fn list_request_lines(
     State(state): State<Arc<AppState>>,
     Path(request_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receivables_factoring_engine.list_request_lines(request_id).await {
+    match state.financials.receivables_factoring_engine.list_request_lines(request_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list request lines: {}", e);
@@ -550,7 +550,7 @@ pub async fn create_settlement(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.receivables_factoring_engine.create_settlement(
+    match state.financials.receivables_factoring_engine.create_settlement(
         org_id, &payload.settlement_number, payload.agreement_id,
         payload.request_id, payload.settlement_date,
         payload.currency_code.as_deref().unwrap_or("USD"),
@@ -575,7 +575,7 @@ pub async fn list_settlements(
     Query(query): Query<ListSettlementsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receivables_factoring_engine.list_settlements(
+    match state.financials.receivables_factoring_engine.list_settlements(
         org_id, query.agreement_id, query.status.as_deref(),
     ).await {
         Ok(settlements) => Ok(Json(serde_json::json!({ "data": settlements }))),
@@ -598,7 +598,7 @@ pub async fn process_settlement(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receivables_factoring_engine.process_settlement(id, Some(user_id)).await {
+    match state.financials.receivables_factoring_engine.process_settlement(id, Some(user_id)).await {
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => {
             error!("Failed to process settlement: {}", e);
@@ -620,7 +620,7 @@ pub async fn get_factoring_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receivables_factoring_engine.get_dashboard(org_id).await {
+    match state.financials.receivables_factoring_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => {
             error!("Failed to get factoring dashboard: {}", e);

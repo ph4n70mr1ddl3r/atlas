@@ -83,7 +83,7 @@ pub async fn create_registration(
         None => None,
     };
 
-    match state.tax_registration_engine.create_registration(
+    match state.financials.tax_registration_engine.create_registration(
         org_id,
         &req.registration_number,
         &req.registration_type,
@@ -118,7 +118,7 @@ pub async fn list_registrations(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.tax_registration_engine.list_registrations(
+    match state.financials.tax_registration_engine.list_registrations(
         org_id,
         query.party_type.as_deref(),
         query.status.as_deref(),
@@ -141,7 +141,7 @@ pub async fn get_registration(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let _org_id = parse_uuid(&claims.org_id)?;
 
-    match state.tax_registration_engine.get_registration(id).await {
+    match state.financials.tax_registration_engine.get_registration(id).await {
         Ok(Some(reg)) => Ok(Json(serde_json::to_value(reg).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Tax registration not found"})))),
         Err(e) => {
@@ -159,7 +159,7 @@ pub async fn get_registration_by_number(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.tax_registration_engine.get_registration_by_number(org_id, &number).await {
+    match state.financials.tax_registration_engine.get_registration_by_number(org_id, &number).await {
         Ok(Some(reg)) => Ok(Json(serde_json::to_value(reg).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Tax registration not found"})))),
         Err(e) => {
@@ -181,7 +181,7 @@ pub async fn activate_registration(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let _org_id = parse_uuid(&claims.org_id)?;
 
-    match state.tax_registration_engine.activate_registration(id).await {
+    match state.financials.tax_registration_engine.activate_registration(id).await {
         Ok(reg) => Ok(Json(serde_json::to_value(reg).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to activate tax registration: {}", e);
@@ -198,7 +198,7 @@ pub async fn suspend_registration(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let _org_id = parse_uuid(&claims.org_id)?;
 
-    match state.tax_registration_engine.suspend_registration(id).await {
+    match state.financials.tax_registration_engine.suspend_registration(id).await {
         Ok(reg) => Ok(Json(serde_json::to_value(reg).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to suspend tax registration: {}", e);
@@ -215,7 +215,7 @@ pub async fn reactivate_registration(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let _org_id = parse_uuid(&claims.org_id)?;
 
-    match state.tax_registration_engine.reactivate_registration(id).await {
+    match state.financials.tax_registration_engine.reactivate_registration(id).await {
         Ok(reg) => Ok(Json(serde_json::to_value(reg).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to reactivate tax registration: {}", e);
@@ -241,7 +241,7 @@ pub async fn deregister(
         None => chrono::Utc::now().date_naive(),
     };
 
-    match state.tax_registration_engine.deregister(id, dereg_date).await {
+    match state.financials.tax_registration_engine.deregister(id, dereg_date).await {
         Ok(reg) => Ok(Json(serde_json::to_value(reg).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to deregister tax registration: {}", e);
@@ -262,7 +262,7 @@ pub async fn validate_registration(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let _org_id = parse_uuid(&claims.org_id)?;
 
-    match state.tax_registration_engine.validate_registration(id).await {
+    match state.financials.tax_registration_engine.validate_registration(id).await {
         Ok(reg) => Ok(Json(serde_json::to_value(reg).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to validate tax registration: {}", e);
@@ -278,7 +278,7 @@ pub async fn get_summary(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.tax_registration_engine.get_summary(org_id).await {
+    match state.financials.tax_registration_engine.get_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get tax registration summary: {}", e);

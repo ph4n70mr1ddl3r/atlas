@@ -53,7 +53,7 @@ pub async fn create_authority_limit(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.approval_authority_engine.create_limit(org_id, payload, Some(user_id)).await {
+    match state.hcm.approval_authority_engine.create_limit(org_id, payload, Some(user_id)).await {
         Ok(limit) => Ok((StatusCode::CREATED, Json(serde_json::to_value(limit).unwrap_or_else(|e| {
             error!("Serialization error: {}", e); serde_json::Value::Null
         })))),
@@ -75,7 +75,7 @@ pub async fn get_authority_limit(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.approval_authority_engine.get_limit(id).await {
+    match state.hcm.approval_authority_engine.get_limit(id).await {
         Ok(Some(limit)) => Ok(Json(serde_json::to_value(limit).unwrap_or_else(|e| {
             error!("Serialization error: {}", e); serde_json::Value::Null
         }))),
@@ -98,7 +98,7 @@ pub async fn list_authority_limits(
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.approval_authority_engine.list_limits(
+    match state.hcm.approval_authority_engine.list_limits(
         org_id,
         query.status.as_deref(),
         query.owner_type.as_deref(),
@@ -123,7 +123,7 @@ pub async fn activate_authority_limit(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.approval_authority_engine.activate_limit(id).await {
+    match state.hcm.approval_authority_engine.activate_limit(id).await {
         Ok(limit) => Ok(Json(serde_json::to_value(limit).unwrap_or_else(|e| {
             error!("Serialization error: {}", e); serde_json::Value::Null
         }))),
@@ -145,7 +145,7 @@ pub async fn deactivate_authority_limit(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.approval_authority_engine.deactivate_limit(id).await {
+    match state.hcm.approval_authority_engine.deactivate_limit(id).await {
         Ok(limit) => Ok(Json(serde_json::to_value(limit).unwrap_or_else(|e| {
             error!("Serialization error: {}", e); serde_json::Value::Null
         }))),
@@ -167,7 +167,7 @@ pub async fn delete_authority_limit(
 ) -> Result<StatusCode, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.approval_authority_engine.delete_limit(id).await {
+    match state.hcm.approval_authority_engine.delete_limit(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete authority limit {}: {}", id, e);
@@ -208,7 +208,7 @@ pub async fn check_authority(
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.approval_authority_engine.check_authority(
+    match state.hcm.approval_authority_engine.check_authority(
         org_id,
         user_id,
         &claims.roles,
@@ -253,7 +253,7 @@ pub async fn list_check_audits(
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.approval_authority_engine.list_check_audits(
+    match state.hcm.approval_authority_engine.list_check_audits(
         org_id,
         user_id,
         query.document_type.as_deref(),
@@ -280,7 +280,7 @@ pub async fn get_authority_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.approval_authority_engine.get_dashboard(org_id).await {
+    match state.hcm.approval_authority_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| {
             error!("Serialization error: {}", e); serde_json::Value::Null
         }))),

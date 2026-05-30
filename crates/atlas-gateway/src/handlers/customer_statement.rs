@@ -79,7 +79,7 @@ pub async fn create_statement(
     let previous_statement_id = body["previous_statement_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
     let notes = body["notes"].as_str();
 
-    match state.customer_statement_engine.create_statement(
+    match state.financials.customer_statement_engine.create_statement(
         org_id, customer_id, customer_number, customer_name,
         statement_date, billing_period_from, billing_period_to, billing_cycle,
         opening_balance, total_charges, total_payments, total_credits, total_adjustments,
@@ -99,7 +99,7 @@ pub async fn get_statement(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.customer_statement_engine.get_statement(id).await {
+    match state.financials.customer_statement_engine.get_statement(id).await {
         Ok(Some(stmt)) => Ok(Json(serde_json::to_value(stmt).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Statement not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -118,7 +118,7 @@ pub async fn get_statement_by_number(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.customer_statement_engine.get_statement_by_number(org_id, &statement_number).await {
+    match state.financials.customer_statement_engine.get_statement_by_number(org_id, &statement_number).await {
         Ok(Some(stmt)) => Ok(Json(serde_json::to_value(stmt).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Statement not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -139,7 +139,7 @@ pub async fn list_statements(
 
     let customer_id = params.customer_id.as_deref().and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.customer_statement_engine.list_statements(
+    match state.financials.customer_statement_engine.list_statements(
         org_id, customer_id, params.status.as_deref(), params.billing_cycle.as_deref(),
     ).await {
         Ok(stmts) => Ok(Json(json!({"data": stmts}))),
@@ -154,7 +154,7 @@ pub async fn generate_statement(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.customer_statement_engine.generate_statement(id).await {
+    match state.financials.customer_statement_engine.generate_statement(id).await {
         Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -167,7 +167,7 @@ pub async fn send_statement(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.customer_statement_engine.send_statement(id).await {
+    match state.financials.customer_statement_engine.send_statement(id).await {
         Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -180,7 +180,7 @@ pub async fn mark_viewed(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.customer_statement_engine.mark_viewed(id).await {
+    match state.financials.customer_statement_engine.mark_viewed(id).await {
         Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -193,7 +193,7 @@ pub async fn archive_statement(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.customer_statement_engine.archive_statement(id).await {
+    match state.financials.customer_statement_engine.archive_statement(id).await {
         Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -208,7 +208,7 @@ pub async fn cancel_statement(
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let reason = body["reason"].as_str();
-    match state.customer_statement_engine.cancel_statement(id, reason).await {
+    match state.financials.customer_statement_engine.cancel_statement(id, reason).await {
         Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -221,7 +221,7 @@ pub async fn resend_statement(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.customer_statement_engine.resend_statement(id).await {
+    match state.financials.customer_statement_engine.resend_statement(id).await {
         Ok(stmt) => Ok(Json(serde_json::to_value(stmt).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -257,7 +257,7 @@ pub async fn add_statement_line(
     let reference_id = body["reference_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
     let metadata = body.get("metadata").cloned().unwrap_or(serde_json::json!({}));
 
-    match state.customer_statement_engine.add_statement_line(
+    match state.financials.customer_statement_engine.add_statement_line(
         org_id, statement_id, line_type,
         transaction_id, transaction_number, transaction_date, due_date,
         original_amount, amount, description,
@@ -275,7 +275,7 @@ pub async fn list_statement_lines(
     Extension(_claims): Extension<Claims>,
     Path(statement_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.customer_statement_engine.list_statement_lines(statement_id).await {
+    match state.financials.customer_statement_engine.list_statement_lines(statement_id).await {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -288,7 +288,7 @@ pub async fn remove_statement_line(
     Extension(_claims): Extension<Claims>,
     Path((statement_id, line_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.customer_statement_engine.remove_statement_line(statement_id, line_id).await {
+    match state.financials.customer_statement_engine.remove_statement_line(statement_id, line_id).await {
         Ok(()) => Ok(Json(json!({"message": "Statement line removed"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -309,7 +309,7 @@ pub async fn get_statement_summary(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.customer_statement_engine.get_statement_summary(org_id).await {
+    match state.financials.customer_statement_engine.get_statement_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

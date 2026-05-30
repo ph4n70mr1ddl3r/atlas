@@ -38,7 +38,7 @@ pub async fn create_rating_model(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.performance_engine.create_rating_model(
+    match state.hcm.performance_engine.create_rating_model(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         payload.rating_scale, Some(user_id),
     ).await {
@@ -59,7 +59,7 @@ pub async fn get_rating_model(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.get_rating_model(org_id, &code).await {
+    match state.hcm.performance_engine.get_rating_model(org_id, &code).await {
         Ok(Some(m)) => Ok(Json(serde_json::to_value(m).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -71,7 +71,7 @@ pub async fn list_rating_models(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.list_rating_models(org_id).await {
+    match state.hcm.performance_engine.list_rating_models(org_id).await {
         Ok(models) => Ok(Json(serde_json::json!({"data": models}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -83,7 +83,7 @@ pub async fn delete_rating_model(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.delete_rating_model(org_id, &code).await {
+    match state.hcm.performance_engine.delete_rating_model(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -133,7 +133,7 @@ pub async fn create_review_cycle(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.performance_engine.create_review_cycle(
+    match state.hcm.performance_engine.create_review_cycle(
         org_id, &payload.name, payload.description.as_deref(), &payload.cycle_type,
         payload.rating_model_code.as_deref(),
         payload.start_date, payload.end_date,
@@ -161,7 +161,7 @@ pub async fn get_review_cycle(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.get_review_cycle(id).await {
+    match state.hcm.performance_engine.get_review_cycle(id).await {
         Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -179,7 +179,7 @@ pub async fn list_review_cycles(
     Query(query): Query<ListCyclesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.list_review_cycles(org_id, query.status.as_deref()).await {
+    match state.hcm.performance_engine.list_review_cycles(org_id, query.status.as_deref()).await {
         Ok(cycles) => Ok(Json(serde_json::json!({"data": cycles}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -196,7 +196,7 @@ pub async fn transition_cycle(
     Path(id): Path<Uuid>,
     Json(payload): Json<TransitionCycleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.transition_cycle(id, &payload.status).await {
+    match state.hcm.performance_engine.transition_cycle(id, &payload.status).await {
         Ok(cycle) => Ok(Json(serde_json::to_value(cycle).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to transition cycle: {}", e);
@@ -238,7 +238,7 @@ pub async fn create_competency(
         payload.behavioral_indicators
     };
 
-    match state.performance_engine.create_competency(
+    match state.hcm.performance_engine.create_competency(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         payload.category.as_deref(), payload.rating_model_code.as_deref(),
         indicators, Some(user_id),
@@ -260,7 +260,7 @@ pub async fn get_competency(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.get_competency(org_id, &code).await {
+    match state.hcm.performance_engine.get_competency(org_id, &code).await {
         Ok(Some(c)) => Ok(Json(serde_json::to_value(c).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -278,7 +278,7 @@ pub async fn list_competencies(
     Query(query): Query<ListCompetenciesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.list_competencies(org_id, query.category.as_deref()).await {
+    match state.hcm.performance_engine.list_competencies(org_id, query.category.as_deref()).await {
         Ok(comps) => Ok(Json(serde_json::json!({"data": comps}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -290,7 +290,7 @@ pub async fn delete_competency(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.delete_competency(org_id, &code).await {
+    match state.hcm.performance_engine.delete_competency(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -317,7 +317,7 @@ pub async fn create_document(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.performance_engine.create_document(
+    match state.hcm.performance_engine.create_document(
         org_id, payload.review_cycle_id, payload.employee_id,
         payload.employee_name.as_deref(), payload.manager_id, payload.manager_name.as_deref(),
         Some(user_id),
@@ -340,7 +340,7 @@ pub async fn get_document(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.get_document(id).await {
+    match state.hcm.performance_engine.get_document(id).await {
         Ok(Some(d)) => Ok(Json(serde_json::to_value(d).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -360,7 +360,7 @@ pub async fn list_documents(
     Query(query): Query<ListDocumentsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.list_documents(
+    match state.hcm.performance_engine.list_documents(
         org_id, query.review_cycle_id, query.employee_id, query.status.as_deref(),
     ).await {
         Ok(docs) => Ok(Json(serde_json::json!({"data": docs}))),
@@ -379,7 +379,7 @@ pub async fn transition_document(
     Path(id): Path<Uuid>,
     Json(payload): Json<TransitionDocumentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.transition_document(id, &payload.status).await {
+    match state.hcm.performance_engine.transition_document(id, &payload.status).await {
         Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to transition document: {}", e);
@@ -404,7 +404,7 @@ pub async fn submit_self_evaluation(
     Path(id): Path<Uuid>,
     Json(payload): Json<SubmitEvaluationRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.submit_self_evaluation(
+    match state.hcm.performance_engine.submit_self_evaluation(
         id, payload.overall_rating.as_deref(), payload.comments.as_deref(),
     ).await {
         Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -425,7 +425,7 @@ pub async fn submit_manager_evaluation(
     Path(id): Path<Uuid>,
     Json(payload): Json<SubmitEvaluationRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.submit_manager_evaluation(
+    match state.hcm.performance_engine.submit_manager_evaluation(
         id, payload.overall_rating.as_deref(), payload.comments.as_deref(),
     ).await {
         Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -452,7 +452,7 @@ pub async fn finalize_document(
     Path(id): Path<Uuid>,
     Json(payload): Json<FinalizeDocumentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.finalize_document(
+    match state.hcm.performance_engine.finalize_document(
         id, payload.final_rating.as_deref(), payload.final_comments.as_deref(),
     ).await {
         Ok(doc) => Ok(Json(serde_json::to_value(doc).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -492,7 +492,7 @@ pub async fn create_goal(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.performance_engine.create_goal(
+    match state.hcm.performance_engine.create_goal(
         org_id, payload.document_id, payload.employee_id,
         &payload.goal_name, payload.description.as_deref(),
         payload.goal_category.as_deref(), &payload.weight,
@@ -516,7 +516,7 @@ pub async fn list_goals(
     _claims: Extension<Claims>,
     Path(document_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.list_goals(document_id).await {
+    match state.hcm.performance_engine.list_goals(document_id).await {
         Ok(goals) => Ok(Json(serde_json::json!({"data": goals}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -533,7 +533,7 @@ pub async fn complete_goal(
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteGoalRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.complete_goal(id, payload.actual_result.as_deref()).await {
+    match state.hcm.performance_engine.complete_goal(id, payload.actual_result.as_deref()).await {
         Ok(goal) => Ok(Json(serde_json::to_value(goal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to complete goal: {}", e);
@@ -559,7 +559,7 @@ pub async fn rate_goal(
     Path(id): Path<Uuid>,
     Json(payload): Json<RateGoalRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.rate_goal(
+    match state.hcm.performance_engine.rate_goal(
         id, &payload.rating_type, &payload.rating, payload.comments.as_deref(),
     ).await {
         Ok(goal) => Ok(Json(serde_json::to_value(goal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -579,7 +579,7 @@ pub async fn delete_goal(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.performance_engine.delete_goal(id).await {
+    match state.hcm.performance_engine.delete_goal(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete goal: {}", e);
@@ -614,7 +614,7 @@ pub async fn upsert_competency_assessment(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.performance_engine.upsert_competency_assessment(
+    match state.hcm.performance_engine.upsert_competency_assessment(
         org_id, payload.document_id, payload.employee_id,
         payload.competency_id, &payload.rating_type, &payload.rating,
         payload.comments.as_deref(), Some(user_id),
@@ -635,7 +635,7 @@ pub async fn list_competency_assessments(
     _claims: Extension<Claims>,
     Path(document_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.list_competency_assessments(document_id).await {
+    match state.hcm.performance_engine.list_competency_assessments(document_id).await {
         Ok(assessments) => Ok(Json(serde_json::json!({"data": assessments}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -666,7 +666,7 @@ pub async fn create_feedback(
 
     let visibility = payload.visibility.as_deref().unwrap_or("manager_only");
 
-    match state.performance_engine.create_feedback(
+    match state.hcm.performance_engine.create_feedback(
         org_id, payload.document_id, payload.employee_id,
         user_id, payload.from_user_name.as_deref(),
         &payload.feedback_type, payload.subject.as_deref(),
@@ -695,7 +695,7 @@ pub async fn list_feedback(
     Query(query): Query<ListFeedbackQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.list_feedback(org_id, query.employee_id, query.document_id).await {
+    match state.hcm.performance_engine.list_feedback(org_id, query.employee_id, query.document_id).await {
         Ok(fbs) => Ok(Json(serde_json::json!({"data": fbs}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -706,7 +706,7 @@ pub async fn submit_feedback(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.performance_engine.submit_feedback(id).await {
+    match state.hcm.performance_engine.submit_feedback(id).await {
         Ok(fb) => Ok(Json(serde_json::to_value(fb).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit feedback: {}", e);
@@ -729,7 +729,7 @@ pub async fn get_performance_dashboard(
     Path(review_cycle_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.performance_engine.get_dashboard(org_id, review_cycle_id).await {
+    match state.hcm.performance_engine.get_dashboard(org_id, review_cycle_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

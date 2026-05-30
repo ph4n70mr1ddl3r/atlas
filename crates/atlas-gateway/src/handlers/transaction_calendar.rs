@@ -44,7 +44,7 @@ pub async fn create_calendar(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.transaction_calendar_engine.create_calendar(
+    match state.core.transaction_calendar_engine.create_calendar(
         org_id,
         &payload.code,
         &payload.name,
@@ -82,7 +82,7 @@ pub async fn list_calendars(
     Query(query): Query<ListCalendarsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.transaction_calendar_engine.list_calendars(
+    match state.core.transaction_calendar_engine.list_calendars(
         org_id,
         query.status.as_deref(),
     ).await {
@@ -99,7 +99,7 @@ pub async fn get_calendar(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.transaction_calendar_engine.get_calendar_by_id(id).await {
+    match state.core.transaction_calendar_engine.get_calendar_by_id(id).await {
         Ok(Some(cal)) => Ok(Json(crate::handlers::records::to_json_or_null(cal))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -115,7 +115,7 @@ pub async fn get_calendar_by_code(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.transaction_calendar_engine.get_calendar(org_id, &code).await {
+    match state.core.transaction_calendar_engine.get_calendar(org_id, &code).await {
         Ok(Some(cal)) => Ok(Json(crate::handlers::records::to_json_or_null(cal))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -130,7 +130,7 @@ pub async fn activate_calendar(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.transaction_calendar_engine.activate_calendar(id).await {
+    match state.core.transaction_calendar_engine.activate_calendar(id).await {
         Ok(cal) => Ok(Json(crate::handlers::records::to_json_or_null(cal))),
         Err(e) => {
             error!("Failed to activate transaction calendar: {}", e);
@@ -148,7 +148,7 @@ pub async fn deactivate_calendar(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.transaction_calendar_engine.deactivate_calendar(id).await {
+    match state.core.transaction_calendar_engine.deactivate_calendar(id).await {
         Ok(cal) => Ok(Json(crate::handlers::records::to_json_or_null(cal))),
         Err(e) => {
             error!("Failed to deactivate transaction calendar: {}", e);
@@ -167,7 +167,7 @@ pub async fn delete_calendar(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.transaction_calendar_engine.delete_calendar(org_id, &code).await {
+    match state.core.transaction_calendar_engine.delete_calendar(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete transaction calendar: {}", e);
@@ -202,7 +202,7 @@ pub async fn create_exception(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.transaction_calendar_engine.create_exception(
+    match state.core.transaction_calendar_engine.create_exception(
         org_id,
         calendar_id,
         payload.exception_date,
@@ -234,7 +234,7 @@ pub async fn list_exceptions(
     _claims: Extension<Claims>,
     Path(calendar_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.transaction_calendar_engine.list_exceptions(calendar_id).await {
+    match state.core.transaction_calendar_engine.list_exceptions(calendar_id).await {
         Ok(exceptions) => Ok(Json(serde_json::json!({ "data": exceptions }))),
         Err(e) => {
             error!("Failed to list calendar exceptions: {}", e);
@@ -256,7 +256,7 @@ pub async fn list_exceptions_range(
     Path(calendar_id): Path<Uuid>,
     Query(query): Query<ListExceptionsRangeQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.transaction_calendar_engine.list_exceptions_range(
+    match state.core.transaction_calendar_engine.list_exceptions_range(
         calendar_id, query.from_date, query.to_date,
     ).await {
         Ok(exceptions) => Ok(Json(serde_json::json!({ "data": exceptions }))),
@@ -272,7 +272,7 @@ pub async fn delete_exception(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.transaction_calendar_engine.delete_exception(id).await {
+    match state.core.transaction_calendar_engine.delete_exception(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete calendar exception: {}", e);
@@ -301,7 +301,7 @@ pub async fn is_business_day(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.transaction_calendar_engine.is_business_day(
+    match state.core.transaction_calendar_engine.is_business_day(
         calendar_id,
         payload.date,
         payload.reference_type.as_deref(),
@@ -339,7 +339,7 @@ pub async fn next_business_day(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.transaction_calendar_engine.next_business_day(
+    match state.core.transaction_calendar_engine.next_business_day(
         calendar_id,
         payload.date,
         payload.reference_type.as_deref(),
@@ -378,7 +378,7 @@ pub async fn previous_business_day(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.transaction_calendar_engine.previous_business_day(
+    match state.core.transaction_calendar_engine.previous_business_day(
         calendar_id,
         payload.date,
         payload.reference_type.as_deref(),
@@ -418,7 +418,7 @@ pub async fn add_business_days(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.transaction_calendar_engine.add_business_days(
+    match state.core.transaction_calendar_engine.add_business_days(
         calendar_id,
         payload.start_date,
         payload.days,
@@ -460,7 +460,7 @@ pub async fn list_calculations(
     Query(query): Query<ListCalculationsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.transaction_calendar_engine.list_calculations(
+    match state.core.transaction_calendar_engine.list_calculations(
         org_id,
         query.calendar_id,
         query.limit,
@@ -482,7 +482,7 @@ pub async fn get_transaction_calendar_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.transaction_calendar_engine.get_dashboard(org_id).await {
+    match state.core.transaction_calendar_engine.get_dashboard(org_id).await {
         Ok(summary) => Ok(Json(crate::handlers::records::to_json_or_null(summary))),
         Err(e) => {
             error!("Failed to get transaction calendar dashboard: {}", e);

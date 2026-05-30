@@ -42,7 +42,7 @@ pub async fn create_advance(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.advance_payment_engine.create_advance(
+    match state.financials.advance_payment_engine.create_advance(
         org_id, &payload.advance_number, payload.supplier_id, &payload.supplier_name,
         payload.supplier_site_id, payload.description.as_deref(), &payload.currency_code,
         &payload.advance_amount, payload.exchange_rate.as_deref(),
@@ -71,7 +71,7 @@ pub async fn list_advances(
     Query(query): Query<ListAdvancesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.advance_payment_engine.list_advances(org_id, query.status.as_deref(), query.supplier_id).await {
+    match state.financials.advance_payment_engine.list_advances(org_id, query.status.as_deref(), query.supplier_id).await {
         Ok(advances) => Ok(Json(serde_json::json!({ "data": advances }))),
         Err(e) => { error!("Failed to list advances: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -81,7 +81,7 @@ pub async fn get_advance(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.advance_payment_engine.get_advance(id).await {
+    match state.financials.advance_payment_engine.get_advance(id).await {
         Ok(Some(a)) => Ok(to_json(a)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get advance: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -94,7 +94,7 @@ pub async fn approve_advance(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.advance_payment_engine.approve_advance(id, user_id).await {
+    match state.financials.advance_payment_engine.approve_advance(id, user_id).await {
         Ok(a) => Ok(to_json(a)),
         Err(e) => {
             error!("Failed to approve advance: {}", e);
@@ -117,7 +117,7 @@ pub async fn pay_advance(
     Json(payload): Json<PayAdvanceRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.advance_payment_engine.pay_advance(id, payload.payment_reference.as_deref(), Some(user_id)).await {
+    match state.financials.advance_payment_engine.pay_advance(id, payload.payment_reference.as_deref(), Some(user_id)).await {
         Ok(a) => Ok(to_json(a)),
         Err(e) => {
             error!("Failed to pay advance: {}", e);
@@ -137,7 +137,7 @@ pub async fn cancel_advance(
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelAdvanceRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.advance_payment_engine.cancel_advance(id, payload.reason.as_deref()).await {
+    match state.financials.advance_payment_engine.cancel_advance(id, payload.reason.as_deref()).await {
         Ok(a) => Ok(to_json(a)),
         Err(e) => {
             error!("Failed to cancel advance: {}", e);
@@ -168,7 +168,7 @@ pub async fn apply_to_invoice(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.advance_payment_engine.apply_to_invoice(
+    match state.financials.advance_payment_engine.apply_to_invoice(
         org_id, payload.advance_id, payload.invoice_id,
         payload.invoice_number.as_deref(), &payload.applied_amount,
         payload.application_date, payload.gl_account_code.as_deref(), Some(user_id),
@@ -190,7 +190,7 @@ pub async fn get_advance_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.advance_payment_engine.get_dashboard(org_id).await {
+    match state.financials.advance_payment_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

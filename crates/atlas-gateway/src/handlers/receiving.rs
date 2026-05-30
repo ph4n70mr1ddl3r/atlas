@@ -42,7 +42,7 @@ pub async fn create_location(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.receiving_engine.create_location(
+    match state.scm.receiving_engine.create_location(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         payload.location_type.as_deref().unwrap_or("warehouse"),
         payload.address.as_deref(), payload.city.as_deref(), payload.state.as_deref(),
@@ -57,7 +57,7 @@ pub async fn list_locations(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.list_locations(org_id).await {
+    match state.scm.receiving_engine.list_locations(org_id).await {
         Ok(l) => Ok(Json(serde_json::json!({"data": l}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -67,7 +67,7 @@ pub async fn delete_location(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.delete_location(org_id, &code).await {
+    match state.scm.receiving_engine.delete_location(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -104,7 +104,7 @@ pub async fn create_receipt(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.receiving_engine.create_receipt(
+    match state.scm.receiving_engine.create_receipt(
         org_id, &payload.receipt_number,
         payload.receipt_type.as_deref().unwrap_or("standard"),
         payload.receipt_source.as_deref().unwrap_or("purchase_order"),
@@ -125,7 +125,7 @@ pub async fn get_receipt(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.get_receipt(id).await {
+    match state.scm.receiving_engine.get_receipt(id).await {
         Ok(Some(r)) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -143,7 +143,7 @@ pub async fn list_receipts(
     Query(params): Query<ListReceiptsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.list_receipts(org_id, params.status.as_deref(), params.supplier_id).await {
+    match state.scm.receiving_engine.list_receipts(org_id, params.status.as_deref(), params.supplier_id).await {
         Ok(r) => Ok(Json(serde_json::json!({"data": r}))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
@@ -153,7 +153,7 @@ pub async fn confirm_receipt(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.confirm_receipt(id, user_id).await {
+    match state.scm.receiving_engine.confirm_receipt(id, user_id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
@@ -162,7 +162,7 @@ pub async fn confirm_receipt(
 pub async fn close_receipt(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receiving_engine.close_receipt(id).await {
+    match state.scm.receiving_engine.close_receipt(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
@@ -171,7 +171,7 @@ pub async fn close_receipt(
 pub async fn cancel_receipt(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receiving_engine.cancel_receipt(id).await {
+    match state.scm.receiving_engine.cancel_receipt(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
@@ -207,7 +207,7 @@ pub async fn add_receipt_line(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.receiving_engine.add_receipt_line(
+    match state.scm.receiving_engine.add_receipt_line(
         org_id, receipt_id,
         payload.purchase_order_line_id, payload.item_id,
         payload.item_code.as_deref(), payload.item_description.as_deref(),
@@ -231,7 +231,7 @@ pub async fn list_receipt_lines(
     Path(receipt_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.list_receipt_lines(receipt_id).await {
+    match state.scm.receiving_engine.list_receipt_lines(receipt_id).await {
         Ok(l) => Ok(Json(serde_json::json!({"data": l}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -259,7 +259,7 @@ pub async fn create_inspection(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.receiving_engine.create_inspection(
+    match state.scm.receiving_engine.create_inspection(
         org_id, receipt_id, payload.receipt_line_id,
         payload.inspection_template.as_deref(), payload.inspector_id,
         payload.inspector_name.as_deref(), payload.inspection_date,
@@ -275,7 +275,7 @@ pub async fn list_inspections(
     Path(receipt_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.list_inspections(org_id, Some(receipt_id)).await {
+    match state.scm.receiving_engine.list_inspections(org_id, Some(receipt_id)).await {
         Ok(i) => Ok(Json(serde_json::json!({"data": i}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -296,7 +296,7 @@ pub async fn complete_inspection(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<CompleteInspectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receiving_engine.complete_inspection(
+    match state.scm.receiving_engine.complete_inspection(
         id, &payload.quantity_inspected, &payload.quantity_accepted,
         &payload.quantity_rejected, &payload.disposition,
         payload.quality_score.as_deref(), payload.rejection_reason.as_deref(),
@@ -328,7 +328,7 @@ pub async fn add_inspection_detail(
     Json(payload): Json<AddInspectionDetailRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.add_inspection_detail(
+    match state.scm.receiving_engine.add_inspection_detail(
         org_id, inspection_id, &payload.check_name,
         payload.check_type.as_deref().unwrap_or("visual"),
         payload.specification.as_deref(),
@@ -346,7 +346,7 @@ pub async fn list_inspection_details(
     Path(inspection_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _ = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.list_inspection_details(inspection_id).await {
+    match state.scm.receiving_engine.list_inspection_details(inspection_id).await {
         Ok(d) => Ok(Json(serde_json::json!({"data": d}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -378,7 +378,7 @@ pub async fn create_delivery(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.receiving_engine.create_delivery(
+    match state.scm.receiving_engine.create_delivery(
         org_id, receipt_id, payload.receipt_line_id,
         payload.subinventory.as_deref(), payload.locator.as_deref(),
         &payload.quantity_delivered, payload.uom.as_deref(),
@@ -397,7 +397,7 @@ pub async fn list_deliveries(
     Path(receipt_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.list_deliveries(org_id, Some(receipt_id)).await {
+    match state.scm.receiving_engine.list_deliveries(org_id, Some(receipt_id)).await {
         Ok(d) => Ok(Json(serde_json::json!({"data": d}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -431,7 +431,7 @@ pub async fn create_return(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.receiving_engine.create_return(
+    match state.scm.receiving_engine.create_return(
         org_id, payload.receipt_id, payload.receipt_line_id,
         payload.supplier_id, payload.supplier_name.as_deref(),
         payload.return_type.as_deref().unwrap_or("reject"),
@@ -455,7 +455,7 @@ pub async fn list_returns(
     Query(params): Query<ListReturnsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.list_returns(org_id, params.status.as_deref()).await {
+    match state.scm.receiving_engine.list_returns(org_id, params.status.as_deref()).await {
         Ok(r) => Ok(Json(serde_json::json!({"data": r}))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
@@ -470,7 +470,7 @@ pub struct ShipReturnRequest {
 pub async fn submit_return(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receiving_engine.submit_return(id).await {
+    match state.scm.receiving_engine.submit_return(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
@@ -480,7 +480,7 @@ pub async fn ship_return(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
     Json(payload): Json<ShipReturnRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receiving_engine.ship_return(id, payload.carrier.as_deref(), payload.tracking_number.as_deref()).await {
+    match state.scm.receiving_engine.ship_return(id, payload.carrier.as_deref(), payload.tracking_number.as_deref()).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
@@ -489,7 +489,7 @@ pub async fn ship_return(
 pub async fn credit_return(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receiving_engine.credit_return(id).await {
+    match state.scm.receiving_engine.credit_return(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
@@ -498,7 +498,7 @@ pub async fn credit_return(
 pub async fn cancel_return(
     State(state): State<Arc<AppState>>, _claims: Extension<Claims>, Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.receiving_engine.cancel_return(id).await {
+    match state.scm.receiving_engine.cancel_return(id).await {
         Ok(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
         Err(e) => { error!("Error: {}", e); Err(rcv_map_err(e)) }
     }
@@ -512,7 +512,7 @@ pub async fn get_receiving_dashboard(
     State(state): State<Arc<AppState>>, claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.receiving_engine.get_dashboard(org_id).await {
+    match state.scm.receiving_engine.get_dashboard(org_id).await {
         Ok(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

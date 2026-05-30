@@ -41,7 +41,7 @@ pub async fn create_distribution_set(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.distribution_set_engine.create_set(
+    match state.financials.distribution_set_engine.create_set(
         org_id,
         &payload.set_code,
         &payload.set_name,
@@ -81,7 +81,7 @@ pub async fn list_distribution_sets(
     Query(query): Query<ListDistributionSetsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.distribution_set_engine.list_sets(
+    match state.financials.distribution_set_engine.list_sets(
         org_id, query.status.as_deref(), query.distribution_type.as_deref(),
     ).await {
         Ok(sets) => Ok(Json(serde_json::json!({ "data": sets }))),
@@ -100,7 +100,7 @@ pub async fn get_distribution_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.distribution_set_engine.get_set(id).await {
+    match state.financials.distribution_set_engine.get_set(id).await {
         Ok(Some(set)) => Ok(to_json(set)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -118,7 +118,7 @@ pub async fn activate_distribution_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.distribution_set_engine.activate_set(id).await {
+    match state.financials.distribution_set_engine.activate_set(id).await {
         Ok(set) => Ok(to_json(set)),
         Err(e) => {
             error!("Failed to activate distribution set: {}", e);
@@ -138,7 +138,7 @@ pub async fn deactivate_distribution_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.distribution_set_engine.deactivate_set(id).await {
+    match state.financials.distribution_set_engine.deactivate_set(id).await {
         Ok(set) => Ok(to_json(set)),
         Err(e) => {
             error!("Failed to deactivate distribution set: {}", e);
@@ -158,7 +158,7 @@ pub async fn delete_distribution_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.distribution_set_engine.delete_set(id).await {
+    match state.financials.distribution_set_engine.delete_set(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete distribution set: {}", e);
@@ -200,7 +200,7 @@ pub async fn add_distribution_line(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.distribution_set_engine.add_line(
+    match state.financials.distribution_set_engine.add_line(
         org_id,
         set_id,
         &payload.account_combination,
@@ -236,7 +236,7 @@ pub async fn list_distribution_lines(
     State(state): State<Arc<AppState>>,
     Path(set_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.distribution_set_engine.list_lines(set_id).await {
+    match state.financials.distribution_set_engine.list_lines(set_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list distribution lines: {}", e);
@@ -253,7 +253,7 @@ pub async fn remove_distribution_line(
     State(state): State<Arc<AppState>>,
     Path(line_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.distribution_set_engine.remove_line(line_id).await {
+    match state.financials.distribution_set_engine.remove_line(line_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to remove distribution line: {}", e);
@@ -286,7 +286,7 @@ pub async fn apply_to_invoice(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.distribution_set_engine.apply_to_invoice(
+    match state.financials.distribution_set_engine.apply_to_invoice(
         org_id,
         set_id,
         payload.invoice_id,
@@ -324,7 +324,7 @@ pub async fn list_distribution_set_usage(
     Query(query): Query<ListUsageQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.distribution_set_engine.list_usage(
+    match state.financials.distribution_set_engine.list_usage(
         org_id, query.distribution_set_id,
     ).await {
         Ok(usage) => Ok(Json(serde_json::json!({ "data": usage }))),
@@ -344,7 +344,7 @@ pub async fn get_distribution_set_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.distribution_set_engine.get_dashboard(org_id).await {
+    match state.financials.distribution_set_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get distribution set dashboard: {}", e);

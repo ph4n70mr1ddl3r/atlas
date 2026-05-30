@@ -48,7 +48,7 @@ pub async fn create_segment(
     let parent_id = body["parentSegmentId"].as_str().and_then(|s| s.parse().ok());
     let sort_order = body["sortOrder"].as_i64().map(|v| v as i32);
 
-    match state.profitability_engine.create_segment(
+    match state.financials.profitability_engine.create_segment(
         org_id, &code, &name, &segment_type,
         description.as_deref(), parent_id, sort_order, user_id,
     ).await {
@@ -64,7 +64,7 @@ pub async fn list_segments(
     Query(query): Query<ListQuery>,
 ) -> impl IntoResponse {
     let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
-    match state.profitability_engine.list_segments(
+    match state.financials.profitability_engine.list_segments(
         org_id,
         query.segment_type.as_deref(),
         query.is_active,
@@ -80,7 +80,7 @@ pub async fn get_segment(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.profitability_engine.get_segment(id).await {
+    match state.financials.profitability_engine.get_segment(id).await {
         Ok(Some(seg)) => to_json(seg).into_response(),
         Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Segment not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
@@ -94,7 +94,7 @@ pub async fn delete_segment(
     Path(code): Path<String>,
 ) -> impl IntoResponse {
     let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
-    match state.profitability_engine.delete_segment(org_id, &code).await {
+    match state.financials.profitability_engine.delete_segment(org_id, &code).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -126,7 +126,7 @@ pub async fn create_run(
     let comparison_run_id = body["comparisonRunId"].as_str().and_then(|s| s.parse().ok());
     let notes = body["notes"].as_str().map(std::string::ToString::to_string);
 
-    match state.profitability_engine.create_run(
+    match state.financials.profitability_engine.create_run(
         org_id, &run_number, &run_name, &analysis_type,
         period_from, period_to, &currency_code,
         comparison_run_id, notes.as_deref(), user_id,
@@ -143,7 +143,7 @@ pub async fn list_runs(
     Query(query): Query<ListQuery>,
 ) -> impl IntoResponse {
     let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
-    match state.profitability_engine.list_runs(org_id, query.status.as_deref()).await {
+    match state.financials.profitability_engine.list_runs(org_id, query.status.as_deref()).await {
         Ok(runs) => Json(serde_json::json!({"data": runs})).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -155,7 +155,7 @@ pub async fn get_run(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.profitability_engine.get_run(id).await {
+    match state.financials.profitability_engine.get_run(id).await {
         Ok(Some(run)) => to_json(run).into_response(),
         Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Run not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
@@ -170,7 +170,7 @@ pub async fn transition_run(
     Json(body): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     let new_status = body["status"].as_str().unwrap_or("");
-    match state.profitability_engine.transition_run(id, new_status).await {
+    match state.financials.profitability_engine.transition_run(id, new_status).await {
         Ok(run) => to_json(run).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -183,7 +183,7 @@ pub async fn delete_run(
     Path(run_number): Path<String>,
 ) -> impl IntoResponse {
     let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
-    match state.profitability_engine.delete_run(org_id, &run_number).await {
+    match state.financials.profitability_engine.delete_run(org_id, &run_number).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -213,7 +213,7 @@ pub async fn add_run_line(
     let other_income = body["otherIncome"].as_f64().unwrap_or(0.0);
     let other_expense = body["otherExpense"].as_f64().unwrap_or(0.0);
 
-    match state.profitability_engine.add_run_line(
+    match state.financials.profitability_engine.add_run_line(
         org_id, run_id,
         segment_id, segment_code.as_deref(), segment_name.as_deref(), segment_type.as_deref(),
         line_number, revenue, cogs, opex, other_income, other_expense,
@@ -229,7 +229,7 @@ pub async fn list_run_lines(
     Extension(_claims): Extension<Claims>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.profitability_engine.list_run_lines(run_id).await {
+    match state.financials.profitability_engine.list_run_lines(run_id).await {
         Ok(lines) => Json(serde_json::json!({"data": lines})).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -241,7 +241,7 @@ pub async fn remove_run_line(
     Extension(_claims): Extension<Claims>,
     Path((run_id, line_id)): Path<(Uuid, Uuid)>,
 ) -> impl IntoResponse {
-    match state.profitability_engine.remove_run_line(run_id, line_id).await {
+    match state.financials.profitability_engine.remove_run_line(run_id, line_id).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -269,7 +269,7 @@ pub async fn create_template(
     let includes_other = body["includesOther"].as_bool();
     let auto_calculate = body["autoCalculate"].as_bool();
 
-    match state.profitability_engine.create_template(
+    match state.financials.profitability_engine.create_template(
         org_id, &code, &name, description.as_deref(), &segment_type,
         includes_cogs, includes_operating, includes_other, auto_calculate, user_id,
     ).await {
@@ -285,7 +285,7 @@ pub async fn list_templates(
     Query(query): Query<ListQuery>,
 ) -> impl IntoResponse {
     let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
-    match state.profitability_engine.list_templates(org_id, query.is_active).await {
+    match state.financials.profitability_engine.list_templates(org_id, query.is_active).await {
         Ok(templates) => Json(serde_json::json!({"data": templates})).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -298,7 +298,7 @@ pub async fn delete_template(
     Path(code): Path<String>,
 ) -> impl IntoResponse {
     let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
-    match state.profitability_engine.delete_template(org_id, &code).await {
+    match state.financials.profitability_engine.delete_template(org_id, &code).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -314,7 +314,7 @@ pub async fn get_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> impl IntoResponse {
     let org_id = parse_uuid(&claims.org_id).unwrap_or_default();
-    match state.profitability_engine.get_dashboard(org_id).await {
+    match state.financials.profitability_engine.get_dashboard(org_id).await {
         Ok(dashboard) => to_json(dashboard).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }

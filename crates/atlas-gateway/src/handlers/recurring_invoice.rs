@@ -77,7 +77,7 @@ pub async fn create_template(
     let po_number = body["poNumber"].as_str().map(std::string::ToString::to_string);
     let gl_date_basis = body["glDateBasis"].as_str().unwrap_or("generation_date").to_string();
 
-    match state.recurring_invoice_engine.create_template(
+    match state.financials.recurring_invoice_engine.create_template(
         org_id,
         &template_number,
         &template_name,
@@ -126,7 +126,7 @@ pub async fn list_templates(
         Err(e) => return e.into_response(),
     };
     let supplier_id = query.supplier_id.as_ref().and_then(|s| s.parse().ok());
-    match state.recurring_invoice_engine.list_templates(
+    match state.financials.recurring_invoice_engine.list_templates(
         org_id,
         query.status.as_deref(),
         supplier_id,
@@ -142,7 +142,7 @@ pub async fn get_template(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.recurring_invoice_engine.get_template(id).await {
+    match state.financials.recurring_invoice_engine.get_template(id).await {
         Ok(Some(tmpl)) => to_json(tmpl).into_response(),
         Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Template not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
@@ -157,7 +157,7 @@ pub async fn transition_template(
     Json(body): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     let new_status = body["status"].as_str().unwrap_or("");
-    match state.recurring_invoice_engine.transition_template(id, new_status).await {
+    match state.financials.recurring_invoice_engine.transition_template(id, new_status).await {
         Ok(tmpl) => to_json(tmpl).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -173,7 +173,7 @@ pub async fn delete_template(
         Ok(id) => id,
         Err(e) => return e.into_response(),
     };
-    match state.recurring_invoice_engine.delete_template(org_id, &template_number).await {
+    match state.financials.recurring_invoice_engine.delete_template(org_id, &template_number).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -210,7 +210,7 @@ pub async fn add_template_line(
     let project_id = body["projectId"].as_str().and_then(|s| s.parse().ok());
     let expenditure_type = body["expenditureType"].as_str().map(std::string::ToString::to_string);
 
-    match state.recurring_invoice_engine.add_template_line(
+    match state.financials.recurring_invoice_engine.add_template_line(
         org_id,
         template_id,
         &line_type,
@@ -239,7 +239,7 @@ pub async fn list_template_lines(
     Extension(_claims): Extension<Claims>,
     Path(template_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.recurring_invoice_engine.list_template_lines(template_id).await {
+    match state.financials.recurring_invoice_engine.list_template_lines(template_id).await {
         Ok(lines) => Json(serde_json::json!({"data": lines})).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -251,7 +251,7 @@ pub async fn remove_template_line(
     Extension(_claims): Extension<Claims>,
     Path((template_id, line_id)): Path<(Uuid, Uuid)>,
 ) -> impl IntoResponse {
-    match state.recurring_invoice_engine.remove_template_line(template_id, line_id).await {
+    match state.financials.recurring_invoice_engine.remove_template_line(template_id, line_id).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }
@@ -277,7 +277,7 @@ pub async fn generate_invoice(
     let fiscal_year = body["fiscalYear"].as_i64().map(|v| v as i32);
     let period_number = body["periodNumber"].as_i64().map(|v| v as i32);
 
-    match state.recurring_invoice_engine.generate_invoice(
+    match state.financials.recurring_invoice_engine.generate_invoice(
         template_id,
         invoice_date,
         period_name.as_deref(),
@@ -301,7 +301,7 @@ pub async fn list_generations(
         Err(e) => return e.into_response(),
     };
     let template_id = query.template_id.as_ref().and_then(|s| s.parse().ok());
-    match state.recurring_invoice_engine.list_generations(
+    match state.financials.recurring_invoice_engine.list_generations(
         org_id,
         template_id,
         query.generation_status.as_deref(),
@@ -330,7 +330,7 @@ pub async fn get_dashboard(
         Ok(id) => id,
         Err(e) => return e.into_response(),
     };
-    match state.recurring_invoice_engine.get_dashboard(org_id).await {
+    match state.financials.recurring_invoice_engine.get_dashboard(org_id).await {
         Ok(dashboard) => to_json(dashboard).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
     }

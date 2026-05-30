@@ -70,7 +70,7 @@ pub async fn create_program(
     let org_id = parse_org(&claims)?;
     let user_id = parse_user(&claims)?;
 
-    let program = state.loyalty_engine
+    let program = state.crm.loyalty_engine
         .create_program(
             org_id, &payload.program_number, &payload.name, payload.description.as_deref(),
             payload.program_type.as_deref().unwrap_or("points"),
@@ -94,7 +94,7 @@ pub async fn get_program(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let program = state.loyalty_engine.get_program(id).await
+    let program = state.crm.loyalty_engine.get_program(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match program {
         Some(p) => Ok(to_json(p)),
@@ -115,7 +115,7 @@ pub async fn list_programs(
     Query(params): Query<ListProgramsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = parse_org(&claims)?;
-    let programs = state.loyalty_engine.list_programs(
+    let programs = state.crm.loyalty_engine.list_programs(
         org_id, params.status.as_deref(), params.program_type.as_deref(),
     ).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": programs })))
@@ -126,7 +126,7 @@ pub async fn activate_program(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let program = state.loyalty_engine.activate_program(id).await.map_err(map_err)?;
+    let program = state.crm.loyalty_engine.activate_program(id).await.map_err(map_err)?;
     Ok(to_json(program))
 }
 
@@ -135,7 +135,7 @@ pub async fn suspend_program(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let program = state.loyalty_engine.suspend_program(id).await.map_err(map_err)?;
+    let program = state.crm.loyalty_engine.suspend_program(id).await.map_err(map_err)?;
     Ok(to_json(program))
 }
 
@@ -144,7 +144,7 @@ pub async fn close_program(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let program = state.loyalty_engine.close_program(id).await.map_err(map_err)?;
+    let program = state.crm.loyalty_engine.close_program(id).await.map_err(map_err)?;
     Ok(to_json(program))
 }
 
@@ -154,7 +154,7 @@ pub async fn delete_program(
     Path(program_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = parse_org(&claims)?;
-    state.loyalty_engine.delete_program(org_id, &program_number).await.map_err(map_err)?;
+    state.crm.loyalty_engine.delete_program(org_id, &program_number).await.map_err(map_err)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -185,7 +185,7 @@ pub async fn create_tier(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = parse_org(&claims)?;
 
-    let tier = state.loyalty_engine.create_tier(
+    let tier = state.crm.loyalty_engine.create_tier(
         org_id, program_id, &payload.tier_code, &payload.tier_name,
         payload.tier_level.unwrap_or(0), payload.minimum_points.unwrap_or(0.0),
         payload.maximum_points, payload.accrual_bonus_percentage,
@@ -201,7 +201,7 @@ pub async fn list_tiers(
     _claims: Extension<Claims>,
     Path(program_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let tiers = state.loyalty_engine.list_tiers(program_id).await
+    let tiers = state.crm.loyalty_engine.list_tiers(program_id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": tiers })))
 }
@@ -211,7 +211,7 @@ pub async fn delete_tier(
     _claims: Extension<Claims>,
     Path(tier_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.loyalty_engine.delete_tier(tier_id).await.map_err(map_err)?;
+    state.crm.loyalty_engine.delete_tier(tier_id).await.map_err(map_err)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -238,7 +238,7 @@ pub async fn enroll_member(
     let org_id = parse_org(&claims)?;
     let user_id = parse_user(&claims)?;
 
-    let member = state.loyalty_engine.enroll_member(
+    let member = state.crm.loyalty_engine.enroll_member(
         org_id, program_id, &payload.member_number, payload.customer_id,
         &payload.customer_name, payload.customer_email.as_deref(),
         payload.notes.as_deref(), Some(user_id),
@@ -252,7 +252,7 @@ pub async fn get_member(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.loyalty_engine.get_member(id).await {
+    match state.crm.loyalty_engine.get_member(id).await {
         Ok(Some(m)) => Ok(to_json(m)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -269,7 +269,7 @@ pub async fn list_members(
     Path(program_id): Path<Uuid>,
     Query(params): Query<ListMembersQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let members = state.loyalty_engine.list_members(program_id, params.status.as_deref())
+    let members = state.crm.loyalty_engine.list_members(program_id, params.status.as_deref())
         .await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": members })))
 }
@@ -279,7 +279,7 @@ pub async fn suspend_member(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let member = state.loyalty_engine.suspend_member(id).await.map_err(map_err)?;
+    let member = state.crm.loyalty_engine.suspend_member(id).await.map_err(map_err)?;
     Ok(to_json(member))
 }
 
@@ -288,7 +288,7 @@ pub async fn reactivate_member(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let member = state.loyalty_engine.reactivate_member(id).await.map_err(map_err)?;
+    let member = state.crm.loyalty_engine.reactivate_member(id).await.map_err(map_err)?;
     Ok(to_json(member))
 }
 
@@ -298,7 +298,7 @@ pub async fn delete_member(
     Path(member_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = parse_org(&claims)?;
-    state.loyalty_engine.delete_member(org_id, &member_number).await.map_err(map_err)?;
+    state.crm.loyalty_engine.delete_member(org_id, &member_number).await.map_err(map_err)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -328,7 +328,7 @@ pub async fn accrue_points(
     let org_id = parse_org(&claims)?;
     let user_id = parse_user(&claims)?;
 
-    let txn = state.loyalty_engine.accrue_points(
+    let txn = state.crm.loyalty_engine.accrue_points(
         org_id, program_id, payload.member_id, &payload.transaction_number,
         payload.source_type.as_deref(), payload.source_id, payload.source_number.as_deref(),
         payload.reference_amount, payload.reference_currency.as_deref(),
@@ -356,7 +356,7 @@ pub async fn adjust_points(
     let org_id = parse_org(&claims)?;
     let user_id = parse_user(&claims)?;
 
-    let txn = state.loyalty_engine.adjust_points(
+    let txn = state.crm.loyalty_engine.adjust_points(
         org_id, program_id, payload.member_id, &payload.transaction_number,
         payload.points, payload.description.as_deref(), Some(user_id),
     ).await.map_err(map_err)?;
@@ -374,7 +374,7 @@ pub async fn reverse_transaction(
     Path(id): Path<Uuid>,
     Json(payload): Json<ReverseTransactionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let txn = state.loyalty_engine.reverse_transaction(id, &payload.reason).await.map_err(map_err)?;
+    let txn = state.crm.loyalty_engine.reverse_transaction(id, &payload.reason).await.map_err(map_err)?;
     Ok(to_json(txn))
 }
 
@@ -388,7 +388,7 @@ pub async fn list_transactions(
     Path(member_id): Path<Uuid>,
     Query(params): Query<ListTransactionsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let txns = state.loyalty_engine.list_transactions(member_id, params.txn_type.as_deref())
+    let txns = state.crm.loyalty_engine.list_transactions(member_id, params.txn_type.as_deref())
         .await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": txns })))
 }
@@ -399,7 +399,7 @@ pub async fn delete_transaction(
     Path(transaction_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = parse_org(&claims)?;
-    state.loyalty_engine.delete_transaction(org_id, &transaction_number).await.map_err(map_err)?;
+    state.crm.loyalty_engine.delete_transaction(org_id, &transaction_number).await.map_err(map_err)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -435,7 +435,7 @@ pub async fn create_reward(
     let org_id = parse_org(&claims)?;
     let user_id = parse_user(&claims)?;
 
-    let reward = state.loyalty_engine.create_reward(
+    let reward = state.crm.loyalty_engine.create_reward(
         org_id, program_id, &payload.reward_code, &payload.name,
         payload.description.as_deref(), payload.reward_type.as_deref().unwrap_or("merchandise"),
         payload.points_required, payload.cash_value, payload.currency_code.as_deref(),
@@ -456,7 +456,7 @@ pub async fn list_rewards(
     Path(program_id): Path<Uuid>,
     Query(params): Query<ListRewardsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let rewards = state.loyalty_engine.list_rewards(program_id, params.reward_type.as_deref())
+    let rewards = state.crm.loyalty_engine.list_rewards(program_id, params.reward_type.as_deref())
         .await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": rewards })))
 }
@@ -466,7 +466,7 @@ pub async fn deactivate_reward(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let reward = state.loyalty_engine.deactivate_reward(id).await.map_err(map_err)?;
+    let reward = state.crm.loyalty_engine.deactivate_reward(id).await.map_err(map_err)?;
     Ok(to_json(reward))
 }
 
@@ -476,7 +476,7 @@ pub async fn delete_reward(
     Path(reward_code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = parse_org(&claims)?;
-    state.loyalty_engine.delete_reward(org_id, &reward_code).await.map_err(map_err)?;
+    state.crm.loyalty_engine.delete_reward(org_id, &reward_code).await.map_err(map_err)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -503,7 +503,7 @@ pub async fn redeem_reward(
     let org_id = parse_org(&claims)?;
     let user_id = parse_user(&claims)?;
 
-    let redemption = state.loyalty_engine.redeem_reward(
+    let redemption = state.crm.loyalty_engine.redeem_reward(
         org_id, program_id, payload.member_id, payload.reward_id,
         &payload.redemption_number, payload.quantity, payload.notes.as_deref(), Some(user_id),
     ).await.map_err(map_err)?;
@@ -516,7 +516,7 @@ pub async fn fulfill_redemption(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let redemption = state.loyalty_engine.fulfill_redemption(id).await.map_err(map_err)?;
+    let redemption = state.crm.loyalty_engine.fulfill_redemption(id).await.map_err(map_err)?;
     Ok(to_json(redemption))
 }
 
@@ -530,7 +530,7 @@ pub async fn cancel_redemption(
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelRedemptionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let redemption = state.loyalty_engine.cancel_redemption(id, &payload.reason).await.map_err(map_err)?;
+    let redemption = state.crm.loyalty_engine.cancel_redemption(id, &payload.reason).await.map_err(map_err)?;
     Ok(to_json(redemption))
 }
 
@@ -544,7 +544,7 @@ pub async fn list_redemptions(
     Path(member_id): Path<Uuid>,
     Query(params): Query<ListRedemptionsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let redemptions = state.loyalty_engine.list_redemptions(member_id, params.status.as_deref())
+    let redemptions = state.crm.loyalty_engine.list_redemptions(member_id, params.status.as_deref())
         .await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": redemptions })))
 }
@@ -558,7 +558,7 @@ pub async fn get_loyalty_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = parse_org(&claims)?;
-    let dashboard = state.loyalty_engine.get_dashboard(org_id).await
+    let dashboard = state.crm.loyalty_engine.get_dashboard(org_id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(to_json(dashboard))
 }

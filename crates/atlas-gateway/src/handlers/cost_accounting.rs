@@ -56,8 +56,7 @@ pub async fn create_cost_book(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let book = state
-        .cost_accounting_engine
+    let book = state.shared.cost_accounting_engine
         .create_cost_book(
             org_id,
             &payload.code,
@@ -89,8 +88,7 @@ pub async fn get_cost_book(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let book = state
-        .cost_accounting_engine
+    let book = state.shared.cost_accounting_engine
         .get_cost_book(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -114,8 +112,7 @@ pub async fn list_cost_books(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let include_inactive = params.include_inactive.as_deref() == Some("true");
 
-    let books = state
-        .cost_accounting_engine
+    let books = state.shared.cost_accounting_engine
         .list_cost_books(org_id, params.costing_method.as_deref(), include_inactive)
         .await
         .map_err(|e| {
@@ -153,8 +150,7 @@ pub async fn update_cost_book(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let book = state
-        .cost_accounting_engine
+    let book = state.shared.cost_accounting_engine
         .update_cost_book(
             id,
             payload.name.as_deref(),
@@ -180,8 +176,7 @@ pub async fn deactivate_cost_book(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let book = state
-        .cost_accounting_engine
+    let book = state.shared.cost_accounting_engine
         .deactivate_cost_book(id)
         .await
         .map_err(|e| {
@@ -200,8 +195,7 @@ pub async fn activate_cost_book(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let book = state
-        .cost_accounting_engine
+    let book = state.shared.cost_accounting_engine
         .activate_cost_book(id)
         .await
         .map_err(|e| {
@@ -220,8 +214,7 @@ pub async fn delete_cost_book(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state
-        .cost_accounting_engine
+    state.shared.cost_accounting_engine
         .delete_cost_book(id)
         .await
         .map_err(|e| {
@@ -259,8 +252,7 @@ pub async fn create_cost_element(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let element = state
-        .cost_accounting_engine
+    let element = state.shared.cost_accounting_engine
         .create_cost_element(
             org_id,
             &payload.code,
@@ -293,8 +285,7 @@ pub async fn get_cost_element(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let element = state
-        .cost_accounting_engine
+    let element = state.shared.cost_accounting_engine
         .get_cost_element(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -321,8 +312,7 @@ pub async fn list_cost_elements(
         .as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
 
-    let elements = state
-        .cost_accounting_engine
+    let elements = state.shared.cost_accounting_engine
         .list_cost_elements(org_id, params.element_type.as_deref(), cost_book_id)
         .await
         .map_err(|e| {
@@ -340,8 +330,7 @@ pub async fn delete_cost_element(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state
-        .cost_accounting_engine
+    state.shared.cost_accounting_engine
         .delete_cost_element(id)
         .await
         .map_err(|e| {
@@ -368,8 +357,7 @@ pub async fn update_cost_element(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateCostElementRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let element = state
-        .cost_accounting_engine
+    let element = state.shared.cost_accounting_engine
         .update_cost_element(
             id,
             payload.name.as_deref(),
@@ -416,8 +404,7 @@ pub async fn create_cost_profile(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let profile = state
-        .cost_accounting_engine
+    let profile = state.shared.cost_accounting_engine
         .create_cost_profile(
             org_id,
             &payload.code,
@@ -453,8 +440,7 @@ pub async fn get_cost_profile(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let profile = state
-        .cost_accounting_engine
+    let profile = state.shared.cost_accounting_engine
         .get_cost_profile(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -485,8 +471,7 @@ pub async fn list_cost_profiles(
         .as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
 
-    let profiles = state
-        .cost_accounting_engine
+    let profiles = state.shared.cost_accounting_engine
         .list_cost_profiles(org_id, cost_book_id, item_id)
         .await
         .map_err(|e| {
@@ -504,8 +489,7 @@ pub async fn delete_cost_profile(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state
-        .cost_accounting_engine
+    state.shared.cost_accounting_engine
         .delete_cost_profile(id)
         .await
         .map_err(|e| {
@@ -547,8 +531,7 @@ pub async fn create_standard_cost(
     let effective_date = chrono::NaiveDate::parse_from_str(&payload.effective_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let cost = state
-        .cost_accounting_engine
+    let cost = state.shared.cost_accounting_engine
         .create_standard_cost(
             org_id,
             payload.cost_book_id,
@@ -581,8 +564,7 @@ pub async fn get_standard_cost(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let cost = state
-        .cost_accounting_engine
+    let cost = state.shared.cost_accounting_engine
         .get_standard_cost(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -613,8 +595,7 @@ pub async fn list_standard_costs(
         .as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
 
-    let costs = state
-        .cost_accounting_engine
+    let costs = state.shared.cost_accounting_engine
         .list_standard_costs(org_id, cost_book_id, item_id)
         .await
         .map_err(|e| {
@@ -639,8 +620,7 @@ pub async fn update_standard_cost(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateStandardCostRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let cost = state
-        .cost_accounting_engine
+    let cost = state.shared.cost_accounting_engine
         .update_standard_cost(id, &payload.standard_cost)
         .await
         .map_err(|e| {
@@ -659,8 +639,7 @@ pub async fn supersede_standard_cost(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let cost = state
-        .cost_accounting_engine
+    let cost = state.shared.cost_accounting_engine
         .supersede_standard_cost(id)
         .await
         .map_err(|e| {
@@ -679,8 +658,7 @@ pub async fn delete_standard_cost(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state
-        .cost_accounting_engine
+    state.shared.cost_accounting_engine
         .delete_standard_cost(id)
         .await
         .map_err(|e| {
@@ -723,8 +701,7 @@ pub async fn create_cost_adjustment(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let adj = state
-        .cost_accounting_engine
+    let adj = state.shared.cost_accounting_engine
         .create_cost_adjustment(
             org_id,
             payload.cost_book_id,
@@ -755,8 +732,7 @@ pub async fn get_cost_adjustment(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let adj = state
-        .cost_accounting_engine
+    let adj = state.shared.cost_accounting_engine
         .get_cost_adjustment(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -779,8 +755,7 @@ pub async fn list_cost_adjustments(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let adjustments = state
-        .cost_accounting_engine
+    let adjustments = state.shared.cost_accounting_engine
         .list_cost_adjustments(org_id, params.status.as_deref(), params.adjustment_type.as_deref())
         .await
         .map_err(|e| {
@@ -798,8 +773,7 @@ pub async fn submit_adjustment(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let adj = state
-        .cost_accounting_engine
+    let adj = state.shared.cost_accounting_engine
         .submit_adjustment(id)
         .await
         .map_err(|e| {
@@ -821,8 +795,7 @@ pub async fn approve_adjustment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let adj = state
-        .cost_accounting_engine
+    let adj = state.shared.cost_accounting_engine
         .approve_adjustment(id, user_id)
         .await
         .map_err(|e| {
@@ -851,8 +824,7 @@ pub async fn reject_adjustment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let adj = state
-        .cost_accounting_engine
+    let adj = state.shared.cost_accounting_engine
         .reject_adjustment(id, user_id, &payload.reason)
         .await
         .map_err(|e| {
@@ -874,8 +846,7 @@ pub async fn post_adjustment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let adj = state
-        .cost_accounting_engine
+    let adj = state.shared.cost_accounting_engine
         .post_adjustment(id, user_id)
         .await
         .map_err(|e| {
@@ -894,8 +865,7 @@ pub async fn delete_cost_adjustment(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state
-        .cost_accounting_engine
+    state.shared.cost_accounting_engine
         .delete_cost_adjustment(id)
         .await
         .map_err(|e| {
@@ -940,8 +910,7 @@ pub async fn add_adjustment_line(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let line = state
-        .cost_accounting_engine
+    let line = state.shared.cost_accounting_engine
         .add_adjustment_line(
             org_id,
             adjustment_id,
@@ -974,8 +943,7 @@ pub async fn list_adjustment_lines(
     State(state): State<Arc<AppState>>,
     Path(adjustment_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let lines = state
-        .cost_accounting_engine
+    let lines = state.shared.cost_accounting_engine
         .list_adjustment_lines(adjustment_id)
         .await
         .map_err(|e| {
@@ -993,8 +961,7 @@ pub async fn delete_adjustment_line(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state
-        .cost_accounting_engine
+    state.shared.cost_accounting_engine
         .delete_adjustment_line(id)
         .await
         .map_err(|e| {
@@ -1043,8 +1010,7 @@ pub async fn create_cost_variance(
         chrono::NaiveDate::parse_from_str(&payload.variance_date, "%Y-%m-%d")
             .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let variance = state
-        .cost_accounting_engine
+    let variance = state.shared.cost_accounting_engine
         .create_cost_variance(
             org_id,
             payload.cost_book_id,
@@ -1083,8 +1049,7 @@ pub async fn get_cost_variance(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let variance = state
-        .cost_accounting_engine
+    let variance = state.shared.cost_accounting_engine
         .get_cost_variance(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -1116,8 +1081,7 @@ pub async fn list_cost_variances(
         .as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
 
-    let variances = state
-        .cost_accounting_engine
+    let variances = state.shared.cost_accounting_engine
         .list_cost_variances(org_id, params.variance_type.as_deref(), item_id, cost_book_id)
         .await
         .map_err(|e| {
@@ -1142,8 +1106,7 @@ pub async fn analyze_variance(
     Path(id): Path<Uuid>,
     Json(payload): Json<AnalyzeVarianceRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let variance = state
-        .cost_accounting_engine
+    let variance = state.shared.cost_accounting_engine
         .analyze_variance(id, &payload.notes)
         .await
         .map_err(|e| {
@@ -1168,8 +1131,7 @@ pub async fn get_cost_accounting_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let dashboard = state
-        .cost_accounting_engine
+    let dashboard = state.shared.cost_accounting_engine
         .get_dashboard(org_id)
         .await
         .map_err(|e| {

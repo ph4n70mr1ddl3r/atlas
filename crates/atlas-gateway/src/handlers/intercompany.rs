@@ -50,7 +50,7 @@ pub async fn create_intercompany_batch(
 
     info!("Creating intercompany batch {} for org {}", payload.batch_number, org_id);
 
-    match state.intercompany_engine.create_batch(
+    match state.financials.intercompany_engine.create_batch(
         org_id,
         &payload.batch_number,
         payload.description.as_deref(),
@@ -82,7 +82,7 @@ pub async fn list_intercompany_batches(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.intercompany_engine.list_batches(org_id, params.status.as_deref()).await {
+    match state.financials.intercompany_engine.list_batches(org_id, params.status.as_deref()).await {
         Ok(batches) => Ok(Json(serde_json::json!({ "data": batches }))),
         Err(e) => {
             error!("Failed to list intercompany batches: {}", e);
@@ -105,7 +105,7 @@ pub async fn get_intercompany_batch(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.intercompany_engine.get_batch(org_id, &batch_number).await {
+    match state.financials.intercompany_engine.get_batch(org_id, &batch_number).await {
         Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -124,7 +124,7 @@ pub async fn submit_intercompany_batch(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.intercompany_engine.submit_batch(batch_id, Some(user_id)).await {
+    match state.financials.intercompany_engine.submit_batch(batch_id, Some(user_id)).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit intercompany batch: {}", e);
@@ -147,7 +147,7 @@ pub async fn approve_intercompany_batch(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.intercompany_engine.approve_batch(batch_id, user_id).await {
+    match state.financials.intercompany_engine.approve_batch(batch_id, user_id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve intercompany batch: {}", e);
@@ -166,7 +166,7 @@ pub async fn post_intercompany_batch(
     _claims: Extension<Claims>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.intercompany_engine.post_batch(batch_id).await {
+    match state.financials.intercompany_engine.post_batch(batch_id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to post intercompany batch: {}", e);
@@ -186,7 +186,7 @@ pub async fn reject_intercompany_batch(
     Path(batch_id): Path<Uuid>,
     Json(payload): Json<RejectBatchRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.intercompany_engine.reject_batch(batch_id, &payload.reason).await {
+    match state.financials.intercompany_engine.reject_batch(batch_id, &payload.reason).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reject intercompany batch: {}", e);
@@ -250,7 +250,7 @@ pub async fn create_intercompany_transaction(
 
     let txn_date = payload.transaction_date.unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    match state.intercompany_engine.create_transaction(
+    match state.financials.intercompany_engine.create_transaction(
         org_id,
         &payload.batch_number,
         &payload.transaction_number,
@@ -294,7 +294,7 @@ pub async fn list_intercompany_transactions(
     _claims: Extension<Claims>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.intercompany_engine.list_transactions_by_batch(batch_id).await {
+    match state.financials.intercompany_engine.list_transactions_by_batch(batch_id).await {
         Ok(transactions) => Ok(Json(serde_json::json!({ "data": transactions }))),
         Err(e) => {
             error!("Failed to list intercompany transactions: {}", e);
@@ -313,7 +313,7 @@ pub async fn list_entity_transactions(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.intercompany_engine.list_transactions_by_entity(
+    match state.financials.intercompany_engine.list_transactions_by_entity(
         org_id, entity_id, params.status.as_deref(),
     ).await {
         Ok(transactions) => Ok(Json(serde_json::json!({ "data": transactions }))),
@@ -362,7 +362,7 @@ pub async fn create_intercompany_settlement(
 
     let txn_ids = payload.transaction_ids.unwrap_or_default();
 
-    match state.intercompany_engine.create_settlement(
+    match state.financials.intercompany_engine.create_settlement(
         org_id,
         &payload.settlement_number,
         &payload.settlement_method,
@@ -394,7 +394,7 @@ pub async fn list_intercompany_settlements(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.intercompany_engine.list_settlements(
+    match state.financials.intercompany_engine.list_settlements(
         org_id, params.entity_id,
     ).await {
         Ok(settlements) => Ok(Json(serde_json::json!({ "data": settlements }))),
@@ -422,7 +422,7 @@ pub async fn get_intercompany_balance_summary(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.intercompany_engine.get_balance_summary(org_id).await {
+    match state.financials.intercompany_engine.get_balance_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to get intercompany balance summary: {}", e);
@@ -443,7 +443,7 @@ pub async fn get_intercompany_balance(
 
     let currency = params.currency_code.unwrap_or_else(|| "USD".to_string());
 
-    match state.intercompany_engine.get_balance(
+    match state.financials.intercompany_engine.get_balance(
         org_id, from_entity_id, to_entity_id, &currency,
     ).await {
         Ok(Some(balance)) => Ok(Json(serde_json::to_value(balance).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),

@@ -80,7 +80,7 @@ pub async fn create_template(
     let effective_to = body["effective_to"].as_str()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.scheduled_process_engine.create_template(
+    match state.shared.scheduled_process_engine.create_template(
         org_id, &code, &name, description,
         &process_type, &executor_type, executor_config,
         parameters, default_parameters,
@@ -106,7 +106,7 @@ pub async fn get_template(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.scheduled_process_engine.get_template(org_id, &code).await {
+    match state.shared.scheduled_process_engine.get_template(org_id, &code).await {
         Ok(Some(template)) => Ok(Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Template not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -125,7 +125,7 @@ pub async fn list_templates(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.scheduled_process_engine.list_templates(
+    match state.shared.scheduled_process_engine.list_templates(
         org_id,
         params.process_type.as_deref(),
         params.is_active,
@@ -142,7 +142,7 @@ pub async fn activate_template(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.activate_template(id).await {
+    match state.shared.scheduled_process_engine.activate_template(id).await {
         Ok(template) => Ok(Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -155,7 +155,7 @@ pub async fn deactivate_template(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.deactivate_template(id).await {
+    match state.shared.scheduled_process_engine.deactivate_template(id).await {
         Ok(template) => Ok(Json(serde_json::to_value(template).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -173,7 +173,7 @@ pub async fn delete_template(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.scheduled_process_engine.delete_template(org_id, &code).await {
+    match state.shared.scheduled_process_engine.delete_template(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -206,7 +206,7 @@ pub async fn submit_process(
     let parameters = body.get("parameters").cloned().unwrap_or(json!({}));
     let submitted_by = parse_uuid(&claims.sub)?;
 
-    match state.scheduled_process_engine.submit_process(
+    match state.shared.scheduled_process_engine.submit_process(
         org_id, template_code,
         &process_name, &process_type, description,
         &priority, scheduled_start_at,
@@ -224,7 +224,7 @@ pub async fn get_process(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.get_process(id).await {
+    match state.shared.scheduled_process_engine.get_process(id).await {
         Ok(Some(process)) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Process not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -246,7 +246,7 @@ pub async fn list_processes(
     let submitted_by = params.submitted_by.as_ref()
         .and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.scheduled_process_engine.list_processes(
+    match state.shared.scheduled_process_engine.list_processes(
         org_id,
         params.status.as_deref(),
         submitted_by,
@@ -265,7 +265,7 @@ pub async fn start_process(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.start_process(id).await {
+    match state.shared.scheduled_process_engine.start_process(id).await {
         Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -283,7 +283,7 @@ pub async fn complete_process(
     let output_file_url = body["output_file_url"].as_str();
     let log_output = body["log_output"].as_str();
 
-    match state.scheduled_process_engine.complete_process(
+    match state.shared.scheduled_process_engine.complete_process(
         id, result_summary, output_file_url, log_output,
     ).await {
         Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -302,7 +302,7 @@ pub async fn cancel_process(
     let cancelled_by = parse_uuid(&claims.sub)?;
     let reason = body["reason"].as_str();
 
-    match state.scheduled_process_engine.cancel_process(id, cancelled_by, reason).await {
+    match state.shared.scheduled_process_engine.cancel_process(id, cancelled_by, reason).await {
         Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -318,7 +318,7 @@ pub async fn update_progress(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let progress_percent = body["progress_percent"].as_i64().unwrap_or(0) as i32;
 
-    match state.scheduled_process_engine.update_progress(id, progress_percent).await {
+    match state.shared.scheduled_process_engine.update_progress(id, progress_percent).await {
         Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -331,7 +331,7 @@ pub async fn approve_process(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.approve_process(id).await {
+    match state.shared.scheduled_process_engine.approve_process(id).await {
         Ok(process) => Ok(Json(serde_json::to_value(process).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -366,7 +366,7 @@ pub async fn create_recurrence(
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
     let max_runs = body["max_runs"].as_i64().map(|m| m as i32);
 
-    match state.scheduled_process_engine.create_recurrence(
+    match state.shared.scheduled_process_engine.create_recurrence(
         org_id, &name, description, &template_code,
         parameters, &recurrence_type, recurrence_config,
         start_date, end_date, max_runs,
@@ -384,7 +384,7 @@ pub async fn get_recurrence(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.get_recurrence(id).await {
+    match state.shared.scheduled_process_engine.get_recurrence(id).await {
         Ok(Some(recurrence)) => Ok(Json(serde_json::to_value(recurrence).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Recurrence not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -403,7 +403,7 @@ pub async fn list_recurrences(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.scheduled_process_engine.list_recurrences(org_id, params.is_active).await {
+    match state.shared.scheduled_process_engine.list_recurrences(org_id, params.is_active).await {
         Ok(recurrences) => Ok(Json(json!({"data": recurrences, "total": recurrences.len()}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -416,7 +416,7 @@ pub async fn deactivate_recurrence(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.deactivate_recurrence(id).await {
+    match state.shared.scheduled_process_engine.deactivate_recurrence(id).await {
         Ok(recurrence) => Ok(Json(serde_json::to_value(recurrence).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -429,7 +429,7 @@ pub async fn delete_recurrence(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.delete_recurrence(id).await {
+    match state.shared.scheduled_process_engine.delete_recurrence(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -441,7 +441,7 @@ pub async fn process_due_recurrences(
     State(state): State<Arc<AppState>>,
     Extension(_claims): Extension<Claims>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.process_due_recurrences().await {
+    match state.shared.scheduled_process_engine.process_due_recurrences().await {
         Ok(spawned) => Ok(Json(json!({
             "spawned_count": spawned.len(),
             "spawned_process_ids": spawned,
@@ -462,7 +462,7 @@ pub async fn list_process_logs(
     Path(id): Path<Uuid>,
     Query(params): Query<ListLogsQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scheduled_process_engine.list_logs(
+    match state.shared.scheduled_process_engine.list_logs(
         id, params.log_level.as_deref(), params.limit,
     ).await {
         Ok(logs) => Ok(Json(json!({"data": logs, "total": logs.len()}))),
@@ -489,7 +489,7 @@ pub async fn add_process_log(
     let step_name = body["step_name"].as_str();
     let duration_ms = body["duration_ms"].as_i64().map(|m| m as i32);
 
-    match state.scheduled_process_engine.add_log(
+    match state.shared.scheduled_process_engine.add_log(
         org_id, id, &log_level, &message,
         details, step_name, duration_ms,
     ).await {
@@ -513,7 +513,7 @@ pub async fn get_scheduled_process_dashboard(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.scheduled_process_engine.get_dashboard_summary(org_id).await {
+    match state.shared.scheduled_process_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

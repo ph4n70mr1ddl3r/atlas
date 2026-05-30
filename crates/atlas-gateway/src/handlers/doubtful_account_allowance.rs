@@ -98,7 +98,7 @@ pub async fn create_policy(
         None => None,
     };
 
-    match state.doubtful_account_engine.create_policy(
+    match state.financials.doubtful_account_engine.create_policy(
         org_id,
         &req.policy_code,
         &req.policy_name,
@@ -127,7 +127,7 @@ pub async fn get_policy(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let _org_id = parse_uuid(&claims.org_id)?;
 
-    match _state.doubtful_account_engine.get_policy(id).await {
+    match _state.financials.doubtful_account_engine.get_policy(id).await {
         Ok(Some(policy)) => Ok(to_json(policy)),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Policy not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
@@ -141,7 +141,7 @@ pub async fn get_policy_by_code(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match _state.doubtful_account_engine.get_policy_by_code(org_id, &code).await {
+    match _state.financials.doubtful_account_engine.get_policy_by_code(org_id, &code).await {
         Ok(Some(policy)) => Ok(to_json(policy)),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Policy not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
@@ -155,7 +155,7 @@ pub async fn list_policies(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match _state.doubtful_account_engine.list_policies(org_id, query.status.as_deref()).await {
+    match _state.financials.doubtful_account_engine.list_policies(org_id, query.status.as_deref()).await {
         Ok(policies) => Ok(Json(serde_json::json!({"data": policies}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -168,7 +168,7 @@ pub async fn deactivate_policy(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = parse_uuid(&claims.sub).ok();
 
-    match _state.doubtful_account_engine.deactivate_policy(id, user_id).await {
+    match _state.financials.doubtful_account_engine.deactivate_policy(id, user_id).await {
         Ok(policy) => Ok(to_json(policy)),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -181,7 +181,7 @@ pub async fn reactivate_policy(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = parse_uuid(&claims.sub).ok();
 
-    match _state.doubtful_account_engine.reactivate_policy(id, user_id).await {
+    match _state.financials.doubtful_account_engine.reactivate_policy(id, user_id).await {
         Ok(policy) => Ok(to_json(policy)),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -199,7 +199,7 @@ pub async fn create_aging_bucket(
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.doubtful_account_engine.create_aging_bucket(
+    match state.financials.doubtful_account_engine.create_aging_bucket(
         org_id,
         policy_id,
         &req.bucket_name,
@@ -221,7 +221,7 @@ pub async fn list_aging_buckets(
     Extension(_claims): Extension<Claims>,
     Path(policy_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match _state.doubtful_account_engine.list_aging_buckets_for_policy(policy_id).await {
+    match _state.financials.doubtful_account_engine.list_aging_buckets_for_policy(policy_id).await {
         Ok(buckets) => Ok(Json(serde_json::json!({"data": buckets}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -244,7 +244,7 @@ pub async fn create_provision_run(
             "error": format!("Invalid as_of_date: {}", e)
         }))))?;
 
-    match state.doubtful_account_engine.create_provision_run(
+    match state.financials.doubtful_account_engine.create_provision_run(
         org_id,
         req.policy_id,
         as_of_date,
@@ -264,7 +264,7 @@ pub async fn get_provision_run(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match _state.doubtful_account_engine.get_provision_run(id).await {
+    match _state.financials.doubtful_account_engine.get_provision_run(id).await {
         Ok(Some(run)) => Ok(to_json(run)),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Provision run not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
@@ -278,7 +278,7 @@ pub async fn get_provision_run_by_number(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match _state.doubtful_account_engine.get_provision_run_by_number(org_id, &number).await {
+    match _state.financials.doubtful_account_engine.get_provision_run_by_number(org_id, &number).await {
         Ok(Some(run)) => Ok(to_json(run)),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Provision run not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
@@ -292,7 +292,7 @@ pub async fn list_provision_runs(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match _state.doubtful_account_engine.list_provision_runs(
+    match _state.financials.doubtful_account_engine.list_provision_runs(
         org_id,
         query.policy_id,
         query.status.as_deref(),
@@ -309,7 +309,7 @@ pub async fn calculate_provision(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = parse_uuid(&claims.sub).ok();
 
-    match _state.doubtful_account_engine.calculate_provision(id, user_id).await {
+    match _state.financials.doubtful_account_engine.calculate_provision(id, user_id).await {
         Ok(run) => Ok(to_json(run)),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -323,7 +323,7 @@ pub async fn post_provision(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = parse_uuid(&claims.sub).ok();
 
-    match _state.doubtful_account_engine.post_provision(
+    match _state.financials.doubtful_account_engine.post_provision(
         id, user_id, req.journal_entry_number.as_deref(),
     ).await {
         Ok(run) => Ok(to_json(run)),
@@ -338,7 +338,7 @@ pub async fn reverse_provision(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = parse_uuid(&claims.sub).ok();
 
-    match _state.doubtful_account_engine.reverse_provision(id, user_id).await {
+    match _state.financials.doubtful_account_engine.reverse_provision(id, user_id).await {
         Ok(run) => Ok(to_json(run)),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -351,7 +351,7 @@ pub async fn cancel_provision(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = parse_uuid(&claims.sub).ok();
 
-    match _state.doubtful_account_engine.cancel_provision(id, user_id).await {
+    match _state.financials.doubtful_account_engine.cancel_provision(id, user_id).await {
         Ok(run) => Ok(to_json(run)),
         Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -362,7 +362,7 @@ pub async fn list_provision_details(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match _state.doubtful_account_engine.list_provision_details(id).await {
+    match _state.financials.doubtful_account_engine.list_provision_details(id).await {
         Ok(details) => Ok(Json(serde_json::json!({"data": details}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -373,7 +373,7 @@ pub async fn list_run_activities(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match _state.doubtful_account_engine.list_activities(id).await {
+    match _state.financials.doubtful_account_engine.list_activities(id).await {
         Ok(activities) => Ok(Json(serde_json::json!({"data": activities}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }
@@ -389,7 +389,7 @@ pub async fn get_dashboard(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match _state.doubtful_account_engine.get_dashboard(org_id).await {
+    match _state.financials.doubtful_account_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
     }

@@ -58,7 +58,7 @@ pub async fn create_term(
     let effective_to = req.effective_to.as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.finance_charge_engine.create_term(
+    match state.financials.finance_charge_engine.create_term(
         org_id,
         &req.term_code,
         &req.term_name,
@@ -93,7 +93,7 @@ pub async fn get_term(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.finance_charge_engine.get_term(id).await {
+    match state.financials.finance_charge_engine.get_term(id).await {
         Ok(Some(term)) => Ok(Json(serde_json::to_value(term).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Finance charge term not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -112,7 +112,7 @@ pub async fn list_terms(
     Query(query): Query<ListTermsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.finance_charge_engine.list_terms(org_id, query.is_active).await {
+    match state.financials.finance_charge_engine.list_terms(org_id, query.is_active).await {
         Ok(terms) => Ok(Json(serde_json::json!({"data": terms}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                         Json(serde_json::json!({"error": e.to_string()})))),
@@ -148,7 +148,7 @@ pub async fn create_run(
     let term_id = req.term_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
     let currency = req.currency_code.as_deref().unwrap_or("USD");
 
-    match state.finance_charge_engine.create_run(
+    match state.financials.finance_charge_engine.create_run(
         org_id, run_date, gl_date, term_id,
         req.term_code.as_deref(), currency,
         req.notes.as_deref(), None,
@@ -167,7 +167,7 @@ pub async fn get_run(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.finance_charge_engine.get_run(id).await {
+    match state.financials.finance_charge_engine.get_run(id).await {
         Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Finance charge run not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -181,7 +181,7 @@ pub async fn get_run_by_number(
     Path(number): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.finance_charge_engine.get_run_by_number(org_id, &number).await {
+    match state.financials.finance_charge_engine.get_run_by_number(org_id, &number).await {
         Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Finance charge run not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -200,7 +200,7 @@ pub async fn list_runs(
     Query(query): Query<ListRunsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.finance_charge_engine.list_runs(org_id, query.status.as_deref()).await {
+    match state.financials.finance_charge_engine.list_runs(org_id, query.status.as_deref()).await {
         Ok(runs) => Ok(Json(serde_json::json!({"data": runs}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                         Json(serde_json::json!({"error": e.to_string()})))),
@@ -213,7 +213,7 @@ pub async fn delete_run(
     Path(number): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.finance_charge_engine.delete_run(org_id, &number).await {
+    match state.financials.finance_charge_engine.delete_run(org_id, &number).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                         Json(serde_json::json!({"error": e.to_string()})))),
@@ -236,7 +236,7 @@ pub async fn transition_run(
     Path(id): Path<Uuid>,
     Json(req): Json<TransitionRunRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.finance_charge_engine.transition_run(id, &req.status, None).await {
+    match state.financials.finance_charge_engine.transition_run(id, &req.status, None).await {
         Ok(run) => Ok(Json(serde_json::to_value(run).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to transition finance charge run: {}", e);
@@ -286,7 +286,7 @@ pub async fn add_charge_line(
     let invoice_due_date = req.invoice_due_date.as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.finance_charge_engine.add_charge_line(
+    match state.financials.finance_charge_engine.add_charge_line(
         org_id, run_id,
         customer_id, req.customer_number.as_deref(), req.customer_name.as_deref(),
         invoice_id, req.invoice_number.as_deref(),
@@ -312,7 +312,7 @@ pub async fn list_lines(
     Extension(_claims): Extension<Claims>,
     Path(run_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.finance_charge_engine.list_lines(run_id).await {
+    match state.financials.finance_charge_engine.list_lines(run_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                         Json(serde_json::json!({"error": e.to_string()})))),
@@ -331,7 +331,7 @@ pub async fn waive_line(
     Path(line_id): Path<Uuid>,
     Json(req): Json<WaiveLineRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.finance_charge_engine.waive_line(line_id, &req.reason).await {
+    match state.financials.finance_charge_engine.waive_line(line_id, &req.reason).await {
         Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or(serde_json::Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                         Json(serde_json::json!({"error": e.to_string()})))),
@@ -347,7 +347,7 @@ pub async fn generate_invoices(
     Extension(_claims): Extension<Claims>,
     Path(run_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.finance_charge_engine.generate_invoices(run_id, None).await {
+    match state.financials.finance_charge_engine.generate_invoices(run_id, None).await {
         Ok(invoices) => Ok(Json(serde_json::json!({"data": invoices}))),
         Err(e) => {
             error!("Failed to generate charge invoices: {}", e);
@@ -364,7 +364,7 @@ pub async fn list_invoices(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let customer_id = params.customer_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
-    match state.finance_charge_engine.list_invoices(org_id, params.status.as_deref(), customer_id).await {
+    match state.financials.finance_charge_engine.list_invoices(org_id, params.status.as_deref(), customer_id).await {
         Ok(invoices) => Ok(Json(serde_json::json!({"data": invoices}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                         Json(serde_json::json!({"error": e.to_string()})))),
@@ -382,7 +382,7 @@ pub async fn get_invoice(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.finance_charge_engine.get_invoice(id).await {
+    match state.financials.finance_charge_engine.get_invoice(id).await {
         Ok(Some(inv)) => Ok(Json(serde_json::to_value(inv).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Charge invoice not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -402,7 +402,7 @@ pub async fn transition_invoice(
     Path(id): Path<Uuid>,
     Json(req): Json<TransitionInvoiceRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.finance_charge_engine.transition_invoice(id, &req.status).await {
+    match state.financials.finance_charge_engine.transition_invoice(id, &req.status).await {
         Ok(inv) => Ok(Json(serde_json::to_value(inv).unwrap_or(serde_json::Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                         Json(serde_json::json!({"error": e.to_string()})))),
@@ -418,7 +418,7 @@ pub async fn get_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.finance_charge_engine.get_dashboard(org_id).await {
+    match state.financials.finance_charge_engine.get_dashboard(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(serde_json::Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                         Json(serde_json::json!({"error": e.to_string()})))),

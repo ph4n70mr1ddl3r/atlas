@@ -47,7 +47,7 @@ pub async fn create_match(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.invoice_matching_engine.create_match(
+    match state.financials.invoice_matching_engine.create_match(
         org_id, &payload.match_number, payload.invoice_id,
         payload.invoice_number.as_deref(), payload.purchase_order_id,
         payload.po_number.as_deref(), payload.supplier_id, &payload.supplier_name,
@@ -85,7 +85,7 @@ pub async fn list_matches(
     Query(query): Query<ListMatchesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.invoice_matching_engine.list_matches(
+    match state.financials.invoice_matching_engine.list_matches(
         org_id, query.status.as_deref(), query.match_type.as_deref(), query.supplier_id,
     ).await {
         Ok(matches) => Ok(Json(serde_json::json!({ "data": matches }))),
@@ -97,7 +97,7 @@ pub async fn get_match(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.invoice_matching_engine.get_match(id).await {
+    match state.financials.invoice_matching_engine.get_match(id).await {
         Ok(Some(m)) => Ok(to_json(m)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get match: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -114,7 +114,7 @@ pub async fn hold_match(
     Json(payload): Json<HoldMatchRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.invoice_matching_engine.hold_match(id, payload.reason.as_deref(), Some(user_id)).await {
+    match state.financials.invoice_matching_engine.hold_match(id, payload.reason.as_deref(), Some(user_id)).await {
         Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to hold match: {}", e);
@@ -137,7 +137,7 @@ pub async fn override_match(
     Json(payload): Json<OverrideMatchRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.invoice_matching_engine.override_match(id, &payload.reason, Some(user_id)).await {
+    match state.financials.invoice_matching_engine.override_match(id, &payload.reason, Some(user_id)).await {
         Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to override match: {}", e);
@@ -159,7 +159,7 @@ pub async fn confirm_match(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.invoice_matching_engine.confirm_match(id, Some(user_id)).await {
+    match state.financials.invoice_matching_engine.confirm_match(id, Some(user_id)).await {
         Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to confirm match: {}", e);
@@ -180,7 +180,7 @@ pub async fn cancel_match(
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelMatchRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.invoice_matching_engine.cancel_match(id, payload.reason.as_deref()).await {
+    match state.financials.invoice_matching_engine.cancel_match(id, payload.reason.as_deref()).await {
         Ok(m) => Ok(to_json(m)),
         Err(e) => {
             error!("Failed to cancel match: {}", e);
@@ -220,7 +220,7 @@ pub async fn add_match_line(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.invoice_matching_engine.add_match_line(
+    match state.financials.invoice_matching_engine.add_match_line(
         org_id, payload.match_id,
         payload.invoice_line_id, payload.po_line_id,
         payload.receipt_line_id, payload.inspection_line_id,
@@ -247,7 +247,7 @@ pub async fn list_match_lines(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.invoice_matching_engine.list_match_lines(id).await {
+    match state.financials.invoice_matching_engine.list_match_lines(id).await {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => { error!("Failed to list match lines: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -260,7 +260,7 @@ pub async fn override_match_line(
     State(state): State<Arc<AppState>>,
     Path(line_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.invoice_matching_engine.override_match_line(line_id).await {
+    match state.financials.invoice_matching_engine.override_match_line(line_id).await {
         Ok(line) => Ok(to_json(line)),
         Err(e) => {
             error!("Failed to override match line: {}", e);
@@ -278,7 +278,7 @@ pub async fn get_invoice_matching_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.invoice_matching_engine.get_dashboard(org_id).await {
+    match state.financials.invoice_matching_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

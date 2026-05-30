@@ -38,7 +38,7 @@ pub async fn create_payment_format(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.payment_format_engine.create(
+    match state.financials.payment_format_engine.create(
         org_id, &payload.code, &payload.name,
         payload.description.as_deref(), &payload.format_type,
         &payload.payment_method, payload.file_template.as_deref(),
@@ -65,7 +65,7 @@ pub async fn get_payment_format(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.payment_format_engine.get(id).await {
+    match state.financials.payment_format_engine.get(id).await {
         Ok(Some(f)) => Ok(to_json(f)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get payment format: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -85,7 +85,7 @@ pub async fn list_payment_formats(
     Query(query): Query<ListPaymentFormatsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.payment_format_engine.list(
+    match state.financials.payment_format_engine.list(
         org_id, query.format_type.as_deref(),
         query.payment_method.as_deref(), query.is_active,
     ).await {
@@ -98,7 +98,7 @@ pub async fn deactivate_payment_format(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.payment_format_engine.deactivate(id).await {
+    match state.financials.payment_format_engine.deactivate(id).await {
         Ok(f) => Ok(to_json(f)),
         Err(e) => {
             error!("Failed to deactivate payment format: {}", e);
@@ -114,7 +114,7 @@ pub async fn activate_payment_format(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.payment_format_engine.activate(id).await {
+    match state.financials.payment_format_engine.activate(id).await {
         Ok(f) => Ok(to_json(f)),
         Err(e) => {
             error!("Failed to activate payment format: {}", e);
@@ -131,7 +131,7 @@ pub async fn get_payment_format_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.payment_format_engine.get_dashboard(org_id).await {
+    match state.financials.payment_format_engine.get_dashboard(org_id).await {
         Ok(dash) => Ok(to_json(dash)),
         Err(e) => { error!("Failed to get payment format dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

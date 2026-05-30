@@ -39,7 +39,7 @@ pub async fn create_reg_template(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.regulatory_reporting_engine.create_template(
+    match state.financials.regulatory_reporting_engine.create_template(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.authority, &payload.report_category, &payload.filing_frequency,
         &payload.output_format,
@@ -65,7 +65,7 @@ pub async fn list_reg_templates(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.regulatory_reporting_engine.list_templates(org_id, None, None).await {
+    match state.financials.regulatory_reporting_engine.list_templates(org_id, None, None).await {
         Ok(templates) => Ok(Json(serde_json::json!({ "data": templates }))),
         Err(e) => { error!("Failed to list templates: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -77,7 +77,7 @@ pub async fn delete_reg_template(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.regulatory_reporting_engine.delete_template(org_id, &code).await {
+    match state.financials.regulatory_reporting_engine.delete_template(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete template: {}", e);
@@ -107,7 +107,7 @@ pub async fn create_reg_report(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.regulatory_reporting_engine.create_report(
+    match state.financials.regulatory_reporting_engine.create_report(
         org_id, &payload.template_code, &payload.report_number, &payload.name,
         payload.period_start, payload.period_end, Some(user_id),
     ).await {
@@ -133,7 +133,7 @@ pub async fn list_reg_reports(
     Query(query): Query<ListRegReportsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.regulatory_reporting_engine.list_reports(org_id, query.status.as_deref(), query.authority.as_deref()).await {
+    match state.financials.regulatory_reporting_engine.list_reports(org_id, query.status.as_deref(), query.authority.as_deref()).await {
         Ok(reports) => Ok(Json(serde_json::json!({ "data": reports }))),
         Err(e) => { error!("Failed to list reports: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -145,7 +145,7 @@ pub async fn submit_for_review(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.regulatory_reporting_engine.submit_for_review(id, user_id).await {
+    match state.financials.regulatory_reporting_engine.submit_for_review(id, user_id).await {
         Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to submit for review: {}", e);
@@ -164,7 +164,7 @@ pub async fn approve_reg_report(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.regulatory_reporting_engine.approve_report(id, user_id).await {
+    match state.financials.regulatory_reporting_engine.approve_report(id, user_id).await {
         Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to approve report: {}", e);
@@ -184,7 +184,7 @@ pub async fn reject_reg_report(
     Path(id): Path<Uuid>,
     Json(payload): Json<RejectRegReportRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.regulatory_reporting_engine.reject_report(id, &payload.reason).await {
+    match state.financials.regulatory_reporting_engine.reject_report(id, &payload.reason).await {
         Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to reject report: {}", e);
@@ -216,7 +216,7 @@ pub async fn create_filing(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.regulatory_reporting_engine.create_filing(
+    match state.financials.regulatory_reporting_engine.create_filing(
         org_id, payload.template_code.as_deref(), &payload.authority,
         &payload.report_name, &payload.filing_frequency,
         payload.period_start, payload.period_end, payload.due_date, Some(user_id),
@@ -238,7 +238,7 @@ pub async fn list_filings(
     Query(query): Query<ListFilingsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.regulatory_reporting_engine.list_filings(org_id, query.status.as_deref()).await {
+    match state.financials.regulatory_reporting_engine.list_filings(org_id, query.status.as_deref()).await {
         Ok(filings) => Ok(Json(serde_json::json!({ "data": filings }))),
         Err(e) => { error!("Failed to list filings: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -252,7 +252,7 @@ pub async fn get_regulatory_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.regulatory_reporting_engine.get_dashboard(org_id).await {
+    match state.financials.regulatory_reporting_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

@@ -89,9 +89,9 @@ pub mod financials {
     pub use crate::deferred_revenue::{DeferredRevenueEngine, PostgresDeferredRevenueRepository as PostgresDeferredRevenueRepo};
     pub use crate::accounting_hub::{AccountingHubEngine, PostgresAccountingHubRepository as PostgresAccountingHubRepo};
     pub use crate::financial_controls::{FinancialControlsEngine, PostgresFinancialControlsRepository as PostgresFinancialControlsRepo};
-    pub use crate::revenue_management::RevenueManagementEngine;
-    pub use crate::cash_flow_forecast::CashFlowForecastEngine;
-    pub use crate::regulatory_reporting::RegulatoryReportingEngine;
+    pub use crate::revenue_management::{RevenueManagementEngine, PostgresRevenueManagementRepository as PostgresRevenueManagementRepo};
+    pub use crate::cash_flow_forecast::{CashFlowForecastEngine, PostgresCashFlowForecastRepository as PostgresCashFlowForecastRepo};
+    pub use crate::regulatory_reporting::{RegulatoryReportingEngine, PostgresRegulatoryReportingRepository as PostgresRegulatoryReportingRepo};
     pub use crate::advance_payment::{AdvancePaymentEngine, PostgresAdvancePaymentRepository as PostgresAdvancePaymentRepo};
     pub use crate::customer_deposit::{CustomerDepositEngine, PostgresCustomerDepositRepository as PostgresCustomerDepositRepo};
     pub use crate::cash_position::{CashPositionEngine, PostgresCashPositionRepository as PostgresCashPositionRepo};
@@ -135,7 +135,7 @@ pub mod financials {
     pub use crate::invoice_matching::{InvoiceMatchingEngine, PostgresInvoiceMatchingRepository};
     pub use crate::distribution_set::{DistributionSetEngine, PostgresDistributionSetRepository};
     pub use crate::auto_offset::{AutoOffsetEngine, PostgresAutoOffsetRepository as PostgresAutoOffsetRepo};
-    pub use crate::cash_flow_statement::CashFlowStatementEngine;
+    pub use crate::cash_flow_statement::{CashFlowStatementEngine, PostgresCashFlowStatementRepository as PostgresCashFlowStatementRepo};
     pub use crate::bank_statement_reconciliation::{BankStatementReconciliationEngine, PostgresBankStatementReconciliationRepository as PostgresBankStatementReconciliationRepo};
     pub use crate::third_party_payment::{ThirdPartyPaymentEngine, PostgresThirdPartyPaymentRepository as PostgresThirdPartyPaymentRepo};
     pub use crate::average_balance::{AverageBalanceEngine, PostgresAverageBalanceRepository as PostgresAverageBalanceRepo};

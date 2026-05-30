@@ -171,7 +171,7 @@ pub async fn create_schedule(
     let org_id = parse_uuid(&claims.org_id)?;
     let created_by = parse_uuid(&claims.sub).ok();
 
-    match state.project_billing_engine.create_schedule(
+    match state.projects.project_billing_engine.create_schedule(
         org_id, &req.schedule_number, &req.name,
         req.description.as_deref(), &req.schedule_type, &req.currency_code,
         req.effective_start, req.effective_end,
@@ -189,7 +189,7 @@ pub async fn get_schedule(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.get_schedule(id).await {
+    match state.projects.project_billing_engine.get_schedule(id).await {
         Ok(Some(s)) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Schedule not found"})))),
         Err(e) => Err(error_response(e)),
@@ -204,7 +204,7 @@ pub async fn list_schedules(
     let org_id = parse_uuid(&claims.org_id)?;
     let status = params.get("status").map(std::string::String::as_str);
 
-    match state.project_billing_engine.list_schedules(org_id, status).await {
+    match state.projects.project_billing_engine.list_schedules(org_id, status).await {
         Ok(schedules) => Ok(Json(json!({"data": schedules}))),
         Err(e) => Err(error_response(e)),
     }
@@ -214,7 +214,7 @@ pub async fn activate_schedule(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.activate_schedule(id).await {
+    match state.projects.project_billing_engine.activate_schedule(id).await {
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => Err(error_response(e)),
     }
@@ -224,7 +224,7 @@ pub async fn deactivate_schedule(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.deactivate_schedule(id).await {
+    match state.projects.project_billing_engine.deactivate_schedule(id).await {
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => Err(error_response(e)),
     }
@@ -237,7 +237,7 @@ pub async fn delete_schedule(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_billing_engine.delete_schedule(org_id, &schedule_number).await {
+    match state.projects.project_billing_engine.delete_schedule(org_id, &schedule_number).await {
         Ok(()) => Ok(Json(json!({"message": "Schedule deleted"}))),
         Err(e) => Err(error_response(e)),
     }
@@ -255,7 +255,7 @@ pub async fn add_rate_line(
 ) -> Result<(axum::http::StatusCode, Json<serde_json::Value>), (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_billing_engine.add_rate_line(
+    match state.projects.project_billing_engine.add_rate_line(
         org_id, schedule_id, &req.role_name, req.project_id,
         req.bill_rate, &req.unit_of_measure,
         req.effective_start, req.effective_end, req.markup_pct,
@@ -272,7 +272,7 @@ pub async fn list_rate_lines(
     State(state): State<Arc<AppState>>,
     Path(schedule_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.list_rate_lines(schedule_id).await {
+    match state.projects.project_billing_engine.list_rate_lines(schedule_id).await {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
         Err(e) => Err(error_response(e)),
     }
@@ -290,7 +290,7 @@ pub async fn find_rate_for_role(
         (axum::http::StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid date format, use YYYY-MM-DD"})))
     })?;
 
-    match state.project_billing_engine.find_rate_for_role(schedule_id, &role_name, date).await {
+    match state.projects.project_billing_engine.find_rate_for_role(schedule_id, &role_name, date).await {
         Ok(Some(line)) => Ok(Json(crate::handlers::records::to_json_or_null(line))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "No rate found for role on given date"})))),
         Err(e) => Err(error_response(e)),
@@ -301,7 +301,7 @@ pub async fn delete_rate_line(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.delete_rate_line(id).await {
+    match state.projects.project_billing_engine.delete_rate_line(id).await {
         Ok(()) => Ok(Json(json!({"message": "Rate line deleted"}))),
         Err(e) => Err(error_response(e)),
     }
@@ -319,7 +319,7 @@ pub async fn create_billing_config(
     let org_id = parse_uuid(&claims.org_id)?;
     let created_by = parse_uuid(&claims.sub).ok();
 
-    match state.project_billing_engine.create_billing_config(
+    match state.projects.project_billing_engine.create_billing_config(
         org_id, req.project_id, &req.billing_method,
         req.bill_rate_schedule_id, req.contract_amount, &req.currency_code,
         &req.invoice_format, &req.billing_cycle, req.payment_terms_days,
@@ -340,7 +340,7 @@ pub async fn get_billing_config(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.get_billing_config(id).await {
+    match state.projects.project_billing_engine.get_billing_config(id).await {
         Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Billing config not found"})))),
         Err(e) => Err(error_response(e)),
@@ -354,7 +354,7 @@ pub async fn get_billing_config_by_project(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_billing_engine.get_billing_config_by_project(org_id, project_id).await {
+    match state.projects.project_billing_engine.get_billing_config_by_project(org_id, project_id).await {
         Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "No billing config for this project"})))),
         Err(e) => Err(error_response(e)),
@@ -369,7 +369,7 @@ pub async fn list_billing_configs(
     let org_id = parse_uuid(&claims.org_id)?;
     let status = params.get("status").map(std::string::String::as_str);
 
-    match state.project_billing_engine.list_billing_configs(org_id, status).await {
+    match state.projects.project_billing_engine.list_billing_configs(org_id, status).await {
         Ok(configs) => Ok(Json(json!({"data": configs}))),
         Err(e) => Err(error_response(e)),
     }
@@ -379,7 +379,7 @@ pub async fn activate_billing_config(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.activate_billing_config(id).await {
+    match state.projects.project_billing_engine.activate_billing_config(id).await {
         Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => Err(error_response(e)),
     }
@@ -389,7 +389,7 @@ pub async fn cancel_billing_config(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.cancel_billing_config(id).await {
+    match state.projects.project_billing_engine.cancel_billing_config(id).await {
         Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => Err(error_response(e)),
     }
@@ -407,7 +407,7 @@ pub async fn create_billing_event(
     let org_id = parse_uuid(&claims.org_id)?;
     let created_by = parse_uuid(&claims.sub).ok();
 
-    match state.project_billing_engine.create_billing_event(
+    match state.projects.project_billing_engine.create_billing_event(
         org_id, req.project_id, &req.event_number, &req.event_name,
         req.description.as_deref(), &req.event_type, req.billing_amount,
         &req.currency_code, req.completion_pct, req.planned_date,
@@ -425,7 +425,7 @@ pub async fn get_billing_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.get_billing_event(id).await {
+    match state.projects.project_billing_engine.get_billing_event(id).await {
         Ok(Some(e)) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Billing event not found"})))),
         Err(e) => Err(error_response(e)),
@@ -439,7 +439,7 @@ pub async fn list_billing_events(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_billing_engine.list_billing_events(
+    match state.projects.project_billing_engine.list_billing_events(
         org_id, filters.project_id, filters.status.as_deref(),
     ).await {
         Ok(events) => Ok(Json(json!({"data": events}))),
@@ -452,7 +452,7 @@ pub async fn complete_billing_event(
     Path(id): Path<Uuid>,
     Json(req): Json<CompleteBillingEventRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.complete_billing_event(
+    match state.projects.project_billing_engine.complete_billing_event(
         id, req.actual_date, req.completion_pct,
     ).await {
         Ok(e) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
@@ -467,7 +467,7 @@ pub async fn cancel_billing_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.cancel_billing_event(id).await {
+    match state.projects.project_billing_engine.cancel_billing_event(id).await {
         Ok(e) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
         Err(e) => Err(error_response(e)),
     }
@@ -480,7 +480,7 @@ pub async fn delete_billing_event(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_billing_engine.delete_billing_event(org_id, &event_number).await {
+    match state.projects.project_billing_engine.delete_billing_event(org_id, &event_number).await {
         Ok(()) => Ok(Json(json!({"message": "Billing event deleted"}))),
         Err(e) => Err(error_response(e)),
     }
@@ -522,7 +522,7 @@ pub async fn create_invoice(
         }
     }).collect();
 
-    match state.project_billing_engine.create_invoice(
+    match state.projects.project_billing_engine.create_invoice(
         org_id, &req.invoice_number, req.project_id,
         req.project_number.as_deref(), req.project_name.as_deref(),
         &req.invoice_type, req.customer_id, req.customer_name.as_deref(),
@@ -542,7 +542,7 @@ pub async fn get_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.get_invoice(id).await {
+    match state.projects.project_billing_engine.get_invoice(id).await {
         Ok(Some(i)) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, Json(json!({"error": "Invoice not found"})))),
         Err(e) => Err(error_response(e)),
@@ -556,7 +556,7 @@ pub async fn list_invoices(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_billing_engine.list_invoices(
+    match state.projects.project_billing_engine.list_invoices(
         org_id, filters.project_id, filters.status.as_deref(),
     ).await {
         Ok(invoices) => Ok(Json(json!({"data": invoices}))),
@@ -568,7 +568,7 @@ pub async fn get_invoice_lines(
     State(state): State<Arc<AppState>>,
     Path(invoice_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.get_invoice_lines(invoice_id).await {
+    match state.projects.project_billing_engine.get_invoice_lines(invoice_id).await {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
         Err(e) => Err(error_response(e)),
     }
@@ -578,7 +578,7 @@ pub async fn submit_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.submit_invoice(id).await {
+    match state.projects.project_billing_engine.submit_invoice(id).await {
         Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to submit invoice: {}", e);
@@ -591,7 +591,7 @@ pub async fn approve_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.approve_invoice(id).await {
+    match state.projects.project_billing_engine.approve_invoice(id).await {
         Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to approve invoice: {}", e);
@@ -605,7 +605,7 @@ pub async fn reject_invoice(
     Path(id): Path<Uuid>,
     Json(req): Json<RejectInvoiceRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.reject_invoice(id, &req.reason).await {
+    match state.projects.project_billing_engine.reject_invoice(id, &req.reason).await {
         Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to reject invoice: {}", e);
@@ -618,7 +618,7 @@ pub async fn post_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.post_invoice(id).await {
+    match state.projects.project_billing_engine.post_invoice(id).await {
         Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to post invoice: {}", e);
@@ -631,7 +631,7 @@ pub async fn cancel_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    match state.project_billing_engine.cancel_invoice(id).await {
+    match state.projects.project_billing_engine.cancel_invoice(id).await {
         Ok(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         Err(e) => {
             error!("Failed to cancel invoice: {}", e);
@@ -650,7 +650,7 @@ pub async fn get_project_billing_dashboard(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.project_billing_engine.get_dashboard(org_id).await {
+    match state.projects.project_billing_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => Err(error_response(e)),
     }

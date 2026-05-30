@@ -65,7 +65,7 @@ pub async fn create_pool(
     let description = body["description"].as_str();
     let notes = body["notes"].as_str();
 
-    match state.cash_concentration_engine.create_pool(
+    match state.financials.cash_concentration_engine.create_pool(
         org_id, &pool_code, &pool_name, &pool_type,
         concentration_account_id, concentration_account_name,
         &currency_code, sweep_frequency, sweep_time,
@@ -91,7 +91,7 @@ pub async fn get_pool(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.cash_concentration_engine.get_pool(org_id, &pool_code).await {
+    match state.financials.cash_concentration_engine.get_pool(org_id, &pool_code).await {
         Ok(Some(pool)) => Ok(Json(serde_json::to_value(pool).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Cash pool not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -110,7 +110,7 @@ pub async fn list_pools(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.cash_concentration_engine.list_pools(
+    match state.financials.cash_concentration_engine.list_pools(
         org_id, params.status.as_deref(), params.pool_type.as_deref(),
     ).await {
         Ok(pools) => Ok(Json(json!({"data": pools}))),
@@ -130,7 +130,7 @@ pub async fn activate_pool(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.cash_concentration_engine.activate_pool(id, org_id).await {
+    match state.financials.cash_concentration_engine.activate_pool(id, org_id).await {
         Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -148,7 +148,7 @@ pub async fn suspend_pool(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.cash_concentration_engine.suspend_pool(id, org_id).await {
+    match state.financials.cash_concentration_engine.suspend_pool(id, org_id).await {
         Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -166,7 +166,7 @@ pub async fn close_pool(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.cash_concentration_engine.close_pool(id, org_id).await {
+    match state.financials.cash_concentration_engine.close_pool(id, org_id).await {
         Ok(pool) => Ok(Json(serde_json::to_value(pool).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -184,7 +184,7 @@ pub async fn delete_pool(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.cash_concentration_engine.delete_pool(org_id, &pool_code).await {
+    match state.financials.cash_concentration_engine.delete_pool(org_id, &pool_code).await {
         Ok(()) => Ok(Json(json!({"message": "Cash pool deleted"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -224,7 +224,7 @@ pub async fn add_participant(
     let effective_date = body["effective_date"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
     let description = body["description"].as_str();
 
-    match state.cash_concentration_engine.add_participant(
+    match state.financials.cash_concentration_engine.add_participant(
         org_id, pool_id, &participant_code,
         bank_account_id, bank_account_name, bank_name, account_number,
         &participant_type, &sweep_direction, priority,
@@ -249,7 +249,7 @@ pub async fn list_participants(
         Ok(id) => id,
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
-    match state.cash_concentration_engine.list_participants(pool_id, org_id, params.status.as_deref()).await {
+    match state.financials.cash_concentration_engine.list_participants(pool_id, org_id, params.status.as_deref()).await {
         Ok(participants) => Ok(Json(json!({"data": participants}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -266,7 +266,7 @@ pub async fn remove_participant(
         Ok(id) => id,
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
-    match state.cash_concentration_engine.remove_participant(pool_id, &participant_code, org_id).await {
+    match state.financials.cash_concentration_engine.remove_participant(pool_id, &participant_code, org_id).await {
         Ok(()) => Ok(Json(json!({"message": "Participant removed"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -303,7 +303,7 @@ pub async fn create_sweep_rule(
     let effective_date = body["effective_date"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
     let description = body["description"].as_str();
 
-    match state.cash_concentration_engine.create_sweep_rule(
+    match state.financials.cash_concentration_engine.create_sweep_rule(
         org_id, pool_id, &rule_code, &rule_name, &sweep_type,
         participant_id, &direction, trigger_condition,
         threshold_amount, target_balance, minimum_transfer,
@@ -326,7 +326,7 @@ pub async fn list_sweep_rules(
         Ok(id) => id,
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
-    match state.cash_concentration_engine.list_sweep_rules(pool_id, org_id).await {
+    match state.financials.cash_concentration_engine.list_sweep_rules(pool_id, org_id).await {
         Ok(rules) => Ok(Json(json!({"data": rules}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -343,7 +343,7 @@ pub async fn delete_sweep_rule(
         Ok(id) => id,
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
-    match state.cash_concentration_engine.delete_sweep_rule(pool_id, &rule_code, org_id).await {
+    match state.financials.cash_concentration_engine.delete_sweep_rule(pool_id, &rule_code, org_id).await {
         Ok(()) => Ok(Json(json!({"message": "Sweep rule deleted"}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -372,7 +372,7 @@ pub async fn execute_sweep(
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
     let notes = body["notes"].as_str();
 
-    match state.cash_concentration_engine.execute_sweep(
+    match state.financials.cash_concentration_engine.execute_sweep(
         org_id, pool_id, &run_type, run_date, notes, parse_uuid(&claims.sub).ok(),
     ).await {
         Ok(run) => Ok((StatusCode::CREATED, Json(serde_json::to_value(run).unwrap_or(Value::Null)))),
@@ -391,7 +391,7 @@ pub async fn get_sweep_run(
         Ok(id) => id,
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
-    match state.cash_concentration_engine.get_sweep_run(id, org_id).await {
+    match state.financials.cash_concentration_engine.get_sweep_run(id, org_id).await {
         Ok(Some(run)) => Ok(Json(serde_json::to_value(run).unwrap_or(Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Sweep run not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -409,7 +409,7 @@ pub async fn list_sweep_runs(
         Ok(id) => id,
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
-    match state.cash_concentration_engine.list_sweep_runs(pool_id, org_id).await {
+    match state.financials.cash_concentration_engine.list_sweep_runs(pool_id, org_id).await {
         Ok(runs) => Ok(Json(json!({"data": runs}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -426,7 +426,7 @@ pub async fn list_sweep_run_lines(
         Ok(id) => id,
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
-    match state.cash_concentration_engine.list_sweep_run_lines(sweep_run_id, org_id).await {
+    match state.financials.cash_concentration_engine.list_sweep_run_lines(sweep_run_id, org_id).await {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -447,7 +447,7 @@ pub async fn get_cash_pooling_dashboard(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.cash_concentration_engine.get_dashboard(org_id).await {
+    match state.financials.cash_concentration_engine.get_dashboard(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(Value::Null))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

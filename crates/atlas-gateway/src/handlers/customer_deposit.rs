@@ -40,7 +40,7 @@ pub async fn create_deposit(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.customer_deposit_engine.create_deposit(
+    match state.financials.customer_deposit_engine.create_deposit(
         org_id, &payload.deposit_number, payload.customer_id, &payload.customer_name,
         payload.customer_site_id, payload.description.as_deref(), &payload.currency_code,
         &payload.deposit_amount, payload.exchange_rate.as_deref(),
@@ -68,7 +68,7 @@ pub async fn list_deposits(
     Query(query): Query<ListDepositsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.customer_deposit_engine.list_deposits(org_id, query.status.as_deref(), query.customer_id).await {
+    match state.financials.customer_deposit_engine.list_deposits(org_id, query.status.as_deref(), query.customer_id).await {
         Ok(deposits) => Ok(Json(serde_json::json!({ "data": deposits }))),
         Err(e) => { error!("Failed to list deposits: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -78,7 +78,7 @@ pub async fn get_deposit(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.customer_deposit_engine.get_deposit(id).await {
+    match state.financials.customer_deposit_engine.get_deposit(id).await {
         Ok(Some(d)) => Ok(to_json(d)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get deposit: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -95,7 +95,7 @@ pub async fn receive_deposit(
     Json(payload): Json<ReceiveDepositRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.customer_deposit_engine.receive_deposit(id, payload.receipt_reference.as_deref(), Some(user_id)).await {
+    match state.financials.customer_deposit_engine.receive_deposit(id, payload.receipt_reference.as_deref(), Some(user_id)).await {
         Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to receive deposit: {}", e);
@@ -118,7 +118,7 @@ pub async fn refund_deposit(
     Json(payload): Json<RefundDepositRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.customer_deposit_engine.refund_deposit(id, payload.refund_reference.as_deref(), Some(user_id)).await {
+    match state.financials.customer_deposit_engine.refund_deposit(id, payload.refund_reference.as_deref(), Some(user_id)).await {
         Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to refund deposit: {}", e);
@@ -138,7 +138,7 @@ pub async fn cancel_deposit(
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelDepositRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.customer_deposit_engine.cancel_deposit(id, payload.reason.as_deref()).await {
+    match state.financials.customer_deposit_engine.cancel_deposit(id, payload.reason.as_deref()).await {
         Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to cancel deposit: {}", e);
@@ -169,7 +169,7 @@ pub async fn apply_deposit_to_invoice(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.customer_deposit_engine.apply_to_invoice(
+    match state.financials.customer_deposit_engine.apply_to_invoice(
         org_id, payload.deposit_id, payload.invoice_id,
         payload.invoice_number.as_deref(), &payload.applied_amount,
         payload.application_date, payload.gl_account_code.as_deref(), Some(user_id),
@@ -190,7 +190,7 @@ pub async fn get_deposit_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.customer_deposit_engine.get_dashboard(org_id).await {
+    match state.financials.customer_deposit_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

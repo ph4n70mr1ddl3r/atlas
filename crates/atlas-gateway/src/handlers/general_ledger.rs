@@ -45,7 +45,7 @@ pub async fn create_gl_account(
 
     info!("Creating GL account '{}' for org {}", payload.account_code, org_id);
 
-    match state.general_ledger_engine.create_account(
+    match state.financials.general_ledger_engine.create_account(
         org_id,
         &payload.account_code,
         &payload.account_name,
@@ -81,7 +81,7 @@ pub async fn list_gl_accounts(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.general_ledger_engine.list_accounts(
+    match state.financials.general_ledger_engine.list_accounts(
         org_id,
         query.account_type.as_deref(),
     ).await {
@@ -99,7 +99,7 @@ pub async fn get_gl_account(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.general_ledger_engine.get_account(id).await {
+    match state.financials.general_ledger_engine.get_account(id).await {
         Ok(Some(account)) => Ok(to_json(account)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -140,7 +140,7 @@ pub async fn create_journal_entry(
 
     info!("Creating journal entry for org {}", org_id);
 
-    match state.general_ledger_engine.create_journal_entry(
+    match state.financials.general_ledger_engine.create_journal_entry(
         org_id,
         payload.entry_date,
         payload.gl_date,
@@ -173,7 +173,7 @@ pub async fn list_journal_entries(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.general_ledger_engine.list_journal_entries(
+    match state.financials.general_ledger_engine.list_journal_entries(
         org_id,
         query.status.as_deref(),
         query.entry_type.as_deref(),
@@ -191,7 +191,7 @@ pub async fn get_journal_entry(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.general_ledger_engine.get_journal_entry(id).await {
+    match state.financials.general_ledger_engine.get_journal_entry(id).await {
         Ok(Some(entry)) => Ok(to_json(entry)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -226,7 +226,7 @@ pub async fn add_journal_line(
 
     info!("Adding journal line to entry {}", entry_id);
 
-    match state.general_ledger_engine.add_journal_line(
+    match state.financials.general_ledger_engine.add_journal_line(
         org_id,
         entry_id,
         &payload.line_type,
@@ -253,7 +253,7 @@ pub async fn list_journal_lines(
     State(state): State<Arc<AppState>>,
     Path(entry_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.general_ledger_engine.list_journal_lines(entry_id).await {
+    match state.financials.general_ledger_engine.list_journal_lines(entry_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list journal lines: {}", e);
@@ -274,7 +274,7 @@ pub async fn post_journal_entry(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.general_ledger_engine.post_journal_entry(id, Some(user_id)).await {
+    match state.financials.general_ledger_engine.post_journal_entry(id, Some(user_id)).await {
         Ok(entry) => Ok(to_json(entry)),
         Err(e) => {
             error!("Failed to post journal entry: {}", e);
@@ -292,7 +292,7 @@ pub async fn reverse_journal_entry(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.general_ledger_engine.reverse_journal_entry(id).await {
+    match state.financials.general_ledger_engine.reverse_journal_entry(id).await {
         Ok(entry) => Ok(to_json(entry)),
         Err(e) => {
             error!("Failed to reverse journal entry: {}", e);
@@ -322,7 +322,7 @@ pub async fn generate_trial_balance(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.general_ledger_engine.generate_trial_balance(org_id, query.as_of_date).await {
+    match state.financials.general_ledger_engine.generate_trial_balance(org_id, query.as_of_date).await {
         Ok(tb) => Ok(to_json(tb)),
         Err(e) => {
             error!("Failed to generate trial balance: {}", e);

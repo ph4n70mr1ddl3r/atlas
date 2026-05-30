@@ -109,7 +109,7 @@ pub async fn create_guarantee(
         .or_else(|| body["collateral_amount"].as_str());
     let notes = body["notes"].as_str();
 
-    match state.bank_guarantee_engine.create_guarantee(
+    match state.financials.bank_guarantee_engine.create_guarantee(
         org_id, &guarantee_number, &guarantee_type, description,
         &beneficiary_name, beneficiary_code,
         &applicant_name, applicant_code,
@@ -139,7 +139,7 @@ pub async fn get_guarantee(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.bank_guarantee_engine.get_guarantee_by_number(org_id, &guarantee_number).await {
+    match state.financials.bank_guarantee_engine.get_guarantee_by_number(org_id, &guarantee_number).await {
         Ok(Some(guarantee)) => Ok((StatusCode::OK, Json(serde_json::to_value(&guarantee).unwrap_or(Value::Null)))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Guarantee not found"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -158,7 +158,7 @@ pub async fn list_guarantees(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.bank_guarantee_engine.list_guarantees(
+    match state.financials.bank_guarantee_engine.list_guarantees(
         org_id, params.status.as_deref(), params.guarantee_type.as_deref(),
     ).await {
         Ok(guarantees) => Ok((StatusCode::OK, Json(json!({"data": guarantees})))),
@@ -178,7 +178,7 @@ pub async fn delete_guarantee(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.bank_guarantee_engine.delete_guarantee(org_id, &guarantee_number).await {
+    match state.financials.bank_guarantee_engine.delete_guarantee(org_id, &guarantee_number).await {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "Guarantee deleted"})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -195,7 +195,7 @@ pub async fn submit_for_approval(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.bank_guarantee_engine.submit_for_approval(id).await {
+    match state.financials.bank_guarantee_engine.submit_for_approval(id).await {
         Ok(guarantee) => Ok((StatusCode::OK, Json(serde_json::to_value(&guarantee).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -210,7 +210,7 @@ pub async fn approve_guarantee(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let approved_by = parse_uuid(&claims.sub).unwrap_or_default();
 
-    match state.bank_guarantee_engine.approve_guarantee(id, approved_by).await {
+    match state.financials.bank_guarantee_engine.approve_guarantee(id, approved_by).await {
         Ok(guarantee) => Ok((StatusCode::OK, Json(serde_json::to_value(&guarantee).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -228,7 +228,7 @@ pub async fn issue_guarantee(
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    match state.bank_guarantee_engine.issue_guarantee(id, issue_date).await {
+    match state.financials.bank_guarantee_engine.issue_guarantee(id, issue_date).await {
         Ok(guarantee) => Ok((StatusCode::OK, Json(serde_json::to_value(&guarantee).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -241,7 +241,7 @@ pub async fn activate_guarantee(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.bank_guarantee_engine.activate_guarantee(id).await {
+    match state.financials.bank_guarantee_engine.activate_guarantee(id).await {
         Ok(guarantee) => Ok((StatusCode::OK, Json(serde_json::to_value(&guarantee).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -254,7 +254,7 @@ pub async fn invoke_guarantee(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.bank_guarantee_engine.invoke_guarantee(id).await {
+    match state.financials.bank_guarantee_engine.invoke_guarantee(id).await {
         Ok(guarantee) => Ok((StatusCode::OK, Json(serde_json::to_value(&guarantee).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -267,7 +267,7 @@ pub async fn release_guarantee(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.bank_guarantee_engine.release_guarantee(id).await {
+    match state.financials.bank_guarantee_engine.release_guarantee(id).await {
         Ok(guarantee) => Ok((StatusCode::OK, Json(serde_json::to_value(&guarantee).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -280,7 +280,7 @@ pub async fn cancel_guarantee(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.bank_guarantee_engine.cancel_guarantee(id).await {
+    match state.financials.bank_guarantee_engine.cancel_guarantee(id).await {
         Ok(guarantee) => Ok((StatusCode::OK, Json(serde_json::to_value(&guarantee).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -302,7 +302,7 @@ pub async fn process_expired(
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    match state.bank_guarantee_engine.process_expired_guarantees(org_id, as_of_date).await {
+    match state.financials.bank_guarantee_engine.process_expired_guarantees(org_id, as_of_date).await {
         Ok(expired) => Ok((StatusCode::OK, Json(json!({
             "expired_count": expired.len(),
             "expired_guarantees": expired,
@@ -350,7 +350,7 @@ pub async fn create_amendment(
         .or_else(|| body["effective_date"].as_str())
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.bank_guarantee_engine.create_amendment(
+    match state.financials.bank_guarantee_engine.create_amendment(
         org_id, guarantee_id, &amendment_type,
         previous_amount, new_amount,
         previous_expiry_date, new_expiry_date,
@@ -369,7 +369,7 @@ pub async fn list_amendments(
     Extension(_claims): Extension<Claims>,
     Path(guarantee_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.bank_guarantee_engine.list_amendments(guarantee_id).await {
+    match state.financials.bank_guarantee_engine.list_amendments(guarantee_id).await {
         Ok(amendments) => Ok((StatusCode::OK, Json(json!({"data": amendments})))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -384,7 +384,7 @@ pub async fn approve_amendment(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let approved_by = parse_uuid(&claims.sub).unwrap_or_default();
 
-    match state.bank_guarantee_engine.approve_amendment(amendment_id, approved_by).await {
+    match state.financials.bank_guarantee_engine.approve_amendment(amendment_id, approved_by).await {
         Ok(amendment) => Ok((StatusCode::OK, Json(serde_json::to_value(&amendment).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -397,7 +397,7 @@ pub async fn reject_amendment(
     Extension(_claims): Extension<Claims>,
     Path(amendment_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.bank_guarantee_engine.reject_amendment(amendment_id).await {
+    match state.financials.bank_guarantee_engine.reject_amendment(amendment_id).await {
         Ok(amendment) => Ok((StatusCode::OK, Json(serde_json::to_value(&amendment).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),
@@ -418,7 +418,7 @@ pub async fn get_dashboard(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.bank_guarantee_engine.get_dashboard(org_id).await {
+    match state.financials.bank_guarantee_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok((StatusCode::OK, Json(serde_json::to_value(&dashboard).unwrap_or(Value::Null)))),
         Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(json!({"error": e.to_string()})))),

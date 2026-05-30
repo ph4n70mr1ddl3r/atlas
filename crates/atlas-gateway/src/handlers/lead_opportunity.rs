@@ -36,7 +36,7 @@ pub async fn create_lead_source(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.lead_opportunity_engine.create_lead_source(
+    match state.crm.lead_opportunity_engine.create_lead_source(
         org_id, &payload.code, &payload.name, payload.description.as_deref(), user_id,
     ).await {
         Ok(src) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(src)))),
@@ -52,7 +52,7 @@ pub async fn list_lead_sources(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.list_lead_sources(org_id).await {
+    match state.crm.lead_opportunity_engine.list_lead_sources(org_id).await {
         Ok(sources) => Ok(Json(serde_json::json!({"data": sources}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -64,7 +64,7 @@ pub async fn delete_lead_source(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.delete_lead_source(org_id, &code).await {
+    match state.crm.lead_opportunity_engine.delete_lead_source(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -107,7 +107,7 @@ pub async fn create_lead(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.lead_opportunity_engine.create_lead(
+    match state.crm.lead_opportunity_engine.create_lead(
         org_id, &payload.lead_number,
         payload.first_name.as_deref(), payload.last_name.as_deref(),
         payload.company.as_deref(), payload.title.as_deref(),
@@ -131,7 +131,7 @@ pub async fn get_lead(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.get_lead(id).await {
+    match state.crm.lead_opportunity_engine.get_lead(id).await {
         Ok(Some(l)) => Ok(Json(crate::handlers::records::to_json_or_null(l))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -150,7 +150,7 @@ pub async fn list_leads(
     Query(params): Query<ListLeadsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.list_leads(org_id, params.status.as_deref(), params.owner_id).await {
+    match state.crm.lead_opportunity_engine.list_leads(org_id, params.status.as_deref(), params.owner_id).await {
         Ok(leads) => Ok(Json(serde_json::json!({"data": leads}))),
         Err(e) => {
             error!("Error: {}", e);
@@ -170,7 +170,7 @@ pub async fn update_lead_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateLeadStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.update_lead_status(id, &payload.status).await {
+    match state.crm.lead_opportunity_engine.update_lead_status(id, &payload.status).await {
         Ok(l) => Ok(Json(crate::handlers::records::to_json_or_null(l))),
         Err(e) => {
             error!("Error: {}", e);
@@ -191,7 +191,7 @@ pub async fn update_lead_score(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateLeadScoreRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.update_lead_score(id, &payload.score, &payload.rating).await {
+    match state.crm.lead_opportunity_engine.update_lead_score(id, &payload.score, &payload.rating).await {
         Ok(l) => Ok(Json(crate::handlers::records::to_json_or_null(l))),
         Err(e) => {
             error!("Error: {}", e);
@@ -206,7 +206,7 @@ pub async fn convert_lead(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.lead_opportunity_engine.convert_lead(id, None, user_id).await {
+    match state.crm.lead_opportunity_engine.convert_lead(id, None, user_id).await {
         Ok((lead, opp)) => Ok(Json(serde_json::json!({"lead": lead, "opportunity": opp}))),
         Err(e) => {
             error!("Error converting lead: {}", e);
@@ -221,9 +221,9 @@ pub async fn delete_lead(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.get_lead(id).await {
+    match state.crm.lead_opportunity_engine.get_lead(id).await {
         Ok(Some(lead)) => {
-            match state.lead_opportunity_engine.delete_lead(org_id, &lead.lead_number).await {
+            match state.crm.lead_opportunity_engine.delete_lead(org_id, &lead.lead_number).await {
                 Ok(()) => Ok(StatusCode::NO_CONTENT),
                 Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
             }
@@ -259,7 +259,7 @@ pub async fn create_opportunity_stage(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.lead_opportunity_engine.create_opportunity_stage(
+    match state.crm.lead_opportunity_engine.create_opportunity_stage(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.probability, payload.display_order, payload.is_won, payload.is_lost, user_id,
     ).await {
@@ -276,7 +276,7 @@ pub async fn list_opportunity_stages(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.list_opportunity_stages(org_id).await {
+    match state.crm.lead_opportunity_engine.list_opportunity_stages(org_id).await {
         Ok(stages) => Ok(Json(serde_json::json!({"data": stages}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -288,7 +288,7 @@ pub async fn delete_opportunity_stage(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.delete_opportunity_stage(org_id, &code).await {
+    match state.crm.lead_opportunity_engine.delete_opportunity_stage(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -329,7 +329,7 @@ pub async fn create_opportunity(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.lead_opportunity_engine.create_opportunity(
+    match state.crm.lead_opportunity_engine.create_opportunity(
         org_id, &payload.opportunity_number, &payload.name, payload.description.as_deref(),
         payload.customer_id, payload.customer_name.as_deref(),
         payload.lead_id, payload.stage_id,
@@ -350,7 +350,7 @@ pub async fn get_opportunity(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.get_opportunity(id).await {
+    match state.crm.lead_opportunity_engine.get_opportunity(id).await {
         Ok(Some(o)) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -370,7 +370,7 @@ pub async fn list_opportunities(
     Query(params): Query<ListOpportunitiesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.list_opportunities(
+    match state.crm.lead_opportunity_engine.list_opportunities(
         org_id, params.status.as_deref(), params.owner_id, params.stage_id,
     ).await {
         Ok(opps) => Ok(Json(serde_json::json!({"data": opps}))),
@@ -394,7 +394,7 @@ pub async fn update_opportunity_stage(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
     let user_name: Option<String> = None;
-    match state.lead_opportunity_engine.update_opportunity_stage(
+    match state.crm.lead_opportunity_engine.update_opportunity_stage(
         id, payload.stage_id, user_id, user_name.as_deref(), None,
     ).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
@@ -410,7 +410,7 @@ pub async fn close_opportunity_won(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.close_opportunity_won(id).await {
+    match state.crm.lead_opportunity_engine.close_opportunity_won(id).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => {
             error!("Error: {}", e);
@@ -430,7 +430,7 @@ pub async fn close_opportunity_lost(
     Path(id): Path<Uuid>,
     Json(payload): Json<CloseOpportunityLostRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.close_opportunity_lost(id, payload.lost_reason.as_deref()).await {
+    match state.crm.lead_opportunity_engine.close_opportunity_lost(id, payload.lost_reason.as_deref()).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Err(e) => {
             error!("Error: {}", e);
@@ -444,7 +444,7 @@ pub async fn list_stage_history(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.list_stage_history(id).await {
+    match state.crm.lead_opportunity_engine.list_stage_history(id).await {
         Ok(history) => Ok(Json(serde_json::json!({"data": history}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -456,9 +456,9 @@ pub async fn delete_opportunity(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.get_opportunity(id).await {
+    match state.crm.lead_opportunity_engine.get_opportunity(id).await {
         Ok(Some(opp)) => {
-            match state.lead_opportunity_engine.delete_opportunity(org_id, &opp.opportunity_number).await {
+            match state.crm.lead_opportunity_engine.delete_opportunity(org_id, &opp.opportunity_number).await {
                 Ok(()) => Ok(StatusCode::NO_CONTENT),
                 Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
             }
@@ -494,7 +494,7 @@ pub async fn add_opportunity_line(
     Json(payload): Json<AddOpportunityLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.add_opportunity_line(
+    match state.crm.lead_opportunity_engine.add_opportunity_line(
         org_id, opportunity_id, &payload.product_name, payload.product_code.as_deref(),
         payload.description.as_deref(), &payload.quantity, &payload.unit_price, &payload.discount_percent,
     ).await {
@@ -511,7 +511,7 @@ pub async fn list_opportunity_lines(
     _claims: Extension<Claims>,
     Path(opportunity_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.list_opportunity_lines(opportunity_id).await {
+    match state.crm.lead_opportunity_engine.list_opportunity_lines(opportunity_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -522,7 +522,7 @@ pub async fn delete_opportunity_line(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.lead_opportunity_engine.delete_opportunity_line(id).await {
+    match state.crm.lead_opportunity_engine.delete_opportunity_line(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -558,7 +558,7 @@ pub async fn create_activity(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.lead_opportunity_engine.create_activity(
+    match state.crm.lead_opportunity_engine.create_activity(
         org_id, &payload.subject, payload.description.as_deref(),
         &payload.activity_type, &payload.priority,
         payload.lead_id, payload.opportunity_id,
@@ -586,7 +586,7 @@ pub async fn list_activities(
     Query(params): Query<ListActivitiesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.list_activities(org_id, params.lead_id, params.opportunity_id).await {
+    match state.crm.lead_opportunity_engine.list_activities(org_id, params.lead_id, params.opportunity_id).await {
         Ok(acts) => Ok(Json(serde_json::json!({"data": acts}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -603,7 +603,7 @@ pub async fn complete_activity(
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteActivityRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.complete_activity(id, payload.outcome.as_deref()).await {
+    match state.crm.lead_opportunity_engine.complete_activity(id, payload.outcome.as_deref()).await {
         Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Error: {}", e);
@@ -617,7 +617,7 @@ pub async fn cancel_activity(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.lead_opportunity_engine.cancel_activity(id).await {
+    match state.crm.lead_opportunity_engine.cancel_activity(id).await {
         Ok(a) => Ok(Json(crate::handlers::records::to_json_or_null(a))),
         Err(e) => {
             error!("Error: {}", e);
@@ -631,7 +631,7 @@ pub async fn delete_activity(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.lead_opportunity_engine.delete_activity(id).await {
+    match state.crm.lead_opportunity_engine.delete_activity(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -646,7 +646,7 @@ pub async fn get_sales_pipeline_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.lead_opportunity_engine.get_dashboard(org_id).await {
+    match state.crm.lead_opportunity_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

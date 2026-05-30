@@ -49,7 +49,7 @@ pub async fn create_batch(
         .transpose()
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid gl_date: {}", e)}))))?;
 
-    match state.invoice_batch_engine.create_batch(
+    match state.financials.invoice_batch_engine.create_batch(
         org_id,
         &req.batch_name,
         req.description.as_deref(),
@@ -84,7 +84,7 @@ pub async fn list_batches(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.invoice_batch_engine.list_batches(
+    match state.financials.invoice_batch_engine.list_batches(
         org_id,
         query.status.as_deref(),
     ).await {
@@ -104,7 +104,7 @@ pub async fn get_batch(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.invoice_batch_engine.get_batch(org_id, id).await {
+    match state.financials.invoice_batch_engine.get_batch(org_id, id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get invoice batch: {}", e);
@@ -125,7 +125,7 @@ pub async fn get_batch_by_number(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.invoice_batch_engine.get_batch_by_number(org_id, &number).await {
+    match state.financials.invoice_batch_engine.get_batch_by_number(org_id, &number).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get invoice batch by number: {}", e);
@@ -146,7 +146,7 @@ pub async fn delete_batch(
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.invoice_batch_engine.delete_batch(org_id, &number).await {
+    match state.financials.invoice_batch_engine.delete_batch(org_id, &number).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete invoice batch: {}", e);
@@ -174,7 +174,7 @@ pub async fn submit_batch(
     let org_id = parse_uuid(&claims.org_id)?;
     let user_id = parse_uuid(&claims.sub)?;
 
-    match state.invoice_batch_engine.submit_batch(org_id, id, user_id).await {
+    match state.financials.invoice_batch_engine.submit_batch(org_id, id, user_id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to submit invoice batch: {}", e);
@@ -193,7 +193,7 @@ pub async fn approve_batch(
     let org_id = parse_uuid(&claims.org_id)?;
     let user_id = parse_uuid(&claims.sub)?;
 
-    match state.invoice_batch_engine.approve_batch(org_id, id, user_id).await {
+    match state.financials.invoice_batch_engine.approve_batch(org_id, id, user_id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to approve invoice batch: {}", e);
@@ -212,7 +212,7 @@ pub async fn post_batch(
     let org_id = parse_uuid(&claims.org_id)?;
     let user_id = parse_uuid(&claims.sub)?;
 
-    match state.invoice_batch_engine.post_batch(org_id, id, user_id).await {
+    match state.financials.invoice_batch_engine.post_batch(org_id, id, user_id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to post invoice batch: {}", e);
@@ -231,7 +231,7 @@ pub async fn cancel_batch(
     let org_id = parse_uuid(&claims.org_id)?;
     let user_id = parse_uuid(&claims.sub)?;
 
-    match state.invoice_batch_engine.cancel_batch(org_id, id, user_id, req.reason.as_deref()).await {
+    match state.financials.invoice_batch_engine.cancel_batch(org_id, id, user_id, req.reason.as_deref()).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to cancel invoice batch: {}", e);
@@ -265,7 +265,7 @@ pub async fn add_invoice(
         return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Tax amount cannot be negative"}))));
     }
 
-    match state.invoice_batch_engine.add_invoice_to_totals(
+    match state.financials.invoice_batch_engine.add_invoice_to_totals(
         id, req.invoice_amount, req.tax_amount,
     ).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
@@ -290,7 +290,7 @@ pub async fn remove_invoice(
     Path(id): Path<Uuid>,
     Json(req): Json<RemoveInvoiceRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.invoice_batch_engine.remove_invoice_from_totals(
+    match state.financials.invoice_batch_engine.remove_invoice_from_totals(
         id, req.invoice_amount, req.tax_amount,
     ).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
@@ -313,7 +313,7 @@ pub async fn validate_batch(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.invoice_batch_engine.validate_batch(org_id, id).await {
+    match state.financials.invoice_batch_engine.validate_batch(org_id, id).await {
         Ok(batch) => Ok(Json(serde_json::to_value(batch).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to validate batch: {}", e);
@@ -328,7 +328,7 @@ pub async fn list_activities(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.invoice_batch_engine.list_activities(id).await {
+    match state.financials.invoice_batch_engine.list_activities(id).await {
         Ok(activities) => Ok(Json(serde_json::json!({"data": activities}))),
         Err(e) => {
             error!("Failed to list batch activities: {}", e);
@@ -348,7 +348,7 @@ pub async fn get_dashboard(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
 
-    match state.invoice_batch_engine.get_dashboard(org_id).await {
+    match state.financials.invoice_batch_engine.get_dashboard(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get invoice batch dashboard: {}", e);

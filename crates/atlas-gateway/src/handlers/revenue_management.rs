@@ -43,7 +43,7 @@ pub async fn create_contract(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.revenue_management_engine.create_contract(
+    match state.financials.revenue_management_engine.create_contract(
         org_id, &payload.contract_number, payload.customer_id, &payload.customer_name,
         payload.description.as_deref(), &payload.transaction_price, &payload.currency_code,
         payload.contract_start_date, payload.contract_end_date, Some(user_id),
@@ -71,7 +71,7 @@ pub async fn list_contracts(
     Query(query): Query<ListContractsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.revenue_management_engine.list_contracts(org_id, query.status.as_deref()).await {
+    match state.financials.revenue_management_engine.list_contracts(org_id, query.status.as_deref()).await {
         Ok(contracts) => Ok(Json(serde_json::json!({ "data": contracts }))),
         Err(e) => { error!("Failed to list contracts: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -83,7 +83,7 @@ pub async fn get_contract(
     Path(number): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.revenue_management_engine.get_contract(org_id, &number).await {
+    match state.financials.revenue_management_engine.get_contract(org_id, &number).await {
         Ok(Some(c)) => Ok(to_json(c)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get contract: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -94,7 +94,7 @@ pub async fn activate_contract(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.revenue_management_engine.activate_contract(id).await {
+    match state.financials.revenue_management_engine.activate_contract(id).await {
         Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to activate contract: {}", e);
@@ -111,7 +111,7 @@ pub async fn cancel_contract(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.revenue_management_engine.cancel_contract(id).await {
+    match state.financials.revenue_management_engine.cancel_contract(id).await {
         Ok(c) => Ok(to_json(c)),
         Err(e) => {
             error!("Failed to cancel contract: {}", e);
@@ -148,7 +148,7 @@ pub async fn create_obligation(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.revenue_management_engine.create_obligation(
+    match state.financials.revenue_management_engine.create_obligation(
         org_id, payload.contract_id, &payload.obligation_number,
         &payload.description, &payload.obligation_type,
         &payload.satisfaction_method, &payload.recognition_pattern,
@@ -171,7 +171,7 @@ pub async fn list_obligations(
     State(state): State<Arc<AppState>>,
     Path(contract_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.revenue_management_engine.list_obligations(contract_id).await {
+    match state.financials.revenue_management_engine.list_obligations(contract_id).await {
         Ok(obs) => Ok(Json(serde_json::json!({ "data": obs }))),
         Err(e) => { error!("Failed to list obligations: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -185,7 +185,7 @@ pub async fn allocate_transaction_price(
     State(state): State<Arc<AppState>>,
     Path(contract_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.revenue_management_engine.allocate_transaction_price(contract_id).await {
+    match state.financials.revenue_management_engine.allocate_transaction_price(contract_id).await {
         Ok(obs) => Ok(Json(serde_json::json!({ "data": obs }))),
         Err(e) => {
             error!("Failed to allocate: {}", e);
@@ -221,7 +221,7 @@ pub async fn create_ssp(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.revenue_management_engine.create_ssp(
+    match state.financials.revenue_management_engine.create_ssp(
         org_id, &payload.item_code, &payload.item_name, &payload.estimation_method,
         &payload.price, &payload.currency_code, payload.effective_from,
         payload.effective_to, Some(user_id),
@@ -242,7 +242,7 @@ pub async fn list_ssps(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.revenue_management_engine.list_ssps(org_id).await {
+    match state.financials.revenue_management_engine.list_ssps(org_id).await {
         Ok(ssps) => Ok(Json(serde_json::json!({ "data": ssps }))),
         Err(e) => { error!("Failed to list SSPs: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -267,7 +267,7 @@ pub async fn satisfy_obligation(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.revenue_management_engine.satisfy_obligation(
+    match state.financials.revenue_management_engine.satisfy_obligation(
         obligation_id, &payload.amount, payload.recognition_date,
         payload.gl_account_code.as_deref(), Some(user_id),
     ).await {
@@ -287,7 +287,7 @@ pub async fn list_recognition_events(
     State(state): State<Arc<AppState>>,
     Path(contract_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.revenue_management_engine.list_recognition_events(contract_id).await {
+    match state.financials.revenue_management_engine.list_recognition_events(contract_id).await {
         Ok(events) => Ok(Json(serde_json::json!({ "data": events }))),
         Err(e) => { error!("Failed to list events: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -302,7 +302,7 @@ pub async fn get_revenue_management_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.revenue_management_engine.get_dashboard(org_id).await {
+    match state.financials.revenue_management_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get revenue dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

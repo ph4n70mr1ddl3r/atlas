@@ -41,7 +41,7 @@ pub async fn create_category(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let created_by = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let category = state.service_request_engine
+    let category = state.crm.service_request_engine
         .create_category(
             org_id, &payload.code, &payload.name, payload.description.as_deref(),
             payload.parent_category_id, payload.default_priority.as_deref(),
@@ -67,7 +67,7 @@ pub async fn get_category(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let category = state.service_request_engine
+    let category = state.crm.service_request_engine
         .get_category(org_id, &code)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -85,7 +85,7 @@ pub async fn list_categories(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let categories = state.service_request_engine
+    let categories = state.crm.service_request_engine
         .list_categories(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -101,7 +101,7 @@ pub async fn delete_category(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.service_request_engine
+    state.crm.service_request_engine
         .delete_category(org_id, &code)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -146,7 +146,7 @@ pub async fn create_request(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let created_by = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let request = state.service_request_engine
+    let request = state.crm.service_request_engine
         .create_request(
             org_id, &payload.request_number, &payload.title,
             payload.description.as_deref(), payload.category_id,
@@ -179,7 +179,7 @@ pub async fn get_request(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let request = state.service_request_engine
+    let request = state.crm.service_request_engine
         .get_request(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -198,7 +198,7 @@ pub async fn get_request_by_number(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let request = state.service_request_engine
+    let request = state.crm.service_request_engine
         .get_request_by_number(org_id, &number)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -226,7 +226,7 @@ pub async fn list_requests(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let requests = state.service_request_engine
+    let requests = state.crm.service_request_engine
         .list_requests(
             org_id,
             params.status.as_deref(),
@@ -256,7 +256,7 @@ pub async fn update_request_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateStatusPayload>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let request = state.service_request_engine
+    let request = state.crm.service_request_engine
         .update_status(id, &payload.status)
         .await
         .map_err(|e| {
@@ -283,7 +283,7 @@ pub async fn resolve_request(
     Path(id): Path<Uuid>,
     Json(payload): Json<ResolveRequestPayload>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let request = state.service_request_engine
+    let request = state.crm.service_request_engine
         .resolve_request(id, &payload.resolution, &payload.resolution_code)
         .await
         .map_err(|e| {
@@ -321,7 +321,7 @@ pub async fn assign_request(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let assigned_by = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let assignment = state.service_request_engine
+    let assignment = state.crm.service_request_engine
         .assign_request(
             org_id, id,
             payload.assigned_to, payload.assigned_to_name.as_deref(),
@@ -348,7 +348,7 @@ pub async fn list_assignments(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let assignments = state.service_request_engine
+    let assignments = state.crm.service_request_engine
         .list_assignments(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -378,7 +378,7 @@ pub async fn add_update(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let author_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let update = state.service_request_engine
+    let update = state.crm.service_request_engine
         .add_update(
             org_id, id, &payload.update_type,
             Some(author_id), Some(&claims.email),
@@ -410,7 +410,7 @@ pub async fn list_updates(
     Path(id): Path<Uuid>,
     Query(params): Query<ListUpdatesParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let updates = state.service_request_engine
+    let updates = state.crm.service_request_engine
         .list_updates(id, params.include_internal.unwrap_or(false))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -429,7 +429,7 @@ pub async fn get_service_request_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let dashboard = state.service_request_engine
+    let dashboard = state.crm.service_request_engine
         .get_dashboard(org_id)
         .await
         .map_err(|e| {

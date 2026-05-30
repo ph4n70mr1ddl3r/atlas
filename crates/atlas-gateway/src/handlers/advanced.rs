@@ -226,7 +226,7 @@ pub async fn list_records_advanced(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Advanced listing records for entity: {}", entity);
 
-    let entity_def = state.schema_engine.get_entity(&entity)
+    let entity_def = state.core.schema_engine.get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = sanitize_identifier(
@@ -388,7 +388,7 @@ pub async fn execute_bulk_operation(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entity_def = state.schema_engine.get_entity(&payload.entity_type)
+    let entity_def = state.core.schema_engine.get_entity(&payload.entity_type)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = sanitize_identifier(
@@ -653,7 +653,7 @@ pub async fn create_comment(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Verify the record exists
-    let entity_def = state.schema_engine.get_entity(&entity)
+    let entity_def = state.core.schema_engine.get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
     let table_name = sanitize_identifier(
         entity_def.table_name.as_deref().unwrap_or(&entity)
@@ -905,7 +905,7 @@ pub async fn export_csv(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entity_def = state.schema_engine.get_entity(&entity)
+    let entity_def = state.core.schema_engine.get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = sanitize_identifier(
@@ -1043,7 +1043,7 @@ pub async fn get_related_records(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entity_def = state.schema_engine.get_entity(&entity)
+    let entity_def = state.core.schema_engine.get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     // Find the relationship field
@@ -1059,7 +1059,7 @@ pub async fn get_related_records(
     let (related_table, foreign_key) = if let Some(field) = related_field { match &field.field_type {
         atlas_shared::FieldType::OneToMany { entity: rel_entity, foreign_key } => {
             // Look up the related entity definition to get its table name
-            if let Some(rel_def) = state.schema_engine.get_entity(rel_entity) {
+            if let Some(rel_def) = state.core.schema_engine.get_entity(rel_entity) {
                 let tbl = rel_def.table_name.as_deref().unwrap_or(rel_entity);
                 (sanitize_identifier(tbl)?, foreign_key.clone())
             } else {
@@ -1070,7 +1070,7 @@ pub async fn get_related_records(
     } } else {
         // Try convention: {entity_singular}_id as foreign key
         let fk = format!("{}_id", entity.trim_end_matches('s'));
-        if let Some(rel_def) = state.schema_engine.get_entity(&related_entity) {
+        if let Some(rel_def) = state.core.schema_engine.get_entity(&related_entity) {
             let tbl = rel_def.table_name.as_deref().unwrap_or(&related_entity);
             (sanitize_identifier(tbl)?, fk)
         } else {
@@ -1317,7 +1317,7 @@ pub async fn import_csv(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entity_def = state.schema_engine.get_entity(&payload.entity)
+    let entity_def = state.core.schema_engine.get_entity(&payload.entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = sanitize_identifier(

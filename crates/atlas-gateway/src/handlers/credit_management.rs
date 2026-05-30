@@ -41,7 +41,7 @@ pub async fn create_scoring_model(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.create_scoring_model(
+    match state.financials.credit_management_engine.create_scoring_model(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.model_type, payload.scoring_criteria, payload.score_ranges,
         Some(user_id),
@@ -64,7 +64,7 @@ pub async fn get_scoring_model(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.credit_management_engine.get_scoring_model_by_code(org_id, &code).await {
+    match state.financials.credit_management_engine.get_scoring_model_by_code(org_id, &code).await {
         Ok(Some(m)) => Ok(Json(serde_json::to_value(m).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -76,7 +76,7 @@ pub async fn list_scoring_models(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.credit_management_engine.list_scoring_models(org_id).await {
+    match state.financials.credit_management_engine.list_scoring_models(org_id).await {
         Ok(models) => Ok(Json(serde_json::json!({"data": models}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -88,7 +88,7 @@ pub async fn delete_scoring_model(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.credit_management_engine.delete_scoring_model(org_id, &code).await {
+    match state.financials.credit_management_engine.delete_scoring_model(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -123,7 +123,7 @@ pub async fn create_profile(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.create_profile(
+    match state.financials.credit_management_engine.create_profile(
         org_id, &payload.profile_number, &payload.profile_name,
         payload.description.as_deref(), &payload.profile_type,
         payload.customer_id, payload.customer_name.as_deref(),
@@ -149,7 +149,7 @@ pub async fn get_profile(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.get_profile(id).await {
+    match state.financials.credit_management_engine.get_profile(id).await {
         Ok(Some(p)) => Ok(Json(serde_json::to_value(p).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -167,7 +167,7 @@ pub async fn list_profiles(
     Query(params): Query<ListProfilesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.credit_management_engine.list_profiles(org_id, params.status.as_deref()).await {
+    match state.financials.credit_management_engine.list_profiles(org_id, params.status.as_deref()).await {
         Ok(profiles) => Ok(Json(serde_json::json!({"data": profiles}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -184,7 +184,7 @@ pub async fn update_profile_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateProfileStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.update_profile_status(id, &payload.status).await {
+    match state.financials.credit_management_engine.update_profile_status(id, &payload.status).await {
         Ok(p) => Ok(Json(serde_json::to_value(p).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Error: {}", e);
@@ -210,7 +210,7 @@ pub async fn update_profile_score(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateProfileScoreRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.update_profile_score(
+    match state.financials.credit_management_engine.update_profile_score(
         id, &payload.credit_score, &payload.credit_rating, &payload.risk_level,
     ).await {
         Ok(p) => Ok(Json(serde_json::to_value(p).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -231,10 +231,10 @@ pub async fn delete_profile(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     // Get the profile to find its number for deletion
-    match state.credit_management_engine.get_profile(id).await {
+    match state.financials.credit_management_engine.get_profile(id).await {
         Ok(Some(profile)) => {
             let org_id = Uuid::parse_str(&_claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-            match state.credit_management_engine.delete_profile(org_id, &profile.profile_number).await {
+            match state.financials.credit_management_engine.delete_profile(org_id, &profile.profile_number).await {
                 Ok(()) => Ok(StatusCode::NO_CONTENT),
                 Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
             }
@@ -266,7 +266,7 @@ pub async fn create_credit_limit(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.create_credit_limit(
+    match state.financials.credit_management_engine.create_credit_limit(
         org_id, payload.profile_id, &payload.limit_type,
         payload.currency_code.as_deref(), &payload.credit_limit,
         payload.effective_from, payload.effective_to, Some(user_id),
@@ -288,7 +288,7 @@ pub async fn list_credit_limits(
     _claims: Extension<Claims>,
     Path(profile_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.list_credit_limits(profile_id).await {
+    match state.financials.credit_management_engine.list_credit_limits(profile_id).await {
         Ok(limits) => Ok(Json(serde_json::json!({"data": limits}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -305,7 +305,7 @@ pub async fn update_credit_limit(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateCreditLimitRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.update_credit_limit_amount(id, &payload.credit_limit).await {
+    match state.financials.credit_management_engine.update_credit_limit_amount(id, &payload.credit_limit).await {
         Ok(l) => Ok(Json(serde_json::to_value(l).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Error: {}", e);
@@ -330,7 +330,7 @@ pub async fn set_temp_limit(
     Path(id): Path<Uuid>,
     Json(payload): Json<SetTempLimitRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.set_temp_limit(
+    match state.financials.credit_management_engine.set_temp_limit(
         id, &payload.temp_limit_increase, Some(payload.temp_limit_expiry),
     ).await {
         Ok(l) => Ok(Json(serde_json::to_value(l).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
@@ -350,7 +350,7 @@ pub async fn delete_credit_limit(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.credit_management_engine.delete_credit_limit(id).await {
+    match state.financials.credit_management_engine.delete_credit_limit(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -384,7 +384,7 @@ pub async fn create_check_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.create_check_rule(
+    match state.financials.credit_management_engine.create_check_rule(
         org_id, &payload.name, payload.description.as_deref(),
         &payload.check_point, &payload.check_type, payload.condition,
         &payload.action_on_failure, payload.priority,
@@ -407,7 +407,7 @@ pub async fn list_check_rules(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.credit_management_engine.list_check_rules(org_id).await {
+    match state.financials.credit_management_engine.list_check_rules(org_id).await {
         Ok(rules) => Ok(Json(serde_json::json!({"data": rules}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -418,7 +418,7 @@ pub async fn delete_check_rule(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.credit_management_engine.delete_check_rule(id).await {
+    match state.financials.credit_management_engine.delete_check_rule(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -447,7 +447,7 @@ pub async fn calculate_exposure(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.calculate_exposure(
+    match state.financials.credit_management_engine.calculate_exposure(
         org_id, payload.profile_id, &payload.currency_code,
         &payload.open_receivables, &payload.open_orders,
         &payload.open_shipments, &payload.open_invoices,
@@ -470,7 +470,7 @@ pub async fn get_latest_exposure(
     _claims: Extension<Claims>,
     Path(profile_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.get_latest_exposure(profile_id).await {
+    match state.financials.credit_management_engine.get_latest_exposure(profile_id).await {
         Ok(Some(e)) => Ok(Json(serde_json::to_value(e).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -495,7 +495,7 @@ pub async fn perform_credit_check(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.perform_credit_check(
+    match state.financials.credit_management_engine.perform_credit_check(
         org_id, payload.profile_id, &payload.requested_amount, &payload.check_point,
     ).await {
         Ok(result) => {
@@ -538,7 +538,7 @@ pub async fn create_hold(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.create_hold(
+    match state.financials.credit_management_engine.create_hold(
         org_id, payload.profile_id, &payload.hold_type,
         &payload.entity_type, payload.entity_id,
         payload.entity_number.as_deref(), payload.hold_amount.as_deref(),
@@ -568,7 +568,7 @@ pub async fn list_holds(
     Query(params): Query<ListHoldsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.credit_management_engine.list_holds(org_id, params.status.as_deref(), params.profile_id).await {
+    match state.financials.credit_management_engine.list_holds(org_id, params.status.as_deref(), params.profile_id).await {
         Ok(holds) => Ok(Json(serde_json::json!({"data": holds}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -587,7 +587,7 @@ pub async fn release_hold(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.release_hold(id, Some(user_id), payload.release_reason.as_deref()).await {
+    match state.financials.credit_management_engine.release_hold(id, Some(user_id), payload.release_reason.as_deref()).await {
         Ok(h) => Ok(Json(serde_json::to_value(h).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Error: {}", e);
@@ -613,7 +613,7 @@ pub async fn override_hold(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.override_hold(id, Some(user_id), Some(&payload.override_reason)).await {
+    match state.financials.credit_management_engine.override_hold(id, Some(user_id), Some(&payload.override_reason)).await {
         Ok(h) => Ok(Json(serde_json::to_value(h).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Error: {}", e);
@@ -646,7 +646,7 @@ pub async fn create_review(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.credit_management_engine.create_review(
+    match state.financials.credit_management_engine.create_review(
         org_id, payload.profile_id, &payload.review_type,
         None, payload.recommended_credit_limit.as_deref(),
         None, None, payload.due_date, Some(user_id),
@@ -675,7 +675,7 @@ pub async fn list_reviews(
     Query(params): Query<ListReviewsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.credit_management_engine.list_reviews(org_id, params.status.as_deref(), params.profile_id).await {
+    match state.financials.credit_management_engine.list_reviews(org_id, params.status.as_deref(), params.profile_id).await {
         Ok(reviews) => Ok(Json(serde_json::json!({"data": reviews}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -686,7 +686,7 @@ pub async fn start_review(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.start_review(id).await {
+    match state.financials.credit_management_engine.start_review(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Error: {}", e);
@@ -717,7 +717,7 @@ pub async fn complete_review(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.credit_management_engine.complete_review(
+    match state.financials.credit_management_engine.complete_review(
         id, payload.new_score.as_deref(), payload.new_rating.as_deref(),
         payload.approved_credit_limit.as_deref(), payload.findings.as_deref(),
         payload.recommendations.as_deref(), user_id, payload.reviewer_name.as_deref(),
@@ -741,7 +741,7 @@ pub async fn approve_review(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.credit_management_engine.approve_review(id, user_id, None).await {
+    match state.financials.credit_management_engine.approve_review(id, user_id, None).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Error: {}", e);
@@ -765,7 +765,7 @@ pub async fn reject_review(
     Path(id): Path<Uuid>,
     Json(payload): Json<RejectReviewRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.reject_review(id, Some(&payload.reason)).await {
+    match state.financials.credit_management_engine.reject_review(id, Some(&payload.reason)).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Error: {}", e);
@@ -783,7 +783,7 @@ pub async fn cancel_review(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.credit_management_engine.cancel_review(id).await {
+    match state.financials.credit_management_engine.cancel_review(id).await {
         Ok(r) => Ok(Json(serde_json::to_value(r).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Error: {}", e);
@@ -805,7 +805,7 @@ pub async fn get_credit_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.credit_management_engine.get_dashboard(org_id).await {
+    match state.financials.credit_management_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

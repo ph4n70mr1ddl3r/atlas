@@ -49,7 +49,7 @@ pub async fn create_kpi(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let kpi = state.kpi_engine.create_kpi(
+    let kpi = state.shared.kpi_engine.create_kpi(
         org_id,
         &payload.code,
         &payload.name,
@@ -80,7 +80,7 @@ pub async fn get_kpi(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let kpi = state.kpi_engine.get_kpi(id).await
+    let kpi = state.shared.kpi_engine.get_kpi(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match kpi {
         Some(k) => Ok(Json(crate::handlers::records::to_json_or_null(k))),
@@ -101,7 +101,7 @@ pub async fn list_kpis(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let kpis = state.kpi_engine.list_kpis(org_id, params.category.as_deref()).await
+    let kpis = state.shared.kpi_engine.list_kpis(org_id, params.category.as_deref()).await
         .map_err(|e| { error!("List KPIs error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
     Ok(Json(serde_json::json!({
@@ -118,7 +118,7 @@ pub async fn delete_kpi(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.kpi_engine.delete_kpi(org_id, &code).await.map_err(|e| {
+    state.shared.kpi_engine.delete_kpi(org_id, &code).await.map_err(|e| {
         error!("Delete KPI error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -156,7 +156,7 @@ pub async fn record_data_point(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let dp = state.kpi_engine.record_data_point(
+    let dp = state.shared.kpi_engine.record_data_point(
         org_id, kpi_id, &payload.value, period_start, period_end,
         payload.notes.as_deref(), Some(user_id),
     ).await.map_err(|e| {
@@ -176,7 +176,7 @@ pub async fn get_latest_data_point(
     State(state): State<Arc<AppState>>,
     Path(kpi_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let dp = state.kpi_engine.get_latest_data_point(kpi_id).await
+    let dp = state.shared.kpi_engine.get_latest_data_point(kpi_id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match dp {
         Some(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
@@ -199,7 +199,7 @@ pub async fn list_data_points(
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let offset = params.offset.unwrap_or(0).max(0);
 
-    let dps = state.kpi_engine.list_data_points(kpi_id, limit, offset).await
+    let dps = state.shared.kpi_engine.list_data_points(kpi_id, limit, offset).await
         .map_err(|e| { error!("List data points error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
     Ok(Json(serde_json::json!({
@@ -213,7 +213,7 @@ pub async fn delete_data_point(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.kpi_engine.delete_data_point(id).await.map_err(|e| {
+    state.shared.kpi_engine.delete_data_point(id).await.map_err(|e| {
         error!("Delete data point error: {}", e);
         match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -247,7 +247,7 @@ pub async fn create_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let dashboard = state.kpi_engine.create_dashboard(
+    let dashboard = state.shared.kpi_engine.create_dashboard(
         org_id,
         &payload.code,
         &payload.name,
@@ -274,7 +274,7 @@ pub async fn get_dashboard(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let dashboard = state.kpi_engine.get_dashboard(id).await
+    let dashboard = state.shared.kpi_engine.get_dashboard(id).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match dashboard {
         Some(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
@@ -289,7 +289,7 @@ pub async fn list_dashboards(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let dashboards = state.kpi_engine.list_dashboards(org_id, None).await
+    let dashboards = state.shared.kpi_engine.list_dashboards(org_id, None).await
         .map_err(|e| { error!("List dashboards error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
     Ok(Json(serde_json::json!({
@@ -306,7 +306,7 @@ pub async fn delete_dashboard(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.kpi_engine.delete_dashboard(org_id, &code).await.map_err(|e| {
+    state.shared.kpi_engine.delete_dashboard(org_id, &code).await.map_err(|e| {
         error!("Delete dashboard error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -340,7 +340,7 @@ pub async fn add_widget(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let widget = state.kpi_engine.add_widget(
+    let widget = state.shared.kpi_engine.add_widget(
         dashboard_id,
         payload.kpi_id,
         &payload.widget_type,
@@ -367,7 +367,7 @@ pub async fn list_widgets(
     State(state): State<Arc<AppState>>,
     Path(dashboard_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let widgets = state.kpi_engine.list_widgets(dashboard_id).await
+    let widgets = state.shared.kpi_engine.list_widgets(dashboard_id).await
         .map_err(|e| { error!("List widgets error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
     Ok(Json(serde_json::json!({
@@ -381,7 +381,7 @@ pub async fn delete_widget(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.kpi_engine.delete_widget(id).await.map_err(|e| {
+    state.shared.kpi_engine.delete_widget(id).await.map_err(|e| {
         error!("Delete widget error: {}", e);
         match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -402,7 +402,7 @@ pub async fn get_kpi_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let summary = state.kpi_engine.get_dashboard_summary(org_id).await
+    let summary = state.shared.kpi_engine.get_dashboard_summary(org_id).await
         .map_err(|e| { error!("KPI dashboard error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
     Ok(Json(crate::handlers::records::to_json_or_null(summary)))

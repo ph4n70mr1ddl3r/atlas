@@ -53,7 +53,7 @@ pub async fn create_payment(
 
     info!("Creating payment for org {} supplier {}", org_id, payload.supplier_id);
 
-    match state.payment_engine.create_payment(
+    match state.financials.payment_engine.create_payment(
         org_id,
         payload.batch_id,
         payload.supplier_id,
@@ -95,7 +95,7 @@ pub async fn list_payments(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.payment_engine.list_payments(
+    match state.financials.payment_engine.list_payments(
         org_id,
         query.status.as_deref(),
         query.supplier_id,
@@ -114,7 +114,7 @@ pub async fn get_payment(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.payment_engine.get_payment(id).await {
+    match state.financials.payment_engine.get_payment(id).await {
         Ok(Some(payment)) => Ok(to_json(payment)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -130,7 +130,7 @@ pub async fn issue_payment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.payment_engine.issue_payment(id).await {
+    match state.financials.payment_engine.issue_payment(id).await {
         Ok(payment) => Ok(to_json(payment)),
         Err(e) => {
             error!("Failed to issue payment: {}", e);
@@ -146,7 +146,7 @@ pub async fn clear_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.payment_engine.clear_payment(id, Some(user_id)).await {
+    match state.financials.payment_engine.clear_payment(id, Some(user_id)).await {
         Ok(payment) => Ok(to_json(payment)),
         Err(e) => {
             error!("Failed to clear payment: {}", e);
@@ -164,7 +164,7 @@ pub async fn void_payment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let reason = body["reason"].as_str().unwrap_or("Voided");
-    match state.payment_engine.void_payment(id, user_id, reason).await {
+    match state.financials.payment_engine.void_payment(id, user_id, reason).await {
         Ok(payment) => Ok(to_json(payment)),
         Err(e) => {
             error!("Failed to void payment: {}", e);

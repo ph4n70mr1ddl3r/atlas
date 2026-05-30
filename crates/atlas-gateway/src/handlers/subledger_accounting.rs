@@ -53,7 +53,7 @@ pub async fn create_accounting_method(
 
     info!("Creating accounting method {} for org {}", payload.code, org_id);
 
-    match state.sla_engine.create_accounting_method(
+    match state.financials.sla_engine.create_accounting_method(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.application, &payload.transaction_type,
         payload.event_class.as_deref(),
@@ -80,7 +80,7 @@ pub async fn get_accounting_method(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.get_accounting_method(org_id, &code).await {
+    match state.financials.sla_engine.get_accounting_method(org_id, &code).await {
         Ok(Some(method)) => Ok(Json(crate::handlers::records::to_json_or_null(method))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -100,7 +100,7 @@ pub async fn list_accounting_methods(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.list_accounting_methods(org_id, params.application.as_deref()).await {
+    match state.financials.sla_engine.list_accounting_methods(org_id, params.application.as_deref()).await {
         Ok(methods) => Ok(Json(serde_json::json!({"data": methods}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -114,7 +114,7 @@ pub async fn delete_accounting_method(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.delete_accounting_method(org_id, &code).await {
+    match state.financials.sla_engine.delete_accounting_method(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::NOT_FOUND) }
     }
@@ -152,7 +152,7 @@ pub async fn create_derivation_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.create_derivation_rule(
+    match state.financials.sla_engine.create_derivation_rule(
         org_id, payload.accounting_method_id,
         &payload.code, &payload.name, payload.description.as_deref(),
         &payload.line_type, payload.priority.unwrap_or(10),
@@ -187,9 +187,9 @@ pub async fn list_derivation_rules(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let rules = if let Some(lt) = params.line_type.as_deref() {
-        state.sla_engine.list_active_derivation_rules(org_id, method_id, lt).await
+        state.financials.sla_engine.list_active_derivation_rules(org_id, method_id, lt).await
     } else {
-        state.sla_engine.list_derivation_rules(org_id, method_id).await
+        state.financials.sla_engine.list_derivation_rules(org_id, method_id).await
     };
 
     match rules {
@@ -206,7 +206,7 @@ pub async fn delete_derivation_rule(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.delete_derivation_rule(org_id, method_id, &code).await {
+    match state.financials.sla_engine.delete_derivation_rule(org_id, method_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::NOT_FOUND) }
     }
@@ -243,7 +243,7 @@ pub async fn create_journal_entry(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.create_journal_entry(
+    match state.financials.sla_engine.create_journal_entry(
         org_id, &payload.source_application, &payload.source_transaction_type,
         payload.source_transaction_id, payload.source_transaction_number.as_deref(),
         payload.accounting_method_id, payload.description.as_deref(),
@@ -269,7 +269,7 @@ pub async fn get_journal_entry(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.sla_engine.get_journal_entry(id).await {
+    match state.financials.sla_engine.get_journal_entry(id).await {
         Ok(Some(entry)) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -293,7 +293,7 @@ pub async fn list_journal_entries(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.list_journal_entries(
+    match state.financials.sla_engine.list_journal_entries(
         org_id, params.status.as_deref(), params.source_application.as_deref(),
         params.source_transaction_type.as_deref(),
         params.accounting_date_from, params.accounting_date_to,
@@ -309,7 +309,7 @@ pub async fn list_journal_lines(
     _claims: Extension<Claims>,
     Path(entry_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.sla_engine.list_journal_lines(entry_id).await {
+    match state.financials.sla_engine.list_journal_lines(entry_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -348,7 +348,7 @@ pub async fn add_journal_line(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.add_journal_line(
+    match state.financials.sla_engine.add_journal_line(
         org_id, entry_id,
         &payload.line_type, &payload.account_code,
         payload.account_description.as_deref(), payload.derivation_rule_id,
@@ -383,7 +383,7 @@ pub async fn account_journal_entry(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.account_entry(id, Some(user_id)).await {
+    match state.financials.sla_engine.account_entry(id, Some(user_id)).await {
         Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => { error!("Failed to account entry: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
@@ -397,7 +397,7 @@ pub async fn post_journal_entry(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.post_entry(id, Some(user_id)).await {
+    match state.financials.sla_engine.post_entry(id, Some(user_id)).await {
         Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => { error!("Failed to post entry: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
@@ -417,7 +417,7 @@ pub async fn reverse_journal_entry(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.reverse_entry(id, &payload.reason, Some(user_id)).await {
+    match state.financials.sla_engine.reverse_entry(id, &payload.reason, Some(user_id)).await {
         Ok(entry) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Err(e) => { error!("Failed to reverse entry: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
@@ -441,7 +441,7 @@ pub async fn generate_journal_lines(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.generate_journal_lines(
+    match state.financials.sla_engine.generate_journal_lines(
         org_id, entry_id, &payload.transaction_attributes,
     ).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
@@ -468,7 +468,7 @@ pub async fn transfer_to_gl(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.transfer_to_gl(
+    match state.financials.sla_engine.transfer_to_gl(
         org_id, payload.from_period.as_deref(),
         payload.source_applications, Some(user_id),
     ).await {
@@ -483,7 +483,7 @@ pub async fn get_transfer_log(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.sla_engine.get_transfer_log(id).await {
+    match state.financials.sla_engine.get_transfer_log(id).await {
         Ok(Some(log)) => Ok(Json(crate::handlers::records::to_json_or_null(log))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -503,7 +503,7 @@ pub async fn list_transfer_logs(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.list_transfer_logs(org_id, params.status.as_deref()).await {
+    match state.financials.sla_engine.list_transfer_logs(org_id, params.status.as_deref()).await {
         Ok(logs) => Ok(Json(serde_json::json!({"data": logs}))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -527,7 +527,7 @@ pub async fn list_sla_events(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.list_sla_events(
+    match state.financials.sla_engine.list_sla_events(
         org_id, params.source_application.as_deref(), params.event_type.as_deref(),
     ).await {
         Ok(events) => Ok(Json(serde_json::json!({"data": events}))),
@@ -546,7 +546,7 @@ pub async fn get_sla_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.sla_engine.get_dashboard_summary(org_id).await {
+    match state.financials.sla_engine.get_dashboard_summary(org_id).await {
         Ok(summary) => Ok(Json(crate::handlers::records::to_json_or_null(summary))),
         Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -567,11 +567,11 @@ pub async fn resolve_account_code(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let rules = state.sla_engine.list_active_derivation_rules(
+    let rules = state.financials.sla_engine.list_active_derivation_rules(
         org_id, payload.accounting_method_id, &payload.line_type,
     ).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let account_code = state.sla_engine.resolve_account_code(
+    let account_code = state.financials.sla_engine.resolve_account_code(
         &rules, &payload.line_type, &payload.transaction_attributes,
     );
 

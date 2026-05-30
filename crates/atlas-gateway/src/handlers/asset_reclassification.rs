@@ -42,7 +42,7 @@ pub async fn create_reclassification(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.asset_reclassification_engine.create(
+    match state.financials.asset_reclassification_engine.create(
         org_id, payload.asset_id,
         payload.asset_number.as_deref(), payload.asset_name.as_deref(),
         &payload.reclassification_type, payload.reason.as_deref(),
@@ -69,7 +69,7 @@ pub async fn get_reclassification(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.asset_reclassification_engine.get(id).await {
+    match state.financials.asset_reclassification_engine.get(id).await {
         Ok(Some(r)) => Ok(to_json(r)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get reclassification: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -88,7 +88,7 @@ pub async fn list_reclassifications(
     Query(query): Query<ListReclassificationsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.asset_reclassification_engine.list(org_id, query.status.as_deref(), query.asset_id).await {
+    match state.financials.asset_reclassification_engine.list(org_id, query.status.as_deref(), query.asset_id).await {
         Ok(items) => Ok(Json(serde_json::json!({ "data": items }))),
         Err(e) => { error!("Failed to list reclassifications: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -100,7 +100,7 @@ pub async fn approve_reclassification(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.asset_reclassification_engine.approve(id, user_id).await {
+    match state.financials.asset_reclassification_engine.approve(id, user_id).await {
         Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to approve reclassification: {}", e);
@@ -117,7 +117,7 @@ pub async fn complete_reclassification(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.asset_reclassification_engine.complete(id).await {
+    match state.financials.asset_reclassification_engine.complete(id).await {
         Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to complete reclassification: {}", e);
@@ -135,7 +135,7 @@ pub async fn get_reclassification_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.asset_reclassification_engine.get_dashboard(org_id).await {
+    match state.financials.asset_reclassification_engine.get_dashboard(org_id).await {
         Ok(dash) => Ok(to_json(dash)),
         Err(e) => { error!("Failed to get reclassification dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

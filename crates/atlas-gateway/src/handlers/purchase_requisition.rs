@@ -96,7 +96,7 @@ pub async fn create_requisition(
 
     let created_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.purchase_requisition_engine.create_requisition(org_id, &request, created_by).await {
+    match state.scm.purchase_requisition_engine.create_requisition(org_id, &request, created_by).await {
         Ok(req) => Ok((StatusCode::CREATED, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -115,7 +115,7 @@ pub async fn get_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.get_requisition(id).await {
+    match state.scm.purchase_requisition_engine.get_requisition(id).await {
         Ok(Some(req)) => Ok(Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Requisition not found"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
@@ -135,7 +135,7 @@ pub async fn list_requisitions(
 
     let requester_id = query.requester_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.purchase_requisition_engine.list_requisitions(org_id, query.status.as_deref(), requester_id).await {
+    match state.scm.purchase_requisition_engine.list_requisitions(org_id, query.status.as_deref(), requester_id).await {
         Ok(requisitions) => Ok(Json(json!({"data": requisitions}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -195,7 +195,7 @@ pub async fn update_requisition(
 
     let updated_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.purchase_requisition_engine.update_requisition(id, org_id, &request, updated_by).await {
+    match state.scm.purchase_requisition_engine.update_requisition(id, org_id, &request, updated_by).await {
         Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -214,7 +214,7 @@ pub async fn delete_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.delete_requisition(id).await {
+    match state.scm.purchase_requisition_engine.delete_requisition(id).await {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "Deleted"})))),
         Err(e) => {
             let status = match &e {
@@ -275,7 +275,7 @@ pub async fn add_requisition_line(
 
     let created_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.purchase_requisition_engine.add_line(org_id, requisition_id, &request, created_by).await {
+    match state.scm.purchase_requisition_engine.add_line(org_id, requisition_id, &request, created_by).await {
         Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -294,7 +294,7 @@ pub async fn list_requisition_lines(
     State(state): State<Arc<AppState>>,
     Path(requisition_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.list_lines(requisition_id).await {
+    match state.scm.purchase_requisition_engine.list_lines(requisition_id).await {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -305,7 +305,7 @@ pub async fn remove_requisition_line(
     State(state): State<Arc<AppState>>,
     Path(line_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.remove_line(line_id).await {
+    match state.scm.purchase_requisition_engine.remove_line(line_id).await {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "Line removed"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -335,7 +335,7 @@ pub async fn add_requisition_distribution(
         cost_center: body["cost_center"].as_str().map(String::from),
     };
 
-    match state.purchase_requisition_engine.add_distribution(org_id, requisition_id, line_id, &request).await {
+    match state.scm.purchase_requisition_engine.add_distribution(org_id, requisition_id, line_id, &request).await {
         Ok(dist) => Ok((StatusCode::CREATED, Json(serde_json::to_value(dist).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -353,7 +353,7 @@ pub async fn list_requisition_distributions(
     State(state): State<Arc<AppState>>,
     Path(line_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.list_distributions(line_id).await {
+    match state.scm.purchase_requisition_engine.list_distributions(line_id).await {
         Ok(distributions) => Ok(Json(json!({"data": distributions}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -370,7 +370,7 @@ pub async fn submit_requisition(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
-    match state.purchase_requisition_engine.submit_requisition(id, submitted_by).await {
+    match state.scm.purchase_requisition_engine.submit_requisition(id, submitted_by).await {
         Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -395,7 +395,7 @@ pub async fn approve_requisition(
     let approver_name = claims.email.clone();
     let comments = body["comments"].as_str().map(String::from);
 
-    match state.purchase_requisition_engine.approve_requisition(
+    match state.scm.purchase_requisition_engine.approve_requisition(
         id, approver_id, Some(&approver_name), comments.as_deref()
     ).await {
         Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
@@ -421,7 +421,7 @@ pub async fn reject_requisition(
     let approver_name = claims.email.clone();
     let comments = body["comments"].as_str().map(String::from);
 
-    match state.purchase_requisition_engine.reject_requisition(
+    match state.scm.purchase_requisition_engine.reject_requisition(
         id, approver_id, Some(&approver_name), comments.as_deref()
     ).await {
         Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
@@ -441,7 +441,7 @@ pub async fn cancel_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.cancel_requisition(id).await {
+    match state.scm.purchase_requisition_engine.cancel_requisition(id).await {
         Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -459,7 +459,7 @@ pub async fn close_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.close_requisition(id).await {
+    match state.scm.purchase_requisition_engine.close_requisition(id).await {
         Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -477,7 +477,7 @@ pub async fn return_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.return_requisition(id).await {
+    match state.scm.purchase_requisition_engine.return_requisition(id).await {
         Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
         Err(e) => {
             let status = match &e {
@@ -495,7 +495,7 @@ pub async fn list_requisition_approvals(
     State(state): State<Arc<AppState>>,
     Path(requisition_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.list_approvals(requisition_id).await {
+    match state.scm.purchase_requisition_engine.list_approvals(requisition_id).await {
         Ok(approvals) => Ok(Json(json!({"data": approvals}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -529,7 +529,7 @@ pub async fn autocreate(
 
     let created_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.purchase_requisition_engine.autocreate(org_id, &request, created_by).await {
+    match state.scm.purchase_requisition_engine.autocreate(org_id, &request, created_by).await {
         Ok(links) => Ok((StatusCode::CREATED, Json(json!({"data": links})))),
         Err(e) => {
             let status = match &e {
@@ -548,7 +548,7 @@ pub async fn list_autocreate_links(
     State(state): State<Arc<AppState>>,
     Path(requisition_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.list_autocreate_links(requisition_id).await {
+    match state.scm.purchase_requisition_engine.list_autocreate_links(requisition_id).await {
         Ok(links) => Ok(Json(json!({"data": links}))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -559,7 +559,7 @@ pub async fn cancel_autocreate_link(
     State(state): State<Arc<AppState>>,
     Path(link_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.purchase_requisition_engine.cancel_autocreate_link(link_id).await {
+    match state.scm.purchase_requisition_engine.cancel_autocreate_link(link_id).await {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "AutoCreate link cancelled"})))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
@@ -579,7 +579,7 @@ pub async fn get_requisition_dashboard(
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
     };
 
-    match state.purchase_requisition_engine.get_dashboard(org_id).await {
+    match state.scm.purchase_requisition_engine.get_dashboard(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }

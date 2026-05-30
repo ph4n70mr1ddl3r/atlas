@@ -56,7 +56,7 @@ pub async fn create_calendar(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let calendar = state.period_close_engine
+    let calendar = state.financials.period_close_engine
         .create_calendar(
             org_id,
             &payload.name,
@@ -89,7 +89,7 @@ pub async fn list_calendars(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let calendars = state.period_close_engine
+    let calendars = state.financials.period_close_engine
         .list_calendars(org_id)
         .await
         .map_err(|e| { error!("List calendars error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -106,7 +106,7 @@ pub async fn get_calendar(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let calendar = state.period_close_engine
+    let calendar = state.financials.period_close_engine
         .get_calendar(id)
         .await
         .map_err(|e| { error!("Get calendar error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
@@ -124,7 +124,7 @@ pub async fn delete_calendar(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.period_close_engine
+    state.financials.period_close_engine
         .delete_calendar(id)
         .await
         .map_err(|e| { error!("Delete calendar error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -151,7 +151,7 @@ pub async fn generate_periods(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let periods = state.period_close_engine
+    let periods = state.financials.period_close_engine
         .generate_periods(org_id, calendar_id, payload.fiscal_year)
         .await
         .map_err(|e| {
@@ -177,7 +177,7 @@ pub async fn list_periods(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let periods = state.period_close_engine
+    let periods = state.financials.period_close_engine
         .list_periods(org_id, calendar_id, params.fiscal_year)
         .await
         .map_err(|e| { error!("List periods error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -194,7 +194,7 @@ pub async fn get_period(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.period_close_engine
+    let period = state.financials.period_close_engine
         .get_period(period_id)
         .await
         .map_err(|e| { error!("Get period error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
@@ -227,7 +227,7 @@ pub async fn open_period(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.period_close_engine
+    let period = state.financials.period_close_engine
         .open_period(period_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -252,7 +252,7 @@ pub async fn pending_close_period(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.period_close_engine
+    let period = state.financials.period_close_engine
         .pending_close_period(period_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -277,7 +277,7 @@ pub async fn close_period(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.period_close_engine
+    let period = state.financials.period_close_engine
         .close_period(period_id, Some(user_id), payload.force)
         .await
         .map_err(|e| {
@@ -302,7 +302,7 @@ pub async fn permanently_close_period(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.period_close_engine
+    let period = state.financials.period_close_engine
         .permanently_close_period(period_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -327,7 +327,7 @@ pub async fn reopen_period(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.period_close_engine
+    let period = state.financials.period_close_engine
         .reopen_period(period_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -362,7 +362,7 @@ pub async fn update_subledger_status(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.period_close_engine
+    let period = state.financials.period_close_engine
         .update_subledger_status(period_id, &payload.subledger, &payload.status)
         .await
         .map_err(|e| {
@@ -408,7 +408,7 @@ pub async fn create_checklist_item(
         .as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    let item = state.period_close_engine
+    let item = state.financials.period_close_engine
         .add_checklist_item(
             org_id,
             period_id,
@@ -443,7 +443,7 @@ pub async fn list_checklist_items(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let items = state.period_close_engine
+    let items = state.financials.period_close_engine
         .list_checklist_items(period_id)
         .await
         .map_err(|e| { error!("List checklist items error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -468,7 +468,7 @@ pub async fn update_checklist_item(
 
     let completed_by = if payload.status == "completed" { Some(user_id) } else { None };
 
-    let item = state.period_close_engine
+    let item = state.financials.period_close_engine
         .update_checklist_item(item_id, &payload.status, completed_by)
         .await
         .map_err(|e| {
@@ -492,7 +492,7 @@ pub async fn delete_checklist_item(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.period_close_engine
+    state.financials.period_close_engine
         .delete_checklist_item(item_id)
         .await
         .map_err(|e| { error!("Delete checklist item error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
@@ -529,7 +529,7 @@ pub async fn grant_period_exception(
         .and_then(|d| chrono::DateTime::parse_from_rfc3339(d).ok())
         .map(|dt| dt.to_utc());
 
-    state.period_close_engine
+    state.financials.period_close_engine
         .grant_exception(
             org_id,
             period_id,
@@ -557,7 +557,7 @@ pub async fn revoke_period_exception(
     let _org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.period_close_engine
+    state.financials.period_close_engine
         .revoke_exception(period_id, user_id)
         .await
         .map_err(|e| {
@@ -587,7 +587,7 @@ pub async fn get_close_summary(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let summary = state.period_close_engine
+    let summary = state.financials.period_close_engine
         .get_close_summary(org_id, calendar_id, params.fiscal_year)
         .await
         .map_err(|e| {
@@ -626,7 +626,7 @@ pub async fn check_posting_allowed(
     let date = chrono::NaiveDate::parse_from_str(&params.date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.period_close_engine
+    match state.financials.period_close_engine
         .check_posting_allowed(org_id, calendar_id, date, Some(user_id))
         .await
     {

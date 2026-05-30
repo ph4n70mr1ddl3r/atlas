@@ -55,7 +55,7 @@ pub async fn create_tax_code(
         .transpose()
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid effective_to: {}", e)}))))?;
 
-    match state.withholding_tax_engine.create_tax_code(
+    match state.financials.withholding_tax_engine.create_tax_code(
         org_id, &req.code, &req.name, req.description.as_deref(),
         &req.tax_type, &req.rate_percentage, &req.threshold_amount,
         req.threshold_is_cumulative.unwrap_or(false),
@@ -78,7 +78,7 @@ pub async fn get_tax_code(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.get_tax_code(org_id, &code).await {
+    match state.financials.withholding_tax_engine.get_tax_code(org_id, &code).await {
         Ok(Some(tc)) => Ok(Json(serde_json::to_value(tc).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Tax code not found"})))),
         Err(e) => {
@@ -100,7 +100,7 @@ pub async fn list_tax_codes(
     Query(query): Query<ListTaxCodesQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.list_tax_codes(org_id, query.tax_type.as_deref()).await {
+    match state.financials.withholding_tax_engine.list_tax_codes(org_id, query.tax_type.as_deref()).await {
         Ok(codes) => Ok(Json(serde_json::json!({"data": codes}))),
         Err(e) => {
             error!("Failed to list withholding tax codes: {}", e);
@@ -116,7 +116,7 @@ pub async fn delete_tax_code(
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.delete_tax_code(org_id, &code).await {
+    match state.financials.withholding_tax_engine.delete_tax_code(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete withholding tax code: {}", e);
@@ -152,7 +152,7 @@ pub async fn create_tax_group(
     let tax_code_ids = tax_code_ids
         .map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid tax_code_ids"}))))?;
 
-    match state.withholding_tax_engine.create_tax_group(
+    match state.financials.withholding_tax_engine.create_tax_group(
         org_id, &req.code, &req.name, req.description.as_deref(),
         &tax_code_ids, user_id,
     ).await {
@@ -171,7 +171,7 @@ pub async fn get_tax_group(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.get_tax_group(org_id, &code).await {
+    match state.financials.withholding_tax_engine.get_tax_group(org_id, &code).await {
         Ok(Some(group)) => Ok(Json(serde_json::to_value(group).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Tax group not found"})))),
         Err(e) => {
@@ -187,7 +187,7 @@ pub async fn list_tax_groups(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.list_tax_groups(org_id).await {
+    match state.financials.withholding_tax_engine.list_tax_groups(org_id).await {
         Ok(groups) => Ok(Json(serde_json::json!({"data": groups}))),
         Err(e) => {
             error!("Failed to list tax groups: {}", e);
@@ -203,7 +203,7 @@ pub async fn delete_tax_group(
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.delete_tax_group(org_id, &code).await {
+    match state.financials.withholding_tax_engine.delete_tax_group(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete tax group: {}", e);
@@ -243,7 +243,7 @@ pub async fn assign_supplier(
         .transpose()
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid exemption_valid_until: {}", e)}))))?;
 
-    match state.withholding_tax_engine.assign_supplier(
+    match state.financials.withholding_tax_engine.assign_supplier(
         org_id, supplier_id,
         req.supplier_number.as_deref(), req.supplier_name.as_deref(),
         &req.tax_group_code,
@@ -267,7 +267,7 @@ pub async fn get_supplier_assignment(
     Path(supplier_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.get_supplier_assignment(org_id, supplier_id).await {
+    match state.financials.withholding_tax_engine.get_supplier_assignment(org_id, supplier_id).await {
         Ok(Some(a)) => Ok(Json(serde_json::to_value(a).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Supplier assignment not found"})))),
         Err(e) => {
@@ -283,7 +283,7 @@ pub async fn list_supplier_assignments(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.list_supplier_assignments(org_id).await {
+    match state.financials.withholding_tax_engine.list_supplier_assignments(org_id).await {
         Ok(assignments) => Ok(Json(serde_json::json!({"data": assignments}))),
         Err(e) => {
             error!("Failed to list supplier assignments: {}", e);
@@ -298,7 +298,7 @@ pub async fn remove_supplier_assignment(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    match state.withholding_tax_engine.remove_supplier_assignment(id).await {
+    match state.financials.withholding_tax_engine.remove_supplier_assignment(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to remove supplier assignment: {}", e);
@@ -329,7 +329,7 @@ pub async fn compute_withholding(
     let supplier_id = parse_uuid(&req.supplier_id)?;
     let invoice_id = parse_uuid(&req.invoice_id)?;
 
-    match state.withholding_tax_engine.compute_withholding(
+    match state.financials.withholding_tax_engine.compute_withholding(
         org_id, supplier_id, req.invoice_amount, invoice_id,
     ).await {
         Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or(serde_json::Value::Null))),
@@ -368,14 +368,14 @@ pub async fn record_withholding(
     let supplier_id = parse_uuid(&req.supplier_id)?;
 
     // First compute the withholding
-    let computation = state.withholding_tax_engine.compute_withholding(
+    let computation = state.financials.withholding_tax_engine.compute_withholding(
         org_id, supplier_id, 0.0, invoice_id, // amount already known from computation context
     ).await.map_err(|e| {
         (StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
          Json(serde_json::json!({"error": e.to_string()})))
     })?;
 
-    match state.withholding_tax_engine.record_withholding(
+    match state.financials.withholding_tax_engine.record_withholding(
         org_id, payment_id, req.payment_number.as_deref(),
         invoice_id, req.invoice_number.as_deref(),
         supplier_id, req.supplier_name.as_deref(),
@@ -395,7 +395,7 @@ pub async fn get_withholding_lines_by_payment(
     Extension(_claims): Extension<Claims>,
     Path(payment_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.withholding_tax_engine.get_withholding_lines_by_payment(payment_id).await {
+    match state.financials.withholding_tax_engine.get_withholding_lines_by_payment(payment_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => {
             error!("Failed to get withholding lines: {}", e);
@@ -425,7 +425,7 @@ pub async fn remit_withholding(
     let remittance_date = chrono::NaiveDate::parse_from_str(&req.remittance_date, "%Y-%m-%d")
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid remittance_date: {}", e)}))))?;
 
-    match state.withholding_tax_engine.remit_withholding(
+    match state.financials.withholding_tax_engine.remit_withholding(
         &line_ids, remittance_date, req.remittance_reference.as_deref(),
     ).await {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
@@ -466,7 +466,7 @@ pub async fn generate_certificate(
     let period_end = chrono::NaiveDate::parse_from_str(&req.period_end, "%Y-%m-%d")
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid period_end: {}", e)}))))?;
 
-    match state.withholding_tax_engine.generate_certificate(
+    match state.financials.withholding_tax_engine.generate_certificate(
         org_id, supplier_id,
         req.supplier_number.as_deref(), req.supplier_name.as_deref(),
         tax_code_id, period_start, period_end, user_id,
@@ -485,7 +485,7 @@ pub async fn get_certificate(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.withholding_tax_engine.get_certificate(id).await {
+    match state.financials.withholding_tax_engine.get_certificate(id).await {
         Ok(Some(cert)) => Ok(Json(serde_json::to_value(cert).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Certificate not found"})))),
         Err(e) => {
@@ -502,7 +502,7 @@ pub async fn get_certificate_by_number(
     Path(number): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.get_certificate_by_number(org_id, &number).await {
+    match state.financials.withholding_tax_engine.get_certificate_by_number(org_id, &number).await {
         Ok(Some(cert)) => Ok(Json(serde_json::to_value(cert).unwrap_or(serde_json::Value::Null))),
         Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Certificate not found"})))),
         Err(e) => {
@@ -529,7 +529,7 @@ pub async fn list_certificates(
         .transpose()
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid supplier_id: {}", e)}))))?;
 
-    match state.withholding_tax_engine.list_certificates(org_id, supplier_id).await {
+    match state.financials.withholding_tax_engine.list_certificates(org_id, supplier_id).await {
         Ok(certs) => Ok(Json(serde_json::json!({"data": certs}))),
         Err(e) => {
             error!("Failed to list certificates: {}", e);
@@ -544,7 +544,7 @@ pub async fn issue_certificate(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.withholding_tax_engine.issue_certificate(id).await {
+    match state.financials.withholding_tax_engine.issue_certificate(id).await {
         Ok(cert) => Ok(Json(serde_json::to_value(cert).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to issue certificate: {}", e);
@@ -559,7 +559,7 @@ pub async fn cancel_certificate(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.withholding_tax_engine.cancel_certificate(id).await {
+    match state.financials.withholding_tax_engine.cancel_certificate(id).await {
         Ok(cert) => Ok(Json(serde_json::to_value(cert).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to cancel certificate: {}", e);
@@ -578,7 +578,7 @@ pub async fn get_withholding_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.withholding_tax_engine.get_summary(org_id).await {
+    match state.financials.withholding_tax_engine.get_summary(org_id).await {
         Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(serde_json::Value::Null))),
         Err(e) => {
             error!("Failed to get withholding tax dashboard: {}", e);

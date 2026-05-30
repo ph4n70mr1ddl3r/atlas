@@ -34,7 +34,7 @@ pub async fn create_bank_transfer_type(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.bank_transfer_engine.create_transfer_type(
+    match state.financials.bank_transfer_engine.create_transfer_type(
         org_id, &payload.code, &payload.name, payload.description.as_deref(),
         &payload.settlement_method, payload.requires_approval.unwrap_or(true),
         payload.approval_threshold.as_deref(), Some(user_id),
@@ -77,7 +77,7 @@ pub async fn create_bank_transfer(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.bank_transfer_engine.create_transfer(
+    match state.financials.bank_transfer_engine.create_transfer(
         org_id, payload.transfer_type_id,
         payload.from_bank_account_id, payload.from_bank_account_number.as_deref(),
         payload.from_bank_name.as_deref(),
@@ -100,7 +100,7 @@ pub async fn list_bank_transfers(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.bank_transfer_engine.list_transfers(org_id, None).await {
+    match state.financials.bank_transfer_engine.list_transfers(org_id, None).await {
         Ok(transfers) => Ok(Json(serde_json::json!({ "data": transfers }))),
         Err(e) => { error!("Failed to list transfers: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }
@@ -110,7 +110,7 @@ pub async fn get_bank_transfer(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.bank_transfer_engine.get_transfer(id).await {
+    match state.financials.bank_transfer_engine.get_transfer(id).await {
         Ok(Some(t)) => Ok(to_json(t)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => { error!("Failed to get transfer: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
@@ -123,7 +123,7 @@ pub async fn submit_bank_transfer(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.bank_transfer_engine.submit_transfer(id, Some(user_id)).await {
+    match state.financials.bank_transfer_engine.submit_transfer(id, Some(user_id)).await {
         Ok(t) => Ok(to_json(t)),
         Err(e) => { error!("Failed to submit transfer: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
@@ -135,7 +135,7 @@ pub async fn approve_bank_transfer(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.bank_transfer_engine.approve_transfer(id, Some(user_id)).await {
+    match state.financials.bank_transfer_engine.approve_transfer(id, Some(user_id)).await {
         Ok(t) => Ok(to_json(t)),
         Err(e) => { error!("Failed to approve transfer: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
@@ -147,7 +147,7 @@ pub async fn complete_bank_transfer(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.bank_transfer_engine.complete_transfer(id, Some(user_id)).await {
+    match state.financials.bank_transfer_engine.complete_transfer(id, Some(user_id)).await {
         Ok(t) => Ok(to_json(t)),
         Err(e) => { error!("Failed to complete transfer: {}", e); Err(StatusCode::BAD_REQUEST) }
     }
@@ -158,7 +158,7 @@ pub async fn get_bank_transfer_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.bank_transfer_engine.get_dashboard(org_id).await {
+    match state.financials.bank_transfer_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
     }

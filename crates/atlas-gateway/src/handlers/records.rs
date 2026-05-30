@@ -136,7 +136,7 @@ pub async fn list_records(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Listing records for entity: {}", entity);
     
-    let entity_def = match state.schema_engine.get_entity(&entity) {
+    let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
@@ -289,7 +289,7 @@ pub async fn get_record(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Getting record {} for entity: {}", id, entity);
     
-    let entity_def = match state.schema_engine.get_entity(&entity) {
+    let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
@@ -333,7 +333,7 @@ pub async fn create_record(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     info!("Creating record for entity: {}", entity);
     
-    let entity_def = match state.schema_engine.get_entity(&entity) {
+    let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
@@ -342,7 +342,7 @@ pub async fn create_record(
     let table_name = sanitize_identifier(table_name)?;
     
     // Validate data against entity schema (Oracle Fusion: mandatory validation)
-    let validation_result = state.validation_engine.validate(&entity_def, &payload.values, None);
+    let validation_result = state.core.validation_engine.validate(&entity_def, &payload.values, None);
     if !validation_result.valid {
         return Ok((StatusCode::BAD_REQUEST, Json(serde_json::json!({
             "error": "Validation failed",
@@ -355,7 +355,7 @@ pub async fn create_record(
     let ctx = atlas_core::formula::EvaluationContext::new(values.clone());
     for field in &entity_def.fields {
         if let atlas_shared::FieldType::Computed { formula, return_type: _ } = &field.field_type {
-            if let Ok(computed) = state.formula_engine.evaluate(formula, &ctx) {
+            if let Ok(computed) = state.core.formula_engine.evaluate(formula, &ctx) {
                 let json_val: serde_json::Value = computed.into();
                 if let Some(obj) = values.as_object_mut() {
                     obj.insert(field.name.clone(), json_val);
@@ -416,7 +416,7 @@ pub async fn create_record(
     
     // Log audit entry for create
     if let Some(id) = record_id {
-        if let Err(e) = state.audit_engine.log_create(
+        if let Err(e) = state.core.audit_engine.log_create(
             &entity,
             id,
             &record,
@@ -450,7 +450,7 @@ pub async fn update_record(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     info!("Updating record {} for entity: {}", id, entity);
     
-    let entity_def = match state.schema_engine.get_entity(&entity) {
+    let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
@@ -531,7 +531,7 @@ pub async fn update_record(
             
             // Log audit entry
             if let Some(ref old) = old_record {
-                if let Err(e) = state.audit_engine.log_update(
+                if let Err(e) = state.core.audit_engine.log_update(
                     &entity,
                     id,
                     old,
@@ -566,7 +566,7 @@ pub async fn delete_record(
 ) -> Result<StatusCode, StatusCode> {
     info!("Deleting record {} for entity: {}", id, entity);
     
-    let entity_def = match state.schema_engine.get_entity(&entity) {
+    let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
@@ -620,7 +620,7 @@ pub async fn delete_record(
     }
     
     // Log audit entry
-    if let Err(e) = state.audit_engine.log_delete(
+    if let Err(e) = state.core.audit_engine.log_delete(
         &entity,
         id,
         &old_record,
@@ -651,7 +651,7 @@ pub async fn get_transitions(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Getting transitions for record {} of entity {}", id, entity);
 
-    let entity_def = state.schema_engine.get_entity(&entity)
+    let entity_def = state.core.schema_engine.get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let workflow = match &entity_def.workflow {
@@ -685,7 +685,7 @@ pub async fn get_transitions(
     };
 
     // Get available transitions from the workflow engine
-    let available = state.workflow_engine
+    let available = state.core.workflow_engine
         .get_available_transitions(&workflow.name, &current_state, None)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -707,7 +707,7 @@ pub async fn execute_action(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     info!("Executing action {} on {}:{}", action, entity, id);
 
-    let entity_def = state.schema_engine.get_entity(&entity)
+    let entity_def = state.core.schema_engine.get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let workflow = entity_def.workflow.as_ref()
@@ -755,7 +755,7 @@ pub async fn execute_action(
     };
 
     // Execute the transition via workflow engine
-    let result = state.workflow_engine
+    let result = state.core.workflow_engine
         .execute_transition(
             &workflow.name,
             id,
@@ -843,7 +843,7 @@ pub async fn execute_action(
     let _ = state.event_bus.publish(event).await;
 
     // Log to audit
-    if let Err(e) = state.audit_engine.log(
+    if let Err(e) = state.core.audit_engine.log(
         &entity,
         id,
         atlas_shared::AuditAction::ExecuteAction,
@@ -881,7 +881,7 @@ pub async fn get_record_history(
     // Verify the record belongs to the caller's organization before
     // returning audit data.  If the entity doesn't exist in the schema
     // or the record doesn't exist / is not in the caller's org, return 404.
-    if let Some(entity_def) = state.schema_engine.get_entity(&entity) {
+    if let Some(entity_def) = state.core.schema_engine.get_entity(&entity) {
         let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
         if let Ok(safe_table) = sanitize_identifier(table_name) {
             let org_id = Uuid::parse_str(&claims.org_id)
@@ -908,7 +908,7 @@ pub async fn get_record_history(
         }
     }
 
-    let entries = state.audit_engine
+    let entries = state.core.audit_engine
         .get_entity_history(&entity, id)
         .await
         .map_err(|e| {

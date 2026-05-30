@@ -52,7 +52,7 @@ pub async fn create_expense_category(
 
     info!("Creating expense category {} for org {} by user {}", payload.code, org_id, user_id);
 
-    match state.expense_engine.create_category(
+    match state.financials.expense_engine.create_category(
         org_id,
         &payload.code,
         &payload.name,
@@ -87,7 +87,7 @@ pub async fn get_expense_category(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.expense_engine.get_category(org_id, &code).await {
+    match state.financials.expense_engine.get_category(org_id, &code).await {
         Ok(Some(category)) => Ok(Json(serde_json::to_value(category).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -105,7 +105,7 @@ pub async fn list_expense_categories(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.expense_engine.list_categories(org_id).await {
+    match state.financials.expense_engine.list_categories(org_id).await {
         Ok(categories) => Ok(Json(serde_json::json!({ "data": categories }))),
         Err(e) => {
             error!("Failed to list expense categories: {}", e);
@@ -123,7 +123,7 @@ pub async fn delete_expense_category(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.expense_engine.delete_category(org_id, &code).await {
+    match state.financials.expense_engine.delete_category(org_id, &code).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete expense category: {}", e);
@@ -168,7 +168,7 @@ pub async fn create_expense_policy(
 
     info!("Creating expense policy '{}' for org {}", payload.name, org_id);
 
-    match state.expense_engine.create_policy(
+    match state.financials.expense_engine.create_policy(
         org_id,
         &payload.name,
         payload.description.as_deref(),
@@ -208,7 +208,7 @@ pub async fn list_expense_policies(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.expense_engine.list_policies(org_id, query.category_code.as_deref()).await {
+    match state.financials.expense_engine.list_policies(org_id, query.category_code.as_deref()).await {
         Ok(policies) => Ok(Json(serde_json::json!({ "data": policies }))),
         Err(e) => {
             error!("Failed to list expense policies: {}", e);
@@ -223,7 +223,7 @@ pub async fn delete_expense_policy(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.expense_engine.delete_policy(id).await {
+    match state.financials.expense_engine.delete_policy(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete expense policy: {}", e);
@@ -268,7 +268,7 @@ pub async fn create_expense_report(
 
     info!("Creating expense report '{}' for org {}", payload.report_number, org_id);
 
-    match state.expense_engine.create_report(
+    match state.financials.expense_engine.create_report(
         org_id,
         &payload.report_number,
         &payload.title,
@@ -301,7 +301,7 @@ pub async fn get_expense_report(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.expense_engine.get_report(id).await {
+    match state.financials.expense_engine.get_report(id).await {
         Ok(Some(report)) => Ok(Json(serde_json::to_value(report).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -326,7 +326,7 @@ pub async fn list_expense_reports(
     let org_id = Uuid::parse_str(&claims.org_id)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.expense_engine.list_reports(org_id, query.employee_id, query.status.as_deref()).await {
+    match state.financials.expense_engine.list_reports(org_id, query.employee_id, query.status.as_deref()).await {
         Ok(reports) => Ok(Json(serde_json::json!({ "data": reports }))),
         Err(e) => {
             error!("Failed to list expense reports: {}", e);
@@ -344,7 +344,7 @@ pub async fn submit_expense_report(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.expense_engine.submit_report(id).await {
+    match state.financials.expense_engine.submit_report(id).await {
         Ok(report) => Ok(Json(serde_json::to_value(report).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to submit expense report: {}", e);
@@ -366,7 +366,7 @@ pub async fn approve_expense_report(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.expense_engine.approve_report(id, user_id).await {
+    match state.financials.expense_engine.approve_report(id, user_id).await {
         Ok(report) => Ok(Json(serde_json::to_value(report).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to approve expense report: {}", e);
@@ -394,7 +394,7 @@ pub async fn reject_expense_report(
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.expense_engine.reject_report(id, user_id, payload.reason.as_deref()).await {
+    match state.financials.expense_engine.reject_report(id, user_id, payload.reason.as_deref()).await {
         Ok(report) => Ok(Json(serde_json::to_value(report).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reject expense report: {}", e);
@@ -413,7 +413,7 @@ pub async fn reimburse_expense_report(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.expense_engine.reimburse_report(id).await {
+    match state.financials.expense_engine.reimburse_report(id).await {
         Ok(report) => Ok(Json(serde_json::to_value(report).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
         Err(e) => {
             error!("Failed to reimburse expense report: {}", e);
@@ -471,7 +471,7 @@ pub async fn add_expense_line(
 
     info!("Adding expense line to report {}", report_id);
 
-    match state.expense_engine.add_line(
+    match state.financials.expense_engine.add_line(
         org_id,
         report_id,
         &payload.expense_type,
@@ -515,7 +515,7 @@ pub async fn list_expense_lines(
     _claims: Extension<Claims>,
     Path(report_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.expense_engine.list_lines(report_id).await {
+    match state.financials.expense_engine.list_lines(report_id).await {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list expense lines: {}", e);
@@ -530,7 +530,7 @@ pub async fn delete_expense_line(
     _claims: Extension<Claims>,
     Path((report_id, line_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.expense_engine.delete_line(report_id, line_id).await {
+    match state.financials.expense_engine.delete_line(report_id, line_id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete expense line: {}", e);

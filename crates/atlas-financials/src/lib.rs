@@ -22,6 +22,8 @@ pub mod asset_revaluation;
 pub use asset_revaluation::*;
 pub mod ledger_sets;
 pub use ledger_sets::*;
+pub mod autopost_criteria;
+pub use autopost_criteria::*;
 pub mod supplier_retainage;
 pub use supplier_retainage::*;
 pub mod receivable_factoring;

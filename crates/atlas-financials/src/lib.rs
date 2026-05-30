@@ -26,6 +26,8 @@ pub mod autopost_criteria;
 pub use autopost_criteria::*;
 pub mod journal_reversal_criteria;
 pub use journal_reversal_criteria::*;
+pub mod enterprise_structure;
+pub use enterprise_structure::*;
 pub mod supplier_retainage;
 pub use supplier_retainage::*;
 pub mod receivable_factoring;

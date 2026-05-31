@@ -108,6 +108,8 @@ pub mod journal_approval;
 pub use journal_approval::*;
 pub mod automatch_rules;
 pub use automatch_rules::*;
+pub mod average_balance_processing;
+pub use average_balance_processing::*;
 pub mod autoaccounting;
 pub use autoaccounting::*;
 pub mod tax_exemptions;

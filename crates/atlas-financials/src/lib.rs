@@ -40,6 +40,8 @@ pub mod payment_process_request;
 pub use payment_process_request::*;
 pub mod tax_registration;
 pub use tax_registration::*;
+pub mod doubtful_account;
+pub use doubtful_account::*;
 pub mod journal_reversal_criteria;
 pub use journal_reversal_criteria::*;
 pub mod enterprise_structure;

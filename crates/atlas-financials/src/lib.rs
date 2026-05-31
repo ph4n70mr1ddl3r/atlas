@@ -34,6 +34,8 @@ pub mod ar_receipt_reversal;
 pub use ar_receipt_reversal::*;
 pub mod hedge_management;
 pub use hedge_management::*;
+pub mod payment_settlement;
+pub use payment_settlement::*;
 pub mod journal_reversal_criteria;
 pub use journal_reversal_criteria::*;
 pub mod enterprise_structure;

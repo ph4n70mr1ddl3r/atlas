@@ -28,6 +28,8 @@ pub mod distribution_sets;
 pub use distribution_sets::*;
 pub mod dunning_letter;
 pub use dunning_letter::*;
+pub mod recurring_invoice;
+pub use recurring_invoice::*;
 pub mod ar_receipt_reversal;
 pub use ar_receipt_reversal::*;
 pub mod journal_reversal_criteria;

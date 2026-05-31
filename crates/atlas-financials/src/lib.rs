@@ -56,6 +56,8 @@ pub mod supplier_retainage;
 pub use supplier_retainage::*;
 pub mod receivable_factoring;
 pub use receivable_factoring::*;
+pub mod finance_charge;
+pub use finance_charge::*;
 pub mod bill_of_exchange;
 pub use bill_of_exchange::*;
 pub mod bank_statement;

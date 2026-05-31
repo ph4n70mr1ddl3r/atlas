@@ -96,6 +96,8 @@ pub mod petty_cash;
 pub use petty_cash::*;
 pub mod escheatment;
 pub use escheatment::*;
+pub mod expense_policy;
+pub use expense_policy::*;
 pub mod evaluated_receipt_settlement;
 pub use evaluated_receipt_settlement::*;
 pub mod payment_process_profile;

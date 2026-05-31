@@ -30,6 +30,8 @@ pub mod enterprise_structure;
 pub use enterprise_structure::*;
 pub mod journal_sources_categories;
 pub use journal_sources_categories::*;
+pub mod data_access_sets;
+pub use data_access_sets::*;
 pub mod supplier_retainage;
 pub use supplier_retainage::*;
 pub mod receivable_factoring;

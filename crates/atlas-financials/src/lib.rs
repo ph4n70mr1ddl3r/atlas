@@ -32,6 +32,8 @@ pub mod journal_sources_categories;
 pub use journal_sources_categories::*;
 pub mod data_access_sets;
 pub use data_access_sets::*;
+pub mod automatic_offsets;
+pub use automatic_offsets::*;
 pub mod supplier_retainage;
 pub use supplier_retainage::*;
 pub mod receivable_factoring;

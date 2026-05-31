@@ -24,6 +24,8 @@ pub mod ledger_sets;
 pub use ledger_sets::*;
 pub mod autopost_criteria;
 pub use autopost_criteria::*;
+pub mod distribution_sets;
+pub use distribution_sets::*;
 pub mod journal_reversal_criteria;
 pub use journal_reversal_criteria::*;
 pub mod enterprise_structure;

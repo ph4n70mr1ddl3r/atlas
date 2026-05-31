@@ -58,6 +58,8 @@ pub mod receivable_factoring;
 pub use receivable_factoring::*;
 pub mod finance_charge;
 pub use finance_charge::*;
+pub mod interest_invoice;
+pub use interest_invoice::*;
 pub mod bill_of_exchange;
 pub use bill_of_exchange::*;
 pub mod bank_statement;

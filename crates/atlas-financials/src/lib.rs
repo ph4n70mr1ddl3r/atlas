@@ -26,6 +26,8 @@ pub mod autopost_criteria;
 pub use autopost_criteria::*;
 pub mod distribution_sets;
 pub use distribution_sets::*;
+pub mod dunning_letter;
+pub use dunning_letter::*;
 pub mod ar_receipt_reversal;
 pub use ar_receipt_reversal::*;
 pub mod journal_reversal_criteria;

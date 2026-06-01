@@ -28,7 +28,6 @@ pub trait ReferenceDataLookup {
 impl AutoAccountingService {
     /// Derives the GL account combination string for a specific account class (e.g., REVENUE)
     /// based on the configured rules and the transaction context.
-    #[must_use]
     pub fn derive_account<T: ReferenceDataLookup>(
         account_class: &str,
         segments_to_build: &[&str], // e.g., ["COMPANY", "COST_CENTER", "ACCOUNT"]

@@ -781,197 +781,59 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::allocation::PostgresAllocationRepository::new(db_pool.clone()),
     )));
 
-    let state = AppState {
-        db_pool: db_pool.clone(),
-        schema_engine,
-        workflow_engine,
+    let core = atlas_gateway::state::CoreState {
+        schema_engine: schema_engine.clone(),
+        workflow_engine: workflow_engine.clone(),
         validation_engine,
         formula_engine,
         security_engine,
         audit_engine,
         notification_engine,
         approval_engine,
+        document_sequencing_engine: Arc::new(atlas_core::DocumentSequencingEngine::new(Arc::new(
+            atlas_core::document_sequencing::PostgresDocumentSequencingRepository::new(db_pool.clone()),
+        ))),
+        transaction_calendar_engine: Arc::new(atlas_core::TransactionCalendarEngine::new(Arc::new(
+            atlas_core::transaction_calendar::PostgresTransactionCalendarRepository::new(db_pool.clone()),
+        ))),
+    };
+
+    let financials = atlas_gateway::state::FinancialsState {
         period_close_engine,
         currency_engine,
         tax_engine,
         intercompany_engine,
-    reconciliation_engine,
+        reconciliation_engine,
         expense_engine,
         budget_engine,
         fixed_asset_engine,
         sla_engine,
         encumbrance_engine,
         cash_management_engine,
-        sourcing_engine,
-        lease_accounting_engine,
-        project_costing_engine,
-        cost_allocation_engine,
-        financial_reporting_engine,
         multi_book_engine,
-        procurement_contract_engine,
-        inventory_engine,
-        customer_returns_engine,
-        pricing_engine,
-        sales_commission_engine,
-        treasury_engine,
-        grant_management_engine,
-        supplier_qualification_engine,
         recurring_journal_engine,
         manual_journal_engine,
-        dff_engine,
-        cvr_engine,
-        scheduled_process_engine,
-        sod_engine,
         allocation_engine,
         currency_revaluation_engine: Arc::new(atlas_core::CurrencyRevaluationEngine::new(Arc::new(
             atlas_core::currency_revaluation::PostgresCurrencyRevaluationRepository::new(db_pool.clone()),
         ))),
-        purchase_requisition_engine: Arc::new(atlas_core::PurchaseRequisitionEngine::new(Arc::new(
-            atlas_core::purchase_requisition::PostgresPurchaseRequisitionRepository::new(db_pool.clone()),
-        ))),
         corporate_card_engine: Arc::new(atlas_core::CorporateCardEngine::new(Arc::new(
             atlas_core::corporate_card::PostgresCorporateCardRepository::new(db_pool.clone()),
-        ))),
-        benefits_engine: Arc::new(atlas_core::BenefitsEngine::new(Arc::new(
-            atlas_core::benefits::PostgresBenefitsRepository::new(db_pool.clone()),
-        ))),
-        performance_engine: Arc::new(atlas_core::PerformanceEngine::new(Arc::new(
-            atlas_core::performance::PostgresPerformanceRepository::new(db_pool.clone()),
         ))),
         credit_management_engine: Arc::new(atlas_core::CreditManagementEngine::new(Arc::new(
             atlas_core::credit_management::PostgresCreditManagementRepository::new(db_pool.clone()),
         ))),
-        product_information_engine: Arc::new(atlas_core::ProductInformationEngine::new(Arc::new(
-            atlas_core::product_information::PostgresProductInformationRepository::new(db_pool.clone()),
-        ))),
-        transfer_pricing_engine: Arc::new(atlas_core::TransferPricingEngine::new(Arc::new(
-            atlas_core::transfer_pricing::PostgresTransferPricingRepository::new(db_pool.clone()),
-        ))),
-        approval_delegation_engine: Arc::new(atlas_core::ApprovalDelegationEngine::new(Arc::new(
-            atlas_core::approval_delegation::PostgresApprovalDelegationRepository::new(db_pool.clone()),
-        ))),
-        order_management_engine: Arc::new(atlas_core::OrderManagementEngine::new(Arc::new(
-            atlas_core::order_management::PostgresOrderManagementRepository::new(db_pool.clone()),
-        ))),
-        manufacturing_engine: Arc::new(atlas_core::ManufacturingEngine::new(Arc::new(
-            atlas_core::manufacturing::PostgresManufacturingRepository::new(db_pool.clone()),
-        ))),
-        warehouse_management_engine: Arc::new(atlas_core::WarehouseManagementEngine::new(Arc::new(
-            atlas_core::warehouse_management::PostgresWarehouseManagementRepository::new(db_pool.clone()),
-        ))),
-        absence_engine: Arc::new(atlas_core::AbsenceEngine::new(Arc::new(
-            atlas_core::absence::PostgresAbsenceRepository::new(db_pool.clone()),
-        ))),
-        time_and_labor_engine: Arc::new(atlas_core::TimeAndLaborEngine::new(Arc::new(
-            atlas_core::time_and_labor::PostgresTimeAndLaborRepository::new(db_pool.clone()),
-        ))),
-        approval_authority_engine: Arc::new(atlas_core::ApprovalAuthorityEngine::new(Arc::new(
-            atlas_core::approval_authority::PostgresApprovalAuthorityRepository::new(db_pool.clone()),
-        ))),
-        data_archiving_engine: Arc::new(atlas_core::DataArchivingEngine::new(Arc::new(
-            atlas_core::data_archiving::PostgresDataArchivingRepository::new(db_pool.clone()),
-        ))),
-        payroll_engine: Arc::new(atlas_core::PayrollEngine::new(Arc::new(
-            atlas_core::payroll::PostgresPayrollRepository::new(db_pool.clone()),
-        ))),
-        compensation_engine: Arc::new(atlas_core::CompensationEngine::new(Arc::new(
-            atlas_core::compensation::PostgresCompensationRepository::new(db_pool.clone()),
-        ))),
-        service_request_engine: Arc::new(atlas_core::ServiceRequestEngine::new(Arc::new(
-            atlas_core::service_request::PostgresServiceRequestRepository::new(db_pool.clone()),
-        ))),
-        lead_opportunity_engine: Arc::new(atlas_core::LeadOpportunityEngine::new(Arc::new(
-            atlas_core::lead_opportunity::PostgresLeadOpportunityRepository::new(db_pool.clone()),
-        ))),
-        demand_planning_engine: Arc::new(atlas_core::DemandPlanningEngine::new(Arc::new(
-            atlas_core::demand_planning::PostgresDemandPlanningRepository::new(db_pool.clone()),
-        ))),
-        shipping_engine: Arc::new(atlas_core::ShippingEngine::new(Arc::new(
-            atlas_core::shipping::PostgresShippingRepository::new(db_pool.clone()),
-        ))),
         autoinvoice_engine: Arc::new(atlas_core::AutoInvoiceEngine::new(Arc::new(
             atlas_core::autoinvoice::PostgresAutoInvoiceRepository::new(db_pool.clone()),
-        ))),
-        recruiting_engine: Arc::new(atlas_core::RecruitingEngine::new(Arc::new(
-            atlas_core::recruiting::PostgresRecruitingRepository::new(db_pool.clone()),
         ))),
         revenue_engine: Arc::new(atlas_core::RevenueEngine::new(Arc::new(
             atlas_core::revenue::PostgresRevenueRepository::new(db_pool.clone()),
         ))),
-        marketing_engine: Arc::new(atlas_core::MarketingEngine::new(Arc::new(
-            atlas_core::marketing::PostgresMarketingRepository::new(db_pool.clone()),
-        ))),
-        receiving_engine: Arc::new(atlas_core::ReceivingEngine::new(Arc::new(
-            atlas_core::receiving::PostgresReceivingRepository::new(db_pool.clone()),
-        ))),
-        scorecard_engine: Arc::new(atlas_core::SupplierScorecardEngine::new(Arc::new(
-            atlas_core::supplier_scorecard::PostgresScorecardRepository::new(db_pool.clone()),
-        ))),
-        kpi_engine: Arc::new(atlas_core::KpiEngine::new(Arc::new(
-            atlas_core::kpi::PostgresKpiRepository::new(db_pool.clone()),
-        ))),
         account_monitor_engine: Arc::new(atlas_core::AccountMonitorEngine::new(Arc::new(
             atlas_core::account_monitor::PostgresAccountMonitorRepository::new(db_pool.clone()),
         ))),
-        goal_management_engine: Arc::new(atlas_core::GoalManagementEngine::new(Arc::new(
-            atlas_core::goal_management::PostgresGoalManagementRepository::new(db_pool.clone()),
-        ))),
-        clm_engine: Arc::new(atlas_core::ContractLifecycleEngine::new(Arc::new(
-            atlas_core::contract_lifecycle::PostgresContractLifecycleRepository::new(db_pool.clone()),
-        ))),
-        risk_management_engine: Arc::new(atlas_core::RiskManagementEngine::new(Arc::new(
-            atlas_core::risk_management::PostgresRiskManagementRepository::new(db_pool.clone()),
-        ))),
-        eam_engine: Arc::new(atlas_core::EnterpriseAssetManagementEngine::new(Arc::new(
-            atlas_core::enterprise_asset_management::PostgresAssetManagementRepository::new(db_pool.clone()),
-        ))),
-        ecm_engine: Arc::new(atlas_core::EngineeringChangeEngine::new(Arc::new(
-            atlas_core::engineering_change_management::PostgresEngineeringChangeManagementRepository::new(db_pool.clone()),
-        ))),
-        configurator_engine: Arc::new(atlas_core::ProductConfiguratorEngine::new(Arc::new(
-            atlas_core::product_configurator::PostgresProductConfiguratorRepository::new(db_pool.clone()),
-        ))),
-        transportation_engine: Arc::new(atlas_core::TransportationManagementEngine::new(Arc::new(
-            atlas_core::transportation_management::PostgresTransportationManagementRepository::new(db_pool.clone()),
-        ))),
-        territory_engine: Arc::new(atlas_core::TerritoryManagementEngine::new(Arc::new(
-            atlas_core::territory_management::PostgresTerritoryManagementRepository::new(db_pool.clone()),
-        ))),
-        sustainability_engine: Arc::new(atlas_core::SustainabilityEngine::new(Arc::new(
-            atlas_core::sustainability::PostgresSustainabilityRepository::new(db_pool.clone()),
-        ))),
-        promotions_engine: Arc::new(atlas_core::PromotionsManagementEngine::new(Arc::new(
-            atlas_core::promotions_management::PostgresPromotionsManagementRepository::new(db_pool.clone()),
-        ))),
-        project_billing_engine: Arc::new(atlas_core::ProjectBillingEngine::new(Arc::new(
-            atlas_core::project_billing::PostgresProjectBillingRepository::new(db_pool.clone()),
-        ))),
-        quality_engine: Arc::new(atlas_core::QualityManagementEngine::new(Arc::new(
-            atlas_core::quality_management::PostgresQualityManagementRepository::new(db_pool.clone()),
-        ))),
-        cost_accounting_engine: Arc::new(atlas_core::CostAccountingEngine::new(Arc::new(
-            atlas_core::cost_accounting::PostgresCostAccountingRepository::new(db_pool.clone()),
-        ))),
         accounts_payable_engine: Arc::new(atlas_core::AccountsPayableEngine::new(Arc::new(
             atlas_core::accounts_payable::PostgresAccountsPayableRepository::new(db_pool.clone()),
-        ))),
-        planning_engine: Arc::new(atlas_core::SupplyChainPlanningEngine::new(Arc::new(
-            atlas_core::supply_chain_planning::PostgresPlanningRepository::new(db_pool.clone()),
-        ))),
-        health_safety_engine: Arc::new(atlas_core::HealthSafetyEngine::new(Arc::new(
-            atlas_core::health_safety::PostgresHealthSafetyRepository::new(db_pool.clone()),
-        ))),
-        funds_reservation_engine: Arc::new(atlas_core::FundsReservationEngine::new(Arc::new(
-            atlas_core::funds_reservation::PostgresFundsReservationRepository::new(db_pool.clone()),
-        ))),
-        rebate_management_engine: Arc::new(atlas_core::RebateManagementEngine::new(Arc::new(
-            atlas_core::rebate_management::PostgresRebateManagementRepository::new(db_pool.clone()),
-        ))),
-        project_resource_engine: Arc::new(atlas_core::ProjectResourceManagementEngine::new(Arc::new(
-            atlas_core::project_resource_management::PostgresProjectResourceManagementRepository::new(db_pool.clone()),
-        ))),
-        loyalty_engine: Arc::new(atlas_core::LoyaltyManagementEngine::new(Arc::new(
-            atlas_core::loyalty_management::PostgresLoyaltyManagementRepository::new(db_pool.clone()),
         ))),
         general_ledger_engine: Arc::new(atlas_core::GeneralLedgerEngine::new(Arc::new(
             atlas_core::general_ledger::PostgresGeneralLedgerRepository::new(db_pool.clone()),
@@ -1003,14 +865,8 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         tax_reporting_engine: Arc::new(atlas_core::TaxReportingEngine::new(Arc::new(
             atlas_core::tax_reporting::PostgresTaxReportingRepository::new(db_pool.clone()),
         ))),
-        subscription_engine: Arc::new(atlas_core::SubscriptionEngine::new(Arc::new(
-            atlas_core::subscription::PostgresSubscriptionRepository::new(db_pool.clone()),
-        ))),
         financial_consolidation_engine: Arc::new(atlas_core::FinancialConsolidationEngine::new(Arc::new(
             atlas_core::financial_consolidation::PostgresFinancialConsolidationRepository::new(db_pool.clone()),
-        ))),
-        joint_venture_engine: Arc::new(atlas_core::JointVentureEngine::new(Arc::new(
-            atlas_core::joint_venture::PostgresJointVentureRepository::new(db_pool.clone()),
         ))),
         deferred_revenue_engine: Arc::new(atlas_core::DeferredRevenueEngine::new(Arc::new(
             atlas_core::deferred_revenue::PostgresDeferredRevenueRepository::new(db_pool.clone()),
@@ -1159,12 +1015,6 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         receivables_factoring_engine: Arc::new(atlas_core::ReceivablesFactoringEngine::new(Arc::new(
             atlas_core::receivables_factoring::PostgresReceivablesFactoringRepository::new(db_pool.clone()),
         ))),
-        document_sequencing_engine: Arc::new(atlas_core::DocumentSequencingEngine::new(Arc::new(
-            atlas_core::document_sequencing::PostgresDocumentSequencingRepository::new(db_pool.clone()),
-        ))),
-        transaction_calendar_engine: Arc::new(atlas_core::TransactionCalendarEngine::new(Arc::new(
-            atlas_core::transaction_calendar::PostgresTransactionCalendarRepository::new(db_pool.clone()),
-        ))),
         asset_retirement_engine: Arc::new(atlas_core::AssetRetirementEngine::new(Arc::new(
             atlas_core::asset_retirement::PostgresAssetRetirementRepository::new(db_pool.clone()),
         ))),
@@ -1174,6 +1024,196 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         dunning_letter_management_engine: Arc::new(atlas_core::DunningLetterManagementEngine::new(Arc::new(
             atlas_core::dunning_letter_management::PostgresDunningLetterManagementRepository::new(db_pool.clone()),
         ))),
+        treasury_engine,
+        grant_management_engine,
+    };
+
+    let hcm = atlas_gateway::state::HcmState {
+        absence_engine: Arc::new(atlas_core::AbsenceEngine::new(Arc::new(
+            atlas_core::absence::PostgresAbsenceRepository::new(db_pool.clone()),
+        ))),
+        time_and_labor_engine: Arc::new(atlas_core::TimeAndLaborEngine::new(Arc::new(
+            atlas_core::time_and_labor::PostgresTimeAndLaborRepository::new(db_pool.clone()),
+        ))),
+        payroll_engine: Arc::new(atlas_core::PayrollEngine::new(Arc::new(
+            atlas_core::payroll::PostgresPayrollRepository::new(db_pool.clone()),
+        ))),
+        compensation_engine: Arc::new(atlas_core::CompensationEngine::new(Arc::new(
+            atlas_core::compensation::PostgresCompensationRepository::new(db_pool.clone()),
+        ))),
+        benefits_engine: Arc::new(atlas_core::BenefitsEngine::new(Arc::new(
+            atlas_core::benefits::PostgresBenefitsRepository::new(db_pool.clone()),
+        ))),
+        performance_engine: Arc::new(atlas_core::PerformanceEngine::new(Arc::new(
+            atlas_core::performance::PostgresPerformanceRepository::new(db_pool.clone()),
+        ))),
+        recruiting_engine: Arc::new(atlas_core::RecruitingEngine::new(Arc::new(
+            atlas_core::recruiting::PostgresRecruitingRepository::new(db_pool.clone()),
+        ))),
+        learning_management_engine: Arc::new(atlas_core::LearningManagementEngine::new(Arc::new(
+            atlas_core::learning_management::PostgresLearningManagementRepository::new(db_pool.clone()),
+        ))),
+        succession_planning_engine: Arc::new(atlas_core::SuccessionPlanningEngine::new(Arc::new(
+            atlas_core::succession_planning::PostgresSuccessionPlanningRepository::new(db_pool.clone()),
+        ))),
+        goal_management_engine: Arc::new(atlas_core::GoalManagementEngine::new(Arc::new(
+            atlas_core::goal_management::PostgresGoalManagementRepository::new(db_pool.clone()),
+        ))),
+        approval_authority_engine: Arc::new(atlas_core::ApprovalAuthorityEngine::new(Arc::new(
+            atlas_core::approval_authority::PostgresApprovalAuthorityRepository::new(db_pool.clone()),
+        ))),
+        data_archiving_engine: Arc::new(atlas_core::DataArchivingEngine::new(Arc::new(
+            atlas_core::data_archiving::PostgresDataArchivingRepository::new(db_pool.clone()),
+        ))),
+        approval_delegation_engine: Arc::new(atlas_core::ApprovalDelegationEngine::new(Arc::new(
+            atlas_core::approval_delegation::PostgresApprovalDelegationRepository::new(db_pool.clone()),
+        ))),
+    };
+
+    let scm = atlas_gateway::state::ScmState {
+        sourcing_engine,
+        procurement_contract_engine,
+        inventory_engine,
+        customer_returns_engine,
+        pricing_engine,
+        purchase_requisition_engine: Arc::new(atlas_core::PurchaseRequisitionEngine::new(Arc::new(
+            atlas_core::purchase_requisition::PostgresPurchaseRequisitionRepository::new(db_pool.clone()),
+        ))),
+        product_information_engine: Arc::new(atlas_core::ProductInformationEngine::new(Arc::new(
+            atlas_core::product_information::PostgresProductInformationRepository::new(db_pool.clone()),
+        ))),
+        quality_engine: Arc::new(atlas_core::QualityManagementEngine::new(Arc::new(
+            atlas_core::quality_management::PostgresQualityManagementRepository::new(db_pool.clone()),
+        ))),
+        order_management_engine: Arc::new(atlas_core::OrderManagementEngine::new(Arc::new(
+            atlas_core::order_management::PostgresOrderManagementRepository::new(db_pool.clone()),
+        ))),
+        manufacturing_engine: Arc::new(atlas_core::ManufacturingEngine::new(Arc::new(
+            atlas_core::manufacturing::PostgresManufacturingRepository::new(db_pool.clone()),
+        ))),
+        warehouse_management_engine: Arc::new(atlas_core::WarehouseManagementEngine::new(Arc::new(
+            atlas_core::warehouse_management::PostgresWarehouseManagementRepository::new(db_pool.clone()),
+        ))),
+        shipping_engine: Arc::new(atlas_core::ShippingEngine::new(Arc::new(
+            atlas_core::shipping::PostgresShippingRepository::new(db_pool.clone()),
+        ))),
+        receiving_engine: Arc::new(atlas_core::ReceivingEngine::new(Arc::new(
+            atlas_core::receiving::PostgresReceivingRepository::new(db_pool.clone()),
+        ))),
+        supplier_qualification_engine,
+        scorecard_engine: Arc::new(atlas_core::SupplierScorecardEngine::new(Arc::new(
+            atlas_core::supplier_scorecard::PostgresScorecardRepository::new(db_pool.clone()),
+        ))),
+        landed_cost_engine: Arc::new(atlas_core::LandedCostEngine::new(Arc::new(
+            atlas_core::landed_cost::PostgresLandedCostRepository::new(db_pool.clone()),
+        ))),
+        clm_engine: Arc::new(atlas_core::ContractLifecycleEngine::new(Arc::new(
+            atlas_core::contract_lifecycle::PostgresContractLifecycleRepository::new(db_pool.clone()),
+        ))),
+        demand_planning_engine: Arc::new(atlas_core::DemandPlanningEngine::new(Arc::new(
+            atlas_core::demand_planning::PostgresDemandPlanningRepository::new(db_pool.clone()),
+        ))),
+        planning_engine: Arc::new(atlas_core::SupplyChainPlanningEngine::new(Arc::new(
+            atlas_core::supply_chain_planning::PostgresPlanningRepository::new(db_pool.clone()),
+        ))),
+        configurator_engine: Arc::new(atlas_core::ProductConfiguratorEngine::new(Arc::new(
+            atlas_core::product_configurator::PostgresProductConfiguratorRepository::new(db_pool.clone()),
+        ))),
+        transportation_engine: Arc::new(atlas_core::TransportationManagementEngine::new(Arc::new(
+            atlas_core::transportation_management::PostgresTransportationManagementRepository::new(db_pool.clone()),
+        ))),
+        channel_revenue_engine: Arc::new(atlas_core::ChannelRevenueEngine::new(Arc::new(
+            atlas_core::channel_revenue::PostgresChannelRevenueRepository::new(db_pool.clone()),
+        ))),
+        rebate_management_engine: Arc::new(atlas_core::RebateManagementEngine::new(Arc::new(
+            atlas_core::rebate_management::PostgresRebateManagementRepository::new(db_pool.clone()),
+        ))),
+    };
+
+    let crm = atlas_gateway::state::CrmState {
+        sales_commission_engine,
+        subscription_engine: Arc::new(atlas_core::SubscriptionEngine::new(Arc::new(
+            atlas_core::subscription::PostgresSubscriptionRepository::new(db_pool.clone()),
+        ))),
+        lead_opportunity_engine: Arc::new(atlas_core::LeadOpportunityEngine::new(Arc::new(
+            atlas_core::lead_opportunity::PostgresLeadOpportunityRepository::new(db_pool.clone()),
+        ))),
+        marketing_engine: Arc::new(atlas_core::MarketingEngine::new(Arc::new(
+            atlas_core::marketing::PostgresMarketingRepository::new(db_pool.clone()),
+        ))),
+        service_request_engine: Arc::new(atlas_core::ServiceRequestEngine::new(Arc::new(
+            atlas_core::service_request::PostgresServiceRequestRepository::new(db_pool.clone()),
+        ))),
+        loyalty_engine: Arc::new(atlas_core::LoyaltyManagementEngine::new(Arc::new(
+            atlas_core::loyalty_management::PostgresLoyaltyManagementRepository::new(db_pool.clone()),
+        ))),
+        promotions_engine: Arc::new(atlas_core::PromotionsManagementEngine::new(Arc::new(
+            atlas_core::promotions_management::PostgresPromotionsManagementRepository::new(db_pool.clone()),
+        ))),
+    };
+
+    let projects = atlas_gateway::state::ProjectsState {
+        project_costing_engine,
+        project_resource_engine: Arc::new(atlas_core::ProjectResourceManagementEngine::new(Arc::new(
+            atlas_core::project_resource_management::PostgresProjectResourceManagementRepository::new(db_pool.clone()),
+        ))),
+        joint_venture_engine: Arc::new(atlas_core::JointVentureEngine::new(Arc::new(
+            atlas_core::joint_venture::PostgresJointVentureRepository::new(db_pool.clone()),
+        ))),
+        project_billing_engine: Arc::new(atlas_core::ProjectBillingEngine::new(Arc::new(
+            atlas_core::project_billing::PostgresProjectBillingRepository::new(db_pool.clone()),
+        ))),
+    };
+
+    let shared = atlas_gateway::state::SharedState {
+        lease_accounting_engine,
+        cost_allocation_engine,
+        financial_reporting_engine,
+        dff_engine,
+        cvr_engine,
+        scheduled_process_engine,
+        sod_engine,
+        kpi_engine: Arc::new(atlas_core::KpiEngine::new(Arc::new(
+            atlas_core::kpi::PostgresKpiRepository::new(db_pool.clone()),
+        ))),
+        eam_engine: Arc::new(atlas_core::EnterpriseAssetManagementEngine::new(Arc::new(
+            atlas_core::enterprise_asset_management::PostgresAssetManagementRepository::new(db_pool.clone()),
+        ))),
+        risk_management_engine: Arc::new(atlas_core::RiskManagementEngine::new(Arc::new(
+            atlas_core::risk_management::PostgresRiskManagementRepository::new(db_pool.clone()),
+        ))),
+        sustainability_engine: Arc::new(atlas_core::SustainabilityEngine::new(Arc::new(
+            atlas_core::sustainability::PostgresSustainabilityRepository::new(db_pool.clone()),
+        ))),
+        ecm_engine: Arc::new(atlas_core::EngineeringChangeEngine::new(Arc::new(
+            atlas_core::engineering_change_management::PostgresEngineeringChangeManagementRepository::new(db_pool.clone()),
+        ))),
+        health_safety_engine: Arc::new(atlas_core::HealthSafetyEngine::new(Arc::new(
+            atlas_core::health_safety::PostgresHealthSafetyRepository::new(db_pool.clone()),
+        ))),
+        transfer_pricing_engine: Arc::new(atlas_core::TransferPricingEngine::new(Arc::new(
+            atlas_core::transfer_pricing::PostgresTransferPricingRepository::new(db_pool.clone()),
+        ))),
+        cost_accounting_engine: Arc::new(atlas_core::CostAccountingEngine::new(Arc::new(
+            atlas_core::cost_accounting::PostgresCostAccountingRepository::new(db_pool.clone()),
+        ))),
+        funds_reservation_engine: Arc::new(atlas_core::FundsReservationEngine::new(Arc::new(
+            atlas_core::funds_reservation::PostgresFundsReservationRepository::new(db_pool.clone()),
+        ))),
+        territory_engine: Arc::new(atlas_core::TerritoryManagementEngine::new(Arc::new(
+            atlas_core::territory_management::PostgresTerritoryManagementRepository::new(db_pool.clone()),
+        ))),
+    };
+
+    let state = AppState {
+        db_pool: db_pool.clone(),
+        core,
+        financials,
+        hcm,
+        scm,
+        crm,
+        projects,
+        shared,
         event_bus,
         jwt_secret: TEST_JWT_SECRET.to_string(),
     };
@@ -1185,12 +1225,12 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
 
 pub async fn setup_p2p_entities(state: &Arc<AppState>) {
     for entity in all_p2p_entities() {
-        state.schema_engine.upsert_entity(entity).await.unwrap();
+        state.core.schema_engine.upsert_entity(entity).await.unwrap();
     }
     for entity in all_p2p_entities() {
-        if let Some(e) = state.schema_engine.get_entity(&entity.name) {
+        if let Some(e) = state.core.schema_engine.get_entity(&entity.name) {
             if let Some(ref wf) = e.workflow {
-                state.workflow_engine.load_workflow(wf.clone()).await.unwrap();
+                state.core.workflow_engine.load_workflow(wf.clone()).await.unwrap();
             }
         }
     }
@@ -1198,12 +1238,12 @@ pub async fn setup_p2p_entities(state: &Arc<AppState>) {
 
 pub async fn setup_o2c_entities(state: &Arc<AppState>) {
     for entity in all_o2c_entities() {
-        state.schema_engine.upsert_entity(entity).await.unwrap();
+        state.core.schema_engine.upsert_entity(entity).await.unwrap();
     }
     for entity in all_o2c_entities() {
-        if let Some(e) = state.schema_engine.get_entity(&entity.name) {
+        if let Some(e) = state.core.schema_engine.get_entity(&entity.name) {
             if let Some(ref wf) = e.workflow {
-                state.workflow_engine.load_workflow(wf.clone()).await.unwrap();
+                state.core.workflow_engine.load_workflow(wf.clone()).await.unwrap();
             }
         }
     }

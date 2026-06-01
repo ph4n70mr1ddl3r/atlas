@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::{NaiveDate, Datelike, Duration, Month};
-use rust_decimal::Decimal;
+use chrono::{NaiveDate, Datelike, Duration};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecurringInvoiceTemplate {
@@ -26,11 +25,17 @@ pub struct RecurringInvoiceService {
     templates: Arc<RwLock<Vec<RecurringInvoiceTemplate>>>,
 }
 
-impl RecurringInvoiceService {
-    pub fn new() -> Self {
+impl Default for RecurringInvoiceService {
+    fn default() -> Self {
         Self {
             templates: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl RecurringInvoiceService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_template(

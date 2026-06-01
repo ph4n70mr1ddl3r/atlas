@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DoubtfulAccountPolicy {
@@ -27,6 +26,12 @@ pub struct AgingBucket {
 pub struct DoubtfulAccountService {
     policies: Arc<RwLock<Vec<DoubtfulAccountPolicy>>>,
     buckets: Arc<RwLock<Vec<AgingBucket>>>,
+}
+
+impl Default for DoubtfulAccountService {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DoubtfulAccountService {
@@ -104,7 +109,7 @@ impl DoubtfulAccountService {
                 let buckets = self.buckets.read().unwrap();
                 let applicable_bucket = buckets.iter()
                     .filter(|b| b.policy_id == policy_id)
-                    .find(|b| days_overdue >= b.from_days && b.to_days.map_or(true, |to| days_overdue <= to));
+                    .find(|b| days_overdue >= b.from_days && b.to_days.is_none_or(|to| days_overdue <= to));
                 
                 match applicable_bucket {
                     Some(b) => balance * (b.provision_percentage / 100.0),

@@ -27,6 +27,12 @@ pub struct LedgerSetService {
     assignments: Arc<RwLock<Vec<LedgerSetAssignment>>>,
 }
 
+impl Default for LedgerSetService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LedgerSetService {
     pub fn new() -> Self {
         Self {

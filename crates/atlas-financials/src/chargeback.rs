@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chargeback {
@@ -27,6 +26,12 @@ pub struct ChargebackLine {
 pub struct ChargebackService {
     chargebacks: Arc<RwLock<Vec<Chargeback>>>,
     lines: Arc<RwLock<Vec<ChargebackLine>>>,
+}
+
+impl Default for ChargebackService {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ChargebackService {
@@ -93,7 +98,7 @@ impl ChargebackService {
         Ok(line)
     }
 
-    pub fn resolve_chargeback(&self, id: Uuid, notes: String) -> Result<(), String> {
+    pub fn resolve_chargeback(&self, id: Uuid, _notes: String) -> Result<(), String> {
         let mut chargebacks = self.chargebacks.write().unwrap();
         let cb = chargebacks.iter_mut().find(|c| c.id == id)
             .ok_or_else(|| "Chargeback not found".to_string())?;

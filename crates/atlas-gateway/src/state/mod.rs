@@ -79,6 +79,11 @@ impl AppState {
         
         info!("Connected to database");
         
+        Self::new_with_pool(db_pool).await
+    }
+
+    pub async fn new_with_pool(db_pool: sqlx::PgPool) -> anyhow::Result<Self> {
+        
         let schema_engine = Arc::new(SchemaEngine::new(Arc::new(PostgresSchemaRepository::new(db_pool.clone()))));
         let audit_engine = Arc::new(AuditEngine::new(Arc::new(PostgresAuditRepository::new(db_pool.clone()))));
         let workflow_engine = Arc::new(WorkflowEngine::new());

@@ -12,9 +12,9 @@ async fn setup_wf() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
     // Clean residual data from prior failed runs
     cleanup_test_db(&state.db_pool).await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
-    if let Some(ref wf) = state.schema_engine.get_entity("test_items").unwrap().workflow {
-        state.workflow_engine.load_workflow(wf.clone()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    if let Some(ref wf) = state.core.schema_engine.get_entity("test_items").unwrap().workflow {
+        state.core.workflow_engine.load_workflow(wf.clone()).await.unwrap();
     }
     setup_test_db(&state.db_pool).await;
     let app = build_router(state.clone());
@@ -162,7 +162,7 @@ async fn test_transitions_no_workflow() {
         indexes: vec![], workflow: None, security: None, is_audit_enabled: true, is_soft_delete: true,
         icon: None, color: None, metadata: serde_json::Value::Null,
     };
-    state.schema_engine.upsert_entity(entity).await.unwrap();
+    state.core.schema_engine.upsert_entity(entity).await.unwrap();
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let r = app.oneshot(Request::builder()

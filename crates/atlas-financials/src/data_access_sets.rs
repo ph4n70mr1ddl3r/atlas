@@ -37,12 +37,18 @@ pub struct DataAccessSetService {
     details: Arc<RwLock<Vec<DataAccessSetDetail>>>,
 }
 
-impl DataAccessSetService {
-    pub fn new() -> Self {
+impl Default for DataAccessSetService {
+    fn default() -> Self {
         Self {
             sets: Arc::new(RwLock::new(Vec::new())),
             details: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl DataAccessSetService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_data_access_set(

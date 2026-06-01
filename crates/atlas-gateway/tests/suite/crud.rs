@@ -22,9 +22,9 @@ async fn test_list_records_entity_not_found() {
 #[ignore]
 async fn test_crud_full_lifecycle() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
-    if let Some(ref wf) = state.schema_engine.get_entity("test_items").unwrap().workflow {
-        state.workflow_engine.load_workflow(wf.clone()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    if let Some(ref wf) = state.core.schema_engine.get_entity("test_items").unwrap().workflow {
+        state.core.workflow_engine.load_workflow(wf.clone()).await.unwrap();
     }
     setup_test_db(&state.db_pool).await;
     let app = build_router(state);
@@ -86,7 +86,7 @@ async fn test_crud_full_lifecycle() {
 #[ignore]
 async fn test_sql_injection_prevented() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     setup_test_db(&state.db_pool).await;
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
@@ -103,7 +103,7 @@ async fn test_sql_injection_prevented() {
 #[ignore]
 async fn test_delete_nonexistent() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     setup_test_db(&state.db_pool).await;
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());

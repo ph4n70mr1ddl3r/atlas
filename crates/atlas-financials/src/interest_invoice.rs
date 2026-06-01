@@ -25,14 +25,18 @@ pub struct InterestOverdueInvoice {
 
 pub struct InterestInvoiceService {
     schedules: Arc<RwLock<Vec<InterestSchedule>>>,
-    overdue_invoices: Arc<RwLock<Vec<InterestOverdueInvoice>>>,
+}
+
+impl Default for InterestInvoiceService {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl InterestInvoiceService {
     pub fn new() -> Self {
         Self {
             schedules: Arc::new(RwLock::new(Vec::new())),
-            overdue_invoices: Arc::new(RwLock::new(Vec::new())),
         }
     }
 

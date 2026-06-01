@@ -29,12 +29,18 @@ pub struct JournalSetupService {
     categories: Arc<RwLock<Vec<JournalCategory>>>,
 }
 
-impl JournalSetupService {
-    pub fn new() -> Self {
+impl Default for JournalSetupService {
+    fn default() -> Self {
         Self {
             sources: Arc::new(RwLock::new(Vec::new())),
             categories: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl JournalSetupService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_journal_source(

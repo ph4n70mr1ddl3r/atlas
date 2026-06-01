@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaymentProcessRequest {
@@ -27,12 +26,18 @@ pub struct PaymentProcessRequestService {
     documents: Arc<RwLock<Vec<SelectedDocument>>>,
 }
 
-impl PaymentProcessRequestService {
-    pub fn new() -> Self {
+impl Default for PaymentProcessRequestService {
+    fn default() -> Self {
         Self {
             requests: Arc::new(RwLock::new(Vec::new())),
             documents: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl PaymentProcessRequestService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_request(

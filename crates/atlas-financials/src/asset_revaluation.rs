@@ -47,6 +47,12 @@ pub struct AssetRevaluationService {
     lines: Arc<RwLock<Vec<RevaluationLine>>>,
 }
 
+impl Default for AssetRevaluationService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AssetRevaluationService {
     pub fn new() -> Self {
         Self {

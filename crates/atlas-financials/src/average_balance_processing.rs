@@ -31,6 +31,12 @@ pub struct AverageBalanceProcessingService {
     calculations: Arc<RwLock<Vec<AverageBalanceCalculation>>>,
 }
 
+impl Default for AverageBalanceProcessingService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AverageBalanceProcessingService {
     pub fn new() -> Self {
         Self {

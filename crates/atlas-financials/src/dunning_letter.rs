@@ -31,12 +31,18 @@ pub struct DunningLetterSetupService {
     lines: Arc<RwLock<Vec<DunningLetterSetLine>>>,
 }
 
-impl DunningLetterSetupService {
-    pub fn new() -> Self {
+impl Default for DunningLetterSetupService {
+    fn default() -> Self {
         Self {
             sets: Arc::new(RwLock::new(Vec::new())),
             lines: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl DunningLetterSetupService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_set(
@@ -99,7 +105,7 @@ impl DunningLetterSetupService {
         let mut applicable_lines: Vec<&DunningLetterSetLine> = lines.iter()
             .filter(|l| l.set_id == set_id)
             .filter(|l| days_overdue >= l.min_days_overdue)
-            .filter(|l| l.max_days_overdue.map_or(true, |max| days_overdue <= max))
+            .filter(|l| l.max_days_overdue.is_none_or(|max| days_overdue <= max))
             .filter(|l| overdue_amount >= l.minimum_amount)
             .collect();
             

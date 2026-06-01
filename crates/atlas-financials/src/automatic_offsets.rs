@@ -33,6 +33,12 @@ pub struct AutomaticOffsetTemplateService {
     lines: Arc<RwLock<Vec<AutoOffsetTemplateLine>>>,
 }
 
+impl Default for AutomaticOffsetTemplateService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AutomaticOffsetTemplateService {
     pub fn new() -> Self {
         Self {
@@ -133,10 +139,8 @@ impl AutomaticOffsetTemplateService {
         
         if let Some(best_match) = matches.first() {
             Some((best_match.due_to_account.clone(), best_match.due_from_account.clone()))
-        } else if let Some(def_acct) = default_acct {
-            Some((def_acct.clone(), def_acct))
         } else {
-            None
+            default_acct.map(|def_acct| (def_acct.clone(), def_acct))
         }
     }
 }

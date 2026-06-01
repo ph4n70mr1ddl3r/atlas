@@ -29,6 +29,12 @@ pub struct AutoPostCriteriaService {
     criteria: Arc<RwLock<Vec<AutoPostCriteria>>>,
 }
 
+impl Default for AutoPostCriteriaService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AutoPostCriteriaService {
     pub fn new() -> Self {
         Self {
@@ -118,9 +124,9 @@ impl AutoPostCriteriaService {
         for crit in criteria_list.iter() {
             if crit.is_active && active_sets.contains(&crit.criteria_set_id) {
                 // Match dimensions (None means "All")
-                let match_ledger = crit.ledger_id.map_or(true, |id| id == ledger_id);
-                let match_source = crit.journal_source_id.map_or(true, |id| id == journal_source_id);
-                let match_category = crit.journal_category_id.map_or(true, |id| id == journal_category_id);
+                let match_ledger = crit.ledger_id.is_none_or(|id| id == ledger_id);
+                let match_source = crit.journal_source_id.is_none_or(|id| id == journal_source_id);
+                let match_category = crit.journal_category_id.is_none_or(|id| id == journal_category_id);
 
                 if match_ledger && match_source && match_category {
                     // Check dates

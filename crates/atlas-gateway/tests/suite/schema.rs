@@ -8,7 +8,7 @@ use super::common::helpers::*;
 #[tokio::test]
 async fn test_get_entity_schema() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let response = app.oneshot(
@@ -35,7 +35,7 @@ async fn test_get_entity_schema_not_found() {
 #[tokio::test]
 async fn test_get_entity_form() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let response = app.oneshot(
@@ -55,7 +55,7 @@ async fn test_get_entity_form() {
 #[tokio::test]
 async fn test_get_entity_list_view() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let response = app.oneshot(

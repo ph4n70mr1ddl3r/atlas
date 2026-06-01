@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SettlementBatch {
@@ -29,12 +28,18 @@ pub struct PaymentSettlementService {
     lines: Arc<RwLock<Vec<SettlementLine>>>,
 }
 
-impl PaymentSettlementService {
-    pub fn new() -> Self {
+impl Default for PaymentSettlementService {
+    fn default() -> Self {
         Self {
             batches: Arc::new(RwLock::new(Vec::new())),
             lines: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl PaymentSettlementService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_batch(

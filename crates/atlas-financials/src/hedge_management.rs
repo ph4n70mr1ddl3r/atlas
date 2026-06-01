@@ -43,13 +43,19 @@ pub struct HedgeManagementService {
     tests: Arc<RwLock<Vec<EffectivenessTest>>>,
 }
 
-impl HedgeManagementService {
-    pub fn new() -> Self {
+impl Default for HedgeManagementService {
+    fn default() -> Self {
         Self {
             instruments: Arc::new(RwLock::new(Vec::new())),
             relationships: Arc::new(RwLock::new(Vec::new())),
             tests: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl HedgeManagementService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_instrument(

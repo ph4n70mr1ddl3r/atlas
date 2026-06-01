@@ -20,11 +20,17 @@ pub struct ARReceiptReversalService {
     reversals: Arc<RwLock<Vec<ARReceiptReversal>>>,
 }
 
-impl ARReceiptReversalService {
-    pub fn new() -> Self {
+impl Default for ARReceiptReversalService {
+    fn default() -> Self {
         Self {
             reversals: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl ARReceiptReversalService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn reverse_receipt(

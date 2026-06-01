@@ -29,12 +29,18 @@ pub struct FinanceChargeService {
     runs: Arc<RwLock<Vec<FinanceChargeRun>>>,
 }
 
-impl FinanceChargeService {
-    pub fn new() -> Self {
+impl Default for FinanceChargeService {
+    fn default() -> Self {
         Self {
             terms: Arc::new(RwLock::new(Vec::new())),
             runs: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl FinanceChargeService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_term(

@@ -26,6 +26,12 @@ pub struct ExpensePolicyService {
     rules: Arc<RwLock<Vec<ExpensePolicyRule>>>,
 }
 
+impl Default for ExpensePolicyService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExpensePolicyService {
     pub fn new() -> Self {
         Self {
@@ -75,24 +81,21 @@ impl ExpensePolicyService {
 
         for rule in rules.iter().filter(|r| r.org_id == org_id && (r.expense_category == "all" || r.expense_category == category)) {
             match rule.rule_type.as_str() {
-                "amount_limit" => {
-                    if amount > rule.maximum_amount {
-                        results.push(PolicyEvaluationResult {
-                            is_compliant: false,
-                            severity: rule.severity.clone(),
-                            message: format!("Amount {} exceeds limit of {}", amount, rule.maximum_amount),
-                        });
-                    }
+                "amount_limit" if amount > rule.maximum_amount => {
+                    results.push(PolicyEvaluationResult {
+                        is_compliant: false,
+                        severity: rule.severity.clone(),
+                        message: format!("Amount {} exceeds limit of {}", amount, rule.maximum_amount),
+                    });
                 },
-                "receipt_required" => {
-                    if rule.requires_receipt && !has_receipt {
-                        results.push(PolicyEvaluationResult {
-                            is_compliant: false,
-                            severity: rule.severity.clone(),
-                            message: "Receipt is required for this expense".to_string(),
-                        });
-                    }
+                "receipt_required" if rule.requires_receipt && !has_receipt => {
+                    results.push(PolicyEvaluationResult {
+                        is_compliant: false,
+                        severity: rule.severity.clone(),
+                        message: "Receipt is required for this expense".to_string(),
+                    });
                 },
+                "amount_limit" | "receipt_required" => {},
                 _ => {}
             }
         }

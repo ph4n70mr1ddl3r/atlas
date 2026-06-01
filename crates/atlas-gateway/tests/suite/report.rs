@@ -18,7 +18,7 @@ async fn test_entity_report_not_found() {
 #[tokio::test]
 async fn test_dashboard_report() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let r = app.oneshot(Request::builder().uri("/api/v1/reports/dashboard").header(k, v).body(Body::empty()).unwrap()).await.unwrap();
@@ -41,7 +41,7 @@ async fn test_export_not_found() {
 #[tokio::test]
 async fn test_import_unsupported_format() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let r = app.oneshot(Request::builder().method("POST").uri("/api/v1/import")

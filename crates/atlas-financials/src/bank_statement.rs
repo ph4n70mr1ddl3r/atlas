@@ -31,6 +31,12 @@ pub struct BankStatementService {
     lines: Arc<RwLock<Vec<BankStatementLine>>>,
 }
 
+impl Default for BankStatementService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BankStatementService {
     pub fn new() -> Self {
         Self {
@@ -106,7 +112,8 @@ impl BankStatementService {
 
         for line in lines.iter_mut().filter(|l| l.statement_id == statement_id && l.match_status == "unmatched") {
             // Very simple exact match logic for demo
-            if let Some((sys_id, _, _)) = system_transactions.iter().find(|(_, amt, _)| *amt == line.amount) {
+            if let Some((_sys_id, _, _)) = system_transactions.iter().find(|(_, amt, _)| *amt == line.amount) {
+
                 line.match_status = "matched".to_string();
                 // In a real system, we'd record the matched_transaction_id
                 matched_count += 1;

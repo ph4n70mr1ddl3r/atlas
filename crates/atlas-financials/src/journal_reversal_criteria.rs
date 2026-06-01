@@ -48,12 +48,18 @@ pub struct JournalReversalCriteriaService {
     rules: Arc<RwLock<Vec<JournalReversalCriteriaRule>>>,
 }
 
-impl JournalReversalCriteriaService {
-    pub fn new() -> Self {
+impl Default for JournalReversalCriteriaService {
+    fn default() -> Self {
         Self {
             sets: Arc::new(RwLock::new(Vec::new())),
             rules: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl JournalReversalCriteriaService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_criteria_set(

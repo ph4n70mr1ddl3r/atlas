@@ -33,6 +33,12 @@ pub struct DistributionSetService {
     lines: Arc<RwLock<Vec<DistributionSetLine>>>,
 }
 
+impl Default for DistributionSetService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DistributionSetService {
     pub fn new() -> Self {
         Self {

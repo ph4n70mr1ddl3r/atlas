@@ -19,11 +19,17 @@ pub struct TaxRegistrationService {
     registrations: Arc<RwLock<Vec<TaxRegistration>>>,
 }
 
-impl TaxRegistrationService {
-    pub fn new() -> Self {
+impl Default for TaxRegistrationService {
+    fn default() -> Self {
         Self {
             registrations: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl TaxRegistrationService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_registration(

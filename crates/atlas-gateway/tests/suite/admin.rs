@@ -36,7 +36,7 @@ async fn test_create_entity() {
 #[ignore]
 async fn test_update_entity() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     let app = build_router(state.clone());
     let (k, v) = auth_header(&admin_claims());
     let upd = json!({"definition": {
@@ -57,14 +57,14 @@ async fn test_update_entity() {
     let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
     let res: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(res["updated"], true);
-    assert_eq!(state.schema_engine.get_entity("test_items").unwrap().label, "Updated Item");
+    assert_eq!(state.core.schema_engine.get_entity("test_items").unwrap().label, "Updated Item");
 }
 
 #[tokio::test]
 #[ignore]
 async fn test_delete_entity() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let r = app.oneshot(Request::builder().method("DELETE").uri("/api/admin/schema/test_items")
@@ -77,7 +77,7 @@ async fn test_delete_entity() {
 #[tokio::test]
 async fn test_get_config() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let r = app.oneshot(Request::builder().uri("/api/admin/config").header(k, v).body(Body::empty()).unwrap()).await.unwrap();
@@ -90,7 +90,7 @@ async fn test_get_config() {
 #[tokio::test]
 async fn test_get_config_value() {
     let state = build_test_state().await;
-    state.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
+    state.core.schema_engine.upsert_entity(test_entity_definition()).await.unwrap();
     let app = build_router(state);
     let (k, v) = auth_header(&admin_claims());
     let r = app.oneshot(Request::builder().uri("/api/admin/config/entity.test_items").header(k, v).body(Body::empty()).unwrap()).await.unwrap();

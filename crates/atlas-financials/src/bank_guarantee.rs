@@ -33,6 +33,12 @@ pub struct BankGuaranteeService {
     amendments: Arc<RwLock<Vec<BankGuaranteeAmendment>>>,
 }
 
+impl Default for BankGuaranteeService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BankGuaranteeService {
     pub fn new() -> Self {
         Self {

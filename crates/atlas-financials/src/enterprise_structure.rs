@@ -34,12 +34,18 @@ pub struct EnterpriseStructureService {
     business_units: Arc<RwLock<Vec<BusinessUnit>>>,
 }
 
-impl EnterpriseStructureService {
-    pub fn new() -> Self {
+impl Default for EnterpriseStructureService {
+    fn default() -> Self {
         Self {
             legal_entities: Arc::new(RwLock::new(Vec::new())),
             business_units: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl EnterpriseStructureService {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_legal_entity(

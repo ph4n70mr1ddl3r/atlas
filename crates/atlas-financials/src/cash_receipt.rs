@@ -37,6 +37,12 @@ pub struct CashReceiptService {
     applications: Arc<RwLock<Vec<ReceiptApplication>>>,
 }
 
+impl Default for CashReceiptService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CashReceiptService {
     pub fn new() -> Self {
         Self {

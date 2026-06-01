@@ -4175,6 +4175,7 @@ impl DataAccessService {
 
     /// Checks if a user has access to a ledger and segment value
     #[must_use]
+    #[allow(clippy::type_complexity)]
     pub fn has_access(
         &self,
         target_ledger_id: RecordId,
